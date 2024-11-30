@@ -19,7 +19,7 @@ struct DEVICEDETAILS
 	// Limit frame rate
 	struct {
 		DWORD FrameCounter = 0;
-		LARGE_INTEGER Frequency = {}, ClickTime = {}, LastPresentTime = {};
+		LARGE_INTEGER LastPresentTime = {};
 	} Counter;
 
 	// Frame counter

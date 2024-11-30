@@ -929,6 +929,11 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (Config.LimitPerFrameFPS)
+	{
+		LimitFrameRate();
+	}
+
 	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 
 	if (SUCCEEDED(hr))
@@ -940,11 +945,6 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 			DOverlay.SetFPSCount(SHARED.AverageFPSCounter);
 		}
 #endif
-
-		if (Config.LimitPerFrameFPS)
-		{
-			LimitFrameRate();
-		}
 	}
 
 	return hr;
@@ -2109,6 +2109,11 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (Config.LimitPerFrameFPS)
+	{
+		LimitFrameRate();
+	}
+
 	HRESULT hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
 
 	if (SUCCEEDED(hr))
@@ -2120,11 +2125,6 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 			DOverlay.SetFPSCount(SHARED.AverageFPSCounter);
 		}
 #endif
-
-		if (Config.LimitPerFrameFPS)
-		{
-			LimitFrameRate();
-		}
 	}
 
 	return hr;
@@ -2420,29 +2420,37 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 	SHARED.Counter.FrameCounter++;
 
 	// Get performance frequency if not already cached
-	if (!SHARED.Counter.Frequency.QuadPart)
+	static LARGE_INTEGER Frequency = {};
+	if (!Frequency.QuadPart)
 	{
-		QueryPerformanceFrequency(&SHARED.Counter.Frequency);
+		QueryPerformanceFrequency(&Frequency);
 	}
-	LONGLONG TicksPerMS = SHARED.Counter.Frequency.QuadPart / 1000;
+	static LONGLONG TicksPerMS = Frequency.QuadPart / 1000;
 
 	// Calculate the delay time in ticks
-	const long double PerFrameFPS = Config.LimitPerFrameFPS;
-	const LONGLONG DelayTimeTicks = static_cast<LONGLONG>(static_cast<long double>(SHARED.Counter.Frequency.QuadPart) / PerFrameFPS);
+	static long double PerFrameFPS = Config.LimitPerFrameFPS;
+	static LONGLONG PreFrameTicks = static_cast<LONGLONG>(static_cast<long double>(Frequency.QuadPart) / PerFrameFPS);
 
 	// Get next tick time
-	if (!SHARED.Counter.LastPresentTime.QuadPart) QueryPerformanceCounter(&SHARED.Counter.LastPresentTime);
+	LARGE_INTEGER ClickTime = {};
+	QueryPerformanceCounter(&ClickTime);
 	LONGLONG TargetEndTicks = SHARED.Counter.LastPresentTime.QuadPart;
-	QueryPerformanceCounter(&SHARED.Counter.ClickTime);
-	do {
-		TargetEndTicks += DelayTimeTicks;
-	} while (TargetEndTicks - SHARED.Counter.ClickTime.QuadPart < 0);
+	LONGLONG FramesSinceLastCall = ((ClickTime.QuadPart - SHARED.Counter.LastPresentTime.QuadPart - 1) / PreFrameTicks) + 1;
+	if (SHARED.Counter.LastPresentTime.QuadPart == 0 || FramesSinceLastCall > 2)
+	{
+		QueryPerformanceCounter(&SHARED.Counter.LastPresentTime);
+		TargetEndTicks = SHARED.Counter.LastPresentTime.QuadPart;
+	}
+	else
+	{
+		TargetEndTicks += FramesSinceLastCall * PreFrameTicks;
+	}
 
 	// Wait for time to expire
 	bool DoLoop;
 	do {
-		QueryPerformanceCounter(&SHARED.Counter.ClickTime);
-		LONGLONG RemainingTicks = TargetEndTicks - SHARED.Counter.ClickTime.QuadPart;
+		QueryPerformanceCounter(&ClickTime);
+		LONGLONG RemainingTicks = TargetEndTicks - ClickTime.QuadPart;
 
 		// Check if we still need to wait
 		DoLoop = RemainingTicks > 0;
