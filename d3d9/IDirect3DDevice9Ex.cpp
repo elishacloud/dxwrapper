@@ -2427,8 +2427,8 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 	LONGLONG TicksPerMS = SHARED.Counter.Frequency.QuadPart / 1000;
 
 	// Calculate the delay time in ticks
-	const long double LimitPerFrameFPS = Config.LimitPerFrameFPS;
-	const LONGLONG DelayTimeTicks = static_cast<LONGLONG>(static_cast<long double>(SHARED.Counter.Frequency.QuadPart) / LimitPerFrameFPS);
+	const long double PerFrameFPS = Config.LimitPerFrameFPS;
+	const LONGLONG DelayTimeTicks = static_cast<LONGLONG>(static_cast<long double>(SHARED.Counter.Frequency.QuadPart) / PerFrameFPS);
 
 	// Get next tick time
 	if (!SHARED.Counter.LastPresentTime.QuadPart) QueryPerformanceCounter(&SHARED.Counter.LastPresentTime);
