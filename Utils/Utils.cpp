@@ -756,7 +756,7 @@ void Utils::BusyWaitYield(DWORD RemainingMS)
 		}();
 
 	// If remaining time is very small (e.g., 1 ms or less), use busy-wait with no operations
-	if (RemainingMS < 2 && supports_pause)
+	if (RemainingMS < 3 && supports_pause)
 	{
 		// Use _mm_pause or __asm { nop } to prevent unnecessary CPU cycles
 #ifdef YieldProcessor

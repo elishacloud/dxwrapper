@@ -2426,11 +2426,17 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 	}
 	LONGLONG TicksPerMS = SHARED.Counter.Frequency.QuadPart / 1000;
 
-	// Calculate the delay time in ticks (integer-based, no floating-point)
-	// DelayTimeMS is the time to wait per frame in milliseconds
-	double DelayTimeMS = 1000.0 / Config.LimitPerFrameFPS;
-	LONGLONG DelayTimeTicks = static_cast<LONGLONG>((DelayTimeMS * SHARED.Counter.Frequency.QuadPart) / 1000.0);
-	LONGLONG TargetEndTicks = DelayTimeTicks + SHARED.Counter.LastPresentTime.QuadPart;
+	// Calculate the delay time in ticks
+	const long double LimitPerFrameFPS = Config.LimitPerFrameFPS;
+	const LONGLONG DelayTimeTicks = static_cast<LONGLONG>(static_cast<long double>(SHARED.Counter.Frequency.QuadPart) / LimitPerFrameFPS);
+
+	// Get next tick time
+	if (!SHARED.Counter.LastPresentTime.QuadPart) QueryPerformanceCounter(&SHARED.Counter.LastPresentTime);
+	LONGLONG TargetEndTicks = SHARED.Counter.LastPresentTime.QuadPart;
+	QueryPerformanceCounter(&SHARED.Counter.ClickTime);
+	do {
+		TargetEndTicks += DelayTimeTicks;
+	} while (TargetEndTicks - SHARED.Counter.ClickTime.QuadPart < 0);
 
 	// Wait for time to expire
 	bool DoLoop;
@@ -2449,11 +2455,7 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 	} while (DoLoop);
 
 	// Update the last present time
-	QueryPerformanceCounter(&SHARED.Counter.LastPresentTime);
-	if (SHARED.Counter.LastPresentTime.QuadPart - TargetEndTicks < DelayTimeTicks / 2)
-	{
-		SHARED.Counter.LastPresentTime.QuadPart = TargetEndTicks;
-	}
+	SHARED.Counter.LastPresentTime.QuadPart = TargetEndTicks;
 }
 
 void m_IDirect3DDevice9Ex::CalculateFPS()
