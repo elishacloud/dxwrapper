@@ -23,6 +23,12 @@ char D3DIm700Path[MAX_PATH] = { '\0' };
 HMODULE hD3DIm = nullptr;
 HMODULE hD3DIm700 = nullptr;
 
+// Cached wrapper interface
+m_IDirect3D* Direct3DWrapperBackup = nullptr;
+m_IDirect3D2* Direct3DWrapperBackup2 = nullptr;
+m_IDirect3D3* Direct3DWrapperBackup3 = nullptr;
+m_IDirect3D7* Direct3DWrapperBackup7 = nullptr;
+
 HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -82,34 +88,23 @@ void *m_IDirect3DX::GetWrapperInterfaceX(DWORD DirectXVersion)
 {
 	switch (DirectXVersion)
 	{
+	case 0:
+		if (WrapperInterface7) return WrapperInterface7;
+		if (WrapperInterface3) return WrapperInterface3;
+		if (WrapperInterface2) return WrapperInterface2;
+		if (WrapperInterface) return WrapperInterface;
+		break;
 	case 1:
-		if (!WrapperInterface)
-		{
-			WrapperInterface = new m_IDirect3D((LPDIRECT3D)ProxyInterface, this);
-		}
-		return WrapperInterface;
+		return GetInterfaceAddress(WrapperInterface, Direct3DWrapperBackup, (LPDIRECT3D)ProxyInterface, this);
 	case 2:
-		if (!WrapperInterface2)
-		{
-			WrapperInterface2 = new m_IDirect3D2((LPDIRECT3D2)ProxyInterface, this);
-		}
-		return WrapperInterface2;
+		return GetInterfaceAddress(WrapperInterface2, Direct3DWrapperBackup2, (LPDIRECT3D2)ProxyInterface, this);
 	case 3:
-		if (!WrapperInterface3)
-		{
-			WrapperInterface3 = new m_IDirect3D3((LPDIRECT3D3)ProxyInterface, this);
-		}
-		return WrapperInterface3;
+		return GetInterfaceAddress(WrapperInterface3, Direct3DWrapperBackup3, (LPDIRECT3D3)ProxyInterface, this);
 	case 7:
-		if (!WrapperInterface7)
-		{
-			WrapperInterface7 = new m_IDirect3D7((LPDIRECT3D7)ProxyInterface, this);
-		}
-		return WrapperInterface7;
-	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-		return nullptr;
+		return GetInterfaceAddress(WrapperInterface7, Direct3DWrapperBackup7, (LPDIRECT3D7)ProxyInterface, this);
 	}
+	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+	return nullptr;
 }
 
 ULONG m_IDirect3DX::AddRef(DWORD DirectXVersion)
@@ -915,22 +910,11 @@ void m_IDirect3DX::InitDirect3D(DWORD DirectXVersion)
 
 void m_IDirect3DX::ReleaseDirect3D()
 {
-	if (WrapperInterface)
-	{
-		WrapperInterface->DeleteMe();
-	}
-	if (WrapperInterface2)
-	{
-		WrapperInterface2->DeleteMe();
-	}
-	if (WrapperInterface3)
-	{
-		WrapperInterface3->DeleteMe();
-	}
-	if (WrapperInterface7)
-	{
-		WrapperInterface7->DeleteMe();
-	}
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface, Direct3DWrapperBackup);
+	SaveInterfaceAddress(WrapperInterface2, Direct3DWrapperBackup2);
+	SaveInterfaceAddress(WrapperInterface3, Direct3DWrapperBackup3);
+	SaveInterfaceAddress(WrapperInterface7, Direct3DWrapperBackup7);
 
 	if (ddrawParent && !Config.Exiting)
 	{

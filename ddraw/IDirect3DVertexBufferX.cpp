@@ -16,6 +16,10 @@
 
 #include "ddraw.h"
 
+// Cached wrapper interface
+m_IDirect3DVertexBuffer* Direct3DVertexBufferWrapperBackup = nullptr;
+m_IDirect3DVertexBuffer7* Direct3DVertexBufferWrapperBackup7 = nullptr;
+
 HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -61,22 +65,17 @@ void *m_IDirect3DVertexBufferX::GetWrapperInterfaceX(DWORD DirectXVersion)
 {
 	switch (DirectXVersion)
 	{
+	case 0:
+		if (WrapperInterface7) return WrapperInterface7;
+		if (WrapperInterface) return WrapperInterface;
+		break;
 	case 1:
-		if (!WrapperInterface)
-		{
-			WrapperInterface = new m_IDirect3DVertexBuffer((LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
-		}
-		return WrapperInterface;
+		return GetInterfaceAddress(WrapperInterface, Direct3DVertexBufferWrapperBackup, (LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
 	case 7:
-		if (!WrapperInterface7)
-		{
-			WrapperInterface7 = new m_IDirect3DVertexBuffer7((LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
-		}
-		return WrapperInterface7;
-	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-		return nullptr;
+		return GetInterfaceAddress(WrapperInterface7, Direct3DVertexBufferWrapperBackup7, (LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
 	}
+	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+	return nullptr;
 }
 
 ULONG m_IDirect3DVertexBufferX::AddRef(DWORD DirectXVersion)
@@ -563,14 +562,9 @@ void m_IDirect3DVertexBufferX::InitVertexBuffer(DWORD DirectXVersion)
 
 void m_IDirect3DVertexBufferX::ReleaseVertexBuffer()
 {
-	if (WrapperInterface)
-	{
-		WrapperInterface->DeleteMe();
-	}
-	if (WrapperInterface7)
-	{
-		WrapperInterface7->DeleteMe();
-	}
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface, Direct3DVertexBufferWrapperBackup);
+	SaveInterfaceAddress(WrapperInterface7, Direct3DVertexBufferWrapperBackup7);
 
 	ReleaseD9Buffer(false, false);
 

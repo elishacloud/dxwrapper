@@ -18,40 +18,76 @@
 
 HRESULT m_IDirect3DTexture::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	if (!ProxyInterface)
+	{
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+		}
+		return E_NOINTERFACE;
+	}
 	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3DTexture::AddRef()
 {
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
 	return ProxyInterface->AddRef(DirectXVersion);
 }
 
 ULONG m_IDirect3DTexture::Release()
 {
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
 	return ProxyInterface->Release(DirectXVersion);
 }
 
 HRESULT m_IDirect3DTexture::Initialize(LPDIRECT3DDEVICE a, LPDIRECTDRAWSURFACE b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->Initialize(a, b);
 }
 
 HRESULT m_IDirect3DTexture::GetHandle(LPDIRECT3DDEVICE a, LPD3DTEXTUREHANDLE b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetHandle((LPDIRECT3DDEVICE2)a, b);
 }
 
 HRESULT m_IDirect3DTexture::PaletteChanged(DWORD a, DWORD b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->PaletteChanged(a, b);
 }
 
 HRESULT m_IDirect3DTexture::Load(LPDIRECT3DTEXTURE a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->Load((LPDIRECT3DTEXTURE2)a);
 }
 
 HRESULT m_IDirect3DTexture::Unload()
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->Unload();
 }

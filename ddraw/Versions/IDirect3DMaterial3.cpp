@@ -18,30 +18,58 @@
 
 HRESULT m_IDirect3DMaterial3::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	if (!ProxyInterface)
+	{
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+		}
+		return E_NOINTERFACE;
+	}
 	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3DMaterial3::AddRef()
 {
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
 	return ProxyInterface->AddRef(DirectXVersion);
 }
 
 ULONG m_IDirect3DMaterial3::Release()
 {
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
 	return ProxyInterface->Release(DirectXVersion);
 }
 
 HRESULT m_IDirect3DMaterial3::SetMaterial(LPD3DMATERIAL a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->SetMaterial(a);
 }
 
 HRESULT m_IDirect3DMaterial3::GetMaterial(LPD3DMATERIAL a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetMaterial(a);
 }
 
 HRESULT m_IDirect3DMaterial3::GetHandle(LPDIRECT3DDEVICE3 a, LPD3DMATERIALHANDLE b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetHandle(a, b);
 }

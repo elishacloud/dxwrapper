@@ -18,21 +18,41 @@
 
 HRESULT m_IDirect3D3::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	if (!ProxyInterface)
+	{
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+		}
+		return E_NOINTERFACE;
+	}
 	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3D3::AddRef()
 {
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
 	return ProxyInterface->AddRef(DirectXVersion);
 }
 
 ULONG m_IDirect3D3::Release()
 {
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
 	return ProxyInterface->Release(DirectXVersion);
 }
 
 HRESULT m_IDirect3D3::EnumDevices(LPD3DENUMDEVICESCALLBACK a, LPVOID b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->EnumDevices(a, b, DirectXVersion);
 }
 
@@ -53,6 +73,10 @@ HRESULT m_IDirect3D3::CreateViewport(LPDIRECT3DVIEWPORT3 * a, LPUNKNOWN b)
 
 HRESULT m_IDirect3D3::FindDevice(LPD3DFINDDEVICESEARCH a, LPD3DFINDDEVICERESULT b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->FindDevice(a, b);
 }
 
@@ -60,6 +84,14 @@ HRESULT m_IDirect3D3::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE4 b, LPDIRECT3
 {
 	UNREFERENCED_PARAMETER(d);
 
+	if (!ProxyInterface)
+	{
+		if (c)
+		{
+			*c = nullptr;
+		}
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->CreateDevice(a, (LPDIRECTDRAWSURFACE7)b, (LPDIRECT3DDEVICE7*)c, d, DirectXVersion);
 }
 
@@ -67,15 +99,31 @@ HRESULT m_IDirect3D3::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC a, LPDIRECT3DVERT
 {
 	UNREFERENCED_PARAMETER(d);
 
+	if (!ProxyInterface)
+	{
+		if (b)
+		{
+			*b = nullptr;
+		}
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->CreateVertexBuffer(a, (LPDIRECT3DVERTEXBUFFER7*)b, c, d, DirectXVersion);
 }
 
 HRESULT m_IDirect3D3::EnumZBufferFormats(REFCLSID a, LPD3DENUMPIXELFORMATSCALLBACK b, LPVOID c)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->EnumZBufferFormats(a, b, c);
 }
 
 HRESULT m_IDirect3D3::EvictManagedTextures()
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->EvictManagedTextures();
 }

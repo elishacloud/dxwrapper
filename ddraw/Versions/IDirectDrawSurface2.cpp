@@ -18,6 +18,14 @@
 
 HRESULT m_IDirectDrawSurface2::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
+	if (!ProxyInterface)
+	{
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+		}
+		return E_NOINTERFACE;
+	}
 	if (ppvObj && riid == IID_GetMipMapLevel)
 	{
 		*ppvObj = (void*)MipMapLevel;
@@ -28,190 +36,366 @@ HRESULT m_IDirectDrawSurface2::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 
 ULONG m_IDirectDrawSurface2::AddRef()
 {
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
 	return ProxyInterface->AddRef(DirectXVersion);
 }
 
 ULONG m_IDirectDrawSurface2::Release()
 {
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
 	return ProxyInterface->Release(DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface2::AddAttachedSurface(LPDIRECTDRAWSURFACE2 a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->AddAttachedSurface((LPDIRECTDRAWSURFACE7)a);
 }
 
 HRESULT m_IDirectDrawSurface2::AddOverlayDirtyRect(LPRECT a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->AddOverlayDirtyRect(a);
 }
 
 HRESULT m_IDirectDrawSurface2::Blt(LPRECT a, LPDIRECTDRAWSURFACE2 b, LPRECT c, DWORD d, LPDDBLTFX e)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->Blt(a, (LPDIRECTDRAWSURFACE7)b, c, d, e, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface2::BltBatch(LPDDBLTBATCH a, DWORD b, DWORD c)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->BltBatch(a, b, c, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface2::BltFast(DWORD a, DWORD b, LPDIRECTDRAWSURFACE2 c, LPRECT d, DWORD e)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->BltFast(a, b, (LPDIRECTDRAWSURFACE7)c, d, e, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface2::DeleteAttachedSurface(DWORD a, LPDIRECTDRAWSURFACE2 b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->DeleteAttachedSurface(a, (LPDIRECTDRAWSURFACE7)b);
 }
 
 HRESULT m_IDirectDrawSurface2::EnumAttachedSurfaces(LPVOID a, LPDDENUMSURFACESCALLBACK b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->EnumAttachedSurfaces(a, b, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface2::EnumOverlayZOrders(DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK c)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->EnumOverlayZOrders(a, b, c, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface2::Flip(LPDIRECTDRAWSURFACE2 a, DWORD b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->Flip((LPDIRECTDRAWSURFACE7)a, b, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface2::GetAttachedSurface(LPDDSCAPS a, LPDIRECTDRAWSURFACE2 FAR * b)
 {
+	if (!ProxyInterface)
+	{
+		if (b)
+		{
+			*b = nullptr;
+		}
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetAttachedSurface(a, (LPDIRECTDRAWSURFACE7*)b, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface2::GetBltStatus(DWORD a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetBltStatus(a);
 }
 
 HRESULT m_IDirectDrawSurface2::GetCaps(LPDDSCAPS a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetCaps(a);
 }
 
 HRESULT m_IDirectDrawSurface2::GetClipper(LPDIRECTDRAWCLIPPER FAR * a)
 {
+	if (!ProxyInterface)
+	{
+		if (a)
+		{
+			*a = nullptr;
+		}
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetClipper(a);
 }
 
 HRESULT m_IDirectDrawSurface2::GetColorKey(DWORD a, LPDDCOLORKEY b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetColorKey(a, b);
 }
 
 HRESULT m_IDirectDrawSurface2::GetDC(HDC FAR * a)
 {
+	if (!ProxyInterface)
+	{
+		if (a)
+		{
+			*a = nullptr;
+		}
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetDC(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface2::GetFlipStatus(DWORD a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetFlipStatus(a);
 }
 
 HRESULT m_IDirectDrawSurface2::GetOverlayPosition(LPLONG a, LPLONG b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetOverlayPosition(a, b);
 }
 
 HRESULT m_IDirectDrawSurface2::GetPalette(LPDIRECTDRAWPALETTE FAR * a)
 {
+	if (!ProxyInterface)
+	{
+		if (a)
+		{
+			*a = nullptr;
+		}
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetPalette(a);
 }
 
 HRESULT m_IDirectDrawSurface2::GetPixelFormat(LPDDPIXELFORMAT a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetPixelFormat(a);
 }
 
 HRESULT m_IDirectDrawSurface2::GetSurfaceDesc(LPDDSURFACEDESC a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetSurfaceDesc(a, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface2::Initialize(LPDIRECTDRAW a, LPDDSURFACEDESC b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->Initialize(a, b);
 }
 
 HRESULT m_IDirectDrawSurface2::IsLost()
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->IsLost();
 }
 
 HRESULT m_IDirectDrawSurface2::Lock(LPRECT a, LPDDSURFACEDESC b, DWORD c, HANDLE d)
 {
+	if (!ProxyInterface)
+	{
+		if (b)
+		{
+			b->lpSurface = nullptr;
+		}
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->Lock(a, b, c, d, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface2::ReleaseDC(HDC a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->ReleaseDC(a);
 }
 
 HRESULT m_IDirectDrawSurface2::Restore()
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->Restore();
 }
 
 HRESULT m_IDirectDrawSurface2::SetClipper(LPDIRECTDRAWCLIPPER a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->SetClipper(a);
 }
 
 HRESULT m_IDirectDrawSurface2::SetColorKey(DWORD a, LPDDCOLORKEY b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->SetColorKey(a, b);
 }
 
 HRESULT m_IDirectDrawSurface2::SetOverlayPosition(LONG a, LONG b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->SetOverlayPosition(a, b);
 }
 
 HRESULT m_IDirectDrawSurface2::SetPalette(LPDIRECTDRAWPALETTE a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->SetPalette(a);
 }
 
 HRESULT m_IDirectDrawSurface2::Unlock(LPVOID a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->Unlock((LPRECT)a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface2::UpdateOverlay(LPRECT a, LPDIRECTDRAWSURFACE2 b, LPRECT c, DWORD d, LPDDOVERLAYFX e)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->UpdateOverlay(a, (LPDIRECTDRAWSURFACE7)b, c, d, e);
 }
 
 HRESULT m_IDirectDrawSurface2::UpdateOverlayDisplay(DWORD a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->UpdateOverlayDisplay(a);
 }
 
 HRESULT m_IDirectDrawSurface2::UpdateOverlayZOrder(DWORD a, LPDIRECTDRAWSURFACE2 b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->UpdateOverlayZOrder(a, (LPDIRECTDRAWSURFACE7)b);
 }
 
 HRESULT m_IDirectDrawSurface2::GetDDInterface(LPVOID FAR * a)
 {
+	if (!ProxyInterface)
+	{
+		if (a)
+		{
+			a = nullptr;
+		}
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetDDInterface(a, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface2::PageLock(DWORD a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->PageLock(a);
 }
 
 HRESULT m_IDirectDrawSurface2::PageUnlock(DWORD a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->PageUnlock(a);
 }

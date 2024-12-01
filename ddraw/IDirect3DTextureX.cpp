@@ -16,6 +16,10 @@
 
 #include "ddraw.h"
 
+// Cached wrapper interface
+m_IDirect3DTexture* Direct3DTextureWrapperBackup = nullptr;
+m_IDirect3DTexture2* Direct3DTextureWrapperBackup2 = nullptr;
+
 HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -66,21 +70,12 @@ void *m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		if (!WrapperInterface)
-		{
-			WrapperInterface = new m_IDirect3DTexture((LPDIRECT3DTEXTURE)ProxyInterface, this);
-		}
-		return WrapperInterface;
+		return GetInterfaceAddress(WrapperInterface, Direct3DTextureWrapperBackup, (LPDIRECT3DTEXTURE)ProxyInterface, this);
 	case 2:
-		if (!WrapperInterface2)
-		{
-			WrapperInterface2 = new m_IDirect3DTexture2((LPDIRECT3DTEXTURE2)ProxyInterface, this);
-		}
-		return WrapperInterface2;
-	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-		return nullptr;
+		return GetInterfaceAddress(WrapperInterface2, Direct3DTextureWrapperBackup2, (LPDIRECT3DTEXTURE2)ProxyInterface, this);
 	}
+	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+	return nullptr;
 }
 
 ULONG m_IDirect3DTextureX::AddRef(DWORD DirectXVersion)
@@ -369,14 +364,9 @@ void m_IDirect3DTextureX::InitTexture(DWORD DirectXVersion)
 
 void m_IDirect3DTextureX::ReleaseTexture()
 {
-	if (WrapperInterface)
-	{
-		WrapperInterface->DeleteMe();
-	}
-	if (WrapperInterface2)
-	{
-		WrapperInterface2->DeleteMe();
-	}
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface, Direct3DTextureWrapperBackup);
+	SaveInterfaceAddress(WrapperInterface2, Direct3DTextureWrapperBackup2);
 
 	if (tHandle && D3DDeviceInterface && *D3DDeviceInterface)
 	{

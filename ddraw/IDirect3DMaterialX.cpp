@@ -16,6 +16,11 @@
 
 #include "ddraw.h"
 
+// Cached wrapper interface
+m_IDirect3DMaterial* Direct3DMaterialWrapperBackup = nullptr;
+m_IDirect3DMaterial2* Direct3DMaterialWrapperBackup2 = nullptr;
+m_IDirect3DMaterial3* Direct3DMaterialWrapperBackup3 = nullptr;
+
 HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -61,28 +66,20 @@ void *m_IDirect3DMaterialX::GetWrapperInterfaceX(DWORD DirectXVersion)
 {
 	switch (DirectXVersion)
 	{
+	case 0:
+		if (WrapperInterface3) return WrapperInterface3;
+		if (WrapperInterface2) return WrapperInterface2;
+		if (WrapperInterface) return WrapperInterface;
+		break;
 	case 1:
-		if (!WrapperInterface)
-		{
-			WrapperInterface = new m_IDirect3DMaterial((LPDIRECT3DMATERIAL)ProxyInterface, this);
-		}
-		return WrapperInterface;
+		return GetInterfaceAddress(WrapperInterface, Direct3DMaterialWrapperBackup, (LPDIRECT3DMATERIAL)ProxyInterface, this);
 	case 2:
-		if (!WrapperInterface2)
-		{
-			WrapperInterface2 = new m_IDirect3DMaterial2((LPDIRECT3DMATERIAL2)ProxyInterface, this);
-		}
-		return WrapperInterface2;
+		return GetInterfaceAddress(WrapperInterface2, Direct3DMaterialWrapperBackup2, (LPDIRECT3DMATERIAL2)ProxyInterface, this);
 	case 3:
-		if (!WrapperInterface3)
-		{
-			WrapperInterface3 = new m_IDirect3DMaterial3((LPDIRECT3DMATERIAL3)ProxyInterface, this);
-		}
-		return WrapperInterface3;
-	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-		return nullptr;
+		return GetInterfaceAddress(WrapperInterface3, Direct3DMaterialWrapperBackup3, (LPDIRECT3DMATERIAL3)ProxyInterface, this);
 	}
+	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+	return nullptr;
 }
 
 ULONG m_IDirect3DMaterialX::AddRef(DWORD DirectXVersion)
@@ -367,18 +364,10 @@ void m_IDirect3DMaterialX::InitMaterial(DWORD DirectXVersion)
 
 void m_IDirect3DMaterialX::ReleaseMaterial()
 {
-	if (WrapperInterface)
-	{
-		WrapperInterface->DeleteMe();
-	}
-	if (WrapperInterface2)
-	{
-		WrapperInterface2->DeleteMe();
-	}
-	if (WrapperInterface3)
-	{
-		WrapperInterface3->DeleteMe();
-	}
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface, Direct3DMaterialWrapperBackup);
+	SaveInterfaceAddress(WrapperInterface2, Direct3DMaterialWrapperBackup2);
+	SaveInterfaceAddress(WrapperInterface3, Direct3DMaterialWrapperBackup3);
 
 	if (mHandle && D3DDeviceInterface && *D3DDeviceInterface)
 	{

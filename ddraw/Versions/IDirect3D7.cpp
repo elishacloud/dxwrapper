@@ -18,40 +18,84 @@
 
 HRESULT m_IDirect3D7::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	if (!ProxyInterface)
+	{
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+		}
+		return E_NOINTERFACE;
+	}
 	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3D7::AddRef()
 {
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
 	return ProxyInterface->AddRef(DirectXVersion);
 }
 
 ULONG m_IDirect3D7::Release()
 {
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
 	return ProxyInterface->Release(DirectXVersion);
 }
 
 HRESULT m_IDirect3D7::EnumDevices(LPD3DENUMDEVICESCALLBACK7 a, LPVOID b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->EnumDevices7(a, b, DirectXVersion);
 }
 
 HRESULT m_IDirect3D7::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE7 b, LPDIRECT3DDEVICE7 * c)
 {
+	if (!ProxyInterface)
+	{
+		if (c)
+		{
+			*c = nullptr;
+		}
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->CreateDevice(a, b, c, nullptr, DirectXVersion);
 }
 
 HRESULT m_IDirect3D7::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC a, LPDIRECT3DVERTEXBUFFER7 * b, DWORD c)
 {
+	if (!ProxyInterface)
+	{
+		if (b)
+		{
+			*b = nullptr;
+		}
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->CreateVertexBuffer(a, b, c, nullptr, DirectXVersion);
 }
 
 HRESULT m_IDirect3D7::EnumZBufferFormats(REFCLSID a, LPD3DENUMPIXELFORMATSCALLBACK b, LPVOID c)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->EnumZBufferFormats(a, b, c);
 }
 
 HRESULT m_IDirect3D7::EvictManagedTextures()
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->EvictManagedTextures();
 }
