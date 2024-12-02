@@ -557,6 +557,12 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 	case 7:
 	case 9:
 	{
+		if (!lpD3DFDS || !lpD3DFDR)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid parameters!");
+			return DDERR_INVALIDPARAMS;
+		}
+
 		struct EnumFindDevice
 		{
 			bool Found = false;
@@ -587,15 +593,22 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 
 		if (CallbackContext.Found)
 		{
+			DWORD Size = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
+			if (Size != D3DDEVICEDESC1_SIZE && Size != D3DDEVICEDESC5_SIZE && Size != D3DDEVICEDESC6_SIZE)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Size);
+				return DDERR_INVALIDPARAMS;
+			}
+
 			lpD3DFDR->guid = CallbackContext.DeviceDesc7.deviceGUID;
-			if (lpD3DFDR->ddHwDesc.dwSize)
-			{
-				ConvertDeviceDesc(lpD3DFDR->ddHwDesc, CallbackContext.DeviceDesc7);
-			}
-			if (lpD3DFDR->ddSwDesc.dwSize)
-			{
-				ConvertDeviceDesc(lpD3DFDR->ddSwDesc, CallbackContext.DeviceDesc7);
-			}
+
+			LPD3DDEVICEDESC lpddHwDesc = &lpD3DFDR->ddHwDesc;
+			lpddHwDesc->dwSize = Size;
+			ConvertDeviceDesc(*lpddHwDesc, CallbackContext.DeviceDesc7);
+
+			LPD3DDEVICEDESC lpddSwDesc = (LPD3DDEVICEDESC)((DWORD)lpddHwDesc + Size);
+			lpddSwDesc->dwSize = Size;
+			ConvertDeviceDesc(*lpddSwDesc, CallbackContext.DeviceDesc7);
 
 			return D3D_OK;
 		}
