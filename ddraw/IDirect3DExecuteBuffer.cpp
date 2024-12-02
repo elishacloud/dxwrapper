@@ -16,9 +16,64 @@
 
 #include "ddraw.h"
 
+// Cached wrapper interface
+namespace {
+	m_IDirect3DExecuteBuffer* WrapperInterfaceBackup = nullptr;
+}
+
+inline void SaveInterfaceAddress(m_IDirect3DExecuteBuffer* Interface, m_IDirect3DExecuteBuffer*& InterfaceBackup)
+{
+	if (Interface)
+	{
+		SetCriticalSection();
+		Interface->SetProxy(nullptr, nullptr);
+		if (InterfaceBackup)
+		{
+			InterfaceBackup->DeleteMe();
+			InterfaceBackup = nullptr;
+		}
+		InterfaceBackup = Interface;
+		ReleaseCriticalSection();
+	}
+}
+
+m_IDirect3DExecuteBuffer* CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX** NewD3DDInterface)
+{
+	SetCriticalSection();
+	m_IDirect3DExecuteBuffer* Interface = nullptr;
+	if (WrapperInterfaceBackup)
+	{
+		Interface = WrapperInterfaceBackup;
+		WrapperInterfaceBackup = nullptr;
+		Interface->SetProxy(aOriginal, NewD3DDInterface);
+	}
+	else
+	{
+		if (aOriginal)
+		{
+			Interface = new m_IDirect3DExecuteBuffer(aOriginal);
+		}
+		else
+		{
+			Interface = new m_IDirect3DExecuteBuffer(NewD3DDInterface);
+		}
+	}
+	ReleaseCriticalSection();
+	return Interface;
+}
+
 HRESULT m_IDirect3DExecuteBuffer::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
+
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+		}
+		return E_NOINTERFACE;
+	}
 
 	if (!ppvObj)
 	{
@@ -53,6 +108,11 @@ ULONG m_IDirect3DExecuteBuffer::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		return 0;
+	}
+
 	if (!ProxyInterface)
 	{
 		return InterlockedIncrement(&RefCount);
@@ -64,6 +124,11 @@ ULONG m_IDirect3DExecuteBuffer::AddRef()
 ULONG m_IDirect3DExecuteBuffer::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		return 0;
+	}
 
 	LONG ref;
 
@@ -78,7 +143,7 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 
 	if (ref == 0)
 	{
-		delete this;
+		SaveInterfaceAddress(this, WrapperInterfaceBackup);
 	}
 
 	return ref;
@@ -87,6 +152,11 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 HRESULT m_IDirect3DExecuteBuffer::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPD3DEXECUTEBUFFERDESC lpDesc)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 
 	if (!ProxyInterface)
 	{
@@ -106,6 +176,11 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
+
 	if (!ProxyInterface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
@@ -118,6 +193,11 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 HRESULT m_IDirect3DExecuteBuffer::Unlock()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 
 	if (!ProxyInterface)
 	{
@@ -132,6 +212,11 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
+
 	if (!ProxyInterface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
@@ -144,6 +229,11 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpData)
 HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 
 	if (!ProxyInterface)
 	{
@@ -158,6 +248,11 @@ HRESULT m_IDirect3DExecuteBuffer::Validate(LPDWORD lpdwOffset, LPD3DVALIDATECALL
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
+
 	if (!ProxyInterface)
 	{
 		// The IDirect3DExecuteBuffer::Validate method is not currently implemented in Windows.
@@ -170,6 +265,11 @@ HRESULT m_IDirect3DExecuteBuffer::Validate(LPDWORD lpdwOffset, LPD3DVALIDATECALL
 HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 
 	if (!ProxyInterface)
 	{

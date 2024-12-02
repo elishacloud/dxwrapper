@@ -24,7 +24,7 @@ namespace {
 	m_IDirectDrawPalette* WrapperInterfaceBackup = nullptr;
 }
 
-inline void SaveDirectDrawPaletteInterface(m_IDirectDrawPalette* Interface, m_IDirectDrawPalette*& InterfaceBackup)
+inline void SaveInterfaceAddress(m_IDirectDrawPalette* Interface, m_IDirectDrawPalette*& InterfaceBackup)
 {
 	if (Interface)
 	{
@@ -146,7 +146,7 @@ ULONG m_IDirectDrawPalette::Release()
 
 	if (ref == 0)
 	{
-		SaveDirectDrawPaletteInterface(this, WrapperInterfaceBackup);
+		SaveInterfaceAddress(this, WrapperInterfaceBackup);
 	}
 
 	return ref;

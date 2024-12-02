@@ -463,7 +463,7 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 			return DDERR_INVALIDPARAMS;
 		}
 
-		m_IDirectDrawClipper* ClipperX = new m_IDirectDrawClipper(this, dwFlags);
+		m_IDirectDrawClipper* ClipperX = CreateDirectDrawClipper(nullptr, this, dwFlags);
 
 		*lplpDDClipper = ClipperX;
 
@@ -474,7 +474,7 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 
 	if (SUCCEEDED(hr) && lplpDDClipper)
 	{
-		*lplpDDClipper = new m_IDirectDrawClipper(*lplpDDClipper);
+		*lplpDDClipper = CreateDirectDrawClipper(*lplpDDClipper, nullptr, dwFlags);
 	}
 
 	return hr;
@@ -4227,7 +4227,7 @@ HRESULT m_IDirectDrawX::CreateColorInterface(LPVOID *ppvObj)
 
 	if (!ColorControlInterface)
 	{
-		ColorControlInterface = new m_IDirectDrawColorControl(this);
+		ColorControlInterface = CreateDirectDrawColorControl(nullptr, this);
 	}
 
 	*ppvObj = ColorControlInterface;
@@ -4244,7 +4244,7 @@ HRESULT m_IDirectDrawX::CreateGammaInterface(LPVOID *ppvObj)
 
 	if (!GammaControlInterface)
 	{
-		GammaControlInterface = new m_IDirectDrawGammaControl(this);
+		GammaControlInterface = CreateDirectDrawGammaControl(nullptr, this);
 	}
 
 	*ppvObj = GammaControlInterface;

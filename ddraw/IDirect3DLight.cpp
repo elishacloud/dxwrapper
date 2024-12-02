@@ -16,9 +16,64 @@
 
 #include "ddraw.h"
 
+// Cached wrapper interface
+namespace {
+	m_IDirect3DLight* WrapperInterfaceBackup = nullptr;
+}
+
+inline void SaveInterfaceAddress(m_IDirect3DLight* Interface, m_IDirect3DLight*& InterfaceBackup)
+{
+	if (Interface)
+	{
+		SetCriticalSection();
+		Interface->SetProxy(nullptr, nullptr);
+		if (InterfaceBackup)
+		{
+			InterfaceBackup->DeleteMe();
+			InterfaceBackup = nullptr;
+		}
+		InterfaceBackup = Interface;
+		ReleaseCriticalSection();
+	}
+}
+
+m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DDeviceX** NewD3DDInterface)
+{
+	SetCriticalSection();
+	m_IDirect3DLight* Interface = nullptr;
+	if (WrapperInterfaceBackup)
+	{
+		Interface = WrapperInterfaceBackup;
+		WrapperInterfaceBackup = nullptr;
+		Interface->SetProxy(aOriginal, NewD3DDInterface);
+	}
+	else
+	{
+		if (aOriginal)
+		{
+			Interface = new m_IDirect3DLight(aOriginal);
+		}
+		else
+		{
+			Interface = new m_IDirect3DLight(NewD3DDInterface);
+		}
+	}
+	ReleaseCriticalSection();
+	return Interface;
+}
+
 HRESULT m_IDirect3DLight::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
+
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+		}
+		return E_NOINTERFACE;
+	}
 
 	if (!ppvObj)
 	{
@@ -53,6 +108,11 @@ ULONG m_IDirect3DLight::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		return 0;
+	}
+
 	if (!ProxyInterface)
 	{
 		return InterlockedIncrement(&RefCount);
@@ -64,6 +124,11 @@ ULONG m_IDirect3DLight::AddRef()
 ULONG m_IDirect3DLight::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		return 0;
+	}
 
 	LONG ref;
 
@@ -78,7 +143,7 @@ ULONG m_IDirect3DLight::Release()
 
 	if (ref == 0)
 	{
-		delete this;
+		SaveInterfaceAddress(this, WrapperInterfaceBackup);
 	}
 
 	return ref;
@@ -87,6 +152,11 @@ ULONG m_IDirect3DLight::Release()
 HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 
 	if (!ProxyInterface)
 	{
@@ -105,6 +175,11 @@ HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 
 	if (!ProxyInterface)
 	{
@@ -152,6 +227,11 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface && !D3DDeviceInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 
 	if (!ProxyInterface)
 	{
@@ -223,7 +303,7 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 
 void m_IDirect3DLight::InitInterface()
 {
-	// To add later
+	LightSet = false;
 }
 
 void m_IDirect3DLight::ReleaseInterface()

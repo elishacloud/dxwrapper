@@ -1,5 +1,7 @@
 #pragma once
 
+m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DDeviceX** NewD3DDInterface);
+
 class m_IDirect3DLight : public IDirect3DLight, public AddressLookupTableDdrawObject
 {
 private:
@@ -40,6 +42,23 @@ public:
 		ReleaseInterface();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
+	}
+
+	void SetProxy(IDirect3DLight* NewProxyInterface, m_IDirect3DDeviceX** NewD3DDInterface)
+	{
+		ProxyInterface = NewProxyInterface;
+		D3DDeviceInterface = NewD3DDInterface;
+		if (NewProxyInterface || NewD3DDInterface)
+		{
+			RefCount = 1;
+			InitInterface();
+			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		}
+		else
+		{
+			ReleaseInterface();
+			ProxyAddressLookupTable.DeleteAddress(this);
+		}
 	}
 
 	/*** IUnknown methods ***/

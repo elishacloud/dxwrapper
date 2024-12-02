@@ -418,7 +418,7 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 			return DDERR_INVALIDOBJECT;
 		}
 
-		*lplpDirect3DLight = (LPDIRECT3DLIGHT)new m_IDirect3DLight(ddrawParent->GetCurrentD3DDevice());
+		*lplpDirect3DLight = (LPDIRECT3DLIGHT)CreateDirect3DLight(nullptr, ddrawParent->GetCurrentD3DDevice());
 
 		return D3D_OK;
 	}
@@ -428,7 +428,7 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 
 	if (SUCCEEDED(hr) && lplpDirect3DLight)
 	{
-		*lplpDirect3DLight = new m_IDirect3DLight(*lplpDirect3DLight);
+		*lplpDirect3DLight = CreateDirect3DLight(*lplpDirect3DLight, nullptr);
 	}
 
 	return hr;

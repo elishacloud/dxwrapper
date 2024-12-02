@@ -1,5 +1,7 @@
 #pragma once
 
+m_IDirect3DExecuteBuffer* CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX** NewD3DDInterface);
+
 class m_IDirect3DExecuteBuffer : public IDirect3DExecuteBuffer, public AddressLookupTableDdrawObject
 {
 private:
@@ -38,6 +40,23 @@ public:
 		ReleaseInterface();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
+	}
+
+	void SetProxy(IDirect3DExecuteBuffer* NewProxyInterface, m_IDirect3DDeviceX** NewD3DDInterface)
+	{
+		ProxyInterface = NewProxyInterface;
+		D3DDeviceInterface = NewD3DDInterface;
+		if (NewProxyInterface || NewD3DDInterface)
+		{
+			RefCount = 1;
+			InitInterface();
+			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		}
+		else
+		{
+			ReleaseInterface();
+			ProxyAddressLookupTable.DeleteAddress(this);
+		}
 	}
 
 	/*** IUnknown methods ***/

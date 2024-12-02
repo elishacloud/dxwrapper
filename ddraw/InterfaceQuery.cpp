@@ -148,15 +148,15 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 	{
 		if (riid == IID_IDirectDrawColorControl)
 		{
-			*ppvObj = new m_IDirectDrawColorControl((IDirectDrawColorControl*)nullptr);
+			*ppvObj = CreateDirectDrawColorControl((IDirectDrawColorControl*)nullptr, nullptr);
 		}
 		else if (riid == IID_IDirectDrawGammaControl)
 		{
-			*ppvObj = new m_IDirectDrawGammaControl((IDirectDrawGammaControl*)nullptr);
+			*ppvObj = CreateDirectDrawGammaControl((IDirectDrawGammaControl*)nullptr, nullptr);
 		}
 		else if (riid == IID_IDirectDrawClipper)
 		{
-			*ppvObj = new m_IDirectDrawClipper(nullptr);
+			*ppvObj = CreateDirectDrawClipper(nullptr, nullptr, 0);
 		}
 		else if (Config.DirectShowEmulation && (riid == IID_IMediaStream || riid == IID_IAMMediaStream))
 		{

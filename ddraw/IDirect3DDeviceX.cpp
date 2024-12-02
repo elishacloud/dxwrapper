@@ -192,7 +192,7 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 
 	if (SUCCEEDED(hr) && lplpDirect3DExecuteBuffer)
 	{
-		*lplpDirect3DExecuteBuffer = new m_IDirect3DExecuteBuffer(*lplpDirect3DExecuteBuffer);
+		*lplpDirect3DExecuteBuffer = CreateDirect3DExecuteBuffer(*lplpDirect3DExecuteBuffer, nullptr);
 	}
 
 	return hr;

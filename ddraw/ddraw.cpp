@@ -369,7 +369,7 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 			return DDERR_INVALIDPARAMS;
 		}
 
-		m_IDirectDrawClipper* ClipperX = new m_IDirectDrawClipper(nullptr, dwFlags);
+		m_IDirectDrawClipper* ClipperX = CreateDirectDrawClipper(nullptr, nullptr, dwFlags);
 
 		AddBaseClipperToVetor(ClipperX);
 
@@ -389,7 +389,7 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 
 	if (SUCCEEDED(hr) && lplpDDClipper)
 	{
-		*lplpDDClipper = new m_IDirectDrawClipper(*lplpDDClipper);
+		*lplpDDClipper = CreateDirectDrawClipper(*lplpDDClipper, nullptr, dwFlags);
 	}
 
 	return hr;

@@ -18,6 +18,52 @@
 
 #include "ddraw.h"
 
+// Cached wrapper interface
+namespace {
+	m_IDirectDrawClipper* WrapperInterfaceBackup = nullptr;
+}
+
+inline void SaveInterfaceAddress(m_IDirectDrawClipper* Interface, m_IDirectDrawClipper*& InterfaceBackup)
+{
+	if (Interface)
+	{
+		SetCriticalSection();
+		Interface->SetProxy(nullptr, nullptr, 0);
+		if (InterfaceBackup)
+		{
+			InterfaceBackup->DeleteMe();
+			InterfaceBackup = nullptr;
+		}
+		InterfaceBackup = Interface;
+		ReleaseCriticalSection();
+	}
+}
+
+m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags)
+{
+	SetCriticalSection();
+	m_IDirectDrawClipper* Interface = nullptr;
+	if (WrapperInterfaceBackup)
+	{
+		Interface = WrapperInterfaceBackup;
+		WrapperInterfaceBackup = nullptr;
+		Interface->SetProxy(aOriginal, NewParent, dwFlags);
+	}
+	else
+	{
+		if (aOriginal)
+		{
+			Interface = new m_IDirectDrawClipper(aOriginal);
+		}
+		else
+		{
+			Interface = new m_IDirectDrawClipper(NewParent, dwFlags);
+		}
+	}
+	ReleaseCriticalSection();
+	return Interface;
+}
+
 HRESULT m_IDirectDrawClipper::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -80,7 +126,7 @@ ULONG m_IDirectDrawClipper::Release()
 
 	if (ref == 0)
 	{
-		delete this;
+		SaveInterfaceAddress(this, WrapperInterfaceBackup);
 	}
 
 	return ref;
@@ -312,8 +358,14 @@ HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 /*** Helper functions ***/
 /************************/
 
-void m_IDirectDrawClipper::InitInterface()
+void m_IDirectDrawClipper::InitInterface(DWORD dwFlags)
 {
+	clipperCaps = dwFlags;
+	cliphWnd = nullptr;
+	ClipList.clear();
+	IsClipListSet = false;
+	IsClipListChangedFlag = false;
+
 	if (ddrawParent)
 	{
 		ddrawParent->AddClipperToVector(this);
