@@ -17,9 +17,11 @@
 #include "ddraw.h"
 
 // Cached wrapper interface
-m_IDirect3DViewport* Direct3DViewportWrapperBackup = nullptr;
-m_IDirect3DViewport2* Direct3DViewportWrapperBackup2 = nullptr;
-m_IDirect3DViewport3* Direct3DViewportWrapperBackup3 = nullptr;
+namespace {
+	m_IDirect3DViewport* WrapperInterfaceBackup = nullptr;
+	m_IDirect3DViewport2* WrapperInterfaceBackup2 = nullptr;
+	m_IDirect3DViewport3* WrapperInterfaceBackup3 = nullptr;
+}
 
 HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
@@ -72,11 +74,11 @@ void *m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, Direct3DViewportWrapperBackup, (LPDIRECT3DVIEWPORT)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DVIEWPORT)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, Direct3DViewportWrapperBackup2, (LPDIRECT3DVIEWPORT2)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3DVIEWPORT2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, Direct3DViewportWrapperBackup3, (LPDIRECT3DVIEWPORT3)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECT3DVIEWPORT3)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;
@@ -599,7 +601,7 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DViewportX::InitViewport(DWORD DirectXVersion)
+void m_IDirect3DViewportX::InitInterface(DWORD DirectXVersion)
 {
 	if (ProxyInterface)
 	{
@@ -609,10 +611,10 @@ void m_IDirect3DViewportX::InitViewport(DWORD DirectXVersion)
 	AddRef(DirectXVersion);
 }
 
-void m_IDirect3DViewportX::ReleaseViewport()
+void m_IDirect3DViewportX::ReleaseInterface()
 {
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, Direct3DViewportWrapperBackup);
-	SaveInterfaceAddress(WrapperInterface2, Direct3DViewportWrapperBackup2);
-	SaveInterfaceAddress(WrapperInterface3, Direct3DViewportWrapperBackup3);
+	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
+	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
+	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
 }

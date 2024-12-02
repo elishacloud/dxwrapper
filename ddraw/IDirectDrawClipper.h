@@ -16,15 +16,15 @@ private:
 	m_IDirectDrawX* ddrawParent = nullptr;
 
 	// Interface initialization functions
-	void InitClipper();
-	void ReleaseClipper();
+	void InitInterface();
+	void ReleaseInterface();
 
 public:
 	m_IDirectDrawClipper(IDirectDrawClipper *aOriginal) : ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitClipper();
+		InitInterface();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -32,7 +32,7 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitClipper();
+		InitInterface();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -40,7 +40,7 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseClipper();
+		ReleaseInterface();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}

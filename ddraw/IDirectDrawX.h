@@ -75,10 +75,6 @@ private:
 	inline IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
 	inline IDirectDraw7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
-	// Interface initialization functions
-	void InitDdraw(DWORD DirectXVersion);
-	void ReleaseDdraw();
-
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD9Object();
@@ -88,6 +84,10 @@ private:
 	void ReleaseAllD9Resources(bool BackupData, bool ResetInterface);
 	void ReleaseD9Device();
 	void ReleaseD9Object();
+
+	// Interface initialization functions
+	void InitInterface(DWORD DirectXVersion);
+	void ReleaseInterface();
 
 public:
 	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
@@ -103,7 +103,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
 
-		InitDdraw(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	m_IDirectDrawX(DWORD DirectXVersion)
 	{
@@ -111,13 +111,13 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		InitDdraw(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	~m_IDirectDrawX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseDdraw();
+		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/

@@ -17,8 +17,10 @@
 #include "ddraw.h"
 
 // Cached wrapper interface
-m_IDirect3DVertexBuffer* Direct3DVertexBufferWrapperBackup = nullptr;
-m_IDirect3DVertexBuffer7* Direct3DVertexBufferWrapperBackup7 = nullptr;
+namespace {
+	m_IDirect3DVertexBuffer* WrapperInterfaceBackup = nullptr;
+	m_IDirect3DVertexBuffer7* WrapperInterfaceBackup7 = nullptr;
+}
 
 HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
@@ -70,9 +72,9 @@ void *m_IDirect3DVertexBufferX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, Direct3DVertexBufferWrapperBackup, (LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
 	case 7:
-		return GetInterfaceAddress(WrapperInterface7, Direct3DVertexBufferWrapperBackup7, (LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7, (LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;
@@ -543,7 +545,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DVertexBufferX::InitVertexBuffer(DWORD DirectXVersion)
+void m_IDirect3DVertexBufferX::InitInterface(DWORD DirectXVersion)
 {
 	if (!Config.Dd7to9)
 	{
@@ -560,11 +562,11 @@ void m_IDirect3DVertexBufferX::InitVertexBuffer(DWORD DirectXVersion)
 	AddRef(DirectXVersion);
 }
 
-void m_IDirect3DVertexBufferX::ReleaseVertexBuffer()
+void m_IDirect3DVertexBufferX::ReleaseInterface()
 {
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, Direct3DVertexBufferWrapperBackup);
-	SaveInterfaceAddress(WrapperInterface7, Direct3DVertexBufferWrapperBackup7);
+	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
+	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
 	ReleaseD9Buffer(false, false);
 

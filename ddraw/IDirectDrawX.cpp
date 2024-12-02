@@ -128,11 +128,13 @@ struct PRESENTTHREAD
 std::vector<m_IDirectDrawX*> DDrawVector;
 
 // Cached wrapper interface
-m_IDirectDraw* DrawWrapperBackup = nullptr;
-m_IDirectDraw2* DrawWrapperBackup2 = nullptr;
-m_IDirectDraw3* DrawWrapperBackup3 = nullptr;
-m_IDirectDraw4* DrawWrapperBackup4 = nullptr;
-m_IDirectDraw7* DrawWrapperBackup7 = nullptr;
+namespace {
+	m_IDirectDraw* WrapperInterfaceBackup = nullptr;
+	m_IDirectDraw2* WrapperInterfaceBackup2 = nullptr;
+	m_IDirectDraw3* WrapperInterfaceBackup3 = nullptr;
+	m_IDirectDraw4* WrapperInterfaceBackup4 = nullptr;
+	m_IDirectDraw7* WrapperInterfaceBackup7 = nullptr;
+}
 
 // Default resolution
 DWORD DefaultWidth;
@@ -342,15 +344,15 @@ void *m_IDirectDrawX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, DrawWrapperBackup, (LPDIRECTDRAW)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECTDRAW)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, DrawWrapperBackup2, (LPDIRECTDRAW2)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECTDRAW2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, DrawWrapperBackup3, (LPDIRECTDRAW3)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECTDRAW3)ProxyInterface, this);
 	case 4:
-		return GetInterfaceAddress(WrapperInterface4, DrawWrapperBackup4, (LPDIRECTDRAW4)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface4, WrapperInterfaceBackup4, (LPDIRECTDRAW4)ProxyInterface, this);
 	case 7:
-		return GetInterfaceAddress(WrapperInterface7, DrawWrapperBackup7, (LPDIRECTDRAW7)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7, (LPDIRECTDRAW7)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;
@@ -2361,7 +2363,7 @@ HRESULT m_IDirectDrawX::EvaluateMode(DWORD dwFlags, DWORD * pSecondsUntilTimeout
 /*** Helper functions ***/
 /************************/
 
-void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
+void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 {
 	if (!Config.Dd7to9)
 	{
@@ -2560,14 +2562,14 @@ void m_IDirectDrawX::InitDdraw(DWORD DirectXVersion)
 	CheckInterface(__FUNCTION__, false);
 }
 
-void m_IDirectDrawX::ReleaseDdraw()
+void m_IDirectDrawX::ReleaseInterface()
 {
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, DrawWrapperBackup);
-	SaveInterfaceAddress(WrapperInterface2, DrawWrapperBackup2);
-	SaveInterfaceAddress(WrapperInterface3, DrawWrapperBackup3);
-	SaveInterfaceAddress(WrapperInterface4, DrawWrapperBackup4);
-	SaveInterfaceAddress(WrapperInterface7, DrawWrapperBackup7);
+	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
+	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
+	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
+	SaveInterfaceAddress(WrapperInterface4, WrapperInterfaceBackup4);
+	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
 	if (g_hook)
 	{

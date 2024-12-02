@@ -13,15 +13,15 @@ private:
 	bool LightSet = false;
 
 	// Interface initialization functions
-	void InitLight();
-	void ReleaseLight();
+	void InitInterface();
+	void ReleaseInterface();
 
 public:
 	m_IDirect3DLight(IDirect3DLight *aOriginal) : ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitLight();
+		InitInterface();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -29,7 +29,7 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitLight();
+		InitInterface();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -37,7 +37,7 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseLight();
+		ReleaseInterface();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}

@@ -221,12 +221,12 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DLight::InitLight()
+void m_IDirect3DLight::InitInterface()
 {
 	// To add later
 }
 
-void m_IDirect3DLight::ReleaseLight()
+void m_IDirect3DLight::ReleaseInterface()
 {
 	if (D3DDeviceInterface && *D3DDeviceInterface)
 	{

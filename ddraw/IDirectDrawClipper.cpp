@@ -312,7 +312,7 @@ HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 /*** Helper functions ***/
 /************************/
 
-void m_IDirectDrawClipper::InitClipper()
+void m_IDirectDrawClipper::InitInterface()
 {
 	if (ddrawParent)
 	{
@@ -320,7 +320,7 @@ void m_IDirectDrawClipper::InitClipper()
 	}
 }
 
-void m_IDirectDrawClipper::ReleaseClipper()
+void m_IDirectDrawClipper::ReleaseInterface()
 {
 	if (ddrawParent && !Config.Exiting)
 	{

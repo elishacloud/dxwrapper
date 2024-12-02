@@ -71,7 +71,7 @@ private:
 	void ReeableAnisotropicSamplerState();
 
 	// For Reset & ResetEx
-	void ReInitDevice();
+	void ReInitInterface();
 	void ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fReset)(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fResetEx)(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
@@ -99,7 +99,7 @@ public:
 			SHARED.SetSSAA = true;
 		}
 
-		ReInitDevice();
+		ReInitInterface();
 
 		SHARED.DeviceMap[this] = TRUE;
 

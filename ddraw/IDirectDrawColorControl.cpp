@@ -142,7 +142,7 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 /*** Helper functions ***/
 /************************/
 
-void m_IDirectDrawColorControl::InitColorControl()
+void m_IDirectDrawColorControl::InitInterface()
 {
 	ColorControl.dwSize = sizeof(DDCOLORCONTROL);
 	ColorControl.dwFlags = DDCOLOR_BRIGHTNESS | DDCOLOR_CONTRAST | DDCOLOR_HUE | DDCOLOR_SATURATION | DDCOLOR_SHARPNESS | DDCOLOR_GAMMA | DDCOLOR_COLORENABLE;
@@ -156,7 +156,7 @@ void m_IDirectDrawColorControl::InitColorControl()
 	ColorControl.dwReserved1 = 0;
 }
 
-void m_IDirectDrawColorControl::ReleaseColorControl()
+void m_IDirectDrawColorControl::ReleaseInterface()
 {
 	if (ddrawParent && !Config.Exiting)
 	{

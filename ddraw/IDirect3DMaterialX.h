@@ -38,8 +38,8 @@ private:
 	inline IDirect3DMaterial3 *GetProxyInterfaceV3() { return ProxyInterface; }
 
 	// Interface initialization functions
-	void InitMaterial(DWORD DirectXVersion);
-	void ReleaseMaterial();
+	void InitInterface(DWORD DirectXVersion);
+	void ReleaseInterface();
 
 public:
 	m_IDirect3DMaterialX(IDirect3DMaterial3 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
@@ -55,7 +55,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
 
-		InitMaterial(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	m_IDirect3DMaterialX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
@@ -70,13 +70,13 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
 
-		InitMaterial(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	~m_IDirect3DMaterialX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseMaterial();
+		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/

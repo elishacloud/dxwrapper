@@ -24,10 +24,12 @@ HMODULE hD3DIm = nullptr;
 HMODULE hD3DIm700 = nullptr;
 
 // Cached wrapper interface
-m_IDirect3D* Direct3DWrapperBackup = nullptr;
-m_IDirect3D2* Direct3DWrapperBackup2 = nullptr;
-m_IDirect3D3* Direct3DWrapperBackup3 = nullptr;
-m_IDirect3D7* Direct3DWrapperBackup7 = nullptr;
+namespace {
+	m_IDirect3D* WrapperInterfaceBackup = nullptr;
+	m_IDirect3D2* WrapperInterfaceBackup2 = nullptr;
+	m_IDirect3D3* WrapperInterfaceBackup3 = nullptr;
+	m_IDirect3D7* WrapperInterfaceBackup7 = nullptr;
+}
 
 HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
@@ -95,13 +97,13 @@ void *m_IDirect3DX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, Direct3DWrapperBackup, (LPDIRECT3D)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3D)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, Direct3DWrapperBackup2, (LPDIRECT3D2)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3D2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, Direct3DWrapperBackup3, (LPDIRECT3D3)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECT3D3)ProxyInterface, this);
 	case 7:
-		return GetInterfaceAddress(WrapperInterface7, Direct3DWrapperBackup7, (LPDIRECT3D7)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7, (LPDIRECT3D7)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;
@@ -901,7 +903,7 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DX::InitDirect3D(DWORD DirectXVersion)
+void m_IDirect3DX::InitInterface(DWORD DirectXVersion)
 {
 	if (!Config.Dd7to9)
 	{
@@ -921,13 +923,13 @@ void m_IDirect3DX::InitDirect3D(DWORD DirectXVersion)
 	AddRef(DirectXVersion);
 }
 
-void m_IDirect3DX::ReleaseDirect3D()
+void m_IDirect3DX::ReleaseInterface()
 {
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, Direct3DWrapperBackup);
-	SaveInterfaceAddress(WrapperInterface2, Direct3DWrapperBackup2);
-	SaveInterfaceAddress(WrapperInterface3, Direct3DWrapperBackup3);
-	SaveInterfaceAddress(WrapperInterface7, Direct3DWrapperBackup7);
+	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
+	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
+	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
+	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
 	if (ddrawParent && !Config.Exiting)
 	{

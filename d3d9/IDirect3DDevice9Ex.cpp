@@ -240,7 +240,7 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 
 		ClearVars(pPresentationParameters);
 
-		ReInitDevice();
+		ReInitInterface();
 	}
 
 	return hr;
@@ -2389,7 +2389,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentation
 
 		ClearVars(pPresentationParameters);
 
-		ReInitDevice();
+		ReInitInterface();
 	}
 
 	return hr;
@@ -2409,7 +2409,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 }
 
 // Runs when device is created and on every successful Reset()
-void m_IDirect3DDevice9Ex::ReInitDevice()
+void m_IDirect3DDevice9Ex::ReInitInterface()
 {
 	Utils::GetScreenSize(SHARED.DeviceWindow, SHARED.screenWidth, SHARED.screenHeight);
 }

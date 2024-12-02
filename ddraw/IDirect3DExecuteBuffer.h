@@ -11,15 +11,15 @@ private:
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
 
 	// Interface initialization functions
-	void InitExecuteBuffer();
-	void ReleaseExecuteBuffer();
+	void InitInterface();
+	void ReleaseInterface();
 
 public:
 	m_IDirect3DExecuteBuffer(IDirect3DExecuteBuffer *aOriginal) : ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitExecuteBuffer();
+		InitInterface();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -27,7 +27,7 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitExecuteBuffer();
+		InitInterface();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -35,7 +35,7 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseExecuteBuffer();
+		ReleaseInterface();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}

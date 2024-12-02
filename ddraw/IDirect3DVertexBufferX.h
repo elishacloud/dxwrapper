@@ -40,16 +40,16 @@ private:
 	inline IDirect3DVertexBuffer *GetProxyInterfaceV1() { return (IDirect3DVertexBuffer *)ProxyInterface; }
 	inline IDirect3DVertexBuffer7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
-	// Interface initialization functions
-	void InitVertexBuffer(DWORD DirectXVersion);
-	void ReleaseVertexBuffer();
-
 	// Check interfaces
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DVertexBuffer);
 
 	// Direct3D9 interface functions
 	HRESULT CreateD3D9VertexBuffer();
 	void ReleaseD3D9VertexBuffer();
+
+	// Interface initialization functions
+	void InitInterface(DWORD DirectXVersion);
+	void ReleaseInterface();
 
 public:
 	m_IDirect3DVertexBufferX(IDirect3DVertexBuffer7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
@@ -65,7 +65,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
 
-		InitVertexBuffer(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	m_IDirect3DVertexBufferX(m_IDirectDrawX* lpDdraw, LPD3DVERTEXBUFFERDESC lpVBDesc, DWORD DirectXVersion) : ddrawParent(lpDdraw)
 	{
@@ -82,13 +82,13 @@ public:
 		}
 		d3d9VBDesc.Type = D3DRTYPE_VERTEXBUFFER;
 
-		InitVertexBuffer(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	~m_IDirect3DVertexBufferX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseVertexBuffer();
+		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/

@@ -20,7 +20,9 @@
 #include "Utils\Utils.h"
 
 // Cached wrapper interface
-m_IDirectDrawPalette* DirectDrawPaletteWrapperBackup = nullptr;
+namespace {
+	m_IDirectDrawPalette* WrapperInterfaceBackup = nullptr;
+}
 
 inline void SaveDirectDrawPaletteInterface(m_IDirectDrawPalette* Interface, m_IDirectDrawPalette*& InterfaceBackup)
 {
@@ -42,10 +44,10 @@ m_IDirectDrawPalette* CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_I
 {
 	SetCriticalSection();
 	m_IDirectDrawPalette* Interface = nullptr;
-	if (DirectDrawPaletteWrapperBackup)
+	if (WrapperInterfaceBackup)
 	{
-		Interface = DirectDrawPaletteWrapperBackup;
-		DirectDrawPaletteWrapperBackup = nullptr;
+		Interface = WrapperInterfaceBackup;
+		WrapperInterfaceBackup = nullptr;
 		Interface->SetProxy(aOriginal, NewParent, dwFlags, lpDDColorArray);
 	}
 	else
@@ -144,7 +146,7 @@ ULONG m_IDirectDrawPalette::Release()
 
 	if (ref == 0)
 	{
-		SaveDirectDrawPaletteInterface(this, DirectDrawPaletteWrapperBackup);
+		SaveDirectDrawPaletteInterface(this, WrapperInterfaceBackup);
 	}
 
 	return ref;
@@ -317,7 +319,7 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 	return ProxyInterface->SetEntries(dwFlags, dwStartingEntry, dwCount, lpEntries);
 }
 
-void m_IDirectDrawPalette::InitPalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
+void m_IDirectDrawPalette::InitInterface(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
 {
 	paletteCaps = (dwFlags & ~DDPCAPS_INITIALIZE);
 
@@ -401,7 +403,7 @@ void m_IDirectDrawPalette::InitPalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorAr
 	}
 }
 
-void m_IDirectDrawPalette::ReleasePalette()
+void m_IDirectDrawPalette::ReleaseInterface()
 {
 	if (ddrawParent && !Config.Exiting)
 	{

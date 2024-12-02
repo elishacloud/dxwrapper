@@ -17,9 +17,11 @@
 #include "ddraw.h"
 
 // Cached wrapper interface
-m_IDirect3DMaterial* Direct3DMaterialWrapperBackup = nullptr;
-m_IDirect3DMaterial2* Direct3DMaterialWrapperBackup2 = nullptr;
-m_IDirect3DMaterial3* Direct3DMaterialWrapperBackup3 = nullptr;
+namespace {
+	m_IDirect3DMaterial* WrapperInterfaceBackup = nullptr;
+	m_IDirect3DMaterial2* WrapperInterfaceBackup2 = nullptr;
+	m_IDirect3DMaterial3* WrapperInterfaceBackup3 = nullptr;
+}
 
 HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
@@ -72,11 +74,11 @@ void *m_IDirect3DMaterialX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, Direct3DMaterialWrapperBackup, (LPDIRECT3DMATERIAL)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DMATERIAL)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, Direct3DMaterialWrapperBackup2, (LPDIRECT3DMATERIAL2)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3DMATERIAL2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, Direct3DMaterialWrapperBackup3, (LPDIRECT3DMATERIAL3)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECT3DMATERIAL3)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;
@@ -352,7 +354,7 @@ HRESULT m_IDirect3DMaterialX::Unreserve()
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DMaterialX::InitMaterial(DWORD DirectXVersion)
+void m_IDirect3DMaterialX::InitInterface(DWORD DirectXVersion)
 {
 	if (ProxyInterface)
 	{
@@ -362,12 +364,12 @@ void m_IDirect3DMaterialX::InitMaterial(DWORD DirectXVersion)
 	AddRef(DirectXVersion);
 }
 
-void m_IDirect3DMaterialX::ReleaseMaterial()
+void m_IDirect3DMaterialX::ReleaseInterface()
 {
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, Direct3DMaterialWrapperBackup);
-	SaveInterfaceAddress(WrapperInterface2, Direct3DMaterialWrapperBackup2);
-	SaveInterfaceAddress(WrapperInterface3, Direct3DMaterialWrapperBackup3);
+	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
+	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
+	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
 
 	if (mHandle && D3DDeviceInterface && *D3DDeviceInterface)
 	{

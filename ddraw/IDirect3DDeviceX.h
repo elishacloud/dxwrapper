@@ -155,10 +155,6 @@ private:
 	inline IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
 	inline IDirect3DDevice7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
-	// Interface initialization functions
-	void InitDevice(DWORD DirectXVersion);
-	void ReleaseDevice();
-
 	// Check interfaces
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 
@@ -170,6 +166,10 @@ private:
 	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
 	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
 	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
+
+	// Interface initialization functions
+	void InitInterface(DWORD DirectXVersion);
+	void ReleaseInterface();
 
 public:
 	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal), ClassID(IID_IDirect3DHALDevice)
@@ -185,7 +185,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
 
-		InitDevice(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	m_IDirect3DDeviceX(m_IDirectDrawX *lpDdraw, LPDIRECTDRAWSURFACE7 pRenderTarget, REFCLSID rclsid, DWORD DirectXVersion) : ddrawParent(lpDdraw), CurrentRenderTarget(pRenderTarget), ClassID(rclsid)
 	{
@@ -193,13 +193,13 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		InitDevice(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	~m_IDirect3DDeviceX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseDevice();
+		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/

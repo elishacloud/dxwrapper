@@ -45,8 +45,8 @@ private:
 	inline IDirect3DViewport3 *GetProxyInterfaceV3() { return ProxyInterface; }
 
 	// Interface initialization functions
-	void InitViewport(DWORD DirectXVersion);
-	void ReleaseViewport();
+	void InitInterface(DWORD DirectXVersion);
+	void ReleaseInterface();
 
 public:
 	m_IDirect3DViewportX(IDirect3DViewport3 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
@@ -62,7 +62,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
 
-		InitViewport(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	m_IDirect3DViewportX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
@@ -77,13 +77,13 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
 
-		InitViewport(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	~m_IDirect3DViewportX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseViewport();
+		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/

@@ -31,11 +31,13 @@ bool SceneReady = false;
 bool IsPresentRunning = false;
 
 // Cached wrapper interface
-m_IDirectDrawSurface* SurfaceWrapperBackup = nullptr;
-m_IDirectDrawSurface2* SurfaceWrapperBackup2 = nullptr;
-m_IDirectDrawSurface3* SurfaceWrapperBackup3 = nullptr;
-m_IDirectDrawSurface4* SurfaceWrapperBackup4 = nullptr;
-m_IDirectDrawSurface7* SurfaceWrapperBackup7 = nullptr;
+namespace {
+	m_IDirectDrawSurface* WrapperInterfaceBackup = nullptr;
+	m_IDirectDrawSurface2* WrapperInterfaceBackup2 = nullptr;
+	m_IDirectDrawSurface3* WrapperInterfaceBackup3 = nullptr;
+	m_IDirectDrawSurface4* WrapperInterfaceBackup4 = nullptr;
+	m_IDirectDrawSurface7* WrapperInterfaceBackup7 = nullptr;
+}
 
 // Used for sharing emulated memory
 bool ShareEmulatedMemory = false;
@@ -245,15 +247,15 @@ void *m_IDirectDrawSurfaceX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, SurfaceWrapperBackup, (LPDIRECTDRAWSURFACE)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECTDRAWSURFACE)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, SurfaceWrapperBackup2, (LPDIRECTDRAWSURFACE2)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECTDRAWSURFACE2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, SurfaceWrapperBackup3, (LPDIRECTDRAWSURFACE3)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECTDRAWSURFACE3)ProxyInterface, this);
 	case 4:
-		return GetInterfaceAddress(WrapperInterface4, SurfaceWrapperBackup4, (LPDIRECTDRAWSURFACE4)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface4, WrapperInterfaceBackup4, (LPDIRECTDRAWSURFACE4)ProxyInterface, this);
 	case 7:
-		return GetInterfaceAddress(WrapperInterface7, SurfaceWrapperBackup7, (LPDIRECTDRAWSURFACE7)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7, (LPDIRECTDRAWSURFACE7)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;
@@ -3956,7 +3958,7 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 /*** Helper functions ***/
 /************************/
 
-void m_IDirectDrawSurfaceX::InitSurface(DWORD DirectXVersion)
+void m_IDirectDrawSurfaceX::InitInterface(DWORD DirectXVersion)
 {
 	if (!Config.Dd7to9)
 	{
@@ -4006,14 +4008,14 @@ inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 	}
 }
 
-void m_IDirectDrawSurfaceX::ReleaseSurface()
+void m_IDirectDrawSurfaceX::ReleaseInterface()
 {
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, SurfaceWrapperBackup);
-	SaveInterfaceAddress(WrapperInterface2, SurfaceWrapperBackup2);
-	SaveInterfaceAddress(WrapperInterface3, SurfaceWrapperBackup3);
-	SaveInterfaceAddress(WrapperInterface4, SurfaceWrapperBackup4);
-	SaveInterfaceAddress(WrapperInterface7, SurfaceWrapperBackup7);
+	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
+	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
+	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
+	SaveInterfaceAddress(WrapperInterface4, WrapperInterfaceBackup4);
+	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
 	// Clean up mipmaps
 	if (!MipMaps.empty())

@@ -18,15 +18,15 @@ private:
 	DWORD entryCount = MaxPaletteSize;				// Number of palette entries (Default to 256 entries)
 
 	// Interface initialization functions
-	void InitPalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray);
-	void ReleasePalette();
+	void InitInterface(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray);
+	void ReleaseInterface();
 
 public:
 	m_IDirectDrawPalette(IDirectDrawPalette *aOriginal) : ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitPalette(0, nullptr);
+		InitInterface(0, nullptr);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -34,7 +34,7 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitPalette(dwFlags, lpDDColorArray);
+		InitInterface(dwFlags, lpDDColorArray);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -42,7 +42,7 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleasePalette();
+		ReleaseInterface();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
@@ -54,12 +54,12 @@ public:
 		if (NewProxyInterface || NewParent)
 		{
 			RefCount = 1;
-			InitPalette(dwFlags, lpDDColorArray);
+			InitInterface(dwFlags, lpDDColorArray);
 			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
 		else
 		{
-			ReleasePalette();
+			ReleaseInterface();
 			ProxyAddressLookupTable.DeleteAddress(this);
 		}
 	}

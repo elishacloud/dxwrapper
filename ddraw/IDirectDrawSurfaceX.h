@@ -233,11 +233,6 @@ private:
 	inline IDirectDrawSurface4 *GetProxyInterfaceV4() { return (IDirectDrawSurface4 *)ProxyInterface; }
 	inline IDirectDrawSurface7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
-	// Interface initialization functions
-	void InitSurface(DWORD DirectXVersion);
-	void ReleaseDirectDrawResources();
-	void ReleaseSurface();
-
 	// Swap surface addresses for Flip
 	template <typename T>
 	inline void SwapAddresses(T *Address1, T *Address2)
@@ -314,6 +309,11 @@ private:
 	HRESULT CopyEmulatedSurfaceFromGDI(LPRECT lpDestRect);
 	HRESULT CopyEmulatedSurfaceToGDI(LPRECT lpDestRect);
 
+	// Interface initialization functions
+	void InitInterface(DWORD DirectXVersion);
+	void ReleaseDirectDrawResources();
+	void ReleaseInterface();
+
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD DirectXVersion) : ProxyInterface(pOriginal), CreatedVersion(DirectXVersion)
 	{
@@ -328,7 +328,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
 
-		InitSurface(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	m_IDirectDrawSurfaceX(m_IDirectDrawX *Interface, DWORD DirectXVersion, LPDDSURFACEDESC2 lpDDSurfaceDesc2) : ddrawParent(Interface), CreatedVersion(DirectXVersion)
 	{
@@ -336,19 +336,19 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		// Copy surface description, needs to run before InitSurface()
+		// Copy surface description, needs to run before InitInterface()
 		if (lpDDSurfaceDesc2)
 		{
 			surfaceDesc2 = *lpDDSurfaceDesc2;
 		}
 
-		InitSurface(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	~m_IDirectDrawSurfaceX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseSurface();
+		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/

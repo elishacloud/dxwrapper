@@ -184,12 +184,12 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DExecuteBuffer::InitExecuteBuffer()
+void m_IDirect3DExecuteBuffer::InitInterface()
 {
 	// To add later
 }
 
-void m_IDirect3DExecuteBuffer::ReleaseExecuteBuffer()
+void m_IDirect3DExecuteBuffer::ReleaseInterface()
 {
 	// To add later
 }

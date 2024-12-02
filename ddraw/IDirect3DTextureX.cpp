@@ -17,8 +17,10 @@
 #include "ddraw.h"
 
 // Cached wrapper interface
-m_IDirect3DTexture* Direct3DTextureWrapperBackup = nullptr;
-m_IDirect3DTexture2* Direct3DTextureWrapperBackup2 = nullptr;
+namespace {
+	m_IDirect3DTexture* WrapperInterfaceBackup = nullptr;
+	m_IDirect3DTexture2* WrapperInterfaceBackup2 = nullptr;
+}
 
 HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
@@ -70,9 +72,9 @@ void *m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, Direct3DTextureWrapperBackup, (LPDIRECT3DTEXTURE)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DTEXTURE)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, Direct3DTextureWrapperBackup2, (LPDIRECT3DTEXTURE2)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3DTEXTURE2)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;
@@ -352,7 +354,7 @@ HRESULT m_IDirect3DTextureX::Unload()
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DTextureX::InitTexture(DWORD DirectXVersion)
+void m_IDirect3DTextureX::InitInterface(DWORD DirectXVersion)
 {
 	if (ProxyInterface)
 	{
@@ -362,11 +364,11 @@ void m_IDirect3DTextureX::InitTexture(DWORD DirectXVersion)
 	AddRef(DirectXVersion);
 }
 
-void m_IDirect3DTextureX::ReleaseTexture()
+void m_IDirect3DTextureX::ReleaseInterface()
 {
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, Direct3DTextureWrapperBackup);
-	SaveInterfaceAddress(WrapperInterface2, Direct3DTextureWrapperBackup2);
+	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
+	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
 
 	if (tHandle && D3DDeviceInterface && *D3DDeviceInterface)
 	{

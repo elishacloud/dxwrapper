@@ -132,12 +132,12 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 /*** Helper functions ***/
 /************************/
 
-void m_IDirectDrawGammaControl::InitGammaControl()
+void m_IDirectDrawGammaControl::InitInterface()
 {
 	// Initialize gamma control
 }
 
-void m_IDirectDrawGammaControl::ReleaseGammaControl()
+void m_IDirectDrawGammaControl::ReleaseInterface()
 {
 	if (ddrawParent && !Config.Exiting)
 	{
