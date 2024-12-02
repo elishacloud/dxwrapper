@@ -4,19 +4,18 @@ class m_IDirectDrawSurface : public IDirectDrawSurface, public AddressLookupTabl
 {
 private:
 	m_IDirectDrawSurfaceX *ProxyInterface;
-	IDirectDrawSurface *RealInterface;
 	REFIID WrapperID = IID_IDirectDrawSurface;
 	const DWORD DirectXVersion = 1;
 	const DWORD MipMapLevel;
 
 public:
-	m_IDirectDrawSurface(m_IDirectDrawSurfaceX* Interface, DWORD Level) : RealInterface(nullptr), ProxyInterface(Interface), MipMapLevel(Level)
+	m_IDirectDrawSurface(m_IDirectDrawSurfaceX* Interface, DWORD Level) : ProxyInterface(Interface), MipMapLevel(Level)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, this);
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
-	m_IDirectDrawSurface(IDirectDrawSurface *aOriginal, m_IDirectDrawSurfaceX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface), MipMapLevel(0)
+	m_IDirectDrawSurface(IDirectDrawSurface *, m_IDirectDrawSurfaceX *Interface) : ProxyInterface(Interface), MipMapLevel(0)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectDrawSurface()
 	{
@@ -28,7 +27,7 @@ public:
 		ProxyInterface = NewProxyInterface;
 		if (NewProxyInterface)
 		{
-			ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
+			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 		}
 		else
 		{

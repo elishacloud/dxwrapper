@@ -4,14 +4,13 @@ class m_IDirect3DMaterial : public IDirect3DMaterial, public AddressLookupTableD
 {
 private:
 	m_IDirect3DMaterialX *ProxyInterface;
-	IDirect3DMaterial *RealInterface;
 	REFIID WrapperID = IID_IDirect3DMaterial;
 	const DWORD DirectXVersion = 1;
 
 public:
-	m_IDirect3DMaterial(IDirect3DMaterial *aOriginal, m_IDirect3DMaterialX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface)
+	m_IDirect3DMaterial(IDirect3DMaterial *, m_IDirect3DMaterialX *Interface) : ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DMaterial()
 	{
@@ -23,7 +22,7 @@ public:
 		ProxyInterface = NewProxyInterface;
 		if (NewProxyInterface)
 		{
-			ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
+			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 		}
 		else
 		{

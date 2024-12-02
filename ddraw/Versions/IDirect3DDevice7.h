@@ -4,14 +4,13 @@ class m_IDirect3DDevice7 : public IDirect3DDevice7, public AddressLookupTableDdr
 {
 private:
 	m_IDirect3DDeviceX *ProxyInterface;
-	IDirect3DDevice7 *RealInterface;
 	REFIID WrapperID = IID_IDirect3DDevice7;
 	const DWORD DirectXVersion = 7;
 
 public:
-	m_IDirect3DDevice7(IDirect3DDevice7 *aOriginal, m_IDirect3DDeviceX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface)
+	m_IDirect3DDevice7(IDirect3DDevice7 *, m_IDirect3DDeviceX *Interface) : ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DDevice7()
 	{
@@ -23,7 +22,7 @@ public:
 		ProxyInterface = NewProxyInterface;
 		if (NewProxyInterface)
 		{
-			ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
+			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 		}
 		else
 		{

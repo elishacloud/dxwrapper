@@ -4,14 +4,13 @@ class m_IDirect3DVertexBuffer7 : public IDirect3DVertexBuffer7, public AddressLo
 {
 private:
 	m_IDirect3DVertexBufferX *ProxyInterface;
-	IDirect3DVertexBuffer7 *RealInterface;
 	REFIID WrapperID = IID_IDirect3DVertexBuffer7;
 	const DWORD DirectXVersion = 7;
 
 public:
-	m_IDirect3DVertexBuffer7(IDirect3DVertexBuffer7 *aOriginal, m_IDirect3DVertexBufferX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface)
+	m_IDirect3DVertexBuffer7(IDirect3DVertexBuffer7 *, m_IDirect3DVertexBufferX *Interface) : ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DVertexBuffer7()
 	{
@@ -23,7 +22,7 @@ public:
 		ProxyInterface = NewProxyInterface;
 		if (NewProxyInterface)
 		{
-			ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
+			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 		}
 		else
 		{
