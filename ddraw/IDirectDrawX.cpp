@@ -489,7 +489,7 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 			return DDERR_INVALIDPARAMS;
 		}
 
-		m_IDirectDrawPalette *PaletteX = new m_IDirectDrawPalette(this, dwFlags, lpDDColorArray);
+		m_IDirectDrawPalette *PaletteX = CreateDirectDrawPalette(nullptr, this, dwFlags, lpDDColorArray);
 
 		*lplpDDPalette = PaletteX;
 
@@ -500,7 +500,7 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 
 	if (SUCCEEDED(hr) && lplpDDPalette)
 	{
-		*lplpDDPalette = new m_IDirectDrawPalette(*lplpDDPalette);
+		*lplpDDPalette = CreateDirectDrawPalette(*lplpDDPalette, nullptr, 0, nullptr);
 	}
 
 	return hr;

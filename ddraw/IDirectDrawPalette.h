@@ -1,5 +1,7 @@
 #pragma once
 
+m_IDirectDrawPalette* CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray);
+
 class m_IDirectDrawPalette : public IDirectDrawPalette, public AddressLookupTableDdrawObject
 {
 private:
@@ -16,7 +18,7 @@ private:
 	DWORD entryCount = MaxPaletteSize;				// Number of palette entries (Default to 256 entries)
 
 	// Interface initialization functions
-	void InitPalette();
+	void InitPalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray);
 	void ReleasePalette();
 
 public:
@@ -24,21 +26,15 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitPalette();
+		InitPalette(0, nullptr);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
-	m_IDirectDrawPalette(m_IDirectDrawX *Interface, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray) : ddrawParent(Interface), paletteCaps(dwFlags & ~DDPCAPS_INITIALIZE)
+	m_IDirectDrawPalette(m_IDirectDrawX *Interface, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray) : ddrawParent(Interface)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitPalette();
-
-		// Set initial entries after initializing the palette
-		if (lpDDColorArray)
-		{
-			SetEntries(dwFlags, 0, entryCount, lpDDColorArray);
-		}
+		InitPalette(dwFlags, lpDDColorArray);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -49,6 +45,23 @@ public:
 		ReleasePalette();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
+	}
+
+	void SetProxy(IDirectDrawPalette* NewProxyInterface, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
+	{
+		ProxyInterface = NewProxyInterface;
+		ddrawParent = NewParent;
+		if (NewProxyInterface || NewParent)
+		{
+			RefCount = 1;
+			InitPalette(dwFlags, lpDDColorArray);
+			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		}
+		else
+		{
+			ReleasePalette();
+			ProxyAddressLookupTable.DeleteAddress(this);
+		}
 	}
 
 	/*** IUnknown methods ***/
