@@ -2099,7 +2099,7 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 
 			if (dwLightState == NULL)
 			{
-				ConvertMaterial(Material, *(D3DMATERIAL7*)&DefaultMaterial);
+				Material = {};
 			}
 			else if (MaterialHandleMap.find(dwLightState) != MaterialHandleMap.end())
 			{
@@ -4514,7 +4514,6 @@ void m_IDirect3DDeviceX::SetDefaults()
 	SetTextureStageState(6, D3DTSS_TEXCOORDINDEX, 0);
 
 	// Get default structures
-	(*d3d9Device)->GetMaterial(&DefaultMaterial);
 	(*d3d9Device)->GetViewport(&DefaultViewport);
 }
 

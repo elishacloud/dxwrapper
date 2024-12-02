@@ -195,8 +195,6 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 			}
 		}
 
-		IsMaterialSet = true;
-
 		Material = *lpMat;
 
 		return D3D_OK;
@@ -227,24 +225,7 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (IsMaterialSet)
-		{
-			*lpMat = Material;
-		}
-		else
-		{
-			if (!D3DDeviceInterface || !*D3DDeviceInterface)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
-				return DDERR_GENERIC;
-			}
-
-			D3DMATERIAL7 Material7 = {};
-
-			(*D3DDeviceInterface)->GetDefaultMaterial(*(D3DMATERIAL9*)&Material7);
-
-			ConvertMaterial(*lpMat, Material7);
-		}
+		*lpMat = Material;
 
 		return D3D_OK;
 	}
@@ -360,6 +341,8 @@ void m_IDirect3DMaterialX::InitInterface(DWORD DirectXVersion)
 	{
 		return;
 	}
+
+	Material.dwSize = sizeof(D3DMATERIAL);
 
 	AddRef(DirectXVersion);
 }

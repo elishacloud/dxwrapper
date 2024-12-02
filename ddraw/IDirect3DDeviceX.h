@@ -87,7 +87,6 @@ private:
 	std::unordered_set<DWORD> StateBlockTokens;
 
 	// Default settings
-	D3DMATERIAL9 DefaultMaterial = {};
 	D3DVIEWPORT9 DefaultViewport = {};
 
 	// SetTexture array
@@ -301,7 +300,6 @@ public:
 	HRESULT SetTextureHandle(DWORD tHandle, m_IDirect3DTextureX* lpTexture);
 
 	// Material handle function
-	inline void GetDefaultMaterial(D3DMATERIAL9& Material) { Material = DefaultMaterial; }
 	void ReleaseMaterialHandle(m_IDirect3DMaterialX* lpMaterial);
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE mHandle, m_IDirect3DMaterialX* lpMaterial);
 	inline bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) { return (mHandle == lsMaterialHandle); }
