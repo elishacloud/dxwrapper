@@ -98,6 +98,20 @@ private:
 		float highColorKey[4] = {};
 	};
 
+	struct SURFACEOVERLAY
+	{
+		bool OverlayEnabled = false;
+		bool isSrcRectNull = true;
+		RECT SrcRect = {};
+		LPDIRECTDRAWSURFACE7 lpDDDestSurface = nullptr;
+		m_IDirectDrawSurfaceX* lpDDDestSurfaceX = nullptr;
+		bool isDestRectNull = true;
+		RECT DestRect = {};
+		DWORD dwFlags = 0;
+		bool isDDOverlayFxNull = true;
+		DDOVERLAYFX DDOverlayFx = {};
+	};
+
 	// Extra Direct3D9 devices used in the primary surface
 	struct D9PRIMARY
 	{
@@ -150,6 +164,7 @@ private:
 	CRITICAL_SECTION ddscs = {};
 	CRITICAL_SECTION ddlcs = {};
 	m_IDirectDrawX *ddrawParent = nullptr;				// DirectDraw parent device
+	SURFACEOVERLAY SurfaceOverlayList;					// The overlays for this surface
 	std::vector<MIPMAP> MipMaps;						// MipMaps structure with addresses
 	DWORD MaxMipMapLevel = 0;							// Total number of manually created MipMap levels
 	bool IsMipMapReadyToUse = false;					// Used for MipMap filtering
@@ -265,9 +280,15 @@ private:
 	inline HRESULT UnLockD3d9Surface(DWORD MipMapLevel);
 
 	// Locking rect coordinates
+	bool CheckCoordinates(LPRECT lpInRect)
+	{
+		RECT Rect = {};
+		return CheckCoordinates(Rect, lpInRect, &surfaceDesc2);
+	}
 	bool CheckCoordinates(RECT& OutRect, LPRECT lpInRect, LPDDSURFACEDESC2 lpDDSurfaceDesc2);
 	HRESULT LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect);
 	bool CheckRectforSkipScene(RECT& DestRect);
+	HRESULT PresentOverlay(LPRECT lpSrcRect);
 	void BeginWritePresent(bool IsSkipScene);
 	void EndWritePresent(LPRECT lpDestRect, bool WriteToWindow, bool FullPresent, bool IsSkipScene);
 	void EndWriteSyncSurfaces(LPRECT lpDestRect);

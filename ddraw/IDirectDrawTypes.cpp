@@ -16,6 +16,30 @@
 
 #include "ddraw.h"
 
+bool DoRectsMatch(const RECT& lhs, const RECT& rhs)
+{
+	return lhs.left == rhs.left && lhs.top == rhs.top &&
+		lhs.right == rhs.right && lhs.bottom == rhs.bottom;
+}
+
+bool GetOverlappingRect(const RECT& rect1, const RECT& rect2, RECT& outOverlapRect)
+{
+	// Compute the boundaries of the overlap
+	outOverlapRect.left = max(rect1.left, rect2.left);
+	outOverlapRect.top = max(rect1.top, rect2.top);
+	outOverlapRect.right = min(rect1.right, rect2.right);
+	outOverlapRect.bottom = min(rect1.bottom, rect2.bottom);
+
+	// Check if they overlap
+	if (outOverlapRect.left < outOverlapRect.right && outOverlapRect.top < outOverlapRect.bottom)
+	{
+		return true; // Rectangles overlap
+	}
+
+	// If no overlap, return false
+	return false;
+}
+
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 {
 	// Check for supported dwSize
@@ -291,7 +315,7 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	// Set the primary capabilities flags to indicate support for everything
 	Caps7.dwCaps = (Caps9.Caps & DDCAPS_READSCANLINE) |
 		(DDCAPS_BLT | DDCAPS_BLTFOURCC | DDCAPS_BLTSTRETCH | DDCAPS_BLTCOLORFILL | DDCAPS_CANBLTSYSMEM | /*DDCAPS_BLTQUEUE |*/
-			/*DDCAPS_OVERLAY | DDCAPS_OVERLAYCANTCLIP | DDCAPS_OVERLAYFOURCC |	DDCAPS_OVERLAYSTRETCH |*/
+			DDCAPS_OVERLAY | DDCAPS_OVERLAYFOURCC | /*DDCAPS_OVERLAYCANTCLIP | DDCAPS_OVERLAYSTRETCH |*/
 			DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC | DDCAPS_COLORKEY | /*DDCAPS_COLORKEYHWASSIST |*/
 			DDCAPS_ALPHA | DDCAPS_GDI | DDCAPS_VBI | DDCAPS_CANCLIP | DDCAPS_CANCLIPSTRETCHED) |
 		(Config.DdrawDisableDirect3DCaps ? 0 : DDCAPS_3D | DDCAPS_BLTDEPTHFILL /*| DDCAPS_ZBLTS | DDCAPS_ZOVERLAYS*/);

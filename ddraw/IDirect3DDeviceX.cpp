@@ -4398,6 +4398,8 @@ HRESULT m_IDirect3DDeviceX::RestoreTextures()
 	{
 		SetTexture(y, AttachedTexture[y]);
 	}
+
+	return DD_OK;
 }
 
 HRESULT m_IDirect3DDeviceX::RestoreStates()
