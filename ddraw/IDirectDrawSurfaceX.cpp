@@ -499,15 +499,15 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		// Check for required DDBLTFX structure
-		if ((!lpDDBltFx && (dwFlags & DDBLT_DDFX)) ||
-			(!(dwFlags & DDBLT_DDFX) && (dwFlags & (DDBLT_COLORFILL | DDBLT_DEPTHFILL | DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_ROP | DDBLT_ROTATIONANGLE))))
+		bool RequiresFxStruct = (dwFlags & (DDBLT_DDFX | DDBLT_COLORFILL | DDBLT_DEPTHFILL | DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_ROP | DDBLT_ROTATIONANGLE));
+		if (RequiresFxStruct && !lpDDBltFx)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: DDBLTFX structure not found");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: DDBLTFX structure not found!");
 			return DDERR_INVALIDPARAMS;
 		}
 
 		// Check for DDBLTFX structure size
-		if ((dwFlags & DDBLT_DDFX) && lpDDBltFx->dwSize != sizeof(DDBLTFX))
+		if (RequiresFxStruct && lpDDBltFx->dwSize != sizeof(DDBLTFX))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: DDBLTFX structure is not initialized to the correct size: " << lpDDBltFx->dwSize);
 			return DDERR_INVALIDPARAMS;
@@ -3510,7 +3510,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentOverlay(LPRECT lpSrcRect)
 			DDBLTFX DDBltFx = SurfaceOverlay.DDBltFx;
 
 			// Handle color keying
-			if (!(DDBltFxFlags & DDBLT_DDFX) || !(DDBltFxFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE)))
+			if (!(DDBltFxFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE)))
 			{
 				if ((SurfaceOverlay.DDOverlayFxFlags & DDOVER_KEYDEST) && (SurfaceOverlay.lpDDDestSurfaceX->surfaceDesc2.dwFlags & DDSD_CKDESTOVERLAY))
 				{
@@ -3568,16 +3568,16 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 		}
 
 		// Check for required DDOVERLAYFX structure
-		if ((!lpDDOverlayFx && (dwFlags & DDOVER_DDFX)) ||
-			(!(dwFlags & DDOVER_DDFX) && (dwFlags & (DDOVER_ALPHADESTCONSTOVERRIDE | DDOVER_ALPHADESTSURFACEOVERRIDE | DDOVER_ALPHAEDGEBLEND | DDOVER_ALPHASRCCONSTOVERRIDE |
-				DDOVER_ALPHASRCSURFACEOVERRIDE | DDOVER_ARGBSCALEFACTORS | DDOVER_KEYDESTOVERRIDE | DDOVER_KEYSRCOVERRIDE))))
+		bool RequiresFxStruct = (dwFlags & (DDOVER_DDFX | DDOVER_ALPHADESTCONSTOVERRIDE | DDOVER_ALPHADESTSURFACEOVERRIDE | DDOVER_ALPHAEDGEBLEND | DDOVER_ALPHASRCCONSTOVERRIDE |
+			DDOVER_ALPHASRCSURFACEOVERRIDE | DDOVER_ARGBSCALEFACTORS | DDOVER_KEYDESTOVERRIDE | DDOVER_KEYSRCOVERRIDE));
+		if (RequiresFxStruct && !lpDDOverlayFx)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: DDOVERLAYFX structure not found");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: DDOVERLAYFX structure not found!");
 			return DDERR_INVALIDPARAMS;
 		}
 
 		// Check for DDOVERLAYFX structure size
-		if ((dwFlags & DDOVER_DDFX) && lpDDOverlayFx->dwSize != sizeof(DDOVERLAYFX))
+		if (RequiresFxStruct && lpDDOverlayFx->dwSize != sizeof(DDOVERLAYFX))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: DDOVERLAYFX structure is not initialized to the correct size: " << lpDDOverlayFx->dwSize);
 			return DDERR_INVALIDPARAMS;
@@ -3681,9 +3681,11 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 		}
 		Overlay.DDOverlayFxFlags = dwFlags;
 		Overlay.DDBltFx.dwSize = sizeof(DDBLTFX);
-		if (dwFlags & DDOVER_DDFX)
+		if (lpDDOverlayFx)
 		{
 			Overlay.DDOverlayFx = *lpDDOverlayFx;
+
+			// Color keying
 			if (dwFlags & DDOVER_KEYDESTOVERRIDE)
 			{
 				Overlay.DDBltFxFlags |= (DDBLT_DDFX | DDBLT_KEYDESTOVERRIDE);
@@ -3693,6 +3695,12 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 			{
 				Overlay.DDBltFxFlags |= (DDBLT_DDFX | DDBLT_KEYSRCOVERRIDE);
 				Overlay.DDBltFx.ddckSrcColorkey = lpDDOverlayFx->dckSrcColorkey;
+			}
+			// DDOverlayFx flags
+			if (dwFlags & DDOVER_DDFX)
+			{
+				Overlay.DDBltFxFlags |= DDBLT_DDFX;
+				Overlay.DDBltFx.dwDDFX = (lpDDOverlayFx->dwFlags & (DDBLTFX_ARITHSTRETCHY | DDBLTFX_MIRRORLEFTRIGHT | DDBLTFX_MIRRORUPDOWN));
 			}
 		}
 
