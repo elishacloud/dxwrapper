@@ -3510,7 +3510,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 		}
 
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DD_OK;	// Just return OK for now
+		return DDERR_UNSUPPORTED;
 	}
 
 	if (lpDDDestSurface)
