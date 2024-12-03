@@ -4635,8 +4635,15 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface()
 	} while (false);
 
 	// Reset textures
-	d3d9Device->SetTexture(0, nullptr);
-	d3d9Device->SetTexture(1, nullptr);
+	if (D3DDeviceInterface)
+	{
+		D3DDeviceInterface->RestoreTextures();
+	}
+	else
+	{
+		d3d9Device->SetTexture(0, nullptr);
+		d3d9Device->SetTexture(1, nullptr);
+	}
 
 	// Reset pixel shader
 	d3d9Device->SetPixelShader(nullptr);

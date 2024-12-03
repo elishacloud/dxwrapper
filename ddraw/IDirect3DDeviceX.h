@@ -33,6 +33,7 @@ private:
 #endif
 
 	struct {
+		bool IsBackedUp = false;
 		DWORD RenderState[255] = {};
 		DWORD TextureState[MaxTextureStages][255] = {};
 		DWORD SamplerState[MaxTextureStages][14] = {};
@@ -340,6 +341,7 @@ public:
 	}
 	void ClearDdraw();
 	void BeforeResetDevice();
+	HRESULT RestoreTextures();
 	void AfterResetDevice();
 	void ReleaseAllStateBlocks();
 };

@@ -4380,7 +4380,24 @@ HRESULT m_IDirect3DDeviceX::BackupStates()
 	// Backup viewport
 	(*d3d9Device)->GetViewport(&backup.viewport);
 
+	backup.IsBackedUp = true;
+
 	return D3D_OK;
+}
+
+HRESULT m_IDirect3DDeviceX::RestoreTextures()
+{
+	if (!d3d9Device || !*d3d9Device)
+	{
+		Logging::Log() << __FUNCTION__ " Error: Failed to get the device state!";
+		return DDERR_GENERIC;
+	}
+
+	// Restore textures
+	for (UINT y = 0; y < MaxTextureStages; y++)
+	{
+		SetTexture(y, AttachedTexture[y]);
+	}
 }
 
 HRESULT m_IDirect3DDeviceX::RestoreStates()
@@ -4389,6 +4406,11 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	{
 		Logging::Log() << __FUNCTION__ " Error: Failed to restore the device state!";
 		return DDERR_GENERIC;
+	}
+
+	if (!backup.IsBackedUp)
+	{
+		return D3D_OK;
 	}
 
 	// Restore render states
@@ -4430,14 +4452,24 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 		}
 	}
 
+	// Restore textures
+	RestoreTextures();
+
 	// Restore viewport
+	D3DVIEWPORT9 viewport = {};
+	(*d3d9Device)->GetViewport(&viewport);
+	backup.viewport.Width = viewport.Width;
+	backup.viewport.Height = viewport.Height;
 	(*d3d9Device)->SetViewport(&backup.viewport);
+
+	backup.IsBackedUp = false;
 
 	return D3D_OK;
 }
 
 void m_IDirect3DDeviceX::BeforeResetDevice()
 {
+	BackupStates();
 	if (IsRecordingState)
 	{
 		DWORD dwBlockHandle = NULL;
@@ -4450,7 +4482,7 @@ void m_IDirect3DDeviceX::BeforeResetDevice()
 
 void m_IDirect3DDeviceX::AfterResetDevice()
 {
-	bSetDefaults = true;
+	RestoreStates();
 }
 
 void m_IDirect3DDeviceX::ClearDdraw()
