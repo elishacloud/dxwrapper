@@ -499,16 +499,17 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		// Check for required DDBLTFX structure
-		if (!lpDDBltFx && (dwFlags & (DDBLT_DDFX | DDBLT_COLORFILL | DDBLT_DEPTHFILL | DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_ROP | DDBLT_ROTATIONANGLE)))
+		if ((!lpDDBltFx && (dwFlags & DDBLT_DDFX)) ||
+			(!(dwFlags & DDBLT_DDFX) && (dwFlags & (DDBLT_COLORFILL | DDBLT_DEPTHFILL | DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE | DDBLT_ROP | DDBLT_ROTATIONANGLE))))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: DDBLTFX structure not found");
 			return DDERR_INVALIDPARAMS;
 		}
 
 		// Check for DDBLTFX structure size
-		if (lpDDBltFx && lpDDBltFx->dwSize != sizeof(DDBLTFX))
+		if ((dwFlags & DDBLT_DDFX) && lpDDBltFx->dwSize != sizeof(DDBLTFX))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: DDBLTFX structure is not initialized to the right size: " << lpDDBltFx->dwSize);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: DDBLTFX structure is not initialized to the correct size: " << lpDDBltFx->dwSize);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -520,7 +521,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_NOROTATIONHW;
 		}
 
-		// Do supported raster operations
+		// Check supported raster operations
 		if ((dwFlags & DDBLT_ROP) && (lpDDBltFx->dwROP != SRCCOPY && lpDDBltFx->dwROP != BLACKNESS && lpDDBltFx->dwROP != WHITENESS))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Raster operation Not Implemented " << Logging::hex(lpDDBltFx->dwROP));
@@ -3175,14 +3176,12 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 			break;
 		case DDCKEY_DESTOVERLAY:
 			dds = DDSD_CKDESTOVERLAY;
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: color key overlay not implemented!");
 			break;
 		case DDCKEY_SRCBLT:
 			dds = DDSD_CKSRCBLT;
 			break;
 		case DDCKEY_SRCOVERLAY:
 			dds = DDSD_CKSRCOVERLAY;
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: color key overlay not implemented!");
 			break;
 		default:
 			return DDERR_INVALIDPARAMS;
@@ -3499,20 +3498,33 @@ inline HRESULT m_IDirectDrawSurfaceX::UnLockD3d9Surface(DWORD MipMapLevel)
 
 HRESULT m_IDirectDrawSurfaceX::PresentOverlay(LPRECT lpSrcRect)
 {
-	if (SurfaceOverlayList.OverlayEnabled)
+	if (SurfaceOverlay.OverlayEnabled)
 	{
-		LPRECT lpNewSrcRect = nullptr;
 		RECT SrcRect = {};
-		bool DoRectsOverlap = (lpSrcRect && !SurfaceOverlayList.isSrcRectNull && GetOverlappingRect(*lpSrcRect, SurfaceOverlayList.SrcRect, SrcRect));
-		if (!lpSrcRect || SurfaceOverlayList.isSrcRectNull || DoRectsOverlap)
+		if (!lpSrcRect || SurfaceOverlay.isSrcRectNull || GetOverlappingRect(*lpSrcRect, SurfaceOverlay.SrcRect, SrcRect))
 		{
-			if (DoRectsOverlap)
+			LPRECT lpNewSrcRect = SurfaceOverlay.isSrcRectNull ? nullptr : &SurfaceOverlay.SrcRect;
+			LPRECT lpNewDestRect = SurfaceOverlay.isDestRectNull ? nullptr : &SurfaceOverlay.DestRect;
+
+			DWORD DDBltFxFlags = SurfaceOverlay.DDBltFxFlags;
+			DDBLTFX DDBltFx = SurfaceOverlay.DDBltFx;
+
+			// Handle color keying
+			if (!(DDBltFxFlags & DDBLT_DDFX) || !(DDBltFxFlags & (DDBLT_KEYDESTOVERRIDE | DDBLT_KEYSRCOVERRIDE)))
 			{
-				lpNewSrcRect = &SrcRect;
+				if ((SurfaceOverlay.DDOverlayFxFlags & DDOVER_KEYDEST) && (SurfaceOverlay.lpDDDestSurfaceX->surfaceDesc2.dwFlags & DDSD_CKDESTOVERLAY))
+				{
+					DDBltFxFlags |= (DDBLT_DDFX | DDBLT_KEYDESTOVERRIDE);
+					DDBltFx.ddckDestColorkey = SurfaceOverlay.lpDDDestSurfaceX->surfaceDesc2.ddckCKDestOverlay;
+				}
+				else if ((SurfaceOverlay.DDOverlayFxFlags & DDOVER_KEYSRC) && (surfaceDesc2.dwFlags & DDSD_CKSRCOVERLAY))
+				{
+					DDBltFxFlags |= (DDBLT_DDFX | DDBLT_KEYSRCOVERRIDE);
+					DDBltFx.ddckSrcColorkey = surfaceDesc2.ddckCKSrcOverlay;
+				}
 			}
-			LPRECT lpNewDestRect = SurfaceOverlayList.isDestRectNull ? nullptr : &SurfaceOverlayList.DestRect;
-			// ToDo: convert DDOVERLAYFX to DDBLTFX
-			SurfaceOverlayList.lpDDDestSurfaceX->Blt(lpNewDestRect, (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(0), lpNewSrcRect, 0, nullptr, 0);
+
+			SurfaceOverlay.lpDDDestSurfaceX->Blt(lpNewDestRect, (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(0), lpNewSrcRect, DDBltFxFlags, &DDBltFx, 0);
 		}
 	}
 	return DD_OK;
@@ -3524,129 +3536,22 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 
 	if (Config.Dd7to9)
 	{
-		if (lpDDOverlayFx && lpDDOverlayFx->dwSize != sizeof(DDOVERLAYFX))
+		// Check for overlay flag
+		if (!(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_OVERLAY))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDOverlayFx) ? lpDDOverlayFx->dwSize : -1));
-			return DDERR_INVALIDPARAMS;
-		}
-
-		if (dwFlags & (DDOVER_ALPHADEST | DDOVER_ALPHADESTCONSTOVERRIDE | DDOVER_ALPHADESTNEG | DDOVER_ALPHADESTSURFACEOVERRIDE |
-			DDOVER_ALPHAEDGEBLEND | DDOVER_ALPHASRC | DDOVER_ALPHASRCCONSTOVERRIDE | DDOVER_ALPHASRCNEG | DDOVER_ALPHASRCSURFACEOVERRIDE))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: overlay alpha not implemented!");
-			return DDERR_NOALPHAHW;
-		}
-
-		if (dwFlags & (DDOVER_ARGBSCALEFACTORS | DDOVER_DEGRADEARGBSCALING))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: overlay scale factors not implemented!");
-		}
-
-		if (dwFlags & DDOVER_AUTOFLIP)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: overlay flip not implemented!");
-		}
-
-		if (dwFlags & (DDOVER_BOB | DDOVER_BOBHARDWARE | DDOVER_OVERRIDEBOBWEAVE))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: overlay BOB not implemented!");
-		}
-
-		if (dwFlags & (DDOVER_INTERLEAVED))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: overlay interleave not implemented!");
-		}
-
-		if (dwFlags & (DDOVER_KEYDEST | DDOVER_KEYDESTOVERRIDE | DDOVER_KEYSRC | DDOVER_KEYSRCOVERRIDE))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: overlay color key not implemented!");
-		}
-
-		if (dwFlags & DDOVER_ADDDIRTYRECT)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: overlay dirty rect not implemented!");
-		}
-
-		if (dwFlags & (DDOVER_REFRESHALL | DDOVER_REFRESHDIRTYRECTS))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: overlay refresh not implemented!");
-		}
-
-		// Turns on this overlay.
-		if (dwFlags & DDOVER_SHOW)
-		{
-			// Get WrapperX
-			if (!lpDDDestSurface)
-			{
-				return DDERR_INVALIDPARAMS;
-			}
-			m_IDirectDrawSurfaceX* lpDDDestSurfaceX = nullptr;
-			lpDDDestSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDDestSurfaceX);
-			if (!lpDDDestSurfaceX)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surfaceX!");
-				return DDERR_INVALIDPARAMS;
-			}
-			if (lpDDDestSurfaceX == this)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: cannot overlay surface onto itself!");
-				return DDERR_INVALIDPARAMS;
-			}
-
-			// Check for device interface
-			HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-			HRESULT s_hr = lpDDDestSurfaceX->CheckInterface(__FUNCTION__, true, true, true);
-			if (FAILED(c_hr) || FAILED(s_hr))
-			{
-				return (c_hr == DDERR_SURFACELOST || s_hr == DDERR_SURFACELOST) ? DDERR_SURFACELOST : FAILED(c_hr) ? c_hr : s_hr;
-			}
-
-			// Check rect
-			if ((lpSrcRect && !CheckCoordinates(lpSrcRect)) ||
-				(lpDestRect && !lpDDDestSurfaceX->CheckCoordinates(lpDestRect)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpSrcRect << " -> " << lpDestRect);
-				return DDERR_INVALIDRECT;
-			}
-
-			// Add entry to overlay vector
-			SURFACEOVERLAY Overlay;
-			Overlay.OverlayEnabled = true;
-			if (lpSrcRect)
-			{
-				Overlay.isSrcRectNull = false;
-				Overlay.SrcRect = *lpSrcRect;
-			}
-			Overlay.lpDDDestSurface = lpDDDestSurface;
-			Overlay.lpDDDestSurfaceX = lpDDDestSurfaceX;
-			if (lpDestRect)
-			{
-				Overlay.isDestRectNull = false;
-				Overlay.DestRect = *lpDestRect;
-			}
-			Overlay.dwFlags = dwFlags;
-			if (lpDDOverlayFx)
-			{
-				Overlay.isDDOverlayFxNull = false;
-				Overlay.DDOverlayFx = *lpDDOverlayFx;
-			}
-
-			// Update overlay
-			SurfaceOverlayList = Overlay;
-
-			// Return
-			return DD_OK;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Not an overlay surface!");
+			return DDERR_NOTAOVERLAYSURFACE;
 		}
 
 		// Turns off this overlay.
-		else if (dwFlags & DDOVER_HIDE)
+		if (dwFlags & DDOVER_HIDE)
 		{
 			// Remove items from the list
-			if ((!lpSrcRect || DoRectsMatch(*lpSrcRect, SurfaceOverlayList.SrcRect)) &&
-				(!lpDDDestSurface || lpDDDestSurface == SurfaceOverlayList.lpDDDestSurface) &&
-				(!lpDestRect || DoRectsMatch(*lpDestRect, SurfaceOverlayList.DestRect)))
+			if ((!lpSrcRect || DoRectsMatch(*lpSrcRect, SurfaceOverlay.SrcRect)) &&
+				(!lpDDDestSurface || lpDDDestSurface == SurfaceOverlay.lpDDDestSurface) &&
+				(!lpDestRect || DoRectsMatch(*lpDestRect, SurfaceOverlay.DestRect)))
 			{
-				SurfaceOverlayList.OverlayEnabled = false;
+				SurfaceOverlay.OverlayEnabled = false;
 				return DD_OK;
 			}
 
@@ -3655,8 +3560,147 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 			return DDERR_INVALIDPARAMS;
 		}
 
-		LOG_LIMIT(100, __FUNCTION__ << " Error: cannot find correct dwFlags: " << Logging::hex(dwFlags));
-		return DDERR_INVALIDPARAMS;
+		// Check if need to turn on this overlay.
+		if (!(dwFlags & DDOVER_SHOW))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: cannot find correct dwFlags: " << Logging::hex(dwFlags));
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for required DDOVERLAYFX structure
+		if ((!lpDDOverlayFx && (dwFlags & DDOVER_DDFX)) ||
+			(!(dwFlags & DDOVER_DDFX) && (dwFlags & (DDOVER_ALPHADESTCONSTOVERRIDE | DDOVER_ALPHADESTSURFACEOVERRIDE | DDOVER_ALPHAEDGEBLEND | DDOVER_ALPHASRCCONSTOVERRIDE |
+				DDOVER_ALPHASRCSURFACEOVERRIDE | DDOVER_ARGBSCALEFACTORS | DDOVER_KEYDESTOVERRIDE | DDOVER_KEYSRCOVERRIDE))))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: DDOVERLAYFX structure not found");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for DDOVERLAYFX structure size
+		if ((dwFlags & DDOVER_DDFX) && lpDDOverlayFx->dwSize != sizeof(DDOVERLAYFX))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: DDOVERLAYFX structure is not initialized to the correct size: " << lpDDOverlayFx->dwSize);
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Cehck for auto flip flag
+		if (dwFlags & DDOVER_AUTOFLIP)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: overlay flip not implemented!");
+			return DDERR_UNSUPPORTED;
+		}
+
+		// Check for alpha flags
+		if (dwFlags & (DDOVER_ALPHADEST | DDOVER_ALPHADESTCONSTOVERRIDE | DDOVER_ALPHADESTNEG | DDOVER_ALPHADESTSURFACEOVERRIDE |
+			DDOVER_ALPHAEDGEBLEND | DDOVER_ALPHASRC | DDOVER_ALPHASRCCONSTOVERRIDE | DDOVER_ALPHASRCNEG | DDOVER_ALPHASRCSURFACEOVERRIDE))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: overlay alpha not implemented!");
+			return DDERR_NOALPHAHW;
+		}
+
+		// Check scaling flags
+		if (dwFlags & (DDOVER_ARGBSCALEFACTORS | DDOVER_DEGRADEARGBSCALING))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: overlay scale factors not implemented!");
+		}
+
+		// Check BOB flags
+		if (dwFlags & (DDOVER_BOB | DDOVER_BOBHARDWARE | DDOVER_OVERRIDEBOBWEAVE))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: overlay BOB not implemented!");
+		}
+
+		// Check interleave flags
+		if (dwFlags & (DDOVER_INTERLEAVED))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: overlay interleave not implemented!");
+		}
+
+		// Handle refresh flags
+		if (dwFlags & (DDOVER_REFRESHALL | DDOVER_REFRESHDIRTYRECTS))
+		{
+			// Just refresh whole surface
+			return PresentOverlay(nullptr);
+		}
+
+		// Check dirty flag
+		if (dwFlags & DDOVER_ADDDIRTYRECT)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: overlay dirty rect not implemented!");
+			return DD_OK;	// Just return ok for now, nothing else may be needed here
+		}
+
+		// Get WrapperX
+		if (!lpDDDestSurface)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+		m_IDirectDrawSurfaceX* lpDDDestSurfaceX = nullptr;
+		lpDDDestSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDDestSurfaceX);
+		if (!lpDDDestSurfaceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surfaceX!");
+			return DDERR_INVALIDPARAMS;
+		}
+		if (lpDDDestSurfaceX == this)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: cannot overlay surface onto itself!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
+		HRESULT s_hr = lpDDDestSurfaceX->CheckInterface(__FUNCTION__, true, true, true);
+		if (FAILED(c_hr) || FAILED(s_hr))
+		{
+			return (c_hr == DDERR_SURFACELOST || s_hr == DDERR_SURFACELOST) ? DDERR_SURFACELOST : FAILED(c_hr) ? c_hr : s_hr;
+		}
+
+		// Check rect
+		if ((lpSrcRect && !CheckCoordinates(lpSrcRect)) ||
+			(lpDestRect && !lpDDDestSurfaceX->CheckCoordinates(lpDestRect)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpSrcRect << " -> " << lpDestRect);
+			return DDERR_INVALIDRECT;
+		}
+
+		// Add entry to overlay vector
+		SURFACEOVERLAY Overlay;
+		Overlay.OverlayEnabled = true;
+		if (lpSrcRect)
+		{
+			Overlay.isSrcRectNull = false;
+			Overlay.SrcRect = *lpSrcRect;
+		}
+		Overlay.lpDDDestSurface = lpDDDestSurface;
+		Overlay.lpDDDestSurfaceX = lpDDDestSurfaceX;
+		if (lpDestRect)
+		{
+			Overlay.isDestRectNull = false;
+			Overlay.DestRect = *lpDestRect;
+		}
+		Overlay.DDOverlayFxFlags = dwFlags;
+		Overlay.DDBltFx.dwSize = sizeof(DDBLTFX);
+		if (dwFlags & DDOVER_DDFX)
+		{
+			Overlay.DDOverlayFx = *lpDDOverlayFx;
+			if (dwFlags & DDOVER_KEYDESTOVERRIDE)
+			{
+				Overlay.DDBltFxFlags |= (DDBLT_DDFX | DDBLT_KEYDESTOVERRIDE);
+				Overlay.DDBltFx.ddckDestColorkey = lpDDOverlayFx->dckDestColorkey;
+			}
+			else if (dwFlags & DDOVER_KEYSRCOVERRIDE)
+			{
+				Overlay.DDBltFxFlags |= (DDBLT_DDFX | DDBLT_KEYSRCOVERRIDE);
+				Overlay.DDBltFx.ddckSrcColorkey = lpDDOverlayFx->dckSrcColorkey;
+			}
+		}
+
+		// Update overlay
+		SurfaceOverlay = Overlay;
+
+		// Return
+		return DD_OK;
 	}
 
 	if (lpDDDestSurface)

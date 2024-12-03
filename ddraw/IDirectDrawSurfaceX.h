@@ -107,9 +107,10 @@ private:
 		m_IDirectDrawSurfaceX* lpDDDestSurfaceX = nullptr;
 		bool isDestRectNull = true;
 		RECT DestRect = {};
-		DWORD dwFlags = 0;
-		bool isDDOverlayFxNull = true;
+		DWORD DDOverlayFxFlags = 0;
 		DDOVERLAYFX DDOverlayFx = {};
+		DWORD DDBltFxFlags = 0;
+		DDBLTFX DDBltFx = {};
 	};
 
 	// Extra Direct3D9 devices used in the primary surface
@@ -164,7 +165,7 @@ private:
 	CRITICAL_SECTION ddscs = {};
 	CRITICAL_SECTION ddlcs = {};
 	m_IDirectDrawX *ddrawParent = nullptr;				// DirectDraw parent device
-	SURFACEOVERLAY SurfaceOverlayList;					// The overlays for this surface
+	SURFACEOVERLAY SurfaceOverlay;					// The overlays for this surface
 	std::vector<MIPMAP> MipMaps;						// MipMaps structure with addresses
 	DWORD MaxMipMapLevel = 0;							// Total number of manually created MipMap levels
 	bool IsMipMapReadyToUse = false;					// Used for MipMap filtering

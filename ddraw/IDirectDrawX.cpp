@@ -634,12 +634,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Volume not Implemented.");
 		}
 
-		// Check for Overlay
-		if ((lpDDSurfaceDesc2->dwFlags & (DDSD_CKDESTOVERLAY | DDSD_CKSRCOVERLAY)) || (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_OVERLAY))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Overlay not fully Implemented.");
-		}
-
 		// Check for own dc
 		if (lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_OWNDC)
 		{
