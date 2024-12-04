@@ -25,6 +25,8 @@
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
+bool IsExecutableAddress(void* address);
+
 namespace WndProc
 {
 	struct WNDPROCSTRUCT;
@@ -63,6 +65,7 @@ namespace WndProc
 		HWND hWnd = nullptr;
 		WNDPROC MyWndProc = 0;
 		WNDPROC AppWndProc = 0;
+		WNDPROC AppValidWndProc = 0;
 		DATASTRUCT DataStruct = {};
 		bool Active = true;
 		bool Exiting = false;
@@ -75,15 +78,19 @@ namespace WndProc
 				*pFunctVar = (LONG)this;
 				*pFunctCall = (int)&Handler - ((int)pFunctCall + 4);
 				MyWndProc = reinterpret_cast<WNDPROC>((LONG)FunctCode);
+				if (IsExecutableAddress(AppWndProc))
+				{
+					AppValidWndProc = AppWndProc;
+				}
 			}
 		}
 		~WNDPROCSTRUCT()
 		{
 			Exiting = true;
 			Active = false;
-			if (Config.Exiting)
+			AppWndProc = (IsWindowUnicode(hWnd) ? DefWindowProcW : DefWindowProcA);
+			if (Config.Exiting || !AppValidWndProc)
 			{
-				AppWndProc = (IsWindowUnicode(hWnd) ? DefWindowProcW : DefWindowProcA);
 				(IsWindowUnicode(hWnd) ?
 					SetWindowLongW(hWnd, GWL_WNDPROC, (LONG)DefWindowProcW) :
 					SetWindowLongA(hWnd, GWL_WNDPROC, (LONG)DefWindowProcA));
@@ -95,16 +102,11 @@ namespace WndProc
 				LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
 				SetWndProc(hWnd, AppWndProc);
 			}
-			// Restore the memory protection
-			if (MyWndProc)
-			{
-				DWORD tmpProtect = 0;
-				VirtualProtect(FunctCode, sizeof(FunctCode), oldProtect, &tmpProtect);
-			}
 		}
 		HWND GetHWnd() { return hWnd; }
 		WNDPROC GetMyWndProc() { return MyWndProc; }
 		WNDPROC GetAppWndProc() { return AppWndProc; }
+		WNDPROC GetValidAppWndProc() { return AppValidWndProc; }
 		DATASTRUCT* GetDataStruct() { return &DataStruct; }
 		bool IsActive() { return Active; }
 		void SetInactive() { Active = false; }
@@ -112,6 +114,24 @@ namespace WndProc
 	};
 
 	std::vector<std::shared_ptr<WNDPROCSTRUCT>> WndProcList;
+}
+
+bool IsExecutableAddress(void* address)
+{
+	if (!address)
+	{
+		return false;
+	}
+
+	MEMORY_BASIC_INFORMATION mbi = {};
+	SIZE_T result = VirtualQuery(address, &mbi, sizeof(mbi));
+	if (result == 0)
+	{
+		return false;
+	}
+
+	return (mbi.State == MEM_COMMIT) &&
+		(mbi.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY));
 }
 
 WNDPROC WndProc::CheckWndProc(HWND hWnd, LONG dwNewLong)
@@ -255,7 +275,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		return NULL;
 	}
 
-	const WNDPROC pWndProc = AppWndProcInstance->GetAppWndProc();
+	const WNDPROC pWndProc = AppWndProcInstance->GetValidAppWndProc();
 	const HWND hWndInstance = AppWndProcInstance->GetHWnd();
 	DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
 
