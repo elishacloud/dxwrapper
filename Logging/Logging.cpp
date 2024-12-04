@@ -787,6 +787,19 @@ std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp)
 		<< Logging::hex(pp.PresentationInterval);
 }
 
+std::ostream& operator<<(std::ostream& os, const D3DSURFACE_DESC& desc)
+{
+	return Logging::LogStruct(os)
+		<< desc.Format
+		<< desc.Type
+		<< Logging::hex(desc.Usage)
+		<< desc.Pool
+		<< desc.MultiSampleType
+		<< desc.MultiSampleQuality
+		<< desc.Width
+		<< desc.Height;
+}
+
 #ifndef _D3D8_H_
 DEFINE_GUID(IID_IDirect3D8, 0x1dd9e8da, 0x1c77, 0x4d40, 0xb0, 0xcf, 0x98, 0xfe, 0xfd, 0xff, 0x95, 0x12);
 DEFINE_GUID(IID_IDirect3DDevice8, 0x7385e5df, 0x8fe8, 0x41d5, 0x86, 0xb6, 0xd7, 0xb4, 0x85, 0x47, 0xb6, 0xcf);
