@@ -3546,25 +3546,8 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 		// Turns off this overlay.
 		if (dwFlags & DDOVER_HIDE)
 		{
-			// Remove items from the list
-			if ((!lpSrcRect || DoRectsMatch(*lpSrcRect, SurfaceOverlay.SrcRect)) &&
-				(!lpDDDestSurface || lpDDDestSurface == SurfaceOverlay.lpDDDestSurface) &&
-				(!lpDestRect || DoRectsMatch(*lpDestRect, SurfaceOverlay.DestRect)))
-			{
-				SurfaceOverlay.OverlayEnabled = false;
-				return DD_OK;
-			}
-
-			// No items found
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find Overlay entry in list!");
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// Check if need to turn on this overlay.
-		if (!(dwFlags & DDOVER_SHOW))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: cannot find correct dwFlags: " << Logging::hex(dwFlags));
-			return DDERR_INVALIDPARAMS;
+			SurfaceOverlay.OverlayEnabled = false;
+			return DD_OK;
 		}
 
 		// Check for required DDOVERLAYFX structure
@@ -3666,7 +3649,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 
 		// Add entry to overlay vector
 		SURFACEOVERLAY Overlay;
-		Overlay.OverlayEnabled = true;
+		Overlay.OverlayEnabled = (SurfaceOverlay.OverlayEnabled || (dwFlags & DDOVER_SHOW));
 		if (lpSrcRect)
 		{
 			Overlay.isSrcRectNull = false;
