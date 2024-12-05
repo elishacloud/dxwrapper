@@ -3291,16 +3291,12 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 					0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_NOZORDER | SWP_NOMOVE);
 			}
 
-			if (WndDataStruct) WndDataStruct->IsCreatingD3d9 = true;
-
 			hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 			if (FAILED(hr) && presParams.FullScreen_RefreshRateInHz)
 			{
 				presParams.FullScreen_RefreshRateInHz = 0;
 				hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 			}
-
-			if (WndDataStruct) WndDataStruct->IsCreatingD3d9 = false;
 		}
 
 		if (FAILED(hr))
