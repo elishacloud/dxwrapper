@@ -17,17 +17,12 @@
 #include "d3d9.h"
 #include "GDI\WndProc.h"
 
-// WndProc hook
-bool EnableWndProcHook = false;
-
 AddressLookupTableD3d9 ProxyAddressLookupTable9;		// Just used for m_IDirect3D9Ex interfaces only
 
 void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed);
 
 void m_IDirect3D9Ex::InitInterface()
 {
-	EnableWndProcHook = (EnableWndProcHook || Config.EnableImgui);
-
 	ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
 }
 void m_IDirect3D9Ex::ReleaseInterface()
@@ -212,11 +207,20 @@ HRESULT m_IDirect3D9Ex::CheckDeviceFormatConversion(THIS_ UINT Adapter, D3DDEVTY
 }
 
 template <typename T>
-HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiSampleFlag, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface)
+HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface)
 {
 	if (!pPresentationParameters || !ppReturnedDeviceInterface)
 	{
 		return D3DERR_INVALIDCALL;
+	}
+
+	// Hook WndProc before creating device
+	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hFocusWindow ? hFocusWindow : pPresentationParameters ? pPresentationParameters->hDeviceWindow : nullptr);
+	if (WndDataStruct && pPresentationParameters)
+	{
+		WndDataStruct->IsDirect3D9 = true;
+		WndDataStruct->IsCreatingD3d9 = true;
+		WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
 	}
 
 	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
@@ -227,7 +231,10 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiS
 	// Check fullscreen
 	bool ForceFullscreen = TestResolution(Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
 
+	bool MultiSampleFlag = false;
+
 	// Setup presentation parameters
+	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 	UpdatePresentParameter(&d3dpp, hFocusWindow, DeviceDetails, ForceFullscreen, true);
 
@@ -282,6 +289,26 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(D3DPRESENT_PARAMETERS& d3dpp, bool& MultiS
 	if (SUCCEEDED(hr))
 	{
 		GetFinalPresentParameter(&d3dpp, DeviceDetails);
+
+		if (WndDataStruct && WndDataStruct->IsExclusiveMode)
+		{
+			d3dpp.Windowed = false;
+		}
+
+		if (MultiSampleFlag)
+		{
+			DeviceDetails.DeviceMultiSampleFlag = true;
+			DeviceDetails.DeviceMultiSampleType = d3dpp.MultiSampleType;
+			DeviceDetails.DeviceMultiSampleQuality = d3dpp.MultiSampleQuality;
+		}
+
+		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
+	}
+
+	// Update WndProc after creating device
+	if (WndDataStruct)
+	{
+		WndDataStruct->IsCreatingD3d9 = false;
 	}
 
 	return hr;
@@ -298,19 +325,10 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 
 	DEVICEDETAILS DeviceDetails;
 
-	bool MultiSampleFlag = false;
-	D3DPRESENT_PARAMETERS d3dpp;
-
-	HRESULT hr = CreateDeviceT(d3dpp, MultiSampleFlag, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, DeviceDetails, nullptr, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, nullptr, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
-		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
-
-		DeviceDetails.DeviceMultiSampleFlag = MultiSampleFlag;
-		DeviceDetails.DeviceMultiSampleType = pPresentationParameters->MultiSampleType;
-		DeviceDetails.DeviceMultiSampleQuality = pPresentationParameters->MultiSampleQuality;
-
 		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.DeviceWindow;
 		DeviceDetailsMap[DDKey] = DeviceDetails;
 
@@ -373,19 +391,10 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 
 	DEVICEDETAILS DeviceDetails;
 
-	bool MultiSampleFlag = false;
-	D3DPRESENT_PARAMETERS d3dpp;
-
-	HRESULT hr = CreateDeviceT(d3dpp, MultiSampleFlag, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, DeviceDetails, pFullscreenDisplayMode, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
-		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
-
-		DeviceDetails.DeviceMultiSampleFlag = MultiSampleFlag;
-		DeviceDetails.DeviceMultiSampleType = pPresentationParameters->MultiSampleType;
-		DeviceDetails.DeviceMultiSampleQuality = pPresentationParameters->MultiSampleQuality;
-
 		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.DeviceWindow;
 		DeviceDetailsMap[DDKey] = DeviceDetails;
 
@@ -467,14 +476,6 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	if (!pPresentationParameters)
 	{
 		return;
-	}
-
-	// Hook WndProc before creating device
-	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hFocusWindow ? hFocusWindow : pPresentationParameters->hDeviceWindow);
-	if (WndDataStruct)
-	{
-		WndDataStruct->IsDirect3D9 = true;
-		WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
 	}
 
 	// Set vsync
@@ -669,28 +670,29 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
 	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 
-	// Get new style
-	RECT Rect = { 0, 0, displayWidth, displayHeight };
-	AdjustWindowRectEx(&Rect, lStyle | WS_OVERLAPPEDWINDOW, GetMenu(MainhWnd) != NULL, lExStyle);
-	if (Config.WindowModeBorder && !Config.FullscreenWindowMode && screenWidth > Rect.right - Rect.left && screenHeight > Rect.bottom - Rect.top)
-	{
-		lStyle |= WS_OVERLAPPEDWINDOW;
-	}
-	else if (Config.EnableWindowMode)
-	{
-		lStyle &= ~(WS_OVERLAPPEDWINDOW | WS_BORDER);
-	}
-
 	// Set window style
 	if (Config.EnableWindowMode)
 	{
+		// Get new style
+		RECT Rect = { 0, 0, displayWidth, displayHeight };
+		AdjustWindowRectEx(&Rect, lStyle | WS_OVERLAPPEDWINDOW, GetMenu(MainhWnd) != NULL, lExStyle);
+		if (Config.WindowModeBorder && !Config.FullscreenWindowMode && screenWidth > Rect.right - Rect.left && screenHeight > Rect.bottom - Rect.top)
+		{
+			lStyle |= WS_OVERLAPPEDWINDOW;
+		}
+		else if (Config.EnableWindowMode)
+		{
+			lStyle &= ~(WS_OVERLAPPEDWINDOW | WS_BORDER);
+		}
+
+		// Set new border
 		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
 		SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP), 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
 	}
 
 	// Get new window rect
-	Rect = { 0, 0, displayWidth, displayHeight };
-	AdjustWindowRectEx(&Rect, GetWindowLong(MainhWnd, GWL_STYLE), GetMenu(MainhWnd) != NULL, lExStyle);
+	RECT Rect = { 0, 0, displayWidth, displayHeight };
+	AdjustWindowRectEx(&Rect, lStyle, GetMenu(MainhWnd) != NULL, lExStyle);
 	Rect = { 0, 0, Rect.right - Rect.left, Rect.bottom - Rect.top };
 
 	// Get upper left window position

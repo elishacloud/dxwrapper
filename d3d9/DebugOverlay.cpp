@@ -19,6 +19,7 @@
 #include "DebugOverlay.h"
 #include <sstream>
 #include "d3d9\d3d9External.h"
+#include "GDI\WndProc.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DISABLE_OBSOLETE_KEYIO
@@ -101,7 +102,8 @@ void DebugOverlay::Setup(HWND hWnd, LPDIRECT3DDEVICE9 Device)
 	ImGui_ImplWin32_Init(hWnd);
 	ImGui_ImplDX9_Init(d3d9Device);
 
-	if (!EnableWndProcHook)
+	// If not already hooked then hook it
+	if (!WndProc::GetWndProctStruct(hWnd))
 	{
 		OverrideWndProc(hWnd);
 	}

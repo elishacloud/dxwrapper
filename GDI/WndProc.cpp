@@ -25,8 +25,6 @@
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
-bool IsExecutableAddress(void* address);
-
 namespace WndProc
 {
 	struct WNDPROCSTRUCT;
@@ -35,6 +33,7 @@ namespace WndProc
 	WNDPROC GetWndProc(HWND hWnd);
 	LONG SetWndProc(HWND hWnd, WNDPROC ProcAddress);
 	LRESULT CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+	bool IsExecutableAddress(void* address);
 
 	struct WNDPROCSTRUCT
 	{
@@ -65,7 +64,6 @@ namespace WndProc
 		HWND hWnd = nullptr;
 		WNDPROC MyWndProc = 0;
 		WNDPROC AppWndProc = 0;
-		WNDPROC AppValidWndProc = 0;
 		DATASTRUCT DataStruct = {};
 		bool Active = true;
 		bool Exiting = false;
@@ -78,19 +76,15 @@ namespace WndProc
 				*pFunctVar = (LONG)this;
 				*pFunctCall = (int)&Handler - ((int)pFunctCall + 4);
 				MyWndProc = reinterpret_cast<WNDPROC>((LONG)FunctCode);
-				if (IsExecutableAddress(AppWndProc))
-				{
-					AppValidWndProc = AppWndProc;
-				}
 			}
 		}
 		~WNDPROCSTRUCT()
 		{
 			Exiting = true;
 			Active = false;
-			AppWndProc = (IsWindowUnicode(hWnd) ? DefWindowProcW : DefWindowProcA);
-			if (Config.Exiting || !AppValidWndProc)
+			if (Config.Exiting)
 			{
+				AppWndProc = (IsWindowUnicode(hWnd) ? DefWindowProcW : DefWindowProcA);
 				(IsWindowUnicode(hWnd) ?
 					SetWindowLongW(hWnd, GWL_WNDPROC, (LONG)DefWindowProcW) :
 					SetWindowLongA(hWnd, GWL_WNDPROC, (LONG)DefWindowProcA));
@@ -102,11 +96,16 @@ namespace WndProc
 				LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
 				SetWndProc(hWnd, AppWndProc);
 			}
+			// Restore the memory protection
+			if (MyWndProc)
+			{
+				DWORD tmpProtect = 0;
+				VirtualProtect(FunctCode, sizeof(FunctCode), oldProtect, &tmpProtect);
+			}
 		}
 		HWND GetHWnd() { return hWnd; }
 		WNDPROC GetMyWndProc() { return MyWndProc; }
 		WNDPROC GetAppWndProc() { return AppWndProc; }
-		WNDPROC GetValidAppWndProc() { return AppValidWndProc; }
 		DATASTRUCT* GetDataStruct() { return &DataStruct; }
 		bool IsActive() { return Active; }
 		void SetInactive() { Active = false; }
@@ -116,7 +115,7 @@ namespace WndProc
 	std::vector<std::shared_ptr<WNDPROCSTRUCT>> WndProcList;
 }
 
-bool IsExecutableAddress(void* address)
+bool WndProc::IsExecutableAddress(void* address)
 {
 	if (!address)
 	{
@@ -138,7 +137,7 @@ WNDPROC WndProc::CheckWndProc(HWND hWnd, LONG dwNewLong)
 {
 	for (auto& entry : WndProcList)
 	{
-		if (entry->GetHWnd() == hWnd && !(entry->IsExiting() && (LONG)entry->GetAppWndProc() == dwNewLong))
+		if (entry->IsActive() && entry->GetHWnd() == hWnd && !(entry->IsExiting() && (LONG)entry->GetAppWndProc() == dwNewLong))
 		{
 			return entry->GetMyWndProc();
 		}
@@ -275,7 +274,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		return NULL;
 	}
 
-	const WNDPROC pWndProc = AppWndProcInstance->GetValidAppWndProc();
+	const WNDPROC pWndProc = AppWndProcInstance->GetAppWndProc();
 	const HWND hWndInstance = AppWndProcInstance->GetHWnd();
 	DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
 
@@ -316,6 +315,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			return NULL;
 		}
 	}
+
 	// Filter some messages while forcing windowed mode
 	if (Config.EnableWindowMode && pDataStruct->IsDirect3D9 && pDataStruct->IsExclusiveMode)
 	{
@@ -326,6 +326,19 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		case WM_ACTIVATE:
 		case WM_ACTIVATEAPP:
 			return NULL;
+		case WM_STYLECHANGING:
+		case WM_STYLECHANGED:
+		case WM_ENTERSIZEMOVE:
+		case WM_EXITSIZEMOVE:
+		case WM_SIZING:
+		case WM_SIZE:
+		case WM_WINDOWPOSCHANGING:
+		case WM_WINDOWPOSCHANGED:
+			if (pDataStruct->IsCreatingD3d9)
+			{
+				return NULL;
+			}
+			break;
 		}
 	}
 
