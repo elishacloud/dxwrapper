@@ -17,6 +17,7 @@
 #include <regex>
 #include <algorithm>
 #include "Settings.h"
+#include "External\Hooking.Patterns\Hooking.Patterns.h"
 #include "Dllmain\Dllmain.h"
 #include "Wrappers\wrapper.h"
 #include "Logging\Logging.h"
@@ -331,6 +332,19 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 			Config.MemoryInfo.push_back(newMemoryInfo);
 		}
 		SetValue(name, value, &Config.MemoryInfo[AddressPointerCount++].AddressPointer);
+		return;
+	}
+	if (!_stricmp(name, "PatternString"))
+	{
+		std::string PatterString(value);
+		auto pattern = hook::pattern(value);
+		if (Config.MemoryInfo.size() < AddressPointerCount + 1)
+		{
+			MEMORYINFO newMemoryInfo;
+			Config.MemoryInfo.push_back(newMemoryInfo);
+		}
+		Config.MemoryInfo[AddressPointerCount].PatternString.assign(value);
+		Config.MemoryInfo[AddressPointerCount++].AddressPointer = pattern.size() > 0UL ? pattern.get(0).get<uint32_t*>(0) : nullptr;
 		return;
 	}
 	if (!_stricmp(name, "BytesToWrite"))

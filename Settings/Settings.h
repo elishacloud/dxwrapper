@@ -150,6 +150,7 @@ typedef unsigned char byte;
 struct MEMORYINFO						// Used for hot patching memory
 {
 	void* AddressPointer = nullptr;		// Hot patch address
+	std::string PatternString;			// Hot patch pattern
 	std::vector<byte> Bytes;			// Hot patch bytes
 };
 

@@ -20,3 +20,6 @@
 [submodule "External/imgui"]
 	path = External/imgui
 	url = https://github.com/ocornut/imgui
+[submodule "External/Hooking.Patterns"]
+	path = External/Hooking.Patterns
+	url = https://github.com/ThirteenAG/Hooking.Patterns

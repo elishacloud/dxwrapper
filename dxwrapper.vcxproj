@@ -632,6 +632,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClCompile Include="External\dinputto8\Versions\IDirectInputDeviceA.cpp" />
     <ClCompile Include="External\dinputto8\Versions\IDirectInputDeviceW.cpp" />
     <ClCompile Include="External\dinputto8\Versions\IDirectInputW.cpp" />
+    <ClCompile Include="External\Hooking.Patterns\Hooking.Patterns.cpp" />
     <ClCompile Include="External\Hooking\Hook.cpp" />
     <ClCompile Include="External\Hooking\HotPatch.cpp" />
     <ClCompile Include="External\Hooking\IATPatch.cpp" />
@@ -1264,6 +1265,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClInclude Include="External\dinputto8\Versions\IDirectInputDeviceA.h" />
     <ClInclude Include="External\dinputto8\Versions\IDirectInputDeviceW.h" />
     <ClInclude Include="External\dinputto8\Versions\IDirectInputW.h" />
+    <ClInclude Include="External\Hooking.Patterns\Hooking.Patterns.h" />
     <ClInclude Include="External\Hooking\Hook.h" />
     <ClInclude Include="External\Logging\Logging.h" />
     <ClInclude Include="External\MemoryModule\MemoryModule.h" />
