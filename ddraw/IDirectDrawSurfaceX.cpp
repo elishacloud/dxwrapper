@@ -4344,7 +4344,7 @@ inline LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 	}
 
 	// Prepare paletted surface for display
-	if (surface.IsPaletteDirty && !primary.PaletteTexture)
+	if (surface.IsPaletteDirty && IsUsingEmulation() && !primary.PaletteTexture)
 	{
 		CopyEmulatedPaletteSurface(nullptr);
 	}
@@ -4550,7 +4550,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9AuxiliarySurfaces()
 	}
 
 	// Create palette surface
-	if (!primary.PaletteTexture && IsPrimarySurface() && surface.Format == D3DFMT_P8 && !IsRenderTarget())
+	if (!primary.PaletteTexture && IsPrimarySurface() && surface.Format == D3DFMT_P8)
 	{
 		if (FAILED((*d3d9Device)->CreateTexture(MaxPaletteSize, MaxPaletteSize, 1, 0, D3DFMT_X8R8G8B8, D3DPOOL_MANAGED, &primary.PaletteTexture, nullptr)))
 		{
@@ -4665,7 +4665,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			// ToDo: if render surface is a texture then create as a texture (MipMaps can be supported on render target textures)
 			surface.Usage = D3DUSAGE_RENDERTARGET;
 			surface.Pool = D3DPOOL_DEFAULT;
-			if (IsSurfaceTexture())
+			if (IsSurfaceTexture() || IsPalette())
 			{
 				surface.Type = D3DTYPE_TEXTURE;
 				if (FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, 1, surface.Usage, Format, surface.Pool, &surface.Texture, nullptr)) &&
@@ -7200,7 +7200,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect)
 		return DDERR_GENERIC;
 	}
 
-	DWORD ColorKey = (surfaceDesc2.ddpfPixelFormat.dwRGBBitCount && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)) ?
+	DWORD ColorKey = (surfaceDesc2.ddpfPixelFormat.dwRGBBitCount && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT) && !IsPalette()) ?
 		GetARGBColorKey(surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue, surfaceDesc2.ddpfPixelFormat) : 0;
 
 	if (IsPalette())

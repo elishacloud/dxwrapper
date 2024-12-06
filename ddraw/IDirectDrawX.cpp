@@ -4677,7 +4677,7 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 
 	// Copy or draw primary surface before presenting
 	HRESULT DrawRet = DDERR_GENERIC;
-	if (IsPrimaryRenderTarget())
+	if (IsPrimaryRenderTarget() && !PrimarySurface->GetD3d9Texture())
 	{
 		if (IsGammaSet)
 		{
