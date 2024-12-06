@@ -3138,9 +3138,11 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		Utils::GetScreenSize(hWnd, (LONG&)CurrentWidth, (LONG&)CurrentHeight);
 
 		// Get current window size
+		RECT LastClientRect = {};
 		if (hWnd)
 		{
 			GetWindowRect(hWnd, &LastWindowLocation);
+			GetClientRect(hWnd, &LastClientRect);
 		}
 
 		// Get width and height
@@ -3340,8 +3342,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			bool bWindowSize =
 				(LONG)presParams.BackBufferWidth != NewClientRect.right ||
 				(LONG)presParams.BackBufferHeight != NewClientRect.bottom ||
-				abs(LastWindowLocation.right - NewWindowRect.right) > GetSystemMetrics(SM_CXBORDER) ||
-				abs(LastWindowLocation.bottom - NewWindowRect.bottom) > GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYBORDER);
+				NewClientRect.right != LastClientRect.right ||
+				NewClientRect.bottom != LastClientRect.bottom;
 
 			// Post window messages
 			if (bWindowMove || bWindowSize)
@@ -4625,15 +4627,8 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface()
 	} while (false);
 
 	// Reset textures
-	if (D3DDeviceInterface)
-	{
-		D3DDeviceInterface->RestoreTextures();
-	}
-	else
-	{
-		d3d9Device->SetTexture(0, nullptr);
-		d3d9Device->SetTexture(1, nullptr);
-	}
+	d3d9Device->SetTexture(0, nullptr);
+	d3d9Device->SetTexture(1, nullptr);
 
 	// Reset pixel shader
 	d3d9Device->SetPixelShader(nullptr);
