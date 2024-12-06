@@ -314,8 +314,9 @@ public:
 		if (lpCurrentRenderTargetX == lpSurfaceX)
 		{
 			lpCurrentRenderTargetX = nullptr;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: clearing current render target!");
 		}
-		for (UINT x = 1; x < MaxTextureStages; x++)
+		for (UINT x = 0; x < MaxTextureStages; x++)
 		{			
 			if (CurrentTextureSurfaceX[x] == lpSurfaceX)
 			{
@@ -341,7 +342,6 @@ public:
 	}
 	void ClearDdraw();
 	void BeforeResetDevice();
-	HRESULT RestoreTextures();
 	void AfterResetDevice();
 	void ReleaseAllStateBlocks();
 };

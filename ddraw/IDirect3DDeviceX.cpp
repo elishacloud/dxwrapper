@@ -4385,23 +4385,6 @@ HRESULT m_IDirect3DDeviceX::BackupStates()
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::RestoreTextures()
-{
-	if (!d3d9Device || !*d3d9Device)
-	{
-		Logging::Log() << __FUNCTION__ " Error: Failed to get the device state!";
-		return DDERR_GENERIC;
-	}
-
-	// Restore textures
-	for (UINT y = 0; y < MaxTextureStages; y++)
-	{
-		SetTexture(y, AttachedTexture[y]);
-	}
-
-	return DD_OK;
-}
-
 HRESULT m_IDirect3DDeviceX::RestoreStates()
 {
 	if (!d3d9Device || !*d3d9Device)
@@ -4453,9 +4436,6 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 			(*d3d9Device)->SetSamplerState(y, (D3DSAMPLERSTATETYPE)x, backup.SamplerState[y][x]);
 		}
 	}
-
-	// Restore textures
-	RestoreTextures();
 
 	// Restore viewport
 	D3DVIEWPORT9 viewport = {};

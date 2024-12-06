@@ -5484,6 +5484,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	}
 	IsLocking = false;
 	LockedWithID = 0;
+	LastLock.LockedRect = {};
 	IsInBlt = false;
 	IsInBltBatch = false;
 
