@@ -299,7 +299,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	if (pDataStruct->IsDirectDraw)
 	{
 		// Filter some messages while creating a Direct3D9 device
-		if (pDataStruct->IsCreatingD3d9)
+		if (pDataStruct->IsCreatingDevice)
 		{
 			switch (Msg)
 			{
@@ -310,9 +310,19 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			}
 		}
 		// Some games hang when attempting to paint while iconic
-		if ((Msg == WM_PAINT || Msg == WM_SYNCPAINT) && IsIconic(hWnd))
+		if (IsIconic(hWnd))
 		{
-			return NULL;
+			switch (Msg)
+			{
+			case WM_PAINT:
+			case WM_SYNCPAINT:
+				return NULL;
+			}
+		}
+		// Handle cases where monitor gets disconnected during resolution change
+		if (Msg == WM_DISPLAYCHANGE)
+		{
+			SwitchingResolution = true;
 		}
 	}
 
@@ -334,7 +344,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		case WM_SIZE:
 		case WM_WINDOWPOSCHANGING:
 		case WM_WINDOWPOSCHANGED:
-			if (pDataStruct->IsCreatingD3d9)
+			if (pDataStruct->IsCreatingDevice)
 			{
 				return NULL;
 			}

@@ -137,6 +137,7 @@ namespace {
 }
 
 // Default resolution
+bool SwitchingResolution = false;
 DWORD DefaultWidth;
 DWORD DefaultHeight;
 RECT LastWindowRect;
@@ -2259,6 +2260,7 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 		case DDERR_NOEXCLUSIVEMODE:
 		case D3D_OK:
 		default:
+			SwitchingResolution = false;
 			return DD_OK;
 		}
 	}
@@ -2818,6 +2820,20 @@ HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 		}
 	}
 
+	// Check for delay while resolution switching
+	if (CheckD3DDevice && SwitchingResolution && d3d9Device->TestCooperativeLevel() == D3DERR_DEVICELOST)
+	{
+		for (int attempts = 0; attempts < 20; ++attempts)
+		{
+			if (d3d9Device->TestCooperativeLevel() != D3DERR_DEVICELOST)
+			{
+				break;
+			}
+			Sleep(500);
+		}
+	}
+	SwitchingResolution = false;
+
 	return DD_OK;
 }
 
@@ -3011,6 +3027,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 	HRESULT hr = TestD3D9CooperativeLevel();
 	if (SUCCEEDED(hr) || hr == DDERR_NOEXCLUSIVEMODE)
 	{
+		SwitchingResolution = false;
 		return hr;
 	}
 	else if (hr == D3DERR_DEVICELOST)
@@ -3070,6 +3087,11 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 		ReleaseAllD9Resources(true, false);
 		ReleaseD9Device();
 		hr = CreateD9Device(__FUNCTION__);
+	}
+
+	if (SUCCEEDED(hr))
+	{
+		SwitchingResolution = false;
 	}
 
 	ReleasePTCriticalSection();
@@ -3292,12 +3314,20 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				SetWindowPos(hWnd, ((GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP),
 					0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_NOZORDER | SWP_NOMOVE);
 			}
-
-			hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
-			if (FAILED(hr) && presParams.FullScreen_RefreshRateInHz)
+			// Attempt to create a device
+			for (int attempts = 0; attempts < 20; ++attempts)
 			{
-				presParams.FullScreen_RefreshRateInHz = 0;
 				hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+				if (hr == D3DERR_INVALIDCALL && presParams.FullScreen_RefreshRateInHz)
+				{
+					presParams.FullScreen_RefreshRateInHz = 0;
+					hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+				}
+				if (hr != D3DERR_DEVICELOST)
+				{
+					break;
+				}
+				Sleep(500);
 			}
 		}
 
@@ -3322,6 +3352,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		}
 
 		// Reset flags after creating device
+		SwitchingResolution = false;
 		LastUsedHWnd = hWnd;
 		EnableWaitVsync = false;
 		FourCCsList.clear();

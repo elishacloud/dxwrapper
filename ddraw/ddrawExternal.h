@@ -45,6 +45,8 @@ DWORD GetDDrawHeight();
 void InitDDraw();
 void ExitDDraw();
 
+extern bool SwitchingResolution;
+
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
 	const FARPROC procName ## _in = (FARPROC)*dd_ ## procName;
 

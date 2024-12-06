@@ -219,7 +219,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	if (WndDataStruct && pPresentationParameters)
 	{
 		WndDataStruct->IsDirect3D9 = true;
-		WndDataStruct->IsCreatingD3d9 = true;
+		WndDataStruct->IsCreatingDevice = true;
 		WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
 	}
 
@@ -308,7 +308,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	// Update WndProc after creating device
 	if (WndDataStruct)
 	{
-		WndDataStruct->IsCreatingD3d9 = false;
+		WndDataStruct->IsCreatingDevice = false;
 	}
 
 	return hr;
