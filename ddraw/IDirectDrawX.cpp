@@ -139,7 +139,7 @@ namespace {
 // Default resolution
 DWORD DefaultWidth;
 DWORD DefaultHeight;
-RECT LastWindowLocation;
+RECT LastWindowRect;
 
 // Exclusive mode settings
 bool ExclusiveMode;
@@ -2376,7 +2376,7 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		DefaultWidth = 0;
 		DefaultHeight = 0;
 		Utils::GetScreenSize(nullptr, (LONG&)DefaultWidth, (LONG&)DefaultHeight);
-		LastWindowLocation = {};
+		LastWindowRect = {};
 
 		// Release DC
 		if (DisplayMode.hWnd && DisplayMode.DC)
@@ -3141,7 +3141,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		RECT LastClientRect = {};
 		if (hWnd)
 		{
-			GetWindowRect(hWnd, &LastWindowLocation);
+			GetWindowRect(hWnd, &LastWindowRect);
 			GetClientRect(hWnd, &LastClientRect);
 		}
 
@@ -3337,13 +3337,13 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 			// Check for window position change
 			bool bWindowMove =
-				LastWindowLocation.left != NewWindowRect.left ||
-				LastWindowLocation.top != NewWindowRect.top;
+				LastWindowRect.left != NewWindowRect.left ||
+				LastWindowRect.top != NewWindowRect.top;
 			bool bWindowSize =
 				(LONG)presParams.BackBufferWidth != NewClientRect.right ||
 				(LONG)presParams.BackBufferHeight != NewClientRect.bottom ||
-				NewClientRect.right != LastClientRect.right ||
-				NewClientRect.bottom != LastClientRect.bottom;
+				LastClientRect.right != NewClientRect.right ||
+				LastClientRect.bottom != NewClientRect.bottom;
 
 			// Post window messages
 			if (bWindowMove || bWindowSize)
@@ -3353,7 +3353,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				static WINDOWPOS winpos;
 				winpos = { hWnd, WindowInsert, NewWindowRect.left, NewWindowRect.top, NewWindowRect.right - NewWindowRect.left, NewWindowRect.bottom - NewWindowRect.top, WM_NULL };
 				static NCCALCSIZE_PARAMS NCCalc;
-				NCCalc = { { NewWindowRect, LastWindowLocation, LastWindowLocation }, &winpos };
+				NCCalc = { { NewWindowRect, LastWindowRect, LastWindowRect }, &winpos };
 				
 				// Window placement
 				WINDOWPLACEMENT wp = {};
@@ -3361,20 +3361,14 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				GetWindowPlacement(hWnd, &wp);
 				UINT SizeFlag = wp.showCmd == SW_SHOWMAXIMIZED ? SIZE_MAXIMIZED : wp.showCmd == SW_SHOWMINIMIZED ? SIZE_MINIMIZED : SIZE_RESTORED;
 
-				// Pre-populate MINMAXINFO
-				static MINMAXINFO minmaxInfo;
-				minmaxInfo = {};
-				minmaxInfo.ptMinTrackSize.x = 200; // Minimum width
-				minmaxInfo.ptMinTrackSize.y = 320; // Minimum height
-				minmaxInfo.ptMaxTrackSize.x = GetSystemMetrics(SM_CXMAXTRACK); // Maximum width
-				minmaxInfo.ptMaxTrackSize.y = GetSystemMetrics(SM_CYMAXTRACK); // Maximum height
-
-				// Send window position-related messages
-				PostMessage(hWnd, WM_ENTERSIZEMOVE, 0, 0);
-				PostMessage(hWnd, WM_GETMINMAXINFO, 0, (LPARAM)&minmaxInfo);
+				// Notify window position
 				PostMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
+				PostMessage(hWnd, WM_NCCALCSIZE, TRUE, (LPARAM)&NCCalc);
+				PostMessage(hWnd, WM_NCPAINT, TRUE, NULL);
+				PostMessage(hWnd, WM_ERASEBKGND, TRUE, NULL);
+				PostMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
 
-				// Check and notify position change
+				// Notify window move
 				if (bWindowMove)
 				{
 					POINT ClientPoint = { NewClientRect.left, NewClientRect.top };
@@ -3387,18 +3381,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				{
 					PostMessage(hWnd, WM_SIZE, SizeFlag, MAKELPARAM(NewClientRect.right, NewClientRect.bottom));
 				}
-
-				// Adjust client area and finalize position change
-				PostMessage(hWnd, WM_NCCALCSIZE, TRUE, (LPARAM)&NCCalc);
-				PostMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
-
-				// Repaint non-client and client areas
-				PostMessage(hWnd, WM_NCPAINT, TRUE, NULL);
-				PostMessage(hWnd, WM_ERASEBKGND, TRUE, NULL);
-				PostMessage(hWnd, WM_PAINT, 0, 0);
-
-				// End move/size operation
-				PostMessage(hWnd, WM_EXITSIZEMOVE, 0, 0);
 			}
 
 			// Window focus and activate app
@@ -3406,7 +3388,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			{
 				PostMessage(hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
 				PostMessage(hWnd, WM_SETFOCUS, NULL, NULL);
-				PostMessage(hWnd, WM_SYNCPAINT, NULL, NULL);
+				PostMessage(hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
 			}
 		}
 
@@ -4904,15 +4886,15 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	// Redraw window if it has moved from its last location
 	HWND hWnd = GetHwnd();
 	RECT ClientRect = {};
-	if (presParams.Windowed && !ExclusiveMode && !IsIconic(hWnd) && GetWindowRect(hWnd, &ClientRect) && LastWindowLocation.right > 0 && LastWindowLocation.bottom > 0)
+	if (presParams.Windowed && !ExclusiveMode && !IsIconic(hWnd) && GetWindowRect(hWnd, &ClientRect) && LastWindowRect.right > 0 && LastWindowRect.bottom > 0)
 	{
-		if (ClientRect.left != LastWindowLocation.left || ClientRect.top != LastWindowLocation.top ||
-			ClientRect.right != LastWindowLocation.right || ClientRect.bottom != LastWindowLocation.bottom)
+		if (ClientRect.left != LastWindowRect.left || ClientRect.top != LastWindowRect.top ||
+			ClientRect.right != LastWindowRect.right || ClientRect.bottom != LastWindowRect.bottom)
 		{
 			RedrawWindow(hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 		}
 	}
-	LastWindowLocation = ClientRect;
+	LastWindowRect = ClientRect;
 
 	// Store new click time after frame draw is complete
 	QueryPerformanceCounter(&Counter.LastPresentTime);
