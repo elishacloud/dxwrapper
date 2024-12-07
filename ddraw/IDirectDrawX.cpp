@@ -985,6 +985,9 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 				break;
 			}
 
+			// Add resolution to global list
+			AddDisplayResolution(d3ddispmode.Width, d3ddispmode.Height);
+
 			// Loop through each bit count
 			for (DWORD bpMode : {8, 16, 32})
 			{

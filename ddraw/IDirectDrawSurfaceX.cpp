@@ -2637,12 +2637,13 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		}
 
 		// If primary surface and palette surface and created via Lock() then mark as created by lock to emulate surface (eg. Diablo)
-		if (IsPrimarySurface() && ShouldEmulate == SC_NOT_CREATED && surfaceDesc2.dwFlags == DDSD_CAPS)
+		if (ShouldEmulate == SC_NOT_CREATED && !IsSurfaceTexture() && surfaceDesc2.dwBackBufferCount == 0 && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FLIP) == 0 &&
+			((surfaceDesc2.ddsCaps.dwCaps == DDSCAPS_SYSTEMMEMORY && IsDisplayResolution(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight))) ||
+			(surfaceDesc2.dwFlags == DDSD_CAPS && IsPrimarySurface()))
 		{
 			UpdateSurfaceDesc();
 
-			if (surfaceDesc2.ddpfPixelFormat.dwRGBBitCount == 8 && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) &&
-				surfaceDesc2.dwBackBufferCount == 0 && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FLIP) == 0)
+			if (surfaceDesc2.ddpfPixelFormat.dwRGBBitCount == 8 || surfaceDesc2.ddsCaps.dwCaps == DDSCAPS_SYSTEMMEMORY)
 			{
 				ShouldEmulate = SC_FORCE_EMULATED;
 			}

@@ -243,6 +243,19 @@ HRESULT m_IDirectDrawSurface::GetSurfaceDesc(LPDDSURFACEDESC a)
 {
 	if (!ProxyInterface)
 	{
+		if (a)
+		{
+			if (a->dwSize == sizeof(DDSURFACEDESC))
+			{
+				ZeroMemory(a, sizeof(DDSURFACEDESC));
+				a->dwSize = sizeof(DDSURFACEDESC);
+			}
+			else if (a->dwSize == sizeof(DDSURFACEDESC2))
+			{
+				ZeroMemory(a, sizeof(DDSURFACEDESC2));
+				a->dwSize = sizeof(DDSURFACEDESC);
+			}
+		}
 		return DDERR_INVALIDOBJECT;
 	}
 	return ProxyInterface->GetSurfaceDesc(a, MipMapLevel, DirectXVersion);

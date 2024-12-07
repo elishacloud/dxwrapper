@@ -16,6 +16,29 @@
 
 #include "ddraw.h"
 
+// For storing resolution list
+std::vector<std::pair<DWORD, DWORD>> CashedDisplayResolutions;
+
+void AddDisplayResolution(DWORD Width, DWORD Height)
+{
+	if (!IsDisplayResolution(Width, Height))
+	{
+		CashedDisplayResolutions.push_back({ Width, Height });
+	}
+}
+
+bool IsDisplayResolution(DWORD Width, DWORD Height)
+{
+	for (const auto& entry : CashedDisplayResolutions)
+	{
+		if (entry.first == Width && entry.second == Height)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 bool DoRectsMatch(const RECT& lhs, const RECT& rhs)
 {
 	return lhs.left == rhs.left && lhs.top == rhs.top &&

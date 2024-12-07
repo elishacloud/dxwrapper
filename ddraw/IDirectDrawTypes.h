@@ -128,6 +128,8 @@ static constexpr DWORD DDS_HEADER_FLAGS_PITCH	= 0x00000008;
 
 static constexpr DWORD MaxPaletteSize = 256;
 
+void AddDisplayResolution(DWORD Width, DWORD Height);
+bool IsDisplayResolution(DWORD Width, DWORD Height);
 bool DoRectsMatch(const RECT& lhs, const RECT& rhs);
 bool GetOverlappingRect(const RECT& rect1, const RECT& rect2, RECT& outOverlapRect);
 void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2);
