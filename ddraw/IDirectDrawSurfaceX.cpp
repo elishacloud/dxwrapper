@@ -7200,16 +7200,22 @@ HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect)
 		return DDERR_GENERIC;
 	}
 
-	DWORD ColorKey = (surfaceDesc2.ddpfPixelFormat.dwRGBBitCount && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT) && !IsPalette()) ?
-		GetARGBColorKey(surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue, surfaceDesc2.ddpfPixelFormat) : 0;
-
-	if (IsPalette())
+	// Get color key
+	DWORD ColorKey = 0;
+	if (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)
 	{
-		UpdatePaletteData();
-		if ((surfaceDesc2.dwFlags & DDSD_CKSRCBLT) && surface.PaletteEntryArray)
+		if (IsPalette())
 		{
-			PALETTEENTRY PaletteEntry = surface.PaletteEntryArray[surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue & 0xFF];
-			ColorKey = D3DCOLOR_ARGB(PaletteEntry.peFlags, PaletteEntry.peRed, PaletteEntry.peGreen, PaletteEntry.peBlue);
+			UpdatePaletteData();
+			if (surface.PaletteEntryArray)
+			{
+				PALETTEENTRY PaletteEntry = surface.PaletteEntryArray[surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue & 0xFF];
+				ColorKey = D3DCOLOR_ARGB(PaletteEntry.peFlags, PaletteEntry.peRed, PaletteEntry.peGreen, PaletteEntry.peBlue);
+			}
+		}
+		else if (surfaceDesc2.ddpfPixelFormat.dwRGBBitCount)
+		{
+			ColorKey = GetARGBColorKey(surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue, surfaceDesc2.ddpfPixelFormat);
 		}
 	}
 

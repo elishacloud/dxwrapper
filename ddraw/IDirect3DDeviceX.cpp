@@ -698,7 +698,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 			D3DFMT_DXT3,
 			D3DFMT_DXT4,
 			D3DFMT_DXT5,
-			//D3DFMT_P8,	// Requires emulation
+			D3DFMT_P8,
 			D3DFMT_L8,
 			D3DFMT_A8,
 			D3DFMT_A4L4,
@@ -714,10 +714,12 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 		DDPIXELFORMAT ddpfPixelFormat = {};
 		ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
+		bool IsDirectDraw8bit = (ddrawParent->GetDisplayBPP(nullptr) == 8);
+
 		for (D3DFORMAT format : TextureList)
 		{
-			HRESULT hr = d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, format);
-			if (SUCCEEDED(hr))
+			if ((format == D3DFMT_P8 && IsDirectDraw8bit) ||
+				SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, format)))
 			{
 				SetPixelDisplayFormat(format, ddpfPixelFormat);
 				if (lpd3dEnumPixelProc(&ddpfPixelFormat, lpArg) == DDENUMRET_CANCEL)
@@ -950,6 +952,11 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture!");
 				return DDERR_INVALIDPARAMS;
+			}
+
+			if (lpCurrentRenderTargetX && lpCurrentRenderTargetX->IsPalette() && !lpDDSrcSurfaceX->IsPalette())
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: setting non-palette texture on a paletted render target!");
 			}
 
 			hr = (*d3d9Device)->SetTexture(dwStage, pTexture9);
@@ -4598,18 +4605,16 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 		if (rsColorKeyEnabled)
 		{
 			// Check for color key alpha texture
-			bool AlphaSurfaceSet = false;
 			for (UINT x = 0; x < MaxTextureStages; x++)
 			{
 				if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->IsColorKeyTexture() && CurrentTextureSurfaceX[x]->GetD3d9DrawTexture())
 				{
-					AlphaSurfaceSet = true;
+					dwFlags |= D3DDP_DXW_ALPHACOLORKEY;
 					(*d3d9Device)->SetTexture(x, CurrentTextureSurfaceX[x]->GetD3d9DrawTexture());
 				}
 			}
-			if (AlphaSurfaceSet)
+			if (dwFlags & D3DDP_DXW_ALPHACOLORKEY)
 			{
-				dwFlags |= D3DDP_DXW_ALPHACOLORKEY;
 				(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
 				(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &DrawStates.rsAlphaFunc);
 				(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &DrawStates.rsAlphaRef);
