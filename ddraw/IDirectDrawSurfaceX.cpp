@@ -5758,7 +5758,7 @@ inline bool m_IDirectDrawSurfaceX::CheckCoordinates(RECT& OutRect, LPRECT lpInRe
 void m_IDirectDrawSurfaceX::LockEmuLock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc)
 {
 	// Only works if entire surface is locked
-	if (!lpDDSurfaceDesc || !lpDDSurfaceDesc->lPitch || lpDestRect)
+	if (!lpDDSurfaceDesc || !lpDDSurfaceDesc->lPitch || (lpDestRect && lpDestRect->top != 0 && lpDestRect->left != 0))
 	{
 		return;
 	}

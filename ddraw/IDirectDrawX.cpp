@@ -2839,12 +2839,35 @@ HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 
 void m_IDirectDrawX::SetD3D(m_IDirect3DX* D3D)
 {
+	// Check if a device is already created
+	if (D3DInterface && D3DInterface != D3D)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D interface has already been created!");
+	}
+
 	D3DInterface = D3D;
 }
 
 void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX* D3DDevice)
 {
+	// Check if a device is already created
+	if (D3DDeviceInterface && D3DDeviceInterface != D3DDevice)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device has already been created!");
+	}
+
 	D3DDeviceInterface = D3DDevice;
+}
+
+void m_IDirectDrawX::ClearD3DDevice()
+{
+	Using3D = false;
+
+	D3DDeviceInterface = nullptr;
+
+	SetRenderTargetSurface(nullptr);
+
+	Clear3DFlagForAllSurfaces();
 }
 
 bool m_IDirectDrawX::IsInScene()

@@ -644,12 +644,6 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 			return DDERR_INVALIDOBJECT;
 		}
 
-		// Check if a device is already created
-		if (*ddrawParent->GetCurrentD3DDevice())
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device has already been created!");
-		}
-
 		// Get surfaceX
 		m_IDirectDrawSurfaceX *DdrawSurface3D = nullptr;
 		lpDDS->QueryInterface(IID_GetInterfaceX, (LPVOID*)&DdrawSurface3D);
