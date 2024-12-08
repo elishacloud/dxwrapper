@@ -4593,7 +4593,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	// Get texture format
 	surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surface.BitCount = GetBitCount(surface.Format);
-	const bool CanUseEmulation = (!IsDepthStencil() && !(surface.Format & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/) && !surface.UsingSurfaceMemory);
+	const bool CanUseEmulation = (!IsSurface3D() && !IsDepthStencil() && !(surface.Format & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/) && !surface.UsingSurfaceMemory);
 	SurfaceRequiresEmulation = (CanUseEmulation && (Config.DdrawEmulateSurface || ShouldEmulate == SC_FORCE_EMULATED ||
 		surface.Format == D3DFMT_A8B8G8R8 || surface.Format == D3DFMT_X8B8G8R8 || surface.Format == D3DFMT_B8G8R8 || surface.Format == D3DFMT_R8G8B8));
 	const bool CreateSurfaceEmulated = (CanUseEmulation && (SurfaceRequiresEmulation ||
@@ -5762,7 +5762,7 @@ void m_IDirectDrawSurfaceX::LockEmuLock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDD
 	DWORD BBP = surface.BitCount;
 	LONG NewPitch = (BBP / 8) * lpDDSurfaceDesc->dwWidth;
 
-	bool LockOffPlain = (Config.DdrawEmulateLock && !IsSurfaceTexture() && (lpDDSurfaceDesc->ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY));
+	bool LockOffPlain = Config.DdrawEmulateLock;
 	bool LockByteAlign = (Config.DdrawFixByteAlignment && lpDDSurfaceDesc->lPitch != NewPitch);
 
 	// Emulate lock for offscreen surfaces
