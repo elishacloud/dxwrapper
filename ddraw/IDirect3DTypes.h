@@ -83,20 +83,20 @@ typedef enum _D3DSURFACETYPE {
     D3DTYPE_DEPTHSTENCIL = 4
 } D3DSURFACETYPE;
 
-void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light);
-void ConvertMaterial(D3DMATERIAL& Material, D3DMATERIAL7& Material7);
-void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material);
-void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT2 &ViewPort2);
-void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT &ViewPort);
-void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT7 &ViewPort7);
-void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT7 &ViewPort7);
-void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT &ViewPort);
-void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT2 &ViewPort2);
-void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7);
-void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7);
-void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9);
-void ConvertVertices(D3DLVERTEX* lFVF, D3DLVERTEX9* lFVF9, DWORD NumVertices);
-void ConvertVertices(D3DLVERTEX9* lFVF9, D3DLVERTEX* lFVF, DWORD NumVertices);
+void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light);
+void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7);
+void ConvertMaterial(D3DMATERIAL7& Material7, const D3DMATERIAL& Material);
+void ConvertViewport(D3DVIEWPORT& ViewPort, const D3DVIEWPORT2& ViewPort2);
+void ConvertViewport(D3DVIEWPORT2& ViewPort2, const D3DVIEWPORT& ViewPort);
+void ConvertViewport(D3DVIEWPORT& ViewPort, const D3DVIEWPORT7& ViewPort7);
+void ConvertViewport(D3DVIEWPORT2& ViewPort2, const D3DVIEWPORT7& ViewPort7);
+void ConvertViewport(D3DVIEWPORT7& ViewPort7, const D3DVIEWPORT& ViewPort);
+void ConvertViewport(D3DVIEWPORT7& ViewPort7, const D3DVIEWPORT2& ViewPort2);
+void ConvertViewport(D3DVIEWPORT7& ViewPort, const D3DVIEWPORT7& ViewPort7);
+void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7);
+void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9);
+void ConvertVertices(D3DLVERTEX* lFVF, const D3DLVERTEX9* lFVF9, DWORD NumVertices);
+void ConvertVertices(D3DLVERTEX9* lFVF9, const D3DLVERTEX* lFVF, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
 bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);
 void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF);

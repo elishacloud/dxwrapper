@@ -4593,7 +4593,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	// Get texture format
 	surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surface.BitCount = GetBitCount(surface.Format);
-	const bool CanUseEmulation = (!IsSurface3D() && !IsDepthStencil() && !(surface.Format & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/) && !surface.UsingSurfaceMemory);
+	const bool CanUseEmulation = ((IsPixelFormatRGB(surfaceDesc2.ddpfPixelFormat) || IsPixelFormatPalette(surfaceDesc2.ddpfPixelFormat)) && !IsSurface3D() && !surface.UsingSurfaceMemory);
 	SurfaceRequiresEmulation = (CanUseEmulation && (Config.DdrawEmulateSurface || ShouldEmulate == SC_FORCE_EMULATED ||
 		surface.Format == D3DFMT_A8B8G8R8 || surface.Format == D3DFMT_X8B8G8R8 || surface.Format == D3DFMT_B8G8R8 || surface.Format == D3DFMT_R8G8B8));
 	const bool CreateSurfaceEmulated = (CanUseEmulation && (SurfaceRequiresEmulation ||
@@ -4810,7 +4810,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			{
 				ColorFill(nullptr, 10 * (Count + 1), 0);
 			}
-			else if (!(surface.Format & 0xFF000000))
+			else if (IsPixelFormatRGB(surfaceDesc2.ddpfPixelFormat))
 			{
 				ColorFill(nullptr,
 					(Colors[Count].a & surfaceDesc2.ddpfPixelFormat.dwRGBAlphaBitMask) +
@@ -4984,7 +4984,7 @@ inline bool m_IDirectDrawSurfaceX::DoesDCMatch(EMUSURFACE* pEmuSurface)
 
 	if (pEmuSurface->bmi->bmiHeader.biWidth == (LONG)Width &&
 		pEmuSurface->bmi->bmiHeader.biHeight == -(LONG)Height &&
-		pEmuSurface->bmi->bmiHeader.biBitCount == surface.BitCount &&
+		pEmuSurface->bmi->bmiHeader.biBitCount == (WORD)surface.BitCount &&
 		pEmuSurface->Format == surface.Format &&
 		pEmuSurface->Pitch == Pitch)
 	{
@@ -5050,6 +5050,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	// Adjust Width to be byte-aligned
 	DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surface.BitCount);
 	DWORD Height = surfaceDesc2.dwHeight;
+	DWORD Pitch = ComputePitch(surface.Format, Width, surface.BitCount);
 
 	// Check if emulated surface already exists
 	if (surface.emu)
@@ -5177,8 +5178,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	}
 	surface.emu->bmi->bmiHeader.biHeight = -(LONG)Height;
 	surface.emu->Format = surface.Format;
-	surface.emu->Pitch = ComputePitch(surface.Format, surface.emu->bmi->bmiHeader.biWidth, surface.emu->bmi->bmiHeader.biBitCount);
-	surface.emu->Size = Height * surface.emu->Pitch;
+	surface.emu->Pitch = Pitch;
+	surface.emu->Size = Height * Pitch;
 
 	return DD_OK;
 }
@@ -6856,13 +6857,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 		// Decode DirectX textures and FourCCs
 		if ((FormatMismatch && !IsUsingEmulation() && !IsColorKey && !IsMirrorLeftRight && !IsMirrorUpDown) ||
-			(SrcFormat & 0xFF000000 /*FOURCC or D3DFMT_DXTx*/) ||
-			SrcFormat == D3DFMT_V8U8 ||
-			SrcFormat == D3DFMT_L6V5U5 ||
-			SrcFormat == D3DFMT_X8L8V8U8 ||
-			SrcFormat == D3DFMT_Q8W8V8U8 ||
-			SrcFormat == D3DFMT_V16U16 ||
-			SrcFormat == D3DFMT_A2W10V10U10)
+			(!IsPixelFormatRGB(pSourceSurface->surfaceDesc2.ddpfPixelFormat) && !IsPixelFormatPalette(pSourceSurface->surfaceDesc2.ddpfPixelFormat)))
 		{
 			if (IsColorKey)
 			{

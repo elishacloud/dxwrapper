@@ -63,7 +63,7 @@ bool GetOverlappingRect(const RECT& rect1, const RECT& rect2, RECT& outOverlapRe
 	return false;
 }
 
-void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
+void ConvertSurfaceDesc(DDSURFACEDESC& Desc, const DDSURFACEDESC2& Desc2)
 {
 	// Check for supported dwSize
 	if (Desc.dwSize != sizeof(DDSURFACEDESC) || (Desc2.dwSize != sizeof(DDSURFACEDESC2) && Desc2.dwSize != sizeof(DDSURFACEDESC)))
@@ -110,7 +110,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 	}
 }
 
-void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
+void ConvertSurfaceDesc(DDSURFACEDESC2& Desc2, const DDSURFACEDESC& Desc)
 {
 	// Check for supported dwSize
 	if (Desc2.dwSize != sizeof(DDSURFACEDESC2) || Desc.dwSize != sizeof(DDSURFACEDESC))
@@ -242,7 +242,7 @@ void ClearUnusedValues(DDSURFACEDESC2& Desc2)
 	if (!(Desc2.dwFlags & DDSD_TEXTURESTAGE)) Desc2.dwTextureStage = 0;
 }
 
-void ConvertPixelFormat(DDPIXELFORMAT& Format, DDS_PIXELFORMAT& Format2)
+void ConvertPixelFormat(DDPIXELFORMAT& Format, const DDS_PIXELFORMAT& Format2)
 {
 	if (Format.dwSize != sizeof(DDPIXELFORMAT) || Format2.dwSize != sizeof(DDS_PIXELFORMAT))
 	{
@@ -258,19 +258,19 @@ void ConvertPixelFormat(DDPIXELFORMAT& Format, DDS_PIXELFORMAT& Format2)
 	Format.dwRGBAlphaBitMask = Format2.dwABitMask;
 }
 
-void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER &DeviceID, DDDEVICEIDENTIFIER2 &DeviceID2)
+void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER& DeviceID, const DDDEVICEIDENTIFIER2& DeviceID2)
 {
 	CopyMemory(&DeviceID, &DeviceID2, sizeof(DDDEVICEIDENTIFIER));
 }
 
-void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID2, DDDEVICEIDENTIFIER &DeviceID)
+void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2& DeviceID2, const DDDEVICEIDENTIFIER& DeviceID)
 {
 	CopyMemory(&DeviceID2, &DeviceID, sizeof(DDDEVICEIDENTIFIER));
 	// Extra parameters
 	DeviceID2.dwWHQLLevel = 0;
 }
 
-void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID2, D3DADAPTER_IDENTIFIER9 &Identifier9)
+void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2& DeviceID2, const D3DADAPTER_IDENTIFIER9& Identifier9)
 {
 	memcpy(DeviceID2.szDriver, Identifier9.Driver, MAX_DDDEVICEID_STRING);
 	memcpy(DeviceID2.szDescription, Identifier9.Description, MAX_DDDEVICEID_STRING);
@@ -284,7 +284,7 @@ void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID2, D3DADAPTER_IDENTIFI
 	DeviceID2.dwWHQLLevel = Identifier9.WHQLLevel;
 }
 
-void ConvertCaps(DDSCAPS &Caps, DDSCAPS2 &Caps2)
+void ConvertCaps(DDSCAPS& Caps, const DDSCAPS2& Caps2)
 {
 	Caps.dwCaps = Caps2.dwCaps;
 	// Check for dwFlags that did not get converted
@@ -294,7 +294,7 @@ void ConvertCaps(DDSCAPS &Caps, DDSCAPS2 &Caps2)
 	}
 }
 
-void ConvertCaps(DDSCAPS2 &Caps2, DDSCAPS &Caps)
+void ConvertCaps(DDSCAPS2& Caps2, const DDSCAPS& Caps)
 {
 	Caps2.dwCaps = Caps.dwCaps;
 	// Extra parameters
@@ -304,7 +304,7 @@ void ConvertCaps(DDSCAPS2 &Caps2, DDSCAPS &Caps)
 	Caps2.dwVolumeDepth = 0;		// Not used
 }
 
-void ConvertCaps(DDCAPS &Caps, DDCAPS &Caps2)
+void ConvertCaps(DDCAPS& Caps, const DDCAPS& Caps2)
 {
 	if ((Caps.dwSize != sizeof(DDCAPS_DX1) && Caps.dwSize != sizeof(DDCAPS_DX3) &&
 		Caps.dwSize != sizeof(DDCAPS_DX5) && Caps.dwSize != sizeof(DDCAPS_DX6) &&
@@ -322,7 +322,7 @@ void ConvertCaps(DDCAPS &Caps, DDCAPS &Caps2)
 	AdjustVidMemory(&Caps.dwVidMemTotal, &Caps.dwVidMemFree);
 }
 
-void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
+void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9)
 {
 	// Note: dwVidMemTotal, dwVidMemFree and dwNumFourCCCodes are not part of D3DCAPS9 and need to be set separately
 	if (Caps7.dwSize != sizeof(DDCAPS))
@@ -547,7 +547,7 @@ DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height)
 	return 1 + static_cast<int>(std::floor(std::log2(min(Width, Height))));
 }
 
-DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
+DWORD GetBitCount(const DDPIXELFORMAT& ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
 	{
@@ -790,54 +790,54 @@ inline void CountBits(DWORD value, DWORD& LeadingZeros, DWORD& TotalBits)
 	}
 }
 
-DWORD GetARGBColorKey(DWORD ColorKey, DDPIXELFORMAT& pixelFormat)
+DWORD GetARGBColorKey(DWORD ColorKey, const DDPIXELFORMAT& ddpfPixelFormat)
 {
-	if (!pixelFormat.dwRBitMask || !pixelFormat.dwGBitMask || !pixelFormat.dwBBitMask)
+	if (!ddpfPixelFormat.dwRBitMask || !ddpfPixelFormat.dwGBitMask || !ddpfPixelFormat.dwBBitMask)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << pixelFormat);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << ddpfPixelFormat);
 		return 0;
 	}
 
 	DWORD dwRBitCount, dwGBitCount, dwBBitCount, rShift, gShift, bShift;
 
 	// Calculate bits for each color component
-	CountBits(pixelFormat.dwRBitMask, rShift, dwRBitCount);
-	CountBits(pixelFormat.dwGBitMask, gShift, dwGBitCount);
-	CountBits(pixelFormat.dwBBitMask, bShift, dwBBitCount);
+	CountBits(ddpfPixelFormat.dwRBitMask, rShift, dwRBitCount);
+	CountBits(ddpfPixelFormat.dwGBitMask, gShift, dwGBitCount);
+	CountBits(ddpfPixelFormat.dwBBitMask, bShift, dwBBitCount);
 
 	// Calculate size of color space for bit depth
-	const float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
-	const float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
-	const float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
+	const float rColorRange = 255.0f / (ddpfPixelFormat.dwRBitMask >> rShift);
+	const float gColorRange = 255.0f / (ddpfPixelFormat.dwGBitMask >> gShift);
+	const float bColorRange = 255.0f / (ddpfPixelFormat.dwBBitMask >> bShift);
 
 	// Extract individual components according to pixel format for low color key
-	DWORD r = static_cast<DWORD>(((ColorKey & pixelFormat.dwRBitMask) >> rShift) * rColorRange);
-	DWORD g = static_cast<DWORD>(((ColorKey & pixelFormat.dwGBitMask) >> gShift) * gColorRange);
-	DWORD b = static_cast<DWORD>(((ColorKey & pixelFormat.dwBBitMask) >> bShift) * bColorRange);
+	DWORD r = static_cast<DWORD>(((ColorKey & ddpfPixelFormat.dwRBitMask) >> rShift) * rColorRange);
+	DWORD g = static_cast<DWORD>(((ColorKey & ddpfPixelFormat.dwGBitMask) >> gShift) * gColorRange);
+	DWORD b = static_cast<DWORD>(((ColorKey & ddpfPixelFormat.dwBBitMask) >> bShift) * bColorRange);
 
 	// Return ARGB color key
 	return D3DCOLOR_ARGB(0xFF, r, g, b);
 }
 
-void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD lowColorSpace, DWORD highColorSpace, DDPIXELFORMAT& pixelFormat)
+void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD lowColorSpace, DWORD highColorSpace, const DDPIXELFORMAT& ddpfPixelFormat)
 {
-	if (!pixelFormat.dwRBitMask || !pixelFormat.dwGBitMask || !pixelFormat.dwBBitMask)
+	if (!ddpfPixelFormat.dwRBitMask || !ddpfPixelFormat.dwGBitMask || !ddpfPixelFormat.dwBBitMask)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << pixelFormat);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << ddpfPixelFormat);
 		return;
 	}
 
 	DWORD dwRBitCount, dwGBitCount, dwBBitCount, rShift, gShift, bShift;
 
 	// Calculate bits for each color component
-	CountBits(pixelFormat.dwRBitMask, rShift, dwRBitCount);
-	CountBits(pixelFormat.dwGBitMask, gShift, dwGBitCount);
-	CountBits(pixelFormat.dwBBitMask, bShift, dwBBitCount);
+	CountBits(ddpfPixelFormat.dwRBitMask, rShift, dwRBitCount);
+	CountBits(ddpfPixelFormat.dwGBitMask, gShift, dwGBitCount);
+	CountBits(ddpfPixelFormat.dwBBitMask, bShift, dwBBitCount);
 
 	// Calculate size of color space for bit depth
-	const float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
-	const float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
-	const float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
+	const float rColorRange = 255.0f / (ddpfPixelFormat.dwRBitMask >> rShift);
+	const float gColorRange = 255.0f / (ddpfPixelFormat.dwGBitMask >> gShift);
+	const float bColorRange = 255.0f / (ddpfPixelFormat.dwBBitMask >> bShift);
 
 	// Allow some range for padding (half of a pixel's color range)
 	const float rPadding = (rColorRange / 255.0f) * 0.1f;
@@ -845,9 +845,9 @@ void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD low
 	const float bPadding = (bColorRange / 255.0f) * 0.1f;
 
 	// Extract individual components according to pixel format for low color key
-	BYTE r = (BYTE)((lowColorSpace & pixelFormat.dwRBitMask) >> rShift);
-	BYTE g = (BYTE)((lowColorSpace & pixelFormat.dwGBitMask) >> gShift);
-	BYTE b = (BYTE)((lowColorSpace & pixelFormat.dwBBitMask) >> bShift);
+	BYTE r = (BYTE)((lowColorSpace & ddpfPixelFormat.dwRBitMask) >> rShift);
+	BYTE g = (BYTE)((lowColorSpace & ddpfPixelFormat.dwGBitMask) >> gShift);
+	BYTE b = (BYTE)((lowColorSpace & ddpfPixelFormat.dwBBitMask) >> bShift);
 
 	// Convert to float and normalize to range [0, 1] for low color key
 	lowColorKey[0] = (r * rColorRange / 255.0f) - rPadding;
@@ -859,9 +859,9 @@ void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD low
 	lowColorKey[3] = 0.0f;
 
 	// Extract individual components according to pixel format for high color key
-	r = (BYTE)((highColorSpace & pixelFormat.dwRBitMask) >> rShift);
-	g = (BYTE)((highColorSpace & pixelFormat.dwGBitMask) >> gShift);
-	b = (BYTE)((highColorSpace & pixelFormat.dwBBitMask) >> bShift);
+	r = (BYTE)((highColorSpace & ddpfPixelFormat.dwRBitMask) >> rShift);
+	g = (BYTE)((highColorSpace & ddpfPixelFormat.dwGBitMask) >> gShift);
+	b = (BYTE)((highColorSpace & ddpfPixelFormat.dwBBitMask) >> bShift);
 
 	// Convert to float and normalize to range [0, 1] for high color key
 	highColorKey[0] = (r * rColorRange / 255.0f) + rPadding;
@@ -871,6 +871,37 @@ void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD low
 	highColorKey[2] = (b * bColorRange / 255.0f) + bPadding;
 	highColorKey[2] = highColorKey[2] > 1.0f ? 1.0f : highColorKey[2];
 	highColorKey[3] = 0.0f;
+}
+
+bool IsPixelFormatRGB(const DDPIXELFORMAT& ddpfPixelFormat)
+{
+	if (ddpfPixelFormat.dwFlags & (DDPF_ALPHA | DDPF_ALPHAPREMULT | DDPF_FOURCC | DDPF_COMPRESSED |
+		DDPF_PALETTEINDEXED8 | DDPF_PALETTEINDEXEDTO8 | DDPF_PALETTEINDEXED4 | DDPF_PALETTEINDEXED2 | DDPF_PALETTEINDEXED1 |
+		DDPF_LUMINANCE | DDPF_BUMPLUMINANCE | DDPF_BUMPDUDV | DDPF_RGBTOYUV | DDPF_YUV |
+		DDPF_ZBUFFER | DDPF_ZPIXELS | DDPF_STENCILBUFFER))
+	{
+		return false;
+	}
+	if (ddpfPixelFormat.dwFlags & (DDPF_RGB))
+	{
+		return true;
+	}
+	return false;
+}
+
+bool IsPixelFormatPalette(const DDPIXELFORMAT& ddpfPixelFormat)
+{
+	if (ddpfPixelFormat.dwFlags & (DDPF_ALPHA | DDPF_ALPHAPREMULT | DDPF_FOURCC | DDPF_COMPRESSED |
+		DDPF_LUMINANCE | DDPF_BUMPLUMINANCE | DDPF_BUMPDUDV | DDPF_RGBTOYUV | DDPF_YUV |
+		DDPF_ZBUFFER | DDPF_ZPIXELS | DDPF_STENCILBUFFER))
+	{
+		return false;
+	}
+	if (ddpfPixelFormat.dwFlags & (DDPF_PALETTEINDEXED8 | DDPF_PALETTEINDEXEDTO8 | DDPF_PALETTEINDEXED4 | DDPF_PALETTEINDEXED2 | DDPF_PALETTEINDEXED1))
+	{
+		return true;
+	}
+	return false;
 }
 
 D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format)
@@ -903,7 +934,7 @@ D3DFORMAT GetFailoverFormat(D3DFORMAT Format)
 	return Format;
 }
 
-D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
+D3DFORMAT GetDisplayFormat(const DDPIXELFORMAT& ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
 	{
@@ -1058,7 +1089,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find RGB format for PixelFormat: " << ddpfPixelFormat);
 		return D3DFMT_UNKNOWN;
 	}
-	
+
 	// Bump formats
 	if (ddpfPixelFormat.dwFlags & DDPF_BUMPDUDV)
 	{
@@ -1140,7 +1171,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 	return D3DFMT_UNKNOWN;
 }
 
-void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
+void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT& ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
 	{
@@ -1374,7 +1405,7 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	}
 }
 
-D3DFORMAT SetDisplayFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD BPP)
+D3DFORMAT SetDisplayFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP)
 {
 	D3DFORMAT Format = D3DFMT_UNKNOWN;
 	switch (BPP)
