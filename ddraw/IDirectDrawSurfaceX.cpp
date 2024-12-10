@@ -4969,7 +4969,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	return hr;
 }
 
-inline bool m_IDirectDrawSurfaceX::DoesDCMatch(EMUSURFACE* pEmuSurface)
+inline bool m_IDirectDrawSurfaceX::DoesDCMatch(EMUSURFACE* pEmuSurface) const
 {
 	if (!pEmuSurface || !pEmuSurface->DC || !pEmuSurface->pBits)
 	{
@@ -5043,8 +5043,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 {
 	// Check if color masks are needed
 	bool ColorMaskReq = ((surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32) &&									// Only valid when used with 16 bit, 24 bit and 32 bit surfaces
-		(surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_RGB) &&																				// Check to make sure it is an RGB surface
-		(surfaceDesc2.ddpfPixelFormat.dwRBitMask && surfaceDesc2.ddpfPixelFormat.dwGBitMask && surfaceDesc2.ddpfPixelFormat.dwBBitMask));	// Check to make sure the masks actually exist
+		(surfaceDesc2.ddpfPixelFormat.dwRBitMask || surfaceDesc2.ddpfPixelFormat.dwGBitMask || surfaceDesc2.ddpfPixelFormat.dwBBitMask));	// Check to make sure the masks actually exist
 
 	// Adjust Width to be byte-aligned
 	DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surface.BitCount);
@@ -6418,10 +6417,6 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 		}
 		else if (surface.BitCount == 8 || (surface.BitCount == 12 && FillWidth % 2 == 0) || surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32)
 		{
-			// Set memory address
-			BYTE* SrcBuffer = (BYTE*)&dwFillColor;
-			BYTE* DestBuffer = (BYTE*)DestLockRect.pBits;
-
 			// Get byte count
 			DWORD ByteCount = surface.BitCount / 8;
 
@@ -6434,38 +6429,39 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 			}
 
 			// Fill first line memory
-			if ((surface.BitCount == 8 || surface.BitCount == 16 || surface.BitCount == 32) && (FillWidth % (4 / ByteCount) == 0))
+			if ((surface.BitCount == 8 || surface.BitCount == 16 || surface.BitCount == 32) &&								// Check bit count
+				(FillWidth % (sizeof(DWORD) / ByteCount) == 0) && reinterpret_cast<uintptr_t>(DestLockRect.pBits) % sizeof(DWORD) == 0)	// Check for aligned width and memory
 			{
 				DWORD Color = (surface.BitCount == 8) ? (dwFillColor & 0xFF) * 0x01010101 :
 					(surface.BitCount == 16) ? (dwFillColor & 0xFFFF) * 0x00010001 : dwFillColor;
 
-				DWORD* Dest = reinterpret_cast<DWORD*>(DestBuffer);
-				LONG Iterations = FillWidth / (4 / ByteCount);
+				DWORD* DestBuffer = reinterpret_cast<DWORD*>(DestLockRect.pBits);
+				LONG Iterations = FillWidth / (sizeof(DWORD) / ByteCount);
 
 				for (LONG x = 0; x < Iterations; ++x)
 				{
-					*Dest++ = Color;
+					*DestBuffer++ = Color;
 				}
 			}
 			else
 			{
-				// Precompute the pattern for one "pixel" (up to 4 bytes)
-				BYTE PixelPattern[4] = { 0 };
-				for (DWORD y = 0; y < ByteCount; ++y)
-				{
-					PixelPattern[y] = SrcBuffer[y];
-				}
+				BYTE* SrcColor = reinterpret_cast<BYTE*>(&dwFillColor);
+				BYTE* DestBuffer = reinterpret_cast<BYTE*>(DestLockRect.pBits);
 
 				for (LONG x = 0; x < FillWidth; ++x)
 				{
-					std::memcpy(DestBuffer, PixelPattern, ByteCount);
-					DestBuffer += ByteCount;
+					BYTE* Color = SrcColor;
+					for (DWORD y = 0; y < ByteCount; ++y)
+					{
+						*DestBuffer++ = *Color;
+						Color++;
+					}
 				}
 			}
 
 			// Fill rest of surface rect using the first line as a template
-			SrcBuffer = (BYTE*)DestLockRect.pBits;
-			DestBuffer = (BYTE*)DestLockRect.pBits + DestLockRect.Pitch;
+			BYTE* SrcBuffer = (BYTE*)DestLockRect.pBits;
+			BYTE* DestBuffer = (BYTE*)DestLockRect.pBits + DestLockRect.Pitch;
 			size_t Size = FillWidth * ByteCount;
 			for (LONG y = 1; y < FillHeight; y++)
 			{
@@ -7255,7 +7251,7 @@ HRESULT m_IDirectDrawSurfaceX::LoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSur
 	const UINT SrcBitCount = GetBitCount(SrcFormat);
 	const UINT DestBitCount = GetBitCount(Desc.Format);
 
-	if (SrcBitCount == DestBitCount)
+	if (SrcBitCount == DestBitCount && (SrcFormat == Desc.Format || GetFailoverFormat(SrcFormat) == Desc.Format))
 	{
 		// Lock destination surface
 		D3DLOCKED_RECT LockedRect = {};
@@ -7281,6 +7277,14 @@ HRESULT m_IDirectDrawSurfaceX::LoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSur
 		const BYTE* SrcBuffer = (const BYTE*)pSrcMemory + (SrcPitch * Rect.top) + (BytesPerPixel * Rect.left);
 		BYTE* DestBuffer = (BYTE*)LockedRect.pBits + (LockedRect.Pitch * Rect.top) + (BytesPerPixel * Rect.left);
 
+		// Check dest buffer
+		if (!DestBuffer || !SrcBuffer)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: source or destination buffer is null!");
+			pDestSurface->UnlockRect();
+			return DDERR_GENERIC;
+		}
+
 		// Calculate copy pitch and height
 		const LONG CopyPitch = (Rect.right - Rect.left) == (LONG)Desc.Width
 			? min(LockedRect.Pitch, (INT)SrcPitch)
@@ -7300,6 +7304,8 @@ HRESULT m_IDirectDrawSurfaceX::LoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSur
 	}
 	else
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: using slower D3DXLoadSurfaceFromMemory for copy: " << SrcFormat << "->" << Desc.Format);
+
 		// Use D3DXLoadSurfaceFromMemory for format conversion
 		if (FAILED(D3DXLoadSurfaceFromMemory(pDestSurface, nullptr, &Rect, pSrcMemory, SrcFormat, SrcPitch, nullptr, &Rect, D3DX_FILTER_NONE, 0)))
 		{

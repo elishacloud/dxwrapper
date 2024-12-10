@@ -268,7 +268,7 @@ private:
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DSurface, bool CheckLostSurface);
 	HRESULT CreateD9AuxiliarySurfaces();
 	HRESULT CreateD9Surface();
-	bool DoesDCMatch(EMUSURFACE* pEmuSurface);
+	bool DoesDCMatch(EMUSURFACE* pEmuSurface) const;
 	void SetEmulationGameDC();
 	void UnsetEmulationGameDC();
 	HRESULT CreateDCSurface();
