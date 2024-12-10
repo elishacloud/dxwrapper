@@ -23,7 +23,7 @@ namespace {
 	m_IDirectDrawClipper* WrapperInterfaceBackup = nullptr;
 }
 
-inline void SaveInterfaceAddress(m_IDirectDrawClipper* Interface, m_IDirectDrawClipper*& InterfaceBackup)
+inline static void SaveInterfaceAddress(m_IDirectDrawClipper* Interface, m_IDirectDrawClipper*& InterfaceBackup)
 {
 	if (Interface)
 	{

@@ -80,10 +80,10 @@ public:
 	inline void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Helper functions
-	inline LPPALETTEENTRY GetPaletteEntries() { return rawPalette; }
-	inline RGBQUAD* GetRGBPalette() { return rgbPalette; }
-	inline DWORD GetPaletteUSN() { return PaletteUSN; }
-	inline DWORD GetEntryCount() { return entryCount; }
+	inline const PALETTEENTRY* GetPaletteEntries() const { return rawPalette; }
+	inline const RGBQUAD* GetRGBPalette() const { return rgbPalette; }
+	inline DWORD GetPaletteUSN() const { return PaletteUSN; }
+	inline DWORD GetEntryCount() const { return entryCount; }
 	inline void SetPrimary() { paletteCaps |= DDPCAPS_PRIMARYSURFACE; }
 	inline void RemovePrimary() { paletteCaps &= ~DDPCAPS_PRIMARYSURFACE; }
 };

@@ -5830,7 +5830,7 @@ void m_IDirectDrawSurfaceX::UnlockEmuLock()
 }
 
 // Restore removed scanlines before locking surface
-void m_IDirectDrawSurfaceX::RestoreScanlines(LASTLOCK& LLock)
+void m_IDirectDrawSurfaceX::RestoreScanlines(LASTLOCK& LLock) const
 {
 	DWORD ByteCount = surface.BitCount / 8;
 	DWORD RectWidth = LLock.Rect.right - LLock.Rect.left;
@@ -5872,7 +5872,7 @@ void m_IDirectDrawSurfaceX::RestoreScanlines(LASTLOCK& LLock)
 }
 
 // Remove scanlines before unlocking surface
-void m_IDirectDrawSurfaceX::RemoveScanlines(LASTLOCK& LLock)
+void m_IDirectDrawSurfaceX::RemoveScanlines(LASTLOCK& LLock) const
 {
 	DWORD ByteCount = surface.BitCount / 8;
 	DWORD RectWidth = LLock.Rect.right - LLock.Rect.left;
@@ -5972,7 +5972,7 @@ void m_IDirectDrawSurfaceX::RemoveScanlines(LASTLOCK& LLock)
 	}
 }
 
-inline HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect)
+inline HRESULT m_IDirectDrawSurfaceX::LockEmulatedSurface(D3DLOCKED_RECT* pLockedRect, LPRECT lpDestRect) const
 {
 	if (!pLockedRect)
 	{
@@ -7858,8 +7858,8 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	}
 
 	DWORD NewPaletteUSN = 0;
-	LPPALETTEENTRY NewPaletteEntry = nullptr;
-	RGBQUAD* NewRGBPalette = nullptr;
+	const PALETTEENTRY* NewPaletteEntry = nullptr;
+	const RGBQUAD* NewRGBPalette = nullptr;
 
 	SetCriticalSection();
 

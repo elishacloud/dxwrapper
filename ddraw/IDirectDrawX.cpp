@@ -191,7 +191,7 @@ std::chrono::steady_clock::time_point presentTime;
 // Preset from another thread
 PRESENTTHREAD PresentThread;
 
-inline void SetPTCriticalSection()
+inline static void SetPTCriticalSection()
 {
 	if (PresentThread.IsInitialized)
 	{
@@ -199,7 +199,7 @@ inline void SetPTCriticalSection()
 	}
 }
 
-inline void ReleasePTCriticalSection()
+inline static void ReleasePTCriticalSection()
 {
 	if (PresentThread.IsInitialized)
 	{

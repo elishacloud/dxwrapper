@@ -290,10 +290,10 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
-	bool IsDeviceInScene() { return IsInScene; }
+	bool IsDeviceInScene() const { return IsInScene; }
 
 	// Viewport functions
-	inline void GetDefaultViewport(D3DVIEWPORT9& Viewport) { Viewport = DefaultViewport; }
+	inline void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
 	inline bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
 
 	// Texture handle function
@@ -303,7 +303,7 @@ public:
 	// Material handle function
 	void ReleaseMaterialHandle(m_IDirect3DMaterialX* lpMaterial);
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE mHandle, m_IDirect3DMaterialX* lpMaterial);
-	inline bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) { return (mHandle == lsMaterialHandle); }
+	inline bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == lsMaterialHandle); }
 
 	// Light index function
 	void ReleaseLightInterface(m_IDirect3DLight* lpLight);

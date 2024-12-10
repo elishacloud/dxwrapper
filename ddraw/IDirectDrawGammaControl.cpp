@@ -21,7 +21,7 @@ namespace {
 	m_IDirectDrawGammaControl* WrapperInterfaceBackup = nullptr;
 }
 
-inline void SaveInterfaceAddress(m_IDirectDrawGammaControl* Interface, m_IDirectDrawGammaControl*& InterfaceBackup)
+inline static void SaveInterfaceAddress(m_IDirectDrawGammaControl* Interface, m_IDirectDrawGammaControl*& InterfaceBackup)
 {
 	if (Interface)
 	{

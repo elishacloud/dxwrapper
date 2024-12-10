@@ -117,8 +117,8 @@ public:
 	void ClearDdraw() { ddrawParent = nullptr; d3d9Device = nullptr; }
 
 	// Direct3D9 interfaces
-	LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() { return d3d9VertexBuffer; };
+	const LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() const { return d3d9VertexBuffer; };
 	void ReleaseD9Buffer(bool BackupData, bool ResetBuffer);
 
-	DWORD GetFVF9() { return d3d9VBDesc.FVF; };
+	DWORD GetFVF9() const { return d3d9VBDesc.FVF; };
 };

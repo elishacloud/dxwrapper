@@ -21,7 +21,7 @@ namespace {
 	m_IDirectDrawColorControl* WrapperInterfaceBackup = nullptr;
 }
 
-inline void SaveInterfaceAddress(m_IDirectDrawColorControl* Interface, m_IDirectDrawColorControl*& InterfaceBackup)
+inline static void SaveInterfaceAddress(m_IDirectDrawColorControl* Interface, m_IDirectDrawColorControl*& InterfaceBackup)
 {
 	if (Interface)
 	{

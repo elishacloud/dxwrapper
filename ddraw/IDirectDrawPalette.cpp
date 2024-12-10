@@ -24,7 +24,7 @@ namespace {
 	m_IDirectDrawPalette* WrapperInterfaceBackup = nullptr;
 }
 
-inline void SaveInterfaceAddress(m_IDirectDrawPalette* Interface, m_IDirectDrawPalette*& InterfaceBackup)
+inline static void SaveInterfaceAddress(m_IDirectDrawPalette* Interface, m_IDirectDrawPalette*& InterfaceBackup)
 {
 	if (Interface)
 	{

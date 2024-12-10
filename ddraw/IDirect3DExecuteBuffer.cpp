@@ -21,7 +21,7 @@ namespace {
 	m_IDirect3DExecuteBuffer* WrapperInterfaceBackup = nullptr;
 }
 
-inline void SaveInterfaceAddress(m_IDirect3DExecuteBuffer* Interface, m_IDirect3DExecuteBuffer*& InterfaceBackup)
+inline static void SaveInterfaceAddress(m_IDirect3DExecuteBuffer* Interface, m_IDirect3DExecuteBuffer*& InterfaceBackup)
 {
 	if (Interface)
 	{

@@ -95,7 +95,7 @@ void ExitDDraw()
 
 // Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
 // http://web.archive.org/web/20170418171908/http://www.blitzbasic.com/Community/posts.php?topic=99477
-void SetAllAppCompatData()
+static void SetAllAppCompatData()
 {
 	DEFINE_STATIC_PROC_ADDRESS(SetAppCompatDataProc, SetAppCompatData, SetAppCompatData_out);
 
@@ -461,7 +461,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 	return hr;
 }
 
-BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+static BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
 {
 	UNREFERENCED_PARAMETER(hdcMonitor);
 	UNREFERENCED_PARAMETER(lprcMonitor);
@@ -490,7 +490,7 @@ BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lpr
 	return DDENUMRET_OK;
 }
 
-HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
+static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
 {
 	UNREFERENCED_PARAMETER(dwFlags);
 

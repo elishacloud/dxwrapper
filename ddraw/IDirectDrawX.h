@@ -180,7 +180,7 @@ public:
 	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
 	void ClearD3DDevice();
 	inline void Enable3D() { Using3D = true; }
-	inline bool IsUsing3D() { return Using3D; }
+	inline bool IsUsing3D() const { return Using3D; }
 	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
 	bool IsInScene();
 
