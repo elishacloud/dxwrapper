@@ -949,7 +949,6 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 			DWORD Width = 0;
 			DWORD Height = 0;
 			DWORD RefreshRate = 0;
-			DWORD BitCount = 0;
 		};
 		std::vector<RESLIST> ResolutionList;
 
@@ -988,60 +987,70 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 			// Add resolution to global list
 			AddDisplayResolution(d3ddispmode.Width, d3ddispmode.Height);
 
-			// Loop through each bit count
-			for (DWORD bpMode : {8, 16, 32})
+			// Set display refresh rate
+			DWORD RefreshRate = (dwFlags & DDEDM_REFRESHRATES) ? d3ddispmode.RefreshRate : 0;
+
+			// Check if the resolution is on the LimitedResolutionList
+			bool ResolutionOkToUse = (!Config.DdrawLimitDisplayModeCount ||
+				std::any_of(std::begin(LimitedResolutionList), std::end(LimitedResolutionList),
+					[&](const SIZE& entry) {
+						return ((DWORD)entry.cx == d3ddispmode.Width && (DWORD)entry.cy == d3ddispmode.Height);
+					}));
+
+			// Check if resolution has already been sent
+			bool ResolutionAlreadySent = std::any_of(ResolutionList.begin(), ResolutionList.end(),
+				[&](const RESLIST& Entry) {
+					return (Entry.Width == d3ddispmode.Width && Entry.Height == d3ddispmode.Height && Entry.RefreshRate == RefreshRate);
+				});
+
+			// Check mode
+			if (ResolutionOkToUse && !ResolutionAlreadySent &&
+				(!EnumWidth || d3ddispmode.Width == EnumWidth) &&
+				(!EnumHeight || d3ddispmode.Height == EnumHeight))
 			{
-				// Set display bit count
-				if (DisplayAllModes)
+				// Store resolution
+				ResolutionList.push_back({ d3ddispmode.Width, d3ddispmode.Height, RefreshRate });
+			}
+		}
+
+		// Set display bit count modes
+		std::vector<DWORD> BitCountList;
+		if (DisplayAllModes)
+		{
+			BitCountList.push_back(32);
+			BitCountList.push_back(16);
+			BitCountList.push_back(8);
+		}
+		else
+		{
+			BitCountList.push_back(DisplayBitCount);
+		}
+
+		// Loop through each bit count
+		for (DWORD bpMode : BitCountList)
+		{
+			for (auto& entry : ResolutionList)
+			{
+				// Set surface desc options
+				DDSURFACEDESC2 Desc2 = {};
+				Desc2.dwSize = sizeof(DDSURFACEDESC2);
+				Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE;
+				Desc2.dwWidth = entry.Width;
+				Desc2.dwHeight = entry.Height;
+				Desc2.dwRefreshRate = entry.RefreshRate;
+
+				// Set adapter pixel format
+				Desc2.dwFlags |= DDSD_PIXELFORMAT;
+				Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+				D3DFORMAT Format = SetDisplayFormat(Desc2.ddpfPixelFormat, bpMode);
+
+				// Set pitch
+				Desc2.dwFlags |= DDSD_PITCH;
+				Desc2.lPitch = ComputePitch(Format, GetByteAlignedWidth(Desc2.dwWidth, bpMode), bpMode);
+
+				if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
 				{
-					DisplayBitCount = bpMode;
-				}
-
-				// Set display refresh rate
-				DWORD RefreshRate = (dwFlags & DDEDM_REFRESHRATES) ? d3ddispmode.RefreshRate : 0;
-
-				// Check if the resolution is on the LimitedResolutionList
-				bool ResolutionOkToUse = (!Config.DdrawLimitDisplayModeCount ||
-					std::any_of(std::begin(LimitedResolutionList), std::end(LimitedResolutionList),
-						[&](const SIZE& entry) {
-							return ((DWORD)entry.cx == d3ddispmode.Width && (DWORD)entry.cy == d3ddispmode.Height);
-						}));
-
-				// Check if resolution has already been sent
-				bool ResolutionAlreadySent = std::any_of(ResolutionList.begin(), ResolutionList.end(),
-					[&](const RESLIST& Entry) {
-						return (Entry.Width == d3ddispmode.Width && Entry.Height == d3ddispmode.Height && Entry.RefreshRate == RefreshRate && Entry.BitCount == DisplayBitCount);
-					});
-
-				// Check mode
-				if (ResolutionOkToUse && !ResolutionAlreadySent &&
-					(!EnumWidth || d3ddispmode.Width == EnumWidth) &&
-					(!EnumHeight || d3ddispmode.Height == EnumHeight))
-				{
-					// Store resolution
-					ResolutionList.push_back({ d3ddispmode.Width, d3ddispmode.Height, RefreshRate, DisplayBitCount });
-
-					// Set surface desc options
-					DDSURFACEDESC2 Desc2 = {};
-					Desc2.dwSize = sizeof(DDSURFACEDESC2);
-					Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE;
-					Desc2.dwWidth = d3ddispmode.Width;
-					Desc2.dwHeight = d3ddispmode.Height;
-					Desc2.dwRefreshRate = RefreshRate;
-
-					// Set adapter pixel format
-					Desc2.dwFlags |= DDSD_PIXELFORMAT;
-					Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-					D3DFORMAT Format = SetDisplayFormat(Desc2.ddpfPixelFormat, DisplayBitCount);
-
-					// Set pitch
-					Desc2.dwFlags |= DDSD_PITCH;
-					Desc2.lPitch = ComputePitch(Format, GetByteAlignedWidth(d3ddispmode.Width, DisplayBitCount), DisplayBitCount);
-
-					if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
-					{
-						return DD_OK;
-					}
+					return DD_OK;
 				}
 			}
 		}
