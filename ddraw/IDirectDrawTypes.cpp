@@ -904,6 +904,11 @@ bool IsPixelFormatPalette(const DDPIXELFORMAT& ddpfPixelFormat)
 	return false;
 }
 
+bool IsUnsupportedFormat(D3DFORMAT Format)
+{
+	return (Format == D3DFMT_NV12 || Format == D3DFMT_YV12 || Format == D3DFMT_YUY2 || Format == D3DFMT_UYVY);
+}
+
 D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format)
 {
 	return (Format == D3DFMT_X8B8G8R8 || Format == D3DFMT_B8G8R8 || Format == D3DFMT_R8G8B8) ? D3DFMT_X8R8G8B8 :

@@ -156,6 +156,7 @@ void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD low
 bool IsPixelFormatRGB(const DDPIXELFORMAT& ddpfPixelFormat);
 bool IsPixelFormatPalette(const DDPIXELFORMAT& ddpfPixelFormat);
 D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format);
+bool IsUnsupportedFormat(D3DFORMAT Format);
 D3DFORMAT GetFailoverFormat(D3DFORMAT Format);
 D3DFORMAT GetDisplayFormat(const DDPIXELFORMAT& ddpfPixelFormat);
 void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT& ddpfPixelFormat);
