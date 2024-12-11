@@ -332,10 +332,18 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		switch (Msg)
 		{
 		case WM_NCACTIVATE:
-			return TRUE;
+			if (pDataStruct->IsDirectDraw)
+			{
+				return TRUE;
+			}
+			break;
 		case WM_ACTIVATE:
 		case WM_ACTIVATEAPP:
-			return NULL;
+			if (pDataStruct->IsDirectDraw)
+			{
+				return NULL;
+			}
+			break;
 		case WM_STYLECHANGING:
 		case WM_STYLECHANGED:
 		case WM_ENTERSIZEMOVE:
