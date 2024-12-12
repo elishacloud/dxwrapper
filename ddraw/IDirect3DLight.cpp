@@ -198,25 +198,26 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 			return DDERR_GENERIC;
 		}
 
-		HRESULT hr = (*D3DDeviceInterface)->SetLight(this, lpLight);
-
-		if (FAILED(hr))
+		// If current viewport is inuse then deactivate the light
+		BOOL Enable = FALSE;
+		if (SUCCEEDED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)) && Enable)
 		{
-			return D3DERR_LIGHT_SET_FAILED;
+			D3DLIGHT2 Light2 = {};
+			memcpy(&Light2, lpLight, lpLight->dwSize);
+			Light2.dwSize = sizeof(D3DLIGHT2);
+			Light2.dwFlags |= D3DLIGHT_ACTIVE;
+
+			HRESULT hr = (*D3DDeviceInterface)->SetLight(this, (LPD3DLIGHT)&Light2);
+
+			if (FAILED(hr))
+			{
+				return D3DERR_LIGHT_SET_FAILED;
+			}
 		}
 
 		LightSet = true;
 
-		// D3DLIGHT
-		if (lpLight->dwSize == sizeof(D3DLIGHT))
-		{
-			*(LPD3DLIGHT)&Light = *lpLight;
-		}
-		// D3DLIGHT2
-		else
-		{
-			Light = *(LPD3DLIGHT2)lpLight;
-		}
+		memcpy(&Light, lpLight, lpLight->dwSize);
 
 		return D3D_OK;
 	}
@@ -256,18 +257,14 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 			return DDERR_GENERIC;
 		}
 
-		// D3DLIGHT
-		if (lpLight->dwSize == sizeof(D3DLIGHT))
-		{
-			*lpLight = *(LPD3DLIGHT)&Light;
-			lpLight->dwSize = sizeof(D3DLIGHT);
-		}
-		// D3DLIGHT2
-		else
-		{
-			*(LPD3DLIGHT2)lpLight = Light;
-			lpLight->dwSize = sizeof(D3DLIGHT2);
+		// Copy light
+		DWORD Size = lpLight->dwSize;
+		memcpy(lpLight, &Light, Size);
+		lpLight->dwSize = Size;
 
+		// D3DLIGHT2
+		if (lpLight->dwSize == sizeof(D3DLIGHT2))
+		{
 			// Reset flags if Light struct does not have them because it is using the old structure
 			if (Light.dwSize == sizeof(D3DLIGHT))
 			{
@@ -312,4 +309,6 @@ void m_IDirect3DLight::ReleaseInterface()
 	{
 		(*D3DDeviceInterface)->ReleaseLightInterface(this);
 	}
+
+	// ToDo: remove from AttachedLights vector
 }

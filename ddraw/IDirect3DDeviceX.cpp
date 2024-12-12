@@ -1561,6 +1561,13 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 			return DDERR_INVALIDPARAMS;
 		}
 
+		m_IDirect3DViewportX* lpViewportX = nullptr;
+		if (FAILED(lpd3dViewport->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpViewportX)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get ViewportX interface!");
+			return DDERR_GENERIC;
+		}
+
 		D3DVIEWPORT Viewport = {};
 		Viewport.dwSize = sizeof(D3DVIEWPORT);
 
@@ -1579,16 +1586,11 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 			{
 				lpCurrentViewport = lpd3dViewport;
 
-				lpCurrentViewport->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpCurrentViewportX);
-
 				lpCurrentViewport->AddRef();
-			}
 
-			BOOL Valid = FALSE;
-			D3DMATERIALHANDLE hMat = NULL;
-			if (SUCCEEDED(lpd3dViewport->GetBackground(&hMat, &Valid)) && Valid)
-			{
-				SetLightState(D3DLIGHTSTATE_MATERIAL, hMat);
+				lpCurrentViewportX = lpViewportX;
+
+				lpCurrentViewportX->SetCurrentViewportActive(true, true, true);
 			}
 		}
 

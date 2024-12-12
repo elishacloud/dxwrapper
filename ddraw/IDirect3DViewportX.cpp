@@ -134,6 +134,10 @@ ULONG m_IDirect3DViewportX::Release(DWORD DirectXVersion)
 		if (InterlockedCompareExchange(&RefCount1, 0, 0) + InterlockedCompareExchange(&RefCount2, 0, 0) +
 			InterlockedCompareExchange(&RefCount3, 0, 0) == 0)
 		{
+			if (AttachedLights.size())
+			{
+				Logging::Log() << __FUNCTION__ << " Warning: releasing Viewport while lights are still attached! " << AttachedLights.size();
+			}
 			delete this;
 		}
 	}
@@ -235,20 +239,15 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 				" ScaleX: " << lpData->dvScaleX << " ScaleY: " << lpData->dvScaleY << " MaxX: " << lpData->dvMaxX << " MaxY: " << lpData->dvMaxY);
 		}
 
-		// If current viewport is set then use new viewport
-		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
-		{
-			D3DVIEWPORT7 Viewport7 = {};
-			ConvertViewport(Viewport7, *lpData);
-			if (FAILED((*D3DDeviceInterface)->SetViewport(&Viewport7)))
-			{
-				return DDERR_GENERIC;
-			}
-		}
-
 		IsViewPortSet = true;
 
 		vData = *lpData;
+
+		// If current viewport is set then use new viewport
+		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
+		{
+			SetCurrentViewportActive(true, false, false);
+		}
 
 		return D3D_OK;
 	}
@@ -283,7 +282,7 @@ HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
+		// The IDirect3DViewport3::LightElements method is not currently implemented.
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -296,6 +295,12 @@ HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 
 	if (!ProxyInterface)
 	{
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+			return DDERR_GENERIC;
+		}
+
 		// ToDo: validate handle
 		MaterialBackground.IsSet = TRUE;
 		MaterialBackground.hMat = hMat;
@@ -303,10 +308,7 @@ HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 		// If current viewport is set then use new viewport
 		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
 		{
-			if (FAILED((*D3DDeviceInterface)->SetLightState(D3DLIGHTSTATE_MATERIAL, hMat)))
-			{
-				return DDERR_GENERIC;
-			}
+			SetCurrentViewportActive(false, true, false);
 		}
 
 		return D3D_OK;
@@ -341,6 +343,9 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth(LPDIRECTDRAWSURFACE lpDDSurface
 
 	if (!ProxyInterface)
 	{
+		// Sets the background-depth field for the viewport.
+		// The depth-buffer is filled with the specified depth field when the IDirect3DViewport3::Clear method is called
+		// and the D3DCLEAR_ZBUFFER flag is specified. The bit depth must be 16 bits.
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
@@ -391,8 +396,42 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// This method will fail, returning DDERR_INVALIDPARAMS, if you attempt to add a light that has already been assigned to the viewport.
+		if (!lpDirect3DLight || IsLightAttached(lpDirect3DLight))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+			return DDERR_GENERIC;
+		}
+
+		// If current viewport is set then use new light
+		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
+		{
+			D3DLIGHT2 Light2 = {};
+			Light2.dwSize = sizeof(D3DLIGHT2);
+			if (FAILED(lpDirect3DLight->GetLight((LPD3DLIGHT)&Light2)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get light!");
+				return DDERR_GENERIC;
+			}
+			Light2.dwFlags |= D3DLIGHT_ACTIVE;
+			if (FAILED((*D3DDeviceInterface)->SetLight((m_IDirect3DLight*)lpDirect3DLight, (LPD3DLIGHT)&Light2)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not set light!");
+				return DDERR_GENERIC;
+			}
+		}
+
+		// ToDo: Validate Light address
+		AttachedLights.push_back(lpDirect3DLight);
+
+		lpDirect3DLight->AddRef();
+
+		return D3D_OK;
 	}
 
 	if (lpDirect3DLight)
@@ -409,8 +448,44 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpDirect3DLight)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+			return DDERR_GENERIC;
+		}
+
+		bool ret = DeleteAttachedLight(lpDirect3DLight);
+
+		if (!ret)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// ToDo: Validate Light address
+		lpDirect3DLight->Release();
+
+		// If current viewport is then deactivate the light
+		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
+		{
+			D3DLIGHT2 Light2 = {};
+			Light2.dwSize = sizeof(D3DLIGHT2);
+			if (FAILED(lpDirect3DLight->GetLight((LPD3DLIGHT)&Light2)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not get light!");
+			}
+			Light2.dwFlags &= ~D3DLIGHT_ACTIVE;
+			if (FAILED((*D3DDeviceInterface)->SetLight((m_IDirect3DLight*)lpDirect3DLight, (LPD3DLIGHT)&Light2)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not set light!");
+			}
+		}
+
+		return D3D_OK;
 	}
 
 	if (lpDirect3DLight)
@@ -427,8 +502,47 @@ HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIREC
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lplpDirect3DLight || (dwFlags == D3DNEXT_NEXT && !lpDirect3DLight))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		*lplpDirect3DLight = nullptr;
+
+		if (AttachedLights.size() == 0)
+		{
+			return D3DERR_NOVIEWPORTS;
+		}
+
+		switch (dwFlags)
+		{
+		case D3DNEXT_HEAD:
+			// Retrieve the item at the beginning of the list.
+			*lplpDirect3DLight = AttachedLights.front();
+			break;
+		case D3DNEXT_TAIL:
+			// Retrieve the item at the end of the list.
+			*lplpDirect3DLight = AttachedLights.back();
+			break;
+		case D3DNEXT_NEXT:
+			// Retrieve the next item in the list.
+			// If you attempt to retrieve the next viewport in the list when you are at the end of the list, this method returns D3D_OK but lplpDirect3DLight is NULL.
+			for (UINT x = 1; x < AttachedLights.size(); x++)
+			{
+				if (AttachedLights[x - 1] == lpDirect3DLight)
+				{
+					*lplpDirect3DLight = AttachedLights[x];
+					break;
+				}
+			}
+			break;
+		default:
+			return DDERR_INVALIDPARAMS;
+			break;
+		}
+
+		// ToDo: Validate return Light address
+		return D3D_OK;
 	}
 
 	if (lpDirect3DLight)
@@ -513,19 +627,15 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 				lpData->dvClipWidth << "x" << lpData->dvClipHeight << " X: " << lpData->dvClipX << " Y: " << lpData->dvClipY);
 		}
 
-		// If current viewport is set then use new viewport
-		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
-		{
-			D3DVIEWPORT7 Viewport7 = {};
-			ConvertViewport(Viewport7, *lpData);
-			if (FAILED((*D3DDeviceInterface)->SetViewport(&Viewport7)))
-			{
-				return DDERR_GENERIC;
-			}
-		}
 		IsViewPort2Set = true;
 
 		vData2 = *lpData;
+
+		// If current viewport is set then use new viewport
+		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
+		{
+			SetCurrentViewportActive(true, false, false);
+		}
 
 		return D3D_OK;
 	}
@@ -541,12 +651,67 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 	return ProxyInterface->SetViewport2(lpData);
 }
 
+void m_IDirect3DViewportX::SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData)
+{
+	if (!D3DDeviceInterface || !*D3DDeviceInterface)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
+		return;
+	}
+
+	if (SetViewPortData && (IsViewPortSet || IsViewPort2Set))
+	{
+		D3DVIEWPORT7 Viewport7 = {};
+		if (IsViewPort2Set)
+		{
+			ConvertViewport(Viewport7, vData2);
+		}
+		else
+		{
+			ConvertViewport(Viewport7, vData);
+		}
+		if (FAILED((*D3DDeviceInterface)->SetViewport(&Viewport7)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set viewport data!");
+		}
+	}
+
+	if (SetBackgroundData && MaterialBackground.IsSet)
+	{
+		if (FAILED((*D3DDeviceInterface)->SetLightState(D3DLIGHTSTATE_MATERIAL, MaterialBackground.hMat)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set material background!");
+		}
+	}
+
+	if (SetLightData)
+	{
+		for (auto& entry : AttachedLights)
+		{
+			D3DLIGHT2 Light2 = {};
+			Light2.dwSize = sizeof(D3DLIGHT2);
+			if (FAILED(entry->GetLight((LPD3DLIGHT)&Light2)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not get light!");
+			}
+			Light2.dwFlags |= D3DLIGHT_ACTIVE;
+			if (FAILED((*D3DDeviceInterface)->SetLight((m_IDirect3DLight*)entry, (LPD3DLIGHT)&Light2)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not set light!");
+			}
+		}
+	}
+}
+
 HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!ProxyInterface)
 	{
+		// Sets the background-depth field for the viewport.
+		// The depth-buffer is filled with the specified depth field when the IDirect3DViewport3::Clear or
+		// IDirect3DViewport3::Clear2 methods are called with the D3DCLEAR_ZBUFFER flag is specified.
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
@@ -617,4 +782,6 @@ void m_IDirect3DViewportX::ReleaseInterface()
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
 	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
+
+	// ToDo: remove from AttachedViewports vector
 }

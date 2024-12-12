@@ -110,7 +110,7 @@ private:
 	// Viewport array
 	std::vector<LPDIRECT3DVIEWPORT3> AttachedViewports;
 
-	bool IsViewportAttached(LPDIRECT3DVIEWPORT3 ViewportX)
+	inline bool IsViewportAttached(LPDIRECT3DVIEWPORT3 ViewportX)
 	{
 		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
 			[=](auto pViewport) -> bool { return pViewport == ViewportX; });
@@ -122,7 +122,7 @@ private:
 		return false;
 	}
 
-	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
+	inline bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
 	{
 		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
 			[=](auto pViewport) -> bool { return pViewport == ViewportX; });

@@ -14,6 +14,34 @@ private:
 	bool IsViewPort2Set = false;
 	D3DVIEWPORT2 vData2 = {};
 
+	// Light array
+	std::vector<LPDIRECT3DLIGHT> AttachedLights;
+
+	inline bool IsLightAttached(LPDIRECT3DLIGHT LightX)
+	{
+		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
+			[=](auto pLight) -> bool { return pLight == LightX; });
+
+		if (it != std::end(AttachedLights))
+		{
+			return true;
+		}
+		return false;
+	}
+
+	inline bool DeleteAttachedLight(LPDIRECT3DLIGHT LightX)
+	{
+		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
+			[=](auto pLight) -> bool { return pLight == LightX; });
+
+		if (it != std::end(AttachedLights))
+		{
+			AttachedLights.erase(it);
+			return true;
+		}
+		return false;
+	}
+
 	struct MATERIALBACKGROUND {
 		BOOL IsSet = FALSE;
 		D3DMATERIALHANDLE hMat = NULL;
@@ -118,6 +146,7 @@ public:
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+	void SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 };
