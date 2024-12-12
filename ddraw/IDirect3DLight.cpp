@@ -273,12 +273,7 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 
 			// Check for active
 			BOOL Enable = FALSE;
-			if (FAILED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to get Light Enable.");
-			}
-
-			if (Enable)
+			if (SUCCEEDED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)) && Enable)
 			{
 				((LPD3DLIGHT2)lpLight)->dwFlags |= D3DLIGHT_ACTIVE;
 			}

@@ -2419,7 +2419,6 @@ HRESULT m_IDirect3DDeviceX::GetLightEnable(m_IDirect3DLight* lpLightInterface, B
 
 	if (dwLightIndex == 0)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to find an available Light Index");
 		return DDERR_INVALIDPARAMS;
 	}
 
