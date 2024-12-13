@@ -76,6 +76,7 @@ void InitDDraw()
 		Utils::GetDiskFreeSpaceA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("kernel32.dll"), "GetDiskFreeSpaceA"), "GetDiskFreeSpaceA", Utils::kernel_GetDiskFreeSpaceA);
 		Utils::CreateThread_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("kernel32.dll"), "CreateThread"), "CreateThread", Utils::kernel_CreateThread);
 		Utils::VirtualAlloc_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("kernel32.dll"), "VirtualAlloc"), "VirtualAlloc", Utils::kernel_VirtualAlloc);
+		Utils::HeapSize_out = (FARPROC)Hook::HotPatch(GetProcAddress(GetModuleHandleA("kernel32.dll"), "HeapSize"), "HeapSize", Utils::kernel_HeapSize);
 		//GetWindowLongA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("user32.dll"), "GetWindowLongA"), "GetWindowLongA", user_GetWindowLongA);
 		//GetWindowLongW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("user32.dll"), "GetWindowLongW"), "GetWindowLongW", user_GetWindowLongW);
 		//SetWindowLongA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(GetModuleHandleA("user32.dll"), "SetWindowLongA"), "SetWindowLongA", user_SetWindowLongA);

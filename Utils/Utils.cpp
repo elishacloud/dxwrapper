@@ -75,6 +75,7 @@ typedef BOOL(WINAPI *CreateProcessAFunc)(LPCSTR lpApplicationName, LPSTR lpComma
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
 typedef HANDLE(WINAPI* CreateThreadProc)(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
 typedef LPVOID(WINAPI* VirtualAllocProc)(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
+typedef SIZE_T(WINAPI* HeapSizeProc)(HANDLE, DWORD, LPCVOID);
 typedef BOOL(WINAPI *CreateProcessWFunc)(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
 
@@ -109,6 +110,7 @@ namespace Utils
 	INITIALIZE_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(CreateThread, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(VirtualAlloc, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(HeapSize, unused);
 
 	FARPROC p_CreateProcessA = nullptr;
 	FARPROC p_CreateProcessW = nullptr;
@@ -408,7 +410,7 @@ HANDLE WINAPI Utils::kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttribute
 
 LPVOID WINAPI Utils::kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ " " << lpAddress << " " << dwSize << " " << flAllocationType << " " << flProtect;
 
 	DEFINE_STATIC_PROC_ADDRESS(VirtualAllocProc, VirtualAlloc, VirtualAlloc_out);
 
@@ -429,6 +431,28 @@ LPVOID WINAPI Utils::kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD 
 
 	// Call the original VirtualAlloc function
 	return VirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
+}
+
+SIZE_T WINAPI Utils::kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem)
+{
+	Logging::LogDebug() << __FUNCTION__ " " << " hHeap: " << hHeap << " dwFlags: " << Logging::hex(dwFlags) << " lpMem: " << lpMem;
+
+	DEFINE_STATIC_PROC_ADDRESS(HeapSizeProc, HeapSize, HeapSize_out);
+
+	if (!HeapSize)
+	{
+		return (SIZE_T)-1;
+	}
+
+	// Validate hHeap
+	if (!HeapValidate(hHeap, 0, lpMem))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Invalid heap handle!";
+		return (SIZE_T)-1;
+	}
+
+	// Call the original HeapSize function
+	return HeapSize(hHeap, dwFlags, lpMem);
 }
 
 // Your existing exception handler function

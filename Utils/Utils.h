@@ -15,6 +15,7 @@ namespace Utils
 	EXPORT_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
 	EXPORT_OUT_WRAPPED_PROC(CreateThread, unused);
 	EXPORT_OUT_WRAPPED_PROC(VirtualAlloc, unused);
+	EXPORT_OUT_WRAPPED_PROC(HeapSize, unused);
 
 	void Shell(const char*);
 	void DisableHighDPIScaling();
@@ -27,6 +28,7 @@ namespace Utils
 	BOOL WINAPI kernel_GetDiskFreeSpaceA(LPCSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters);
 	HANDLE WINAPI kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
 	LPVOID WINAPI kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
+	SIZE_T WINAPI kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem);
 	void HookExceptionHandler();
 	void UnHookExceptionHandler();
 	LONG WINAPI Vectored_Exception_Handler(EXCEPTION_POINTERS* exception);
