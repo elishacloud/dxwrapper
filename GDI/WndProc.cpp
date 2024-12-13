@@ -303,8 +303,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			switch (Msg)
 			{
-			case WM_NCACTIVATE:
-				return TRUE;
 			case WM_ACTIVATE:
 				return NULL;
 			}
