@@ -435,7 +435,7 @@ LPVOID WINAPI Utils::kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD 
 
 SIZE_T WINAPI Utils::kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem)
 {
-	Logging::LogDebug() << __FUNCTION__ " " << " hHeap: " << hHeap << " dwFlags: " << Logging::hex(dwFlags) << " lpMem: " << lpMem;
+	//Logging::LogDebug() << __FUNCTION__ " " << " hHeap: " << hHeap << " dwFlags: " << Logging::hex(dwFlags) << " lpMem: " << lpMem;
 
 	DEFINE_STATIC_PROC_ADDRESS(HeapSizeProc, HeapSize, HeapSize_out);
 
