@@ -282,7 +282,7 @@ HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA
 
 	if (!ProxyInterface)
 	{
-		// The IDirect3DViewport3::LightElements method is not currently implemented.
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 

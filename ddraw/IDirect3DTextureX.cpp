@@ -343,7 +343,7 @@ HRESULT m_IDirect3DTextureX::Unload()
 
 	if (ProxyDirectXVersion != 1)
 	{
-		// Former stub method. This method was never implemented and is not supported in any interface.
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return D3D_OK;
 	}
 

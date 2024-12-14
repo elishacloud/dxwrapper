@@ -3704,7 +3704,7 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlayDisplay(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		// The method is not currently implemented.
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
 
@@ -3794,7 +3794,8 @@ HRESULT m_IDirectDrawSurfaceX::PageLock(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		// Prevents a system-memory surface from being paged out while a bit block transfer (bitblt) operation that uses direct memory access (DMA) transfers to or from system memory is in progress.
+		// Prevents a system-memory surface from being paged out while a bit block transfer (bitblt) operation
+		// that uses direct memory access (DMA) transfers to or from system memory is in progress.
 		// Not needed for d3d9 surfaces
 		return DD_OK;
 	}

@@ -255,8 +255,8 @@ HRESULT m_IDirect3DExecuteBuffer::Validate(LPDWORD lpdwOffset, LPD3DVALIDATECALL
 
 	if (!ProxyInterface)
 	{
-		// The IDirect3DExecuteBuffer::Validate method is not currently implemented in Windows.
-		return D3D_OK;
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->Validate(lpdwOffset, lpFunc, lpUserArg, dwReserved);
