@@ -114,7 +114,7 @@ HRESULT m_IDirectDraw3::EnumDisplayModes(DWORD a, LPDDSURFACEDESC b, LPVOID c, L
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->EnumDisplayModes(a, b, c, d);
+	return ProxyInterface->EnumDisplayModes(a, b, c, d, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw3::EnumSurfaces(DWORD a, LPDDSURFACEDESC b, LPVOID c, LPDDENUMSURFACESCALLBACK d)

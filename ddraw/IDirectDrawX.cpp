@@ -870,7 +870,7 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK lpEnumModesCallback)
+HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK lpEnumModesCallback, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -909,13 +909,13 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurf
 			ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 		}
 
-		return EnumDisplayModes2(dwFlags, (lpDDSurfaceDesc) ? &Desc2 : nullptr, &CallbackContext, EnumDisplay::ConvertCallback);
+		return EnumDisplayModes2(dwFlags, (lpDDSurfaceDesc) ? &Desc2 : nullptr, &CallbackContext, EnumDisplay::ConvertCallback, DirectXVersion);
 	}
 
 	return GetProxyInterfaceV3()->EnumDisplayModes(dwFlags, lpDDSurfaceDesc, lpContext, lpEnumModesCallback);
 }
 
-HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback2)
+HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback2, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -1014,6 +1014,27 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 			}
 		}
 
+		struct EnumDisplay
+		{
+			static void GetSurfaceDesc2(DDSURFACEDESC2& Desc2, DWORD Width, DWORD Height, DWORD RefreshRate, DWORD bpMode)
+			{
+				Desc2.dwSize = sizeof(DDSURFACEDESC2);
+				Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE;
+				Desc2.dwWidth = Width;
+				Desc2.dwHeight = Height;
+				Desc2.dwRefreshRate = RefreshRate;
+
+				// Set adapter pixel format
+				Desc2.dwFlags |= DDSD_PIXELFORMAT;
+				Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+				D3DFORMAT Format = SetDisplayFormat(Desc2.ddpfPixelFormat, bpMode);
+
+				// Set pitch
+				Desc2.dwFlags |= DDSD_PITCH;
+				Desc2.lPitch = ComputePitch(Format, GetByteAlignedWidth(Desc2.dwWidth, bpMode), bpMode);
+			}
+		};
+
 		// Set display bit count modes
 		std::vector<DWORD> BitCountList;
 		if (DisplayAllModes)
@@ -1028,30 +1049,37 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		}
 
 		// Loop through each bit count
-		for (DWORD bpMode : BitCountList)
+		if (DirectXVersion == 1)
 		{
 			for (auto& entry : ResolutionList)
 			{
-				// Set surface desc options
-				DDSURFACEDESC2 Desc2 = {};
-				Desc2.dwSize = sizeof(DDSURFACEDESC2);
-				Desc2.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_REFRESHRATE;
-				Desc2.dwWidth = entry.Width;
-				Desc2.dwHeight = entry.Height;
-				Desc2.dwRefreshRate = entry.RefreshRate;
-
-				// Set adapter pixel format
-				Desc2.dwFlags |= DDSD_PIXELFORMAT;
-				Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
-				D3DFORMAT Format = SetDisplayFormat(Desc2.ddpfPixelFormat, bpMode);
-
-				// Set pitch
-				Desc2.dwFlags |= DDSD_PITCH;
-				Desc2.lPitch = ComputePitch(Format, GetByteAlignedWidth(Desc2.dwWidth, bpMode), bpMode);
-
-				if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
+				for (DWORD bpMode : BitCountList)
 				{
-					return DD_OK;
+					// Get surface desc options
+					DDSURFACEDESC2 Desc2 = {};
+					EnumDisplay::GetSurfaceDesc2(Desc2, entry.Width, entry.Height, entry.RefreshRate, bpMode);
+
+					if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
+					{
+						return DD_OK;
+					}
+				}
+			}
+		}
+		else
+		{
+			for (DWORD bpMode : BitCountList)
+			{
+				for (auto& entry : ResolutionList)
+				{
+					// Get surface desc options
+					DDSURFACEDESC2 Desc2 = {};
+					EnumDisplay::GetSurfaceDesc2(Desc2, entry.Width, entry.Height, entry.RefreshRate, bpMode);
+
+					if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
+					{
+						return DD_OK;
+					}
 				}
 			}
 		}
