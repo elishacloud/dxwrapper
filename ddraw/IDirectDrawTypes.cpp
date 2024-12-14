@@ -906,7 +906,7 @@ bool IsPixelFormatPalette(const DDPIXELFORMAT& ddpfPixelFormat)
 
 bool IsUnsupportedFormat(D3DFORMAT Format)
 {
-	return (Format == D3DFMT_NV12 || Format == D3DFMT_YV12 || Format == D3DFMT_YUY2 || Format == D3DFMT_UYVY);
+	return (Format == D3DFMT_NV12 || Format == D3DFMT_YV12 /*|| Format == D3DFMT_YUY2 || Format == D3DFMT_UYVY*/);
 }
 
 D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format)
