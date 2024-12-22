@@ -3488,16 +3488,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			}
 		}
 
-		// Send activate message to main window if main window was a previous device window
-		if (hWnd == GetActiveWindow() && !Utils::IsMainWindow(hWnd))
-		{
-			HWND MainhWnd = Utils::GetMainWindowForProcess(GetCurrentProcessId());
-			if (MainhWnd && WndProc::GetWndProctStruct(MainhWnd))
-			{
-				PostMessage(MainhWnd, WM_ACTIVATE, WA_ACTIVE, (LPARAM)MainhWnd);
-			}
-		}
-
 		// Store display frequency
 		DWORD RefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(hWnd);
 		Counter.PerFrameMS = 1000.0 / (RefreshRate ? RefreshRate : 60);

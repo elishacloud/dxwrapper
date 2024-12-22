@@ -4441,7 +4441,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 					ddrawParent->SetClipperHWnd(hWnd);
 				}
 			}
-			if (!IsWindow(hWnd) && !IsWindow(CurrentClipperHWnd))
+			if (!IsWindow(hWnd) && (!IsWindow(CurrentClipperHWnd) || !Utils::IsMainWindow(CurrentClipperHWnd)))
 			{
 				hWnd = Utils::GetMainWindowForProcess(GetCurrentProcessId());
 				if (hWnd != CurrentClipperHWnd)
