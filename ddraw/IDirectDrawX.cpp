@@ -3212,7 +3212,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	HRESULT hr = DD_OK;
 	do {
 		// Last call variables
-		HWND LastHWnd = hFocusWindow;
+		HWND LasthWnd = hFocusWindow;
 		BOOL LastWindowedMode = presParams.Windowed;
 		DWORD LastBehaviorFlags = BehaviorFlags;
 
@@ -3351,7 +3351,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				break;
 			}
 
-			Logging::Log() << __FUNCTION__ << " Recreate device! Last create: " << LastHWnd << "->" << hWnd << " " <<
+			Logging::Log() << __FUNCTION__ << " Recreate device! Last create: " << LasthWnd << "->" << hWnd << " " <<
 				" Windowed: " << LastWindowedMode << "->" << presParams.Windowed << " " <<
 				presParamsBackup.BackBufferWidth << "x" << presParamsBackup.BackBufferHeight << "->" <<
 				presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " <<
@@ -3421,7 +3421,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		EnableWaitVsync = false;
 		FourCCsList.clear();
 
-		// Send window and display change messages
+		// Send window change messages
 		if (!presParams.Windowed && !Config.EnableWindowMode)
 		{
 			// Get window size
@@ -3439,6 +3439,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				(LONG)presParams.BackBufferHeight != NewClientRect.bottom ||
 				LastClientRect.right != NewClientRect.right ||
 				LastClientRect.bottom != NewClientRect.bottom;
+			bool bIsNewWindow = LasthWnd != hFocusWindow;
 
 			// Post window messages
 			if (bWindowMove || bWindowSize)
@@ -3479,11 +3480,21 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			}
 
 			// Window focus and activate app
-			if (LastHWnd != hFocusWindow)
+			if (bIsNewWindow)
 			{
 				PostMessage(hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
 				PostMessage(hWnd, WM_SETFOCUS, NULL, NULL);
 				PostMessage(hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
+			}
+		}
+
+		// Send activate message to main window if main window was a previous device window
+		if (hWnd == GetActiveWindow() && !Utils::IsMainWindow(hWnd))
+		{
+			HWND MainhWnd = Utils::GetMainWindowForProcess(GetCurrentProcessId());
+			if (MainhWnd && WndProc::GetWndProctStruct(MainhWnd))
+			{
+				PostMessage(MainhWnd, WM_ACTIVATE, WA_ACTIVE, (LPARAM)MainhWnd);
 			}
 		}
 

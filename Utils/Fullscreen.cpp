@@ -132,6 +132,7 @@ namespace Fullscreen
 	bool IsWindowNotFullScreen(screen_res, screen_res);
 	void GetWindowSize(HWND&, screen_res&, RECT&);
 	BOOL CALLBACK EnumWindowsCallback(HWND, LPARAM);
+	HWND FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug = false);
 	BOOL CALLBACK EnumMenuWindowsCallback(HWND, LPARAM);
 	bool CheckForMenu(DWORD);
 	BOOL CALLBACK EnumChildWindowsProc(HWND, LPARAM);

@@ -4430,18 +4430,24 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		}
 		if (ShouldPresentToWindow(true))
 		{
+			HWND CurrentClipperHWnd = ddrawParent->GetClipperHWnd();
+
 			HWND hWnd = nullptr;
 			if (attachedClipper)
 			{
 				attachedClipper->GetHWnd(&hWnd);
+				if (IsWindow(hWnd) && hWnd != CurrentClipperHWnd)
+				{
+					ddrawParent->SetClipperHWnd(hWnd);
+				}
 			}
-			if (!IsWindow(hWnd))
+			if (!IsWindow(hWnd) && !IsWindow(CurrentClipperHWnd))
 			{
-				hWnd = Fullscreen::FindMainWindow(GetCurrentProcessId(), true);
-			}
-			if (hWnd != ddrawParent->GetClipperHWnd())
-			{
-				ddrawParent->SetClipperHWnd(hWnd);
+				hWnd = Utils::GetMainWindowForProcess(GetCurrentProcessId());
+				if (hWnd != CurrentClipperHWnd)
+				{
+					ddrawParent->SetClipperHWnd(hWnd);
+				}
 			}
 		}
 	}

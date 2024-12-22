@@ -807,11 +807,11 @@ void Utils::ResetInvalidFPUState()
 	}
 }
 
-void Utils::CheckMessageQueue(HWND hwnd)
+void Utils::CheckMessageQueue(HWND hWnd)
 {
 	// Peek messages to help prevent a "Not Responding" window
 	MSG msg = {};
-	if (PeekMessage(&msg, hwnd, 0, 0, PM_NOREMOVE)) { BusyWaitYield((DWORD)-1); };
+	if (PeekMessage(&msg, hWnd, 0, 0, PM_NOREMOVE)) { BusyWaitYield((DWORD)-1); };
 }
 
 bool Utils::IsWindowsVistaOrNewer()
@@ -990,6 +990,35 @@ HWND Utils::GetTopLevelWindowOfCurrentProcess()
 	}
 
 	return nullptr; // No top-level window found for the current process.
+}
+
+bool Utils::IsMainWindow(HWND hWnd)
+{
+	// A main window is a top-level window without a parent
+	return GetWindow(hWnd, GW_OWNER) == nullptr && IsWindowVisible(hWnd);
+}
+
+HWND Utils::GetMainWindowForProcess(DWORD processId)
+{
+	struct {
+		DWORD processID = 0;
+		HWND mainWindow = nullptr;
+	} lparam;
+	lparam.processID = processId;
+
+	EnumWindows([](HWND hWnd, LPARAM lParam) -> BOOL {
+		DWORD windowProcessId = 0;
+		GetWindowThreadProcessId(hWnd, &windowProcessId);
+
+		if (windowProcessId == reinterpret_cast<DWORD*>(lParam)[0] && IsMainWindow(hWnd))
+		{
+			*reinterpret_cast<HWND*>(reinterpret_cast<DWORD*>(lParam) + 1) = hWnd;
+			return FALSE; // Found the main window, stop enumeration
+		}
+		return TRUE; // Continue searching
+		}, reinterpret_cast<LPARAM>(&lparam));
+
+	return lparam.mainWindow;
 }
 
 bool Utils::IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd)

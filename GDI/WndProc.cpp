@@ -103,13 +103,13 @@ namespace WndProc
 				VirtualProtect(FunctCode, sizeof(FunctCode), oldProtect, &tmpProtect);
 			}
 		}
-		HWND GetHWnd() { return hWnd; }
-		WNDPROC GetMyWndProc() { return MyWndProc; }
-		WNDPROC GetAppWndProc() { return AppWndProc; }
+		HWND GetHWnd() const { return hWnd; }
+		WNDPROC GetMyWndProc() const { return MyWndProc; }
+		WNDPROC GetAppWndProc() const { return AppWndProc; }
 		DATASTRUCT* GetDataStruct() { return &DataStruct; }
-		bool IsActive() { return Active; }
+		bool IsActive() const { return Active; }
 		void SetInactive() { Active = false; }
-		bool IsExiting() { return Exiting; }
+		bool IsExiting() const { return Exiting; }
 	};
 
 	std::vector<std::shared_ptr<WNDPROCSTRUCT>> WndProcList;
@@ -276,7 +276,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	const WNDPROC pWndProc = AppWndProcInstance->GetAppWndProc();
 	const HWND hWndInstance = AppWndProcInstance->GetHWnd();
-	DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
+	const DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
 
 	// Set instance as inactive when window closes
 	if ((Msg == WM_CLOSE || Msg == WM_DESTROY || Msg == WM_NCDESTROY || (Msg == WM_SYSCOMMAND && wParam == SC_CLOSE)) && hWnd == hWndInstance)

@@ -43,13 +43,15 @@ namespace Utils
 	void DDrawResolutionHack(HMODULE hD3DIm);
 	void BusyWaitYield(DWORD RemainingMS);
 	void ResetInvalidFPUState();
-	void CheckMessageQueue(HWND hwnd);
+	void CheckMessageQueue(HWND hWnd);
 	bool IsWindowsVistaOrNewer();
 	bool IsWindows7OrNewer();
 	bool IsWindows8OrNewer();
 	void GetScreenSettings();
 	void ResetScreenSettings();
 	void ResetGamma();
+	bool IsMainWindow(HWND hWnd);
+	HWND GetMainWindowForProcess(DWORD processId);
 	bool IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd);
 	HWND GetTopLevelWindowOfCurrentProcess();
 	HMONITOR GetMonitorHandle(HWND hWnd);
@@ -81,7 +83,6 @@ namespace Fullscreen
 	bool IsThreadRunning();
 	void StopThread();
 	void ResetScreen();
-	HWND FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug = false);
 }
 
 bool stristr(LPCSTR strCheck, LPCSTR str, size_t size);
