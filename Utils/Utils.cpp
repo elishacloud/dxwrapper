@@ -38,6 +38,7 @@
 #include "Settings\Settings.h"
 #include "Dllmain\Dllmain.h"
 #include "Wrappers\wrapper.h"
+#include "ddraw\ddrawExternal.h"
 #include "d3d8\d3d8External.h"
 #include "d3d9\d3d9External.h"
 #include "External\Hooking\Hook.h"
@@ -75,6 +76,7 @@ typedef BOOL(WINAPI *CreateProcessAFunc)(LPCSTR lpApplicationName, LPSTR lpComma
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
 typedef HANDLE(WINAPI* CreateThreadProc)(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
 typedef LPVOID(WINAPI* VirtualAllocProc)(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
+typedef LPVOID(WINAPI* HeapAllocProc)(HANDLE, DWORD, SIZE_T);
 typedef SIZE_T(WINAPI* HeapSizeProc)(HANDLE, DWORD, LPCVOID);
 typedef BOOL(WINAPI *CreateProcessWFunc)(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
@@ -110,6 +112,7 @@ namespace Utils
 	INITIALIZE_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(CreateThread, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(VirtualAlloc, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(HeapAlloc, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(HeapSize, unused);
 
 	FARPROC p_CreateProcessA = nullptr;
@@ -431,6 +434,30 @@ LPVOID WINAPI Utils::kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD 
 
 	// Call the original VirtualAlloc function
 	return VirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
+}
+
+LPVOID WINAPI Utils::kernel_HeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwBytes)
+{
+	//Logging::LogDebug() << __FUNCTION__ " " << " hHeap: " << hHeap << " dwFlags: " << Logging::hex(dwFlags) << " lpMem: " << lpMem;
+
+	DEFINE_STATIC_PROC_ADDRESS(HeapAllocProc, HeapAlloc, HeapAlloc_out);
+
+	if (!HeapAlloc)
+	{
+		return nullptr;
+	}
+
+	if (dwBytes > 128 * 512 && dwBytes + dwBytes / 16 < 0x7FFF8)
+	{
+		LPVOID ret = HeapAlloc(hHeap, dwFlags, dwBytes + dwBytes / 16);
+		if (ret)
+		{
+			return ret;
+		}
+	}
+
+	// Call the original HeapSize function
+	return HeapAlloc(hHeap, dwFlags, dwBytes);
 }
 
 SIZE_T WINAPI Utils::kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem)
