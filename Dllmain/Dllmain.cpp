@@ -20,6 +20,7 @@
 #include "Settings\Settings.h"
 #include "Wrappers\wrapper.h"
 #include "winmm.h"
+#include "GDI\GDI.h"
 #include "External\Hooking\Hook.h"
 #ifdef DDRAWCOMPAT
 #include "DDrawCompat\DDrawCompatExternal.h"
@@ -584,6 +585,22 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.Dd7to9)
 		{
 			InitDDraw();
+		}
+
+		// Hook Comdlg functions
+		if (Config.EnableOpenDialogHook)
+		{
+			using namespace GdiWrapper;
+			if (!GetModuleHandleA("comdlg32.dll")) LoadLibrary("comdlg32.dll");
+			HMODULE comdlg32 = GetModuleHandleA("Comdlg32.dll");
+			if (comdlg32)
+			{
+				Logging::Log() << "Installing Comdlg32 hooks";
+				GetOpenFileNameA_out = (FARPROC)Hook::HotPatch(GetProcAddress(comdlg32, "GetOpenFileNameA"), "GetOpenFileNameA", comdlg_GetOpenFileNameA);
+				GetOpenFileNameW_out = (FARPROC)Hook::HotPatch(GetProcAddress(comdlg32, "GetOpenFileNameW"), "GetOpenFileNameW", comdlg_GetOpenFileNameW);
+				GetSaveFileNameA_out = (FARPROC)Hook::HotPatch(GetProcAddress(comdlg32, "GetSaveFileNameA"), "GetSaveFileNameA", comdlg_GetSaveFileNameA);
+				GetSaveFileNameW_out = (FARPROC)Hook::HotPatch(GetProcAddress(comdlg32, "GetSaveFileNameW"), "GetSaveFileNameW", comdlg_GetSaveFileNameW);
+			}
 		}
 
 		// Start fullscreen thread

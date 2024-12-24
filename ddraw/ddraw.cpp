@@ -70,7 +70,6 @@ void InitDDraw()
 		if (!GetModuleHandleA("user32.dll")) LoadLibrary("user32.dll");
 		HMODULE gdi32 = GetModuleHandleA("gdi32.dll");
 		HMODULE user32 = GetModuleHandleA("user32.dll");
-		HMODULE comdlg32 = GetModuleHandleA("Comdlg32.dll");
 		HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
 		if (gdi32)
 		{
@@ -86,14 +85,6 @@ void InitDDraw()
 			//GetWindowLongW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "GetWindowLongW"), "GetWindowLongW", user_GetWindowLongW);
 			//SetWindowLongA_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "SetWindowLongA"), "SetWindowLongA", user_SetWindowLongA);
 			//SetWindowLongW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "SetWindowLongW"), "SetWindowLongW", user_SetWindowLongW);
-		}
-		if (comdlg32)
-		{
-			Logging::Log() << "Installing Comdlg32 hooks";
-			GetOpenFileNameA_out = (FARPROC)Hook::HotPatch(GetProcAddress(comdlg32, "GetOpenFileNameA"), "GetOpenFileNameA", comdlg_GetOpenFileNameA);
-			GetOpenFileNameW_out = (FARPROC)Hook::HotPatch(GetProcAddress(comdlg32, "GetOpenFileNameW"), "GetOpenFileNameW", comdlg_GetOpenFileNameW);
-			GetSaveFileNameA_out = (FARPROC)Hook::HotPatch(GetProcAddress(comdlg32, "GetSaveFileNameA"), "GetSaveFileNameA", comdlg_GetSaveFileNameA);
-			GetSaveFileNameW_out = (FARPROC)Hook::HotPatch(GetProcAddress(comdlg32, "GetSaveFileNameW"), "GetSaveFileNameW", comdlg_GetSaveFileNameW);
 		}
 		if (kernel32)
 		{
