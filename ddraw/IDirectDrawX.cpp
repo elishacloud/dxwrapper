@@ -2851,29 +2851,11 @@ HRESULT m_IDirectDrawX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
 	}
 
 	// Check for device, if not then create it
-	if (CheckD3DDevice && !d3d9Device)
+	if (CheckD3DDevice && !CheckD9Device(__FUNCTION__))
 	{
-		// Create d3d9 device
-		if (FAILED(CreateD9Device(FunctionName)))
-		{
-			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
-			return DDERR_GENERIC;
-		}
+		LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
+		return DDERR_GENERIC;
 	}
-
-	// Check for delay while resolution switching
-	if (CheckD3DDevice && SwitchingResolution && d3d9Device->TestCooperativeLevel() == D3DERR_DEVICELOST)
-	{
-		for (int attempts = 0; attempts < 20; ++attempts)
-		{
-			if (d3d9Device->TestCooperativeLevel() != D3DERR_DEVICELOST)
-			{
-				break;
-			}
-			Sleep(500);
-		}
-	}
-	SwitchingResolution = false;
 
 	return DD_OK;
 }
@@ -2918,10 +2900,26 @@ bool m_IDirectDrawX::IsInScene()
 
 bool m_IDirectDrawX::CheckD9Device(char* FunctionName)
 {
+	// Check for device, if not then create it
 	if (!d3d9Device && FAILED(CreateD9Device(FunctionName)))
 	{
 		return false;
 	}
+
+	// Check for delay while resolution switching
+	if (SwitchingResolution)
+	{
+		for (int attempts = 0; attempts < 20; ++attempts)
+		{
+			if (d3d9Device->TestCooperativeLevel() != D3DERR_DEVICELOST)
+			{
+				break;
+			}
+			Sleep(500);
+		}
+	}
+	SwitchingResolution = false;
+
 	return true;
 }
 
@@ -3174,12 +3172,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	if (FAILED(CheckInterface(__FUNCTION__, false)))
 	{
 		return DDERR_GENERIC;
-	}
-
-	// Check device lost
-	if (d3d9Device && d3d9Device->TestCooperativeLevel() == D3DERR_DEVICELOST)
-	{
-		return D3DERR_DEVICELOST;
 	}
 
 	// Get hwnd

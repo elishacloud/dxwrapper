@@ -4416,8 +4416,11 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 			LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
 			return DDERR_INVALIDOBJECT;
 		}
+
 		ddrawParent = DDrawVector[0];
 		ddrawParent->AddSurfaceToVector(this);
+
+		d3d9Device = ddrawParent->GetDirectD9Device();
 	}
 
 	// Check d3d9 device
