@@ -638,6 +638,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClCompile Include="External\Hooking\IATPatch.cpp" />
     <ClCompile Include="External\Logging\Logging.cpp" />
     <ClCompile Include="External\MemoryModule\MemoryModule.c" />
+    <ClCompile Include="GDI\Comdlg32.cpp" />
     <ClCompile Include="GDI\Gdi32.cpp" />
     <ClCompile Include="GDI\User32.cpp" />
     <ClCompile Include="GDI\WndProc.cpp" />
@@ -1269,6 +1270,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClInclude Include="External\Hooking\Hook.h" />
     <ClInclude Include="External\Logging\Logging.h" />
     <ClInclude Include="External\MemoryModule\MemoryModule.h" />
+    <ClInclude Include="GDI\Comdlg32.h" />
     <ClInclude Include="GDI\GDI.h" />
     <ClInclude Include="GDI\Gdi32.h" />
     <ClInclude Include="GDI\User32.h" />

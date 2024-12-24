@@ -892,6 +892,9 @@
     <ClCompile Include="External\Hooking.Patterns\Hooking.Patterns.cpp">
       <Filter>External\Hooking.Patterns</Filter>
     </ClCompile>
+    <ClCompile Include="GDI\Comdlg32.cpp">
+      <Filter>GDI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -1885,6 +1888,9 @@
     </ClInclude>
     <ClInclude Include="External\Hooking.Patterns\Hooking.Patterns.h">
       <Filter>External\Hooking.Patterns</Filter>
+    </ClInclude>
+    <ClInclude Include="GDI\Comdlg32.h">
+      <Filter>GDI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
