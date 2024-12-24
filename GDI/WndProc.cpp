@@ -35,6 +35,8 @@ namespace WndProc
 	LRESULT CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 	bool IsExecutableAddress(void* address);
 
+	bool SwitchingResolution = false;
+
 	struct WNDPROCSTRUCT
 	{
 	private:

@@ -15,6 +15,8 @@ namespace WndProc
 		std::atomic<bool> IsExclusiveMode = false;
 	};
 
+	extern bool SwitchingResolution;
+
 	DATASTRUCT* AddWndProc(HWND hWnd);
 	void RemoveWndProc(HWND hWnd);
 	DATASTRUCT* GetWndProctStruct(HWND hWnd);

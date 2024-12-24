@@ -137,7 +137,6 @@ namespace {
 }
 
 // Default resolution
-bool SwitchingResolution = false;
 DWORD DefaultWidth;
 DWORD DefaultHeight;
 RECT LastWindowRect;
@@ -2301,7 +2300,7 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 		case DDERR_NOEXCLUSIVEMODE:
 		case D3D_OK:
 		default:
-			SwitchingResolution = false;
+			WndProc::SwitchingResolution = false;
 			return DD_OK;
 		}
 	}
@@ -2907,7 +2906,7 @@ bool m_IDirectDrawX::CheckD9Device(char* FunctionName)
 	}
 
 	// Check for delay while resolution switching
-	if (SwitchingResolution)
+	if (WndProc::SwitchingResolution)
 	{
 		for (int attempts = 0; attempts < 20; ++attempts)
 		{
@@ -2918,7 +2917,7 @@ bool m_IDirectDrawX::CheckD9Device(char* FunctionName)
 			Sleep(500);
 		}
 	}
-	SwitchingResolution = false;
+	WndProc::SwitchingResolution = false;
 
 	return true;
 }
@@ -3089,7 +3088,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 	HRESULT hr = TestD3D9CooperativeLevel();
 	if (SUCCEEDED(hr) || hr == DDERR_NOEXCLUSIVEMODE)
 	{
-		SwitchingResolution = false;
+		WndProc::SwitchingResolution = false;
 		return hr;
 	}
 	else if (hr == D3DERR_DEVICELOST)
@@ -3153,7 +3152,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 
 	if (SUCCEEDED(hr))
 	{
-		SwitchingResolution = false;
+		WndProc::SwitchingResolution = false;
 	}
 
 	ReleasePTCriticalSection();
@@ -3408,7 +3407,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		}
 
 		// Reset flags after creating device
-		SwitchingResolution = false;
+		WndProc::SwitchingResolution = false;
 		LastUsedHWnd = hWnd;
 		EnableWaitVsync = false;
 		FourCCsList.clear();
