@@ -664,6 +664,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 		DDSURFACEDESC2 Desc2 = *lpDDSurfaceDesc2;
 
+		// Add 3D device flag
+		if (DirectXVersion <= 2 && (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
+		{
+			Desc2.ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
+		}
+
 		// Check pixel format flag
 		if ((Desc2.dwFlags & DDSD_PIXELFORMAT) && !Desc2.ddpfPixelFormat.dwFlags)
 		{
@@ -799,8 +805,8 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			Desc2.dwBackBufferCount = 0;
 		}
 
-		// Add flag for 3D device
-		if ((DirectXVersion < 4) && (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
+		// Add 3D device flag
+		if (DirectXVersion <= 2 && (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
 		{
 			Desc2.ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
 		}
