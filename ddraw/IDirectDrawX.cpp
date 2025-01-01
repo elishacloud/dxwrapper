@@ -1668,11 +1668,7 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		Device.RefreshRate = 0;
 
 		// Release d3d9 device
-		if (d3d9Device)
-		{
-			ReleaseAllD9Resources(true, false);
-			ReleaseD9Device();
-		}
+		ResetAllSurfaceDisplay();
 
 		return DD_OK;
 	}
@@ -3376,19 +3372,11 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 					0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_NOZORDER | SWP_NOMOVE);
 			}
 			// Attempt to create a device
-			for (int attempts = 0; attempts < 20; ++attempts)
+			hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+			if (hr == D3DERR_INVALIDCALL && presParams.FullScreen_RefreshRateInHz)
 			{
+				presParams.FullScreen_RefreshRateInHz = 0;
 				hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
-				if (hr == D3DERR_INVALIDCALL && presParams.FullScreen_RefreshRateInHz)
-				{
-					presParams.FullScreen_RefreshRateInHz = 0;
-					hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
-				}
-				if (hr != D3DERR_DEVICELOST)
-				{
-					break;
-				}
-				Sleep(500);
 			}
 		}
 
