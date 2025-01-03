@@ -239,9 +239,9 @@ void Utils::DisableHighDPIScaling()
 
 		if (setProcessDpiAwareness)
 		{
-			HRESULT result = SUCCEEDED(setProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE));
+			HRESULT result = setProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
 
-			setDpiAware = (result == S_OK || result == E_ACCESSDENIED);
+			setDpiAware = (SUCCEEDED(result) || result == E_ACCESSDENIED);
 		}
 	}
 	if (hUser32 && !setDpiAware)
@@ -447,9 +447,12 @@ LPVOID WINAPI Utils::kernel_HeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwByte
 		return nullptr;
 	}
 
-	if (dwBytes > 128 * 512 && dwBytes + dwBytes / 16 < 0x7FFF8)
+	SIZE_T NewBytes = dwBytes + dwBytes / 16;
+	NewBytes += NewBytes % 16;
+
+	if (dwBytes > 128 * 512 && NewBytes < 0x7FFF8)
 	{
-		LPVOID ret = HeapAlloc(hHeap, dwFlags, dwBytes + dwBytes / 16);
+		LPVOID ret = HeapAlloc(hHeap, dwFlags, NewBytes);
 		if (ret)
 		{
 			return ret;
@@ -1067,7 +1070,7 @@ bool Utils::IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd)
 	return false;
 }
 
-BOOL WINAPI CreateProcessAHandler(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
+static BOOL WINAPI CreateProcessAHandler(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
 {
 	DEFINE_STATIC_PROC_ADDRESS(CreateProcessAFunc, CreateProcessA, Utils::p_CreateProcessA);
@@ -1106,7 +1109,7 @@ BOOL WINAPI CreateProcessAHandler(LPCSTR lpApplicationName, LPSTR lpCommandLine,
 		lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 }
 
-BOOL WINAPI CreateProcessWHandler(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
+static BOOL WINAPI CreateProcessWHandler(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
 {
 	DEFINE_STATIC_PROC_ADDRESS(CreateProcessWFunc, CreateProcessW, Utils::p_CreateProcessW);
@@ -1147,7 +1150,12 @@ BOOL WINAPI CreateProcessWHandler(LPCWSTR lpApplicationName, LPWSTR lpCommandLin
 
 DWORD Utils::GetThreadIDByHandle(HANDLE hThread)
 {
-	GetThreadIdProc pGetThreadId = (GetThreadIdProc)GetProcAddress(GetModuleHandleA("kernel32.dll"), "GetThreadId");
+	HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
+	GetThreadIdProc pGetThreadId = nullptr;
+	if (kernel32)
+	{
+		pGetThreadId = (GetThreadIdProc)GetProcAddress(kernel32, "GetThreadId");
+	}
 
 	if (pGetThreadId)
 	{
@@ -1201,7 +1209,7 @@ void Utils::DisableGameUX()
 	InterlockedExchangePointer((PVOID*)&p_CreateProcessW, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessW"), "CreateProcessW", *CreateProcessWHandler));
 }
 
-inline UINT GetValueFromString(wchar_t* str)
+inline static UINT GetValueFromString(wchar_t* str)
 {
 	int num = 0;
 	for (UINT i = 0; i < wcslen(str); i++)
