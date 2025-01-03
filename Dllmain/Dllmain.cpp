@@ -75,7 +75,7 @@ static RemoveHandlerFunc remove_handler = nullptr;
 		Logging::LogDebug() << __FUNCTION__ << " " << #procName << " addr: " << prodAddr; \
 	}
 
-void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings)
+__declspec(dllexport) void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings)
 {
 	Logging::LogDebug() << __FUNCTION__ << " Called!";
 	if (!DxSettings)
@@ -90,7 +90,7 @@ void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings)
 
 typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
 
-HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSystem32)
+static HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSystem32)
 {
 	HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
 	HMODULE currentdll = GetModuleHandle(dllname);
@@ -115,6 +115,67 @@ HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSystem32)
 	return dll;
 }
 
+static bool CheckForDuplicateLoad(HMODULE hModule, HANDLE& hMutex)
+{
+	// Get mutex name
+	char MutexName[MAX_PATH] = { 0 };
+	if (Config.RealWrapperMode == dtype.dxwrapper)
+	{
+		sprintf_s(MutexName, MAX_PATH, "DxWrapper_%d", GetCurrentProcessId());
+	}
+	else
+	{
+		sprintf_s(MutexName, MAX_PATH, "DxWrapper_%d_%s", GetCurrentProcessId(), Config.WrapperName.c_str());
+	}
+
+	// Check if mutex exists
+	HANDLE existingMutex = OpenMutex(SYNCHRONIZE, FALSE, MutexName);
+	if (existingMutex)
+	{
+		CloseHandle(existingMutex);
+
+		// Prepare message
+		std::stringstream message;
+		char dllPath[MAX_PATH] = { 0 };
+
+		// Get the DLL path if possible
+		if (GetModuleFileNameA(hModule, dllPath, MAX_PATH))
+		{
+			message << "DxWrapper is attempting to load '" << dllPath << "' at address " << hModule
+				<< " but is already loaded at a different address (" << MutexName << ").";
+		}
+		else
+		{
+			message << "DxWrapper is attempting to load at address " << hModule
+				<< " but is already loaded at a different address (" << MutexName << ").";
+		}
+
+		// Show message box
+		MessageBoxA(nullptr, message.str().c_str(), "DxWrapper Duplicate Load Detected", MB_ICONWARNING | MB_OK | MB_TOPMOST);
+
+		return true; // Causes DLL to unload on process attach
+	}
+
+	// Create mutex
+	hMutex = CreateMutex(nullptr, FALSE, MutexName);
+
+	// Check if mutex creation was successful
+	if (hMutex == nullptr)
+	{
+		// Prepare message
+		DWORD errorCode = GetLastError();
+		std::stringstream message;
+		message << "Failed to create mutex for DxWrapper (" << MutexName << "). Error code: " << errorCode;
+
+		// Show message box
+		MessageBoxA(nullptr, message.str().c_str(), "Mutex Creation Error", MB_ICONERROR | MB_OK | MB_TOPMOST);
+
+		return true; // If mutex creation fails, return true to unload the DLL
+	}
+
+	return false; // Allow the DLL to continue loading
+}
+
 // Declare variables
 HMODULE hModule_dll = nullptr;
 
@@ -124,7 +185,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	UNREFERENCED_PARAMETER(lpReserved);
 
 	static HANDLE hMutex = nullptr;
-	static HANDLE n_hMutex = nullptr;
 	static bool FullscreenThreadStartedFlag = false;
 
 	switch (fdwReason)
@@ -136,6 +196,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Initialize config
 		Config.Init();
+
+		// Ensure only one copy of DxWrapper is running
+		if (CheckForDuplicateLoad(hModule, hMutex))
+		{
+			return FALSE;
+		}
 
 		// Init logs
 		Logging::EnableLogging = !Config.DisableLogging;
@@ -179,46 +245,11 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			" Windows 7: " << Utils::IsWindows7OrNewer() <<
 			" Windows 8: " << Utils::IsWindows8OrNewer();
 
-		// Create Mutex to ensure only one copy of DxWrapper is running
-		char MutexName[MAX_PATH] = { 0 };
-		sprintf_s(MutexName, MAX_PATH, "DxWrapper %d", GetCurrentProcessId());
-		hMutex = CreateMutex(nullptr, false, MutexName);
-		bool IsAlreadyRunning = (GetLastError() == ERROR_ALREADY_EXISTS);
-
-		// Allow DxWrapper to be loaded more than once from the same dll
-		if (Config.RealWrapperMode != dtype.dxwrapper)
+		// Check if process is excluded
+		if (Config.ProcessExcluded)
 		{
-			sprintf_s(MutexName, MAX_PATH, "DxWrapper %d %s", GetCurrentProcessId(), Config.WrapperName.c_str());
-			n_hMutex = CreateMutex(nullptr, false, MutexName);
-			IsAlreadyRunning = IsAlreadyRunning && (GetLastError() != ERROR_ALREADY_EXISTS);
-		}
-
-		// Check Mutex or if process is excluded to see if DxWrapper should exit
-		if (IsAlreadyRunning || Config.ProcessExcluded)
-		{
-			// DxWrapper already running
-			if (IsAlreadyRunning)
-			{
-				Logging::Log() << "DxWrapper already running!";
-			}
-
-			// Disable wrapper
 			Logging::Log() << "Disabling DxWrapper...";
 			Settings::ClearConfigSettings();
-
-			if (Config.RealWrapperMode == dtype.dxwrapper)
-			{
-				// Return false on process attach causes dll to get unloaded
-				return true;
-			}
-			else
-			{
-				// Release named Mutex
-				if (n_hMutex)
-				{
-					ReleaseMutex(n_hMutex);
-				}
-			}
 		}
 
 		// Attach real dll
@@ -711,10 +742,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (hMutex)
 		{
 			ReleaseMutex(hMutex);
-		}
-		if (n_hMutex)
-		{
-			ReleaseMutex(n_hMutex);
+			hMutex = nullptr;
 		}
 
 		// Final log
