@@ -225,7 +225,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			// Check if it is loading from a file
 			if (PathFileExists(path))
 			{
-				Logging::Log() << "Running from: " << path;
+				Logging::Log() << "Running from: " << path << " (" << hModule << ")";
 			}
 			else
 			{
