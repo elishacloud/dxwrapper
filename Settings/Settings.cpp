@@ -29,10 +29,9 @@ namespace Settings
 	// Config
 	bool ConfigLoaded = false;
 	char configpath[MAX_PATH] = {};
-	char p_wName[MAX_PATH] = {};
-	char p_pName[MAX_PATH] = {};
 
 	// Declare variables
+	bool WrapperModeIncorrect = false;
 	size_t AddressPointerCount = 0;				// Count of addresses to hot patch
 	size_t BytesToWriteCount = 0;				// Count of bytes to hot patch
 	bool Force16bitColor;						// Forces DirectX to use 16bit color
@@ -504,6 +503,10 @@ void CONFIG::Init()
 	HMODULE hModule = NULL;
 	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)Settings::ClearConfigSettings, &hModule);
 
+	// Declare variables
+	char p_wName[MAX_PATH] = {};
+	char p_pName[MAX_PATH] = {};
+
 	// Get module name
 	char wrappername[MAX_PATH] = { 0 };
 	GetModuleFileName(hModule, wrappername, MAX_PATH);
@@ -564,21 +567,6 @@ void CONFIG::Init()
 			free(szCfg);
 		}
 	}
-}
-
-void CONFIG::SetConfig()
-{
-	using namespace Settings;
-
-	// If config file was read
-	if (ConfigLoaded)
-	{
-		Logging::Log() << "Reading config file: " << configpath;
-	}
-	else
-	{
-		Logging::Log() << "Could not load config file using defaults";
-	}
 
 	// Set module name
 	if (_stricmp(p_wName, p_pName) == 0)
@@ -599,7 +587,7 @@ void CONFIG::SetConfig()
 			[](char c) {return static_cast<char>(::tolower(c)); });
 		if (!Wrapper::CheckWrapperName(WrapperMode.c_str()))
 		{
-			Logging::Log() << "Error: Wrapper mode setting incorrect!";
+			WrapperModeIncorrect = true;
 			WrapperName.clear();
 		}
 	}
@@ -621,8 +609,27 @@ void CONFIG::SetConfig()
 		(IncludeProcess.size() != 0 && !IfStringExistsInList(p_pName, IncludeProcess, false)))
 	{
 		ProcessExcluded = true;
-		Logging::Log() << "Clearing config and disabling dxwrapper!";
-		ClearConfigSettings();
+	}
+}
+
+void CONFIG::SetConfig()
+{
+	using namespace Settings;
+
+	// If config file was read
+	if (ConfigLoaded)
+	{
+		Logging::Log() << "Reading config file: " << configpath;
+	}
+	else
+	{
+		Logging::Log() << "Could not load config file using defaults";
+	}
+
+	// Check wrapper mode
+	if (WrapperModeIncorrect)
+	{
+		Logging::Log() << "Error: Wrapper mode setting incorrect!";
 	}
 
 	// Verify sleep time to make sure it is not set too low (can be perf issues if it is too low)
