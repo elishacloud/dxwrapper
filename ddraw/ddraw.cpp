@@ -92,7 +92,7 @@ void InitDDraw()
 			Utils::GetDiskFreeSpaceA_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetDiskFreeSpaceA"), "GetDiskFreeSpaceA", Utils::kernel_GetDiskFreeSpaceA);
 			Utils::CreateThread_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "CreateThread"), "CreateThread", Utils::kernel_CreateThread);
 			Utils::VirtualAlloc_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "VirtualAlloc"), "VirtualAlloc", Utils::kernel_VirtualAlloc);
-			Utils::HeapAlloc_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "HeapAlloc"), "HeapAlloc", Utils::kernel_HeapAlloc);
+			//Utils::HeapAlloc_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "HeapAlloc"), "HeapAlloc", Utils::kernel_HeapAlloc);
 			Utils::HeapSize_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "HeapSize"), "HeapSize", Utils::kernel_HeapSize);
 		}
 		RunOnce = false;
