@@ -26,6 +26,7 @@
 #include "d3dddi\d3dddiExternal.h"
 #include "Shaders\PaletteShader.h"
 #include "Shaders\ColorKeyShader.h"
+#include "Shaders\GammaPixelShader.h"
 
 const D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
 
@@ -161,6 +162,7 @@ DDPIXELFORMAT DisplayPixelFormat;
 // Gamma data
 bool IsGammaSet;
 D3DGAMMARAMP RampData;
+D3DGAMMARAMP DefaultRampData;
 
 // Last used surface resolution
 DWORD LastSetWidth;
@@ -213,8 +215,12 @@ bool EnableWaitVsync;
 LPDIRECT3D9 d3d9Object;
 LPDIRECT3DDEVICE9 d3d9Device;
 D3DPRESENT_PARAMETERS presParams;
+LPDIRECT3DTEXTURE9 GammaLUTTexture;
+LPDIRECT3DTEXTURE9 ScreenCopyTexture;
 LPDIRECT3DPIXELSHADER9 palettePixelShader;
 LPDIRECT3DPIXELSHADER9 colorkeyPixelShader;
+bool UsingShader32f;
+LPDIRECT3DPIXELSHADER9 gammaPixelShader;
 LPDIRECT3DVERTEXBUFFER9 VertexBuffer;
 LPDIRECT3DVERTEXBUFFER9 validateDeviceVertexBuffer;
 LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = nullptr;
@@ -2457,6 +2463,9 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 			RampData.red[i] = value;
 			RampData.green[i] = value;
 			RampData.blue[i] = value;
+			DefaultRampData.red[i] = value;
+			DefaultRampData.green[i] = value;
+			DefaultRampData.blue[i] = value;
 		}
 
 		// High resolution counter
@@ -2472,8 +2481,11 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		// Direct3D9 Objects
 		d3d9Object = nullptr;
 		d3d9Device = nullptr;
+		GammaLUTTexture = nullptr;
+		ScreenCopyTexture = nullptr;
 		palettePixelShader = nullptr;
 		colorkeyPixelShader = nullptr;
+		gammaPixelShader = nullptr;
 		VertexBuffer = nullptr;
 		validateDeviceVertexBuffer = nullptr;
 
@@ -2952,6 +2964,16 @@ LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetColorKeyShader()
 		d3d9Device->CreatePixelShader((DWORD*)ColorKeyPixelShaderSrc, &colorkeyPixelShader);
 	}
 	return &colorkeyPixelShader;
+}
+
+LPDIRECT3DPIXELSHADER9 m_IDirectDrawX::GetGammaPixelShader()
+{
+	// Create pixel shaders
+	if (d3d9Device && !gammaPixelShader)
+	{
+		d3d9Device->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &gammaPixelShader);
+	}
+	return gammaPixelShader;
 }
 
 LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size)
@@ -3871,6 +3893,30 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 		}
 	}
 
+	// Release gamma texture
+	if (GammaLUTTexture)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 gamma texture";
+		ULONG ref = GammaLUTTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'GammaLUTTexture' " << ref;
+		}
+		GammaLUTTexture = nullptr;
+	}
+
+	// Release gamma screen copy texture
+	if (ScreenCopyTexture)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 gamma screen copy texture";
+		ULONG ref = ScreenCopyTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'ScreenCopyTexture' " << ref;
+		}
+		ScreenCopyTexture = nullptr;
+	}
+
 	// Release d3d9 vertex buffer
 	if (VertexBuffer)
 	{
@@ -3931,6 +3977,18 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'colorkeyPixelShader' " << ref;
 		}
 		colorkeyPixelShader = nullptr;
+	}
+
+	// Release gamma pixel shader
+	if (gammaPixelShader)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 gamma pixel shader";
+		ULONG ref = gammaPixelShader->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'gammaPixelShader' " << ref;
+		}
+		gammaPixelShader = nullptr;
 	}
 
 	ReleasePTCriticalSection();
@@ -4360,6 +4418,61 @@ HRESULT m_IDirectDrawX::GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 	return DD_OK;
 }
 
+HRESULT m_IDirectDrawX::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	if (!d3d9Device)
+	{
+		return DD_OK;
+	}
+
+	// Create or update the gamma LUT texture
+	if (!GammaLUTTexture)
+	{
+		if (SUCCEEDED(d3d9Device->CreateTexture(256, 1, 1, 0, D3DFMT_A32B32G32R32F, D3DPOOL_MANAGED, &GammaLUTTexture, nullptr)))
+		{
+			UsingShader32f = true;
+		}
+		else
+		{
+			d3d9Device->CreateTexture(256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &GammaLUTTexture, nullptr);
+			UsingShader32f = false;
+		}
+	}
+
+	D3DLOCKED_RECT lockedRect;
+	if (SUCCEEDED(GammaLUTTexture->LockRect(0, &lockedRect, nullptr, D3DLOCK_DISCARD)))
+	{
+		if (UsingShader32f)
+		{
+			float* texData = static_cast<float*>(lockedRect.pBits);
+			for (int i = 0; i < 256; ++i)
+			{
+				texData[i * 4 + 0] = Ramp.red[i] / 65535.0f;
+				texData[i * 4 + 1] = Ramp.green[i] / 65535.0f;
+				texData[i * 4 + 2] = Ramp.blue[i] / 65535.0f;
+				texData[i * 4 + 3] = 1.0f;
+			}
+		}
+		else
+		{
+			DWORD* texData = static_cast<DWORD*>(lockedRect.pBits);
+			for (int i = 0; i < 256; ++i)
+			{
+				BYTE r = static_cast<BYTE>(Ramp.red[i] / 256);
+				BYTE g = static_cast<BYTE>(Ramp.green[i] / 256);
+				BYTE b = static_cast<BYTE>(Ramp.blue[i] / 256);
+
+				texData[i] = D3DCOLOR_ARGB(255, r, g, b);
+			}
+		}
+		GammaLUTTexture->UnlockRect(0);
+	}
+
+	return DD_OK;
+}
+
 HRESULT m_IDirectDrawX::SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 {
 	// Check for device interface
@@ -4378,8 +4491,155 @@ HRESULT m_IDirectDrawX::SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: gamma flags not supported! " << Logging::hex(dwFlags));
 	}
 
-	IsGammaSet = true;
+	IsGammaSet = false;
 	memcpy(&RampData, lpRampData, sizeof(D3DGAMMARAMP));
+
+	if (memcmp(&DefaultRampData, &RampData, sizeof(D3DGAMMARAMP)) != S_OK)
+	{
+		IsGammaSet = true;
+		SetBrightnessLevel(RampData);
+	}
+
+	return DD_OK;
+}
+
+HRESULT m_IDirectDrawX::ApplyBrightnessLevel()
+{
+	IDirect3DSurface9* pBackBuffer = nullptr;
+
+	if (!GammaLUTTexture)
+	{
+		SetBrightnessLevel(RampData);
+	}
+
+	// Get current backbuffer
+	if (FAILED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to get back buffer!";
+		return DDERR_GENERIC;
+	}
+
+	// Create intermediate texture for shader input
+	D3DSURFACE_DESC desc;
+	pBackBuffer->GetDesc(&desc);
+	if (!ScreenCopyTexture)
+	{
+		if (FAILED(d3d9Device->CreateTexture(desc.Width, desc.Height, 1, D3DUSAGE_RENDERTARGET, desc.Format, D3DPOOL_DEFAULT, &ScreenCopyTexture, nullptr)))
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to create screen copy texture!";
+			pBackBuffer->Release();
+
+			return DDERR_GENERIC;
+		}
+	}
+
+	IDirect3DSurface9* pCopySurface = nullptr;
+	ScreenCopyTexture->GetSurfaceLevel(0, &pCopySurface);
+	if (FAILED(d3d9Device->StretchRect(pBackBuffer, nullptr, pCopySurface, nullptr, D3DTEXF_NONE)))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to copy render target!";
+	}
+	pCopySurface->Release();
+
+	// Render states
+	DWORD rsLighting, rsAlphaTestEnable, rsAlphaBlendEnable, rsFogEnable, rsZEnable, rsZWriteEnable, reStencilEnable;
+	d3d9Device->GetRenderState(D3DRS_LIGHTING, &rsLighting);
+	d3d9Device->GetRenderState(D3DRS_ALPHATESTENABLE, &rsAlphaTestEnable);
+	d3d9Device->GetRenderState(D3DRS_ALPHABLENDENABLE, &rsAlphaBlendEnable);
+	d3d9Device->GetRenderState(D3DRS_FOGENABLE, &rsFogEnable);
+	d3d9Device->GetRenderState(D3DRS_ZENABLE, &rsZEnable);
+	d3d9Device->GetRenderState(D3DRS_ZWRITEENABLE, &rsZWriteEnable);
+	d3d9Device->GetRenderState(D3DRS_STENCILENABLE, &reStencilEnable);
+	d3d9Device->SetRenderState(D3DRS_LIGHTING, FALSE);
+	d3d9Device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+	d3d9Device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+	d3d9Device->SetRenderState(D3DRS_FOGENABLE, FALSE);
+	d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
+	d3d9Device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+	d3d9Device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+
+	// Texture states
+	DWORD tsColorOP, tsColorArg1, tsColorArg2, tsAlphaOP, tsMinFilter, tsMagFilter, addressU1, addressV1;
+	d3d9Device->GetTextureStageState(0, D3DTSS_COLOROP, &tsColorOP);
+	d3d9Device->GetTextureStageState(0, D3DTSS_COLORARG1, &tsColorArg1);
+	d3d9Device->GetTextureStageState(0, D3DTSS_COLORARG2, &tsColorArg2);
+	d3d9Device->GetTextureStageState(0, D3DTSS_ALPHAOP, &tsAlphaOP);
+	d3d9Device->GetTextureStageState(0, D3DTSS_MINFILTER, &tsMinFilter);
+	d3d9Device->GetTextureStageState(0, D3DTSS_MAGFILTER, &tsMagFilter);
+	d3d9Device->GetTextureStageState(1, D3DTSS_ADDRESSU, &addressU1);
+	d3d9Device->GetTextureStageState(1, D3DTSS_ADDRESSV, &addressV1);
+	d3d9Device->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
+	d3d9Device->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+	d3d9Device->SetTextureStageState(0, D3DTSS_MINFILTER, D3DTEXF_LINEAR);
+	d3d9Device->SetTextureStageState(0, D3DTSS_MAGFILTER, D3DTEXF_LINEAR);
+	d3d9Device->SetTextureStageState(1, D3DTSS_ADDRESSU, D3DTADDRESS_CLAMP);
+	d3d9Device->SetTextureStageState(1, D3DTSS_ADDRESSV, D3DTADDRESS_CLAMP);
+
+	// Set back buffer to render target
+	d3d9Device->SetDepthStencilSurface(nullptr);
+	d3d9Device->SetRenderTarget(0, pBackBuffer);
+
+	// Set up shader
+	d3d9Device->SetTexture(0, ScreenCopyTexture);
+	d3d9Device->SetTexture(1, GammaLUTTexture);
+	for (int x = 2; x < 8; x++)
+	{
+		d3d9Device->SetTexture(x, nullptr);
+	}
+
+	if (FAILED(d3d9Device->SetPixelShader(GetGammaPixelShader())))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to set pixel shader!";
+	}
+
+	// Define fullscreen quad vertices
+	TLVERTEX g_FullScreenQuadVertices[4] = {
+		{ -0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f },                          // Top-left
+		{ desc.Width - 0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f },               // Top-right
+		{ -0.5f,  desc.Height - 0.5f, 0.0f, 1.0f, 0.0f, 1.0f },             // Bottom-left
+		{ desc.Width - 0.5f, desc.Height - 0.5f, 0.0f, 1.0f, 1.0f, 1.0f }   // Bottom-right
+	};
+
+	// Set FVF and render
+	d3d9Device->SetFVF(TLVERTEXFVF);
+
+	if (FAILED(d3d9Device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, g_FullScreenQuadVertices, sizeof(TLVERTEX))))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to draw primitive!";
+	}
+
+	d3d9Device->SetPixelShader(0);
+	d3d9Device->SetVertexShader(0);
+
+	d3d9Device->SetTexture(0, nullptr);
+	d3d9Device->SetTexture(1, nullptr);
+
+	// Re-set the old render target
+	ReSetRenderTarget();
+
+	// Cleanup
+	pBackBuffer->Release();
+
+	// Reset render states
+	d3d9Device->SetRenderState(D3DRS_LIGHTING, rsLighting);
+	d3d9Device->SetRenderState(D3DRS_ALPHATESTENABLE, rsAlphaTestEnable);
+	d3d9Device->SetRenderState(D3DRS_ALPHABLENDENABLE, rsAlphaBlendEnable);
+	d3d9Device->SetRenderState(D3DRS_FOGENABLE, rsFogEnable);
+	d3d9Device->SetRenderState(D3DRS_ZENABLE, rsZEnable);
+	d3d9Device->SetRenderState(D3DRS_ZWRITEENABLE, rsZWriteEnable);
+	d3d9Device->SetRenderState(D3DRS_STENCILENABLE, reStencilEnable);
+
+	// Reset texture states
+	d3d9Device->SetTextureStageState(0, D3DTSS_COLOROP, tsColorOP);
+	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG1, tsColorArg1);
+	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG2, tsColorArg2);
+	d3d9Device->SetTextureStageState(0, D3DTSS_ALPHAOP, tsAlphaOP);
+	d3d9Device->SetTextureStageState(0, D3DTSS_MINFILTER, tsMinFilter);
+	d3d9Device->SetTextureStageState(0, D3DTSS_MAGFILTER, tsMagFilter);
+	d3d9Device->SetTextureStageState(1, D3DTSS_ADDRESSU, addressU1);
+	d3d9Device->SetTextureStageState(1, D3DTSS_ADDRESSV, addressV1);
 
 	return DD_OK;
 }
@@ -4701,11 +4961,11 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface()
 
 HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 {
-	HRESULT hr = DD_OK;
+	HRESULT hr = DDERR_GENERIC;
 
 	if (IsUsingThreadPresent())
 	{
-		return hr;
+		return DD_OK;
 	}
 
 	if (!PrimarySurface)
@@ -4739,36 +4999,22 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 	d3d9Device->BeginScene();
 
 	// Copy or draw primary surface before presenting
-	HRESULT DrawRet = DDERR_GENERIC;
 	if (IsPrimaryRenderTarget() && !PrimarySurface->GetD3d9Texture())
 	{
-		if (IsGammaSet)
-		{
-			IsGammaSet = false;
-			d3d9Device->SetGammaRamp(0, 0, (D3DGAMMARAMP*)&RampData);
-		}
-
-		DrawRet = CopyPrimarySurfaceToBackbuffer();
+		hr = CopyPrimarySurfaceToBackbuffer();
 	}
 	else if (RenderTargetSurface)
 	{
 		IDirect3DSurface9* pBackBuffer = nullptr;
-		hr = d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
-		if (SUCCEEDED(hr))
+		if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
 		{
 			// Set back buffer to render target
 			d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
 			d3d9Device->SetDepthStencilSurface(nullptr);
 			d3d9Device->SetRenderTarget(0, pBackBuffer);
 
-			if (IsGammaSet)
-			{
-				IsGammaSet = false;
-				d3d9Device->SetGammaRamp(0, 0, (D3DGAMMARAMP*)&RampData);
-			}
-
 			// Draw surface
-			DrawRet = DrawPrimarySurface();
+			hr = DrawPrimarySurface();
 
 			// Re-set the old render target
 			ReSetRenderTarget();
@@ -4779,25 +5025,23 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 	}
 	else
 	{
-		if (IsGammaSet)
-		{
-			IsGammaSet = false;
-			d3d9Device->SetGammaRamp(0, 0, (D3DGAMMARAMP*)&RampData);
-		}
-
-		DrawRet = DrawPrimarySurface();
+		hr = DrawPrimarySurface();
 	}
-	if (FAILED(DrawRet))
+	if (FAILED(hr))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primary surface!");
-		hr = DrawRet;
+	}
+
+	if (IsGammaSet && GammaControlInterface)
+	{
+		ApplyBrightnessLevel();
 	}
 
 	// End scene
 	d3d9Device->EndScene();
 
 	// Present to d3d9
-	if (SUCCEEDED(DrawRet))
+	if (SUCCEEDED(hr))
 	{
 		hr = Present(pDestRect, pDestRect);
 	}

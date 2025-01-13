@@ -1179,6 +1179,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClInclude Include="ddraw\IDirectDrawPalette.h" />
     <ClInclude Include="ddraw\IDirectDrawX.h" />
     <ClInclude Include="ddraw\Shaders\ColorKeyShader.h" />
+    <ClInclude Include="ddraw\Shaders\GammaPixelShader.h" />
     <ClInclude Include="ddraw\Shaders\PaletteShader.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D2.h" />
@@ -1324,6 +1325,15 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" PaletteShader.hlsl PalettePixelShaderSrc"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\PaletteShader.h</Outputs>
+      <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="ddraw\Shaders\GammaPixelShader.hlsl">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" GammaPixelShader.hlsl GammaPixelShaderSrc"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\GammaPixelShader.h</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
     </CustomBuild>
   </ItemGroup>

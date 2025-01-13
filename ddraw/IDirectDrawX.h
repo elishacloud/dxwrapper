@@ -85,6 +85,11 @@ private:
 	void ReleaseD9Device();
 	void ReleaseD9Object();
 
+	// Gamma functions
+	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader();
+	HRESULT SetBrightnessLevel(D3DGAMMARAMP& RampData);
+	HRESULT ApplyBrightnessLevel();
+
 	// Interface initialization functions
 	void InitInterface(DWORD DirectXVersion);
 	void ReleaseInterface();

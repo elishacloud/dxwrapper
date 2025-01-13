@@ -1892,6 +1892,9 @@
     <ClInclude Include="GDI\Comdlg32.h">
       <Filter>GDI</Filter>
     </ClInclude>
+    <ClInclude Include="ddraw\Shaders\GammaPixelShader.h">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
@@ -1906,6 +1909,9 @@
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
     <CustomBuild Include="ddraw\Shaders\PaletteShader.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ddraw\Shaders\GammaPixelShader.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
   </ItemGroup>
