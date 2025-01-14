@@ -12,6 +12,9 @@ private:
 	// Convert Buffer
 	m_IDirect3DDeviceX *D3DDeviceInterface = nullptr;
 	D3DEXECUTEBUFFERDESC Desc = {};
+	std::vector<BYTE> MemoryData;
+	bool IsLocked = false;
+	D3DEXECUTEDATA ExecuteData = {};
 
 	// Interface initialization functions
 	void InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc);
@@ -43,14 +46,14 @@ public:
 		ProxyAddressLookupTable.DeleteAddress(this);
 	}
 
-	void SetProxy(IDirect3DExecuteBuffer* NewProxyInterface, m_IDirect3DDeviceX* NewD3DDInterface)
+	void SetProxy(IDirect3DExecuteBuffer* NewProxyInterface, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc)
 	{
 		ProxyInterface = NewProxyInterface;
 		D3DDeviceInterface = NewD3DDInterface;
 		if (NewProxyInterface || NewD3DDInterface)
 		{
 			RefCount = 1;
-			InitInterface(nullptr);
+			InitInterface(lpDesc);
 			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
 		else

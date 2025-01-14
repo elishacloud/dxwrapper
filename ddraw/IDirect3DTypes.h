@@ -15,6 +15,8 @@ constexpr UINT MAX_LIGHTS = 8;          // Devices can have up to eight lights.
 #define D3DDEVICEDESC5_SIZE 204
 #define D3DDEVICEDESC6_SIZE 252
 
+#define MAX_EXECUTE_BUFFER_SIZE (256 * 1024) // 256 KB
+
 #define D3DLIGHTCAPS_PARALLELPOINT      0x00000008L /* Parallel point lights supported */
 #define D3DLIGHTCAPS_GLSPOT             0x00000010L /* GL syle spot lights supported */
 

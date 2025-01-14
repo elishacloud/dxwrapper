@@ -26,7 +26,7 @@ inline static void SaveInterfaceAddress(m_IDirect3DExecuteBuffer* Interface, m_I
 	if (Interface)
 	{
 		SetCriticalSection();
-		Interface->SetProxy(nullptr, nullptr);
+		Interface->SetProxy(nullptr, nullptr, nullptr);
 		if (InterfaceBackup)
 		{
 			InterfaceBackup->DeleteMe();
@@ -45,7 +45,7 @@ m_IDirect3DExecuteBuffer* CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aO
 	{
 		Interface = WrapperInterfaceBackup;
 		WrapperInterfaceBackup = nullptr;
-		Interface->SetProxy(aOriginal, NewD3DDInterface);
+		Interface->SetProxy(aOriginal, NewD3DDInterface, lpDesc);
 	}
 	else
 	{
@@ -185,8 +185,31 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpDesc)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpDesc->dwSize);
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check if the buffer is already locked
+		if (IsLocked)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is already locked!");
+			return D3DERR_EXECUTE_LOCKED;
+		}
+
+		// Provide access to the execute buffer memory
+		*lpDesc = Desc;
+
+		// Mark the buffer as locked
+		IsLocked = true;
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->Lock(lpDesc);
@@ -203,8 +226,18 @@ HRESULT m_IDirect3DExecuteBuffer::Unlock()
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		// Check if the buffer is not locked
+		if (!IsLocked)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is not locked!");
+			return D3DERR_EXECUTE_NOT_LOCKED;
+		}
+
+		// Mark the buffer as unlocked
+		IsLocked = false;
+
+		// No specific action required, just return success
+		return DD_OK;
 	}
 
 	return ProxyInterface->Unlock();
@@ -221,8 +254,28 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpData)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpData)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (lpData->dwSize != sizeof(D3DEXECUTEDATA))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpData->dwSize);
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check if the buffer is locked
+		if (IsLocked)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is locked!");
+			return D3DERR_EXECUTE_LOCKED;
+		}
+
+		// Store execute data
+		ExecuteData = *lpData;
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->SetExecuteData(lpData);
@@ -239,8 +292,28 @@ HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpData)
 
 	if (!ProxyInterface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpData)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (lpData->dwSize != sizeof(D3DEXECUTEDATA))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpData->dwSize);
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check if the buffer is locked
+		if (IsLocked)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is locked!");
+			return D3DERR_EXECUTE_LOCKED;
+		}
+
+		// Return stored execute data
+		*lpData = ExecuteData;
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->GetExecuteData(lpData);
@@ -288,9 +361,29 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 
 void m_IDirect3DExecuteBuffer::InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc)
 {
-	if (lpDesc && lpDesc->dwSize == sizeof(D3DEXECUTEBUFFERDESC))
+	IsLocked = false;
+	ExecuteData = {};
+	ExecuteData.dwSize = sizeof(D3DEXECUTEDATA);
+	Desc = {};
+	Desc.dwSize = sizeof(D3DEXECUTEBUFFERDESC);
+	MemoryData.clear();
+
+	if (lpDesc)
 	{
 		Desc = *lpDesc;
+		Desc.dwFlags &= (D3DDEB_BUFSIZE | D3DDEB_CAPS | D3DDEB_LPDATA);
+		if (!(Desc.dwFlags & D3DDEB_CAPS))
+		{
+			Desc.dwFlags |= D3DDEB_CAPS;
+			Desc.dwCaps = D3DDEBCAPS_SYSTEMMEMORY;
+		}
+		Desc.dwCaps &= D3DDEBCAPS_MEM;
+		if (!(Desc.dwFlags & D3DDEB_LPDATA) || !Desc.lpData)
+		{
+			Desc.dwFlags |= D3DDEB_LPDATA;
+			MemoryData.resize(Desc.dwBufferSize, 0);
+			Desc.lpData = MemoryData.data();
+		}
 	}
 }
 

@@ -195,6 +195,33 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Validate dwFlags
+		if (!(lpDesc->dwFlags & D3DDEB_BUFSIZE))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDEB_BUFSIZE flag not set.");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Validate dwBufferSize
+		if (lpDesc->dwBufferSize == 0 || lpDesc->dwBufferSize > MAX_EXECUTE_BUFFER_SIZE)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid dwBufferSize: " << lpDesc->dwBufferSize);
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Validate dwCaps
+		if ((lpDesc->dwFlags & D3DDEB_CAPS) && (lpDesc->dwCaps & D3DDEBCAPS_SYSTEMMEMORY) && (lpDesc->dwCaps & D3DDEBCAPS_VIDEOMEMORY))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Unsupported dwCaps: " << Logging::hex(lpDesc->dwCaps));
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Validate lpData
+		if ((lpDesc->dwFlags & D3DDEB_LPDATA) && lpDesc->lpData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: lpData is non-null, using application data.");
+		}
+
 		m_IDirect3DExecuteBuffer* pExecuteBuffer = CreateDirect3DExecuteBuffer(*lplpDirect3DExecuteBuffer, this, lpDesc);
 
 		ExecuteBufferList.push_back(pExecuteBuffer);
