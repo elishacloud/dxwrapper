@@ -88,7 +88,6 @@ private:
 	// Gamma functions
 	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader();
 	HRESULT SetBrightnessLevel(D3DGAMMARAMP& RampData);
-	HRESULT ApplyBrightnessLevel();
 
 	// Interface initialization functions
 	void InitInterface(DWORD DirectXVersion);
@@ -200,7 +199,7 @@ public:
 	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels);
 	HRESULT ResetD9Device();
 	HRESULT CreateD9Device(char* FunctionName);
-	HRESULT CreateVertexBuffer(DWORD Width, DWORD Height);
+	void UpdateVertices(DWORD Width, DWORD Height);
 	HRESULT TestD3D9CooperativeLevel();
 
 	// Device information functions
@@ -252,8 +251,8 @@ public:
 	HRESULT SetClipperHWnd(HWND hWnd);
 	HRESULT GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
 	HRESULT SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
-	HRESULT CopyPrimarySurfaceToBackbuffer();
-	HRESULT DrawPrimarySurface();
+	HRESULT CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer);
+	HRESULT DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture);
 	bool IsUsingThreadPresent();
 	HRESULT PresentScene(RECT* pRect);
 	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);

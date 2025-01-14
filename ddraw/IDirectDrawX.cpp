@@ -48,6 +48,8 @@ struct DRAWSTATEBACKUP
 	DWORD tsColorArg1 = 0;
 	DWORD tsColorArg2 = 0;
 	DWORD tsAlphaOP = 0;
+	DWORD ts1addressU = 0;
+	DWORD ts1addressV = 0;
 	DWORD rsLighting = 0;
 	DWORD rsAlphaBlendEnable = 0;
 	DWORD rsAlphaTestEnable = 0;
@@ -219,11 +221,13 @@ LPDIRECT3DTEXTURE9 GammaLUTTexture;
 LPDIRECT3DTEXTURE9 ScreenCopyTexture;
 LPDIRECT3DPIXELSHADER9 palettePixelShader;
 LPDIRECT3DPIXELSHADER9 colorkeyPixelShader;
-bool UsingShader32f;
 LPDIRECT3DPIXELSHADER9 gammaPixelShader;
-LPDIRECT3DVERTEXBUFFER9 VertexBuffer;
 LPDIRECT3DVERTEXBUFFER9 validateDeviceVertexBuffer;
 LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = nullptr;
+
+TLVERTEX DeviceVertices[4];
+bool IsDeviceVerticesSet;
+bool UsingShader32f;
 DWORD IndexBufferSize = 0;
 DWORD BehaviorFlags;
 HWND hFocusWindow;
@@ -2486,10 +2490,10 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		palettePixelShader = nullptr;
 		colorkeyPixelShader = nullptr;
 		gammaPixelShader = nullptr;
-		VertexBuffer = nullptr;
 		validateDeviceVertexBuffer = nullptr;
 
 		presParams = {};
+		IsDeviceVerticesSet = false;
 		BehaviorFlags = 0;
 		hFocusWindow = nullptr;
 		FocusWindowThreadID = 0;
@@ -3425,6 +3429,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Reset flags after creating device
 		WndProc::SwitchingResolution = false;
 		LastUsedHWnd = hWnd;
+		IsDeviceVerticesSet = false;
 		EnableWaitVsync = false;
 		FourCCsList.clear();
 
@@ -3508,32 +3513,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::CreateVertexBuffer(DWORD Width, DWORD Height)
+void m_IDirectDrawX::UpdateVertices(DWORD Width, DWORD Height)
 {
-	// Check if vertex buffer is already created
-	if (VertexBuffer)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: vertex buffer already created!");
-		return DDERR_GENERIC;
-	}
-
-	// Create vertex buffer
-	if (FAILED(d3d9Device->CreateVertexBuffer(sizeof(TLVERTEX) * 4, D3DUSAGE_WRITEONLY, TLVERTEXFVF, D3DPOOL_DEFAULT, &VertexBuffer, nullptr)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create vertex buffer!");
-		return DDERR_GENERIC;
-	}
-
-	// Setup verticies (0, 0, currentWidth, currentHeight)
-	TLVERTEX* vertices = nullptr;
-
-	// Lock vertex buffer
-	if (FAILED(VertexBuffer->Lock(0, 0, (void**)&vertices, 0)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock vertex buffer!");
-		return DDERR_GENERIC;
-	}
-
 	// Get width and height
 	DWORD displayWidth = 0, displayHeight = 0;
 	if (Device.Width && Device.Height)
@@ -3607,45 +3588,38 @@ HRESULT m_IDirectDrawX::CreateVertexBuffer(DWORD Width, DWORD Height)
 
 	// Set vertex points
 	// 0, 0
-	vertices[0].x = -0.5f + xpad;
-	vertices[0].y = -0.5f + ypad;
-	vertices[0].z = 0.0f;
-	vertices[0].rhw = 1.0f;
-	vertices[0].u = u0tex;
-	vertices[0].v = v0tex;
+	DeviceVertices[0].x = -0.5f + xpad;
+	DeviceVertices[0].y = -0.5f + ypad;
+	DeviceVertices[0].z = 0.0f;
+	DeviceVertices[0].rhw = 1.0f;
+	DeviceVertices[0].u = u0tex;
+	DeviceVertices[0].v = v0tex;
 
 	// scaledWidth, 0
-	vertices[1].x = -0.5f + xpad + BackBufferWidth;
-	vertices[1].y = vertices[0].y;
-	vertices[1].z = 0.0f;
-	vertices[1].rhw = 1.0f;
-	vertices[1].u = u1tex;
-	vertices[1].v = v0tex;
+	DeviceVertices[1].x = -0.5f + xpad + BackBufferWidth;
+	DeviceVertices[1].y = DeviceVertices[0].y;
+	DeviceVertices[1].z = 0.0f;
+	DeviceVertices[1].rhw = 1.0f;
+	DeviceVertices[1].u = u1tex;
+	DeviceVertices[1].v = v0tex;
 
 	// scaledWidth, scaledHeight
-	vertices[2].x = vertices[1].x;
-	vertices[2].y = -0.5f + ypad + BackBufferHeight;
-	vertices[2].z = 0.0f;
-	vertices[2].rhw = 1.0f;
-	vertices[2].u = u1tex;
-	vertices[2].v = v1tex;
+	DeviceVertices[2].x = DeviceVertices[1].x;
+	DeviceVertices[2].y = -0.5f + ypad + BackBufferHeight;
+	DeviceVertices[2].z = 0.0f;
+	DeviceVertices[2].rhw = 1.0f;
+	DeviceVertices[2].u = u1tex;
+	DeviceVertices[2].v = v1tex;
 
 	// 0, scaledHeight
-	vertices[3].x = vertices[0].x;
-	vertices[3].y = vertices[2].y;
-	vertices[3].z = 0.0f;
-	vertices[3].rhw = 1.0f;
-	vertices[3].u = u0tex;
-	vertices[3].v = v1tex;
+	DeviceVertices[3].x = DeviceVertices[0].x;
+	DeviceVertices[3].y = DeviceVertices[2].y;
+	DeviceVertices[3].z = 0.0f;
+	DeviceVertices[3].rhw = 1.0f;
+	DeviceVertices[3].u = u0tex;
+	DeviceVertices[3].v = v1tex;
 
-	// Unlock vertex buffer
-	if (FAILED(VertexBuffer->Unlock()))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock vertex buffer!");
-		return DDERR_GENERIC;
-	}
-	
-	return DD_OK;
+	IsDeviceVerticesSet = true;
 }
 
 // Creates d3d9 object
@@ -3915,18 +3889,6 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'ScreenCopyTexture' " << ref;
 		}
 		ScreenCopyTexture = nullptr;
-	}
-
-	// Release d3d9 vertex buffer
-	if (VertexBuffer)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 vertext buffer";
-		ULONG ref = VertexBuffer->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'vertexBuffer' " << ref;
-		}
-		VertexBuffer = nullptr;
 	}
 
 	// Release validate device d3d9 vertex buffer
@@ -4503,451 +4465,250 @@ HRESULT m_IDirectDrawX::SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 	return DD_OK;
 }
 
-HRESULT m_IDirectDrawX::ApplyBrightnessLevel()
+static void BackupAndResetState(LPDIRECT3DDEVICE9 ProxyInterface, DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height)
 {
-	IDirect3DSurface9* pBackBuffer = nullptr;
-
-	if (!GammaLUTTexture)
-	{
-		SetBrightnessLevel(RampData);
-	}
-
-	// Get current backbuffer
-	if (FAILED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
-	{
-		Logging::Log() << __FUNCTION__ << " Error: Failed to get back buffer!";
-		return DDERR_GENERIC;
-	}
-
-	// Create intermediate texture for shader input
-	D3DSURFACE_DESC desc;
-	pBackBuffer->GetDesc(&desc);
-	if (!ScreenCopyTexture)
-	{
-		if (FAILED(d3d9Device->CreateTexture(desc.Width, desc.Height, 1, D3DUSAGE_RENDERTARGET, desc.Format, D3DPOOL_DEFAULT, &ScreenCopyTexture, nullptr)))
-		{
-			Logging::Log() << __FUNCTION__ << " Error: Failed to create screen copy texture!";
-			pBackBuffer->Release();
-
-			return DDERR_GENERIC;
-		}
-	}
-
-	IDirect3DSurface9* pCopySurface = nullptr;
-	ScreenCopyTexture->GetSurfaceLevel(0, &pCopySurface);
-	if (FAILED(d3d9Device->StretchRect(pBackBuffer, nullptr, pCopySurface, nullptr, D3DTEXF_NONE)))
-	{
-		Logging::Log() << __FUNCTION__ << " Error: Failed to copy render target!";
-	}
-	pCopySurface->Release();
-
-	// Render states
-	DWORD rsLighting, rsAlphaTestEnable, rsAlphaBlendEnable, rsFogEnable, rsZEnable, rsZWriteEnable, reStencilEnable;
-	d3d9Device->GetRenderState(D3DRS_LIGHTING, &rsLighting);
-	d3d9Device->GetRenderState(D3DRS_ALPHATESTENABLE, &rsAlphaTestEnable);
-	d3d9Device->GetRenderState(D3DRS_ALPHABLENDENABLE, &rsAlphaBlendEnable);
-	d3d9Device->GetRenderState(D3DRS_FOGENABLE, &rsFogEnable);
-	d3d9Device->GetRenderState(D3DRS_ZENABLE, &rsZEnable);
-	d3d9Device->GetRenderState(D3DRS_ZWRITEENABLE, &rsZWriteEnable);
-	d3d9Device->GetRenderState(D3DRS_STENCILENABLE, &reStencilEnable);
-	d3d9Device->SetRenderState(D3DRS_LIGHTING, FALSE);
-	d3d9Device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-	d3d9Device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-	d3d9Device->SetRenderState(D3DRS_FOGENABLE, FALSE);
-	d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
-	d3d9Device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-	d3d9Device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+	// Sampler states
+	ProxyInterface->GetSamplerState(0, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter);
+	ProxyInterface->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
 
 	// Texture states
-	DWORD tsColorOP, tsColorArg1, tsColorArg2, tsAlphaOP, tsMinFilter, tsMagFilter, addressU1, addressV1;
-	d3d9Device->GetTextureStageState(0, D3DTSS_COLOROP, &tsColorOP);
-	d3d9Device->GetTextureStageState(0, D3DTSS_COLORARG1, &tsColorArg1);
-	d3d9Device->GetTextureStageState(0, D3DTSS_COLORARG2, &tsColorArg2);
-	d3d9Device->GetTextureStageState(0, D3DTSS_ALPHAOP, &tsAlphaOP);
-	d3d9Device->GetTextureStageState(0, D3DTSS_MINFILTER, &tsMinFilter);
-	d3d9Device->GetTextureStageState(0, D3DTSS_MAGFILTER, &tsMagFilter);
-	d3d9Device->GetTextureStageState(1, D3DTSS_ADDRESSU, &addressU1);
-	d3d9Device->GetTextureStageState(1, D3DTSS_ADDRESSV, &addressV1);
-	d3d9Device->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
-	d3d9Device->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-	d3d9Device->SetTextureStageState(0, D3DTSS_MINFILTER, D3DTEXF_LINEAR);
-	d3d9Device->SetTextureStageState(0, D3DTSS_MAGFILTER, D3DTEXF_LINEAR);
-	d3d9Device->SetTextureStageState(1, D3DTSS_ADDRESSU, D3DTADDRESS_CLAMP);
-	d3d9Device->SetTextureStageState(1, D3DTSS_ADDRESSV, D3DTADDRESS_CLAMP);
+	ProxyInterface->GetTextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOP);
+	ProxyInterface->GetTextureStageState(0, D3DTSS_COLORARG1, &DrawStates.tsColorArg1);
+	ProxyInterface->GetTextureStageState(0, D3DTSS_COLORARG2, &DrawStates.tsColorArg2);
+	ProxyInterface->GetTextureStageState(0, D3DTSS_ALPHAOP, &DrawStates.tsAlphaOP);
+	ProxyInterface->GetTextureStageState(1, D3DTSS_ADDRESSU, &DrawStates.ts1addressU);
+	ProxyInterface->GetTextureStageState(1, D3DTSS_ADDRESSV, &DrawStates.ts1addressV);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+	ProxyInterface->SetTextureStageState(1, D3DTSS_ADDRESSU, D3DTADDRESS_CLAMP);
+	ProxyInterface->SetTextureStageState(1, D3DTSS_ADDRESSV, D3DTADDRESS_CLAMP);
 
-	// Set back buffer to render target
-	d3d9Device->SetDepthStencilSurface(nullptr);
-	d3d9Device->SetRenderTarget(0, pBackBuffer);
+	// Render states
+	ProxyInterface->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
+	ProxyInterface->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
+	ProxyInterface->GetRenderState(D3DRS_ALPHABLENDENABLE, &DrawStates.rsAlphaBlendEnable);
+	ProxyInterface->GetRenderState(D3DRS_FOGENABLE, &DrawStates.rsFogEnable);
+	ProxyInterface->GetRenderState(D3DRS_ZENABLE, &DrawStates.rsZEnable);
+	ProxyInterface->GetRenderState(D3DRS_ZWRITEENABLE, &DrawStates.rsZWriteEnable);
+	ProxyInterface->GetRenderState(D3DRS_STENCILENABLE, &DrawStates.rsStencilEnable);
+	ProxyInterface->GetRenderState(D3DRS_CULLMODE, &DrawStates.rsCullMode);
+	ProxyInterface->GetRenderState(D3DRS_CLIPPING, &DrawStates.rsClipping);
+	ProxyInterface->SetRenderState(D3DRS_LIGHTING, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_FOGENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+	ProxyInterface->SetRenderState(D3DRS_CLIPPING, FALSE);
 
-	// Set up shader
-	d3d9Device->SetTexture(0, ScreenCopyTexture);
-	d3d9Device->SetTexture(1, GammaLUTTexture);
-	for (int x = 2; x < 8; x++)
+	// Viewport
+	ProxyInterface->GetViewport(&DrawStates.ViewPort);
+	D3DVIEWPORT9 ViewPort = { 0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, 0.0f, 1.0f };
+
+	// Calculate width and height with original aspect ratio
+	DWORD DisplayBufferWidth = presParams.BackBufferWidth;
+	DWORD DisplayBufferHeight = presParams.BackBufferHeight;
+	DWORD TexWidth = Width;
+	DWORD TexHeight = Height;
+	if (Config.DdrawIntegerScalingClamp)
 	{
-		d3d9Device->SetTexture(x, nullptr);
+		DWORD xScaleRatio = DisplayBufferWidth / TexWidth;
+		DWORD yScaleRatio = DisplayBufferHeight / TexHeight;
+
+		if (Config.DdrawMaintainAspectRatio)
+		{
+			xScaleRatio = min(xScaleRatio, yScaleRatio);
+			yScaleRatio = min(xScaleRatio, yScaleRatio);
+		}
+
+		ViewPort.Width = xScaleRatio * TexWidth;
+		ViewPort.Height = yScaleRatio * TexHeight;
+
+		ViewPort.X = (DisplayBufferWidth - ViewPort.Width) / 2;
+		ViewPort.Y = (DisplayBufferHeight - ViewPort.Height) / 2;
+	}
+	else if (Config.DdrawMaintainAspectRatio)
+	{
+		if (TexWidth * DisplayBufferHeight < TexHeight * DisplayBufferWidth)
+		{
+			// 4:3 displayed on 16:9
+			ViewPort.Width = DisplayBufferHeight * TexWidth / TexHeight;
+		}
+		else
+		{
+			// 16:9 displayed on 4:3
+			ViewPort.Height = DisplayBufferWidth * TexHeight / TexWidth;
+		}
+		ViewPort.X = (DisplayBufferWidth - ViewPort.Width) / 2;
+		ViewPort.Y = (DisplayBufferHeight - ViewPort.Height) / 2;
 	}
 
-	if (FAILED(d3d9Device->SetPixelShader(GetGammaPixelShader())))
-	{
-		Logging::Log() << __FUNCTION__ << " Error: Failed to set pixel shader!";
-	}
+	// Set the viewport with the calculated values
+	ProxyInterface->SetViewport(&ViewPort);
 
-	// Define fullscreen quad vertices
-	TLVERTEX g_FullScreenQuadVertices[4] = {
-		{ -0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f },                          // Top-left
-		{ desc.Width - 0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f },               // Top-right
-		{ -0.5f,  desc.Height - 0.5f, 0.0f, 1.0f, 0.0f, 1.0f },             // Bottom-left
-		{ desc.Width - 0.5f, desc.Height - 0.5f, 0.0f, 1.0f, 1.0f, 1.0f }   // Bottom-right
+	// Trasform
+	ProxyInterface->GetTransform(D3DTS_WORLD, &DrawStates.WorldMatrix);
+	ProxyInterface->GetTransform(D3DTS_VIEW, &DrawStates.ViewMatrix);
+	ProxyInterface->GetTransform(D3DTS_PROJECTION, &DrawStates.ProjectionMatrix);
+	D3DMATRIX identityMatrix = {
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
 	};
-
-	// Set FVF and render
-	d3d9Device->SetFVF(TLVERTEXFVF);
-
-	if (FAILED(d3d9Device->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, g_FullScreenQuadVertices, sizeof(TLVERTEX))))
-	{
-		Logging::Log() << __FUNCTION__ << " Error: Failed to draw primitive!";
-	}
-
-	d3d9Device->SetPixelShader(0);
-	d3d9Device->SetVertexShader(0);
-
-	d3d9Device->SetTexture(0, nullptr);
-	d3d9Device->SetTexture(1, nullptr);
-
-	// Re-set the old render target
-	ReSetRenderTarget();
-
-	// Cleanup
-	pBackBuffer->Release();
-
-	// Reset render states
-	d3d9Device->SetRenderState(D3DRS_LIGHTING, rsLighting);
-	d3d9Device->SetRenderState(D3DRS_ALPHATESTENABLE, rsAlphaTestEnable);
-	d3d9Device->SetRenderState(D3DRS_ALPHABLENDENABLE, rsAlphaBlendEnable);
-	d3d9Device->SetRenderState(D3DRS_FOGENABLE, rsFogEnable);
-	d3d9Device->SetRenderState(D3DRS_ZENABLE, rsZEnable);
-	d3d9Device->SetRenderState(D3DRS_ZWRITEENABLE, rsZWriteEnable);
-	d3d9Device->SetRenderState(D3DRS_STENCILENABLE, reStencilEnable);
-
-	// Reset texture states
-	d3d9Device->SetTextureStageState(0, D3DTSS_COLOROP, tsColorOP);
-	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG1, tsColorArg1);
-	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG2, tsColorArg2);
-	d3d9Device->SetTextureStageState(0, D3DTSS_ALPHAOP, tsAlphaOP);
-	d3d9Device->SetTextureStageState(0, D3DTSS_MINFILTER, tsMinFilter);
-	d3d9Device->SetTextureStageState(0, D3DTSS_MAGFILTER, tsMagFilter);
-	d3d9Device->SetTextureStageState(1, D3DTSS_ADDRESSU, addressU1);
-	d3d9Device->SetTextureStageState(1, D3DTSS_ADDRESSV, addressV1);
-
-	return DD_OK;
+	ProxyInterface->SetTransform(D3DTS_WORLD, &identityMatrix);
+	ProxyInterface->SetTransform(D3DTS_VIEW, &identityMatrix);
+	ProxyInterface->SetTransform(D3DTS_PROJECTION, &identityMatrix);
 }
 
-HRESULT m_IDirectDrawX::CopyPrimarySurfaceToBackbuffer()
+static void RestoreState(LPDIRECT3DDEVICE9 ProxyInterface, DRAWSTATEBACKUP& DrawStates)
+{
+	// Restore sampler states
+	ProxyInterface->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter);
+
+	// Restore texture states
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, DrawStates.tsColorOP);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, DrawStates.tsColorArg1);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, DrawStates.tsColorArg2);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, DrawStates.tsAlphaOP);
+	ProxyInterface->SetTextureStageState(1, D3DTSS_ADDRESSU, DrawStates.ts1addressU);
+	ProxyInterface->SetTextureStageState(1, D3DTSS_ADDRESSV, DrawStates.ts1addressV);
+
+	// Restore render states
+	ProxyInterface->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
+	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
+	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, DrawStates.rsAlphaBlendEnable);
+	ProxyInterface->SetRenderState(D3DRS_FOGENABLE, DrawStates.rsFogEnable);
+	ProxyInterface->SetRenderState(D3DRS_ZENABLE, DrawStates.rsZEnable);
+	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, DrawStates.rsZWriteEnable);
+	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, DrawStates.rsStencilEnable);
+	ProxyInterface->SetRenderState(D3DRS_CULLMODE, DrawStates.rsCullMode);
+	ProxyInterface->SetRenderState(D3DRS_CLIPPING, DrawStates.rsClipping);
+
+	// Reset viewport
+	ProxyInterface->SetViewport(&DrawStates.ViewPort);
+
+	// Reset trasform
+	ProxyInterface->SetTransform(D3DTS_WORLD, &DrawStates.WorldMatrix);
+	ProxyInterface->SetTransform(D3DTS_VIEW, &DrawStates.ViewMatrix);
+	ProxyInterface->SetTransform(D3DTS_PROJECTION, &DrawStates.ProjectionMatrix);
+}
+
+HRESULT m_IDirectDrawX::DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!PrimarySurface)
+	bool IsUsingPalette = false;
+	if (!pDisplayTexture)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: no primary surface!");
-		return DDERR_GENERIC;
+		if (!PrimarySurface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no primary surface!");
+			return DDERR_GENERIC;
+		}
+
+		// Get surface texture
+		pDisplayTexture = PrimarySurface->GetD3d9Texture();
+		if (!pDisplayTexture)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface texture!");
+			return DDERR_GENERIC;
+		}
+
+		// Check palette
+		IsUsingPalette = PrimarySurface->IsPalette();
 	}
 
-	HRESULT hr = DDERR_GENERIC;
+	// Get texture desc
+	D3DSURFACE_DESC Desc = {};
+	pDisplayTexture->GetLevelDesc(0, &Desc);
 
-	// Copy render target to backbuffer
-	IDirect3DSurface9* pRenderTarget = PrimarySurface->GetD3d9Surface();
-	if (pRenderTarget)
+	// Backup current states
+	DRAWSTATEBACKUP DrawStates;
+	BackupAndResetState(d3d9Device, DrawStates, Desc.Width, Desc.Height);
+
+	// Set texture
+	d3d9Device->SetTexture(0, pDisplayTexture);
+
+	// For palette surfaces
+	if (IsUsingPalette)
 	{
-		IDirect3DSurface9* pBackBuffer = nullptr;
+		// Get palette texture
+		LPDIRECT3DTEXTURE9 PaletteTexture = PrimarySurface->GetD3d9PaletteTexture();
+
+		// Set palette texture
+		if (PaletteTexture && CreatePaletteShader())
+		{
+			// Set palette texture
+			PrimarySurface->UpdatePaletteData();
+			d3d9Device->SetTexture(1, PaletteTexture);
+
+			// Set pixel shader
+			d3d9Device->SetPixelShader(palettePixelShader);
+		}
+	}
+	// For gamma
+	else if (IsGammaSet && GammaControlInterface)
+	{
+		// Create gamma texture
+		if (!GammaLUTTexture)
+		{
+			SetBrightnessLevel(RampData);
+		}
+
+		// Set gamma texture
+		d3d9Device->SetTexture(1, GammaLUTTexture);
+
+		// Set pixel shader
+		d3d9Device->SetPixelShader(GetGammaPixelShader());
+	}
+
+	// Update vertices
+	if (!IsDeviceVerticesSet)
+	{
+		UpdateVertices(Desc.Width, Desc.Height);
+	}
+
+	// Set vertex format
+	d3d9Device->SetFVF(TLVERTEXFVF);
+
+	// Set back buffer as render target
+	IDirect3DSurface9* pBackBuffer = nullptr;
+	if (RenderTargetSurface)
+	{
 		if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
 		{
-			RECT* pSourceRect = nullptr;
-			RECT SrcRect = { 0, 0, (LONG)PrimarySurface->GetD3d9Width(), (LONG)PrimarySurface->GetD3d9Height() };
-			HWND hWnd = GetHwnd();
-
-			// Get windlow location and rect
-			if (!ExclusiveMode && IsWindow(hWnd) && !IsIconic(hWnd))
-			{
-				// Clip rect
-				RECT ClientRect = {};
-				if (GetClientRect(hWnd, &ClientRect) && MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&ClientRect, 2))
-				{
-					SrcRect.left = max(SrcRect.left, ClientRect.left);
-					SrcRect.top = max(SrcRect.top, ClientRect.top);
-					SrcRect.right = min(SrcRect.right, ClientRect.right);
-					SrcRect.bottom = min(SrcRect.bottom, ClientRect.bottom);
-
-					// Validate rect
-					if (SrcRect.left < SrcRect.right && SrcRect.top < SrcRect.bottom)
-					{
-						pSourceRect = &SrcRect;
-					}
-				}
-			}
-
-			hr = d3d9Device->StretchRect(pRenderTarget, pSourceRect, pBackBuffer, nullptr, D3DTEXF_POINT);
-			if (FAILED(hr))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to copy render target to backbuffer!");
-			}
-			pBackBuffer->Release();
+			d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
+			d3d9Device->SetDepthStencilSurface(nullptr);
+			d3d9Device->SetRenderTarget(0, pBackBuffer);
 		}
 	}
 
+	// Draw primitive
+	HRESULT hr = d3d9Device->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, DeviceVertices, sizeof(TLVERTEX));
+
+	// Reset old render target
+	if (pBackBuffer)
+	{
+		ReSetRenderTarget();
+
+		// Release back buffer
+		pBackBuffer->Release();
+	}
+
+	// Reset dirty flags
 	if (SUCCEEDED(hr))
 	{
 		PrimarySurface->ClearDirtyFlags();
 	}
-
-	return hr;
-}
-
-HRESULT m_IDirectDrawX::DrawPrimarySurface()
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!PrimarySurface)
+	else
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: no primary surface!");
-		return DDERR_GENERIC;
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primitive");
 	}
-
-	// Get surface texture
-	LPDIRECT3DTEXTURE9 displayTexture = PrimarySurface->GetD3d9Texture();
-	if (!displayTexture)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface texture!");
-		return DDERR_GENERIC;
-	}
-
-	// Create vertex buffer
-	HRESULT hr = DD_OK;
-	do {
-		if (!VertexBuffer)
-		{
-			D3DSURFACE_DESC Desc = {};
-			if (FAILED(displayTexture->GetLevelDesc(0, &Desc)) || FAILED(CreateVertexBuffer(Desc.Width, Desc.Height)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Vertex Buffer!");
-				hr = DDERR_GENERIC;
-				break;
-			}
-		}
-
-		// Set texture
-		if (FAILED(d3d9Device->SetTexture(0, displayTexture)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set surface texture!");
-			hr = DDERR_GENERIC;
-			break;
-		}
-
-		// Handle palette surfaces
-		if (PrimarySurface->IsPalette())
-		{
-			// Get palette texture
-			LPDIRECT3DTEXTURE9 PaletteTexture = PrimarySurface->GetD3d9PaletteTexture();
-			if (!PaletteTexture)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get palette texture!");
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-			// Setup shaders
-			if (!CreatePaletteShader())
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette shader!");
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-			// Set palette texture
-			PrimarySurface->UpdatePaletteData();
-			if (FAILED(d3d9Device->SetTexture(1, PaletteTexture)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock palette texture!");
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-			// Set pixel shader
-			if (FAILED(d3d9Device->SetPixelShader(palettePixelShader)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set pixel shader!");
-				hr = DDERR_GENERIC;
-				break;
-			}
-		}
-
-		// Set vertex buffer and lighting
-		if (VertexBuffer)
-		{
-			// Set vertex shader
-			if (FAILED(d3d9Device->SetVertexShader(nullptr)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex shader!");
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-			// Set vertex format
-			if (FAILED(d3d9Device->SetFVF(TLVERTEXFVF)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set the current vertex stream format");
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-			// Set stream source
-			if (FAILED(d3d9Device->SetStreamSource(0, VertexBuffer, 0, sizeof(TLVERTEX))))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set vertex buffer stream source");
-				hr = DDERR_GENERIC;
-				break;
-			}
-		}
-
-		DRAWSTATEBACKUP DrawStates;
-
-		// Sampler states
-		d3d9Device->GetSamplerState(0, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter);
-		d3d9Device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
-
-		// Texture states
-		d3d9Device->GetTextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOP);
-		d3d9Device->GetTextureStageState(0, D3DTSS_COLORARG1, &DrawStates.tsColorArg1);
-		d3d9Device->GetTextureStageState(0, D3DTSS_COLORARG2, &DrawStates.tsColorArg2);
-		d3d9Device->GetTextureStageState(0, D3DTSS_ALPHAOP, &DrawStates.tsAlphaOP);
-		d3d9Device->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-		d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-		d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-		d3d9Device->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-
-		// Render states
-		d3d9Device->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
-		d3d9Device->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
-		d3d9Device->GetRenderState(D3DRS_ALPHABLENDENABLE, &DrawStates.rsAlphaBlendEnable);
-		d3d9Device->GetRenderState(D3DRS_FOGENABLE, &DrawStates.rsFogEnable);
-		d3d9Device->GetRenderState(D3DRS_ZENABLE, &DrawStates.rsZEnable);
-		d3d9Device->GetRenderState(D3DRS_ZWRITEENABLE, &DrawStates.rsZWriteEnable);
-		d3d9Device->GetRenderState(D3DRS_STENCILENABLE, &DrawStates.rsStencilEnable);
-		d3d9Device->GetRenderState(D3DRS_CULLMODE, &DrawStates.rsCullMode);
-		d3d9Device->GetRenderState(D3DRS_CLIPPING, &DrawStates.rsClipping);
-		d3d9Device->SetRenderState(D3DRS_LIGHTING, FALSE);
-		d3d9Device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-		d3d9Device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-		d3d9Device->SetRenderState(D3DRS_FOGENABLE, FALSE);
-		d3d9Device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
-		d3d9Device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-		d3d9Device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
-		d3d9Device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-		d3d9Device->SetRenderState(D3DRS_CLIPPING, FALSE);
-
-		// Viewport
-		d3d9Device->GetViewport(&DrawStates.ViewPort);
-		D3DSURFACE_DESC Desc = {};
-		displayTexture->GetLevelDesc(0, &Desc);
-		D3DVIEWPORT9 ViewPort = { 0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, 0.0f, 1.0f };
-
-		// Calculate width and height with original aspect ratio
-		DWORD DisplayBufferWidth = presParams.BackBufferWidth;
-		DWORD DisplayBufferHeight = presParams.BackBufferHeight;
-		DWORD TexWidth = Desc.Width;
-		DWORD TexHeight = Desc.Height;
-		if (Config.DdrawIntegerScalingClamp)
-		{
-			DWORD xScaleRatio = DisplayBufferWidth / TexWidth;
-			DWORD yScaleRatio = DisplayBufferHeight / TexHeight;
-
-			if (Config.DdrawMaintainAspectRatio)
-			{
-				xScaleRatio = min(xScaleRatio, yScaleRatio);
-				yScaleRatio = min(xScaleRatio, yScaleRatio);
-			}
-
-			ViewPort.Width = xScaleRatio * TexWidth;
-			ViewPort.Height = yScaleRatio * TexHeight;
-
-			ViewPort.X = (DisplayBufferWidth - ViewPort.Width) / 2;
-			ViewPort.Y = (DisplayBufferHeight - ViewPort.Height) / 2;
-		}
-		else if (Config.DdrawMaintainAspectRatio)
-		{
-			if (TexWidth * DisplayBufferHeight < TexHeight * DisplayBufferWidth)
-			{
-				// 4:3 displayed on 16:9
-				ViewPort.Width = DisplayBufferHeight * TexWidth / TexHeight;
-			}
-			else
-			{
-				// 16:9 displayed on 4:3
-				ViewPort.Height = DisplayBufferWidth * TexHeight / TexWidth;
-			}
-			ViewPort.X = (DisplayBufferWidth - ViewPort.Width) / 2;
-			ViewPort.Y = (DisplayBufferHeight - ViewPort.Height) / 2;
-		}
-
-		// Set the viewport with the calculated values
-		d3d9Device->SetViewport(&ViewPort);
-
-		// Trasform
-		d3d9Device->GetTransform(D3DTS_WORLD, &DrawStates.WorldMatrix);
-		d3d9Device->GetTransform(D3DTS_VIEW, &DrawStates.ViewMatrix);
-		d3d9Device->GetTransform(D3DTS_PROJECTION, &DrawStates.ProjectionMatrix);
-		D3DMATRIX identityMatrix = {
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		};
-		d3d9Device->SetTransform(D3DTS_WORLD, &identityMatrix);
-		d3d9Device->SetTransform(D3DTS_VIEW, &identityMatrix);
-		d3d9Device->SetTransform(D3DTS_PROJECTION, &identityMatrix);
-
-		// Draw primitive
-		if (FAILED(d3d9Device->DrawPrimitive(D3DPT_TRIANGLEFAN, 0, 2)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primitive");
-			hr = DDERR_GENERIC;
-		}
-
-		// Restore sampler states
-		d3d9Device->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter);
-
-		// Restore texture states
-		d3d9Device->SetTextureStageState(0, D3DTSS_COLOROP, DrawStates.tsColorOP);
-		d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG1, DrawStates.tsColorArg1);
-		d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG2, DrawStates.tsColorArg2);
-		d3d9Device->SetTextureStageState(0, D3DTSS_ALPHAOP, DrawStates.tsAlphaOP);
-
-		// Restore render states
-		d3d9Device->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
-		d3d9Device->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
-		d3d9Device->SetRenderState(D3DRS_ALPHABLENDENABLE, DrawStates.rsAlphaBlendEnable);
-		d3d9Device->SetRenderState(D3DRS_FOGENABLE, DrawStates.rsFogEnable);
-		d3d9Device->SetRenderState(D3DRS_ZENABLE, DrawStates.rsZEnable);
-		d3d9Device->SetRenderState(D3DRS_ZWRITEENABLE, DrawStates.rsZWriteEnable);
-		d3d9Device->SetRenderState(D3DRS_STENCILENABLE, DrawStates.rsStencilEnable);
-		d3d9Device->SetRenderState(D3DRS_CULLMODE, DrawStates.rsCullMode);
-		d3d9Device->SetRenderState(D3DRS_CLIPPING, DrawStates.rsClipping);
-
-		// Reset viewport
-		d3d9Device->SetViewport(&DrawStates.ViewPort);
-
-		// Reset trasform
-		d3d9Device->SetTransform(D3DTS_WORLD, &DrawStates.WorldMatrix);
-		d3d9Device->SetTransform(D3DTS_VIEW, &DrawStates.ViewMatrix);
-		d3d9Device->SetTransform(D3DTS_PROJECTION, &DrawStates.ProjectionMatrix);
-
-		// Reset dirty flags
-		if (SUCCEEDED(hr))
-		{
-			PrimarySurface->ClearDirtyFlags();
-		}
-	} while (false);
 
 	// Reset textures
 	d3d9Device->SetTexture(0, nullptr);
@@ -4955,6 +4716,92 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface()
 
 	// Reset pixel shader
 	d3d9Device->SetPixelShader(nullptr);
+
+	// Restore states
+	RestoreState(d3d9Device, DrawStates);
+
+	return hr;
+}
+
+HRESULT m_IDirectDrawX::CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!PrimarySurface)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: no primary surface!");
+		return DDERR_GENERIC;
+	}
+
+	// Get backbuffer render target
+	IDirect3DSurface9* pRenderTarget = PrimarySurface->GetD3d9Surface();
+	if (!pRenderTarget)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: no render target on primary surface!");
+		return DDERR_GENERIC;
+	}
+
+	// Copy render target to backbuffer
+	IDirect3DSurface9* pBackBuffer = nullptr;
+	if (!pDestBuffer)
+	{
+		if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+		{
+			pDestBuffer = pBackBuffer;
+		}
+	}
+
+	// Get window handle
+	HWND hWnd = GetHwnd();
+
+	// Get source rect
+	RECT* pSrcRect = nullptr;
+	RECT SrcRect = { 0, 0, (LONG)PrimarySurface->GetD3d9Width(), (LONG)PrimarySurface->GetD3d9Height() };
+	if (!ExclusiveMode && IsWindow(hWnd) && !IsIconic(hWnd))
+	{
+		// Clip rect
+		RECT ClientRect = {};
+		if (GetClientRect(hWnd, &ClientRect) && MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&ClientRect, 2))
+		{
+			SrcRect.left = max(SrcRect.left, ClientRect.left);
+			SrcRect.top = max(SrcRect.top, ClientRect.top);
+			SrcRect.right = min(SrcRect.right, ClientRect.right);
+			SrcRect.bottom = min(SrcRect.bottom, ClientRect.bottom);
+
+			// Validate rect
+			if (SrcRect.left < SrcRect.right && SrcRect.top < SrcRect.bottom)
+			{
+				pSrcRect = &SrcRect;
+			}
+		}
+	}
+
+	// Get destination rect
+	RECT* pDestRect = nullptr;
+	RECT DestRect;
+	if (pSrcRect)
+	{
+		DestRect = { 0, 0, SrcRect.right - SrcRect.left, SrcRect.bottom - SrcRect.top };
+		pDestRect = &DestRect;
+	}
+
+	// Copy render target
+	HRESULT hr = d3d9Device->StretchRect(pRenderTarget, pSrcRect, pDestBuffer, pDestRect, D3DTEXF_NONE);
+	if (FAILED(hr))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to copy primary render target!");
+	}
+
+	// If copying to back buffer
+	if (pBackBuffer)
+	{
+		pBackBuffer->Release();
+
+		if (SUCCEEDED(hr))
+		{
+			PrimarySurface->ClearDirtyFlags();
+		}
+	}
 
 	return hr;
 }
@@ -5001,40 +4848,53 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 	// Copy or draw primary surface before presenting
 	if (IsPrimaryRenderTarget() && !PrimarySurface->GetD3d9Texture())
 	{
-		hr = CopyPrimarySurfaceToBackbuffer();
-	}
-	else if (RenderTargetSurface)
-	{
-		IDirect3DSurface9* pBackBuffer = nullptr;
-		if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+		if (IsGammaSet && GammaControlInterface)
 		{
-			// Set back buffer to render target
-			d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
-			d3d9Device->SetDepthStencilSurface(nullptr);
-			d3d9Device->SetRenderTarget(0, pBackBuffer);
+			IDirect3DSurface9* pBackBuffer = nullptr;
+			if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+			{
+				// Create intermediate texture for shader input
+				if (!ScreenCopyTexture)
+				{
+					D3DSURFACE_DESC Desc;
+					pBackBuffer->GetDesc(&Desc);
+					if (FAILED(d3d9Device->CreateTexture(Desc.Width, Desc.Height, 1, D3DUSAGE_RENDERTARGET, Desc.Format, D3DPOOL_DEFAULT, &ScreenCopyTexture, nullptr)))
+					{
+						Logging::Log() << __FUNCTION__ << " Error: Failed to create screen copy texture!";
+						pBackBuffer->Release();
+					}
+				}
 
-			// Draw surface
-			hr = DrawPrimarySurface();
+				// Copy back buffer to texture surface and draw surface to screen
+				if (ScreenCopyTexture)
+				{
+					IDirect3DSurface9* pCopySurface = nullptr;
+					if (SUCCEEDED(ScreenCopyTexture->GetSurfaceLevel(0, &pCopySurface)))
+					{
+						hr = CopyPrimarySurface(pCopySurface);
+						pCopySurface->Release();
+					}
 
-			// Re-set the old render target
-			ReSetRenderTarget();
+					// Release back buffer
+					pBackBuffer->Release();
 
-			// Release back buffer
-			pBackBuffer->Release();
+					// Draw surface
+					hr = DrawPrimarySurface(ScreenCopyTexture);
+				}
+			}
+		}
+		else
+		{
+			hr = CopyPrimarySurface(nullptr);
 		}
 	}
 	else
 	{
-		hr = DrawPrimarySurface();
+		hr = DrawPrimarySurface(nullptr);
 	}
 	if (FAILED(hr))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to draw primary surface!");
-	}
-
-	if (IsGammaSet && GammaControlInterface)
-	{
-		ApplyBrightnessLevel();
 	}
 
 	// End scene
@@ -5101,7 +4961,7 @@ DWORD WINAPI PresentThreadFunction(LPVOID)
 				d3d9Device->BeginScene();
 
 				// Draw surface before presenting
-				pDDraw->DrawPrimarySurface();
+				pDDraw->DrawPrimarySurface(nullptr);
 
 				// End scene
 				d3d9Device->EndScene();
