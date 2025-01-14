@@ -209,7 +209,10 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 		// Mark the buffer as locked
 		IsLocked = true;
 
-		return DD_OK;
+		// Mark data as unvalidated
+		IsDataValidated = false;
+
+		return D3D_OK;
 	}
 
 	return ProxyInterface->Lock(lpDesc);
@@ -237,10 +240,53 @@ HRESULT m_IDirect3DExecuteBuffer::Unlock()
 		IsLocked = false;
 
 		// No specific action required, just return success
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return ProxyInterface->Unlock();
+}
+
+HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(const void* lpData, DWORD dwInstructionOffset, DWORD dwInstructionLength)
+{
+	const BYTE* data = (const BYTE*)lpData + dwInstructionOffset;
+	DWORD offset = 0;
+
+	while (offset < dwInstructionLength)
+	{
+		if (offset + sizeof(D3DINSTRUCTION) > dwInstructionLength)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Instruction header exceeds bounds!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		const D3DINSTRUCTION* instruction = (const D3DINSTRUCTION*)(data + offset);
+
+		if (instruction->bOpcode == 0 || instruction->bOpcode > 14)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid opcode: " << instruction->bOpcode);
+			return DDERR_INVALIDPARAMS;
+		}
+
+		DWORD instructionSize = sizeof(D3DINSTRUCTION) + (instruction->wCount * instruction->bSize);
+		if (offset + instructionSize > dwInstructionLength)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Instruction data exceeds bounds!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (instruction->bOpcode == D3DOP_EXIT)
+		{
+			// Valid and terminated properly
+			IsDataValidated = true;
+			return D3D_OK;
+		}
+
+		// Move to the next instruction
+		offset += instructionSize;
+	}
+
+	LOG_LIMIT(100, __FUNCTION__ << " Error: Missing D3DOP_EXIT!");
+	return DDERR_INVALIDPARAMS;
 }
 
 HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpData)
@@ -272,10 +318,39 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpData)
 			return D3DERR_EXECUTE_LOCKED;
 		}
 
+		// Ensure that the instruction range is within the bounds of the execute buffer
+		if (lpData->dwInstructionOffset + lpData->dwInstructionLength > Desc.dwBufferSize)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid instruction range!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Ensure the vertex data lies within the buffer and does not overlap with instructions
+		if (lpData->dwVertexOffset + lpData->dwVertexCount * sizeof(D3DVERTEX) > Desc.dwBufferSize)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid vertex range!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Ensure the data segments (vertices and instructions) do not overlap unintentionally
+		if (lpData->dwVertexOffset < lpData->dwInstructionOffset + lpData->dwInstructionLength &&
+			lpData->dwVertexOffset + lpData->dwVertexCount * sizeof(D3DVERTEX) > lpData->dwInstructionOffset)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Overlapping data regions!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Validate instruction data
+		HRESULT hr = ValidateInstructionData(Desc.lpData, lpData->dwInstructionOffset, lpData->dwInstructionLength);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
 		// Store execute data
 		ExecuteData = *lpData;
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return ProxyInterface->SetExecuteData(lpData);
@@ -313,10 +388,27 @@ HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpData)
 		// Return stored execute data
 		*lpData = ExecuteData;
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return ProxyInterface->GetExecuteData(lpData);
+}
+
+HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(D3DEXECUTEBUFFERDESC& CurrentDesc, D3DEXECUTEDATA& CurrentExecuteData)
+{
+	if (!IsDataValidated)
+	{
+		HRESULT hr = ValidateInstructionData(&Desc, ExecuteData.dwInstructionOffset, ExecuteData.dwInstructionLength);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+	}
+
+	CurrentDesc = Desc;
+	CurrentExecuteData = ExecuteData;
+
+	return D3D_OK;
 }
 
 HRESULT m_IDirect3DExecuteBuffer::Validate(LPDWORD lpdwOffset, LPD3DVALIDATECALLBACK lpFunc, LPVOID lpUserArg, DWORD dwReserved)
@@ -362,6 +454,7 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 void m_IDirect3DExecuteBuffer::InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc)
 {
 	IsLocked = false;
+	IsDataValidated = false;
 	ExecuteData = {};
 	ExecuteData.dwSize = sizeof(D3DEXECUTEDATA);
 	Desc = {};

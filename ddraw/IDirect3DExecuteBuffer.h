@@ -13,8 +13,12 @@ private:
 	m_IDirect3DDeviceX *D3DDeviceInterface = nullptr;
 	D3DEXECUTEBUFFERDESC Desc = {};
 	std::vector<BYTE> MemoryData;
-	bool IsLocked = false;
 	D3DEXECUTEDATA ExecuteData = {};
+	bool IsLocked = false;
+	bool IsDataValidated = false;
+
+	// Instruction data 
+	HRESULT ValidateInstructionData(const void* lpData, DWORD dwInstructionOffset, DWORD dwInstructionLength);
 
 	// Interface initialization functions
 	void InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc);
@@ -76,4 +80,7 @@ public:
 	STDMETHOD(GetExecuteData)(THIS_ LPD3DEXECUTEDATA);
 	STDMETHOD(Validate)(THIS_ LPDWORD, LPD3DVALIDATECALLBACK, LPVOID, DWORD);
 	STDMETHOD(Optimize)(THIS_ DWORD);
+
+	// Helper functions
+	HRESULT GetExecuteData(D3DEXECUTEBUFFERDESC& CurrentDesc, D3DEXECUTEDATA& CurrentExecuteData);
 };
