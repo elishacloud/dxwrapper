@@ -42,6 +42,15 @@ struct DEVICEDETAILS
 	bool isClipPlaneSet = false;
 	DWORD m_clipPlaneRenderState = 0;
 	float m_storedClipPlanes[MAX_CLIP_PLANES][4] = {};
+
+	// For gamma
+	bool IsGammaSet = false;
+	bool UsingShader32f = true;
+	D3DGAMMARAMP RampData;
+	D3DGAMMARAMP DefaultRampData;
+	LPDIRECT3DTEXTURE9 GammaLUTTexture = nullptr;
+	LPDIRECT3DTEXTURE9 ScreenCopyTexture = nullptr;
+	LPDIRECT3DPIXELSHADER9 gammaPixelShader = nullptr;
 };
 
 extern std::unordered_map<UINT, DEVICEDETAILS> DeviceDetailsMap;
@@ -69,6 +78,12 @@ private:
 	// Anisotropic Filtering
 	void DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag);
 	void ReeableAnisotropicSamplerState();
+
+	// Gamma
+	HRESULT SetBrightnessLevel(D3DGAMMARAMP& Ramp);
+	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader() const;
+	void ApplyBrightnessLevel();
+	void ReleaseGammaResources() const;
 
 	// For Reset & ResetEx
 	void ReInitInterface();

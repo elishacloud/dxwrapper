@@ -17,6 +17,7 @@
 #include "d3d9.h"
 #include "d3dx9.h"
 #include "d3d9\d3d9External.h"
+#include "ddraw\Shaders\GammaPixelShader.h"
 #include "GDI\WndProc.h"
 #include "Utils\Utils.h"
 #include <intrin.h>
@@ -89,6 +90,8 @@ ULONG m_IDirect3DDevice9Ex::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	ReleaseGammaResources();
+
 	ULONG ref = ProxyInterface->Release();
 
 #ifdef ENABLE_DEBUGOVERLAY
@@ -153,6 +156,8 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	{
 		return D3DERR_INVALIDCALL;
 	}
+
+	ReleaseGammaResources();
 
 #ifdef ENABLE_DEBUGOVERLAY
 	// Teardown debug overlay before reset
@@ -684,9 +689,252 @@ HRESULT m_IDirect3DDevice9Ex::SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3
 	return ProxyInterface->SetTransform(State, pMatrix);
 }
 
+HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	// Create or update the gamma LUT texture
+	if (!SHARED.GammaLUTTexture)
+	{
+		if (SUCCEEDED(ProxyInterface->CreateTexture(256, 1, 1, 0, D3DFMT_A32B32G32R32F, D3DPOOL_MANAGED, &SHARED.GammaLUTTexture, nullptr)))
+		{
+			SHARED.UsingShader32f = true;
+		}
+		else
+		{
+			ProxyInterface->CreateTexture(256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &SHARED.GammaLUTTexture, nullptr);
+			SHARED.UsingShader32f = false;
+		}
+	}
+
+	D3DLOCKED_RECT lockedRect;
+	if (SUCCEEDED(SHARED.GammaLUTTexture->LockRect(0, &lockedRect, nullptr, D3DLOCK_DISCARD)))
+	{
+		if (SHARED.UsingShader32f)
+		{
+			float* texData = static_cast<float*>(lockedRect.pBits);
+			for (int i = 0; i < 256; ++i)
+			{
+				texData[i * 4 + 0] = Ramp.red[i] / 65535.0f;
+				texData[i * 4 + 1] = Ramp.green[i] / 65535.0f;
+				texData[i * 4 + 2] = Ramp.blue[i] / 65535.0f;
+				texData[i * 4 + 3] = 1.0f;
+			}
+		}
+		else
+		{
+			DWORD* texData = static_cast<DWORD*>(lockedRect.pBits);
+			for (int i = 0; i < 256; ++i)
+			{
+				BYTE r = static_cast<BYTE>(Ramp.red[i] / 256);
+				BYTE g = static_cast<BYTE>(Ramp.green[i] / 256);
+				BYTE b = static_cast<BYTE>(Ramp.blue[i] / 256);
+
+				texData[i] = D3DCOLOR_ARGB(255, r, g, b);
+			}
+		}
+		SHARED.GammaLUTTexture->UnlockRect(0);
+	}
+
+	return D3D_OK;
+}
+
+LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
+{
+	// Create pixel shaders
+	if (!SHARED.gammaPixelShader)
+	{
+		if (FAILED(ProxyInterface->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &SHARED.gammaPixelShader)))
+		{
+			Logging::Log() << __FUNCTION__ << " Error: failed to create gamma pixel shader!";
+		}
+	}
+	return SHARED.gammaPixelShader;
+}
+
+void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
+{
+	if (!SHARED.GammaLUTTexture)
+	{
+		SetBrightnessLevel(SHARED.RampData);
+	}
+
+	// Get current backbuffer
+	IDirect3DSurface9* pBackBuffer = nullptr;
+	if (FAILED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to get back buffer!";
+		return;
+	}
+
+	// Create intermediate texture for shader input
+	D3DSURFACE_DESC desc;
+	pBackBuffer->GetDesc(&desc);
+	if (!SHARED.ScreenCopyTexture)
+	{
+		if (FAILED(ProxyInterface->CreateTexture(desc.Width, desc.Height, 1, D3DUSAGE_RENDERTARGET, desc.Format, D3DPOOL_DEFAULT, &SHARED.ScreenCopyTexture, nullptr)))
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to create screen copy texture!";
+			pBackBuffer->Release();
+			return;
+		}
+	}
+
+	IDirect3DSurface9* pCopySurface = nullptr;
+	SHARED.ScreenCopyTexture->GetSurfaceLevel(0, &pCopySurface);
+	if (FAILED(ProxyInterface->StretchRect(pBackBuffer, nullptr, pCopySurface, nullptr, D3DTEXF_NONE)))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to copy render target!";
+	}
+	pCopySurface->Release();
+
+	// Render states
+	DWORD rsLighting, rsAlphaTestEnable, rsAlphaBlendEnable, rsFogEnable, rsZEnable, rsZWriteEnable, reStencilEnable;
+	ProxyInterface->GetRenderState(D3DRS_LIGHTING, &rsLighting);
+	ProxyInterface->GetRenderState(D3DRS_ALPHATESTENABLE, &rsAlphaTestEnable);
+	ProxyInterface->GetRenderState(D3DRS_ALPHABLENDENABLE, &rsAlphaBlendEnable);
+	ProxyInterface->GetRenderState(D3DRS_FOGENABLE, &rsFogEnable);
+	ProxyInterface->GetRenderState(D3DRS_ZENABLE, &rsZEnable);
+	ProxyInterface->GetRenderState(D3DRS_ZWRITEENABLE, &rsZWriteEnable);
+	ProxyInterface->GetRenderState(D3DRS_STENCILENABLE, &reStencilEnable);
+	ProxyInterface->SetRenderState(D3DRS_LIGHTING, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_FOGENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ZENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+
+	// Texture states
+	DWORD tsColorOP, tsColorArg1, tsColorArg2, tsAlphaOP;
+	ProxyInterface->GetTextureStageState(0, D3DTSS_COLOROP, &tsColorOP);
+	ProxyInterface->GetTextureStageState(0, D3DTSS_COLORARG1, &tsColorArg1);
+	ProxyInterface->GetTextureStageState(0, D3DTSS_COLORARG2, &tsColorArg2);
+	ProxyInterface->GetTextureStageState(0, D3DTSS_ALPHAOP, &tsAlphaOP);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+
+	// Sampler states
+	DWORD ss1addressU, ss1addressV;
+	ProxyInterface->GetSamplerState(1, D3DSAMP_ADDRESSU, &ss1addressU);
+	ProxyInterface->GetSamplerState(1, D3DSAMP_ADDRESSV, &ss1addressV);
+	ProxyInterface->SetSamplerState(1, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+	ProxyInterface->SetSamplerState(1, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+
+	// Set back buffer to render target
+	ProxyInterface->SetDepthStencilSurface(nullptr);
+	ProxyInterface->SetRenderTarget(0, pBackBuffer);
+
+	// Set texture
+	ProxyInterface->SetTexture(0, SHARED.ScreenCopyTexture);
+	ProxyInterface->SetTexture(1, SHARED.GammaLUTTexture);
+	for (int x = 2; x < 8; x++)
+	{
+		ProxyInterface->SetTexture(x, nullptr);
+	}
+
+	// Set shader
+	if (FAILED(ProxyInterface->SetPixelShader(GetGammaPixelShader())))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to set pixel shader!";
+	}
+
+	const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);
+	struct TLVERTEX
+	{
+		float x, y, z, rhw;
+		float u, v;
+	};
+
+	// Define fullscreen quad vertices
+	TLVERTEX FullScreenQuadVertices[4] = {
+		{ -0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f },                          // Top-left
+		{ desc.Width - 0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f },               // Top-right
+		{ -0.5f,  desc.Height - 0.5f, 0.0f, 1.0f, 0.0f, 1.0f },             // Bottom-left
+		{ desc.Width - 0.5f, desc.Height - 0.5f, 0.0f, 1.0f, 1.0f, 1.0f }   // Bottom-right
+	};
+
+	// Set FVF and render
+	ProxyInterface->SetFVF(TLVERTEXFVF);
+	if (FAILED(ProxyInterface->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, FullScreenQuadVertices, sizeof(TLVERTEX))))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to draw primitive!";
+	}
+
+	// Reset textures
+	ProxyInterface->SetTexture(0, nullptr);
+	ProxyInterface->SetTexture(1, nullptr);
+
+	// Reset pixel shader
+	ProxyInterface->SetPixelShader(nullptr);
+
+	// Cleanup
+	pBackBuffer->Release();
+
+	// Restore sampler states
+	ProxyInterface->SetSamplerState(1, D3DSAMP_ADDRESSU, ss1addressU);
+	ProxyInterface->SetSamplerState(1, D3DSAMP_ADDRESSV, ss1addressV);
+
+	// Restore render states
+	ProxyInterface->SetRenderState(D3DRS_LIGHTING, rsLighting);
+	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, rsAlphaTestEnable);
+	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, rsAlphaBlendEnable);
+	ProxyInterface->SetRenderState(D3DRS_FOGENABLE, rsFogEnable);
+	ProxyInterface->SetRenderState(D3DRS_ZENABLE, rsZEnable);
+	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, rsZWriteEnable);
+	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, reStencilEnable);
+
+	// Restore texture states
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, tsColorOP);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, tsColorArg1);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, tsColorArg2);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, tsAlphaOP);
+}
+
+void m_IDirect3DDevice9Ex::ReleaseGammaResources() const
+{
+	if (SHARED.GammaLUTTexture)
+	{
+		ULONG ref = SHARED.GammaLUTTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'GammaLUTTexture' " << ref;
+		}
+		SHARED.GammaLUTTexture = nullptr;
+	}
+
+	if (SHARED.ScreenCopyTexture)
+	{
+		ULONG ref = SHARED.ScreenCopyTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'ScreenCopyTexture' " << ref;
+		}
+		SHARED.ScreenCopyTexture = nullptr;
+	}
+
+	if (SHARED.gammaPixelShader)
+	{
+		ULONG ref = SHARED.gammaPixelShader->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'gammaPixelShader' " << ref;
+		}
+		SHARED.gammaPixelShader = nullptr;
+	}
+}
+
 void m_IDirect3DDevice9Ex::GetGammaRamp(THIS_ UINT iSwapChain, D3DGAMMARAMP* pRamp)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (pRamp)
+	{
+		memcpy(pRamp, &SHARED.RampData, sizeof(D3DGAMMARAMP));
+		return;
+	}
 
 	return ProxyInterface->GetGammaRamp(iSwapChain, pRamp);
 }
@@ -694,6 +942,20 @@ void m_IDirect3DDevice9Ex::GetGammaRamp(THIS_ UINT iSwapChain, D3DGAMMARAMP* pRa
 void m_IDirect3DDevice9Ex::SetGammaRamp(THIS_ UINT iSwapChain, DWORD Flags, CONST D3DGAMMARAMP* pRamp)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (pRamp)
+	{
+		SHARED.IsGammaSet = false;
+		memcpy(&SHARED.RampData, pRamp, sizeof(D3DGAMMARAMP));
+
+		if (memcmp(&SHARED.DefaultRampData, &SHARED.RampData, sizeof(D3DGAMMARAMP)) != S_OK)
+		{
+			SHARED.IsGammaSet = true;
+			SetBrightnessLevel(SHARED.RampData);
+		}
+
+		return;
+	}
 
 	return ProxyInterface->SetGammaRamp(iSwapChain, Flags, pRamp);
 }
@@ -939,6 +1201,13 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 	Utils::ResetInvalidFPUState();	// Check FPU state before presenting
 
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (SHARED.IsGammaSet)
+	{
+		ProxyInterface->BeginScene();
+		ApplyBrightnessLevel();
+		ProxyInterface->EndScene();
+	}
 
 	if (Config.LimitPerFrameFPS)
 	{
@@ -2120,6 +2389,13 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (SHARED.IsGammaSet)
+	{
+		ProxyInterface->BeginScene();
+		ApplyBrightnessLevel();
+		ProxyInterface->EndScene();
+	}
+
 	if (Config.LimitPerFrameFPS)
 	{
 		LimitFrameRate();
@@ -2410,6 +2686,18 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 void m_IDirect3DDevice9Ex::ReInitInterface()
 {
 	Utils::GetScreenSize(SHARED.DeviceWindow, SHARED.screenWidth, SHARED.screenHeight);
+
+	SHARED.IsGammaSet = false;
+	for (int i = 0; i < 256; ++i)
+	{
+		WORD value = static_cast<WORD>(i * 65535 / 255); // Linear interpolation from 0 to 65535
+		SHARED.RampData.red[i] = value;
+		SHARED.RampData.green[i] = value;
+		SHARED.RampData.blue[i] = value;
+		SHARED.DefaultRampData.red[i] = value;
+		SHARED.DefaultRampData.green[i] = value;
+		SHARED.DefaultRampData.blue[i] = value;
+	}
 }
 
 void m_IDirect3DDevice9Ex::LimitFrameRate()

@@ -44,12 +44,12 @@ DWORD ScaleDDPadY = 0;
 struct DRAWSTATEBACKUP
 {
 	DWORD ssMagFilter = 0;
+	DWORD ss1addressU = 0;
+	DWORD ss1addressV = 0;
 	DWORD tsColorOP = 0;
 	DWORD tsColorArg1 = 0;
 	DWORD tsColorArg2 = 0;
 	DWORD tsAlphaOP = 0;
-	DWORD ts1addressU = 0;
-	DWORD ts1addressV = 0;
 	DWORD rsLighting = 0;
 	DWORD rsAlphaBlendEnable = 0;
 	DWORD rsAlphaTestEnable = 0;
@@ -4469,21 +4469,21 @@ static void BackupAndResetState(LPDIRECT3DDEVICE9 ProxyInterface, DRAWSTATEBACKU
 {
 	// Sampler states
 	ProxyInterface->GetSamplerState(0, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter);
+	ProxyInterface->GetSamplerState(1, D3DSAMP_ADDRESSU, &DrawStates.ss1addressU);
+	ProxyInterface->GetSamplerState(1, D3DSAMP_ADDRESSV, &DrawStates.ss1addressV);
 	ProxyInterface->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
+	ProxyInterface->SetSamplerState(1, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+	ProxyInterface->SetSamplerState(1, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
 	// Texture states
 	ProxyInterface->GetTextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOP);
 	ProxyInterface->GetTextureStageState(0, D3DTSS_COLORARG1, &DrawStates.tsColorArg1);
 	ProxyInterface->GetTextureStageState(0, D3DTSS_COLORARG2, &DrawStates.tsColorArg2);
 	ProxyInterface->GetTextureStageState(0, D3DTSS_ALPHAOP, &DrawStates.tsAlphaOP);
-	ProxyInterface->GetTextureStageState(1, D3DTSS_ADDRESSU, &DrawStates.ts1addressU);
-	ProxyInterface->GetTextureStageState(1, D3DTSS_ADDRESSV, &DrawStates.ts1addressV);
 	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
 	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
 	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
 	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-	ProxyInterface->SetTextureStageState(1, D3DTSS_ADDRESSU, D3DTADDRESS_CLAMP);
-	ProxyInterface->SetTextureStageState(1, D3DTSS_ADDRESSV, D3DTADDRESS_CLAMP);
 
 	// Render states
 	ProxyInterface->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
@@ -4569,14 +4569,14 @@ static void RestoreState(LPDIRECT3DDEVICE9 ProxyInterface, DRAWSTATEBACKUP& Draw
 {
 	// Restore sampler states
 	ProxyInterface->SetSamplerState(0, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter);
+	ProxyInterface->SetSamplerState(1, D3DSAMP_ADDRESSU, DrawStates.ss1addressU);
+	ProxyInterface->SetSamplerState(1, D3DSAMP_ADDRESSV, DrawStates.ss1addressV);
 
 	// Restore texture states
 	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, DrawStates.tsColorOP);
 	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, DrawStates.tsColorArg1);
 	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, DrawStates.tsColorArg2);
 	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, DrawStates.tsAlphaOP);
-	ProxyInterface->SetTextureStageState(1, D3DTSS_ADDRESSU, DrawStates.ts1addressU);
-	ProxyInterface->SetTextureStageState(1, D3DTSS_ADDRESSV, DrawStates.ts1addressV);
 
 	// Restore render states
 	ProxyInterface->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
