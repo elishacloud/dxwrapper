@@ -744,10 +744,7 @@ LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
 	// Create pixel shaders
 	if (!SHARED.gammaPixelShader)
 	{
-		if (FAILED(ProxyInterface->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &SHARED.gammaPixelShader)))
-		{
-			Logging::Log() << __FUNCTION__ << " Error: failed to create gamma pixel shader!";
-		}
+		ProxyInterface->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &SHARED.gammaPixelShader);
 	}
 	return SHARED.gammaPixelShader;
 }
@@ -759,11 +756,19 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		SetBrightnessLevel(SHARED.RampData);
 	}
 
+	// Set shader
+	IDirect3DPixelShader9* pShader = GetGammaPixelShader();
+	if (!pShader)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to retrieve gamma pixel shader!");
+		return;
+	}
+
 	// Get current backbuffer
 	IDirect3DSurface9* pBackBuffer = nullptr;
 	if (FAILED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
 	{
-		Logging::Log() << __FUNCTION__ << " Error: Failed to get back buffer!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get back buffer!");
 		return;
 	}
 
@@ -774,7 +779,7 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	{
 		if (FAILED(ProxyInterface->CreateTexture(desc.Width, desc.Height, 1, D3DUSAGE_RENDERTARGET, desc.Format, D3DPOOL_DEFAULT, &SHARED.ScreenCopyTexture, nullptr)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error: Failed to create screen copy texture!";
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create screen copy texture!");
 			pBackBuffer->Release();
 			return;
 		}
@@ -784,7 +789,7 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	SHARED.ScreenCopyTexture->GetSurfaceLevel(0, &pCopySurface);
 	if (FAILED(ProxyInterface->StretchRect(pBackBuffer, nullptr, pCopySurface, nullptr, D3DTEXF_NONE)))
 	{
-		Logging::Log() << __FUNCTION__ << " Error: Failed to copy render target!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to copy render target!");
 	}
 	pCopySurface->Release();
 
@@ -823,10 +828,6 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->SetSamplerState(1, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
 	ProxyInterface->SetSamplerState(1, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
-	// Set back buffer to render target
-	ProxyInterface->SetDepthStencilSurface(nullptr);
-	ProxyInterface->SetRenderTarget(0, pBackBuffer);
-
 	// Set texture
 	ProxyInterface->SetTexture(0, SHARED.ScreenCopyTexture);
 	ProxyInterface->SetTexture(1, SHARED.GammaLUTTexture);
@@ -836,10 +837,7 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	}
 
 	// Set shader
-	if (FAILED(ProxyInterface->SetPixelShader(GetGammaPixelShader())))
-	{
-		Logging::Log() << __FUNCTION__ << " Error: Failed to set pixel shader!";
-	}
+	ProxyInterface->SetPixelShader(pShader);
 
 	const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);
 	struct TLVERTEX
@@ -860,7 +858,7 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->SetFVF(TLVERTEXFVF);
 	if (FAILED(ProxyInterface->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, FullScreenQuadVertices, sizeof(TLVERTEX))))
 	{
-		Logging::Log() << __FUNCTION__ << " Error: Failed to draw primitive!";
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to draw primitive!");
 	}
 
 	// Reset textures
