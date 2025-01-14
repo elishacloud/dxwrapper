@@ -37,7 +37,7 @@ inline static void SaveInterfaceAddress(m_IDirect3DExecuteBuffer* Interface, m_I
 	}
 }
 
-m_IDirect3DExecuteBuffer* CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX** NewD3DDInterface)
+m_IDirect3DExecuteBuffer* CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc)
 {
 	SetCriticalSection();
 	m_IDirect3DExecuteBuffer* Interface = nullptr;
@@ -55,7 +55,7 @@ m_IDirect3DExecuteBuffer* CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aO
 		}
 		else
 		{
-			Interface = new m_IDirect3DExecuteBuffer(NewD3DDInterface);
+			Interface = new m_IDirect3DExecuteBuffer(NewD3DDInterface, lpDesc);
 		}
 	}
 	ReleaseCriticalSection();
@@ -144,6 +144,8 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 	if (ref == 0)
 	{
 		SaveInterfaceAddress(this, WrapperInterfaceBackup);
+
+		ReleaseInterface();
 	}
 
 	return ref;
@@ -284,12 +286,18 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DExecuteBuffer::InitInterface()
+void m_IDirect3DExecuteBuffer::InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc)
 {
-	// To add later
+	if (lpDesc && lpDesc->dwSize == sizeof(D3DEXECUTEBUFFERDESC))
+	{
+		Desc = *lpDesc;
+	}
 }
 
 void m_IDirect3DExecuteBuffer::ReleaseInterface()
 {
-	// To add later
+	if (D3DDeviceInterface)
+	{
+		D3DDeviceInterface->ReleaseExecuteBuffer(this);
+	}
 }

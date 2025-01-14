@@ -184,18 +184,51 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lplpDirect3DExecuteBuffer || !lpDesc)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpDesc->dwSize);
+			return DDERR_INVALIDPARAMS;
+		}
+
+		m_IDirect3DExecuteBuffer* pExecuteBuffer = CreateDirect3DExecuteBuffer(*lplpDirect3DExecuteBuffer, this, lpDesc);
+
+		ExecuteBufferList.push_back(pExecuteBuffer);
+
+		*lplpDirect3DExecuteBuffer = pExecuteBuffer;
+
+		return D3D_OK;
 	}
 
 	HRESULT hr = GetProxyInterfaceV1()->CreateExecuteBuffer(lpDesc, lplpDirect3DExecuteBuffer, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDirect3DExecuteBuffer)
 	{
-		*lplpDirect3DExecuteBuffer = CreateDirect3DExecuteBuffer(*lplpDirect3DExecuteBuffer, nullptr);
+		*lplpDirect3DExecuteBuffer = CreateDirect3DExecuteBuffer(*lplpDirect3DExecuteBuffer, nullptr, nullptr);
 	}
 
 	return hr;
+}
+
+void m_IDirect3DDeviceX::ReleaseExecuteBuffer(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuffer)
+{
+	// Check if the input buffer is valid
+	if (!lpDirect3DExecuteBuffer)
+	{
+		return;
+	}
+
+	// Find and remove the buffer from the list
+	auto it = std::find(ExecuteBufferList.begin(), ExecuteBufferList.end(), lpDirect3DExecuteBuffer);
+	if (it != ExecuteBufferList.end())
+	{
+		// Remove it from the list
+		ExecuteBufferList.erase(it);
+	}
 }
 
 HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuffer, LPDIRECT3DVIEWPORT lpDirect3DViewport, DWORD dwFlags)
@@ -4304,6 +4337,17 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
 	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
 	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
+
+	// Release ExecuteBuffers
+	std::vector<m_IDirect3DExecuteBuffer*> NewExecuteBufferList;
+	NewExecuteBufferList = std::move(ExecuteBufferList);
+	for (auto& entry : NewExecuteBufferList)
+	{
+		if (entry->Release())
+		{
+			entry->DeleteMe();
+		}
+	}
 
 	if (ddrawParent && !Config.Exiting)
 	{

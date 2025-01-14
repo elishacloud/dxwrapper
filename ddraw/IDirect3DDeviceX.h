@@ -110,6 +110,9 @@ private:
 	// Viewport array
 	std::vector<LPDIRECT3DVIEWPORT3> AttachedViewports;
 
+	// ExecuteBuffer array
+	std::vector<m_IDirect3DExecuteBuffer*> ExecuteBufferList;
+
 	inline bool IsViewportAttached(LPDIRECT3DVIEWPORT3 ViewportX)
 	{
 		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
@@ -291,6 +294,9 @@ public:
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 	bool IsDeviceInScene() const { return IsInScene; }
+
+	// ExecuteBuffer
+	void ReleaseExecuteBuffer(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuffer);
 
 	// Viewport functions
 	inline void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
