@@ -15,6 +15,7 @@
 */
 
 #include "ddraw.h"
+#include "Utils\Utils.h"
 
 // For storing resolution list
 std::vector<std::pair<DWORD, DWORD>> CashedDisplayResolutions;
@@ -37,6 +38,14 @@ bool IsDisplayResolution(DWORD Width, DWORD Height)
 		}
 	}
 	return false;
+}
+
+DWORD ComputeRND(DWORD Seed, DWORD Num)
+{
+	LARGE_INTEGER PerformanceCount = {};
+	QueryPerformanceCounter(&PerformanceCount);
+	DWORD NewSeed = PerformanceCount.HighPart ^ PerformanceCount.LowPart;
+	return (Seed ^ NewSeed) + (Num ^ ((NewSeed << 16) + (NewSeed >> 16))) + Utils::ReverseBits(NewSeed);
 }
 
 bool DoRectsMatch(const RECT& lhs, const RECT& rhs)

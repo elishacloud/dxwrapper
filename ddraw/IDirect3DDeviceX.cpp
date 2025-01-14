@@ -321,50 +321,90 @@ HRESULT m_IDirect3DDeviceX::CreateMatrix(LPD3DMATRIXHANDLE lpD3DMatHandle)
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpD3DMatHandle)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		D3DMATRIX Matrix = {
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
+		};
+
+		D3DMATRIXHANDLE D3DMatHandle = ComputeRND((DWORD)&Matrix, (DWORD)lpD3DMatHandle);
+
+		while (D3DMatHandle == NULL || MatrixMap.find(D3DMatHandle) != MatrixMap.end())
+		{
+			D3DMatHandle += 4;
+		}
+
+		MatrixMap[D3DMatHandle] = Matrix;
+
+		*lpD3DMatHandle = D3DMatHandle;
+
+		return D3D_OK;
 	}
 
 	return GetProxyInterfaceV1()->CreateMatrix(lpD3DMatHandle);
 }
 
-HRESULT m_IDirect3DDeviceX::SetMatrix(D3DMATRIXHANDLE d3dMatHandle, const LPD3DMATRIX lpD3DMatrix)
+HRESULT m_IDirect3DDeviceX::SetMatrix(D3DMATRIXHANDLE D3DMatHandle, const LPD3DMATRIX lpD3DMatrix)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpD3DMatrix || MatrixMap.find(D3DMatHandle) == MatrixMap.end())
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		MatrixMap[D3DMatHandle] = *lpD3DMatrix;
+
+		return D3D_OK;
 	}
 
-	return GetProxyInterfaceV1()->SetMatrix(d3dMatHandle, lpD3DMatrix);
+	return GetProxyInterfaceV1()->SetMatrix(D3DMatHandle, lpD3DMatrix);
 }
 
-HRESULT m_IDirect3DDeviceX::GetMatrix(D3DMATRIXHANDLE lpD3DMatHandle, LPD3DMATRIX lpD3DMatrix)
+HRESULT m_IDirect3DDeviceX::GetMatrix(D3DMATRIXHANDLE D3DMatHandle, LPD3DMATRIX lpD3DMatrix)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpD3DMatrix || MatrixMap.find(D3DMatHandle) == MatrixMap.end())
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		*lpD3DMatrix = MatrixMap[D3DMatHandle];
+
+		return D3D_OK;
 	}
 
-	return GetProxyInterfaceV1()->GetMatrix(lpD3DMatHandle, lpD3DMatrix);
+	return GetProxyInterfaceV1()->GetMatrix(D3DMatHandle, lpD3DMatrix);
 }
 
-HRESULT m_IDirect3DDeviceX::DeleteMatrix(D3DMATRIXHANDLE d3dMatHandle)
+HRESULT m_IDirect3DDeviceX::DeleteMatrix(D3DMATRIXHANDLE D3DMatHandle)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (MatrixMap.find(D3DMatHandle) == MatrixMap.end())
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		MatrixMap.erase(D3DMatHandle);
+
+		return D3D_OK;
 	}
 
-	return GetProxyInterfaceV1()->DeleteMatrix(d3dMatHandle);
+	return GetProxyInterfaceV1()->DeleteMatrix(D3DMatHandle);
 }
 
 HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStateType, LPD3DMATRIX lpD3DMatrix)

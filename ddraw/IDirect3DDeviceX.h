@@ -104,6 +104,9 @@ private:
 	// Light index map
 	std::unordered_map<DWORD, m_IDirect3DLight*> LightIndexMap;
 
+	// Matrix map
+	std::unordered_map<D3DMATRIXHANDLE, D3DMATRIX> MatrixMap;
+
 	// Vector temporary buffer cache
 	std::vector<BYTE> VertexCache;
 

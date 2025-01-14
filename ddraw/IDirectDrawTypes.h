@@ -130,6 +130,7 @@ static constexpr DWORD MaxPaletteSize = 256;
 
 void AddDisplayResolution(DWORD Width, DWORD Height);
 bool IsDisplayResolution(DWORD Width, DWORD Height);
+DWORD ComputeRND(DWORD Seed, DWORD Num);
 bool DoRectsMatch(const RECT& lhs, const RECT& rhs);
 bool GetOverlappingRect(const RECT& rect1, const RECT& rect2, RECT& outOverlapRect);
 void ConvertSurfaceDesc(DDSURFACEDESC& Desc, const DDSURFACEDESC2& Desc2);

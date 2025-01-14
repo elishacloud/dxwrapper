@@ -17,7 +17,6 @@
 */
 
 #include "ddraw.h"
-#include "Utils\Utils.h"
 
 // Cached wrapper interface
 namespace {
@@ -329,10 +328,7 @@ void m_IDirectDrawPalette::InitInterface(DWORD dwFlags, LPPALETTEENTRY lpDDColor
 	}
 
 	// Compute new USN number
-	LARGE_INTEGER PerformanceCount = {};
-	QueryPerformanceCounter(&PerformanceCount);
-	DWORD Seed = PerformanceCount.HighPart ^ PerformanceCount.LowPart;
-	PaletteUSN = (PaletteUSN ^ Seed) + ((DWORD)this ^ ((Seed << 16) + (Seed >> 16))) + Utils::ReverseBits(Seed);
+	PaletteUSN = ComputeRND(PaletteUSN, (DWORD)this);
 
 	// Create palette of requested bit size
 	if ((paletteCaps & DDPCAPS_8BIT) || (paletteCaps & DDPCAPS_ALLOW256))
