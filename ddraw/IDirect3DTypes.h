@@ -34,6 +34,18 @@ constexpr UINT MAX_LIGHTS = 8;          // Devices can have up to eight lights.
 #define D3DDEVINFOID_TEXTURING         3
 #endif
 
+typedef struct _D3DSTATE7 {
+    union {
+        D3DTRANSFORMSTATETYPE   dtstTransformStateType;
+        D3DLIGHTSTATETYPE   dlstLightStateType;
+        D3DRENDERSTATETYPE  drstRenderStateType;
+    };
+    union {
+        DWORD           dwArg[1];
+        D3DVALUE        dvArg[1];
+    };
+} D3DSTATE7, * LPD3DSTATE7;
+
 typedef struct _D3DDEVINFO_TEXTUREMANAGER {
     BOOL    bThrashing;             // Thrashing status. TRUE if thrashing occurred during the last frame, or FALSE otherwise.
     DWORD   dwNumEvicts;            // Number of textures that were removed during the last frame.

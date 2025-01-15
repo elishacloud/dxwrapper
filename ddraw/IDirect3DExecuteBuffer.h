@@ -82,5 +82,5 @@ public:
 	STDMETHOD(Optimize)(THIS_ DWORD);
 
 	// Helper functions
-	HRESULT GetExecuteData(D3DEXECUTEBUFFERDESC& CurrentDesc, D3DEXECUTEDATA& CurrentExecuteData);
+	HRESULT GetExecuteData(D3DEXECUTEBUFFERDESC& CurrentDesc, LPD3DEXECUTEDATA* lplpCurrentExecuteData);
 };

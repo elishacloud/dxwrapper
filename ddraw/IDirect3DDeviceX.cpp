@@ -17,6 +17,8 @@
 #include "ddraw.h"
 #include "d3d9\d3d9External.h"
 
+#define D3DSTATE D3DSTATE7
+
 // Cached wrapper interface
 namespace {
 	m_IDirect3DDevice* WrapperInterfaceBackup = nullptr;
@@ -264,8 +266,575 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpDirect3DExecuteBuffer || !lpDirect3DViewport)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid params: " << lpDirect3DExecuteBuffer << " " << lpDirect3DViewport);
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_INVALIDOBJECT;
+		}
+
+		// Flags
+		// D3DEXECUTE_CLIPPED - Clip any primitives in the buffer that are outside or partially outside the viewport. 
+		// D3DEXECUTE_UNCLIPPED - All primitives in the buffer are contained within the viewport.
+
+		m_IDirect3DExecuteBuffer* pExecuteBuffer = (m_IDirect3DExecuteBuffer*)lpDirect3DExecuteBuffer;
+
+		D3DEXECUTEBUFFERDESC Desc;
+		LPD3DEXECUTEDATA lpExecuteData;
+
+		// Get execute data and desc
+		if (FAILED(pExecuteBuffer->GetExecuteData(Desc, &lpExecuteData)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: get execute data failed!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (FAILED(SetCurrentViewport((LPDIRECT3DVIEWPORT3)lpDirect3DViewport)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set the specified viewport!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Pointer to the start of the instruction data
+		BYTE* instructionData = reinterpret_cast<BYTE*>(Desc.lpData) + lpExecuteData->dwInstructionOffset;
+		BYTE* instructionEnd = instructionData + lpExecuteData->dwInstructionLength;
+
+		DWORD opcode = NULL;
+
+		D3DLVERTEX* vertexBuffer = reinterpret_cast<D3DLVERTEX*>(Desc.lpData) + lpExecuteData->dwVertexOffset;
+		const DWORD vertexCount = lpExecuteData->dwVertexCount;
+
+		DWORD EmulatedDriverStatus = 0;
+
+		// Iterate through the instructions
+		while (instructionData < instructionEnd)
+		{
+			const D3DINSTRUCTION* instruction = (const D3DINSTRUCTION*)(instructionData);
+			const DWORD instructionSize = sizeof(D3DINSTRUCTION) + (instruction->wCount * instruction->bSize);
+
+			opcode = instruction->bOpcode;
+			BYTE* opstruct = instructionData + sizeof(D3DINSTRUCTION);
+
+			if (opcode == D3DOP_EXIT || instructionData + instructionSize > instructionEnd)
+			{
+				break;
+			}
+
+			EmulatedDriverStatus |= (1 << opcode); // Set bit based on opcode
+
+			bool SkipNextMove = false;
+
+			switch (opcode)
+			{
+			case D3DOP_POINT:
+				// Sends a point to the renderer. Operand data is described by the D3DPOINT structure.
+			{
+				D3DPOINT* point = reinterpret_cast<D3DPOINT*>(opstruct);
+
+				if (instruction->bSize != sizeof(D3DPOINT))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: point instruction size does not match!");
+				}
+
+				// ToDo: figure out which vertex type is being used
+
+				DWORD VertexTypeDesc = D3DFVF_LVERTEX9;
+
+				DWORD PrimitiveCount = 0;
+
+				DWORD totalCount = 0;
+				for (DWORD i = 0; i < instruction->wCount; i++)
+				{
+					totalCount += min(point[i].wCount, vertexCount - point[i].wFirst);
+				}
+
+				// Define vertices and setup vector
+				std::vector<BYTE> vertices;
+				vertices.resize(sizeof(D3DLVERTEX9) * totalCount + 1);
+				D3DLVERTEX9* verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
+
+				// Add vertices to vector
+				for (DWORD i = 0; i < instruction->wCount; i++)
+				{
+					if ((DWORD)point[i].wFirst < vertexCount)
+					{
+						DWORD count = min(point[i].wCount, vertexCount - point[i].wFirst);
+
+						D3DLVERTEX* v = &vertexBuffer[point[i].wFirst];
+
+						for (DWORD x = 0; x < count; x++)
+						{
+							PrimitiveCount++;
+
+							*verticesData = { v[x].x, v[x].y, v[x].z, v[x].color, v[x].specular, v[x].tu, v[x].tv };
+							verticesData++;
+						}
+					}
+				}
+
+				if (PrimitiveCount)
+				{
+					// Set the FVF (Flexible Vertex Format)
+					(*d3d9Device)->SetFVF(VertexTypeDesc);
+
+					// Pass the vertex data directly to the rendering pipeline
+					(*d3d9Device)->DrawPrimitiveUP(D3DPT_POINTLIST, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
+				}
+
+				break;
+			}
+			case D3DOP_LINE:
+				// Sends a line to the renderer. Operand data is described by the D3DLINE structure.
+			{
+				D3DLINE* line = reinterpret_cast<D3DLINE*>(opstruct);
+
+				if (instruction->bSize != sizeof(D3DLINE))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: line instruction size does not match!");
+				}
+
+				// ToDo: figure out which vertex type is being used
+
+				DWORD VertexTypeDesc = D3DFVF_LVERTEX9;
+
+				DWORD PrimitiveCount = 0;
+
+				// Define vertices and setup vector
+				std::vector<BYTE> vertices;
+				vertices.resize(instruction->wCount);
+				D3DLVERTEX9* verticesData = (D3DLVERTEX9*)vertices.data();
+
+				for (DWORD i = 0; i < instruction->wCount; i++)
+				{
+					if (line[i].v1 < vertexCount && line[i].v2 < vertexCount)
+					{
+						PrimitiveCount++;
+
+						// Retrieve vertices from the vertex buffer
+						D3DLVERTEX v1 = vertexBuffer[line[i].v1];
+						D3DLVERTEX v2 = vertexBuffer[line[i].v2];
+
+						// Resize vertices and set up vertex data
+						*verticesData = { v1.x, v1.y, v1.z, v1.color, v1.specular, v1.tu, v1.tv };
+						verticesData++;
+						*verticesData = { v2.x, v2.y, v2.z, v2.color, v2.specular, v2.tu, v2.tv };
+						verticesData++;
+					}
+				}
+
+				if (PrimitiveCount)
+				{
+					// Set the FVF (Flexible Vertex Format)
+					(*d3d9Device)->SetFVF(VertexTypeDesc);
+
+					// Pass the vertex data directly to the rendering pipeline
+					(*d3d9Device)->DrawPrimitiveUP(D3DPT_LINELIST, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
+				}
+
+				break;
+			}
+			case D3DOP_TRIANGLE:
+				// Sends a triangle to the renderer. Operand data is described by the D3DTRIANGLE structure.
+			{
+				D3DTRIANGLE* triangle = reinterpret_cast<D3DTRIANGLE*>(opstruct);
+
+				if (instruction->bSize != sizeof(D3DTRIANGLE))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: triangle instruction size does not match!");
+				}
+
+				// Primitive structures and related defines.  Vertex offsets are to types D3DVERTEX, D3DLVERTEX, or D3DTLVERTEX.
+
+				// ToDo: figure out which vertex type is being used
+				// ToDo: figure out triangle strip or fan
+
+				D3DPRIMITIVETYPE PrimitiveType = D3DPT_TRIANGLESTRIP;
+				DWORD VertexTypeDesc = D3DFVF_LVERTEX9;
+
+				for (DWORD i = 0; i < instruction->wCount; i++)
+				{
+					// Flags for this triangle
+					WORD wFlags = triangle[i].wFlags;
+
+					DWORD PrimitiveCount = 0;
+
+					std::vector<BYTE> vertices;
+
+					// START loads all three vertices
+					if ((wFlags & 0x1F) == D3DTRIFLAG_START)
+					{
+						if (triangle[i].v1 < vertexCount && triangle[i].v2 < vertexCount && triangle[i].v3 < vertexCount)
+						{
+							PrimitiveCount = 1;
+
+							// Retrieve vertices from the vertex buffer
+							D3DLVERTEX v1 = vertexBuffer[triangle[i].v1];
+							D3DLVERTEX v2 = vertexBuffer[triangle[i].v2];
+							D3DLVERTEX v3 = vertexBuffer[triangle[i].v3];
+
+							// Resize vertices and set up vertex data
+							vertices.resize(sizeof(D3DLVERTEX9) * 3);
+							D3DLVERTEX9* verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
+
+							verticesData[0] = { v1.x, v1.y, v1.z, v1.color, v1.specular, v1.tu, v1.tv };
+							verticesData[1] = { v2.x, v2.y, v2.z, v2.color, v2.specular, v2.tu, v2.tv };
+							verticesData[2] = { v3.x, v3.y, v3.z, v3.color, v3.specular, v3.tu, v3.tv };
+						}
+					}
+					// START_FLAT contains a count from 1 to 29 that allows the whole strip or fan to be culled in one hit.
+					else if ((wFlags & 0x1F) < D3DTRIFLAG_STARTFLAT(30))
+					{
+						// For a triangle strip or fan, the number of vertices is len + 2
+						DWORD count = min((wFlags & 0x1FU) + 2U, vertexCount);
+
+						PrimitiveCount = max(0, (int)count - 2);
+
+						vertices.resize(sizeof(D3DLVERTEX9) * count);
+						D3DLVERTEX9* verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
+
+						// Use these vertices to draw the triangle
+						D3DLVERTEX* v = vertexBuffer;
+						for (DWORD x = 0; x < count; x++)
+						{
+							verticesData[x] = { v[x].x, v[x].y, v[x].z, v[x].color, v[x].specular, v[x].tu, v[x].tv };
+						}
+					}
+					// EVEN and ODD load just v3 with even or odd culling
+					else if ((wFlags & 0x1F) == D3DTRIFLAG_ODD || (wFlags & 0x1F) == D3DTRIFLAG_EVEN)
+					{
+						bool IsEven = (wFlags & 0x1F) == D3DTRIFLAG_EVEN;
+
+						if ((IsEven && triangle[i].v3 + 4U < vertexCount) || (!IsEven && triangle[i].v3 + 5U < vertexCount))
+						{
+							PrimitiveCount = 1;
+
+							vertices.resize(sizeof(D3DLVERTEX9) * 3);
+							D3DLVERTEX9* verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
+
+							// Use these vertices to draw the triangle
+							D3DLVERTEX* v = &vertexBuffer[triangle[i].v3];
+							for (DWORD x = 0; x < 3; x++)
+							{
+								DWORD vIndex = (x * 2) + (IsEven ? 0 : 1);
+								verticesData[x] = { v[vIndex].x, v[vIndex].y, v[vIndex].z, v[vIndex].color, v[vIndex].specular, v[vIndex].tu, v[vIndex].tv };
+							}
+						}
+					}
+					else
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: unknown triangle flags: " << Logging::hex(wFlags));
+					}
+
+					if (PrimitiveCount)
+					{
+						// Set the FVF (Flexible Vertex Format)
+						(*d3d9Device)->SetFVF(VertexTypeDesc);
+
+						// Pass the vertex data directly to the rendering pipeline
+						(*d3d9Device)->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
+					}
+				}
+
+				break;
+			}
+			case D3DOP_MATRIXLOAD:
+				// Triggers a data transfer in the rendering engine. Operand data is described by the D3DMATRIXLOAD structure.
+			{
+				D3DMATRIXLOAD* matrixLoad = reinterpret_cast<D3DMATRIXLOAD*>(opstruct);
+
+				if (instruction->bSize != sizeof(D3DMATRIXLOAD))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: matrix load instruction size does not match!");
+				}
+
+				for (DWORD i = 0; i < instruction->wCount; i++)
+				{
+					// Copy matrix to dest
+					if (MatrixMap.find(matrixLoad[i].hDestMatrix) != MatrixMap.end() &&
+						MatrixMap.find(matrixLoad[i].hSrcMatrix) != MatrixMap.end())
+					{
+						MatrixMap[matrixLoad[i].hDestMatrix] = MatrixMap[matrixLoad[i].hSrcMatrix];
+					}
+					else
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find matrix handle for load!");
+					}
+				}
+
+				break;
+			}
+			case D3DOP_MATRIXMULTIPLY:
+				// Triggers a data transfer in the rendering engine. Operand data is described by the D3DMATRIXMULTIPLY structure.
+			{
+				D3DMATRIXMULTIPLY* matrixMultiply = reinterpret_cast<D3DMATRIXMULTIPLY*>(opstruct);
+
+				if (instruction->bSize != sizeof(D3DMATRIXMULTIPLY))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: matrix multiply instruction size does not match!");
+				}
+
+				for (DWORD i = 0; i < instruction->wCount; i++)
+				{
+					// Multiply matrix to dest
+					if (MatrixMap.find(matrixMultiply[i].hSrcMatrix1) != MatrixMap.end() &&
+						MatrixMap.find(matrixMultiply[i].hSrcMatrix2) != MatrixMap.end() &&
+						MatrixMap.find(matrixMultiply[i].hDestMatrix) != MatrixMap.end())
+					{
+						using namespace DirectX;
+
+						// Load D3DMATRIX into XMMATRIX
+						XMMATRIX xmMatrix1 = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&MatrixMap[matrixMultiply[i].hSrcMatrix1]));
+						XMMATRIX xmMatrix2 = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&MatrixMap[matrixMultiply[i].hSrcMatrix2]));
+
+						// Perform the multiplication
+						XMMATRIX xmResult = XMMatrixMultiply(xmMatrix1, xmMatrix2);
+
+						// Store the result back into a D3DMATRIX
+						XMStoreFloat4x4(reinterpret_cast<XMFLOAT4X4*>(&MatrixMap[matrixMultiply[i].hDestMatrix]), xmResult);
+					}
+					else
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find matrix handle for multiply!");
+					}
+				}
+
+				break;
+			}
+			case D3DOP_STATETRANSFORM:
+				// Sets the value of internal state variables in the rendering engine for the transformation module. Operand data is a variable token
+				// and the new value. The token identifies the internal state variable, and the new value is the value to which that variable should
+				// be set. For more information about these variables, see the D3DSTATE structure and the D3DLIGHTSTATETYPE enumerated type.
+			{
+				D3DSTATE* state = reinterpret_cast<D3DSTATE*>(opstruct);
+
+				if (instruction->bSize != sizeof(D3DSTATE))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: state transform instruction size does not match!");
+				}
+
+				for (DWORD i = 0; i < instruction->wCount; i++)
+				{
+					if (MatrixMap.find(state[i].dwArg[0]) != MatrixMap.end())
+					{
+						SetTransform(state[i].dtstTransformStateType, &MatrixMap[state->dwArg[0]]);
+					}
+					else
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find matrix handle for transform!");
+					}
+				}
+
+				break;
+			}
+			case D3DOP_STATELIGHT:
+				// Sets the value of internal state variables in the rendering engine for the lighting module. Operand data is a variable token
+				// and the new value. The token identifies the internal state variable, and the new value is the value to which that variable
+				// should be set. For more information about these variables, see the D3DSTATE structure and the D3DLIGHTSTATETYPE enumerated type.
+			{
+				D3DSTATE* state = reinterpret_cast<D3DSTATE*>(opstruct);
+
+				if (instruction->bSize != sizeof(D3DSTATE))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: state light instruction size does not match!");
+				}
+
+				for (DWORD i = 0; i < instruction->wCount; i++)
+				{
+					SetLightState(state[i].dlstLightStateType, state[i].dwArg[0]);
+				}
+
+				break;
+			}
+			case D3DOP_STATERENDER:
+				// Sets the value of internal state variables in the rendering engine for the rendering module. Operand data is a variable token
+				// and the new value. The token identifies the internal state variable, and the new value is the value to which that variable
+				// should be set. For more information about these variables, see the D3DSTATE structure and the D3DLIGHTSTATETYPE enumerated type.
+			{
+				D3DSTATE* state = reinterpret_cast<D3DSTATE*>(opstruct);
+
+				if (instruction->bSize != sizeof(D3DSTATE))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: state render instruction size does not match!");
+				}
+
+				for (DWORD i = 0; i < instruction->wCount; i++)
+				{
+					SetRenderState(state[i].drstRenderStateType, state[i].dwArg[0]);
+				}
+
+				break;
+			}
+			case D3DOP_TEXTURELOAD:
+				// Triggers a data transfer in the rendering engine. Operand data is described by the D3DTEXTURELOAD structure.
+			{
+				D3DTEXTURELOAD* textureLoad = reinterpret_cast<D3DTEXTURELOAD*>(opstruct);
+
+				if (instruction->bSize != sizeof(D3DTEXTURELOAD))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: texture load instruction size does not match!");
+				}
+
+				for (DWORD i = 0; i < instruction->wCount; i++)
+				{
+					// Copy texture to dest
+					if (TextureHandleMap.find(textureLoad[i].hDestTexture) != TextureHandleMap.end() &&
+						TextureHandleMap.find(textureLoad[i].hSrcTexture) != TextureHandleMap.end())
+					{
+						LPDIRECT3DTEXTURE2 lpTextureSrc = (LPDIRECT3DTEXTURE2)TextureHandleMap[textureLoad[i].hSrcTexture]->GetWrapperInterfaceX(0);
+						TextureHandleMap[textureLoad[i].hDestTexture]->Load(lpTextureSrc);
+					}
+					else
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find texture handle!");
+					}
+				}
+
+				break;
+			}
+			case D3DOP_PROCESSVERTICES:
+				// Sets both lighting and transformations for vertices. Operand data is described by the D3DPROCESSVERTICES structure.
+			{
+				D3DPROCESSVERTICES* processVertices = reinterpret_cast<D3DPROCESSVERTICES*>(opstruct);
+
+				if (instruction->bSize != sizeof(D3DPROCESSVERTICES))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: process vertices instruction size does not match!");
+				}
+
+				// ToDo: implement process vertices opcode
+
+				for (DWORD i = 0; i < instruction->wCount; i++)
+				{
+					UNREFERENCED_PARAMETER(processVertices);
+				}
+
+				break;
+			}
+			case D3DOP_SPAN:
+				// Spans a list of points with the same y value. For more information, see the D3DSPAN structure.
+			{
+				D3DSPAN* span = reinterpret_cast<D3DSPAN*>(opstruct);
+
+				if (instruction->bSize != sizeof(D3DSPAN))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: span instruction size does not match!");
+				}
+
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: span instruction is not implemented!");
+
+				// ToDo: implement span opcode
+
+				for (DWORD i = 0; i < instruction->wCount; i++)
+				{
+					UNREFERENCED_PARAMETER(span);
+				}
+
+				break;
+			}
+			case D3DOP_SETSTATUS:
+				// Resets the status of the execute buffer. For more information, see the D3DSTATUS structure.
+			{
+				D3DSTATUS* status = reinterpret_cast<D3DSTATUS*>(opstruct);
+
+				if (instruction->bSize != sizeof(D3DSTATUS))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: status instruction size does not match!");
+				}
+
+				if (instruction->wCount > 1)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: more than 1 count in set status instruction!");
+				}
+
+				switch (status->dwFlags)
+				{
+				case D3DSETSTATUS_STATUS:
+					// Set execute status
+					lpExecuteData->dsStatus = *status;
+					break;
+				case D3DSETSTATUS_EXTENTS:
+					// ToDo: Set extents status
+					break;
+				}
+
+				break;
+			}
+			case D3DOP_BRANCHFORWARD:
+				// Enables a branching mechanism within the execute buffer. For more information, see the D3DBRANCH structure.
+			{
+				// Parse the branch structure
+				D3DBRANCH* branch = reinterpret_cast<D3DBRANCH*>(opstruct);
+
+				if (instruction->bSize != sizeof(D3DBRANCH))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: branch instruction size does not match!");
+				}
+
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: branch forward emulated driver status is not working right!" <<
+					" Mask: " << branch->dwMask << " Value: " << branch->dwValue);
+
+				if (instruction->wCount > 1)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: more than 1 count in branch forward instruction!");
+				}
+
+				// ToDo: fix implementation of EmulatedDriverStatus
+
+				// Apply the mask to the current status
+				DWORD maskedStatus = EmulatedDriverStatus & branch->dwMask;
+
+				// Compare the masked status with the value
+				bool condition = (maskedStatus == branch->dwValue);
+
+				// Negate the condition if bNegate is TRUE
+				if (branch->bNegate)
+				{
+					condition = !condition;
+				}
+
+				// If the condition is true, branch forward
+				if (condition)
+				{
+					SkipNextMove = true;
+					if (branch->dwOffset == 0)
+					{
+						// Exit the execute buffer if offset is 0
+						opcode = D3DOP_EXIT;
+					}
+					else
+					{
+						// Move the instruction pointer forward by the offset
+						instructionData += branch->dwOffset;
+					}
+				}
+
+				// Otherwise, continue to the next instruction
+				break;
+			}
+			case D3DOP_EXIT:
+				// Signals that the end of the list has been reached.
+				break;
+			default:
+				// Handle unknown or unsupported opcodes
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: Unknown opcode: " << opcode);
+				break;
+			}
+
+			// Move to the next instruction
+			if (!SkipNextMove)
+			{
+				instructionData += instructionSize;
+			}
+		}
+
+		// ToDo: set lpExecuteData->dsStatus status after Execute() has finished
+
+		return D3D_OK;
 	}
 
 	if (lpDirect3DExecuteBuffer)

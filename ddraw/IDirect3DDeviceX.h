@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 #include <unordered_set>
+#include "External\DirectXMath\Inc\DirectXMath.h"
 
 class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 {

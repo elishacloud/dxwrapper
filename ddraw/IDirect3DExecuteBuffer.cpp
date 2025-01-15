@@ -394,7 +394,7 @@ HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpData)
 	return ProxyInterface->GetExecuteData(lpData);
 }
 
-HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(D3DEXECUTEBUFFERDESC& CurrentDesc, D3DEXECUTEDATA& CurrentExecuteData)
+HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(D3DEXECUTEBUFFERDESC& CurrentDesc, LPD3DEXECUTEDATA* lplpCurrentExecuteData)
 {
 	if (!IsDataValidated)
 	{
@@ -406,7 +406,10 @@ HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(D3DEXECUTEBUFFERDESC& CurrentDe
 	}
 
 	CurrentDesc = Desc;
-	CurrentExecuteData = ExecuteData;
+	if (lplpCurrentExecuteData)
+	{
+		*lplpCurrentExecuteData = &ExecuteData;
+	}
 
 	return D3D_OK;
 }

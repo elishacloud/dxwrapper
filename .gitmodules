@@ -23,3 +23,6 @@
 [submodule "External/Hooking.Patterns"]
 	path = External/Hooking.Patterns
 	url = https://github.com/ThirteenAG/Hooking.Patterns
+[submodule "External/DirectXMath"]
+	path = External/DirectXMath
+	url = https://github.com/microsoft/DirectXMath
