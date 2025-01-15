@@ -18,7 +18,7 @@ private:
 	bool IsDataValidated = false;
 
 	// Instruction data 
-	HRESULT ValidateInstructionData(const void* lpData, DWORD dwInstructionOffset, DWORD dwInstructionLength);
+	HRESULT ValidateInstructionData(DWORD dwInstructionOffset, DWORD dwInstructionLength);
 
 	// Interface initialization functions
 	void InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc);

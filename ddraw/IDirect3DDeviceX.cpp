@@ -325,7 +325,8 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 				break;
 			}
 
-			EmulatedDriverStatus |= (1 << opcode); // Set bit based on opcode
+			// Just keep emulated driver status to 0 for now
+			//EmulatedDriverStatus |= (1 << opcode); // Set bit based on opcode
 
 			bool SkipNextMove = false;
 

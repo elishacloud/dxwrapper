@@ -246,9 +246,9 @@ HRESULT m_IDirect3DExecuteBuffer::Unlock()
 	return ProxyInterface->Unlock();
 }
 
-HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(const void* lpData, DWORD dwInstructionOffset, DWORD dwInstructionLength)
+HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(DWORD dwInstructionOffset, DWORD dwInstructionLength)
 {
-	const BYTE* data = (const BYTE*)lpData + dwInstructionOffset;
+	const BYTE* data = (const BYTE*)Desc.lpData + dwInstructionOffset;
 	DWORD offset = 0;
 
 	while (offset < dwInstructionLength)
@@ -263,7 +263,7 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(const void* lpData, DW
 
 		if (instruction->bOpcode == 0 || instruction->bOpcode > 14)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid opcode: " << instruction->bOpcode);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid opcode: " << (DWORD)instruction->bOpcode);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -281,8 +281,41 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(const void* lpData, DW
 			return D3D_OK;
 		}
 
+		bool SkipNextMove = false;
+		if (instruction->bOpcode == D3DOP_BRANCHFORWARD)
+		{
+			D3DBRANCH* branch = reinterpret_cast<D3DBRANCH*>((BYTE*)instruction + sizeof(D3DINSTRUCTION));
+
+			DWORD EmulatedDriverStatus = 0;
+			bool condition = ((EmulatedDriverStatus & branch->dwMask) == branch->dwValue);
+
+			if (branch->bNegate)
+			{
+				condition = !condition;
+			}
+
+			if (condition)
+			{
+				if (branch->dwOffset == 0)
+				{
+					// Exit the execute buffer if offset is 0
+					IsDataValidated = true;
+					return D3D_OK;
+				}
+				else
+				{
+					// Move the instruction pointer forward by the offset
+					SkipNextMove = true;
+					offset += branch->dwOffset;
+				}
+			}
+		}
+
 		// Move to the next instruction
-		offset += instructionSize;
+		if (!SkipNextMove)
+		{
+			offset += instructionSize;
+		}
 	}
 
 	LOG_LIMIT(100, __FUNCTION__ << " Error: Missing D3DOP_EXIT!");
@@ -341,7 +374,7 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpData)
 		}
 
 		// Validate instruction data
-		HRESULT hr = ValidateInstructionData(Desc.lpData, lpData->dwInstructionOffset, lpData->dwInstructionLength);
+		HRESULT hr = ValidateInstructionData(lpData->dwInstructionOffset, lpData->dwInstructionLength);
 		if (FAILED(hr))
 		{
 			return hr;
@@ -398,7 +431,7 @@ HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(D3DEXECUTEBUFFERDESC& CurrentDe
 {
 	if (!IsDataValidated)
 	{
-		HRESULT hr = ValidateInstructionData(&Desc, ExecuteData.dwInstructionOffset, ExecuteData.dwInstructionLength);
+		HRESULT hr = ValidateInstructionData(ExecuteData.dwInstructionOffset, ExecuteData.dwInstructionLength);
 		if (FAILED(hr))
 		{
 			return hr;
