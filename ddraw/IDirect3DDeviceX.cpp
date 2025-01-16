@@ -461,7 +461,7 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Coun
 			(*d3d9Device)->SetFVF(VertexTypeDesc);
 
 			// Pass the vertex data directly to the rendering pipeline
-			HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
+			(*d3d9Device)->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
 
 			// Reset variables for next list
 			PrimitiveCount = 0;
@@ -751,6 +751,8 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: process vertices instruction size does not match!");
 				}
 
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: process vertices instruction is not implemented!");
+
 				// ToDo: implement process vertices opcode
 
 				for (DWORD i = 0; i < instruction->wCount; i++)
@@ -820,12 +822,15 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: branch instruction size does not match!");
 				}
 
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: branch forward emulated driver status is not working right!" <<
-					" Mask: " << branch->dwMask << " Value: " << branch->dwValue);
-
 				if (instruction->wCount > 1)
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: more than 1 count in branch forward instruction!");
+				}
+
+				if (branch->dwMask || branch->dwValue)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: branch forward emulated driver status is not working right!" <<
+						" Mask: " << branch->dwMask << " Value: " << branch->dwValue);
 				}
 
 				// ToDo: fix implementation of EmulatedDriverStatus
