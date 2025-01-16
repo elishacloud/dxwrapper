@@ -850,6 +850,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					{
 						// Exit the execute buffer if offset is 0
 						opcode = D3DOP_EXIT;
+						break;
 					}
 					else
 					{
@@ -867,6 +868,12 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 			default:
 				// Handle unknown or unsupported opcodes
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: Unknown opcode: " << opcode);
+				break;
+			}
+
+			// Exit loop
+			if (opcode == D3DOP_EXIT)
+			{
 				break;
 			}
 
