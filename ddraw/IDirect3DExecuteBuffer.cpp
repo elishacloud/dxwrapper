@@ -281,30 +281,43 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(DWORD dwInstructionOff
 			return D3D_OK;
 		}
 
+		DWORD StructSize =
+			instruction->bOpcode == D3DOP_POINT ? sizeof(D3DPOINT) :
+			instruction->bOpcode == D3DOP_LINE ? sizeof(D3DLINE) :
+			instruction->bOpcode == D3DOP_TRIANGLE ? sizeof(D3DTRIANGLE) :
+			instruction->bOpcode == D3DOP_MATRIXLOAD ? sizeof(D3DMATRIXLOAD) :
+			instruction->bOpcode == D3DOP_MATRIXMULTIPLY ? sizeof(D3DMATRIXMULTIPLY) :
+			instruction->bOpcode == D3DOP_STATETRANSFORM ? sizeof(D3DSTATE) :
+			instruction->bOpcode == D3DOP_STATELIGHT ? sizeof(D3DSTATE) :
+			instruction->bOpcode == D3DOP_STATERENDER ? sizeof(D3DSTATE) :
+			instruction->bOpcode == D3DOP_TEXTURELOAD ? sizeof(D3DTEXTURELOAD) :
+			instruction->bOpcode == D3DOP_PROCESSVERTICES ? sizeof(D3DPROCESSVERTICES) :
+			instruction->bOpcode == D3DOP_SPAN ? sizeof(D3DSPAN) :
+			instruction->bOpcode == D3DOP_SETSTATUS ? sizeof(D3DSTATUS) :
+			instruction->bOpcode == D3DOP_BRANCHFORWARD ? sizeof(D3DBRANCH) : 0;
+		if (instruction->bSize != StructSize)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Instruction size does not match structure size: " << StructSize << "->" << instruction->bSize);
+			return DDERR_INVALIDPARAMS;
+		}
+
 		bool SkipNextMove = false;
 		if (instruction->bOpcode == D3DOP_BRANCHFORWARD)
 		{
 			D3DBRANCH* branch = reinterpret_cast<D3DBRANCH*>((BYTE*)instruction + sizeof(D3DINSTRUCTION));
 
-			DWORD EmulatedDriverStatus = 0;
-			bool condition = ((EmulatedDriverStatus & branch->dwMask) == branch->dwValue);
-
-			if (branch->bNegate)
+			DWORD EmulatedDriverStatus = 0;	// Just use 0 for now
+			if (bool((EmulatedDriverStatus & branch->dwMask) == branch->dwValue) != bool(branch->bNegate))
 			{
-				condition = !condition;
-			}
-
-			if (condition)
-			{
+				// Exit the execute buffer if offset is null
 				if (branch->dwOffset == 0)
 				{
-					// Exit the execute buffer if offset is 0
 					IsDataValidated = true;
 					return D3D_OK;
 				}
+				// Move the instruction pointer forward by the offset
 				else
 				{
-					// Move the instruction pointer forward by the offset
 					SkipNextMove = true;
 					offset += branch->dwOffset;
 				}
