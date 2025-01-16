@@ -18,7 +18,7 @@ private:
 	bool IsDataValidated = false;
 
 	// Instruction data 
-	HRESULT ValidateInstructionData(DWORD dwInstructionOffset, DWORD dwInstructionLength);
+	HRESULT ValidateInstructionData(LPD3DEXECUTEDATA lpExecuteData, LPDWORD lpdwOffset, LPD3DVALIDATECALLBACK lpFunc, LPVOID lpUserArg);
 
 	// Interface initialization functions
 	void InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc);
@@ -82,5 +82,5 @@ public:
 	STDMETHOD(Optimize)(THIS_ DWORD);
 
 	// Helper functions
-	HRESULT GetExecuteData(D3DEXECUTEBUFFERDESC& CurrentDesc, LPD3DEXECUTEDATA* lplpCurrentExecuteData);
+	HRESULT GetBuffer(LPVOID* lplpData, D3DEXECUTEDATA& CurrentExecuteData, LPD3DSTATUS* lplpStatus);
 };

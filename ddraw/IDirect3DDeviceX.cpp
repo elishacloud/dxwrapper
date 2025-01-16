@@ -489,11 +489,12 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 		m_IDirect3DExecuteBuffer* pExecuteBuffer = (m_IDirect3DExecuteBuffer*)lpDirect3DExecuteBuffer;
 
-		D3DEXECUTEBUFFERDESC Desc;
-		LPD3DEXECUTEDATA lpExecuteData;
+		LPVOID lpData;
+		D3DEXECUTEDATA ExecuteData;
+		LPD3DSTATUS lpStatus;
 
 		// Get execute data and desc
-		if (FAILED(pExecuteBuffer->GetExecuteData(Desc, &lpExecuteData)))
+		if (FAILED(pExecuteBuffer->GetBuffer(&lpData, ExecuteData, &lpStatus)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: get execute data failed!");
 			return DDERR_INVALIDPARAMS;
@@ -506,8 +507,8 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 		}
 
 		// Pointer to the start of the instruction data
-		BYTE* instructionData = reinterpret_cast<BYTE*>(Desc.lpData) + lpExecuteData->dwInstructionOffset;
-		BYTE* instructionEnd = instructionData + lpExecuteData->dwInstructionLength;
+		BYTE* instructionData = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwInstructionOffset;
+		BYTE* instructionEnd = instructionData + ExecuteData.dwInstructionLength;
 
 		DWORD opcode = NULL;
 
@@ -515,8 +516,8 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 		DWORD VertexTypeDesc = D3DFVF_TLVERTEX;
 
 		// Primitive structures and related defines. Vertex offsets are to types D3DVERTEX, D3DLVERTEX, or D3DTLVERTEX.
-		BYTE* vertexBuffer = reinterpret_cast<BYTE*>(Desc.lpData) + lpExecuteData->dwVertexOffset;
-		const DWORD vertexCount = lpExecuteData->dwVertexCount;
+		BYTE* vertexBuffer = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwVertexOffset;
+		const DWORD vertexCount = ExecuteData.dwVertexCount;
 
 		DWORD EmulatedDriverStatus = 0;
 
@@ -801,7 +802,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 				{
 				case D3DSETSTATUS_STATUS:
 					// Set execute status
-					lpExecuteData->dsStatus = *status;
+					*lpStatus = *status;
 					break;
 				case D3DSETSTATUS_EXTENTS:
 					// ToDo: Set extents status
