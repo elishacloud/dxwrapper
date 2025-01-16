@@ -44,13 +44,13 @@ private:
 	inline IDirect3D3 *GetProxyInterfaceV3() { return (IDirect3D3 *)ProxyInterface; }
 	inline IDirect3D7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
-	// Interface initialization functions
-	void InitDirect3D(DWORD DirectXVersion);
-	void ReleaseDirect3D();
-
 	// Helper functions
 	void GetCap9Cache();
 	void ResolutionHack();
+
+	// Interface initialization functions
+	void InitInterface(DWORD DirectXVersion);
+	void ReleaseInterface();
 
 public:
 	m_IDirect3DX(IDirect3D7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
@@ -66,7 +66,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
 
-		InitDirect3D(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	m_IDirect3DX(m_IDirectDrawX *lpDdraw, DWORD DirectXVersion) : ddrawParent(lpDdraw)
 	{
@@ -74,13 +74,13 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		InitDirect3D(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	~m_IDirect3DX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseDirect3D();
+		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/

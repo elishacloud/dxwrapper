@@ -3,6 +3,10 @@
 #include <ddraw.h>
 #include "Wrappers\wrapper.h"
 
+typedef HRESULT(WINAPI* DirectDrawCreateProc)(GUID FAR* lpGUID, LPDIRECTDRAW FAR* lplpDD, IUnknown FAR* pUnkOuter);
+typedef HRESULT(WINAPI* DirectDrawCreateExProc)(GUID FAR* lpGUID, LPVOID* lplpDD, REFIID riid, IUnknown FAR* pUnkOuter);
+typedef HRESULT(WINAPI* DirectDrawCreateClipperProc)(DWORD dwFlags, LPDIRECTDRAWCLIPPER* lplpDDClipper, LPUNKNOWN pUnkOuter);
+
 HRESULT WINAPI dd_AcquireDDThreadLock();
 DWORD WINAPI dd_CompleteCreateSysmemSurface(DWORD arg);
 HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd);
@@ -25,6 +29,8 @@ HRESULT WINAPI dd_GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 *lpDDS, DWORD a
 HRESULT WINAPI dd_RegisterSpecialCase(DWORD arg1, DWORD arg2, DWORD arg3, DWORD arg4);
 HRESULT WINAPI dd_ReleaseDDThreadLock();
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
+
+bool CheckDirectDrawXInterface(void* pInterface);
 
 class m_IDirectDrawClipper;
 

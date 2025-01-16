@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -16,14 +16,70 @@
 
 #include "ddraw.h"
 
+// Cached wrapper interface
+namespace {
+	m_IDirectDrawGammaControl* WrapperInterfaceBackup = nullptr;
+}
+
+inline static void SaveInterfaceAddress(m_IDirectDrawGammaControl* Interface, m_IDirectDrawGammaControl*& InterfaceBackup)
+{
+	if (Interface)
+	{
+		SetCriticalSection();
+		Interface->SetProxy(nullptr, nullptr);
+		if (InterfaceBackup)
+		{
+			InterfaceBackup->DeleteMe();
+			InterfaceBackup = nullptr;
+		}
+		InterfaceBackup = Interface;
+		ReleaseCriticalSection();
+	}
+}
+
+m_IDirectDrawGammaControl* CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent)
+{
+	SetCriticalSection();
+	m_IDirectDrawGammaControl* Interface = nullptr;
+	if (WrapperInterfaceBackup)
+	{
+		Interface = WrapperInterfaceBackup;
+		WrapperInterfaceBackup = nullptr;
+		Interface->SetProxy(aOriginal, NewParent);
+	}
+	else
+	{
+		if (aOriginal)
+		{
+			Interface = new m_IDirectDrawGammaControl(aOriginal);
+		}
+		else
+		{
+			Interface = new m_IDirectDrawGammaControl(NewParent);
+		}
+	}
+	ReleaseCriticalSection();
+	return Interface;
+}
+
 HRESULT m_IDirectDrawGammaControl::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
+
+	if (!ProxyInterface && !ddrawParent)
+	{
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+		}
+		return E_NOINTERFACE;
+	}
 
 	if (!ppvObj)
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{
@@ -52,6 +108,11 @@ ULONG m_IDirectDrawGammaControl::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterface && !ddrawParent)
+	{
+		return 0;
+	}
+
 	if (!ProxyInterface)
 	{
 		return InterlockedIncrement(&RefCount);
@@ -63,6 +124,11 @@ ULONG m_IDirectDrawGammaControl::AddRef()
 ULONG m_IDirectDrawGammaControl::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface && !ddrawParent)
+	{
+		return 0;
+	}
 
 	ULONG ref;
 
@@ -77,7 +143,7 @@ ULONG m_IDirectDrawGammaControl::Release()
 
 	if (ref == 0)
 	{
-		delete this;
+		SaveInterfaceAddress(this, WrapperInterfaceBackup);
 	}
 
 	return ref;
@@ -86,6 +152,11 @@ ULONG m_IDirectDrawGammaControl::Release()
 HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface && !ddrawParent)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 
 	if (!ProxyInterface)
 	{
@@ -109,6 +180,11 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterface && !ddrawParent)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
+
 	if (!ProxyInterface)
 	{
 		if (!(dwFlags == D3DSGR_NO_CALIBRATION || dwFlags == DDSGR_CALIBRATE) || !lpRampData)
@@ -131,12 +207,12 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 /*** Helper functions ***/
 /************************/
 
-void m_IDirectDrawGammaControl::InitGammaControl()
+void m_IDirectDrawGammaControl::InitInterface()
 {
 	// Initialize gamma control
 }
 
-void m_IDirectDrawGammaControl::ReleaseGammaControl()
+void m_IDirectDrawGammaControl::ReleaseInterface()
 {
 	if (ddrawParent && !Config.Exiting)
 	{

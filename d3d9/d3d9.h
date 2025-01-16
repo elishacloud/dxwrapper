@@ -1,6 +1,7 @@
 #pragma once
 
 #include "d3d9External.h"
+#include <deque>
 #include "GDI\GDI.h"
 
 class m_IDirect3D9Ex;
@@ -20,6 +21,8 @@ class m_IDirect3DVolume9;
 class m_IDirect3DVolumeTexture9;
 
 #include "AddressLookupTable.h"
+#include "IClassFactory\IClassFactory.h"
+#include "Utils\Utils.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 

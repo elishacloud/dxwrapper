@@ -2,17 +2,13 @@
 // Microsoft Visual C++ generated include file.
 // Used by stub.rc
 
-#include "BuildNo.rc"
+#include "..\Dllmain\Resource.h"
 
 // Main resource file details
 #define APP_NAME				"DxWrapper Stub"
-#define APP_MAJOR				1
-#define APP_MINOR				0
-#define APP_BUILDNUMBER			BUILD_NUMBER
-#define APP_REVISION			1
 #define APP_COMPANYNAME			"Sadrate Presents"
 #define APP_DESCRPTION			"Stub for DxWrapper. Supports: bcrypt.dll, cryptsp.dll, d2d1.dll, d3d8.dll, d3d9.dll, d3d10.dll, d3d11.dll, d3d12.dll, dciman32.dll, ddraw.dll, dinput.dll, dinput8.dll, dplayx.dll, dsound.dll, msacm32.dll, msvfw32.dll, version.dll, winmm.dll, winmmbase.dll"  // Can only be 256 characters long
-#define APP_COPYRIGHT			"Copyright (C) 2023 Elisha Riedlinger"
+#define APP_COPYRIGHT			"Copyright (C) 2024 Elisha Riedlinger"
 #define APP_ORIGINALVERSION		"Stub.dll"
 #define APP_INTERNALNAME		"DxWrapper Stub"
 

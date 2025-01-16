@@ -4,18 +4,30 @@ class m_IDirect3DVertexBuffer : public IDirect3DVertexBuffer, public AddressLook
 {
 private:
 	m_IDirect3DVertexBufferX *ProxyInterface;
-	IDirect3DVertexBuffer *RealInterface;
 	REFIID WrapperID = IID_IDirect3DVertexBuffer;
 	const DWORD DirectXVersion = 1;
 
 public:
-	m_IDirect3DVertexBuffer(IDirect3DVertexBuffer *aOriginal, m_IDirect3DVertexBufferX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface)
+	m_IDirect3DVertexBuffer(IDirect3DVertexBuffer *, m_IDirect3DVertexBufferX *Interface) : ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DVertexBuffer()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
+	}
+
+	void SetProxy(m_IDirect3DVertexBufferX* NewProxyInterface)
+	{
+		ProxyInterface = NewProxyInterface;
+		if (NewProxyInterface)
+		{
+			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		}
+		else
+		{
+			ProxyAddressLookupTable.DeleteAddress(this);
+		}
 	}
 
 	/*** IUnknown methods ***/

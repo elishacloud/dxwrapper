@@ -5,6 +5,44 @@
 
 constexpr UINT MaxIndex = 43;
 
+template <typename T>
+inline void SaveInterfaceAddress(T*& Interface, T*& InterfaceBackup)
+{
+	if (Interface)
+	{
+		SetCriticalSection();
+		Interface->SetProxy(nullptr);
+		if (InterfaceBackup)
+		{
+			InterfaceBackup->DeleteMe();
+			InterfaceBackup = nullptr;
+		}
+		InterfaceBackup = Interface;
+		ReleaseCriticalSection();
+	}
+}
+
+template <typename T, typename S, typename X>
+inline T* GetInterfaceAddress(T*& Interface, T*& InterfaceBackup, S* ProxyInterface, X* InterfaceX)
+{
+	if (!Interface)
+	{
+		SetCriticalSection();
+		if (InterfaceBackup)
+		{
+			Interface = InterfaceBackup;
+			InterfaceBackup = nullptr;
+			Interface->SetProxy(InterfaceX);
+		}
+		else
+		{
+			Interface = new T(ProxyInterface, InterfaceX);
+		}
+		ReleaseCriticalSection();
+	}
+	return Interface;
+}
+
 template <typename D>
 class AddressLookupTableDdraw
 {

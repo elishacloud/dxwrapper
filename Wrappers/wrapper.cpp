@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -191,7 +191,7 @@ __declspec(naked) HRESULT __stdcall Wrapper::_jmpaddr()
 
 bool Wrapper::ValidProcAddress(FARPROC ProcAddress)
 {
-	for (wrapper_map i : jmpArray)
+	for (auto& i : jmpArray)
 	{
 		if (i.Proc == ProcAddress)
 		{
@@ -208,7 +208,7 @@ bool Wrapper::ValidProcAddress(FARPROC ProcAddress)
 
 void Wrapper::ShimProc(volatile FARPROC &var, FARPROC in, volatile FARPROC &out)
 {
-	if (ValidProcAddress(var) && var != in)
+	if (ValidProcAddress(var) && ValidProcAddress(in) && var != in)
 	{
 		out = var;
 		var = in;

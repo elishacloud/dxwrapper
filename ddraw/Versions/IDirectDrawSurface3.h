@@ -4,23 +4,35 @@ class m_IDirectDrawSurface3 : public IDirectDrawSurface3, public AddressLookupTa
 {
 private:
 	m_IDirectDrawSurfaceX *ProxyInterface;
-	IDirectDrawSurface3 *RealInterface;
 	REFIID WrapperID = IID_IDirectDrawSurface3;
 	const DWORD DirectXVersion = 3;
 	const DWORD MipMapLevel;
 
 public:
-	m_IDirectDrawSurface3(m_IDirectDrawSurfaceX* Interface, DWORD Level) : RealInterface(nullptr), ProxyInterface(Interface), MipMapLevel(Level)
+	m_IDirectDrawSurface3(m_IDirectDrawSurfaceX* Interface, DWORD Level) : ProxyInterface(Interface), MipMapLevel(Level)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, this);
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
-	m_IDirectDrawSurface3(IDirectDrawSurface3 *aOriginal, m_IDirectDrawSurfaceX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface), MipMapLevel(0)
+	m_IDirectDrawSurface3(IDirectDrawSurface3 *, m_IDirectDrawSurfaceX *Interface) : ProxyInterface(Interface), MipMapLevel(0)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectDrawSurface3()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
+	}
+
+	void SetProxy(m_IDirectDrawSurfaceX* NewProxyInterface)
+	{
+		ProxyInterface = NewProxyInterface;
+		if (NewProxyInterface)
+		{
+			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		}
+		else
+		{
+			ProxyAddressLookupTable.DeleteAddress(this);
+		}
 	}
 
 	/*** IUnknown methods ***/

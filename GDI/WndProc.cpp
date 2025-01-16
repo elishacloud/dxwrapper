@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -17,25 +17,25 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <algorithm>
-#include <atomic>
-#include "d3d9\d3d9External.h"
+#include "WndProc.h"
 #include "GDI.h"
+#include "ddraw\ddraw.h"
+#include "ddraw\ddrawExternal.h"
+#include "d3d9\d3d9External.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
 namespace WndProc
 {
-	struct DATASTRUCT {
-		std::atomic<bool> IsMinimized;
-		std::atomic<bool> IsWindowDisabled;
-	};
-
 	struct WNDPROCSTRUCT;
 
 	LRESULT CALLBACK Handler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance);
 	WNDPROC GetWndProc(HWND hWnd);
 	LONG SetWndProc(HWND hWnd, WNDPROC ProcAddress);
 	LRESULT CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+	bool IsExecutableAddress(void* address);
+
+	bool SwitchingResolution = false;
 
 	struct WNDPROCSTRUCT
 	{
@@ -67,11 +67,10 @@ namespace WndProc
 		WNDPROC MyWndProc = 0;
 		WNDPROC AppWndProc = 0;
 		DATASTRUCT DataStruct = {};
-		bool IsDirectDrawHwnd = false;
 		bool Active = true;
 		bool Exiting = false;
 	public:
-		WNDPROCSTRUCT(HWND p_hWnd, WNDPROC p_AppWndProc, bool IsDirectDraw) : hWnd(p_hWnd), AppWndProc(p_AppWndProc), IsDirectDrawHwnd(IsDirectDraw)
+		WNDPROCSTRUCT(HWND p_hWnd, WNDPROC p_AppWndProc) : hWnd(p_hWnd), AppWndProc(p_AppWndProc)
 		{
 			// Set memory protection to make it executable
 			if (VirtualProtect(FunctCode, sizeof(FunctCode), PAGE_EXECUTE_READWRITE, &oldProtect))
@@ -106,24 +105,41 @@ namespace WndProc
 				VirtualProtect(FunctCode, sizeof(FunctCode), oldProtect, &tmpProtect);
 			}
 		}
-		HWND GetHWnd() { return hWnd; }
-		WNDPROC GetMyWndProc() { return MyWndProc; }
-		WNDPROC GetAppWndProc() { return AppWndProc; }
+		HWND GetHWnd() const { return hWnd; }
+		WNDPROC GetMyWndProc() const { return MyWndProc; }
+		WNDPROC GetAppWndProc() const { return AppWndProc; }
 		DATASTRUCT* GetDataStruct() { return &DataStruct; }
-		bool IsDirectDraw() { return IsDirectDrawHwnd; }
-		bool IsActive() { return Active; }
+		bool IsActive() const { return Active; }
 		void SetInactive() { Active = false; }
-		bool IsExiting() { return Exiting; }
+		bool IsExiting() const { return Exiting; }
 	};
 
 	std::vector<std::shared_ptr<WNDPROCSTRUCT>> WndProcList;
+}
+
+bool WndProc::IsExecutableAddress(void* address)
+{
+	if (!address)
+	{
+		return false;
+	}
+
+	MEMORY_BASIC_INFORMATION mbi = {};
+	SIZE_T result = VirtualQuery(address, &mbi, sizeof(mbi));
+	if (result == 0)
+	{
+		return false;
+	}
+
+	return (mbi.State == MEM_COMMIT) &&
+		(mbi.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY));
 }
 
 WNDPROC WndProc::CheckWndProc(HWND hWnd, LONG dwNewLong)
 {
 	for (auto& entry : WndProcList)
 	{
-		if (entry->GetHWnd() == hWnd && !(entry->IsExiting() && (LONG)entry->GetAppWndProc() == dwNewLong))
+		if (entry->IsActive() && entry->GetHWnd() == hWnd && !(entry->IsExiting() && (LONG)entry->GetAppWndProc() == dwNewLong))
 		{
 			return entry->GetMyWndProc();
 		}
@@ -156,12 +172,12 @@ LRESULT WndProc::CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM 
 			DefWindowProcA(hWnd, Msg, wParam, lParam)));
 }
 
-bool WndProc::AddWndProc(HWND hWnd, bool IsDirectDraw)
+WndProc::DATASTRUCT* WndProc::AddWndProc(HWND hWnd)
 {
 	// Validate window handle
 	if (!IsWindow(hWnd))
 	{
-		return false;
+		return nullptr;
 	}
 
 	// Remove inactive elements
@@ -177,7 +193,7 @@ bool WndProc::AddWndProc(HWND hWnd, bool IsDirectDraw)
 	{
 		if (entry->IsActive() && entry->GetHWnd() == hWnd)
 		{
-			return true;
+			return entry->GetDataStruct();
 		}
 	}
 
@@ -186,25 +202,25 @@ bool WndProc::AddWndProc(HWND hWnd, bool IsDirectDraw)
 	if (!NewAppWndProc)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get wndproc window pointer!");
-		return false;
+		return nullptr;
 	}
 
 	// Create new struct
-	auto NewEntry = std::make_shared<WNDPROCSTRUCT>(hWnd, NewAppWndProc, IsDirectDraw);
+	auto NewEntry = std::make_shared<WNDPROCSTRUCT>(hWnd, NewAppWndProc);
 
 	// Get new WndProc
 	WNDPROC NewWndProc = NewEntry->GetMyWndProc();
 	if (!NewWndProc)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get function target!");
-		return false;
+		return nullptr;
 	}
 
 	// Set new window pointer and store struct address
 	LOG_LIMIT(100, __FUNCTION__ << " Creating WndProc instance! " << hWnd);
 	SetWndProc(hWnd, NewWndProc);
 	WndProcList.push_back(NewEntry);
-	return true;
+	return NewEntry->GetDataStruct();
 }
 
 void WndProc::RemoveWndProc(HWND hWnd)
@@ -219,9 +235,40 @@ void WndProc::RemoveWndProc(HWND hWnd)
 	WndProcList.erase(newEnd, WndProcList.end());
 }
 
+WndProc::DATASTRUCT* WndProc::GetWndProctStruct(HWND hWnd)
+{
+	for (auto& entry : WndProcList)
+	{
+		if (entry->IsActive() && entry->GetHWnd() == hWnd)
+		{
+			return entry->GetDataStruct();
+		}
+	}
+	return nullptr;
+}
+
+DWORD WndProc::MakeKey(DWORD Val1, DWORD Val2)
+{
+	DWORD Result = 0;
+	for (DWORD Val : { Val1, Val2 } )
+	{
+		for (int x = 1; x < 8; x++)
+		{
+			Val = Val ^ (Val << 20);
+			Val = Val ^ (Val >> 12);
+			Val = (Val << 15) + (Val >> 17);
+		}
+		Result += Val;
+	}
+	return Result % 8 ? Result ^ 0xAAAAAAAA : Result ^ 0x55555555;
+}
+
 LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
 {
-	Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg);
+	if (Msg != WM_PAINT)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam;
+	}
 
 	if (!AppWndProcInstance || !hWnd)
 	{
@@ -231,23 +278,85 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	const WNDPROC pWndProc = AppWndProcInstance->GetAppWndProc();
 	const HWND hWndInstance = AppWndProcInstance->GetHWnd();
-	DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
+	const DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
 
-	// Handle when window is minimzed
-	if (AppWndProcInstance->IsDirectDraw())
+	// Set instance as inactive when window closes
+	if ((Msg == WM_CLOSE || Msg == WM_DESTROY || Msg == WM_NCDESTROY || (Msg == WM_SYSCOMMAND && wParam == SC_CLOSE)) && hWnd == hWndInstance)
 	{
-		if (IsIconic(hWnd) && !pDataStruct->IsMinimized)
+		AppWndProcInstance->SetInactive();
+	}
+
+	// Handle Direct3D9 device creation
+	if (Msg == WM_APP_CREATE_D3D9_DEVICE && WM_MAKE_KEY(hWnd, wParam) == lParam)
+	{
+		if (CheckDirectDrawXInterface((void*)wParam))
 		{
-			pDataStruct->IsMinimized = true;
-			//CallWndProc(pWndProc, hWnd, WM_KILLFOCUS, WM_NULL, WM_NULL);
+			((m_IDirectDrawX*)wParam)->CreateD9Device(__FUNCTION__);
 		}
-		else if (!IsIconic(hWnd) && pDataStruct->IsMinimized)
+
+		return NULL;
+	}
+
+	// Special handling for DirectDraw games
+	if (pDataStruct->IsDirectDraw)
+	{
+		// Filter some messages while creating a Direct3D9 device
+		if (pDataStruct->IsCreatingDevice)
 		{
-			pDataStruct->IsMinimized = false;
+			switch (Msg)
+			{
+			case WM_ACTIVATE:
+				return NULL;
+			}
 		}
-		if (Msg == WM_ACTIVATE)
+		// Some games hang when attempting to paint while iconic
+		if (IsIconic(hWnd))
 		{
-			pDataStruct->IsWindowDisabled = (wParam == TRUE) ? false : (wParam == FALSE) ? true : pDataStruct->IsWindowDisabled;
+			switch (Msg)
+			{
+			case WM_PAINT:
+			case WM_SYNCPAINT:
+				return NULL;
+			}
+		}
+		// Handle cases where monitor gets disconnected during resolution change
+		if (Msg == WM_DISPLAYCHANGE)
+		{
+			SwitchingResolution = true;
+		}
+	}
+
+	// Filter some messages while forcing windowed mode
+	if (Config.EnableWindowMode && pDataStruct->IsDirect3D9 && pDataStruct->IsExclusiveMode)
+	{
+		switch (Msg)
+		{
+		case WM_NCACTIVATE:
+			if (pDataStruct->IsDirectDraw)
+			{
+				return TRUE;
+			}
+			break;
+		case WM_ACTIVATE:
+		case WM_ACTIVATEAPP:
+			if (pDataStruct->IsDirectDraw)
+			{
+				return NULL;
+			}
+			break;
+		case WM_STYLECHANGING:
+		case WM_STYLECHANGED:
+		case WM_ENTERSIZEMOVE:
+		case WM_EXITSIZEMOVE:
+		case WM_SIZING:
+		case WM_SIZE:
+		case WM_WINDOWPOSCHANGING:
+		case WM_WINDOWPOSCHANGED:
+			if (pDataStruct->IsCreatingDevice)
+			{
+				return NULL;
+			}
+			break;
 		}
 	}
 
@@ -259,13 +368,5 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	}
 #endif
 
-	LRESULT lr = CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
-
-	// Set instance as inactive when window closes
-	if ((Msg == WM_CLOSE || Msg == WM_DESTROY || Msg == WM_NCDESTROY || (Msg == WM_SYSCOMMAND && wParam == SC_CLOSE)) && hWnd == hWndInstance)
-	{
-		AppWndProcInstance->SetInactive();
-	}
-
-	return lr;
+	return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 }

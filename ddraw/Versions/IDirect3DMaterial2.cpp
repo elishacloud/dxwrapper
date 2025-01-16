@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -18,30 +18,58 @@
 
 HRESULT m_IDirect3DMaterial2::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	if (!ProxyInterface)
+	{
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+		}
+		return E_NOINTERFACE;
+	}
 	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3DMaterial2::AddRef()
 {
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
 	return ProxyInterface->AddRef(DirectXVersion);
 }
 
 ULONG m_IDirect3DMaterial2::Release()
 {
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
 	return ProxyInterface->Release(DirectXVersion);
 }
 
 HRESULT m_IDirect3DMaterial2::SetMaterial(LPD3DMATERIAL a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->SetMaterial(a);
 }
 
 HRESULT m_IDirect3DMaterial2::GetMaterial(LPD3DMATERIAL a)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetMaterial(a);
 }
 
 HRESULT m_IDirect3DMaterial2::GetHandle(LPDIRECT3DDEVICE2 a, LPD3DMATERIALHANDLE b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->GetHandle((LPDIRECT3DDEVICE3)a, b);
 }

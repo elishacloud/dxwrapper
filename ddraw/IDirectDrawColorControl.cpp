@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -16,14 +16,70 @@
 
 #include "ddraw.h"
 
+// Cached wrapper interface
+namespace {
+	m_IDirectDrawColorControl* WrapperInterfaceBackup = nullptr;
+}
+
+inline static void SaveInterfaceAddress(m_IDirectDrawColorControl* Interface, m_IDirectDrawColorControl*& InterfaceBackup)
+{
+	if (Interface)
+	{
+		SetCriticalSection();
+		Interface->SetProxy(nullptr, nullptr);
+		if (InterfaceBackup)
+		{
+			InterfaceBackup->DeleteMe();
+			InterfaceBackup = nullptr;
+		}
+		InterfaceBackup = Interface;
+		ReleaseCriticalSection();
+	}
+}
+
+m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent)
+{
+	SetCriticalSection();
+	m_IDirectDrawColorControl* Interface = nullptr;
+	if (WrapperInterfaceBackup)
+	{
+		Interface = WrapperInterfaceBackup;
+		WrapperInterfaceBackup = nullptr;
+		Interface->SetProxy(aOriginal, NewParent);
+	}
+	else
+	{
+		if (aOriginal)
+		{
+			Interface = new m_IDirectDrawColorControl(aOriginal);
+		}
+		else
+		{
+			Interface = new m_IDirectDrawColorControl(NewParent);
+		}
+	}
+	ReleaseCriticalSection();
+	return Interface;
+}
+
 HRESULT m_IDirectDrawColorControl::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
+
+	if (!ProxyInterface && !ddrawParent)
+	{
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+		}
+		return E_NOINTERFACE;
+	}
 
 	if (!ppvObj)
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{
@@ -52,6 +108,11 @@ ULONG m_IDirectDrawColorControl::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterface && !ddrawParent)
+	{
+		return 0;
+	}
+
 	if (!ProxyInterface)
 	{
 		return InterlockedIncrement(&RefCount);
@@ -63,6 +124,11 @@ ULONG m_IDirectDrawColorControl::AddRef()
 ULONG m_IDirectDrawColorControl::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface && !ddrawParent)
+	{
+		return 0;
+	}
 
 	ULONG ref;
 
@@ -77,7 +143,7 @@ ULONG m_IDirectDrawColorControl::Release()
 
 	if (ref == 0)
 	{
-		delete this;
+		SaveInterfaceAddress(this, WrapperInterfaceBackup);
 	}
 
 	return ref;
@@ -86,6 +152,11 @@ ULONG m_IDirectDrawColorControl::Release()
 HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorControl)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface && !ddrawParent)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 
 	if (!ProxyInterface)
 	{
@@ -105,6 +176,11 @@ HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorCont
 HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorControl)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface && !ddrawParent)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 
 	if (!ProxyInterface)
 	{
@@ -141,7 +217,7 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 /*** Helper functions ***/
 /************************/
 
-void m_IDirectDrawColorControl::InitColorControl()
+void m_IDirectDrawColorControl::InitInterface()
 {
 	ColorControl.dwSize = sizeof(DDCOLORCONTROL);
 	ColorControl.dwFlags = DDCOLOR_BRIGHTNESS | DDCOLOR_CONTRAST | DDCOLOR_HUE | DDCOLOR_SATURATION | DDCOLOR_SHARPNESS | DDCOLOR_GAMMA | DDCOLOR_COLORENABLE;
@@ -155,7 +231,7 @@ void m_IDirectDrawColorControl::InitColorControl()
 	ColorControl.dwReserved1 = 0;
 }
 
-void m_IDirectDrawColorControl::ReleaseColorControl()
+void m_IDirectDrawColorControl::ReleaseInterface()
 {
 	if (ddrawParent && !Config.Exiting)
 	{

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -15,8 +15,64 @@
 */
 
 #include "ddraw.h"
+#include "Utils\Utils.h"
 
-void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
+// For storing resolution list
+std::vector<std::pair<DWORD, DWORD>> CashedDisplayResolutions;
+
+void AddDisplayResolution(DWORD Width, DWORD Height)
+{
+	if (!IsDisplayResolution(Width, Height))
+	{
+		CashedDisplayResolutions.push_back({ Width, Height });
+	}
+}
+
+bool IsDisplayResolution(DWORD Width, DWORD Height)
+{
+	for (const auto& entry : CashedDisplayResolutions)
+	{
+		if (entry.first == Width && entry.second == Height)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+DWORD ComputeRND(DWORD Seed, DWORD Num)
+{
+	LARGE_INTEGER PerformanceCount = {};
+	QueryPerformanceCounter(&PerformanceCount);
+	DWORD NewSeed = PerformanceCount.HighPart ^ PerformanceCount.LowPart;
+	return (Seed ^ NewSeed) + (Num ^ ((NewSeed << 16) + (NewSeed >> 16))) + Utils::ReverseBits(NewSeed);
+}
+
+bool DoRectsMatch(const RECT& lhs, const RECT& rhs)
+{
+	return lhs.left == rhs.left && lhs.top == rhs.top &&
+		lhs.right == rhs.right && lhs.bottom == rhs.bottom;
+}
+
+bool GetOverlappingRect(const RECT& rect1, const RECT& rect2, RECT& outOverlapRect)
+{
+	// Compute the boundaries of the overlap
+	outOverlapRect.left = max(rect1.left, rect2.left);
+	outOverlapRect.top = max(rect1.top, rect2.top);
+	outOverlapRect.right = min(rect1.right, rect2.right);
+	outOverlapRect.bottom = min(rect1.bottom, rect2.bottom);
+
+	// Check if they overlap
+	if (outOverlapRect.left < outOverlapRect.right && outOverlapRect.top < outOverlapRect.bottom)
+	{
+		return true; // Rectangles overlap
+	}
+
+	// If no overlap, return false
+	return false;
+}
+
+void ConvertSurfaceDesc(DDSURFACEDESC& Desc, const DDSURFACEDESC2& Desc2)
 {
 	// Check for supported dwSize
 	if (Desc.dwSize != sizeof(DDSURFACEDESC) || (Desc2.dwSize != sizeof(DDSURFACEDESC2) && Desc2.dwSize != sizeof(DDSURFACEDESC)))
@@ -57,13 +113,13 @@ void ConvertSurfaceDesc(DDSURFACEDESC &Desc, DDSURFACEDESC2 &Desc2)
 	}
 	ConvertCaps(Desc.ddsCaps, Desc2.ddsCaps);
 	// Check for dwFlags that did not get converted
-	if (Desc.dwFlags != Desc2.dwFlags && (Desc.dwFlags - Desc2.dwFlags) != ((DWORD)DDSD_ZBUFFERBITDEPTH - (DWORD)DDSD_PIXELFORMAT))
+	if (Desc.dwFlags != Desc2.dwFlags && (Desc2.dwFlags - Desc.dwFlags) != ((DWORD)DDSD_PIXELFORMAT - (DWORD)DDSD_ZBUFFERBITDEPTH))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: (Desc2->Desc) Removing unsupported flags: " << Logging::hex(Desc2.dwFlags & ~Desc.dwFlags));
 	}
 }
 
-void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
+void ConvertSurfaceDesc(DDSURFACEDESC2& Desc2, const DDSURFACEDESC& Desc)
 {
 	// Check for supported dwSize
 	if (Desc2.dwSize != sizeof(DDSURFACEDESC2) || Desc.dwSize != sizeof(DDSURFACEDESC))
@@ -106,8 +162,10 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 		Desc2.dwFlags |= DDSD_PIXELFORMAT;
 		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 		Desc2.ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
-		Desc2.ddpfPixelFormat.dwZBufferBitDepth = Desc.dwZBufferBitDepth;		
-		Desc2.ddpfPixelFormat.dwZBitMask = (Desc2.ddpfPixelFormat.dwZBufferBitDepth == 32) ? 0xFFFFFFFF :
+		Desc2.ddpfPixelFormat.dwZBufferBitDepth = Desc.dwZBufferBitDepth;
+		Desc2.ddpfPixelFormat.dwZBitMask =
+			(Desc2.ddpfPixelFormat.dwZBufferBitDepth == 32) ? 0xFFFFFFFF :
+			(Desc2.ddpfPixelFormat.dwZBufferBitDepth == 24) ? 0xFFFFFF00 :
 			(Desc2.ddpfPixelFormat.dwZBufferBitDepth == 16) ? 0xFFFF : 0;
 		Desc2.dwRefreshRate = 0;	// Union with dwZBufferBitDepth
 	}
@@ -115,13 +173,85 @@ void ConvertSurfaceDesc(DDSURFACEDESC2 &Desc2, DDSURFACEDESC &Desc)
 	// Extra parameters
 	Desc2.dwTextureStage = 0;			// Stage identifier that is used to bind a texture to a specific stage
 	// Check for dwFlags that did not get converted
-	if (Desc.dwFlags != Desc2.dwFlags && (Desc.dwFlags - Desc2.dwFlags) != ((DWORD)DDSD_ZBUFFERBITDEPTH - (DWORD)DDSD_PIXELFORMAT))
+	if (Desc.dwFlags != Desc2.dwFlags && (Desc2.dwFlags - Desc.dwFlags) != ((DWORD)DDSD_PIXELFORMAT - (DWORD)DDSD_ZBUFFERBITDEPTH))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: (Desc->Desc2) Removing unsupported flags: " << Logging::hex(Desc.dwFlags & ~Desc2.dwFlags));
 	}
 }
 
-void ConvertPixelFormat(DDPIXELFORMAT& Format, DDS_PIXELFORMAT& Format2)
+void ClearUnusedValues(DDSURFACEDESC2& Desc2)
+{
+	// Check for supported dwSize
+	if (Desc2.dwSize != sizeof(DDSURFACEDESC2))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Desc2.dwSize);
+		return;
+	}
+
+	if (!(Desc2.dwFlags & DDSD_HEIGHT)) Desc2.dwHeight = 0;
+	if (!(Desc2.dwFlags & DDSD_WIDTH)) Desc2.dwWidth = 0;
+	if (!(Desc2.dwFlags & (DDSD_PITCH | DDSD_LINEARSIZE))) Desc2.lPitch = 0;
+	if (!(Desc2.dwFlags & (DDSD_BACKBUFFERCOUNT | DDSD_DEPTH))) Desc2.dwBackBufferCount = 0;
+	if (!(Desc2.dwFlags & (DDSD_MIPMAPCOUNT | DDSD_REFRESHRATE | DDSD_SRCVBHANDLE))) Desc2.dwMipMapCount = 0;
+	if (!(Desc2.dwFlags & DDSD_ALPHABITDEPTH)) Desc2.dwAlphaBitDepth = 0;
+
+	Desc2.dwReserved = 0;
+
+	if (!(Desc2.dwFlags & DDSD_LPSURFACE)) Desc2.lpSurface = nullptr;
+
+	if (!(Desc2.dwFlags & DDSD_CKDESTOVERLAY))
+	{
+		Desc2.ddckCKDestOverlay.dwColorSpaceLowValue = 0;
+		Desc2.ddckCKDestOverlay.dwColorSpaceHighValue = 0;
+	}
+
+	if (!(Desc2.dwFlags & DDSD_CKDESTBLT))
+	{
+		Desc2.ddckCKDestBlt.dwColorSpaceLowValue = 0;
+		Desc2.ddckCKDestBlt.dwColorSpaceHighValue = 0;
+	}
+
+	if (!(Desc2.dwFlags & DDSD_CKSRCOVERLAY))
+	{
+		Desc2.ddckCKSrcOverlay.dwColorSpaceLowValue = 0;
+		Desc2.ddckCKSrcOverlay.dwColorSpaceHighValue = 0;
+	}
+
+	if (!(Desc2.dwFlags & DDSD_CKSRCBLT))
+	{
+		Desc2.ddckCKSrcBlt.dwColorSpaceLowValue = 0;
+		Desc2.ddckCKSrcBlt.dwColorSpaceHighValue = 0;
+	}
+
+	if (!(Desc2.dwFlags & DDSD_PIXELFORMAT))
+	{
+		if (Desc2.dwFlags & DDSD_FVF)
+		{
+			// Preserve the dwFVF value and clear ddpfPixelFormat
+			DWORD dwFVF = Desc2.dwFVF;
+			Desc2.ddpfPixelFormat = {}; // Clears the pixel format
+			Desc2.dwFVF = dwFVF;        // Restore dwFVF
+		}
+		else
+		{
+			Desc2.ddpfPixelFormat = {};
+		}
+	}
+	else
+	{
+		Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
+	}
+
+	if (!(Desc2.dwFlags & DDSD_CAPS))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Surface desc has no caps!");
+		Desc2.ddsCaps = {};
+	}
+
+	if (!(Desc2.dwFlags & DDSD_TEXTURESTAGE)) Desc2.dwTextureStage = 0;
+}
+
+void ConvertPixelFormat(DDPIXELFORMAT& Format, const DDS_PIXELFORMAT& Format2)
 {
 	if (Format.dwSize != sizeof(DDPIXELFORMAT) || Format2.dwSize != sizeof(DDS_PIXELFORMAT))
 	{
@@ -137,19 +267,19 @@ void ConvertPixelFormat(DDPIXELFORMAT& Format, DDS_PIXELFORMAT& Format2)
 	Format.dwRGBAlphaBitMask = Format2.dwABitMask;
 }
 
-void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER &DeviceID, DDDEVICEIDENTIFIER2 &DeviceID2)
+void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER& DeviceID, const DDDEVICEIDENTIFIER2& DeviceID2)
 {
 	CopyMemory(&DeviceID, &DeviceID2, sizeof(DDDEVICEIDENTIFIER));
 }
 
-void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID2, DDDEVICEIDENTIFIER &DeviceID)
+void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2& DeviceID2, const DDDEVICEIDENTIFIER& DeviceID)
 {
 	CopyMemory(&DeviceID2, &DeviceID, sizeof(DDDEVICEIDENTIFIER));
 	// Extra parameters
 	DeviceID2.dwWHQLLevel = 0;
 }
 
-void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID2, D3DADAPTER_IDENTIFIER9 &Identifier9)
+void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2& DeviceID2, const D3DADAPTER_IDENTIFIER9& Identifier9)
 {
 	memcpy(DeviceID2.szDriver, Identifier9.Driver, MAX_DDDEVICEID_STRING);
 	memcpy(DeviceID2.szDescription, Identifier9.Description, MAX_DDDEVICEID_STRING);
@@ -163,7 +293,7 @@ void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2 &DeviceID2, D3DADAPTER_IDENTIFI
 	DeviceID2.dwWHQLLevel = Identifier9.WHQLLevel;
 }
 
-void ConvertCaps(DDSCAPS &Caps, DDSCAPS2 &Caps2)
+void ConvertCaps(DDSCAPS& Caps, const DDSCAPS2& Caps2)
 {
 	Caps.dwCaps = Caps2.dwCaps;
 	// Check for dwFlags that did not get converted
@@ -173,7 +303,7 @@ void ConvertCaps(DDSCAPS &Caps, DDSCAPS2 &Caps2)
 	}
 }
 
-void ConvertCaps(DDSCAPS2 &Caps2, DDSCAPS &Caps)
+void ConvertCaps(DDSCAPS2& Caps2, const DDSCAPS& Caps)
 {
 	Caps2.dwCaps = Caps.dwCaps;
 	// Extra parameters
@@ -183,7 +313,7 @@ void ConvertCaps(DDSCAPS2 &Caps2, DDSCAPS &Caps)
 	Caps2.dwVolumeDepth = 0;		// Not used
 }
 
-void ConvertCaps(DDCAPS &Caps, DDCAPS &Caps2)
+void ConvertCaps(DDCAPS& Caps, const DDCAPS& Caps2)
 {
 	if ((Caps.dwSize != sizeof(DDCAPS_DX1) && Caps.dwSize != sizeof(DDCAPS_DX3) &&
 		Caps.dwSize != sizeof(DDCAPS_DX5) && Caps.dwSize != sizeof(DDCAPS_DX6) &&
@@ -201,7 +331,7 @@ void ConvertCaps(DDCAPS &Caps, DDCAPS &Caps2)
 	AdjustVidMemory(&Caps.dwVidMemTotal, &Caps.dwVidMemFree);
 }
 
-void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
+void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9)
 {
 	// Note: dwVidMemTotal, dwVidMemFree and dwNumFourCCCodes are not part of D3DCAPS9 and need to be set separately
 	if (Caps7.dwSize != sizeof(DDCAPS))
@@ -217,7 +347,7 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	// Set the primary capabilities flags to indicate support for everything
 	Caps7.dwCaps = (Caps9.Caps & DDCAPS_READSCANLINE) |
 		(DDCAPS_BLT | DDCAPS_BLTFOURCC | DDCAPS_BLTSTRETCH | DDCAPS_BLTCOLORFILL | DDCAPS_CANBLTSYSMEM | /*DDCAPS_BLTQUEUE |*/
-			/*DDCAPS_OVERLAY | DDCAPS_OVERLAYCANTCLIP | DDCAPS_OVERLAYFOURCC |	DDCAPS_OVERLAYSTRETCH |*/
+			DDCAPS_OVERLAY | DDCAPS_OVERLAYFOURCC | /*DDCAPS_OVERLAYCANTCLIP | DDCAPS_OVERLAYSTRETCH |*/
 			DDCAPS_PALETTE | DDCAPS_PALETTEVSYNC | DDCAPS_COLORKEY | /*DDCAPS_COLORKEYHWASSIST |*/
 			DDCAPS_ALPHA | DDCAPS_GDI | DDCAPS_VBI | DDCAPS_CANCLIP | DDCAPS_CANCLIPSTRETCHED) |
 		(Config.DdrawDisableDirect3DCaps ? 0 : DDCAPS_3D | DDCAPS_BLTDEPTHFILL /*| DDCAPS_ZBLTS | DDCAPS_ZOVERLAYS*/);
@@ -233,13 +363,13 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 		(Config.DdrawDisableDirect3DCaps ? 0 : DDCAPS2_DYNAMICTEXTURES | DDCAPS2_CANMANAGETEXTURE /*| DDCAPS2_CANMANAGERESOURCE*/);
 
 	// Color key capabilities
-	Caps7.dwCKeyCaps = (DDCKEYCAPS_DESTBLT | DDCKEYCAPS_SRCBLT /*|
+	Caps7.dwCKeyCaps = (DDCKEYCAPS_DESTBLT | DDCKEYCAPS_SRCBLT |
+		DDCKEYCAPS_DESTOVERLAY | DDCKEYCAPS_SRCOVERLAY /*|
 		DDCKEYCAPS_DESTBLTCLRSPACE | DDCKEYCAPS_SRCBLTCLRSPACE |
 		DDCKEYCAPS_DESTBLTYUV | DDCKEYCAPS_SRCBLTYUV |
 		DDCKEYCAPS_DESTOVERLAYYUV | DDCKEYCAPS_SRCOVERLAYYUV |
 		DDCKEYCAPS_DESTBLTCLRSPACEYUV | DDCKEYCAPS_SRCBLTCLRSPACEYUV |
 		DDCKEYCAPS_DESTOVERLAYCLRSPACEYUV | DDCKEYCAPS_SRCOVERLAYCLRSPACEYUV |
-		DDCKEYCAPS_DESTOVERLAY | DDCKEYCAPS_SRCOVERLAY |
 		DDCKEYCAPS_DESTOVERLAYCLRSPACE | DDCKEYCAPS_SRCOVERLAYCLRSPACE |
 		DDCKEYCAPS_NOCOSTOVERLAY*/);
 
@@ -297,9 +427,9 @@ void ConvertCaps(DDCAPS &Caps7, D3DCAPS9 &Caps9)
 	}
 
 	// Z-buffer bit depths
-	if (Caps7.dwCaps & DDCAPS_ZBLTS)
+	if (Caps7.dwCaps & DDCAPS_3D)
 	{
-		Caps7.dwZBufferBitDepths = DDBD_8 | DDBD_16 | DDBD_24 | DDBD_32;
+		Caps7.dwZBufferBitDepths = DDBD_16 | DDBD_24 | DDBD_32;
 	}
 
 	// Overlay settings
@@ -426,7 +556,7 @@ DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height)
 	return 1 + static_cast<int>(std::floor(std::log2(min(Width, Height))));
 }
 
-DWORD GetBitCount(DDPIXELFORMAT ddpfPixelFormat)
+DWORD GetBitCount(const DDPIXELFORMAT& ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
 	{
@@ -602,29 +732,58 @@ float ConvertDepthValue(DWORD dwFillDepth, D3DFORMAT Format)
 	}
 }
 
-DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
+DWORD ComputePitch(D3DFORMAT Format, DWORD Width, DWORD Height)
 {
 	if (ISDXTEX(Format))
 	{
-		return ((GetByteAlignedWidth(Width, GetBitCount(Format)) + 3) / 4) * ((Height + 3) / 4) * (Format == D3DFMT_DXT1 ? 8 : 16);
+		return max(1, (GetByteAlignedWidth(Width, GetBitCount(Format)) + 3) / 4) * max(1, (Height + 3) / 4) * (Format == D3DFMT_DXT1 ? 8 : 16);
 	}
 	else if (Format == D3DFMT_YV12 || Format == D3DFMT_NV12)
 	{
-		return GetByteAlignedWidth(Width, GetBitCount(Format)) * Height;
+		return GetByteAlignedWidth(Width, GetBitCount(Format));
 	}
-	else if (Format & 0xFF000000)
+	else if (Format & 0xFF000000)	// Other FourCC types
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Surface size for surface format not Implemented: " << Format);
 		return 0;
+	}
+	else
+	{
+		return ((((Width * GetBitCount(Format)) + 31) & ~31) >> 3);	// Use Surface Stride for pitch
+	}
+}
+
+DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
+{
+	if (Format & 0xFF000000)	// All FourCC types
+	{
+		if (ISDXTEX(Format))
+		{
+			return ComputePitch(Format, Width, Height);	// Picth for DXT surfaces is the full surface size
+		}
+		else
+		{
+			DWORD Size = ComputePitch(Format, Width, Height);
+			if (Size)
+			{
+				return Size * Height;
+			}
+			else if (Pitch)
+			{
+				return Pitch * Height;
+			}
+		}
 	}
 	else
 	{
 		return Pitch * Height;
 	}
+
+	LOG_LIMIT(100, __FUNCTION__ << " Error: Surface size for surface format not Implemented: " << Format);
+	return 0;
 }
 
 // Count leading zeros and total number of bits
-inline void CountBits(DWORD value, DWORD& LeadingZeros, DWORD& TotalBits)
+inline static void CountBits(DWORD value, DWORD& LeadingZeros, DWORD& TotalBits)
 {
 	LeadingZeros = 0;
 	while (value && !(value & 1))
@@ -640,54 +799,54 @@ inline void CountBits(DWORD value, DWORD& LeadingZeros, DWORD& TotalBits)
 	}
 }
 
-DWORD GetARGBColorKey(DWORD ColorKey, DDPIXELFORMAT& pixelFormat)
+DWORD GetARGBColorKey(DWORD ColorKey, const DDPIXELFORMAT& ddpfPixelFormat)
 {
-	if (!pixelFormat.dwRBitMask || !pixelFormat.dwGBitMask || !pixelFormat.dwBBitMask)
+	if (!ddpfPixelFormat.dwRBitMask || !ddpfPixelFormat.dwGBitMask || !ddpfPixelFormat.dwBBitMask)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << pixelFormat);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << ddpfPixelFormat);
 		return 0;
 	}
 
 	DWORD dwRBitCount, dwGBitCount, dwBBitCount, rShift, gShift, bShift;
 
 	// Calculate bits for each color component
-	CountBits(pixelFormat.dwRBitMask, rShift, dwRBitCount);
-	CountBits(pixelFormat.dwGBitMask, gShift, dwGBitCount);
-	CountBits(pixelFormat.dwBBitMask, bShift, dwBBitCount);
+	CountBits(ddpfPixelFormat.dwRBitMask, rShift, dwRBitCount);
+	CountBits(ddpfPixelFormat.dwGBitMask, gShift, dwGBitCount);
+	CountBits(ddpfPixelFormat.dwBBitMask, bShift, dwBBitCount);
 
 	// Calculate size of color space for bit depth
-	const float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
-	const float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
-	const float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
+	const float rColorRange = 255.0f / (ddpfPixelFormat.dwRBitMask >> rShift);
+	const float gColorRange = 255.0f / (ddpfPixelFormat.dwGBitMask >> gShift);
+	const float bColorRange = 255.0f / (ddpfPixelFormat.dwBBitMask >> bShift);
 
 	// Extract individual components according to pixel format for low color key
-	DWORD r = static_cast<DWORD>(((ColorKey & pixelFormat.dwRBitMask) >> rShift) * rColorRange);
-	DWORD g = static_cast<DWORD>(((ColorKey & pixelFormat.dwGBitMask) >> gShift) * gColorRange);
-	DWORD b = static_cast<DWORD>(((ColorKey & pixelFormat.dwBBitMask) >> bShift) * bColorRange);
+	DWORD r = static_cast<DWORD>(((ColorKey & ddpfPixelFormat.dwRBitMask) >> rShift) * rColorRange);
+	DWORD g = static_cast<DWORD>(((ColorKey & ddpfPixelFormat.dwGBitMask) >> gShift) * gColorRange);
+	DWORD b = static_cast<DWORD>(((ColorKey & ddpfPixelFormat.dwBBitMask) >> bShift) * bColorRange);
 
 	// Return ARGB color key
 	return D3DCOLOR_ARGB(0xFF, r, g, b);
 }
 
-void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD lowColorSpace, DWORD highColorSpace, DDPIXELFORMAT& pixelFormat)
+void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD lowColorSpace, DWORD highColorSpace, const DDPIXELFORMAT& ddpfPixelFormat)
 {
-	if (!pixelFormat.dwRBitMask || !pixelFormat.dwGBitMask || !pixelFormat.dwBBitMask)
+	if (!ddpfPixelFormat.dwRBitMask || !ddpfPixelFormat.dwGBitMask || !ddpfPixelFormat.dwBBitMask)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << pixelFormat);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: pixel format not Implemented: " << ddpfPixelFormat);
 		return;
 	}
 
 	DWORD dwRBitCount, dwGBitCount, dwBBitCount, rShift, gShift, bShift;
 
 	// Calculate bits for each color component
-	CountBits(pixelFormat.dwRBitMask, rShift, dwRBitCount);
-	CountBits(pixelFormat.dwGBitMask, gShift, dwGBitCount);
-	CountBits(pixelFormat.dwBBitMask, bShift, dwBBitCount);
+	CountBits(ddpfPixelFormat.dwRBitMask, rShift, dwRBitCount);
+	CountBits(ddpfPixelFormat.dwGBitMask, gShift, dwGBitCount);
+	CountBits(ddpfPixelFormat.dwBBitMask, bShift, dwBBitCount);
 
 	// Calculate size of color space for bit depth
-	const float rColorRange = 255.0f / (pixelFormat.dwRBitMask >> rShift);
-	const float gColorRange = 255.0f / (pixelFormat.dwGBitMask >> gShift);
-	const float bColorRange = 255.0f / (pixelFormat.dwBBitMask >> bShift);
+	const float rColorRange = 255.0f / (ddpfPixelFormat.dwRBitMask >> rShift);
+	const float gColorRange = 255.0f / (ddpfPixelFormat.dwGBitMask >> gShift);
+	const float bColorRange = 255.0f / (ddpfPixelFormat.dwBBitMask >> bShift);
 
 	// Allow some range for padding (half of a pixel's color range)
 	const float rPadding = (rColorRange / 255.0f) * 0.1f;
@@ -695,9 +854,9 @@ void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD low
 	const float bPadding = (bColorRange / 255.0f) * 0.1f;
 
 	// Extract individual components according to pixel format for low color key
-	BYTE r = (BYTE)((lowColorSpace & pixelFormat.dwRBitMask) >> rShift);
-	BYTE g = (BYTE)((lowColorSpace & pixelFormat.dwGBitMask) >> gShift);
-	BYTE b = (BYTE)((lowColorSpace & pixelFormat.dwBBitMask) >> bShift);
+	BYTE r = (BYTE)((lowColorSpace & ddpfPixelFormat.dwRBitMask) >> rShift);
+	BYTE g = (BYTE)((lowColorSpace & ddpfPixelFormat.dwGBitMask) >> gShift);
+	BYTE b = (BYTE)((lowColorSpace & ddpfPixelFormat.dwBBitMask) >> bShift);
 
 	// Convert to float and normalize to range [0, 1] for low color key
 	lowColorKey[0] = (r * rColorRange / 255.0f) - rPadding;
@@ -709,9 +868,9 @@ void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD low
 	lowColorKey[3] = 0.0f;
 
 	// Extract individual components according to pixel format for high color key
-	r = (BYTE)((highColorSpace & pixelFormat.dwRBitMask) >> rShift);
-	g = (BYTE)((highColorSpace & pixelFormat.dwGBitMask) >> gShift);
-	b = (BYTE)((highColorSpace & pixelFormat.dwBBitMask) >> bShift);
+	r = (BYTE)((highColorSpace & ddpfPixelFormat.dwRBitMask) >> rShift);
+	g = (BYTE)((highColorSpace & ddpfPixelFormat.dwGBitMask) >> gShift);
+	b = (BYTE)((highColorSpace & ddpfPixelFormat.dwBBitMask) >> bShift);
 
 	// Convert to float and normalize to range [0, 1] for high color key
 	highColorKey[0] = (r * rColorRange / 255.0f) + rPadding;
@@ -721,6 +880,42 @@ void GetColorKeyArray(float(&lowColorKey)[4], float(&highColorKey)[4], DWORD low
 	highColorKey[2] = (b * bColorRange / 255.0f) + bPadding;
 	highColorKey[2] = highColorKey[2] > 1.0f ? 1.0f : highColorKey[2];
 	highColorKey[3] = 0.0f;
+}
+
+bool IsPixelFormatRGB(const DDPIXELFORMAT& ddpfPixelFormat)
+{
+	if (ddpfPixelFormat.dwFlags & (DDPF_ALPHA | DDPF_ALPHAPREMULT | DDPF_FOURCC | DDPF_COMPRESSED |
+		DDPF_PALETTEINDEXED8 | DDPF_PALETTEINDEXEDTO8 | DDPF_PALETTEINDEXED4 | DDPF_PALETTEINDEXED2 | DDPF_PALETTEINDEXED1 |
+		DDPF_LUMINANCE | DDPF_BUMPLUMINANCE | DDPF_BUMPDUDV | DDPF_RGBTOYUV | DDPF_YUV |
+		DDPF_ZBUFFER | DDPF_ZPIXELS | DDPF_STENCILBUFFER))
+	{
+		return false;
+	}
+	if (ddpfPixelFormat.dwFlags & (DDPF_RGB))
+	{
+		return true;
+	}
+	return false;
+}
+
+bool IsPixelFormatPalette(const DDPIXELFORMAT& ddpfPixelFormat)
+{
+	if (ddpfPixelFormat.dwFlags & (DDPF_ALPHA | DDPF_ALPHAPREMULT | DDPF_FOURCC | DDPF_COMPRESSED |
+		DDPF_LUMINANCE | DDPF_BUMPLUMINANCE | DDPF_BUMPDUDV | DDPF_RGBTOYUV | DDPF_YUV |
+		DDPF_ZBUFFER | DDPF_ZPIXELS | DDPF_STENCILBUFFER))
+	{
+		return false;
+	}
+	if (ddpfPixelFormat.dwFlags & (DDPF_PALETTEINDEXED8 | DDPF_PALETTEINDEXEDTO8 | DDPF_PALETTEINDEXED4 | DDPF_PALETTEINDEXED2 | DDPF_PALETTEINDEXED1))
+	{
+		return true;
+	}
+	return false;
+}
+
+bool IsUnsupportedFormat(D3DFORMAT Format)
+{
+	return (Format == D3DFMT_NV12 || Format == D3DFMT_YV12 /*|| Format == D3DFMT_YUY2*/ || Format == D3DFMT_UYVY);
 }
 
 D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format)
@@ -738,6 +933,7 @@ D3DFORMAT GetFailoverFormat(D3DFORMAT Format)
 		{ D3DFMT_X4R4G4B4, D3DFMT_A4R4G4B4 },
 		{ D3DFMT_X8R8G8B8, D3DFMT_A8R8G8B8 },
 		{ D3DFMT_X8B8G8R8, D3DFMT_A8B8G8R8 },
+		{ D3DFMT_D32, D3DFMT_D24S8 },
 		{ D3DFMT_D16_LOCKABLE, D3DFMT_D16 }
 	};
 
@@ -752,7 +948,7 @@ D3DFORMAT GetFailoverFormat(D3DFORMAT Format)
 	return Format;
 }
 
-D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
+D3DFORMAT GetDisplayFormat(const DDPIXELFORMAT& ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
 	{
@@ -907,7 +1103,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find RGB format for PixelFormat: " << ddpfPixelFormat);
 		return D3DFMT_UNKNOWN;
 	}
-	
+
 	// Bump formats
 	if (ddpfPixelFormat.dwFlags & DDPF_BUMPDUDV)
 	{
@@ -989,7 +1185,7 @@ D3DFORMAT GetDisplayFormat(DDPIXELFORMAT ddpfPixelFormat)
 	return D3DFMT_UNKNOWN;
 }
 
-void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
+void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT& ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
 	{
@@ -1223,21 +1419,22 @@ void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT &ddpfPixelFormat)
 	}
 }
 
-HRESULT SetDisplayFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD BPP)
+D3DFORMAT SetDisplayFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP)
 {
+	D3DFORMAT Format = D3DFMT_UNKNOWN;
 	switch (BPP)
 	{
 	case 8:
-		SetPixelDisplayFormat(D3DFMT_P8, ddpfPixelFormat);
+		Format = D3DFMT_P8;
 		break;
 	case 16:
-		SetPixelDisplayFormat(D3DFMT_R5G6B5, ddpfPixelFormat);
+		Format = D3DFMT_R5G6B5;
 		break;
 	case 24:
-		SetPixelDisplayFormat(D3DFMT_R8G8B8, ddpfPixelFormat);
+		Format = D3DFMT_R8G8B8;
 		break;
 	case 32:
-		SetPixelDisplayFormat(D3DFMT_X8R8G8B8, ddpfPixelFormat);
+		Format = D3DFMT_X8R8G8B8;
 		break;
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Bit mode not supported: " << BPP);
@@ -1248,7 +1445,8 @@ HRESULT SetDisplayFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD BPP)
 		ddpfPixelFormat.dwGBitMask = 0x0;
 		ddpfPixelFormat.dwBBitMask = 0x0;
 		ddpfPixelFormat.dwRGBAlphaBitMask = 0x0;
-		return DDERR_UNSUPPORTED;
+		return Format;
 	}
-	return DD_OK;
+	SetPixelDisplayFormat(Format, ddpfPixelFormat);
+	return Format;
 }

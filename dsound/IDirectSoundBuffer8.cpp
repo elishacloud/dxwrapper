@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -396,7 +396,7 @@ void m_IDirectSoundBuffer8::StopThread()
 	bool flag = false;
 	do {
 
-		Utils::BusyWaitYield();
+		Utils::BusyWaitYield((DWORD)-1);
 
 		EnterCriticalSection(&AudioClip.dics);
 

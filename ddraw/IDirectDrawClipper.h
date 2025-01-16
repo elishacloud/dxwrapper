@@ -1,5 +1,7 @@
 #pragma once
 
+m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags);
+
 class m_IDirectDrawClipper : public IDirectDrawClipper, public AddressLookupTableDdrawObject
 {
 private:
@@ -16,23 +18,23 @@ private:
 	m_IDirectDrawX* ddrawParent = nullptr;
 
 	// Interface initialization functions
-	void InitClipper();
-	void ReleaseClipper();
+	void InitInterface(DWORD dwFlags);
+	void ReleaseInterface();
 
 public:
 	m_IDirectDrawClipper(IDirectDrawClipper *aOriginal) : ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitClipper();
+		InitInterface(0);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
-	m_IDirectDrawClipper(m_IDirectDrawX* Interface, DWORD dwFlags) : ddrawParent(Interface), clipperCaps(dwFlags)
+	m_IDirectDrawClipper(m_IDirectDrawX* Interface, DWORD dwFlags) : ddrawParent(Interface)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitClipper();
+		InitInterface(dwFlags);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -40,9 +42,26 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseClipper();
+		ReleaseInterface();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
+	}
+
+	void SetProxy(IDirectDrawClipper* NewProxyInterface, m_IDirectDrawX* NewParent, DWORD dwFlags)
+	{
+		ProxyInterface = NewProxyInterface;
+		ddrawParent = NewParent;
+		if (NewProxyInterface || NewParent)
+		{
+			RefCount = 1;
+			InitInterface(dwFlags);
+			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		}
+		else
+		{
+			ReleaseInterface();
+			ProxyAddressLookupTable.DeleteAddress(this);
+		}
 	}
 
 	/*** IUnknown methods ***/

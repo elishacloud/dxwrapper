@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -100,11 +100,10 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (Config.Dd7to9 || !ProxyInterface)
 	{
-		*ppvObj = nullptr;
-
 		genericQueryInterface(riid, ppvObj);
 
 		if (*ppvObj)
@@ -125,8 +124,6 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 	}
 	else
 	{
-		*ppvObj = nullptr;
-
 		genericQueryInterface(riid, ppvObj);
 
 		if (*ppvObj)
@@ -151,15 +148,15 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 	{
 		if (riid == IID_IDirectDrawColorControl)
 		{
-			*ppvObj = new m_IDirectDrawColorControl((IDirectDrawColorControl*)nullptr);
+			*ppvObj = CreateDirectDrawColorControl((IDirectDrawColorControl*)nullptr, nullptr);
 		}
 		else if (riid == IID_IDirectDrawGammaControl)
 		{
-			*ppvObj = new m_IDirectDrawGammaControl((IDirectDrawGammaControl*)nullptr);
+			*ppvObj = CreateDirectDrawGammaControl((IDirectDrawGammaControl*)nullptr, nullptr);
 		}
 		else if (riid == IID_IDirectDrawClipper)
 		{
-			*ppvObj = new m_IDirectDrawClipper(nullptr);
+			*ppvObj = CreateDirectDrawClipper(nullptr, nullptr, 0);
 		}
 		else if (Config.DirectShowEmulation && (riid == IID_IMediaStream || riid == IID_IAMMediaStream))
 		{

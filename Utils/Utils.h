@@ -15,6 +15,8 @@ namespace Utils
 	EXPORT_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
 	EXPORT_OUT_WRAPPED_PROC(CreateThread, unused);
 	EXPORT_OUT_WRAPPED_PROC(VirtualAlloc, unused);
+	EXPORT_OUT_WRAPPED_PROC(HeapAlloc, unused);
+	EXPORT_OUT_WRAPPED_PROC(HeapSize, unused);
 
 	void Shell(const char*);
 	void DisableHighDPIScaling();
@@ -27,8 +29,11 @@ namespace Utils
 	BOOL WINAPI kernel_GetDiskFreeSpaceA(LPCSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters);
 	HANDLE WINAPI kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
 	LPVOID WINAPI kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
+	LPVOID WINAPI kernel_HeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwBytes);
+	SIZE_T WINAPI kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem);
 	void HookExceptionHandler();
 	void UnHookExceptionHandler();
+	LONG WINAPI Vectored_Exception_Handler(EXCEPTION_POINTERS* exception);
 	void AddHandleToVector(HMODULE dll, const char *name);
 	HMODULE LoadLibrary(const char *dllname, bool EnableLogging = false);
 	void LoadCustomDll();
@@ -38,18 +43,21 @@ namespace Utils
 	HMEMORYMODULE LoadResourceToMemory(DWORD ResID);
 	DWORD ReverseBits(DWORD v);
 	void DDrawResolutionHack(HMODULE hD3DIm);
-	void BusyWaitYield();
+	void BusyWaitYield(DWORD RemainingMS);
 	void ResetInvalidFPUState();
-	void CheckMessageQueue(HWND hwnd);
+	void CheckMessageQueue(HWND hWnd);
 	bool IsWindowsVistaOrNewer();
 	bool IsWindows7OrNewer();
 	bool IsWindows8OrNewer();
 	void GetScreenSettings();
 	void ResetScreenSettings();
 	void ResetGamma();
+	bool IsMainWindow(HWND hWnd);
+	HWND GetMainWindowForProcess(DWORD processId);
 	bool IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd);
 	HWND GetTopLevelWindowOfCurrentProcess();
 	HMONITOR GetMonitorHandle(HWND hWnd);
+	void SetDisplaySettings(HWND hWnd, DWORD Width, DWORD Height);
 	DWORD GetRefreshRate(HWND hWnd);
 	DWORD GetBitCount(HWND hWnd);
 	DWORD GetThreadIDByHandle(HANDLE hThread);
@@ -77,7 +85,6 @@ namespace Fullscreen
 	bool IsThreadRunning();
 	void StopThread();
 	void ResetScreen();
-	HWND FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug = false);
 }
 
 bool stristr(LPCSTR strCheck, LPCSTR str, size_t size);

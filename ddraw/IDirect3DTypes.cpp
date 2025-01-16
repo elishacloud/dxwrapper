@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -16,7 +16,7 @@
 
 #include "ddraw.h"
 
-void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
+void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 {
 	if (Light.dwSize != sizeof(D3DLIGHT) && Light.dwSize != sizeof(D3DLIGHT2))
 	{
@@ -48,7 +48,7 @@ void ConvertLight(D3DLIGHT7& Light7, D3DLIGHT& Light)
 	}
 }
 
-void ConvertMaterial(D3DMATERIAL& Material, D3DMATERIAL7& Material7)
+void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7)
 {
 	if (Material.dwSize != sizeof(D3DMATERIAL))
 	{
@@ -64,7 +64,7 @@ void ConvertMaterial(D3DMATERIAL& Material, D3DMATERIAL7& Material7)
 	Material.dwRampSize = 0;
 }
 
-void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material)
+void ConvertMaterial(D3DMATERIAL7& Material7, const D3DMATERIAL& Material)
 {
 	if (Material.dwSize != sizeof(D3DMATERIAL))
 	{
@@ -78,7 +78,7 @@ void ConvertMaterial(D3DMATERIAL7 &Material7, D3DMATERIAL &Material)
 	Material7.dvPower = Material.dvPower;
 }
 
-void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT2 &ViewPort2)
+void ConvertViewport(D3DVIEWPORT& ViewPort, const D3DVIEWPORT2& ViewPort2)
 {
 	if (ViewPort.dwSize != sizeof(D3DVIEWPORT) || ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
 	{
@@ -99,7 +99,7 @@ void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT2 &ViewPort2)
 	ViewPort.dvMaxY = 0;          /* Min/max homogeneous y coord */
 }
 
-void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT &ViewPort)
+void ConvertViewport(D3DVIEWPORT2& ViewPort2, const D3DVIEWPORT& ViewPort)
 {
 	if (ViewPort2.dwSize != sizeof(D3DVIEWPORT2) || ViewPort.dwSize != sizeof(D3DVIEWPORT))
 	{
@@ -120,7 +120,7 @@ void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT &ViewPort)
 	ViewPort2.dvClipHeight = 0;
 }
 
-void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT7 &ViewPort7)
+void ConvertViewport(D3DVIEWPORT& ViewPort, const D3DVIEWPORT7& ViewPort7)
 {
 	if (ViewPort.dwSize != sizeof(D3DVIEWPORT))
 	{
@@ -141,7 +141,7 @@ void ConvertViewport(D3DVIEWPORT &ViewPort, D3DVIEWPORT7 &ViewPort7)
 	ViewPort.dvMaxY = 0;          /* Min/max homogeneous y coord */
 }
 
-void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT7 &ViewPort7)
+void ConvertViewport(D3DVIEWPORT2& ViewPort2, const D3DVIEWPORT7& ViewPort7)
 {
 	if (ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
 	{
@@ -162,7 +162,7 @@ void ConvertViewport(D3DVIEWPORT2 &ViewPort2, D3DVIEWPORT7 &ViewPort7)
 	ViewPort2.dvClipHeight = 0;
 }
 
-void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT &ViewPort)
+void ConvertViewport(D3DVIEWPORT7& ViewPort7, const D3DVIEWPORT& ViewPort)
 {
 	if (ViewPort.dwSize != sizeof(D3DVIEWPORT))
 	{
@@ -178,7 +178,7 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT &ViewPort)
 	ViewPort7.dvMaxZ = ViewPort.dvMaxZ;
 }
 
-void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT2 &ViewPort2)
+void ConvertViewport(D3DVIEWPORT7& ViewPort7, const D3DVIEWPORT2& ViewPort2)
 {
 	if (ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
 	{
@@ -194,7 +194,7 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort7, D3DVIEWPORT2 &ViewPort2)
 	ViewPort7.dvMaxZ = ViewPort2.dvMaxZ;
 }
 
-void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7)
+void ConvertViewport(D3DVIEWPORT7& ViewPort, const D3DVIEWPORT7& ViewPort7)
 {
 	ViewPort.dwX = ViewPort7.dwX;
 	ViewPort.dwY = ViewPort7.dwY;
@@ -204,7 +204,7 @@ void ConvertViewport(D3DVIEWPORT7 &ViewPort, D3DVIEWPORT7 &ViewPort7)
 	ViewPort.dvMaxZ = ViewPort7.dvMaxZ;
 }
 
-void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7)
+void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7)
 {
 	if (Desc.dwSize != D3DDEVICEDESC1_SIZE && Desc.dwSize != D3DDEVICEDESC5_SIZE && Desc.dwSize != D3DDEVICEDESC6_SIZE)
 	{
@@ -242,7 +242,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7)
 	Desc.dpcTriCaps = Desc7.dpcTriCaps;
 	Desc.dwDeviceRenderBitDepth = Desc7.dwDeviceRenderBitDepth;
 	Desc.dwDeviceZBufferBitDepth = Desc7.dwDeviceZBufferBitDepth;
-	Desc.dwMaxBufferSize = 256 * 1024 * 1024; // 256 MB
+	Desc.dwMaxBufferSize = MAX_EXECUTE_BUFFER_SIZE;
 	Desc.dwMaxVertexCount = 65534;
 
 	// Handle additional fields depending on the structure size
@@ -279,7 +279,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC &Desc, D3DDEVICEDESC7 &Desc7)
 	// Desc.dwVertexProcessingCaps = Desc7.dwVertexProcessingCaps;
 }
 
-void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
+void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9)
 {
 	// Initialize the output structure
 	ZeroMemory(&Desc7, sizeof(D3DDEVICEDESC7));
@@ -571,7 +571,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC7 &Desc7, D3DCAPS9 &Caps9)
 	Desc7.dwReserved4 = 0;
 }
 
-void ConvertVertices(D3DLVERTEX* lFVF, D3DLVERTEX9* lFVF9, DWORD NumVertices)
+void ConvertVertices(D3DLVERTEX* lFVF, const D3DLVERTEX9* lFVF9, DWORD NumVertices)
 {
 	for (UINT x = 0; x < NumVertices; x++)
 	{
@@ -585,7 +585,7 @@ void ConvertVertices(D3DLVERTEX* lFVF, D3DLVERTEX9* lFVF9, DWORD NumVertices)
 	}
 }
 
-void ConvertVertices(D3DLVERTEX9* lFVF9, D3DLVERTEX* lFVF, DWORD NumVertices)
+void ConvertVertices(D3DLVERTEX9* lFVF9, const D3DLVERTEX* lFVF, DWORD NumVertices)
 {
 	for (UINT x = 0; x < NumVertices; x++)
 	{

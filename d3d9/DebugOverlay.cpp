@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -19,6 +19,7 @@
 #include "DebugOverlay.h"
 #include <sstream>
 #include "d3d9\d3d9External.h"
+#include "GDI\WndProc.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DISABLE_OBSOLETE_KEYIO
@@ -101,7 +102,8 @@ void DebugOverlay::Setup(HWND hWnd, LPDIRECT3DDEVICE9 Device)
 	ImGui_ImplWin32_Init(hWnd);
 	ImGui_ImplDX9_Init(d3d9Device);
 
-	if (!EnableWndProcHook)
+	// If not already hooked then hook it
+	if (!WndProc::GetWndProctStruct(hWnd))
 	{
 		OverrideWndProc(hWnd);
 	}
@@ -138,6 +140,12 @@ void DebugOverlay::EndScene()
 
 	if (ShowDebugUI)
 	{
+		std::stringstream stats;
+		stats << "FPS: " << (DWORD)(AverageFPS * 100) / 100.0f << '\n';
+		ImGui::Begin("Stats");
+		ImGui::Text(stats.str().c_str());
+		ImGui::End();
+
 		std::stringstream matrices;
 		matrices << "WORLD\n" <<
 			worldMatrix._11 << " / " << worldMatrix._12 << " / " << worldMatrix._13 << " / " << worldMatrix._14 << '\n' <<
@@ -246,6 +254,11 @@ void DebugOverlay::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStateType, LP
 	default:
 		break;
 	}
+}
+
+void DebugOverlay::SetFPSCount(double FPS)
+{
+	AverageFPS = FPS;
 }
 
 void DebugOverlay::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)

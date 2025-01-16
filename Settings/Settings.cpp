@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -17,6 +17,7 @@
 #include <regex>
 #include <algorithm>
 #include "Settings.h"
+#include "External\Hooking.Patterns\Hooking.Patterns.h"
 #include "Dllmain\Dllmain.h"
 #include "Wrappers\wrapper.h"
 #include "Logging\Logging.h"
@@ -28,10 +29,9 @@ namespace Settings
 	// Config
 	bool ConfigLoaded = false;
 	char configpath[MAX_PATH] = {};
-	char p_wName[MAX_PATH] = {};
-	char p_pName[MAX_PATH] = {};
 
 	// Declare variables
+	bool WrapperModeIncorrect = false;
 	size_t AddressPointerCount = 0;				// Count of addresses to hot patch
 	size_t BytesToWriteCount = 0;				// Count of bytes to hot patch
 	bool Force16bitColor;						// Forces DirectX to use 16bit color
@@ -333,6 +333,19 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 		SetValue(name, value, &Config.MemoryInfo[AddressPointerCount++].AddressPointer);
 		return;
 	}
+	if (!_stricmp(name, "PatternString"))
+	{
+		std::string PatterString(value);
+		auto pattern = hook::pattern(value);
+		if (Config.MemoryInfo.size() < AddressPointerCount + 1)
+		{
+			MEMORYINFO newMemoryInfo;
+			Config.MemoryInfo.push_back(newMemoryInfo);
+		}
+		Config.MemoryInfo[AddressPointerCount].PatternString.assign(value);
+		Config.MemoryInfo[AddressPointerCount++].AddressPointer = pattern.size() > 0UL ? pattern.get(0).get<uint32_t*>(0) : nullptr;
+		return;
+	}
 	if (!_stricmp(name, "BytesToWrite"))
 	{
 		if (Config.MemoryInfo.size() < BytesToWriteCount + 1)
@@ -493,6 +506,10 @@ void CONFIG::Init()
 	HMODULE hModule = NULL;
 	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)Settings::ClearConfigSettings, &hModule);
 
+	// Declare variables
+	char p_wName[MAX_PATH] = {};
+	char p_pName[MAX_PATH] = {};
+
 	// Get module name
 	char wrappername[MAX_PATH] = { 0 };
 	GetModuleFileName(hModule, wrappername, MAX_PATH);
@@ -553,21 +570,6 @@ void CONFIG::Init()
 			free(szCfg);
 		}
 	}
-}
-
-void CONFIG::SetConfig()
-{
-	using namespace Settings;
-
-	// If config file was read
-	if (ConfigLoaded)
-	{
-		Logging::Log() << "Reading config file: " << configpath;
-	}
-	else
-	{
-		Logging::Log() << "Could not load config file using defaults";
-	}
 
 	// Set module name
 	if (_stricmp(p_wName, p_pName) == 0)
@@ -588,7 +590,7 @@ void CONFIG::SetConfig()
 			[](char c) {return static_cast<char>(::tolower(c)); });
 		if (!Wrapper::CheckWrapperName(WrapperMode.c_str()))
 		{
-			Logging::Log() << "Error: Wrapper mode setting incorrect!";
+			WrapperModeIncorrect = true;
 			WrapperName.clear();
 		}
 	}
@@ -610,8 +612,27 @@ void CONFIG::SetConfig()
 		(IncludeProcess.size() != 0 && !IfStringExistsInList(p_pName, IncludeProcess, false)))
 	{
 		ProcessExcluded = true;
-		Logging::Log() << "Clearing config and disabling dxwrapper!";
-		ClearConfigSettings();
+	}
+}
+
+void CONFIG::SetConfig()
+{
+	using namespace Settings;
+
+	// If config file was read
+	if (ConfigLoaded)
+	{
+		Logging::Log() << "Reading config file: " << configpath;
+	}
+	else
+	{
+		Logging::Log() << "Could not load config file using defaults";
+	}
+
+	// Check wrapper mode
+	if (WrapperModeIncorrect)
+	{
+		Logging::Log() << "Error: Wrapper mode setting incorrect!";
 	}
 
 	// Verify sleep time to make sure it is not set too low (can be perf issues if it is too low)
@@ -673,7 +694,7 @@ void CONFIG::SetConfig()
 
 	DDrawCompat32 = (DDrawCompat30 || DDrawCompat31 || DDrawCompat32 || DDrawCompatExperimental);
 	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompat32);
-	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || ConvertToDirectDraw7 || ConvertToDirect3D7 || IsSet(DdrawResolutionHack));
+	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || ConvertToDirectDraw7 || ConvertToDirect3D7 || IsSet(DdrawResolutionHack) || Dd7to9);
 	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
 	DdrawAutoFrameSkip = (AutoFrameSkip || DdrawAutoFrameSkip);																	// For legacy purposes
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
@@ -746,6 +767,9 @@ void CONFIG::SetConfig()
 	{
 		FixHighFrequencyMouse = true;
 	}
+
+	// Windows Lie
+	WinVersionLieSP = (WinVersionLieSP > 0 && WinVersionLieSP <= 5) ? WinVersionLieSP : 0;
 
 	// Set unset options
 	DdrawResolutionHack = (DdrawResolutionHack != 0);

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -132,6 +132,7 @@ namespace Fullscreen
 	bool IsWindowNotFullScreen(screen_res, screen_res);
 	void GetWindowSize(HWND&, screen_res&, RECT&);
 	BOOL CALLBACK EnumWindowsCallback(HWND, LPARAM);
+	HWND FindMainWindow(DWORD process_id, bool AutoDetect, bool Debug = false);
 	BOOL CALLBACK EnumMenuWindowsCallback(HWND, LPARAM);
 	bool CheckForMenu(DWORD);
 	BOOL CALLBACK EnumChildWindowsProc(HWND, LPARAM);
@@ -151,6 +152,25 @@ using namespace Utils;
 HMONITOR Utils::GetMonitorHandle(HWND hWnd)
 {
 	return MonitorFromWindow(IsWindow(hWnd) ? hWnd : GetDesktopWindow(), MONITOR_DEFAULTTONEAREST);
+}
+
+void Utils::SetDisplaySettings(HWND hWnd, DWORD Width, DWORD Height)
+{
+	// Get monitor info
+	MONITORINFOEX infoex = {};
+	infoex.cbSize = sizeof(MONITORINFOEX);
+	BOOL bRet = GetMonitorInfo(Utils::GetMonitorHandle(hWnd), &infoex);
+
+	// Get resolution list for specified monitor
+	DEVMODE newSettings = {};
+	newSettings.dmSize = sizeof(newSettings);
+	if (EnumDisplaySettings(bRet ? infoex.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
+	{
+		newSettings.dmPelsWidth = Width;
+		newSettings.dmPelsHeight = Height;
+		newSettings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+		ChangeDisplaySettingsEx(bRet ? infoex.szDevice : nullptr, &newSettings, nullptr, CDS_FULLSCREEN, nullptr);
+	}
 }
 
 DWORD Utils::GetRefreshRate(HWND hWnd)

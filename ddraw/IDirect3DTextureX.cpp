@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -16,6 +16,12 @@
 
 #include "ddraw.h"
 
+// Cached wrapper interface
+namespace {
+	m_IDirect3DTexture* WrapperInterfaceBackup = nullptr;
+	m_IDirect3DTexture2* WrapperInterfaceBackup2 = nullptr;
+}
+
 HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -24,6 +30,7 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{
@@ -60,22 +67,17 @@ void *m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
 {
 	switch (DirectXVersion)
 	{
+	case 0:
+		if (WrapperInterface2) return WrapperInterface2;
+		if (WrapperInterface) return WrapperInterface;
+		break;
 	case 1:
-		if (!WrapperInterface)
-		{
-			WrapperInterface = new m_IDirect3DTexture((LPDIRECT3DTEXTURE)ProxyInterface, this);
-		}
-		return WrapperInterface;
+		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DTEXTURE)ProxyInterface, this);
 	case 2:
-		if (!WrapperInterface2)
-		{
-			WrapperInterface2 = new m_IDirect3DTexture2((LPDIRECT3DTEXTURE2)ProxyInterface, this);
-		}
-		return WrapperInterface2;
-	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-		return nullptr;
+		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3DTEXTURE2)ProxyInterface, this);
 	}
+	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+	return nullptr;
 }
 
 ULONG m_IDirect3DTextureX::AddRef(DWORD DirectXVersion)
@@ -261,7 +263,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 
 	if (!ProxyInterface)
 	{
-		if (lpD3DTexture2)
+		if (!lpD3DTexture2)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -289,6 +291,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 
 		if (pSrcTextureX == this)
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: source texture is the same!");
 			return D3D_OK;
 		}
 
@@ -301,11 +304,12 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 
 		if (pSrcSurfaceX == DDrawSurface)
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: source surface is the same!");
 			return D3D_OK;
 		}
 
-		IDirectDrawSurface7* pSrcSurface7 = (IDirectDrawSurface7*)pSrcSurfaceX->GetWrapperInterfaceX(7);
-		IDirectDrawSurface7* pDestSurface7 = (IDirectDrawSurface7*)DDrawSurface->GetWrapperInterfaceX(7);
+		IDirectDrawSurface7* pSrcSurface7 = (IDirectDrawSurface7*)pSrcSurfaceX->GetWrapperInterfaceX(0);
+		IDirectDrawSurface7* pDestSurface7 = (IDirectDrawSurface7*)DDrawSurface->GetWrapperInterfaceX(0);
 
 		if (!pDestSurface7 || !pSrcSurface7)
 		{
@@ -339,7 +343,7 @@ HRESULT m_IDirect3DTextureX::Unload()
 
 	if (ProxyDirectXVersion != 1)
 	{
-		// Former stub method. This method was never implemented and is not supported in any interface.
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Not Implemented");
 		return D3D_OK;
 	}
 
@@ -350,7 +354,7 @@ HRESULT m_IDirect3DTextureX::Unload()
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DTextureX::InitTexture(DWORD DirectXVersion)
+void m_IDirect3DTextureX::InitInterface(DWORD DirectXVersion)
 {
 	if (ProxyInterface)
 	{
@@ -360,16 +364,11 @@ void m_IDirect3DTextureX::InitTexture(DWORD DirectXVersion)
 	AddRef(DirectXVersion);
 }
 
-void m_IDirect3DTextureX::ReleaseTexture()
+void m_IDirect3DTextureX::ReleaseInterface()
 {
-	if (WrapperInterface)
-	{
-		WrapperInterface->DeleteMe();
-	}
-	if (WrapperInterface2)
-	{
-		WrapperInterface2->DeleteMe();
-	}
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
+	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
 
 	if (tHandle && D3DDeviceInterface && *D3DDeviceInterface)
 	{

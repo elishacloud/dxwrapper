@@ -4,7 +4,7 @@
 // DDrawCompat versions
 #include "v0.2.0b\DllMain.h"
 #include "v0.2.1\DllMain.h"
-#include "v0.3.1\Dll\DllMain.h"
+#include "v0.3.2\Dll\DllMain.h"
 
 #define DDrawCompatDefault Compat32
 #define DDrawCompatForDd7to9 Compat32
@@ -14,14 +14,19 @@
 	volatile FARPROC procName ## _out = nullptr;
 
 #define ASSIGN_WRAPPED_PROC(procName) \
-	procName ## _in = procName ## _proc;
+	procName ## _in = procName ## _proc; \
+	procName ## _out = ddraw::procName ## _var;
+
+#define RUN_PREPARE_DDRAWCOMPAT(CompatVersion) \
+	using namespace CompatVersion; \
+	CompatVersion::Prepair_DDrawCompat(); \
+	VISIT_ALL_DDRAW_PROCS(ASSIGN_WRAPPED_PROC); \
+	return; \
 
 #define PREPARE_DDRAWCOMPAT(CompatVersion) \
 	if (Config.DDraw ## CompatVersion) \
 	{ \
-		using namespace CompatVersion; \
-		VISIT_ALL_DDRAW_PROCS(ASSIGN_WRAPPED_PROC); \
-		return; \
+		RUN_PREPARE_DDRAWCOMPAT(CompatVersion) \
 	}
 
 #define START_DDRAWCOMPAT(CompatVersion) \
@@ -36,8 +41,8 @@ namespace DDrawCompat
 
 	void Prepare()
 	{
-		// DDrawCompat v0.3.1
-#ifdef DDRAWCOMPAT_31
+		// DDrawCompat v0.3.2
+#ifdef DDRAWCOMPAT_32
 		PREPARE_DDRAWCOMPAT(Compat32);
 #endif
 
@@ -52,9 +57,7 @@ namespace DDrawCompat
 #endif
 
 		// Default DDrawCompat version
-		using namespace DDrawCompatDefault;
-		VISIT_ALL_DDRAW_PROCS(ASSIGN_WRAPPED_PROC);
-		return;
+		RUN_PREPARE_DDRAWCOMPAT(DDrawCompatDefault);
 	}
 
 	bool RunStart(HINSTANCE hinstDLL, DWORD fdwReason)
@@ -65,8 +68,8 @@ namespace DDrawCompat
 			return (DDrawCompatForDd7to9::DllMain_DDrawCompat(hinstDLL, fdwReason, nullptr) == TRUE);
 		}
 
-		// DDrawCompat v0.3.1
-#ifdef DDRAWCOMPAT_31
+		// DDrawCompat v0.3.2
+#ifdef DDRAWCOMPAT_32
 		START_DDRAWCOMPAT(Compat32);
 #endif
 
@@ -98,9 +101,9 @@ namespace DDrawCompat
 	}
 
 	// Used for hooking with dd7to9
-	void InstallDd7to9Hooks()
+	void InstallDd7to9Hooks(HMODULE hModule)
 	{
 		// Dd7to9 DDrawCompat version
-		return DDrawCompatForDd7to9::InstallDd7to9Hooks();
+		return DDrawCompatForDd7to9::InstallDd7to9Hooks(hModule);
 	}
 }

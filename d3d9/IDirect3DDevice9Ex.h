@@ -1,8 +1,7 @@
 #pragma once
 
-#include "Utils\Utils.h"
-
 static constexpr size_t MAX_CLIP_PLANES = 6;
+const std::chrono::seconds FPS_CALCULATION_WINDOW(1);	// Define a constant for the desired duration of FPS calculation
 
 struct DEVICEDETAILS
 {
@@ -20,8 +19,13 @@ struct DEVICEDETAILS
 	// Limit frame rate
 	struct {
 		DWORD FrameCounter = 0;
-		LARGE_INTEGER Frequency = {}, ClickTime = {}, LastPresentTime = {};
+		LARGE_INTEGER LastPresentTime = {};
 	} Counter;
+
+	// Frame counter
+	double AverageFPSCounter = 0.0;
+	std::deque<std::pair<std::chrono::steady_clock::time_point, std::chrono::duration<double>>> frameTimes;	// Store frame times in a deque
+	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();// Store start time for PFS counter
 
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;
@@ -38,6 +42,15 @@ struct DEVICEDETAILS
 	bool isClipPlaneSet = false;
 	DWORD m_clipPlaneRenderState = 0;
 	float m_storedClipPlanes[MAX_CLIP_PLANES][4] = {};
+
+	// For gamma
+	bool IsGammaSet = false;
+	bool UsingShader32f = true;
+	D3DGAMMARAMP RampData;
+	D3DGAMMARAMP DefaultRampData;
+	LPDIRECT3DTEXTURE9 GammaLUTTexture = nullptr;
+	LPDIRECT3DTEXTURE9 ScreenCopyTexture = nullptr;
+	LPDIRECT3DPIXELSHADER9 gammaPixelShader = nullptr;
 };
 
 extern std::unordered_map<UINT, DEVICEDETAILS> DeviceDetailsMap;
@@ -59,20 +72,26 @@ private:
 	// Limit frame rate
 	void LimitFrameRate();
 
-	// For gamma
-	bool WasGammaSet = false;
+	// Frame counter
+	void CalculateFPS();
 
 	// Anisotropic Filtering
 	void DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag);
 	void ReeableAnisotropicSamplerState();
 
+	// Gamma
+	HRESULT SetBrightnessLevel(D3DGAMMARAMP& Ramp);
+	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader() const;
+	void ApplyBrightnessLevel();
+	void ReleaseGammaResources() const;
+
 	// For Reset & ResetEx
-	void ReInitDevice();
+	void ReInitInterface();
 	void ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fReset)(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fResetEx)(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
 	template <typename T>
-	HRESULT ResetT(T, D3DPRESENT_PARAMETERS& d3dpp, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode = nullptr);
+	HRESULT ResetT(T, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode = nullptr);
 	HRESULT ResetT(fReset, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX*)
 	{ return ProxyInterface->Reset(pPresentationParameters); }
 	HRESULT ResetT(fResetEx, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
@@ -95,7 +114,7 @@ public:
 			SHARED.SetSSAA = true;
 		}
 
-		ReInitDevice();
+		ReInitInterface();
 
 		SHARED.DeviceMap[this] = TRUE;
 
@@ -104,18 +123,6 @@ public:
 	~m_IDirect3DDevice9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
-
-		// Reset gamma
-		if (WasGammaSet)
-		{
-			Utils::ResetGamma();
-		}
-
-		// Remove WndProc after releasing d3d9 device
-		if (EnableWndProcHook)
-		{
-			WndProc::RemoveWndProc(SHARED.DeviceWindow);
-		}
 	}
 
 	/*** IUnknown methods ***/
@@ -158,7 +165,6 @@ public:
 	STDMETHOD(FakeGetFrontBufferData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
 	STDMETHOD(CopyRects)(THIS_ IDirect3DSurface9 *pSourceSurface, const RECT *pSourceRectsArray, UINT cRects, IDirect3DSurface9 *pDestinationSurface, const POINT *pDestPointsArray);
 	STDMETHOD(StretchRect)(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestSurface, CONST RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter);
-	STDMETHOD(StretchRectFake)(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestSurface, CONST RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter);
 	STDMETHOD(ColorFill)(THIS_ IDirect3DSurface9* pSurface, CONST RECT* pRect, D3DCOLOR color);
 	STDMETHOD(CreateOffscreenPlainSurface)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DPOOL Pool, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle);
 	STDMETHOD(SetRenderTarget)(THIS_ DWORD RenderTargetIndex, IDirect3DSurface9* pRenderTarget);

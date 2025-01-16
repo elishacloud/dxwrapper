@@ -1,5 +1,7 @@
 #pragma once
 
+m_IDirectDrawPalette* CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray);
+
 class m_IDirectDrawPalette : public IDirectDrawPalette, public AddressLookupTableDdrawObject
 {
 private:
@@ -16,29 +18,23 @@ private:
 	DWORD entryCount = MaxPaletteSize;				// Number of palette entries (Default to 256 entries)
 
 	// Interface initialization functions
-	void InitPalette();
-	void ReleasePalette();
+	void InitInterface(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray);
+	void ReleaseInterface();
 
 public:
 	m_IDirectDrawPalette(IDirectDrawPalette *aOriginal) : ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitPalette();
+		InitInterface(0, nullptr);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
-	m_IDirectDrawPalette(m_IDirectDrawX *Interface, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray) : ddrawParent(Interface), paletteCaps(dwFlags & ~DDPCAPS_INITIALIZE)
+	m_IDirectDrawPalette(m_IDirectDrawX *Interface, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray) : ddrawParent(Interface)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitPalette();
-
-		// Set initial entries after initializing the palette
-		if (lpDDColorArray)
-		{
-			SetEntries(dwFlags, 0, entryCount, lpDDColorArray);
-		}
+		InitInterface(dwFlags, lpDDColorArray);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -46,9 +42,26 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleasePalette();
+		ReleaseInterface();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
+	}
+
+	void SetProxy(IDirectDrawPalette* NewProxyInterface, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
+	{
+		ProxyInterface = NewProxyInterface;
+		ddrawParent = NewParent;
+		if (NewProxyInterface || NewParent)
+		{
+			RefCount = 1;
+			InitInterface(dwFlags, lpDDColorArray);
+			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		}
+		else
+		{
+			ReleaseInterface();
+			ProxyAddressLookupTable.DeleteAddress(this);
+		}
 	}
 
 	/*** IUnknown methods ***/
@@ -67,10 +80,10 @@ public:
 	inline void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Helper functions
-	inline LPPALETTEENTRY GetPaletteEntries() { return rawPalette; }
-	inline RGBQUAD* GetRGBPalette() { return rgbPalette; }
-	inline DWORD GetPaletteUSN() { return PaletteUSN; }
-	inline DWORD GetEntryCount() { return entryCount; }
+	inline const PALETTEENTRY* GetPaletteEntries() const { return rawPalette; }
+	inline const RGBQUAD* GetRGBPalette() const { return rgbPalette; }
+	inline DWORD GetPaletteUSN() const { return PaletteUSN; }
+	inline DWORD GetEntryCount() const { return entryCount; }
 	inline void SetPrimary() { paletteCaps |= DDPCAPS_PRIMARYSURFACE; }
 	inline void RemovePrimary() { paletteCaps &= ~DDPCAPS_PRIMARYSURFACE; }
 };

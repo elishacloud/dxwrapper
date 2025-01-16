@@ -17,8 +17,8 @@ private:
 	struct CachedDeviceDataT
 	{
 		std::chrono::steady_clock::time_point lastUpdate = std::chrono::steady_clock::now();
-		DWORD dwDevType = 0;
-		DWORD dwFlags = 0;
+		DWORD dwDevType = (DWORD)-1;
+		DWORD dwFlags = (DWORD)-1;
 		std::vector<T> devices;
 	};
 	std::vector<int> devices;

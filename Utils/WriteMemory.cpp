@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -175,7 +175,14 @@ DWORD WINAPI WriteMemory::StartThreadFunc(LPVOID pvParam)
 // Main sub for writing to the memory of the application
 void WriteMemory::WriteMemory()
 {
-	if (CheckMemoryAddress(Config.VerifyMemoryInfo.AddressPointer, &Config.VerifyMemoryInfo.Bytes[0], Config.VerifyMemoryInfo.Bytes.size()))
+	for (size_t x = 0; x < Config.MemoryInfo.size(); x++)
+	{
+		Logging::Log() << __FUNCTION__ << " Found Address: " << Config.MemoryInfo[x].AddressPointer <<
+			(!Config.MemoryInfo[x].PatternString.empty() ? std::string(" Pattern: " + Config.MemoryInfo[x].PatternString).c_str() : "");
+	}
+
+	if (((DWORD)Config.VerifyMemoryInfo.AddressPointer == 0xFF && Config.VerifyMemoryInfo.Bytes[0] == 0xFF) ||
+		CheckMemoryAddress(Config.VerifyMemoryInfo.AddressPointer, &Config.VerifyMemoryInfo.Bytes[0], Config.VerifyMemoryInfo.Bytes.size()))
 	{
 		// Logging
 		Logging::Log() << __FUNCTION__ << " Writing bytes to memory...";

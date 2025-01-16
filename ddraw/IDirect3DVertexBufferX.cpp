@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -16,6 +16,12 @@
 
 #include "ddraw.h"
 
+// Cached wrapper interface
+namespace {
+	m_IDirect3DVertexBuffer* WrapperInterfaceBackup = nullptr;
+	m_IDirect3DVertexBuffer7* WrapperInterfaceBackup7 = nullptr;
+}
+
 HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -24,6 +30,7 @@ HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID FAR * ppvOb
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{
@@ -60,22 +67,17 @@ void *m_IDirect3DVertexBufferX::GetWrapperInterfaceX(DWORD DirectXVersion)
 {
 	switch (DirectXVersion)
 	{
+	case 0:
+		if (WrapperInterface7) return WrapperInterface7;
+		if (WrapperInterface) return WrapperInterface;
+		break;
 	case 1:
-		if (!WrapperInterface)
-		{
-			WrapperInterface = new m_IDirect3DVertexBuffer((LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
-		}
-		return WrapperInterface;
+		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
 	case 7:
-		if (!WrapperInterface7)
-		{
-			WrapperInterface7 = new m_IDirect3DVertexBuffer7((LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
-		}
-		return WrapperInterface7;
-	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-		return nullptr;
+		return GetInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7, (LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
 	}
+	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+	return nullptr;
 }
 
 ULONG m_IDirect3DVertexBufferX::AddRef(DWORD DirectXVersion)
@@ -171,10 +173,15 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		// DDLOCK_WAIT & DDLOCK_SURFACEMEMORYPTR can be ignored safely
 		// DDLOCK_WRITEONLY should be specified at create time. The presence of the D3DUSAGE_WRITEONLY flag in Usage indicates that the vertex buffer memory is used only for write operations.
 
-		DWORD Flags = dwFlags & (DDLOCK_NOSYSLOCK | DDLOCK_READONLY | DDLOCK_DISCARDCONTENTS);
+		DWORD Flags = (dwFlags & (DDLOCK_READONLY | DDLOCK_DISCARDCONTENTS)) |
+			((dwFlags & D3DLOCK_NOSYSLOCK) || Config.SingleProcAffinity || ddrawParent->GetHwndThreadID() == GetCurrentThreadId() ? D3DLOCK_NOSYSLOCK : 0);
 
 		void* pData = nullptr;
 		HRESULT hr = d3d9VertexBuffer->Lock(0, 0, &pData, Flags);
+		if (FAILED(hr) && (Flags & D3DLOCK_NOSYSLOCK))
+		{
+			hr = d3d9VertexBuffer->Lock(0, 0, &pData, Flags & ~D3DLOCK_NOSYSLOCK);
+		}
 
 		if (FAILED(hr))
 		{
@@ -266,7 +273,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 			return DDERR_GENERIC;
 		}
 
-		// Handle dwFlags
+		// Handle dwVertexOp
 		// D3DVOP_TRANSFORM is inherently handled by ProcessVertices() as it performs vertex transformations based on the current world, view, and projection matrices.
 		if (dwVertexOp & D3DVOP_CLIP)
 		{
@@ -538,7 +545,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DVertexBufferX::InitVertexBuffer(DWORD DirectXVersion)
+void m_IDirect3DVertexBufferX::InitInterface(DWORD DirectXVersion)
 {
 	if (!Config.Dd7to9)
 	{
@@ -549,24 +556,19 @@ void m_IDirect3DVertexBufferX::InitVertexBuffer(DWORD DirectXVersion)
 	{
 		ddrawParent->AddVertexBufferToVector(this);
 
-		d3d9Device = ddrawParent->GetDirect3D9Device();
+		d3d9Device = ddrawParent->GetDirectD9Device();
 	}
 
 	AddRef(DirectXVersion);
 }
 
-void m_IDirect3DVertexBufferX::ReleaseVertexBuffer()
+void m_IDirect3DVertexBufferX::ReleaseInterface()
 {
-	if (WrapperInterface)
-	{
-		WrapperInterface->DeleteMe();
-	}
-	if (WrapperInterface7)
-	{
-		WrapperInterface7->DeleteMe();
-	}
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
+	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
-	ReleaseD9Buffers(false, false);
+	ReleaseD9Buffer(false, false);
 
 	if (ddrawParent && !Config.Exiting)
 	{
@@ -586,7 +588,7 @@ HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD
 	// Check d3d9 device
 	if (CheckD3DDevice)
 	{
-		if (!ddrawParent->CheckD3D9Device() || !d3d9Device || !*d3d9Device)
+		if (!ddrawParent->CheckD9Device(FunctionName) || !d3d9Device || !*d3d9Device)
 		{
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_INVALIDOBJECT;
@@ -664,71 +666,7 @@ void m_IDirect3DVertexBufferX::ReleaseD3D9VertexBuffer()
 	}
 }
 
-LPDIRECT3DINDEXBUFFER9 m_IDirect3DVertexBufferX::SetupIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount)
-{
-	if (!lpwIndices)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: nullptr Indices!");
-		return nullptr;
-	}
-
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true, false)))
-	{
-		return nullptr;
-	}
-
-	DWORD NewIndexSize = dwIndexCount * sizeof(WORD);
-
-	HRESULT hr = D3D_OK;
-	if (!d3d9IndexBuffer || NewIndexSize > IndexBufferSize)
-	{
-		ReleaseD3D9IndexBuffer();
-		hr = (*d3d9Device)->CreateIndexBuffer(NewIndexSize, ((VBDesc.dwCaps & D3DVBCAPS_DONOTCLIP) ? D3DUSAGE_DONOTCLIP : 0), D3DFMT_INDEX16, D3DPOOL_SYSTEMMEM, &d3d9IndexBuffer, nullptr);
-	}
-
-	if (FAILED(hr))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create index buffer: " << (D3DERR)hr);
-		return nullptr;
-	}
-
-	if (NewIndexSize > IndexBufferSize)
-	{
-		IndexBufferSize = NewIndexSize;
-	}
-
-	void* pData = nullptr;
-	hr = d3d9IndexBuffer->Lock(0, NewIndexSize, &pData, 0);
-
-	if (FAILED(hr))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock index buffer: " << (D3DERR)hr);
-		return nullptr;
-	}
-
-	memcpy(pData, lpwIndices, NewIndexSize);
-
-	d3d9IndexBuffer->Unlock();
-
-	return d3d9IndexBuffer;
-}
-
-void m_IDirect3DVertexBufferX::ReleaseD3D9IndexBuffer()
-{
-	// Release index buffer
-	if (d3d9IndexBuffer)
-	{
-		ULONG ref = d3d9IndexBuffer->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " (" << this << ")" << " Error: there is still a reference to 'd3d9IndexBuffer' " << ref;
-		}
-		d3d9IndexBuffer = nullptr;
-	}
-}
-
-void m_IDirect3DVertexBufferX::ReleaseD9Buffers(bool BackupData, bool ResetBuffer)
+void m_IDirect3DVertexBufferX::ReleaseD9Buffer(bool BackupData, bool ResetBuffer)
 {
 	if (BackupData && VBDesc.dwFVF != D3DFVF_LVERTEX)
 	{
@@ -739,9 +677,5 @@ void m_IDirect3DVertexBufferX::ReleaseD9Buffers(bool BackupData, bool ResetBuffe
 	if (!ResetBuffer || d3d9VBDesc.Pool == D3DPOOL_DEFAULT)
 	{
 		ReleaseD3D9VertexBuffer();
-	}
-	if (!ResetBuffer)
-	{
-		ReleaseD3D9IndexBuffer();
 	}
 }

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -20,22 +20,33 @@
 #include "Settings\Settings.h"
 #include "Wrappers\wrapper.h"
 #include "winmm.h"
+#include "GDI\GDI.h"
 #include "External\Hooking\Hook.h"
 #ifdef DDRAWCOMPAT
 #include "DDrawCompat\DDrawCompatExternal.h"
+#include "DDrawCompat\v0.3.2\Win32\Version.h"
 #endif // DDRAWCOMPAT
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"
 // Wrappers last
 #include "IClassFactory\IClassFactory.h"
 #include "GDI\GDI.h"
+#include "d3d9\d3d9External.h"
 #include "ddraw\ddrawExternal.h"
 #include "dinput\dinputExternal.h"
 #include "dinput8\dinput8External.h"
 #include "d3d8\d3d8External.h"
-#include "d3d9\d3d9External.h"
 #include "dsound\dsoundExternal.h"
 #include "dxwrapper.h"
+
+#include <excpt.h>
+
+typedef PVOID(WINAPI* AddHandlerFunc)(ULONG, PVECTORED_EXCEPTION_HANDLER);
+typedef ULONG(WINAPI* RemoveHandlerFunc)(PVOID);
+
+static PVOID g_exception_handle = nullptr;
+static AddHandlerFunc add_handler = nullptr;
+static RemoveHandlerFunc remove_handler = nullptr;
 
 #define SHIM_WRAPPED_PROC(procName, unused) \
 	Wrapper::ShimProc(procName ## _var, procName ## _in, procName ## _out);
@@ -49,7 +60,7 @@
 #define HOOK_WRAPPED_PROC(procName, unused) \
 	if (GetProcAddress(dll, #procName)) \
 	{ \
-		FARPROC prodAddr = (FARPROC)Hook::HookAPI(dll, dllname, Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct); \
+		FARPROC prodAddr = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct); \
 		if (prodAddr) \
 		{ \
 			procName ## _var = prodAddr; \
@@ -60,11 +71,11 @@
 #define HOOK_FORCE_WRAPPED_PROC(procName, unused) \
 	if (GetProcAddress(dll, #procName)) \
 	{ \
-		FARPROC prodAddr = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct, true); \
+		FARPROC prodAddr = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct); \
 		Logging::LogDebug() << __FUNCTION__ << " " << #procName << " addr: " << prodAddr; \
 	}
 
-void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings)
+__declspec(dllexport) void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings)
 {
 	Logging::LogDebug() << __FUNCTION__ << " Called!";
 	if (!DxSettings)
@@ -79,7 +90,7 @@ void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings)
 
 typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
 
-HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSystem32)
+static HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSystem32)
 {
 	HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
 	HMODULE currentdll = GetModuleHandle(dllname);
@@ -104,6 +115,67 @@ HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSystem32)
 	return dll;
 }
 
+static bool CheckForDuplicateLoad(HMODULE hModule, HANDLE& hMutex)
+{
+	// Get mutex name
+	char MutexName[MAX_PATH] = { 0 };
+	if (Config.RealWrapperMode == dtype.dxwrapper)
+	{
+		sprintf_s(MutexName, MAX_PATH, "DxWrapper_%d", GetCurrentProcessId());
+	}
+	else
+	{
+		sprintf_s(MutexName, MAX_PATH, "DxWrapper_%d_%s", GetCurrentProcessId(), Config.WrapperName.c_str());
+	}
+
+	// Check if mutex exists
+	HANDLE existingMutex = OpenMutex(SYNCHRONIZE, FALSE, MutexName);
+	if (existingMutex)
+	{
+		CloseHandle(existingMutex);
+
+		// Prepare message
+		std::stringstream message;
+		char dllPath[MAX_PATH] = { 0 };
+
+		// Get the DLL path if possible
+		if (GetModuleFileNameA(hModule, dllPath, MAX_PATH))
+		{
+			message << "DxWrapper is attempting to load '" << dllPath << "' at address " << hModule
+				<< " but is already loaded at a different address (" << MutexName << ").";
+		}
+		else
+		{
+			message << "DxWrapper is attempting to load at address " << hModule
+				<< " but is already loaded at a different address (" << MutexName << ").";
+		}
+
+		// Show message box
+		MessageBoxA(nullptr, message.str().c_str(), "DxWrapper Duplicate Load Detected", MB_ICONWARNING | MB_OK | MB_TOPMOST);
+
+		return true; // Causes DLL to unload on process attach
+	}
+
+	// Create mutex
+	hMutex = CreateMutex(nullptr, FALSE, MutexName);
+
+	// Check if mutex creation was successful
+	if (hMutex == nullptr)
+	{
+		// Prepare message
+		DWORD errorCode = GetLastError();
+		std::stringstream message;
+		message << "Failed to create mutex for DxWrapper (" << MutexName << "). Error code: " << errorCode;
+
+		// Show message box
+		MessageBoxA(nullptr, message.str().c_str(), "Mutex Creation Error", MB_ICONERROR | MB_OK | MB_TOPMOST);
+
+		return true; // If mutex creation fails, return true to unload the DLL
+	}
+
+	return false; // Allow the DLL to continue loading
+}
+
 // Declare variables
 HMODULE hModule_dll = nullptr;
 
@@ -113,7 +185,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	UNREFERENCED_PARAMETER(lpReserved);
 
 	static HANDLE hMutex = nullptr;
-	static HANDLE n_hMutex = nullptr;
 	static bool FullscreenThreadStartedFlag = false;
 
 	switch (fdwReason)
@@ -125,6 +196,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Initialize config
 		Config.Init();
+
+		// Ensure only one copy of DxWrapper is running
+		if (CheckForDuplicateLoad(hModule, hMutex))
+		{
+			return FALSE;
+		}
 
 		// Init logs
 		Logging::EnableLogging = !Config.DisableLogging;
@@ -148,7 +225,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			// Check if it is loading from a file
 			if (PathFileExists(path))
 			{
-				Logging::Log() << "Running from: " << path;
+				Logging::Log() << "Running from: " << path << " (" << hModule << ")";
 			}
 			else
 			{
@@ -168,60 +245,25 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			" Windows 7: " << Utils::IsWindows7OrNewer() <<
 			" Windows 8: " << Utils::IsWindows8OrNewer();
 
-		// Create Mutex to ensure only one copy of DxWrapper is running
-		char MutexName[MAX_PATH] = { 0 };
-		sprintf_s(MutexName, MAX_PATH, "DxWrapper %d", GetCurrentProcessId());
-		hMutex = CreateMutex(nullptr, false, MutexName);
-		bool IsAlreadyRunning = (GetLastError() == ERROR_ALREADY_EXISTS);
-
-		// Allow DxWrapper to be loaded more than once from the same dll
-		if (Config.RealWrapperMode != dtype.dxwrapper)
+		// Check if process is excluded
+		if (Config.ProcessExcluded)
 		{
-			sprintf_s(MutexName, MAX_PATH, "DxWrapper %d %s", GetCurrentProcessId(), Config.WrapperName.c_str());
-			n_hMutex = CreateMutex(nullptr, false, MutexName);
-			IsAlreadyRunning = IsAlreadyRunning && (GetLastError() != ERROR_ALREADY_EXISTS);
-		}
-
-		// Check Mutex or if process is excluded to see if DxWrapper should exit
-		if (IsAlreadyRunning || Config.ProcessExcluded)
-		{
-			// DxWrapper already running
-			if (IsAlreadyRunning)
-			{
-				Logging::Log() << "DxWrapper already running!";
-			}
-
-			// Disable wrapper
 			Logging::Log() << "Disabling DxWrapper...";
 			Settings::ClearConfigSettings();
-
-			if (Config.RealWrapperMode == dtype.dxwrapper)
-			{
-				// Return false on process attach causes dll to get unloaded
-				return true;
-			}
-			else
-			{
-				// Release named Mutex
-				if (n_hMutex)
-				{
-					ReleaseMutex(n_hMutex);
-				}
-			}
 		}
 
 		// Attach real dll
+		HMODULE kernel32 = GetModuleHandleA("Kernel32.dll");
 		if (Config.RealWrapperMode == dtype.dxwrapper)
 		{
 			// Hook GetModuleFileName to fix module name in modules loaded from memory
 			if (IsRunningFromMemory)
 			{
-				HMODULE dll = LoadLibrary("kernel32.dll");
-				if (dll)
+				if (kernel32)
 				{
 					Logging::Log() << "Hooking 'GetModuleFileName' API...";
-					InterlockedExchangePointer((PVOID*)&Utils::GetModuleFileNameA_out, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetModuleFileNameA"), "GetModuleFileNameA", Utils::GetModuleFileNameAHandler));
-					InterlockedExchangePointer((PVOID*)&Utils::GetModuleFileNameW_out, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetModuleFileNameW"), "GetModuleFileNameW", Utils::GetModuleFileNameWHandler));
+					InterlockedExchangePointer((PVOID*)&Utils::GetModuleFileNameA_out, Hook::HotPatch(Hook::GetProcAddress(kernel32, "GetModuleFileNameA"), "GetModuleFileNameA", Utils::GetModuleFileNameAHandler));
+					InterlockedExchangePointer((PVOID*)&Utils::GetModuleFileNameW_out, Hook::HotPatch(Hook::GetProcAddress(kernel32, "GetModuleFileNameW"), "GetModuleFileNameW", Utils::GetModuleFileNameWHandler));
 				}
 			}
 		}
@@ -238,12 +280,24 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Utils::AddHandleToVector(dll, Config.WrapperName.c_str());
 
 				// Hook GetProcAddress to handle wrapped functions that are missing or not available in the OS
-				dll = LoadLibrary("kernel32.dll");
-				if (dll)
+				if (kernel32)
 				{
 					Logging::Log() << "Hooking 'GetProcAddress' API...";
-					InterlockedExchangePointer((PVOID*)&Utils::GetProcAddress_out, Hook::HookAPI(dll, "kernel32.dll", Hook::GetProcAddress(dll, "GetProcAddress"), "GetProcAddress", Utils::GetProcAddressHandler));
+					InterlockedExchangePointer((PVOID*)&Utils::GetProcAddress_out, Hook::HotPatch(Hook::GetProcAddress(kernel32, "GetProcAddress"), "GetProcAddress", Utils::GetProcAddressHandler));
 				}
+			}
+		}
+
+		// Dynamically load AddVectoredExceptionHandler and RemoveVectoredExceptionHandler
+		if (kernel32)
+		{
+			add_handler = (AddHandlerFunc)GetProcAddress(kernel32, "AddVectoredExceptionHandler");
+			remove_handler = (RemoveHandlerFunc)GetProcAddress(kernel32, "RemoveVectoredExceptionHandler");
+
+			// Add the exception handler to the end of the chain if available
+			if (add_handler)
+			{
+				g_exception_handle = add_handler(0, Utils::Vectored_Exception_Handler);  // Set to 0 for end of chain
 			}
 		}
 
@@ -284,7 +338,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Hook CoCreateInstance
-		if (Config.EnableDdrawWrapper || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8)
+		if (Config.EnableDdrawWrapper || Config.DDrawCompat || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8)
 		{
 			InterlockedExchangePointer((PVOID*)&CoCreateInstance_out, Hook::HotPatch(GetProcAddress(LoadLibraryA("ole32.dll"), "CoCreateInstance"), "CoCreateInstance", *CoCreateInstanceHandle));
 		}
@@ -432,37 +486,32 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				HMODULE d3d9_dll = LoadLibrary("d3d9.dll");
 				DdrawWrapper::Direct3DCreate9_out = GetProcAddress(d3d9_dll, "Direct3DCreate9");
 			}
-
-#ifdef DDRAWCOMPAT
-			// Add DDrawCompat to the chain
-			else if (Config.DDrawCompat)
+			else
 			{
-				Logging::Log() << "Enabling DDrawCompat";
-				using namespace ddraw;
-				using namespace DDrawCompat;
-				DDrawCompat::Prepare();
-				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
-				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
-			}
+#ifdef DDRAWCOMPAT
+				// Add DDrawCompat to the chain
+				if (Config.DDrawCompat)
+				{
+					Logging::Log() << "Enabling DDrawCompat";
+					using namespace ddraw;
+					using namespace DDrawCompat;
+					DDrawCompat::Prepare();
+					VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
+					VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
+					DDrawCompat::Start(hModule_dll, fdwReason);
+				}
 #endif // DDRAWCOMPAT
 
-			// Add DdrawWrapper to the chain
-			if (Config.EnableDdrawWrapper)
-			{
-				Logging::Log() << "Enabling ddraw wrapper";
-				using namespace ddraw;
-				using namespace DdrawWrapper;
-				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
-				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
+				// Add DdrawWrapper to the chain
+				if (Config.EnableDdrawWrapper)
+				{
+					Logging::Log() << "Enabling ddraw wrapper";
+					using namespace ddraw;
+					using namespace DdrawWrapper;
+					VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
+					VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
+				}
 			}
-
-#ifdef DDRAWCOMPAT
-			// Start DDrawCompat
-			if (Config.DDrawCompat)
-			{
-				DDrawCompat::Start(hModule_dll, fdwReason);
-			}
-#endif // DDRAWCOMPAT
 		}
 
 		// Start d3d8.dll module
@@ -558,14 +607,31 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Extra compatibility hooks from DDrawCompat
 		if (!DDrawCompatEnabed && (Config.Dd7to9 || Config.D3d8to9))
 		{
-			DDrawCompat::InstallDd7to9Hooks();
+			DDrawCompat::InstallDd7to9Hooks(hModule);
 		}
+		Win32::Version::installWinLieHooks();
 #endif // DDRAWCOMPAT
 
 		// Start Dd7to9
 		if (Config.Dd7to9)
 		{
 			InitDDraw();
+		}
+
+		// Hook Comdlg functions
+		if (Config.EnableOpenDialogHook)
+		{
+			using namespace GdiWrapper;
+			if (!GetModuleHandleA("comdlg32.dll")) LoadLibrary("comdlg32.dll");
+			HMODULE comdlg32 = GetModuleHandleA("Comdlg32.dll");
+			if (comdlg32)
+			{
+				Logging::Log() << "Installing Comdlg32 hooks";
+				GetOpenFileNameA_out = (FARPROC)Hook::HotPatch(GetProcAddress(comdlg32, "GetOpenFileNameA"), "GetOpenFileNameA", comdlg_GetOpenFileNameA);
+				GetOpenFileNameW_out = (FARPROC)Hook::HotPatch(GetProcAddress(comdlg32, "GetOpenFileNameW"), "GetOpenFileNameW", comdlg_GetOpenFileNameW);
+				GetSaveFileNameA_out = (FARPROC)Hook::HotPatch(GetProcAddress(comdlg32, "GetSaveFileNameA"), "GetSaveFileNameA", comdlg_GetSaveFileNameA);
+				GetSaveFileNameW_out = (FARPROC)Hook::HotPatch(GetProcAddress(comdlg32, "GetSaveFileNameW"), "GetSaveFileNameW", comdlg_GetSaveFileNameW);
+			}
 		}
 
 		// Start fullscreen thread
@@ -642,9 +708,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			ExitDDraw();
 		}
 
-		// Unhook all APIs
-		Hook::UnhookAll();
-
 #ifdef DDRAWCOMPAT
 		// Unload and Unhook DDrawCompat
 		if (DDrawCompat::IsEnabled())
@@ -662,6 +725,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::UnHookExceptionHandler();
 		}
 
+		// Remove the exception handler if it was added
+		if (remove_handler && g_exception_handle)
+		{
+			remove_handler(g_exception_handle);
+			g_exception_handle = nullptr;
+		}
+
 		// Reset screen back to original Windows settings to fix some display errors on exit
 		if (Config.ResetScreenRes)
 		{
@@ -672,10 +742,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (hMutex)
 		{
 			ReleaseMutex(hMutex);
-		}
-		if (n_hMutex)
-		{
-			ReleaseMutex(n_hMutex);
+			hMutex = nullptr;
 		}
 
 		// Final log

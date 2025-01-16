@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -23,6 +23,14 @@ char D3DIm700Path[MAX_PATH] = { '\0' };
 HMODULE hD3DIm = nullptr;
 HMODULE hD3DIm700 = nullptr;
 
+// Cached wrapper interface
+namespace {
+	m_IDirect3D* WrapperInterfaceBackup = nullptr;
+	m_IDirect3D2* WrapperInterfaceBackup2 = nullptr;
+	m_IDirect3D3* WrapperInterfaceBackup3 = nullptr;
+	m_IDirect3D7* WrapperInterfaceBackup7 = nullptr;
+}
+
 HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -31,6 +39,7 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD Dir
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{
@@ -81,34 +90,23 @@ void *m_IDirect3DX::GetWrapperInterfaceX(DWORD DirectXVersion)
 {
 	switch (DirectXVersion)
 	{
+	case 0:
+		if (WrapperInterface7) return WrapperInterface7;
+		if (WrapperInterface3) return WrapperInterface3;
+		if (WrapperInterface2) return WrapperInterface2;
+		if (WrapperInterface) return WrapperInterface;
+		break;
 	case 1:
-		if (!WrapperInterface)
-		{
-			WrapperInterface = new m_IDirect3D((LPDIRECT3D)ProxyInterface, this);
-		}
-		return WrapperInterface;
+		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3D)ProxyInterface, this);
 	case 2:
-		if (!WrapperInterface2)
-		{
-			WrapperInterface2 = new m_IDirect3D2((LPDIRECT3D2)ProxyInterface, this);
-		}
-		return WrapperInterface2;
+		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3D2)ProxyInterface, this);
 	case 3:
-		if (!WrapperInterface3)
-		{
-			WrapperInterface3 = new m_IDirect3D3((LPDIRECT3D3)ProxyInterface, this);
-		}
-		return WrapperInterface3;
+		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECT3D3)ProxyInterface, this);
 	case 7:
-		if (!WrapperInterface7)
-		{
-			WrapperInterface7 = new m_IDirect3D7((LPDIRECT3D7)ProxyInterface, this);
-		}
-		return WrapperInterface7;
-	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-		return nullptr;
+		return GetInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7, (LPDIRECT3D7)ProxyInterface, this);
 	}
+	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+	return nullptr;
 }
 
 ULONG m_IDirect3DX::AddRef(DWORD DirectXVersion)
@@ -250,7 +248,7 @@ void m_IDirect3DX::GetCap9Cache()
 	if (ddrawParent)
 	{
 		// Get d3d9Object
-		IDirect3D9* d3d9Object = ddrawParent->GetDirect3D9Object();
+		IDirect3D9* d3d9Object = ddrawParent->GetDirectD9Object();
 		if (d3d9Object)
 		{
 			UINT AdapterCount = d3d9Object->GetAdapterCount();
@@ -411,6 +409,7 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lplpDirect3DLight = nullptr;
 
 		// Check for device
 		if (!ddrawParent)
@@ -419,7 +418,7 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 			return DDERR_INVALIDOBJECT;
 		}
 
-		*lplpDirect3DLight = (LPDIRECT3DLIGHT)new m_IDirect3DLight(ddrawParent->GetCurrentD3DDevice());
+		*lplpDirect3DLight = (LPDIRECT3DLIGHT)CreateDirect3DLight(nullptr, ddrawParent->GetCurrentD3DDevice());
 
 		return D3D_OK;
 	}
@@ -429,7 +428,7 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 
 	if (SUCCEEDED(hr) && lplpDirect3DLight)
 	{
-		*lplpDirect3DLight = new m_IDirect3DLight(*lplpDirect3DLight);
+		*lplpDirect3DLight = CreateDirect3DLight(*lplpDirect3DLight, nullptr);
 	}
 
 	return hr;
@@ -461,6 +460,7 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lplpDirect3DMaterial = nullptr;
 
 		// Check for device
 		if (!ddrawParent)
@@ -515,6 +515,7 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lplpD3DViewport = nullptr;
 
 		// Check for device
 		if (!ddrawParent)
@@ -558,6 +559,12 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 	case 7:
 	case 9:
 	{
+		if (!lpD3DFDS || !lpD3DFDR)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid parameters!");
+			return DDERR_INVALIDPARAMS;
+		}
+
 		struct EnumFindDevice
 		{
 			bool Found = false;
@@ -588,11 +595,22 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 
 		if (CallbackContext.Found)
 		{
+			DWORD Size = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
+			if (Size != D3DDEVICEDESC1_SIZE && Size != D3DDEVICEDESC5_SIZE && Size != D3DDEVICEDESC6_SIZE)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Size);
+				return DDERR_INVALIDPARAMS;
+			}
+
 			lpD3DFDR->guid = CallbackContext.DeviceDesc7.deviceGUID;
-			lpD3DFDR->ddHwDesc.dwSize = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
-			ConvertDeviceDesc(lpD3DFDR->ddHwDesc, CallbackContext.DeviceDesc7);
-			lpD3DFDR->ddSwDesc.dwSize = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
-			ConvertDeviceDesc(lpD3DFDR->ddSwDesc, CallbackContext.DeviceDesc7);
+
+			LPD3DDEVICEDESC lpddHwDesc = &lpD3DFDR->ddHwDesc;
+			lpddHwDesc->dwSize = Size;
+			ConvertDeviceDesc(*lpddHwDesc, CallbackContext.DeviceDesc7);
+
+			LPD3DDEVICEDESC lpddSwDesc = (LPD3DDEVICEDESC)((DWORD)lpddHwDesc + Size);
+			lpddSwDesc->dwSize = Size;
+			ConvertDeviceDesc(*lpddSwDesc, CallbackContext.DeviceDesc7);
 
 			return D3D_OK;
 		}
@@ -617,6 +635,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lplpD3DDevice = nullptr;
 
 		// Check for device
 		if (!ddrawParent)
@@ -707,6 +726,7 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lplpD3DVertexBuffer = nullptr;
 
 		if (!lpVBDesc->dwNumVertices)
 		{
@@ -774,7 +794,7 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 		}
 
 		// Get d3d9Object
-		IDirect3D9 *d3d9Object = ddrawParent->GetDirect3D9Object();
+		IDirect3D9 *d3d9Object = ddrawParent->GetDirectD9Object();
 
 		if (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DMMXDevice || riidDevice == IID_IDirect3DRefDevice ||
 			riidDevice == IID_IDirect3DHALDevice || riidDevice == IID_IDirect3DTnLHalDevice)
@@ -877,7 +897,7 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DX::InitDirect3D(DWORD DirectXVersion)
+void m_IDirect3DX::InitInterface(DWORD DirectXVersion)
 {
 	if (!Config.Dd7to9)
 	{
@@ -897,24 +917,13 @@ void m_IDirect3DX::InitDirect3D(DWORD DirectXVersion)
 	AddRef(DirectXVersion);
 }
 
-void m_IDirect3DX::ReleaseDirect3D()
+void m_IDirect3DX::ReleaseInterface()
 {
-	if (WrapperInterface)
-	{
-		WrapperInterface->DeleteMe();
-	}
-	if (WrapperInterface2)
-	{
-		WrapperInterface2->DeleteMe();
-	}
-	if (WrapperInterface3)
-	{
-		WrapperInterface3->DeleteMe();
-	}
-	if (WrapperInterface7)
-	{
-		WrapperInterface7->DeleteMe();
-	}
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
+	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
+	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
+	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
 	if (ddrawParent && !Config.Exiting)
 	{

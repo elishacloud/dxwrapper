@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -785,6 +785,19 @@ std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp)
 		<< Logging::hex(pp.Flags)
 		<< pp.FullScreen_RefreshRateInHz
 		<< Logging::hex(pp.PresentationInterval);
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DSURFACE_DESC& desc)
+{
+	return Logging::LogStruct(os)
+		<< desc.Format
+		<< desc.Type
+		<< Logging::hex(desc.Usage)
+		<< desc.Pool
+		<< desc.MultiSampleType
+		<< desc.MultiSampleQuality
+		<< desc.Width
+		<< desc.Height;
 }
 
 #ifndef _D3D8_H_

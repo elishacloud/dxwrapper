@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -101,7 +101,7 @@ void Utils::HookExceptionHandler(void)
 	void* tmp;
 
 	Logging::Log() << "Set exception handler";
-	HMODULE dll = LoadLibrary("kernel32.dll");
+	HMODULE dll = GetModuleHandleA("kernel32.dll");
 	if (!dll)
 	{
 		Logging::Log() << "Failed to load kernel32.dll!";
@@ -109,9 +109,9 @@ void Utils::HookExceptionHandler(void)
 	}
 	// override default exception handler, if any....
 	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
-	tmp = Hook::HookAPI(dll, "kernel32.dll", UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
+	tmp = Hook::HotPatch(UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
 	// so far, no need to save the previous handler, but anyway...
-	tmp = Hook::HookAPI(dll, "kernel32.dll", SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
+	tmp = Hook::HotPatch(SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
 	if (tmp)
 	{
 		pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(tmp);

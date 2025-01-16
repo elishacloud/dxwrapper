@@ -63,6 +63,7 @@ std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd);
 std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format);
 std::ostream& operator<<(std::ostream& os, const D3DRESOURCETYPE& Resource);
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp);
+std::ostream& operator<<(std::ostream& os, const D3DSURFACE_DESC& desc);
 #endif
 #ifdef GUID_DEFINED
 std::ostream& operator<<(std::ostream& os, REFIID riid);

@@ -1,5 +1,7 @@
 #pragma once
 
+m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DDeviceX** NewD3DDInterface);
+
 class m_IDirect3DLight : public IDirect3DLight, public AddressLookupTableDdrawObject
 {
 private:
@@ -13,15 +15,15 @@ private:
 	bool LightSet = false;
 
 	// Interface initialization functions
-	void InitLight();
-	void ReleaseLight();
+	void InitInterface();
+	void ReleaseInterface();
 
 public:
 	m_IDirect3DLight(IDirect3DLight *aOriginal) : ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitLight();
+		InitInterface();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -29,7 +31,7 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitLight();
+		InitInterface();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -37,9 +39,26 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseLight();
+		ReleaseInterface();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
+	}
+
+	void SetProxy(IDirect3DLight* NewProxyInterface, m_IDirect3DDeviceX** NewD3DDInterface)
+	{
+		ProxyInterface = NewProxyInterface;
+		D3DDeviceInterface = NewD3DDInterface;
+		if (NewProxyInterface || NewD3DDInterface)
+		{
+			RefCount = 1;
+			InitInterface();
+			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		}
+		else
+		{
+			ReleaseInterface();
+			ProxyAddressLookupTable.DeleteAddress(this);
+		}
 	}
 
 	/*** IUnknown methods ***/

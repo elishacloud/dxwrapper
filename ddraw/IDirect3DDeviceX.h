@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <unordered_set>
 #include "External\DirectXMath\Inc\DirectXMath.h"
 
 struct CONVERTHOMOGENEOUS
@@ -45,6 +46,18 @@ private:
 #endif
 
 	struct {
+		bool IsBackedUp = false;
+		DWORD RenderState[255] = {};
+		DWORD TextureState[MaxTextureStages][255] = {};
+		DWORD SamplerState[MaxTextureStages][14] = {};
+		D3DLIGHT9 lights[MAX_LIGHTS] = {};
+		BOOL lightEnabled[MAX_LIGHTS] = {};
+		D3DVIEWPORT9 viewport = {};
+		D3DMATERIAL9 material = {};
+		D3DMATRIX worldMatrix = {}, viewMatrix = {}, projectionMatrix = {};
+	} backup;
+
+	struct {
 		DWORD rsClipping = 0;
 		DWORD rsLighting = 0;
 		DWORD rsExtents = 0;
@@ -83,8 +96,11 @@ private:
 	DWORD rsColorKeyEnabled;
 	DWORD ssMipFilter[MaxTextureStages] = {};
 
+	// Handle state blocks
+	bool IsRecordingState = false;
+	std::unordered_set<DWORD> StateBlockTokens;
+
 	// Default settings
-	D3DMATERIAL9 DefaultMaterial = {};
 	D3DVIEWPORT9 DefaultViewport = {};
 
 	// SetTexture array
@@ -101,6 +117,9 @@ private:
 	// Light index map
 	std::unordered_map<DWORD, m_IDirect3DLight*> LightIndexMap;
 
+	// Matrix map
+	std::unordered_map<D3DMATRIXHANDLE, D3DMATRIX> MatrixMap;
+
 	// Vector temporary buffer cache
 	std::vector<BYTE> VertexCache;
 
@@ -110,7 +129,10 @@ private:
 	// Viewport array
 	std::vector<LPDIRECT3DVIEWPORT3> AttachedViewports;
 
-	bool IsViewportAttached(LPDIRECT3DVIEWPORT3 ViewportX)
+	// ExecuteBuffer array
+	std::vector<m_IDirect3DExecuteBuffer*> ExecuteBufferList;
+
+	inline bool IsViewportAttached(LPDIRECT3DVIEWPORT3 ViewportX)
 	{
 		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
 			[=](auto pViewport) -> bool { return pViewport == ViewportX; });
@@ -122,7 +144,7 @@ private:
 		return false;
 	}
 
-	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
+	inline bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
 	{
 		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
 			[=](auto pViewport) -> bool { return pViewport == ViewportX; });
@@ -155,19 +177,26 @@ private:
 	inline IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
 	inline IDirect3DDevice7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
-	// Interface initialization functions
-	void InitDevice(DWORD DirectXVersion);
-	void ReleaseDevice();
-
 	// Check interfaces
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 
+	// Execute buffer function
+	HRESULT DrawExecutePoint(D3DPOINT* point, WORD Count, DWORD vertexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
+	HRESULT DrawExecuteLine(D3DLINE* line, WORD Count, DWORD vertexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
+	HRESULT DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Count, DWORD vertexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
+
 	// Helper functions
+	HRESULT BackupStates();
+	HRESULT RestoreStates();
 	void SetDefaults();
 	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
 	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
 	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
 	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
+
+	// Interface initialization functions
+	void InitInterface(DWORD DirectXVersion);
+	void ReleaseInterface();
 
 public:
 	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal), ClassID(IID_IDirect3DHALDevice)
@@ -183,7 +212,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
 
-		InitDevice(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	m_IDirect3DDeviceX(m_IDirectDrawX *lpDdraw, LPDIRECTDRAWSURFACE7 pRenderTarget, REFCLSID rclsid, DWORD DirectXVersion) : ddrawParent(lpDdraw), CurrentRenderTarget(pRenderTarget), ClassID(rclsid)
 	{
@@ -191,13 +220,13 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		InitDevice(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	~m_IDirect3DDeviceX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseDevice();
+		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/
@@ -288,10 +317,13 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
-	bool IsDeviceInScene() { return IsInScene; }
+	bool IsDeviceInScene() const { return IsInScene; }
+
+	// ExecuteBuffer
+	void ReleaseExecuteBuffer(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuffer);
 
 	// Viewport functions
-	inline void GetDefaultViewport(D3DVIEWPORT9& Viewport) { Viewport = DefaultViewport; }
+	inline void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
 	inline bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
 
 	// Texture handle function
@@ -299,10 +331,9 @@ public:
 	HRESULT SetTextureHandle(DWORD tHandle, m_IDirect3DTextureX* lpTexture);
 
 	// Material handle function
-	inline void GetDefaultMaterial(D3DMATERIAL9& Material) { Material = DefaultMaterial; }
 	void ReleaseMaterialHandle(m_IDirect3DMaterialX* lpMaterial);
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE mHandle, m_IDirect3DMaterialX* lpMaterial);
-	inline bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) { return (mHandle == lsMaterialHandle); }
+	inline bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == lsMaterialHandle); }
 
 	// Light index function
 	void ReleaseLightInterface(m_IDirect3DLight* lpLight);
@@ -313,8 +344,9 @@ public:
 		if (lpCurrentRenderTargetX == lpSurfaceX)
 		{
 			lpCurrentRenderTargetX = nullptr;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: clearing current render target!");
 		}
-		for (UINT x = 1; x < MaxTextureStages; x++)
+		for (UINT x = 0; x < MaxTextureStages; x++)
 		{			
 			if (CurrentTextureSurfaceX[x] == lpSurfaceX)
 			{
@@ -338,6 +370,8 @@ public:
 			}
 		}
 	}
-	void ClearDdraw() { ddrawParent = nullptr; colorkeyPixelShader = nullptr; d3d9Device = nullptr; }
-	void ResetDevice();
+	void ClearDdraw();
+	void BeforeResetDevice();
+	void AfterResetDevice();
+	void ReleaseAllStateBlocks();
 };

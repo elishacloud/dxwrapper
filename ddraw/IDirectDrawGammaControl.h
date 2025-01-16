@@ -1,5 +1,7 @@
 #pragma once
 
+m_IDirectDrawGammaControl* CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent);
+
 class m_IDirectDrawGammaControl : public IDirectDrawGammaControl, public AddressLookupTableDdrawObject
 {
 private:
@@ -11,15 +13,15 @@ private:
 	m_IDirectDrawX *ddrawParent = nullptr;
 
 	// Interface initialization functions
-	void InitGammaControl();
-	void ReleaseGammaControl();
+	void InitInterface();
+	void ReleaseInterface();
 
 public:
 	m_IDirectDrawGammaControl(IDirectDrawGammaControl *aOriginal) : ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitGammaControl();
+		InitInterface();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -27,7 +29,7 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitGammaControl();
+		InitInterface();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -35,9 +37,26 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseGammaControl();
+		ReleaseInterface();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
+	}
+
+	void SetProxy(IDirectDrawGammaControl* NewProxyInterface, m_IDirectDrawX* NewParent)
+	{
+		ProxyInterface = NewProxyInterface;
+		ddrawParent = NewParent;
+		if (NewProxyInterface || NewParent)
+		{
+			RefCount = 1;
+			InitInterface();
+			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		}
+		else
+		{
+			ReleaseInterface();
+			ProxyAddressLookupTable.DeleteAddress(this);
+		}
 	}
 
 	/*** IUnknown methods ***/

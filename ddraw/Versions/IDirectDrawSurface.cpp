@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -243,6 +243,19 @@ HRESULT m_IDirectDrawSurface::GetSurfaceDesc(LPDDSURFACEDESC a)
 {
 	if (!ProxyInterface)
 	{
+		if (a)
+		{
+			if (a->dwSize == sizeof(DDSURFACEDESC))
+			{
+				ZeroMemory(a, sizeof(DDSURFACEDESC));
+				a->dwSize = sizeof(DDSURFACEDESC);
+			}
+			else if (a->dwSize == sizeof(DDSURFACEDESC2))
+			{
+				ZeroMemory(a, sizeof(DDSURFACEDESC2));
+				a->dwSize = sizeof(DDSURFACEDESC);
+			}
+		}
 		return DDERR_INVALIDOBJECT;
 	}
 	return ProxyInterface->GetSurfaceDesc(a, MipMapLevel, DirectXVersion);

@@ -75,18 +75,23 @@ private:
 	inline IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
 	inline IDirectDraw7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
-	// Interface initialization functions
-	void InitDdraw(DWORD DirectXVersion);
-	void ReleaseDdraw();
-
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
-	HRESULT CreateD3D9Object();
-	void Release3DForAllSurfaces();
+	HRESULT CreateD9Object();
+	void Clear3DFlagForAllSurfaces();
 	void ResetAllSurfaceDisplay();
+	void ReleaseD3D9IndexBuffer();
 	void ReleaseAllD9Resources(bool BackupData, bool ResetInterface);
-	void ReleaseD3D9Device();
-	void ReleaseD3D9Object();
+	void ReleaseD9Device();
+	void ReleaseD9Object();
+
+	// Gamma functions
+	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader();
+	HRESULT SetBrightnessLevel(D3DGAMMARAMP& RampData);
+
+	// Interface initialization functions
+	void InitInterface(DWORD DirectXVersion);
+	void ReleaseInterface();
 
 public:
 	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
@@ -102,7 +107,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
 
-		InitDdraw(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	m_IDirectDrawX(DWORD DirectXVersion)
 	{
@@ -110,13 +115,13 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		InitDdraw(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	~m_IDirectDrawX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseDdraw();
+		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/
@@ -131,8 +136,8 @@ public:
 	HRESULT CreateSurface(LPDDSURFACEDESC, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *, DWORD);
 	HRESULT CreateSurface2(LPDDSURFACEDESC2, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *, DWORD);
 	STDMETHOD(DuplicateSurface)(THIS_ LPDIRECTDRAWSURFACE7, LPDIRECTDRAWSURFACE7 FAR *, DWORD);
-	HRESULT EnumDisplayModes(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK);
-	HRESULT EnumDisplayModes2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2);
+	HRESULT EnumDisplayModes(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK, DWORD);
+	HRESULT EnumDisplayModes2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2, DWORD);
 	HRESULT EnumSurfaces(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMSURFACESCALLBACK, DWORD);
 	HRESULT EnumSurfaces2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7, DWORD);
 	STDMETHOD(FlipToGDISurface)(THIS);
@@ -177,27 +182,29 @@ public:
 	inline void ClearD3D() { D3DInterface = nullptr; }
 	void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice);
 	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
-	inline void ClearD3DDevice() { Using3D = false; D3DDeviceInterface = nullptr; SetRenderTargetSurface(nullptr); Release3DForAllSurfaces(); }
+	void ClearD3DDevice();
 	inline void Enable3D() { Using3D = true; }
-	inline bool IsUsing3D() { return Using3D; }
+	inline bool IsUsing3D() const { return Using3D; }
 	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
 	bool IsInScene();
 
 	// Direct3D9 interfaces
-	bool CheckD3D9Device();
-	LPDIRECT3D9 GetDirect3D9Object();
-	LPDIRECT3DDEVICE9 *GetDirect3D9Device();
+	bool CheckD9Device(char* FunctionName);
+	LPDIRECT3D9 GetDirectD9Object();
+	LPDIRECT3DDEVICE9 *GetDirectD9Device();
 	bool CreatePaletteShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
 	LPDIRECT3DVERTEXBUFFER9 GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size);
+	LPDIRECT3DINDEXBUFFER9 GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
 	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels);
-	HRESULT CreateD3D9Device();
-	HRESULT CreateVertexBuffer(DWORD Width, DWORD Height);
-	HRESULT ReinitDevice();
+	HRESULT ResetD9Device();
+	HRESULT CreateD9Device(char* FunctionName);
+	void UpdateVertices(DWORD Width, DWORD Height);
 	HRESULT TestD3D9CooperativeLevel();
 
 	// Device information functions
 	HWND GetHwnd();
+	DWORD GetHwndThreadID();
 	HDC GetDC();
 	DWORD GetDisplayBPP(HWND hWnd);
 	bool IsExclusiveMode();
@@ -244,8 +251,8 @@ public:
 	HRESULT SetClipperHWnd(HWND hWnd);
 	HRESULT GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
 	HRESULT SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
-	HRESULT CopyPrimarySurfaceToBackbuffer();
-	HRESULT DrawPrimarySurface();
+	HRESULT CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer);
+	HRESULT DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture);
 	bool IsUsingThreadPresent();
 	HRESULT PresentScene(RECT* pRect);
 	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);

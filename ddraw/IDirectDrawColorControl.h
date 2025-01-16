@@ -1,5 +1,7 @@
 #pragma once
 
+m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent);
+
 class m_IDirectDrawColorControl : public IDirectDrawColorControl, public AddressLookupTableDdrawObject
 {
 private:
@@ -12,15 +14,15 @@ private:
 	DDCOLORCONTROL ColorControl;
 
 	// Interface initialization functions
-	void InitColorControl();
-	void ReleaseColorControl();
+	void InitInterface();
+	void ReleaseInterface();
 
 public:
 	m_IDirectDrawColorControl(IDirectDrawColorControl *aOriginal) : ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitColorControl();
+		InitInterface();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -28,7 +30,7 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		InitColorControl();
+		InitInterface();
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
@@ -36,9 +38,26 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseColorControl();
+		ReleaseInterface();
 
 		ProxyAddressLookupTable.DeleteAddress(this);
+	}
+
+	void SetProxy(IDirectDrawColorControl* NewProxyInterface, m_IDirectDrawX* NewParent)
+	{
+		ProxyInterface = NewProxyInterface;
+		ddrawParent = NewParent;
+		if (NewProxyInterface || NewParent)
+		{
+			RefCount = 1;
+			InitInterface();
+			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		}
+		else
+		{
+			ReleaseInterface();
+			ProxyAddressLookupTable.DeleteAddress(this);
+		}
 	}
 
 	/*** IUnknown methods ***/

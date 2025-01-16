@@ -4,18 +4,30 @@ class m_IDirect3DTexture : public IDirect3DTexture, public AddressLookupTableDdr
 {
 private:
 	m_IDirect3DTextureX *ProxyInterface;
-	IDirect3DTexture *RealInterface;
 	REFIID WrapperID = IID_IDirect3DTexture;
 	const DWORD DirectXVersion = 1;
 
 public:
-	m_IDirect3DTexture(IDirect3DTexture *aOriginal, m_IDirect3DTextureX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface)
+	m_IDirect3DTexture(IDirect3DTexture *, m_IDirect3DTextureX *Interface) : ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DTexture()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
+	}
+
+	void SetProxy(m_IDirect3DTextureX* NewProxyInterface)
+	{
+		ProxyInterface = NewProxyInterface;
+		if (NewProxyInterface)
+		{
+			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		}
+		else
+		{
+			ProxyAddressLookupTable.DeleteAddress(this);
+		}
 	}
 
 	/*** IUnknown methods ***/

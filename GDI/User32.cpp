@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -16,9 +16,11 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include "ddraw\ddrawExternal.h"
 #include "GDI.h"
+#include "GDI\WndProc.h"
 #include "Utils\Utils.h"
+#include "ddraw\ddrawExternal.h"
+#include "d3d9\d3d9External.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
@@ -28,6 +30,8 @@ namespace GdiWrapper
 	INITIALIZE_OUT_WRAPPED_PROC(CreateWindowExW, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(DestroyWindow, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(GetSystemMetrics, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(GetWindowLongA, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(GetWindowLongW, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(SetWindowLongA, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(SetWindowLongW, unused);
 }
@@ -120,22 +124,26 @@ int WINAPI user_GetSystemMetrics(int nIndex)
 
 	DEFINE_STATIC_PROC_ADDRESS(GetSystemMetricsProc, GetSystemMetrics, GetSystemMetrics_out);
 
-	if (nIndex == SM_CXSCREEN)
+	switch (nIndex)
+	{
+	case SM_CXSCREEN:
 	{
 		int Width = GetDDrawWidth();
 		if (Width)
 		{
 			return Width;
 		}
+		break;
 	}
-
-	if (nIndex == SM_CYSCREEN)
+	case SM_CYSCREEN:
 	{
 		int Height = GetDDrawHeight();
 		if (Height)
 		{
 			return Height;
 		}
+		break;
+	}
 	}
 
 	if (!GetSystemMetrics)
@@ -146,18 +154,35 @@ int WINAPI user_GetSystemMetrics(int nIndex)
 	return GetSystemMetrics(nIndex);
 }
 
+LONG WINAPI GetWindowLongT(GetWindowLongProc GetWindowLongT, HWND hWnd, int nIndex)
+{
+	Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << nIndex;
+
+	if (!GetWindowLongT)
+	{
+		return NULL;
+	}
+
+	return GetWindowLongT(hWnd, nIndex);
+}
+
+LONG WINAPI user_GetWindowLongA(HWND hWnd, int nIndex)
+{
+	DEFINE_STATIC_PROC_ADDRESS(GetWindowLongProc, GetWindowLongA, GetWindowLongA_out);
+
+	return GetWindowLongT(GetWindowLongA, hWnd, nIndex);
+}
+
+LONG WINAPI user_GetWindowLongW(HWND hWnd, int nIndex)
+{
+	DEFINE_STATIC_PROC_ADDRESS(GetWindowLongProc, GetWindowLongW, GetWindowLongW_out);
+
+	return GetWindowLongT(GetWindowLongW, hWnd, nIndex);
+}
+
 LONG WINAPI SetWindowLongT(SetWindowLongProc SetWindowLongT, HWND hWnd, int nIndex, LONG dwNewLong)
 {
 	Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << nIndex << " " << Logging::hex(dwNewLong);
-
-	if (nIndex == GWL_WNDPROC)
-	{
-		LONG DDrawLong = (LONG)WndProc::CheckWndProc(hWnd, dwNewLong);
-		if (DDrawLong)
-		{
-			return DDrawLong;
-		}
-	}
 
 	if (!SetWindowLongT)
 	{

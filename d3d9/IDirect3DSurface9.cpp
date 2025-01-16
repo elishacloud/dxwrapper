@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -19,6 +19,23 @@
 HRESULT m_IDirect3DSurface9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
+
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+	*ppvObj = nullptr;
+
+	if (riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return D3D_OK;
+	}
+	if (riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return D3D_OK;
+	}
 
 	if (riid == IID_IUnknown || riid == WrapperID || riid == IID_IDirect3DResource9)
 	{

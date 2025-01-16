@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -18,6 +18,52 @@
 
 #include "ddraw.h"
 
+// Cached wrapper interface
+namespace {
+	m_IDirectDrawClipper* WrapperInterfaceBackup = nullptr;
+}
+
+inline static void SaveInterfaceAddress(m_IDirectDrawClipper* Interface, m_IDirectDrawClipper*& InterfaceBackup)
+{
+	if (Interface)
+	{
+		SetCriticalSection();
+		Interface->SetProxy(nullptr, nullptr, 0);
+		if (InterfaceBackup)
+		{
+			InterfaceBackup->DeleteMe();
+			InterfaceBackup = nullptr;
+		}
+		InterfaceBackup = Interface;
+		ReleaseCriticalSection();
+	}
+}
+
+m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags)
+{
+	SetCriticalSection();
+	m_IDirectDrawClipper* Interface = nullptr;
+	if (WrapperInterfaceBackup)
+	{
+		Interface = WrapperInterfaceBackup;
+		WrapperInterfaceBackup = nullptr;
+		Interface->SetProxy(aOriginal, NewParent, dwFlags);
+	}
+	else
+	{
+		if (aOriginal)
+		{
+			Interface = new m_IDirectDrawClipper(aOriginal);
+		}
+		else
+		{
+			Interface = new m_IDirectDrawClipper(NewParent, dwFlags);
+		}
+	}
+	ReleaseCriticalSection();
+	return Interface;
+}
+
 HRESULT m_IDirectDrawClipper::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -26,6 +72,7 @@ HRESULT m_IDirectDrawClipper::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{
@@ -79,7 +126,7 @@ ULONG m_IDirectDrawClipper::Release()
 
 	if (ref == 0)
 	{
-		delete this;
+		SaveInterfaceAddress(this, WrapperInterfaceBackup);
 	}
 
 	return ref;
@@ -311,15 +358,21 @@ HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 /*** Helper functions ***/
 /************************/
 
-void m_IDirectDrawClipper::InitClipper()
+void m_IDirectDrawClipper::InitInterface(DWORD dwFlags)
 {
+	clipperCaps = dwFlags;
+	cliphWnd = nullptr;
+	ClipList.clear();
+	IsClipListSet = false;
+	IsClipListChangedFlag = false;
+
 	if (ddrawParent)
 	{
 		ddrawParent->AddClipperToVector(this);
 	}
 }
 
-void m_IDirectDrawClipper::ReleaseClipper()
+void m_IDirectDrawClipper::ReleaseInterface()
 {
 	if (ddrawParent && !Config.Exiting)
 	{

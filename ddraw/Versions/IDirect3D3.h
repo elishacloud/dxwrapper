@@ -4,18 +4,30 @@ class m_IDirect3D3 : public IDirect3D3, public AddressLookupTableDdrawObject
 {
 private:
 	m_IDirect3DX *ProxyInterface;
-	IDirect3D3 *RealInterface;
 	REFIID WrapperID = IID_IDirect3D3;
 	const DWORD DirectXVersion = 3;
 
 public:
-	m_IDirect3D3(IDirect3D3 *aOriginal, m_IDirect3DX *Interface) : RealInterface(aOriginal), ProxyInterface(Interface)
+	m_IDirect3D3(IDirect3D3 *, m_IDirect3DX *Interface) : ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, (RealInterface) ? RealInterface : (void*)ProxyInterface);
+		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3D3()
 	{
 		ProxyAddressLookupTable.DeleteAddress(this);
+	}
+
+	void SetProxy(m_IDirect3DX* NewProxyInterface)
+	{
+		ProxyInterface = NewProxyInterface;
+		if (NewProxyInterface)
+		{
+			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		}
+		else
+		{
+			ProxyAddressLookupTable.DeleteAddress(this);
+		}
 	}
 
 	/*** IUnknown methods ***/

@@ -30,6 +30,7 @@
 	visit(DdrawEnableByteAlignment) \
 	visit(DdrawDisableDirect3DCaps) \
 	visit(DdrawEmulateLock) \
+	visit(DdrawFillSurfaceColor) \
 	visit(DdrawForceMipMapAutoGen) \
 	visit(DdrawFlipFillColor) \
 	visit(DdrawRemoveScanlines) \
@@ -77,6 +78,7 @@
 	visit(EnableDinput8Wrapper) \
 	visit(EnableDsoundWrapper) \
 	visit(EnableImgui) \
+	visit(EnableOpenDialogHook) \
 	visit(EnableVSync) \
 	visit(EnableWindowMode) \
 	visit(ExcludeProcess) \
@@ -134,6 +136,8 @@
 	visit(WaitForWindowChanges) \
 	visit(WindowSleepTime) \
 	visit(WindowModeBorder) \
+	visit(WinVersionLie) \
+	visit(WinVersionLieSP) \
 	visit(WrapperMode)
 
 #define VISIT_APPCOMPATDATA_SETTINGS(visit) \
@@ -155,6 +159,7 @@ typedef unsigned char byte;
 struct MEMORYINFO						// Used for hot patching memory
 {
 	void* AddressPointer = nullptr;		// Hot patch address
+	std::string PatternString;			// Hot patch pattern
 	std::vector<byte> Bytes;			// Hot patch bytes
 };
 
@@ -214,17 +219,16 @@ struct CONFIG
 	bool DDrawCompat = false;					// Enables the default DDrawCompat functions https://github.com/narzoul/DDrawCompat/
 	bool DDrawCompat20 = false;					// Enables DDrawCompat v0.2.0b
 	bool DDrawCompat21 = false;					// Enables DDrawCompat v0.2.1
-	bool DDrawCompatExperimental = false;		// Legacy setting replaced by DDrawCompat32
-	bool DDrawCompat30 = false;					// Legacy setting replaced by DDrawCompat32
-	bool DDrawCompat32 = false;					// Enables DDrawCompat v0.3.1
+	bool DDrawCompat32 = false;					// Enables DDrawCompat v0.3.2
 	bool DDrawCompatDisableGDIHook = false;		// Disables DDrawCompat GDI hooks
 	bool DDrawCompatNoProcAffinity = false;		// Disables DDrawCompat single processor affinity
 	bool DdrawAutoFrameSkip = false;			// Automatically skips frames to reduce input lag
 	DWORD DdrawFixByteAlignment = false;		// Fixes lock with surfaces that have unaligned byte sizes, 1) just byte align, 2) byte align + D3DTEXF_NONE, 3) byte align + D3DTEXF_LINEAR
 	bool DdrawEnableByteAlignment = false;		// Disables 32bit / 64bit byte alignment
 	DWORD DdrawResolutionHack = 0;				// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
-	bool DdrawRemoveScanlines = 0;				// Experimental feature to removing interlaced black lines in a single frame
-	bool DdrawRemoveInterlacing = 0;			// Experimental feature to removing interlacing between frames
+	bool DdrawRemoveScanlines = false;			// Experimental feature to removing interlaced black lines in a single frame
+	bool DdrawRemoveInterlacing = false;		// Experimental feature to removing interlacing between frames
+	bool DdrawFillSurfaceColor = false;			// After creating surface fill with random color for testing black screen or objects
 	bool DdrawEmulateSurface = false;			// Emulates the ddraw surface using device context for Dd7to9
 	bool DdrawEmulateLock = false;				// Emulates the lock to prevent crashes when an application tries to read data outside Lock/Unlock pair
 	bool DdrawReadFromGDI = false;				// Read from GDI bfore passing surface to program
@@ -275,6 +279,7 @@ struct CONFIG
 	bool EnableDinput8Wrapper = false;			// Enables the dinput8 wrapper
 	bool EnableDsoundWrapper = false;			// Enables the dsound wrapper
 	bool EnableImgui = false;					// Enables imgui for debugging
+	bool EnableOpenDialogHook = false;			// Enables the hooks for the open dialog box
 	bool EnableWindowMode = false;				// Enables WndMode for d3d9 wrapper
 	bool EnableVSync = false;					// Enables VSync for d3d9 wrapper
 	bool FixHighFrequencyMouse = false;			// Gets the latest mouse status by merging the DirectInput buffer data
@@ -313,6 +318,8 @@ struct CONFIG
 	DWORD AntiAliasing = 0;						// Enable AntiAliasing for d3d9 CreateDevice
 	DWORD RealWrapperMode = 0;					// Internal wrapper mode
 	MEMORYINFO VerifyMemoryInfo;				// Memory used for verification before hot patching
+	std::string WinVersionLie = "";				// Using DDrawCompat WinVersionLie to tell the OS a different OS
+	DWORD WinVersionLieSP = 0;					// Using DDrawCompat WinVersionLie to tell the OS a different OS
 	std::vector<MEMORYINFO> MemoryInfo;			// Addresses and memory used in hot patching
 	std::string RealDllPath;					// Manually set Dll to wrap
 	std::string RunProcess;						// Process to run on load

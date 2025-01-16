@@ -14,6 +14,34 @@ private:
 	bool IsViewPort2Set = false;
 	D3DVIEWPORT2 vData2 = {};
 
+	// Light array
+	std::vector<LPDIRECT3DLIGHT> AttachedLights;
+
+	inline bool IsLightAttached(LPDIRECT3DLIGHT LightX)
+	{
+		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
+			[=](auto pLight) -> bool { return pLight == LightX; });
+
+		if (it != std::end(AttachedLights))
+		{
+			return true;
+		}
+		return false;
+	}
+
+	inline bool DeleteAttachedLight(LPDIRECT3DLIGHT LightX)
+	{
+		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
+			[=](auto pLight) -> bool { return pLight == LightX; });
+
+		if (it != std::end(AttachedLights))
+		{
+			AttachedLights.erase(it);
+			return true;
+		}
+		return false;
+	}
+
 	struct MATERIALBACKGROUND {
 		BOOL IsSet = FALSE;
 		D3DMATERIALHANDLE hMat = NULL;
@@ -45,8 +73,8 @@ private:
 	inline IDirect3DViewport3 *GetProxyInterfaceV3() { return ProxyInterface; }
 
 	// Interface initialization functions
-	void InitViewport(DWORD DirectXVersion);
-	void ReleaseViewport();
+	void InitInterface(DWORD DirectXVersion);
+	void ReleaseInterface();
 
 public:
 	m_IDirect3DViewportX(IDirect3DViewport3 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
@@ -62,7 +90,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
 
-		InitViewport(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	m_IDirect3DViewportX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
 	{
@@ -77,13 +105,13 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
 
-		InitViewport(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	~m_IDirect3DViewportX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseViewport();
+		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/
@@ -118,6 +146,7 @@ public:
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+	void SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 };

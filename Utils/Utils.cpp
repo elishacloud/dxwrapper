@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -28,6 +28,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <intrin.h>
 #include <tlhelp32.h>
 #include <atlbase.h>
 #include <comdef.h>
@@ -37,9 +38,11 @@
 #include "Settings\Settings.h"
 #include "Dllmain\Dllmain.h"
 #include "Wrappers\wrapper.h"
+#include "ddraw\ddrawExternal.h"
 #include "d3d8\d3d8External.h"
 #include "d3d9\d3d9External.h"
 #include "External\Hooking\Hook.h"
+#include "External\Hooking\Disasm.h"
 #include "Logging\Logging.h"
 
 #undef LoadLibrary
@@ -73,6 +76,8 @@ typedef BOOL(WINAPI *CreateProcessAFunc)(LPCSTR lpApplicationName, LPSTR lpComma
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
 typedef HANDLE(WINAPI* CreateThreadProc)(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
 typedef LPVOID(WINAPI* VirtualAllocProc)(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
+typedef LPVOID(WINAPI* HeapAllocProc)(HANDLE, DWORD, SIZE_T);
+typedef SIZE_T(WINAPI* HeapSizeProc)(HANDLE, DWORD, LPCVOID);
 typedef BOOL(WINAPI *CreateProcessWFunc)(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
 
@@ -107,6 +112,8 @@ namespace Utils
 	INITIALIZE_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(CreateThread, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(VirtualAlloc, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(HeapAlloc, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(HeapSize, unused);
 
 	FARPROC p_CreateProcessA = nullptr;
 	FARPROC p_CreateProcessW = nullptr;
@@ -232,9 +239,9 @@ void Utils::DisableHighDPIScaling()
 
 		if (setProcessDpiAwareness)
 		{
-			HRESULT result = SUCCEEDED(setProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE));
+			HRESULT result = setProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
 
-			setDpiAware = (result == S_OK || result == E_ACCESSDENIED);
+			setDpiAware = (SUCCEEDED(result) || result == E_ACCESSDENIED);
 		}
 	}
 	if (hUser32 && !setDpiAware)
@@ -406,7 +413,7 @@ HANDLE WINAPI Utils::kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttribute
 
 LPVOID WINAPI Utils::kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
 {
-	Logging::LogDebug() << __FUNCTION__;
+	Logging::LogDebug() << __FUNCTION__ " " << lpAddress << " " << dwSize << " " << flAllocationType << " " << flProtect;
 
 	DEFINE_STATIC_PROC_ADDRESS(VirtualAllocProc, VirtualAlloc, VirtualAlloc_out);
 
@@ -427,6 +434,76 @@ LPVOID WINAPI Utils::kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD 
 
 	// Call the original VirtualAlloc function
 	return VirtualAlloc(lpAddress, dwSize, flAllocationType, flProtect);
+}
+
+LPVOID WINAPI Utils::kernel_HeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwBytes)
+{
+	//Logging::LogDebug() << __FUNCTION__ " " << " hHeap: " << hHeap << " dwFlags: " << Logging::hex(dwFlags) << " lpMem: " << lpMem;
+
+	DEFINE_STATIC_PROC_ADDRESS(HeapAllocProc, HeapAlloc, HeapAlloc_out);
+
+	if (!HeapAlloc)
+	{
+		return nullptr;
+	}
+
+	SIZE_T NewBytes = dwBytes + dwBytes / 16;
+	NewBytes += NewBytes % 16;
+
+	if (dwBytes > 128 * 512 && NewBytes < 0x7FFF8)
+	{
+		LPVOID ret = HeapAlloc(hHeap, dwFlags, NewBytes);
+		if (ret)
+		{
+			return ret;
+		}
+	}
+
+	// Call the original HeapSize function
+	return HeapAlloc(hHeap, dwFlags, dwBytes);
+}
+
+SIZE_T WINAPI Utils::kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem)
+{
+	//Logging::LogDebug() << __FUNCTION__ " " << " hHeap: " << hHeap << " dwFlags: " << Logging::hex(dwFlags) << " lpMem: " << lpMem;
+
+	DEFINE_STATIC_PROC_ADDRESS(HeapSizeProc, HeapSize, HeapSize_out);
+
+	if (!HeapSize)
+	{
+		return (SIZE_T)-1;
+	}
+
+	// Validate hHeap
+	if (!HeapValidate(hHeap, 0, lpMem))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Invalid heap handle!";
+		return (SIZE_T)-1;
+	}
+
+	// Call the original HeapSize function
+	return HeapSize(hHeap, dwFlags, lpMem);
+}
+
+// Your existing exception handler function
+LONG WINAPI Utils::Vectored_Exception_Handler(EXCEPTION_POINTERS* exception)
+{
+	if (exception &&
+		exception->ContextRecord &&
+		exception->ExceptionRecord &&
+		exception->ExceptionRecord->ExceptionAddress &&
+		exception->ExceptionRecord->ExceptionCode == STATUS_PRIVILEGED_INSTRUCTION)
+	{
+		size_t size = Disasm::getInstructionLength(exception->ExceptionRecord->ExceptionAddress);
+
+		if (size)
+		{
+			exception->ContextRecord->Eip += size;
+			return EXCEPTION_CONTINUE_EXECUTION;
+		}
+	}
+
+	return EXCEPTION_CONTINUE_SEARCH;
 }
 
 // Add HMODULE to vector
@@ -724,13 +801,30 @@ void Utils::DDrawResolutionHack(HMODULE hD3DIm)
 	}
 }
 
-void Utils::BusyWaitYield()
+void Utils::BusyWaitYield(DWORD RemainingMS)
 {
-#if (_WIN32_WINNT >= 0x0502)
-	YieldProcessor();
+	static bool supports_pause = []() {
+		int cpu_info[4] = { 0 };
+		__cpuid(cpu_info, 1); // Query CPU features
+		return (cpu_info[3] & (1 << 26)) != 0; // Check for SSE2 support
+		}();
+
+	// If remaining time is very small (e.g., 1 ms or less), use busy-wait with no operations
+	if (RemainingMS < 3 && supports_pause)
+	{
+		// Use _mm_pause or __asm { nop } to prevent unnecessary CPU cycles
+#ifdef YieldProcessor
+		YieldProcessor();
 #else
-	Sleep(0);
+		_mm_pause();
 #endif
+	}
+	else
+	{
+		// For larger remaining times, we can relax by yielding to the OS
+		// Sleep(0) yields without consuming CPU excessively
+		Sleep(0); // Let the OS schedule other tasks if there's significant time left
+	}
 }
 
 // Reset FPU if the _SW_INVALID flag is set
@@ -743,11 +837,11 @@ void Utils::ResetInvalidFPUState()
 	}
 }
 
-void Utils::CheckMessageQueue(HWND hwnd)
+void Utils::CheckMessageQueue(HWND hWnd)
 {
 	// Peek messages to help prevent a "Not Responding" window
 	MSG msg = {};
-	if (PeekMessage(&msg, hwnd, 0, 0, PM_NOREMOVE)) { BusyWaitYield(); };
+	if (PeekMessage(&msg, hWnd, 0, 0, PM_NOREMOVE)) { BusyWaitYield((DWORD)-1); };
 }
 
 bool Utils::IsWindowsVistaOrNewer()
@@ -928,6 +1022,35 @@ HWND Utils::GetTopLevelWindowOfCurrentProcess()
 	return nullptr; // No top-level window found for the current process.
 }
 
+bool Utils::IsMainWindow(HWND hWnd)
+{
+	// A main window is a top-level window without a parent
+	return GetWindow(hWnd, GW_OWNER) == nullptr && IsWindowVisible(hWnd);
+}
+
+HWND Utils::GetMainWindowForProcess(DWORD processId)
+{
+	struct {
+		DWORD processID = 0;
+		HWND mainWindow = nullptr;
+	} lparam;
+	lparam.processID = processId;
+
+	EnumWindows([](HWND hWnd, LPARAM lParam) -> BOOL {
+		DWORD windowProcessId = 0;
+		GetWindowThreadProcessId(hWnd, &windowProcessId);
+
+		if (windowProcessId == reinterpret_cast<DWORD*>(lParam)[0] && IsMainWindow(hWnd))
+		{
+			*reinterpret_cast<HWND*>(reinterpret_cast<DWORD*>(lParam) + 1) = hWnd;
+			return FALSE; // Found the main window, stop enumeration
+		}
+		return TRUE; // Continue searching
+		}, reinterpret_cast<LPARAM>(&lparam));
+
+	return lparam.mainWindow;
+}
+
 bool Utils::IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd)
 {
 	RECT rect1, rect2;
@@ -947,7 +1070,7 @@ bool Utils::IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd)
 	return false;
 }
 
-BOOL WINAPI CreateProcessAHandler(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
+static BOOL WINAPI CreateProcessAHandler(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
 {
 	DEFINE_STATIC_PROC_ADDRESS(CreateProcessAFunc, CreateProcessA, Utils::p_CreateProcessA);
@@ -986,7 +1109,7 @@ BOOL WINAPI CreateProcessAHandler(LPCSTR lpApplicationName, LPSTR lpCommandLine,
 		lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 }
 
-BOOL WINAPI CreateProcessWHandler(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
+static BOOL WINAPI CreateProcessWHandler(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
 {
 	DEFINE_STATIC_PROC_ADDRESS(CreateProcessWFunc, CreateProcessW, Utils::p_CreateProcessW);
@@ -1027,7 +1150,12 @@ BOOL WINAPI CreateProcessWHandler(LPCWSTR lpApplicationName, LPWSTR lpCommandLin
 
 DWORD Utils::GetThreadIDByHandle(HANDLE hThread)
 {
-	GetThreadIdProc pGetThreadId = (GetThreadIdProc)GetProcAddress(LoadLibrary("kernel32.dll"), "GetThreadId");
+	HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
+	GetThreadIdProc pGetThreadId = nullptr;
+	if (kernel32)
+	{
+		pGetThreadId = (GetThreadIdProc)GetProcAddress(kernel32, "GetThreadId");
+	}
 
 	if (pGetThreadId)
 	{
@@ -1081,7 +1209,7 @@ void Utils::DisableGameUX()
 	InterlockedExchangePointer((PVOID*)&p_CreateProcessW, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessW"), "CreateProcessW", *CreateProcessWHandler));
 }
 
-inline UINT GetValueFromString(wchar_t* str)
+inline static UINT GetValueFromString(wchar_t* str)
 {
 	int num = 0;
 	for (UINT i = 0; i < wcslen(str); i++)

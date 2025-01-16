@@ -3,7 +3,7 @@
 #include "Settings\Settings.h"
 #include "Wrappers\Wrapper.h"
 #ifdef DDRAWCOMPAT
-#include"v0.3.1/Win32/DisplayMode.h"
+#include"v0.3.2/Win32/DisplayMode.h"
 #endif
 
 namespace DDrawCompat
@@ -19,5 +19,5 @@ namespace DDrawCompat
 	void Prepare();
 	void Start(HINSTANCE, DWORD);
 	bool IsEnabled();
-	void InstallDd7to9Hooks();
+	void InstallDd7to9Hooks(HMODULE hModule);
 }

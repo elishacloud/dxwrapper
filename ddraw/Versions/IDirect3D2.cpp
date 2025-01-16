@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -18,45 +18,101 @@
 
 HRESULT m_IDirect3D2::QueryInterface(REFIID riid, LPVOID * ppvObj)
 {
+	if (!ProxyInterface)
+	{
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+		}
+		return E_NOINTERFACE;
+	}
 	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3D2::AddRef()
 {
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
 	return ProxyInterface->AddRef(DirectXVersion);
 }
 
 ULONG m_IDirect3D2::Release()
 {
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
 	return ProxyInterface->Release(DirectXVersion);
 }
 
 HRESULT m_IDirect3D2::EnumDevices(LPD3DENUMDEVICESCALLBACK a, LPVOID b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->EnumDevices(a, b, DirectXVersion);
 }
 
 HRESULT m_IDirect3D2::CreateLight(LPDIRECT3DLIGHT * a, IUnknown * b)
 {
+	if (!ProxyInterface)
+	{
+		if (a)
+		{
+			*a = nullptr;
+		}
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->CreateLight(a, b);
 }
 
 HRESULT m_IDirect3D2::CreateMaterial(LPDIRECT3DMATERIAL2 * a, IUnknown * b)
 {
+	if (!ProxyInterface)
+	{
+		if (a)
+		{
+			*a = nullptr;
+		}
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->CreateMaterial((LPDIRECT3DMATERIAL3*)a, b, DirectXVersion);
 }
 
 HRESULT m_IDirect3D2::CreateViewport(LPDIRECT3DVIEWPORT2 * a, IUnknown * b)
 {
+	if (!ProxyInterface)
+	{
+		if (a)
+		{
+			*a = nullptr;
+		}
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->CreateViewport((LPDIRECT3DVIEWPORT3*)a, b, DirectXVersion);
 }
 
 HRESULT m_IDirect3D2::FindDevice(LPD3DFINDDEVICESEARCH a, LPD3DFINDDEVICERESULT b)
 {
+	if (!ProxyInterface)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->FindDevice(a, b);
 }
 
 HRESULT m_IDirect3D2::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE b, LPDIRECT3DDEVICE2 * c)
 {
+	if (!ProxyInterface)
+	{
+		if (c)
+		{
+			*c = nullptr;
+		}
+		return DDERR_INVALIDOBJECT;
+	}
 	return ProxyInterface->CreateDevice(a, (LPDIRECTDRAWSURFACE7)b, (LPDIRECT3DDEVICE7*)c, nullptr, DirectXVersion);
 }

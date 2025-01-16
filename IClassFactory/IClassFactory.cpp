@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -82,6 +82,7 @@ HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
 
 	if (riid == IID_IClassFactory || riid == IID_IUnknown)
 	{
@@ -254,7 +255,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 
 #ifdef DDRAW
 	// IDirectDraw wrapper
-	if (Config.EnableDdrawWrapper)
+	if (Config.EnableDdrawWrapper || Config.DDrawCompat)
 	{
 		// Create DirectDraw interface
 		if (rclsid == CLSID_DirectDraw)
@@ -271,7 +272,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 			}
 
 			IDirectDraw *pDirectDraw = nullptr;
-			HRESULT hr = dd_DirectDrawCreate(nullptr, &pDirectDraw, pUnkOuter);
+			HRESULT hr = ((DirectDrawCreateProc)ddraw::DirectDrawCreate_var)(nullptr, &pDirectDraw, pUnkOuter);
 
 			if (SUCCEEDED(hr) && pDirectDraw)
 			{
@@ -304,7 +305,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				return E_NOINTERFACE;
 			}
 
-			return dd_DirectDrawCreateEx(nullptr, ppv, IID_IDirectDraw7, pUnkOuter);
+			return ((DirectDrawCreateExProc)ddraw::DirectDrawCreateEx_var)(nullptr, ppv, IID_IDirectDraw7, pUnkOuter);
 		}
 
 		// Create DirectDrawClipper interface
@@ -316,7 +317,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				return E_NOINTERFACE;
 			}
 
-			return dd_DirectDrawCreateClipper(0, (LPDIRECTDRAWCLIPPER*)ppv, pUnkOuter);
+			return ((DirectDrawCreateClipperProc)ddraw::DirectDrawCreateClipper_var)(0, (LPDIRECTDRAWCLIPPER*)ppv, pUnkOuter);
 		}
 	}
 #endif

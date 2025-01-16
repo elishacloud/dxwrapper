@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2023 Elisha Riedlinger
+* Copyright (C) 2024 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -66,18 +66,34 @@ void InitDDraw()
 	{
 		Logging::Log() << "Installing GDI & User32 hooks";
 		using namespace GdiWrapper;
-		GetDeviceCaps_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("gdi32.dll"), "GetDeviceCaps"), "GetDeviceCaps", gdi_GetDeviceCaps);
-		CreateWindowExA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
-		CreateWindowExW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
-		DestroyWindow_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "DestroyWindow"), "DestroyWindow", user_DestroyWindow);
-		GetSystemMetrics_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "GetSystemMetrics"), "GetSystemMetrics", user_GetSystemMetrics);
-		Utils::GetDiskFreeSpaceA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("kernel32.dll"), "GetDiskFreeSpaceA"), "GetDiskFreeSpaceA", Utils::kernel_GetDiskFreeSpaceA);
-		Utils::CreateThread_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("kernel32.dll"), "CreateThread"), "CreateThread", Utils::kernel_CreateThread);
-		Utils::VirtualAlloc_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("kernel32.dll"), "VirtualAlloc"), "VirtualAlloc", Utils::kernel_VirtualAlloc);
-		if (EnableWndProcHook)
+		if (!GetModuleHandleA("gdi32.dll")) LoadLibrary("gdi32.dll");
+		if (!GetModuleHandleA("user32.dll")) LoadLibrary("user32.dll");
+		HMODULE gdi32 = GetModuleHandleA("gdi32.dll");
+		HMODULE user32 = GetModuleHandleA("user32.dll");
+		HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
+		if (gdi32)
 		{
-			SetWindowLongA_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "SetWindowLongA"), "SetWindowLongA", user_SetWindowLongA);
-			SetWindowLongW_out = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(LoadLibrary("user32.dll"), "SetWindowLongW"), "SetWindowLongW", user_SetWindowLongW);
+			GetDeviceCaps_out = (FARPROC)Hook::HotPatch(GetProcAddress(gdi32, "GetDeviceCaps"), "GetDeviceCaps", gdi_GetDeviceCaps);
+		}
+		if (user32)
+		{
+			CreateWindowExA_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
+			CreateWindowExW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
+			DestroyWindow_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "DestroyWindow"), "DestroyWindow", user_DestroyWindow);
+			GetSystemMetrics_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "GetSystemMetrics"), "GetSystemMetrics", user_GetSystemMetrics);
+			//GetWindowLongA_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "GetWindowLongA"), "GetWindowLongA", user_GetWindowLongA);
+			//GetWindowLongW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "GetWindowLongW"), "GetWindowLongW", user_GetWindowLongW);
+			//SetWindowLongA_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "SetWindowLongA"), "SetWindowLongA", user_SetWindowLongA);
+			//SetWindowLongW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "SetWindowLongW"), "SetWindowLongW", user_SetWindowLongW);
+		}
+		if (kernel32)
+		{
+			Logging::Log() << "Installing Kernel32 hooks";
+			Utils::GetDiskFreeSpaceA_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetDiskFreeSpaceA"), "GetDiskFreeSpaceA", Utils::kernel_GetDiskFreeSpaceA);
+			Utils::CreateThread_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "CreateThread"), "CreateThread", Utils::kernel_CreateThread);
+			Utils::VirtualAlloc_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "VirtualAlloc"), "VirtualAlloc", Utils::kernel_VirtualAlloc);
+			//Utils::HeapAlloc_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "HeapAlloc"), "HeapAlloc", Utils::kernel_HeapAlloc);
+			Utils::HeapSize_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "HeapSize"), "HeapSize", Utils::kernel_HeapSize);
 		}
 		RunOnce = false;
 	}
@@ -94,7 +110,7 @@ void ExitDDraw()
 
 // Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
 // http://web.archive.org/web/20170418171908/http://www.blitzbasic.com/Community/posts.php?topic=99477
-void SetAllAppCompatData()
+static void SetAllAppCompatData()
 {
 	DEFINE_STATIC_PROC_ADDRESS(SetAppCompatDataProc, SetAppCompatData, SetAppCompatData_out);
 
@@ -367,7 +383,7 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 			return DDERR_INVALIDPARAMS;
 		}
 
-		m_IDirectDrawClipper* ClipperX = new m_IDirectDrawClipper(nullptr, dwFlags);
+		m_IDirectDrawClipper* ClipperX = CreateDirectDrawClipper(nullptr, nullptr, dwFlags);
 
 		AddBaseClipperToVetor(ClipperX);
 
@@ -387,7 +403,7 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 
 	if (SUCCEEDED(hr) && lplpDDClipper)
 	{
-		*lplpDDClipper = new m_IDirectDrawClipper(*lplpDDClipper);
+		*lplpDDClipper = CreateDirectDrawClipper(*lplpDDClipper, nullptr, dwFlags);
 	}
 
 	return hr;
@@ -460,7 +476,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 	return hr;
 }
 
-BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+static BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
 {
 	UNREFERENCED_PARAMETER(hdcMonitor);
 	UNREFERENCED_PARAMETER(lprcMonitor);
@@ -489,7 +505,7 @@ BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lpr
 	return DDENUMRET_OK;
 }
 
-HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
+static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
 {
 	UNREFERENCED_PARAMETER(dwFlags);
 

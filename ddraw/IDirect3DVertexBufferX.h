@@ -19,12 +19,8 @@ private:
 	void* LastLockAddr = nullptr;
 	DWORD LastLockFlags = 0;
 
-	// Index buffer data
-	DWORD IndexBufferSize = 0;
-
 	// Store d3d interface
 	LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = nullptr;
-	LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = nullptr;
 
 	// Store version wrappers
 	m_IDirect3DVertexBuffer *WrapperInterface = nullptr;
@@ -44,17 +40,16 @@ private:
 	inline IDirect3DVertexBuffer *GetProxyInterfaceV1() { return (IDirect3DVertexBuffer *)ProxyInterface; }
 	inline IDirect3DVertexBuffer7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
-	// Interface initialization functions
-	void InitVertexBuffer(DWORD DirectXVersion);
-	void ReleaseVertexBuffer();
-
 	// Check interfaces
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DVertexBuffer);
 
 	// Direct3D9 interface functions
 	HRESULT CreateD3D9VertexBuffer();
 	void ReleaseD3D9VertexBuffer();
-	void ReleaseD3D9IndexBuffer();
+
+	// Interface initialization functions
+	void InitInterface(DWORD DirectXVersion);
+	void ReleaseInterface();
 
 public:
 	m_IDirect3DVertexBufferX(IDirect3DVertexBuffer7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
@@ -70,7 +65,7 @@ public:
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
 
-		InitVertexBuffer(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	m_IDirect3DVertexBufferX(m_IDirectDrawX* lpDdraw, LPD3DVERTEXBUFFERDESC lpVBDesc, DWORD DirectXVersion) : ddrawParent(lpDdraw)
 	{
@@ -87,13 +82,13 @@ public:
 		}
 		d3d9VBDesc.Type = D3DRTYPE_VERTEXBUFFER;
 
-		InitVertexBuffer(DirectXVersion);
+		InitInterface(DirectXVersion);
 	}
 	~m_IDirect3DVertexBufferX()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		ReleaseVertexBuffer();
+		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/
@@ -122,9 +117,8 @@ public:
 	void ClearDdraw() { ddrawParent = nullptr; d3d9Device = nullptr; }
 
 	// Direct3D9 interfaces
-	LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() { return d3d9VertexBuffer; };
-	LPDIRECT3DINDEXBUFFER9 SetupIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
-	void ReleaseD9Buffers(bool BackupData, bool ResetBuffer);
+	const LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() const { return d3d9VertexBuffer; };
+	void ReleaseD9Buffer(bool BackupData, bool ResetBuffer);
 
-	DWORD GetFVF9() { return d3d9VBDesc.FVF; };
+	DWORD GetFVF9() const { return d3d9VBDesc.FVF; };
 };
