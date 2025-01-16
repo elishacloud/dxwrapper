@@ -306,6 +306,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 		DWORD opcode = NULL;
 
+		// Primitive structures and related defines. Vertex offsets are to types D3DVERTEX, D3DLVERTEX, or D3DTLVERTEX.
 		D3DLVERTEX* vertexBuffer = reinterpret_cast<D3DLVERTEX*>(Desc.lpData) + lpExecuteData->dwVertexOffset;
 		const DWORD vertexCount = lpExecuteData->dwVertexCount;
 
@@ -449,95 +450,121 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: triangle instruction size does not match!");
 				}
 
-				// Primitive structures and related defines.  Vertex offsets are to types D3DVERTEX, D3DLVERTEX, or D3DTLVERTEX.
-
 				// ToDo: figure out which vertex type is being used
-				// ToDo: figure out triangle strip or fan
 
-				D3DPRIMITIVETYPE PrimitiveType = D3DPT_TRIANGLESTRIP;
 				DWORD VertexTypeDesc = D3DFVF_LVERTEX9;
+
+				DWORD PrimitiveCount = 0;
+
+				std::vector<BYTE> vertices;
+				vertices.resize(sizeof(D3DLVERTEX9) * (instruction->wCount * 3));
+				D3DLVERTEX9* verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
+
+				D3DPRIMITIVETYPE PrimitiveType = D3DPT_TRIANGLELIST;
+
+				LONG LastCullMode = D3DTRIFLAG_START;
+				LONG CullRecordCount = 0;
+
+				// Check if triangle starts with START or START_FLAT
+				if (!((triangle[0].wFlags & 0x1F) < D3DTRIFLAG_STARTFLAT(30)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: triangle does not start with D3DTRIFLAG_START. Flags: " << Logging::hex(triangle[0].wFlags));
+				}
 
 				for (DWORD i = 0; i < instruction->wCount; i++)
 				{
 					// Flags for this triangle
-					WORD wFlags = triangle[i].wFlags;
-
-					DWORD PrimitiveCount = 0;
-
-					std::vector<BYTE> vertices;
+					WORD TriFlags = (triangle[i].wFlags & 0x1F);
 
 					// START loads all three vertices
-					if ((wFlags & 0x1F) == D3DTRIFLAG_START)
+					if (TriFlags < D3DTRIFLAG_STARTFLAT(30))
 					{
 						if (triangle[i].v1 < vertexCount && triangle[i].v2 < vertexCount && triangle[i].v3 < vertexCount)
 						{
-							PrimitiveCount = 1;
+							PrimitiveCount++;
+							PrimitiveType = D3DPT_TRIANGLELIST;
 
 							// Retrieve vertices from the vertex buffer
 							D3DLVERTEX v1 = vertexBuffer[triangle[i].v1];
 							D3DLVERTEX v2 = vertexBuffer[triangle[i].v2];
 							D3DLVERTEX v3 = vertexBuffer[triangle[i].v3];
 
-							// Resize vertices and set up vertex data
-							vertices.resize(sizeof(D3DLVERTEX9) * 3);
-							D3DLVERTEX9* verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
+							*verticesData = { v1.x, v1.y, v1.z, v1.color, v1.specular, v1.tu, v1.tv };
+							verticesData++;
+							*verticesData = { v2.x, v2.y, v2.z, v2.color, v2.specular, v2.tu, v2.tv };
+							verticesData++;
+							*verticesData = { v3.x, v3.y, v3.z, v3.color, v3.specular, v3.tu, v3.tv };
+							verticesData++;
 
-							verticesData[0] = { v1.x, v1.y, v1.z, v1.color, v1.specular, v1.tu, v1.tv };
-							verticesData[1] = { v2.x, v2.y, v2.z, v2.color, v2.specular, v2.tu, v2.tv };
-							verticesData[2] = { v3.x, v3.y, v3.z, v3.color, v3.specular, v3.tu, v3.tv };
-						}
-					}
-					// START_FLAT contains a count from 1 to 29 that allows the whole strip or fan to be culled in one hit.
-					else if ((wFlags & 0x1F) < D3DTRIFLAG_STARTFLAT(30))
-					{
-						// For a triangle strip or fan, the number of vertices is len + 2
-						DWORD count = min((wFlags & 0x1FU) + 2U, vertexCount);
-
-						PrimitiveCount = max(0, (int)count - 2);
-
-						vertices.resize(sizeof(D3DLVERTEX9) * count);
-						D3DLVERTEX9* verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
-
-						// Use these vertices to draw the triangle
-						D3DLVERTEX* v = vertexBuffer;
-						for (DWORD x = 0; x < count; x++)
-						{
-							verticesData[x] = { v[x].x, v[x].y, v[x].z, v[x].color, v[x].specular, v[x].tu, v[x].tv };
+							LastCullMode = D3DTRIFLAG_START;
+							CullRecordCount = TriFlags;
 						}
 					}
 					// EVEN and ODD load just v3 with even or odd culling
-					else if ((wFlags & 0x1F) == D3DTRIFLAG_ODD || (wFlags & 0x1F) == D3DTRIFLAG_EVEN)
+					else if (TriFlags == D3DTRIFLAG_EVEN || TriFlags == D3DTRIFLAG_ODD)
 					{
-						bool IsEven = (wFlags & 0x1F) == D3DTRIFLAG_EVEN;
-
-						if ((IsEven && triangle[i].v3 + 4U < vertexCount) || (!IsEven && triangle[i].v3 + 5U < vertexCount))
+						// Set primative type
+						if (LastCullMode == D3DTRIFLAG_START)
 						{
-							PrimitiveCount = 1;
-
-							vertices.resize(sizeof(D3DLVERTEX9) * 3);
-							D3DLVERTEX9* verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
-
-							// Use these vertices to draw the triangle
-							D3DLVERTEX* v = &vertexBuffer[triangle[i].v3];
-							for (DWORD x = 0; x < 3; x++)
+							// Even cull modes indicates a triangle fan
+							if (TriFlags == D3DTRIFLAG_EVEN)
 							{
-								DWORD vIndex = (x * 2) + (IsEven ? 0 : 1);
-								verticesData[x] = { v[vIndex].x, v[vIndex].y, v[vIndex].z, v[vIndex].color, v[vIndex].specular, v[vIndex].tu, v[vIndex].tv };
+								PrimitiveType = D3DPT_TRIANGLEFAN;
+							}
+							// Odd or mismatching cull modes indicates a triangle strip
+							else
+							{
+								PrimitiveType = D3DPT_TRIANGLESTRIP;
 							}
 						}
-					}
-					else
-					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: unknown triangle flags: " << Logging::hex(wFlags));
+						// The primative type doesn't mismatch past cull mode
+						else if ((TriFlags == LastCullMode && PrimitiveType == D3DPT_TRIANGLESTRIP) ||
+							(TriFlags != LastCullMode && PrimitiveType == D3DPT_TRIANGLEFAN))
+						{
+							LOG_LIMIT(100, __FUNCTION__ << " Warning: vertex cull mode mismatch detected!");
+						}
+
+						if (triangle[i].v3 < vertexCount)
+						{
+							PrimitiveCount++;
+
+							// Retrieve vertices from the vertex buffer
+							D3DLVERTEX v = vertexBuffer[triangle[i].v3];
+
+							// Store vertix data
+							*verticesData = { v.x, v.y, v.z, v.color, v.specular, v.tu, v.tv };
+							verticesData++;
+						}
+
+						LastCullMode = TriFlags;
+						CullRecordCount--;
 					}
 
-					if (PrimitiveCount)
+					// Check next records
+					bool AtEndOfList = !(i + 1U < instruction->wCount);
+					LONG NextRecord = (i + 1U < instruction->wCount) ? ((triangle[i + 1].wFlags & 0x1F) < 30 ? D3DTRIFLAG_START : D3DTRIFLAG_EVEN) : 0;
+					LONG NextNextRecord = (i + 2U < instruction->wCount) ? ((triangle[i + 2].wFlags & 0x1F) < 30 ? D3DTRIFLAG_START : D3DTRIFLAG_EVEN) : 0;
+
+					// Draw primitaves once at the end of the list
+					if (PrimitiveCount &&								// There primatives to draw
+						(AtEndOfList ||									// There are no more records, or
+							(NextRecord == D3DTRIFLAG_START &&			// Next record is a new START
+								(LastCullMode != D3DTRIFLAG_START || NextNextRecord != D3DTRIFLAG_START))))
 					{
+						if (CullRecordCount > 0)
+						{
+							LOG_LIMIT(100, __FUNCTION__ << " Warning: drawing before all records have been culled: " << CullRecordCount);
+						}
+
 						// Set the FVF (Flexible Vertex Format)
 						(*d3d9Device)->SetFVF(VertexTypeDesc);
 
 						// Pass the vertex data directly to the rendering pipeline
-						(*d3d9Device)->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
+						HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
+
+						// Reset variables for next list
+						PrimitiveCount = 0;
+						verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
 					}
 				}
 
