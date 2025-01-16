@@ -273,7 +273,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 			return DDERR_GENERIC;
 		}
 
-		// Handle dwFlags
+		// Handle dwVertexOp
 		// D3DVOP_TRANSFORM is inherently handled by ProcessVertices() as it performs vertex transformations based on the current world, view, and projection matrices.
 		if (dwVertexOp & D3DVOP_CLIP)
 		{

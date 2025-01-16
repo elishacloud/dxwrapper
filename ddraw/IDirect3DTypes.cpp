@@ -242,7 +242,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7)
 	Desc.dpcTriCaps = Desc7.dpcTriCaps;
 	Desc.dwDeviceRenderBitDepth = Desc7.dwDeviceRenderBitDepth;
 	Desc.dwDeviceZBufferBitDepth = Desc7.dwDeviceZBufferBitDepth;
-	Desc.dwMaxBufferSize = 256 * 1024 * 1024; // 256 MB
+	Desc.dwMaxBufferSize = MAX_EXECUTE_BUFFER_SIZE;
 	Desc.dwMaxVertexCount = 65534;
 
 	// Handle additional fields depending on the structure size

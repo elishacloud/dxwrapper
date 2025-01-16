@@ -489,7 +489,7 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 
 	if (!ProxyInterface)
 	{
-		// The Optimize function doesn't exist in Direct3D9 because it manages vertex buffer optimizations internally
+		// The method is not currently supported.
 		return D3D_OK;
 	}
 

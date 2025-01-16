@@ -281,12 +281,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 	{
 		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7)
 		{
-			if (riid == IID_IDirect3D && PrimarySurface && DirectXVersion == 1)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: Direct3D version 1 interface not implemented!");
-				return E_NOINTERFACE;
-			}
-			else if (Config.DdrawDisableDirect3DCaps)
+			if (Config.DdrawDisableDirect3DCaps)
 			{
 				return E_NOINTERFACE;
 			}

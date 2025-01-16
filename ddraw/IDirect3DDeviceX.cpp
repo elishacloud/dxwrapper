@@ -260,24 +260,14 @@ void m_IDirect3DDeviceX::ReleaseExecuteBuffer(LPDIRECT3DEXECUTEBUFFER lpDirect3D
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD Count, DWORD vertexCount, D3DLVERTEX* vertexBuffer)
+HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD Count, DWORD vertexCount, D3DTLVERTEX* vertexBuffer, DWORD VertexTypeDesc)
 {
-	// ToDo: figure out which vertex type is being used
-
-	DWORD VertexTypeDesc = D3DFVF_LVERTEX9;
-
 	DWORD PrimitiveCount = 0;
-
-	DWORD totalCount = 0;
-	for (DWORD i = 0; i < Count; i++)
-	{
-		totalCount += min(point[i].wCount, vertexCount - point[i].wFirst);
-	}
 
 	// Define vertices and setup vector
 	std::vector<BYTE> vertices;
-	vertices.resize(sizeof(D3DLVERTEX9) * totalCount + 1);
-	D3DLVERTEX9* verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
+	vertices.resize(sizeof(D3DTLVERTEX) * Count);
+	D3DTLVERTEX* verticesData = reinterpret_cast<D3DTLVERTEX*>(vertices.data());
 
 	// Add vertices to vector
 	for (DWORD i = 0; i < Count; i++)
@@ -286,13 +276,13 @@ HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD Count, DWORD 
 		{
 			DWORD count = min(point[i].wCount, vertexCount - point[i].wFirst);
 
-			D3DLVERTEX* v = &vertexBuffer[point[i].wFirst];
+			D3DTLVERTEX v = vertexBuffer[point[i].wFirst];
 
 			for (DWORD x = 0; x < count; x++)
 			{
 				PrimitiveCount++;
 
-				*verticesData = { v[x].x, v[x].y, v[x].z, v[x].color, v[x].specular, v[x].tu, v[x].tv };
+				*verticesData = v;
 				verticesData++;
 			}
 		}
@@ -306,20 +296,18 @@ HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD Count, DWORD 
 		// Pass the vertex data directly to the rendering pipeline
 		(*d3d9Device)->DrawPrimitiveUP(D3DPT_POINTLIST, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
 	}
+
+	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD Count, DWORD vertexCount, D3DLVERTEX* vertexBuffer)
+HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD Count, DWORD vertexCount, D3DTLVERTEX* vertexBuffer, DWORD VertexTypeDesc)
 {
-	// ToDo: figure out which vertex type is being used
-
-	DWORD VertexTypeDesc = D3DFVF_LVERTEX9;
-
 	DWORD PrimitiveCount = 0;
 
 	// Define vertices and setup vector
 	std::vector<BYTE> vertices;
-	vertices.resize(Count);
-	D3DLVERTEX9* verticesData = (D3DLVERTEX9*)vertices.data();
+	vertices.resize(sizeof(D3DTLVERTEX) * Count * 2);
+	D3DTLVERTEX* verticesData = (D3DTLVERTEX*)vertices.data();
 
 	for (DWORD i = 0; i < Count; i++)
 	{
@@ -328,13 +316,13 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD Count, DWORD ver
 			PrimitiveCount++;
 
 			// Retrieve vertices from the vertex buffer
-			D3DLVERTEX v1 = vertexBuffer[line[i].v1];
-			D3DLVERTEX v2 = vertexBuffer[line[i].v2];
+			D3DTLVERTEX v1 = vertexBuffer[line[i].v1];
+			D3DTLVERTEX v2 = vertexBuffer[line[i].v2];
 
 			// Resize vertices and set up vertex data
-			*verticesData = { v1.x, v1.y, v1.z, v1.color, v1.specular, v1.tu, v1.tv };
+			*verticesData = v1;
 			verticesData++;
-			*verticesData = { v2.x, v2.y, v2.z, v2.color, v2.specular, v2.tu, v2.tv };
+			*verticesData = v2;
 			verticesData++;
 		}
 	}
@@ -347,19 +335,17 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD Count, DWORD ver
 		// Pass the vertex data directly to the rendering pipeline
 		(*d3d9Device)->DrawPrimitiveUP(D3DPT_LINELIST, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
 	}
+
+	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Count, DWORD vertexCount, D3DLVERTEX* vertexBuffer)
+HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Count, DWORD vertexCount, D3DTLVERTEX* vertexBuffer, DWORD VertexTypeDesc)
 {
-	// ToDo: figure out which vertex type is being used
-
-	DWORD VertexTypeDesc = D3DFVF_LVERTEX9;
-
 	DWORD PrimitiveCount = 0;
 
 	std::vector<BYTE> vertices;
-	vertices.resize(sizeof(D3DLVERTEX9) * (Count * 3));
-	D3DLVERTEX9* verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
+	vertices.resize(sizeof(D3DTLVERTEX) * Count * 3);
+	D3DTLVERTEX* verticesData = reinterpret_cast<D3DTLVERTEX*>(vertices.data());
 
 	D3DPRIMITIVETYPE PrimitiveType = D3DPT_TRIANGLELIST;
 
@@ -386,15 +372,15 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Coun
 				PrimitiveType = D3DPT_TRIANGLELIST;
 
 				// Retrieve vertices from the vertex buffer
-				D3DLVERTEX v1 = vertexBuffer[triangle[i].v1];
-				D3DLVERTEX v2 = vertexBuffer[triangle[i].v2];
-				D3DLVERTEX v3 = vertexBuffer[triangle[i].v3];
+				D3DTLVERTEX v1 = vertexBuffer[triangle[i].v1];
+				D3DTLVERTEX v2 = vertexBuffer[triangle[i].v2];
+				D3DTLVERTEX v3 = vertexBuffer[triangle[i].v3];
 
-				*verticesData = { v1.x, v1.y, v1.z, v1.color, v1.specular, v1.tu, v1.tv };
+				*verticesData = v1;
 				verticesData++;
-				*verticesData = { v2.x, v2.y, v2.z, v2.color, v2.specular, v2.tu, v2.tv };
+				*verticesData = v2;
 				verticesData++;
-				*verticesData = { v3.x, v3.y, v3.z, v3.color, v3.specular, v3.tu, v3.tv };
+				*verticesData = v3;
 				verticesData++;
 
 				LastCullMode = D3DTRIFLAG_START;
@@ -430,10 +416,10 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Coun
 				PrimitiveCount++;
 
 				// Retrieve vertices from the vertex buffer
-				D3DLVERTEX v = vertexBuffer[triangle[i].v3];
+				D3DTLVERTEX v = vertexBuffer[triangle[i].v3];
 
 				// Store vertix data
-				*verticesData = { v.x, v.y, v.z, v.color, v.specular, v.tu, v.tv };
+				*verticesData = v;
 				verticesData++;
 			}
 
@@ -465,7 +451,7 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Coun
 
 			// Reset variables for next list
 			PrimitiveCount = 0;
-			verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
+			verticesData = reinterpret_cast<D3DTLVERTEX*>(vertices.data());
 		}
 	}
 
@@ -518,8 +504,11 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 		DWORD opcode = NULL;
 
+		// ToDo: figure out which vertex type is being used
+		DWORD VertexTypeDesc = D3DFVF_TLVERTEX;
+
 		// Primitive structures and related defines. Vertex offsets are to types D3DVERTEX, D3DLVERTEX, or D3DTLVERTEX.
-		D3DLVERTEX* vertexBuffer = reinterpret_cast<D3DLVERTEX*>(Desc.lpData) + lpExecuteData->dwVertexOffset;
+		D3DTLVERTEX* vertexBuffer = reinterpret_cast<D3DTLVERTEX*>(Desc.lpData) + lpExecuteData->dwVertexOffset;
 		const DWORD vertexCount = lpExecuteData->dwVertexCount;
 
 		DWORD EmulatedDriverStatus = 0;
@@ -555,7 +544,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: point instruction size does not match!");
 				}
 
-				DrawExecutePoint(point, instruction->wCount, vertexCount, vertexBuffer);
+				DrawExecutePoint(point, instruction->wCount, vertexCount, vertexBuffer, VertexTypeDesc);
 
 				break;
 			}
@@ -569,7 +558,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: line instruction size does not match!");
 				}
 
-				DrawExecuteLine(line, instruction->wCount, vertexCount, vertexBuffer);
+				DrawExecuteLine(line, instruction->wCount, vertexCount, vertexBuffer, VertexTypeDesc);
 
 				break;
 			}
@@ -583,7 +572,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: triangle instruction size does not match!");
 				}
 
-				DrawExecuteTriangle(triangle, instruction->wCount, vertexCount, vertexBuffer);
+				DrawExecuteTriangle(triangle, instruction->wCount, vertexCount, vertexBuffer, VertexTypeDesc);
 
 				break;
 			}
@@ -751,7 +740,10 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: process vertices instruction size does not match!");
 				}
 
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: process vertices instruction is not implemented!");
+				if (processVertices->dwFlags != D3DPROCESSVERTICES_COPY)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: process vertices instruction is not implemented! Flags: " << Logging::hex(processVertices->dwFlags));
+				}
 
 				// ToDo: implement process vertices opcode
 
