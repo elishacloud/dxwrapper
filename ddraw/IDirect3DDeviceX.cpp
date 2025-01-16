@@ -260,106 +260,95 @@ void m_IDirect3DDeviceX::ReleaseExecuteBuffer(LPDIRECT3DEXECUTEBUFFER lpDirect3D
 	}
 }
 
-inline static void CopyConvertExecuteVertex(BYTE*& DestVertex, BYTE* SrcVertex, DWORD SrcIndex, DWORD VertexTypeDesc)
+inline static void CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& DestVertexCount, BYTE* SrcVertex, DWORD SrcIndex, DWORD VertexTypeDesc)
 {
 	// Primitive structures and related defines. Vertex offsets are to types D3DVERTEX, D3DLVERTEX, or D3DTLVERTEX.
 	if (VertexTypeDesc == D3DFVF_VERTEX)
 	{
+		DestVertexCount++;
 		*((D3DVERTEX*)DestVertex) = ((D3DVERTEX*)SrcVertex)[SrcIndex];
 		DestVertex += sizeof(D3DVERTEX);
 		return;
 	}
-	else if (VertexTypeDesc == D3DFVF_LVERTEX9)
+	else if (VertexTypeDesc == D3DFVF_LVERTEX)
 	{
-		D3DLVERTEX* v = &((D3DLVERTEX*)SrcVertex)[SrcIndex];
-		*((D3DLVERTEX9*)DestVertex) = { v->x, v->y, v->z, v->color, v->specular, v->tu, v->tv };
-		DestVertex += sizeof(D3DLVERTEX9);
+		DestVertexCount++;
+		*((D3DLVERTEX*)DestVertex) = ((D3DLVERTEX*)SrcVertex)[SrcIndex];
+		DestVertex += sizeof(D3DLVERTEX);
 		return;
 	}
 	else if (VertexTypeDesc == D3DFVF_TLVERTEX)
 	{
+		DestVertexCount++;
 		*((D3DTLVERTEX*)DestVertex) = ((D3DTLVERTEX*)SrcVertex)[SrcIndex];
 		DestVertex += sizeof(D3DTLVERTEX);
 		return;
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD Count, DWORD vertexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
+HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD pointCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
 {
-	DWORD PrimitiveCount = 0;
-
 	// Define vertices and setup vector
 	std::vector<BYTE> vertices;
-	vertices.resize(sizeof(D3DTLVERTEX) * Count);
+	vertices.resize(sizeof(D3DTLVERTEX) * pointCount);
 	BYTE* verticesData = vertices.data();
+	DWORD verticesCount = 0;
 
 	// Add vertices to vector
-	for (DWORD i = 0; i < Count; i++)
+	for (DWORD i = 0; i < pointCount; i++)
 	{
-		if ((DWORD)point[i].wFirst < vertexCount)
+		if ((DWORD)point[i].wFirst < vertexIndexCount)
 		{
-			DWORD count = min(point[i].wCount, vertexCount - point[i].wFirst);
+			DWORD count = min(point[i].wCount, vertexIndexCount - point[i].wFirst);
 
 			for (DWORD x = 0; x < count; x++)
 			{
-				PrimitiveCount++;
-
-				CopyConvertExecuteVertex(verticesData, vertexBuffer, point[i].wFirst + x, VertexTypeDesc);
+				CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, point[i].wFirst + x, VertexTypeDesc);
 			}
 		}
 	}
 
-	if (PrimitiveCount)
+	if (verticesCount)
 	{
-		// Set the FVF (Flexible Vertex Format)
-		(*d3d9Device)->SetFVF(VertexTypeDesc);
-
-		// Pass the vertex data directly to the rendering pipeline
-		(*d3d9Device)->DrawPrimitiveUP(D3DPT_POINTLIST, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
+		// Pass the vertex data to the rendering pipeline
+		DrawPrimitive(D3DPT_POINTLIST, VertexTypeDesc, vertices.data(), verticesCount, 0, 1);
 	}
 
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD Count, DWORD vertexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
+HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
 {
-	DWORD PrimitiveCount = 0;
-
 	// Define vertices and setup vector
 	std::vector<BYTE> vertices;
-	vertices.resize(sizeof(D3DTLVERTEX) * Count * 2);
+	vertices.resize(sizeof(D3DTLVERTEX) * lineCount * 2);
 	BYTE* verticesData = vertices.data();
+	DWORD verticesCount = 0;
 
-	for (DWORD i = 0; i < Count; i++)
+	for (DWORD i = 0; i < lineCount; i++)
 	{
-		if (line[i].v1 < vertexCount && line[i].v2 < vertexCount)
+		if (line[i].v1 < vertexIndexCount && line[i].v2 < vertexIndexCount)
 		{
-			PrimitiveCount++;
-
-			CopyConvertExecuteVertex(verticesData, vertexBuffer, line[i].v1, VertexTypeDesc);
-			CopyConvertExecuteVertex(verticesData, vertexBuffer, line[i].v2, VertexTypeDesc);
+			CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, line[i].v1, VertexTypeDesc);
+			CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, line[i].v2, VertexTypeDesc);
 		}
 	}
 
-	if (PrimitiveCount)
+	if (verticesCount)
 	{
-		// Set the FVF (Flexible Vertex Format)
-		(*d3d9Device)->SetFVF(VertexTypeDesc);
-
-		// Pass the vertex data directly to the rendering pipeline
-		(*d3d9Device)->DrawPrimitiveUP(D3DPT_LINELIST, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
+		// Pass the vertex data to the rendering pipeline
+		DrawPrimitive(D3DPT_LINELIST, VertexTypeDesc, vertices.data(), verticesCount, 0, 1);
 	}
 
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Count, DWORD vertexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
+HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD triangleCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
 {
-	DWORD PrimitiveCount = 0;
-
 	std::vector<BYTE> vertices;
-	vertices.resize(sizeof(D3DTLVERTEX) * Count * 3);
+	vertices.resize(sizeof(D3DTLVERTEX) * triangleCount * 3);
 	BYTE* verticesData = vertices.data();
+	DWORD verticesCount = 0;
 
 	D3DPRIMITIVETYPE PrimitiveType = D3DPT_TRIANGLELIST;
 
@@ -373,7 +362,7 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Coun
 		return DDERR_INVALIDPARAMS;
 	}
 
-	for (DWORD i = 0; i < Count; i++)
+	for (DWORD i = 0; i < triangleCount; i++)
 	{
 		// Flags for this triangle
 		WORD TriFlags = (triangle[i].wFlags & 0x1F);
@@ -381,14 +370,13 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Coun
 		// START loads all three vertices
 		if (TriFlags < D3DTRIFLAG_STARTFLAT(30))
 		{
-			if (triangle[i].v1 < vertexCount && triangle[i].v2 < vertexCount && triangle[i].v3 < vertexCount)
+			if (triangle[i].v1 < vertexIndexCount && triangle[i].v2 < vertexIndexCount && triangle[i].v3 < vertexIndexCount)
 			{
-				PrimitiveCount++;
 				PrimitiveType = D3DPT_TRIANGLELIST;
 
-				CopyConvertExecuteVertex(verticesData, vertexBuffer, triangle[i].v1, VertexTypeDesc);
-				CopyConvertExecuteVertex(verticesData, vertexBuffer, triangle[i].v2, VertexTypeDesc);
-				CopyConvertExecuteVertex(verticesData, vertexBuffer, triangle[i].v3, VertexTypeDesc);
+				CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, triangle[i].v1, VertexTypeDesc);
+				CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, triangle[i].v2, VertexTypeDesc);
+				CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, triangle[i].v3, VertexTypeDesc);
 
 				LastCullMode = D3DTRIFLAG_START;
 				CullRecordCount = TriFlags;
@@ -418,11 +406,9 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Coun
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: vertex cull mode mismatch detected!");
 			}
 
-			if (triangle[i].v3 < vertexCount)
+			if (triangle[i].v3 < vertexIndexCount)
 			{
-				PrimitiveCount++;
-
-				CopyConvertExecuteVertex(verticesData, vertexBuffer, triangle[i].v3, VertexTypeDesc);
+				CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, triangle[i].v3, VertexTypeDesc);
 			}
 
 			LastCullMode = TriFlags;
@@ -430,12 +416,12 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Coun
 		}
 
 		// Check next records
-		bool AtEndOfList = !(i + 1U < Count);
-		LONG NextRecord = (i + 1U < Count) ? ((triangle[i + 1].wFlags & 0x1F) < 30 ? D3DTRIFLAG_START : D3DTRIFLAG_EVEN) : 0;
-		LONG NextNextRecord = (i + 2U < Count) ? ((triangle[i + 2].wFlags & 0x1F) < 30 ? D3DTRIFLAG_START : D3DTRIFLAG_EVEN) : 0;
+		bool AtEndOfList = !(i + 1U < triangleCount);
+		LONG NextRecord = (i + 1U < triangleCount) ? ((triangle[i + 1].wFlags & 0x1F) < 30 ? D3DTRIFLAG_START : D3DTRIFLAG_EVEN) : 0;
+		LONG NextNextRecord = (i + 2U < triangleCount) ? ((triangle[i + 2].wFlags & 0x1F) < 30 ? D3DTRIFLAG_START : D3DTRIFLAG_EVEN) : 0;
 
 		// Draw primitaves once at the end of the list
-		if (PrimitiveCount &&								// There primatives to draw
+		if (verticesCount &&								// There primatives to draw
 			(AtEndOfList ||									// There are no more records, or
 				(NextRecord == D3DTRIFLAG_START &&			// Next record is a new START
 					(LastCullMode != D3DTRIFLAG_START || NextNextRecord != D3DTRIFLAG_START))))
@@ -445,14 +431,11 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Coun
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: drawing before all records have been culled: " << CullRecordCount);
 			}
 
-			// Set the FVF (Flexible Vertex Format)
-			(*d3d9Device)->SetFVF(VertexTypeDesc);
-
-			// Pass the vertex data directly to the rendering pipeline
-			(*d3d9Device)->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
+			// Pass the vertex data to the rendering pipeline
+			DrawPrimitive(PrimitiveType, VertexTypeDesc, vertices.data(), verticesCount, 0, 1);
 
 			// Reset variables for next list
-			PrimitiveCount = 0;
+			verticesCount = 0;
 			verticesData = vertices.data();
 		}
 	}
@@ -506,7 +489,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 		DWORD opcode = NULL;
 
-		// ToDo: figure out which vertex type is being used D3DFVF_VERTEX, D3DFVF_LVERTEX9 or D3DFVF_TLVERTEX
+		// ToDo: figure out which vertex type is being used D3DFVF_VERTEX, D3DFVF_LVERTEX or D3DFVF_TLVERTEX
 		DWORD VertexTypeDesc = D3DFVF_TLVERTEX;
 
 		// Primitive structures and related defines. Vertex offsets are to types D3DVERTEX, D3DLVERTEX, or D3DTLVERTEX.
