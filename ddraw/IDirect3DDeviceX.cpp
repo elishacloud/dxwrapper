@@ -345,8 +345,30 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD
 
 HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD triangleCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
 {
+	// Compute buffer size
+	DWORD BufferSize;
+	{
+		bool LastRecord = false;
+		DWORD Count = 0, MaxCount = 0;
+		for (DWORD i = 0; i < triangleCount; i++)
+		{
+			bool IsStartRecord = (triangle[i].wFlags & 0x1F) < D3DTRIFLAG_STARTFLAT(30);
+			if (IsStartRecord != LastRecord)
+			{
+				MaxCount = max(Count, MaxCount);
+				Count = (IsStartRecord) ? 3 : 4;
+			}
+			else
+			{
+				Count += (IsStartRecord) ? 3 : 1;
+			}
+			LastRecord = IsStartRecord;
+		}
+		BufferSize = sizeof(D3DTLVERTEX) * max(Count, MaxCount);
+	}
+
 	std::vector<BYTE> vertices;
-	vertices.resize(sizeof(D3DTLVERTEX) * triangleCount * 3);
+	vertices.resize(BufferSize);
 	BYTE* verticesData = vertices.data();
 	DWORD verticesCount = 0;
 
@@ -440,7 +462,7 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD tria
 		}
 	}
 
-	return DD_OK;
+	return D3D_OK;
 }
 
 HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuffer, LPDIRECT3DVIEWPORT lpDirect3DViewport, DWORD dwFlags)
