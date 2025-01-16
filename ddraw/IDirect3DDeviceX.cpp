@@ -260,6 +260,218 @@ void m_IDirect3DDeviceX::ReleaseExecuteBuffer(LPDIRECT3DEXECUTEBUFFER lpDirect3D
 	}
 }
 
+HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD Count, DWORD vertexCount, D3DLVERTEX* vertexBuffer)
+{
+	// ToDo: figure out which vertex type is being used
+
+	DWORD VertexTypeDesc = D3DFVF_LVERTEX9;
+
+	DWORD PrimitiveCount = 0;
+
+	DWORD totalCount = 0;
+	for (DWORD i = 0; i < Count; i++)
+	{
+		totalCount += min(point[i].wCount, vertexCount - point[i].wFirst);
+	}
+
+	// Define vertices and setup vector
+	std::vector<BYTE> vertices;
+	vertices.resize(sizeof(D3DLVERTEX9) * totalCount + 1);
+	D3DLVERTEX9* verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
+
+	// Add vertices to vector
+	for (DWORD i = 0; i < Count; i++)
+	{
+		if ((DWORD)point[i].wFirst < vertexCount)
+		{
+			DWORD count = min(point[i].wCount, vertexCount - point[i].wFirst);
+
+			D3DLVERTEX* v = &vertexBuffer[point[i].wFirst];
+
+			for (DWORD x = 0; x < count; x++)
+			{
+				PrimitiveCount++;
+
+				*verticesData = { v[x].x, v[x].y, v[x].z, v[x].color, v[x].specular, v[x].tu, v[x].tv };
+				verticesData++;
+			}
+		}
+	}
+
+	if (PrimitiveCount)
+	{
+		// Set the FVF (Flexible Vertex Format)
+		(*d3d9Device)->SetFVF(VertexTypeDesc);
+
+		// Pass the vertex data directly to the rendering pipeline
+		(*d3d9Device)->DrawPrimitiveUP(D3DPT_POINTLIST, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
+	}
+}
+
+HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD Count, DWORD vertexCount, D3DLVERTEX* vertexBuffer)
+{
+	// ToDo: figure out which vertex type is being used
+
+	DWORD VertexTypeDesc = D3DFVF_LVERTEX9;
+
+	DWORD PrimitiveCount = 0;
+
+	// Define vertices and setup vector
+	std::vector<BYTE> vertices;
+	vertices.resize(Count);
+	D3DLVERTEX9* verticesData = (D3DLVERTEX9*)vertices.data();
+
+	for (DWORD i = 0; i < Count; i++)
+	{
+		if (line[i].v1 < vertexCount && line[i].v2 < vertexCount)
+		{
+			PrimitiveCount++;
+
+			// Retrieve vertices from the vertex buffer
+			D3DLVERTEX v1 = vertexBuffer[line[i].v1];
+			D3DLVERTEX v2 = vertexBuffer[line[i].v2];
+
+			// Resize vertices and set up vertex data
+			*verticesData = { v1.x, v1.y, v1.z, v1.color, v1.specular, v1.tu, v1.tv };
+			verticesData++;
+			*verticesData = { v2.x, v2.y, v2.z, v2.color, v2.specular, v2.tu, v2.tv };
+			verticesData++;
+		}
+	}
+
+	if (PrimitiveCount)
+	{
+		// Set the FVF (Flexible Vertex Format)
+		(*d3d9Device)->SetFVF(VertexTypeDesc);
+
+		// Pass the vertex data directly to the rendering pipeline
+		(*d3d9Device)->DrawPrimitiveUP(D3DPT_LINELIST, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
+	}
+}
+
+HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Count, DWORD vertexCount, D3DLVERTEX* vertexBuffer)
+{
+	// ToDo: figure out which vertex type is being used
+
+	DWORD VertexTypeDesc = D3DFVF_LVERTEX9;
+
+	DWORD PrimitiveCount = 0;
+
+	std::vector<BYTE> vertices;
+	vertices.resize(sizeof(D3DLVERTEX9) * (Count * 3));
+	D3DLVERTEX9* verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
+
+	D3DPRIMITIVETYPE PrimitiveType = D3DPT_TRIANGLELIST;
+
+	LONG LastCullMode = D3DTRIFLAG_START;
+	LONG CullRecordCount = 0;
+
+	// Check if triangle starts with START or START_FLAT
+	if (!((triangle[0].wFlags & 0x1F) < D3DTRIFLAG_STARTFLAT(30)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: triangle does not start with D3DTRIFLAG_START. Flags: " << Logging::hex(triangle[0].wFlags));
+	}
+
+	for (DWORD i = 0; i < Count; i++)
+	{
+		// Flags for this triangle
+		WORD TriFlags = (triangle[i].wFlags & 0x1F);
+
+		// START loads all three vertices
+		if (TriFlags < D3DTRIFLAG_STARTFLAT(30))
+		{
+			if (triangle[i].v1 < vertexCount && triangle[i].v2 < vertexCount && triangle[i].v3 < vertexCount)
+			{
+				PrimitiveCount++;
+				PrimitiveType = D3DPT_TRIANGLELIST;
+
+				// Retrieve vertices from the vertex buffer
+				D3DLVERTEX v1 = vertexBuffer[triangle[i].v1];
+				D3DLVERTEX v2 = vertexBuffer[triangle[i].v2];
+				D3DLVERTEX v3 = vertexBuffer[triangle[i].v3];
+
+				*verticesData = { v1.x, v1.y, v1.z, v1.color, v1.specular, v1.tu, v1.tv };
+				verticesData++;
+				*verticesData = { v2.x, v2.y, v2.z, v2.color, v2.specular, v2.tu, v2.tv };
+				verticesData++;
+				*verticesData = { v3.x, v3.y, v3.z, v3.color, v3.specular, v3.tu, v3.tv };
+				verticesData++;
+
+				LastCullMode = D3DTRIFLAG_START;
+				CullRecordCount = TriFlags;
+			}
+		}
+		// EVEN and ODD load just v3 with even or odd culling
+		else if (TriFlags == D3DTRIFLAG_EVEN || TriFlags == D3DTRIFLAG_ODD)
+		{
+			// Set primative type
+			if (LastCullMode == D3DTRIFLAG_START)
+			{
+				// Even cull modes indicates a triangle fan
+				if (TriFlags == D3DTRIFLAG_EVEN)
+				{
+					PrimitiveType = D3DPT_TRIANGLEFAN;
+				}
+				// Odd or mismatching cull modes indicates a triangle strip
+				else
+				{
+					PrimitiveType = D3DPT_TRIANGLESTRIP;
+				}
+			}
+			// The primative type doesn't mismatch past cull mode
+			else if ((TriFlags == LastCullMode && PrimitiveType == D3DPT_TRIANGLESTRIP) ||
+				(TriFlags != LastCullMode && PrimitiveType == D3DPT_TRIANGLEFAN))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: vertex cull mode mismatch detected!");
+			}
+
+			if (triangle[i].v3 < vertexCount)
+			{
+				PrimitiveCount++;
+
+				// Retrieve vertices from the vertex buffer
+				D3DLVERTEX v = vertexBuffer[triangle[i].v3];
+
+				// Store vertix data
+				*verticesData = { v.x, v.y, v.z, v.color, v.specular, v.tu, v.tv };
+				verticesData++;
+			}
+
+			LastCullMode = TriFlags;
+			CullRecordCount--;
+		}
+
+		// Check next records
+		bool AtEndOfList = !(i + 1U < Count);
+		LONG NextRecord = (i + 1U < Count) ? ((triangle[i + 1].wFlags & 0x1F) < 30 ? D3DTRIFLAG_START : D3DTRIFLAG_EVEN) : 0;
+		LONG NextNextRecord = (i + 2U < Count) ? ((triangle[i + 2].wFlags & 0x1F) < 30 ? D3DTRIFLAG_START : D3DTRIFLAG_EVEN) : 0;
+
+		// Draw primitaves once at the end of the list
+		if (PrimitiveCount &&								// There primatives to draw
+			(AtEndOfList ||									// There are no more records, or
+				(NextRecord == D3DTRIFLAG_START &&			// Next record is a new START
+					(LastCullMode != D3DTRIFLAG_START || NextNextRecord != D3DTRIFLAG_START))))
+		{
+			if (CullRecordCount > 0)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: drawing before all records have been culled: " << CullRecordCount);
+			}
+
+			// Set the FVF (Flexible Vertex Format)
+			(*d3d9Device)->SetFVF(VertexTypeDesc);
+
+			// Pass the vertex data directly to the rendering pipeline
+			HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
+
+			// Reset variables for next list
+			PrimitiveCount = 0;
+			verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
+		}
+	}
+
+	return DD_OK;
+}
+
 HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuffer, LPDIRECT3DVIEWPORT lpDirect3DViewport, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -343,50 +555,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: point instruction size does not match!");
 				}
 
-				// ToDo: figure out which vertex type is being used
-
-				DWORD VertexTypeDesc = D3DFVF_LVERTEX9;
-
-				DWORD PrimitiveCount = 0;
-
-				DWORD totalCount = 0;
-				for (DWORD i = 0; i < instruction->wCount; i++)
-				{
-					totalCount += min(point[i].wCount, vertexCount - point[i].wFirst);
-				}
-
-				// Define vertices and setup vector
-				std::vector<BYTE> vertices;
-				vertices.resize(sizeof(D3DLVERTEX9) * totalCount + 1);
-				D3DLVERTEX9* verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
-
-				// Add vertices to vector
-				for (DWORD i = 0; i < instruction->wCount; i++)
-				{
-					if ((DWORD)point[i].wFirst < vertexCount)
-					{
-						DWORD count = min(point[i].wCount, vertexCount - point[i].wFirst);
-
-						D3DLVERTEX* v = &vertexBuffer[point[i].wFirst];
-
-						for (DWORD x = 0; x < count; x++)
-						{
-							PrimitiveCount++;
-
-							*verticesData = { v[x].x, v[x].y, v[x].z, v[x].color, v[x].specular, v[x].tu, v[x].tv };
-							verticesData++;
-						}
-					}
-				}
-
-				if (PrimitiveCount)
-				{
-					// Set the FVF (Flexible Vertex Format)
-					(*d3d9Device)->SetFVF(VertexTypeDesc);
-
-					// Pass the vertex data directly to the rendering pipeline
-					(*d3d9Device)->DrawPrimitiveUP(D3DPT_POINTLIST, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
-				}
+				DrawExecutePoint(point, instruction->wCount, vertexCount, vertexBuffer);
 
 				break;
 			}
@@ -400,43 +569,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: line instruction size does not match!");
 				}
 
-				// ToDo: figure out which vertex type is being used
-
-				DWORD VertexTypeDesc = D3DFVF_LVERTEX9;
-
-				DWORD PrimitiveCount = 0;
-
-				// Define vertices and setup vector
-				std::vector<BYTE> vertices;
-				vertices.resize(instruction->wCount);
-				D3DLVERTEX9* verticesData = (D3DLVERTEX9*)vertices.data();
-
-				for (DWORD i = 0; i < instruction->wCount; i++)
-				{
-					if (line[i].v1 < vertexCount && line[i].v2 < vertexCount)
-					{
-						PrimitiveCount++;
-
-						// Retrieve vertices from the vertex buffer
-						D3DLVERTEX v1 = vertexBuffer[line[i].v1];
-						D3DLVERTEX v2 = vertexBuffer[line[i].v2];
-
-						// Resize vertices and set up vertex data
-						*verticesData = { v1.x, v1.y, v1.z, v1.color, v1.specular, v1.tu, v1.tv };
-						verticesData++;
-						*verticesData = { v2.x, v2.y, v2.z, v2.color, v2.specular, v2.tu, v2.tv };
-						verticesData++;
-					}
-				}
-
-				if (PrimitiveCount)
-				{
-					// Set the FVF (Flexible Vertex Format)
-					(*d3d9Device)->SetFVF(VertexTypeDesc);
-
-					// Pass the vertex data directly to the rendering pipeline
-					(*d3d9Device)->DrawPrimitiveUP(D3DPT_LINELIST, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
-				}
+				DrawExecuteLine(line, instruction->wCount, vertexCount, vertexBuffer);
 
 				break;
 			}
@@ -450,123 +583,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: triangle instruction size does not match!");
 				}
 
-				// ToDo: figure out which vertex type is being used
-
-				DWORD VertexTypeDesc = D3DFVF_LVERTEX9;
-
-				DWORD PrimitiveCount = 0;
-
-				std::vector<BYTE> vertices;
-				vertices.resize(sizeof(D3DLVERTEX9) * (instruction->wCount * 3));
-				D3DLVERTEX9* verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
-
-				D3DPRIMITIVETYPE PrimitiveType = D3DPT_TRIANGLELIST;
-
-				LONG LastCullMode = D3DTRIFLAG_START;
-				LONG CullRecordCount = 0;
-
-				// Check if triangle starts with START or START_FLAT
-				if (!((triangle[0].wFlags & 0x1F) < D3DTRIFLAG_STARTFLAT(30)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: triangle does not start with D3DTRIFLAG_START. Flags: " << Logging::hex(triangle[0].wFlags));
-				}
-
-				for (DWORD i = 0; i < instruction->wCount; i++)
-				{
-					// Flags for this triangle
-					WORD TriFlags = (triangle[i].wFlags & 0x1F);
-
-					// START loads all three vertices
-					if (TriFlags < D3DTRIFLAG_STARTFLAT(30))
-					{
-						if (triangle[i].v1 < vertexCount && triangle[i].v2 < vertexCount && triangle[i].v3 < vertexCount)
-						{
-							PrimitiveCount++;
-							PrimitiveType = D3DPT_TRIANGLELIST;
-
-							// Retrieve vertices from the vertex buffer
-							D3DLVERTEX v1 = vertexBuffer[triangle[i].v1];
-							D3DLVERTEX v2 = vertexBuffer[triangle[i].v2];
-							D3DLVERTEX v3 = vertexBuffer[triangle[i].v3];
-
-							*verticesData = { v1.x, v1.y, v1.z, v1.color, v1.specular, v1.tu, v1.tv };
-							verticesData++;
-							*verticesData = { v2.x, v2.y, v2.z, v2.color, v2.specular, v2.tu, v2.tv };
-							verticesData++;
-							*verticesData = { v3.x, v3.y, v3.z, v3.color, v3.specular, v3.tu, v3.tv };
-							verticesData++;
-
-							LastCullMode = D3DTRIFLAG_START;
-							CullRecordCount = TriFlags;
-						}
-					}
-					// EVEN and ODD load just v3 with even or odd culling
-					else if (TriFlags == D3DTRIFLAG_EVEN || TriFlags == D3DTRIFLAG_ODD)
-					{
-						// Set primative type
-						if (LastCullMode == D3DTRIFLAG_START)
-						{
-							// Even cull modes indicates a triangle fan
-							if (TriFlags == D3DTRIFLAG_EVEN)
-							{
-								PrimitiveType = D3DPT_TRIANGLEFAN;
-							}
-							// Odd or mismatching cull modes indicates a triangle strip
-							else
-							{
-								PrimitiveType = D3DPT_TRIANGLESTRIP;
-							}
-						}
-						// The primative type doesn't mismatch past cull mode
-						else if ((TriFlags == LastCullMode && PrimitiveType == D3DPT_TRIANGLESTRIP) ||
-							(TriFlags != LastCullMode && PrimitiveType == D3DPT_TRIANGLEFAN))
-						{
-							LOG_LIMIT(100, __FUNCTION__ << " Warning: vertex cull mode mismatch detected!");
-						}
-
-						if (triangle[i].v3 < vertexCount)
-						{
-							PrimitiveCount++;
-
-							// Retrieve vertices from the vertex buffer
-							D3DLVERTEX v = vertexBuffer[triangle[i].v3];
-
-							// Store vertix data
-							*verticesData = { v.x, v.y, v.z, v.color, v.specular, v.tu, v.tv };
-							verticesData++;
-						}
-
-						LastCullMode = TriFlags;
-						CullRecordCount--;
-					}
-
-					// Check next records
-					bool AtEndOfList = !(i + 1U < instruction->wCount);
-					LONG NextRecord = (i + 1U < instruction->wCount) ? ((triangle[i + 1].wFlags & 0x1F) < 30 ? D3DTRIFLAG_START : D3DTRIFLAG_EVEN) : 0;
-					LONG NextNextRecord = (i + 2U < instruction->wCount) ? ((triangle[i + 2].wFlags & 0x1F) < 30 ? D3DTRIFLAG_START : D3DTRIFLAG_EVEN) : 0;
-
-					// Draw primitaves once at the end of the list
-					if (PrimitiveCount &&								// There primatives to draw
-						(AtEndOfList ||									// There are no more records, or
-							(NextRecord == D3DTRIFLAG_START &&			// Next record is a new START
-								(LastCullMode != D3DTRIFLAG_START || NextNextRecord != D3DTRIFLAG_START))))
-					{
-						if (CullRecordCount > 0)
-						{
-							LOG_LIMIT(100, __FUNCTION__ << " Warning: drawing before all records have been culled: " << CullRecordCount);
-						}
-
-						// Set the FVF (Flexible Vertex Format)
-						(*d3d9Device)->SetFVF(VertexTypeDesc);
-
-						// Pass the vertex data directly to the rendering pipeline
-						HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, vertices.data(), GetVertexStride(VertexTypeDesc));
-
-						// Reset variables for next list
-						PrimitiveCount = 0;
-						verticesData = reinterpret_cast<D3DLVERTEX9*>(vertices.data());
-					}
-				}
+				DrawExecuteTriangle(triangle, instruction->wCount, vertexCount, vertexBuffer);
 
 				break;
 			}

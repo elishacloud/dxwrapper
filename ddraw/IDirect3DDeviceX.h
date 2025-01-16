@@ -165,6 +165,11 @@ private:
 	// Check interfaces
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 
+	// Execute buffer function
+	HRESULT DrawExecutePoint(D3DPOINT* point, WORD Count, DWORD vertexCount, D3DLVERTEX* vertexBuffer);
+	HRESULT DrawExecuteLine(D3DLINE* line, WORD Count, DWORD vertexCount, D3DLVERTEX* vertexBuffer);
+	HRESULT DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Count, DWORD vertexCount, D3DLVERTEX* vertexBuffer);
+
 	// Helper functions
 	HRESULT BackupStates();
 	HRESULT RestoreStates();
