@@ -260,14 +260,38 @@ void m_IDirect3DDeviceX::ReleaseExecuteBuffer(LPDIRECT3DEXECUTEBUFFER lpDirect3D
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD Count, DWORD vertexCount, D3DTLVERTEX* vertexBuffer, DWORD VertexTypeDesc)
+inline static void CopyConvertExecuteVertex(BYTE*& DestVertex, BYTE* SrcVertex, DWORD SrcIndex, DWORD VertexTypeDesc)
+{
+	// Primitive structures and related defines. Vertex offsets are to types D3DVERTEX, D3DLVERTEX, or D3DTLVERTEX.
+	if (VertexTypeDesc == D3DFVF_VERTEX)
+	{
+		*((D3DVERTEX*)DestVertex) = ((D3DVERTEX*)SrcVertex)[SrcIndex];
+		DestVertex += sizeof(D3DVERTEX);
+		return;
+	}
+	else if (VertexTypeDesc == D3DFVF_LVERTEX9)
+	{
+		D3DLVERTEX* v = &((D3DLVERTEX*)SrcVertex)[SrcIndex];
+		*((D3DLVERTEX9*)DestVertex) = { v->x, v->y, v->z, v->color, v->specular, v->tu, v->tv };
+		DestVertex += sizeof(D3DLVERTEX9);
+		return;
+	}
+	else if (VertexTypeDesc == D3DFVF_TLVERTEX)
+	{
+		*((D3DTLVERTEX*)DestVertex) = ((D3DTLVERTEX*)SrcVertex)[SrcIndex];
+		DestVertex += sizeof(D3DTLVERTEX);
+		return;
+	}
+}
+
+HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD Count, DWORD vertexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
 {
 	DWORD PrimitiveCount = 0;
 
 	// Define vertices and setup vector
 	std::vector<BYTE> vertices;
 	vertices.resize(sizeof(D3DTLVERTEX) * Count);
-	D3DTLVERTEX* verticesData = reinterpret_cast<D3DTLVERTEX*>(vertices.data());
+	BYTE* verticesData = vertices.data();
 
 	// Add vertices to vector
 	for (DWORD i = 0; i < Count; i++)
@@ -276,14 +300,11 @@ HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD Count, DWORD 
 		{
 			DWORD count = min(point[i].wCount, vertexCount - point[i].wFirst);
 
-			D3DTLVERTEX v = vertexBuffer[point[i].wFirst];
-
 			for (DWORD x = 0; x < count; x++)
 			{
 				PrimitiveCount++;
 
-				*verticesData = v;
-				verticesData++;
+				CopyConvertExecuteVertex(verticesData, vertexBuffer, point[i].wFirst + x, VertexTypeDesc);
 			}
 		}
 	}
@@ -300,14 +321,14 @@ HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD Count, DWORD 
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD Count, DWORD vertexCount, D3DTLVERTEX* vertexBuffer, DWORD VertexTypeDesc)
+HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD Count, DWORD vertexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
 {
 	DWORD PrimitiveCount = 0;
 
 	// Define vertices and setup vector
 	std::vector<BYTE> vertices;
 	vertices.resize(sizeof(D3DTLVERTEX) * Count * 2);
-	D3DTLVERTEX* verticesData = (D3DTLVERTEX*)vertices.data();
+	BYTE* verticesData = vertices.data();
 
 	for (DWORD i = 0; i < Count; i++)
 	{
@@ -315,15 +336,8 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD Count, DWORD ver
 		{
 			PrimitiveCount++;
 
-			// Retrieve vertices from the vertex buffer
-			D3DTLVERTEX v1 = vertexBuffer[line[i].v1];
-			D3DTLVERTEX v2 = vertexBuffer[line[i].v2];
-
-			// Resize vertices and set up vertex data
-			*verticesData = v1;
-			verticesData++;
-			*verticesData = v2;
-			verticesData++;
+			CopyConvertExecuteVertex(verticesData, vertexBuffer, line[i].v1, VertexTypeDesc);
+			CopyConvertExecuteVertex(verticesData, vertexBuffer, line[i].v2, VertexTypeDesc);
 		}
 	}
 
@@ -339,13 +353,13 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD Count, DWORD ver
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Count, DWORD vertexCount, D3DTLVERTEX* vertexBuffer, DWORD VertexTypeDesc)
+HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Count, DWORD vertexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
 {
 	DWORD PrimitiveCount = 0;
 
 	std::vector<BYTE> vertices;
 	vertices.resize(sizeof(D3DTLVERTEX) * Count * 3);
-	D3DTLVERTEX* verticesData = reinterpret_cast<D3DTLVERTEX*>(vertices.data());
+	BYTE* verticesData = vertices.data();
 
 	D3DPRIMITIVETYPE PrimitiveType = D3DPT_TRIANGLELIST;
 
@@ -371,17 +385,9 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Coun
 				PrimitiveCount++;
 				PrimitiveType = D3DPT_TRIANGLELIST;
 
-				// Retrieve vertices from the vertex buffer
-				D3DTLVERTEX v1 = vertexBuffer[triangle[i].v1];
-				D3DTLVERTEX v2 = vertexBuffer[triangle[i].v2];
-				D3DTLVERTEX v3 = vertexBuffer[triangle[i].v3];
-
-				*verticesData = v1;
-				verticesData++;
-				*verticesData = v2;
-				verticesData++;
-				*verticesData = v3;
-				verticesData++;
+				CopyConvertExecuteVertex(verticesData, vertexBuffer, triangle[i].v1, VertexTypeDesc);
+				CopyConvertExecuteVertex(verticesData, vertexBuffer, triangle[i].v2, VertexTypeDesc);
+				CopyConvertExecuteVertex(verticesData, vertexBuffer, triangle[i].v3, VertexTypeDesc);
 
 				LastCullMode = D3DTRIFLAG_START;
 				CullRecordCount = TriFlags;
@@ -415,12 +421,7 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Coun
 			{
 				PrimitiveCount++;
 
-				// Retrieve vertices from the vertex buffer
-				D3DTLVERTEX v = vertexBuffer[triangle[i].v3];
-
-				// Store vertix data
-				*verticesData = v;
-				verticesData++;
+				CopyConvertExecuteVertex(verticesData, vertexBuffer, triangle[i].v3, VertexTypeDesc);
 			}
 
 			LastCullMode = TriFlags;
@@ -451,7 +452,7 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD Coun
 
 			// Reset variables for next list
 			PrimitiveCount = 0;
-			verticesData = reinterpret_cast<D3DTLVERTEX*>(vertices.data());
+			verticesData = vertices.data();
 		}
 	}
 
@@ -504,11 +505,11 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 		DWORD opcode = NULL;
 
-		// ToDo: figure out which vertex type is being used
+		// ToDo: figure out which vertex type is being used D3DFVF_VERTEX, D3DFVF_LVERTEX9 or D3DFVF_TLVERTEX
 		DWORD VertexTypeDesc = D3DFVF_TLVERTEX;
 
 		// Primitive structures and related defines. Vertex offsets are to types D3DVERTEX, D3DLVERTEX, or D3DTLVERTEX.
-		D3DTLVERTEX* vertexBuffer = reinterpret_cast<D3DTLVERTEX*>(Desc.lpData) + lpExecuteData->dwVertexOffset;
+		BYTE* vertexBuffer = reinterpret_cast<BYTE*>(Desc.lpData) + lpExecuteData->dwVertexOffset;
 		const DWORD vertexCount = lpExecuteData->dwVertexCount;
 
 		DWORD EmulatedDriverStatus = 0;
