@@ -377,13 +377,6 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD tria
 	LONG LastCullMode = D3DTRIFLAG_START;
 	LONG CullRecordCount = 0;
 
-	// Check if triangle starts with START or START_FLAT
-	if (!((triangle[0].wFlags & 0x1F) < D3DTRIFLAG_STARTFLAT(30)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: triangle does not start with D3DTRIFLAG_START. Flags: " << Logging::hex(triangle[0].wFlags));
-		return DDERR_INVALIDPARAMS;
-	}
-
 	for (DWORD i = 0; i < triangleCount; i++)
 	{
 		// Flags for this triangle

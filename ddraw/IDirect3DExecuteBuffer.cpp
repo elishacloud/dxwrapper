@@ -521,31 +521,6 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExe
 			}
 		}
 
-		// Check triangle start record
-		if (instruction->bOpcode == D3DOP_TRIANGLE)
-		{
-			const D3DTRIANGLE* triangle = reinterpret_cast<const D3DTRIANGLE*>(data + sizeof(D3DINSTRUCTION));
-			bool IsFirstRecordStart = (triangle->wFlags & 0x1F) < D3DTRIFLAG_STARTFLAT(30);
-			if (!IsFirstRecordStart)
-			{
-				FoundError = true;
-				if (lpFunc)
-				{
-					lpFunc(lpUserArg, offset);
-				}
-				else if (lpdwOffset)
-				{
-					*lpdwOffset = offset;
-					return D3D_OK;
-				}
-				else
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: Triangle does not start with D3DTRIFLAG_START. Flags: " << Logging::hex(triangle->wFlags));
-					return DDERR_INVALIDPARAMS;
-				}
-			}
-		}
-
 		// Handle branch
 		bool SkipNextMove = false;
 		if (instruction->bOpcode == D3DOP_BRANCHFORWARD)
