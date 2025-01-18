@@ -196,11 +196,13 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 
 		if (!tHandle)
 		{
-			tHandle = (DWORD)this + 32;
+			tHandle = (DWORD)this;
 		}
 
+		// Makes tHandle unique and then stores it
 		(*D3DDeviceInterface)->SetTextureHandle(tHandle, this);
 
+		// Set lpHandle after setting texture handle in D3D device
 		*lpHandle = tHandle;
 
 		return D3D_OK;
@@ -372,7 +374,7 @@ void m_IDirect3DTextureX::ReleaseInterface()
 
 	if (tHandle && D3DDeviceInterface && *D3DDeviceInterface)
 	{
-		(*D3DDeviceInterface)->ReleaseTextureHandle(this);
+		(*D3DDeviceInterface)->ReleaseTextureHandle(tHandle);
 	}
 
 	if (DDrawSurface)

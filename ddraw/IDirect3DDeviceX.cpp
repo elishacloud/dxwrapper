@@ -724,11 +724,12 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 				for (DWORD i = 0; i < instruction->wCount; i++)
 				{
 					// Copy texture to dest
-					if (TextureHandleMap.find(textureLoad[i].hDestTexture) != TextureHandleMap.end() &&
-						TextureHandleMap.find(textureLoad[i].hSrcTexture) != TextureHandleMap.end())
+					m_IDirect3DTextureX* lpTextureSrcX = GetTexture(textureLoad[i].hSrcTexture);
+					m_IDirect3DTextureX* lpTextureDestX = GetTexture(textureLoad[i].hDestTexture);
+					if (lpTextureSrcX && lpTextureDestX)
 					{
-						LPDIRECT3DTEXTURE2 lpTextureSrc = (LPDIRECT3DTEXTURE2)TextureHandleMap[textureLoad[i].hSrcTexture]->GetWrapperInterfaceX(0);
-						TextureHandleMap[textureLoad[i].hDestTexture]->Load(lpTextureSrc);
+						LPDIRECT3DTEXTURE2 lpTextureSrc = (LPDIRECT3DTEXTURE2)lpTextureSrcX->GetWrapperInterfaceX(0);
+						lpTextureDestX->Load(lpTextureSrc);
 					}
 					else
 					{
@@ -1272,33 +1273,31 @@ HRESULT m_IDirect3DDeviceX::SwapTextureHandles(LPDIRECT3DTEXTURE2 lpD3DTex1, LPD
 		}
 
 		// Find handle associated with texture1
-		auto it1 = std::find_if(TextureHandleMap.begin(), TextureHandleMap.end(), [&](const auto& pair) {
-			return pair.second == pTextureX1;
-			});
-
-		// Find handle associated with texture2
-		auto it2 = std::find_if(TextureHandleMap.begin(), TextureHandleMap.end(), [&](const auto& pair) {
-			return pair.second == pTextureX2;
-			});
-
-		// Check if handles are found
-		if (it1 == TextureHandleMap.end() || it2 == TextureHandleMap.end())
+		D3DTEXTUREHANDLE TexHandle1 = 0;
+		if (FAILED(pTextureX1->GetHandle((LPDIRECT3DDEVICE2)GetWrapperInterfaceX(0), &TexHandle1)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find texture handles!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find texture1 handle!");
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// If handles are found, swap them
-		DWORD Handle1 = it1->first, Handle2 = it2->first;
-		SetTextureHandle(Handle1, pTextureX2);
-		SetTextureHandle(Handle2, pTextureX1);
+		// Find handle associated with texture2
+		D3DTEXTUREHANDLE TexHandle2 = 0;
+		if (FAILED(pTextureX2->GetHandle((LPDIRECT3DDEVICE2)GetWrapperInterfaceX(0), &TexHandle2)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find texture2 handle!");
+			return DDERR_INVALIDPARAMS;
+		}
 
-		// Update handles associated with textures
-		pTextureX1->SetHandle(Handle2);
-		pTextureX2->SetHandle(Handle1);
+		// Swap texture handle1
+		pTextureX1->SetHandle(TexHandle2);
+		TextureHandleMap[TexHandle2] = pTextureX1;
+
+		// Swap texture handle2
+		pTextureX2->SetHandle(TexHandle1);
+		TextureHandleMap[TexHandle1] = pTextureX2;
 
 		// If texture handle is set then use new texture
-		if (rsTextureHandle == Handle1 || rsTextureHandle == Handle2)
+		if (rsTextureHandle == TexHandle1 || rsTextureHandle == TexHandle2)
 		{
 			SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, rsTextureHandle);
 		}
@@ -1566,33 +1565,35 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 	return hr;
 }
 
-void m_IDirect3DDeviceX::ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture)
+void m_IDirect3DDeviceX::ReleaseTextureHandle(D3DTEXTUREHANDLE tHandle)
 {
-	// Find handle associated with texture
-	auto it = TextureHandleMap.begin();
-	while (it != TextureHandleMap.end())
+	if (tHandle)
 	{
-		if (it->second == lpTexture)
+		TextureHandleMap.erase(tHandle);
+
+		// If texture handle is set then clear it
+		if (rsTextureHandle == tHandle)
 		{
-			// Remove entry from map
-			it = TextureHandleMap.erase(it);
-		}
-		else
-		{
-			++it;
+			SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, 0);
 		}
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::SetTextureHandle(DWORD tHandle, m_IDirect3DTextureX* lpTexture)
+HRESULT m_IDirect3DDeviceX::SetTextureHandle(D3DTEXTUREHANDLE& tHandle, m_IDirect3DTextureX* pTextureX)
 {
-	if (!tHandle || !lpTexture)
+	if (!tHandle || !pTextureX)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: NULL pointer found! " << lpTexture << " -> " << tHandle);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: NULL pointer found! " << pTextureX << " -> " << tHandle);
 		return DDERR_INVALIDPARAMS;
 	}
 
-	TextureHandleMap[tHandle] = lpTexture;
+	// Ensure that the handle is unique
+	while (GetTexture(tHandle))
+	{
+		tHandle += 4;
+	}
+
+	TextureHandleMap[tHandle] = pTextureX;
 
 	return D3D_OK;
 }
@@ -3345,20 +3346,15 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		switch ((DWORD)dwRenderStateType)
 		{
 		case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
+		{
 			if (dwRenderState == NULL)
 			{
 				rsTextureHandle = dwRenderState;
 				return SetTexture(0, (LPDIRECT3DTEXTURE2)nullptr);
 			}
-			else if (TextureHandleMap.find(dwRenderState) != TextureHandleMap.end())
+			m_IDirect3DTextureX* pTextureX = GetTexture(dwRenderState);
+			if (pTextureX)
 			{
-				m_IDirect3DTextureX* pTextureX = TextureHandleMap[dwRenderState];
-				if (!pTextureX)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture wrapper!");
-					return DDERR_INVALIDPARAMS;
-				}
-
 				IDirect3DTexture2* lpTexture = (IDirect3DTexture2*)pTextureX->GetWrapperInterfaceX(0);
 				if (!lpTexture)
 				{
@@ -3372,8 +3368,10 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			else
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture handle!");
+				return SetTexture(0, (LPDIRECT3DTEXTURE2)nullptr);
 			}
 			return D3D_OK;
+		}
 		case D3DRENDERSTATE_ANTIALIAS:			// 2
 			rsAntiAliasChanged = true;
 			rsAntiAlias = dwRenderStateType;

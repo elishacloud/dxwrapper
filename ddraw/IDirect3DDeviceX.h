@@ -97,7 +97,16 @@ private:
 	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureStages] = {};
 
 	// Texture handle map
-	std::unordered_map<DWORD, m_IDirect3DTextureX*> TextureHandleMap;
+	std::unordered_map<D3DTEXTUREHANDLE, m_IDirect3DTextureX*> TextureHandleMap;
+	inline m_IDirect3DTextureX* GetTexture(D3DTEXTUREHANDLE TextureHandle)
+	{
+		m_IDirect3DTextureX* pTexture = TextureHandleMap[TextureHandle];
+		if (!pTexture)
+		{
+			TextureHandleMap.erase(TextureHandle);
+		}
+		return pTexture;
+	}
 
 	// Material handle map
 	std::unordered_map<D3DMATERIALHANDLE, m_IDirect3DMaterialX*> MaterialHandleMap;
@@ -108,14 +117,14 @@ private:
 	// Matrix map
 	std::unordered_map<D3DMATRIXHANDLE, D3DMATRIX> MatrixMap;
 
+	// ExecuteBuffer array
+	std::vector<m_IDirect3DExecuteBuffer*> ExecuteBufferList;
+
 	// Vector temporary buffer cache
 	std::vector<BYTE> VertexCache;
 
 	// Viewport array
 	std::vector<LPDIRECT3DVIEWPORT3> AttachedViewports;
-
-	// ExecuteBuffer array
-	std::vector<m_IDirect3DExecuteBuffer*> ExecuteBufferList;
 
 	inline bool IsViewportAttached(LPDIRECT3DVIEWPORT3 ViewportX)
 	{
@@ -312,8 +321,8 @@ public:
 	inline bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
 
 	// Texture handle function
-	void ReleaseTextureHandle(m_IDirect3DTextureX* lpTexture);
-	HRESULT SetTextureHandle(DWORD tHandle, m_IDirect3DTextureX* lpTexture);
+	void ReleaseTextureHandle(D3DTEXTUREHANDLE tHandle);
+	HRESULT SetTextureHandle(D3DTEXTUREHANDLE& tHandle, m_IDirect3DTextureX* pTextureX);
 
 	// Material handle function
 	void ReleaseMaterialHandle(m_IDirect3DMaterialX* lpMaterial);
