@@ -277,11 +277,13 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 
 		if (!mHandle)
 		{
-			mHandle = (DWORD)this + 32;
+			mHandle = (DWORD)this;
 		}
 
+		// Makes mHandle unique and then stores it
 		(*D3DDeviceInterface)->SetMaterialHandle(mHandle, this);
 
+		// Set lpHandle after setting material handle in D3D device
 		*lpHandle = mHandle;
 
 		return D3D_OK;
@@ -356,6 +358,6 @@ void m_IDirect3DMaterialX::ReleaseInterface()
 
 	if (mHandle && D3DDeviceInterface && *D3DDeviceInterface)
 	{
-		(*D3DDeviceInterface)->ReleaseMaterialHandle(this);
+		(*D3DDeviceInterface)->ReleaseMaterialHandle(mHandle);
 	}
 }

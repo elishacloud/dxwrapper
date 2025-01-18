@@ -100,16 +100,25 @@ private:
 	std::unordered_map<D3DTEXTUREHANDLE, m_IDirect3DTextureX*> TextureHandleMap;
 	inline m_IDirect3DTextureX* GetTexture(D3DTEXTUREHANDLE TextureHandle)
 	{
-		m_IDirect3DTextureX* pTexture = TextureHandleMap[TextureHandle];
-		if (!pTexture)
+		m_IDirect3DTextureX* pTextureX = TextureHandleMap[TextureHandle];
+		if (!pTextureX)
 		{
 			TextureHandleMap.erase(TextureHandle);
 		}
-		return pTexture;
+		return pTextureX;
 	}
 
 	// Material handle map
 	std::unordered_map<D3DMATERIALHANDLE, m_IDirect3DMaterialX*> MaterialHandleMap;
+	inline m_IDirect3DMaterialX* GetMaterial(D3DMATERIALHANDLE MaterialHandle)
+	{
+		m_IDirect3DMaterialX* pMaterialX = MaterialHandleMap[MaterialHandle];
+		if (!pMaterialX)
+		{
+			MaterialHandleMap.erase(MaterialHandle);
+		}
+		return pMaterialX;
+	}
 
 	// Light index map
 	std::unordered_map<DWORD, m_IDirect3DLight*> LightIndexMap;
@@ -325,8 +334,8 @@ public:
 	HRESULT SetTextureHandle(D3DTEXTUREHANDLE& tHandle, m_IDirect3DTextureX* pTextureX);
 
 	// Material handle function
-	void ReleaseMaterialHandle(m_IDirect3DMaterialX* lpMaterial);
-	HRESULT SetMaterialHandle(D3DMATERIALHANDLE mHandle, m_IDirect3DMaterialX* lpMaterial);
+	void ReleaseMaterialHandle(D3DMATERIALHANDLE mHandle);
+	HRESULT SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial);
 	inline bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == lsMaterialHandle); }
 
 	// Light index function

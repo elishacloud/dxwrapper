@@ -2831,31 +2831,26 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 		{
 		case D3DLIGHTSTATE_MATERIAL:
 		{
-			D3DMATERIAL Material;
+			lsMaterialHandle = dwLightState;
 
-			if (dwLightState == NULL)
-			{
-				Material = {};
-			}
-			else if (MaterialHandleMap.find(dwLightState) != MaterialHandleMap.end())
-			{
-				m_IDirect3DMaterialX* pMaterialX = MaterialHandleMap[dwLightState];
-				if (!pMaterialX)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get material wrapper!");
-					return DDERR_INVALIDPARAMS;
-				}
+			D3DMATERIAL Material = {};
+			Material.dwSize = sizeof(D3DMATERIAL);
 
-				Material.dwSize = sizeof(D3DMATERIAL);
-				if (FAILED(pMaterialX->GetMaterial(&Material)))
-				{
-					return DDERR_INVALIDPARAMS;
-				}
-			}
-			else
+			if (dwLightState)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get material handle!");
-				return D3D_OK;
+				m_IDirect3DMaterialX* pMaterialX = GetMaterial(dwLightState);
+				if (pMaterialX)
+				{
+					if (FAILED(pMaterialX->GetMaterial(&Material)))
+					{
+						return DDERR_INVALIDPARAMS;
+					}
+				}
+				else
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get material handle!");
+					return D3D_OK;
+				}
 			}
 
 			D3DMATERIAL7 Material7;
@@ -2868,8 +2863,6 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 			{
 				SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, Material.hTexture);
 			}
-
-			lsMaterialHandle = dwLightState;
 
 			return D3D_OK;
 		}
@@ -3220,30 +3213,32 @@ HRESULT m_IDirect3DDeviceX::MultiplyTransform(D3DTRANSFORMSTATETYPE dtstTransfor
 	}
 }
 
-void m_IDirect3DDeviceX::ReleaseMaterialHandle(m_IDirect3DMaterialX* lpMaterial)
+void m_IDirect3DDeviceX::ReleaseMaterialHandle(D3DMATERIALHANDLE mHandle)
 {
-	// Find handle associated with Material
-	auto it = MaterialHandleMap.begin();
-	while (it != MaterialHandleMap.end())
+	if (mHandle)
 	{
-		if (it->second == lpMaterial)
+		TextureHandleMap.erase(mHandle);
+
+		// If material handle is set then clear it
+		if (lsMaterialHandle == mHandle)
 		{
-			// Remove entry from map
-			it = MaterialHandleMap.erase(it);
-		}
-		else
-		{
-			++it;
+			SetLightState(D3DLIGHTSTATE_MATERIAL, 0);
 		}
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::SetMaterialHandle(D3DMATERIALHANDLE mHandle, m_IDirect3DMaterialX* lpMaterial)
+HRESULT m_IDirect3DDeviceX::SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial)
 {
 	if (!mHandle || !lpMaterial)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: NULL pointer found! " << lpMaterial << " -> " << mHandle);
 		return DDERR_GENERIC;
+	}
+
+	// Ensure that the handle is unique
+	while (GetMaterial(mHandle))
+	{
+		mHandle += 4;
 	}
 
 	MaterialHandleMap[mHandle] = lpMaterial;
@@ -3347,9 +3342,9 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		{
 		case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
 		{
+			rsTextureHandle = dwRenderState;
 			if (dwRenderState == NULL)
 			{
-				rsTextureHandle = dwRenderState;
 				return SetTexture(0, (LPDIRECT3DTEXTURE2)nullptr);
 			}
 			m_IDirect3DTextureX* pTextureX = GetTexture(dwRenderState);
@@ -3362,7 +3357,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 					return DDERR_INVALIDPARAMS;
 				}
 
-				rsTextureHandle = dwRenderState;
 				return SetTexture(0, lpTexture);
 			}
 			else
