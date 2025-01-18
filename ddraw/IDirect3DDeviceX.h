@@ -120,11 +120,24 @@ private:
 		return pMaterialX;
 	}
 
+	// Matrix map
+	struct D3DMATRIXSTRUCT {
+		bool IsValidMatrix = false;
+		D3DMATRIX m = {};
+	};
+	std::unordered_map<D3DMATRIXHANDLE, D3DMATRIXSTRUCT> MatrixMap;
+	inline D3DMATRIX* GetMatrix(D3DMATRIXHANDLE MatrixHandle)
+	{
+		if (!MatrixMap[MatrixHandle].IsValidMatrix)
+		{
+			MatrixMap.erase(MatrixHandle);
+			return nullptr;
+		}
+		return &MatrixMap[MatrixHandle].m;
+	}
+
 	// Light index map
 	std::unordered_map<DWORD, m_IDirect3DLight*> LightIndexMap;
-
-	// Matrix map
-	std::unordered_map<D3DMATRIXHANDLE, D3DMATRIX> MatrixMap;
 
 	// ExecuteBuffer array
 	std::vector<m_IDirect3DExecuteBuffer*> ExecuteBufferList;

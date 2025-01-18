@@ -597,10 +597,11 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 				for (DWORD i = 0; i < instruction->wCount; i++)
 				{
 					// Copy matrix to dest
-					if (MatrixMap.find(matrixLoad[i].hDestMatrix) != MatrixMap.end() &&
-						MatrixMap.find(matrixLoad[i].hSrcMatrix) != MatrixMap.end())
+					D3DMATRIX* pSrcMatrix = GetMatrix(matrixLoad[i].hSrcMatrix);
+					D3DMATRIX* pDestMatrix = GetMatrix(matrixLoad[i].hDestMatrix);
+					if (pSrcMatrix && pDestMatrix)
 					{
-						MatrixMap[matrixLoad[i].hDestMatrix] = MatrixMap[matrixLoad[i].hSrcMatrix];
+						*pDestMatrix = *pSrcMatrix;
 					}
 					else
 					{
@@ -623,21 +624,22 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 				for (DWORD i = 0; i < instruction->wCount; i++)
 				{
 					// Multiply matrix to dest
-					if (MatrixMap.find(matrixMultiply[i].hSrcMatrix1) != MatrixMap.end() &&
-						MatrixMap.find(matrixMultiply[i].hSrcMatrix2) != MatrixMap.end() &&
-						MatrixMap.find(matrixMultiply[i].hDestMatrix) != MatrixMap.end())
+					D3DMATRIX* pSrcMatrix1 = GetMatrix(matrixMultiply[i].hSrcMatrix1);
+					D3DMATRIX* pSrcMatrix2 = GetMatrix(matrixMultiply[i].hSrcMatrix2);
+					D3DMATRIX* pDestMatrix = GetMatrix(matrixMultiply[i].hDestMatrix);
+					if (pSrcMatrix1 && pSrcMatrix2 && pDestMatrix)
 					{
 						using namespace DirectX;
 
 						// Load D3DMATRIX into XMMATRIX
-						XMMATRIX xmMatrix1 = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&MatrixMap[matrixMultiply[i].hSrcMatrix1]));
-						XMMATRIX xmMatrix2 = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&MatrixMap[matrixMultiply[i].hSrcMatrix2]));
+						XMMATRIX xmMatrix1 = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(pSrcMatrix1));
+						XMMATRIX xmMatrix2 = XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(pSrcMatrix2));
 
 						// Perform the multiplication
 						XMMATRIX xmResult = XMMatrixMultiply(xmMatrix1, xmMatrix2);
 
 						// Store the result back into a D3DMATRIX
-						XMStoreFloat4x4(reinterpret_cast<XMFLOAT4X4*>(&MatrixMap[matrixMultiply[i].hDestMatrix]), xmResult);
+						XMStoreFloat4x4(reinterpret_cast<XMFLOAT4X4*>(pDestMatrix), xmResult);
 					}
 					else
 					{
@@ -661,9 +663,10 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				for (DWORD i = 0; i < instruction->wCount; i++)
 				{
-					if (MatrixMap.find(state[i].dwArg[0]) != MatrixMap.end())
+					D3DMATRIX* pMatrix = GetMatrix(state[i].dwArg[0]);
+					if (pMatrix)
 					{
-						SetTransform(state[i].dtstTransformStateType, &MatrixMap[state->dwArg[0]]);
+						SetTransform(state[i].dtstTransformStateType, pMatrix);
 					}
 					else
 					{
@@ -962,12 +965,13 @@ HRESULT m_IDirect3DDeviceX::CreateMatrix(LPD3DMATRIXHANDLE lpD3DMatHandle)
 
 		D3DMATRIXHANDLE D3DMatHandle = ComputeRND((DWORD)&Matrix, (DWORD)lpD3DMatHandle);
 
-		while (D3DMatHandle == NULL || MatrixMap.find(D3DMatHandle) != MatrixMap.end())
+		// Make sure the material handle is unique
+		while (D3DMatHandle == NULL || GetMatrix(D3DMatHandle))
 		{
 			D3DMatHandle += 4;
 		}
 
-		MatrixMap[D3DMatHandle] = Matrix;
+		MatrixMap[D3DMatHandle] = { true, Matrix };
 
 		*lpD3DMatHandle = D3DMatHandle;
 
@@ -983,12 +987,12 @@ HRESULT m_IDirect3DDeviceX::SetMatrix(D3DMATRIXHANDLE D3DMatHandle, const LPD3DM
 
 	if (ProxyDirectXVersion != 1)
 	{
-		if (!lpD3DMatrix || MatrixMap.find(D3DMatHandle) == MatrixMap.end())
+		if (!lpD3DMatrix || !GetMatrix(D3DMatHandle))
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		MatrixMap[D3DMatHandle] = *lpD3DMatrix;
+		MatrixMap[D3DMatHandle] = { true, *lpD3DMatrix };
 
 		return D3D_OK;
 	}
@@ -1002,12 +1006,12 @@ HRESULT m_IDirect3DDeviceX::GetMatrix(D3DMATRIXHANDLE D3DMatHandle, LPD3DMATRIX 
 
 	if (ProxyDirectXVersion != 1)
 	{
-		if (!lpD3DMatrix || MatrixMap.find(D3DMatHandle) == MatrixMap.end())
+		if (!lpD3DMatrix || !GetMatrix(D3DMatHandle))
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		*lpD3DMatrix = MatrixMap[D3DMatHandle];
+		*lpD3DMatrix = MatrixMap[D3DMatHandle].m;
 
 		return D3D_OK;
 	}
@@ -1021,7 +1025,7 @@ HRESULT m_IDirect3DDeviceX::DeleteMatrix(D3DMATRIXHANDLE D3DMatHandle)
 
 	if (ProxyDirectXVersion != 1)
 	{
-		if (MatrixMap.find(D3DMatHandle) == MatrixMap.end())
+		if (!GetMatrix(D3DMatHandle))
 		{
 			return DDERR_INVALIDPARAMS;
 		}
