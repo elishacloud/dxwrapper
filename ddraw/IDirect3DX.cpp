@@ -880,15 +880,7 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 	case 7:
 		return GetProxyInterfaceV7()->EvictManagedTextures();
 	case 9:
-		// Check for device
-		if (!ddrawParent)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_INVALIDOBJECT;
-		}
-
-		// Evict managed texture surfaces
-		ddrawParent->EvictManagedTextures();
+		// Textures are loaded as managed in Direct3D9, so there is no need to manualy evict the texture
 		return D3D_OK;
 	}
 }

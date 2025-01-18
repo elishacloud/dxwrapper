@@ -222,7 +222,6 @@ public:
 	void ReSetRenderTarget() { if (RenderTargetSurface) { SetRenderTargetSurface(RenderTargetSurface); } }
 	m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
 	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface);
-	void EvictManagedTextures();
 
 	// Clipper vector functions
 	void AddClipperToVector(m_IDirectDrawClipper* lpClipper);

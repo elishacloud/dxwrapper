@@ -3989,23 +3989,6 @@ void m_IDirectDrawX::ReleaseD9Object()
 	}
 }
 
-// This method evicts all texture surfaces created with the DDSCAPS2_TEXTUREMANAGE or DDSCAPS2_D3DTEXTUREMANAGE flags from local or nonlocal video memory.
-void m_IDirectDrawX::EvictManagedTextures()
-{
-	SetCriticalSection();
-
-	// Check if any surfaces are locked
-	for (m_IDirectDrawSurfaceX*& pSurface : SurfaceVector)
-	{
-		if (pSurface->IsSurfaceManaged())
-		{
-			pSurface->ReleaseD9Surface(true, false);
-		}
-	}
-
-	ReleaseCriticalSection();
-}
-
 // Add surface wrapper to vector
 void m_IDirectDrawX::AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX)
 {

@@ -345,7 +345,7 @@ HRESULT m_IDirect3DTextureX::Unload()
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: Not Implemented");
+		// Textures are loaded as managed in Direct3D9, so there is no need to manualy unload the texture
 		return D3D_OK;
 	}
 

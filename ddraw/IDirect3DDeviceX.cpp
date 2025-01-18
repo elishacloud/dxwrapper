@@ -1149,8 +1149,7 @@ HRESULT m_IDirect3DDeviceX::PreLoad(LPDIRECTDRAWSURFACE7 lpddsTexture)
 
 	if (Config.Dd7to9)
 	{
-		// ToDo: Call PreLoad for the texture.
-		// Calling this method indicates that the application will need this managed resource shortly. This method has no effect on nonmanaged resources.
+		// Textures are loaded as managed in Direct3D9, so there is no need to manualy preload textures
 		return D3D_OK;
 	}
 
@@ -2170,6 +2169,12 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 		if (!ret)
 		{
 			return DDERR_INVALIDPARAMS;
+		}
+
+		if (lpDirect3DViewport == lpCurrentViewport)
+		{
+			lpCurrentViewport = nullptr;
+			lpCurrentViewportX = nullptr;
 		}
 
 		// ToDo: Validate Viewport address
