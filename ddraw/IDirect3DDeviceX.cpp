@@ -1184,8 +1184,6 @@ HRESULT m_IDirect3DDeviceX::Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDestP
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: flags not supported. dwFlags: " << Logging::hex(dwFlags));
 		}
 
-		// ToDo: check if source and destination surfaces are valid
-
 		if (!lprcSrcRect && (!lpDestPoint || (lpDestPoint && lpDestPoint->x == 0 && lpDestPoint->y == 0)))
 		{
 			return lpDestTex->Blt(nullptr, lpSrcTex, nullptr, 0, nullptr);
@@ -1787,7 +1785,6 @@ HRESULT m_IDirect3DDeviceX::GetRenderTarget(LPDIRECTDRAWSURFACE7* lplpRenderTarg
 			return DDERR_GENERIC;
 		}
 
-		// ToDo: Validate RenderTarget address
 		*lplpRenderTarget = CurrentRenderTarget;
 
 		CurrentRenderTarget->AddRef();
@@ -2126,7 +2123,6 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// ToDo: Validate Viewport address
 		AttachedViewports.push_back(lpDirect3DViewport);
 
 		lpDirect3DViewport->AddRef();
@@ -2152,6 +2148,15 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 	}
 }
 
+void m_IDirect3DDeviceX::ReleaseViewport(m_IDirect3DViewportX* lpViewportX)
+{
+	if (lpViewportX == lpCurrentViewportX)
+	{
+		lpCurrentViewport = nullptr;
+		lpCurrentViewportX = nullptr;
+	}
+}
+
 HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -2163,7 +2168,6 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// ToDo: Figure out what to do if an attempting to delete the SetCurrentViewport
 		bool ret = DeleteAttachedViewport(lpDirect3DViewport);
 
 		if (!ret)
@@ -2171,13 +2175,14 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// ToDo: if deleting the current material then invalidate the material
+
 		if (lpDirect3DViewport == lpCurrentViewport)
 		{
 			lpCurrentViewport = nullptr;
 			lpCurrentViewportX = nullptr;
 		}
 
-		// ToDo: Validate Viewport address
 		lpDirect3DViewport->Release();
 
 		return D3D_OK;
@@ -2246,7 +2251,6 @@ HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport,
 			break;
 		}
 
-		// ToDo: Validate return Viewport address
 		return D3D_OK;
 	}
 
@@ -2300,7 +2304,6 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 		D3DVIEWPORT Viewport = {};
 		Viewport.dwSize = sizeof(D3DVIEWPORT);
 
-		// ToDo: Validate Viewport address
 		HRESULT hr = lpd3dViewport->GetViewport(&Viewport);
 
 		if (SUCCEEDED(hr))
@@ -2359,7 +2362,6 @@ HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3* lplpd3dViewp
 			return D3DERR_NOCURRENTVIEWPORT;
 		}
 
-		// ToDo: Validate Viewport address
 		*lplpd3dViewport = lpCurrentViewport;
 
 		lpCurrentViewport->AddRef();
@@ -2950,6 +2952,7 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 	D3DLIGHT7 Light7;
 
 	// ToDo: the dvAttenuation members are interpreted differently in D3DLIGHT2 than they were for D3DLIGHT.
+
 	ConvertLight(Light7, *lpLight);
 
 	DWORD dwLightIndex = 0;
@@ -4136,7 +4139,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
-		// ToDo: Validate vertex buffer
 		m_IDirect3DVertexBufferX* pVertexBufferX = nullptr;
 		lpd3dVertexBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pVertexBufferX);
 		if (!pVertexBufferX)
@@ -4402,7 +4404,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
-		// ToDo: Validate vertex buffer
 		m_IDirect3DVertexBufferX* pVertexBufferX = nullptr;
 		lpd3dVertexBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pVertexBufferX);
 		if (!pVertexBufferX)
@@ -4855,7 +4856,6 @@ HRESULT m_IDirect3DDeviceX::GetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// ToDo: get clip status from Direct3D9
 		*lpD3DClipStatus = D3DClipStatus;
 
 		return D3D_OK;
@@ -5035,6 +5035,14 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 			entry->DeleteMe();
 		}
 	}
+
+	// ToDo: Clear device interface for m_IDirect3DLight
+
+	// ToDo: Clear device interface for m_IDirect3DMaterial
+
+	// ToDo: Clear device interface for m_IDirect3DVertexBuffer
+
+	// ToDo: Clear device interface for m_IDirect3DViewport
 
 	if (ddrawParent && !Config.Exiting)
 	{

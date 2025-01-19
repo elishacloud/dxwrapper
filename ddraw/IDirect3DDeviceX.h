@@ -341,6 +341,7 @@ public:
 	// Viewport functions
 	inline void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
 	inline bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
+	void ReleaseViewport(m_IDirect3DViewportX* lpViewportX);
 
 	// Texture handle function
 	void ReleaseTextureHandle(D3DTEXTUREHANDLE tHandle);

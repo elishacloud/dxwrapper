@@ -288,7 +288,6 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_EXTENTS' not handled!");
 		}
 
-		// ToDo: Validate vertex buffer
 		m_IDirect3DVertexBufferX* pSrcVertexBufferX = nullptr;
 		lpSrcBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pSrcVertexBufferX);
 

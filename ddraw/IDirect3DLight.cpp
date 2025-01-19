@@ -304,6 +304,4 @@ void m_IDirect3DLight::ReleaseInterface()
 	{
 		(*D3DDeviceInterface)->ReleaseLightInterface(this);
 	}
-
-	// ToDo: remove from AttachedLights vector
 }

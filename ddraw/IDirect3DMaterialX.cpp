@@ -261,7 +261,6 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 			return DDERR_GENERIC;
 		}
 
-		// ToDo: Validate Direct3D Device
 		m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
 		lpDirect3DDevice->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
 		if (!pDirect3DDeviceX)

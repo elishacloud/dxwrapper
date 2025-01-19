@@ -301,7 +301,6 @@ HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 			return DDERR_GENERIC;
 		}
 
-		// ToDo: validate handle
 		MaterialBackground.IsSet = TRUE;
 		MaterialBackground.hMat = hMat;
 
@@ -426,7 +425,6 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 			}
 		}
 
-		// ToDo: Validate Light address
 		AttachedLights.push_back(lpDirect3DLight);
 
 		lpDirect3DLight->AddRef();
@@ -466,7 +464,6 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// ToDo: Validate Light address
 		lpDirect3DLight->Release();
 
 		// If current viewport is then deactivate the light
@@ -541,7 +538,6 @@ HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIREC
 			break;
 		}
 
-		// ToDo: Validate return Light address
 		return D3D_OK;
 	}
 
@@ -783,5 +779,8 @@ void m_IDirect3DViewportX::ReleaseInterface()
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
 	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
 
-	// ToDo: remove from AttachedViewports vector
+	if (D3DDeviceInterface && *D3DDeviceInterface)
+	{
+		(*D3DDeviceInterface)->ReleaseViewport(this);
+	}
 }
