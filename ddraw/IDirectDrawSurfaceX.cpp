@@ -7147,6 +7147,25 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 	} while (false);
 
+	// Remove scanlines before unlocking surface
+	if (SUCCEEDED(hr) && Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
+	{
+		// Set last rect before removing scanlines
+		LASTLOCK LLock;
+		LLock.ScanlineWidth = DestRectWidth;
+		LLock.Rect = DestRect;
+		if (IsUsingEmulation())
+		{
+			LockEmulatedSurface(&LLock.LockedRect, &DestRect);
+			RemoveScanlines(LLock);
+		}
+		else if (UnlockDest)
+		{
+			LLock.LockedRect = DestLockRect;
+			RemoveScanlines(LLock);
+		}
+	}
+
 	// Unlock surfaces if needed
 	if (UnlockSrc)
 	{
@@ -7154,25 +7173,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 	if (UnlockDest)
 	{
-		// Remove scanlines before unlocking surface
-		if (SUCCEEDED(hr) && Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
-		{
-			// Set last rect before removing scanlines
-			LASTLOCK LLock;
-			LLock.ScanlineWidth = DestRectWidth;
-			LLock.Rect = DestRect;
-			if (IsUsingEmulation())
-			{
-				LockEmulatedSurface(&LLock.LockedRect, &DestRect);
-			}
-			else
-			{
-				LLock.LockedRect = DestLockRect;
-			}
-
-			RemoveScanlines(LLock);
-		}
-
 		IsUsingEmulation() ? DD_OK : UnLockD3d9Surface(MipMapLevel);
 	}
 
