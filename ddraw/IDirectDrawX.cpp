@@ -1755,8 +1755,8 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			}
 		}
 
-		// Check if handle is valid
-		if (IsWindow(DisplayMode.hWnd) && DisplayMode.hWnd == hWnd)
+		// Check if handle is valid or null (may just be adding device flags)
+		if (IsWindow(DisplayMode.hWnd) && (!hWnd || DisplayMode.hWnd == hWnd))
 		{
 			// Set exclusive mode resolution
 			if (ExclusiveMode && DisplayMode.Width && DisplayMode.Height && DisplayMode.BPP)
@@ -1771,7 +1771,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			Device.IsWindowed = (!ExclusiveMode || Config.EnableWindowMode);
 
 			// Check if just marking as non-exclusive
-			bool MarkingUnexclusive = (Exclusive.hWnd == hWnd && dwFlags == DDSCL_NORMAL);
+			bool MarkingUnexclusive = (hWnd && Exclusive.hWnd == hWnd && dwFlags == DDSCL_NORMAL);
 
 			// Don't change flags or device if just marking as non-exclusive
 			if (!MarkingUnexclusive)
@@ -1783,12 +1783,16 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 				}
 
 				// Set device flags
-				Device.AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0);
-				Device.MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0);
+				Device.AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0) ||
+					(!hWnd || hWnd == LasthWnd ? Device.AllowModeX : 0);
+				Device.MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0) ||
+					(!hWnd || hWnd == LasthWnd ? Device.MultiThreaded : 0);
 				// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
-				Device.FPUPreserve = (((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0);
+				Device.FPUPreserve = (((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0) ||
+					(!hWnd || hWnd == LasthWnd ? Device.FPUPreserve : 0);
 				// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
-				Device.NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0);
+				Device.NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0) ||
+					(!hWnd || hWnd == LasthWnd ? Device.NoWindowChanges : 0);
 
 				// Reset if mode was changed
 				if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) &&
@@ -3201,7 +3205,11 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 	// Hook WndProc before creating device
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
-	if (WndDataStruct) WndDataStruct->IsDirectDraw = true;
+	if (WndDataStruct)
+	{
+		WndDataStruct->IsDirectDraw = true;
+		WndDataStruct->NoWindowChanges = Device.NoWindowChanges;
+	}
 
 	// Check if creating from another thread
 	FocusWindowThreadID = GetWindowThreadProcessId(hWnd, nullptr);
@@ -3428,8 +3436,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		EnableWaitVsync = false;
 		FourCCsList.clear();
 
-		// Send window change messages
-		if (!presParams.Windowed && !Config.EnableWindowMode)
+		// Send window change messages for exclusive windows
+		if (!Device.NoWindowChanges && !presParams.Windowed && !Config.EnableWindowMode)
 		{
 			// Get window size
 			RECT NewWindowRect = {};
@@ -3479,7 +3487,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 					PostMessage(hWnd, WM_MOVE, 0, MAKELPARAM(ClientPoint.x, ClientPoint.y));
 				}
 
-				// Notify size change
+				// Notify window size
 				if (bWindowSize)
 				{
 					PostMessage(hWnd, WM_SIZE, SizeFlag, MAKELPARAM(NewClientRect.right, NewClientRect.bottom));
