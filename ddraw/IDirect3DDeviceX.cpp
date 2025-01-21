@@ -3777,7 +3777,7 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			return D3D_OK;
 		case D3DRENDERSTATE_ZVISIBLE:			// 30
 			// This render state is not supported.
-			*lpdwRenderState = 0;
+			*lpdwRenderState = FALSE;
 			return D3D_OK;
 		case D3DRENDERSTATE_SUBPIXEL:			// 31
 			*lpdwRenderState = FALSE;
