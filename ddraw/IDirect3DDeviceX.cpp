@@ -2670,25 +2670,6 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 			lpCurrentRenderTargetX->PrepareRenderTarget();
 		}
 
-		// Clear primary surface
-		/*if (!Config.DdrawEnableRenderTarget && lpCurrentRenderTargetX && (dwFlags & D3DCLEAR_TARGET))
-		{
-			// Clear each specified rectangle
-			if (dwCount && lpRects)
-			{
-				for (UINT x = 0; x < dwCount; x++)
-				{
-					lpCurrentRenderTargetX->ColorFill((RECT*)&lpRects[x], (!Config.DdrawEnableRenderTarget && Config.DdrawFlipFillColor) ? Config.DdrawFlipFillColor : dwColor);
-				}
-			}
-			// Clear the entire surface if no rectangles are specified
-			else
-			{
-				lpCurrentRenderTargetX->ColorFill(nullptr, (!Config.DdrawEnableRenderTarget && Config.DdrawFlipFillColor) ? Config.DdrawFlipFillColor : dwColor);
-			}
-			lpCurrentRenderTargetX->ClearDirtyFlags();
-		}*/
-
 		return (*d3d9Device)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 	}
 
@@ -3391,25 +3372,25 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_LINEPATTERN:		// 10
 			if (dwRenderState != 0)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented! " << dwRenderState);
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented: " << dwRenderState);
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_MONOENABLE:			// 11
 			if (dwRenderState != FALSE)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_MONOENABLE' not implemented! " << dwRenderState);
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_MONOENABLE' not implemented: " << dwRenderState);
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_ROP2:				// 12
 			if (dwRenderState != R2_COPYPEN)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ROP2' not implemented! " << dwRenderState);
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ROP2' not implemented: " << dwRenderState);
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_PLANEMASK:			// 13
 			if (dwRenderState != (DWORD)-1)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_PLANEMASK' not implemented! " << dwRenderState);
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_PLANEMASK' not implemented: " << dwRenderState);
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_TEXTUREMAG:			// 17
@@ -3585,18 +3566,21 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			rsAlphaBlendEnabled = dwRenderState;
 			break;
 		case D3DRENDERSTATE_ZVISIBLE:			// 30
-			// This render state is not supported.
+			if (dwRenderState != FALSE)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented: " << dwRenderState);
+			}
 			return D3D_OK;
 		case D3DRENDERSTATE_SUBPIXEL:			// 31
 			if (dwRenderState != FALSE)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_SUBPIXEL' not implemented! " << dwRenderState);
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_SUBPIXEL' not implemented: " << dwRenderState);
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_SUBPIXELX:			// 32
 			if (dwRenderState != FALSE)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_SUBPIXELX' not implemented! " << dwRenderState);
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_SUBPIXELX' not implemented: " << dwRenderState);
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_STIPPLEDALPHA:		// 33
@@ -5273,6 +5257,18 @@ void m_IDirect3DDeviceX::SetDefaults()
 	SetTextureStageState(4, D3DTSS_TEXCOORDINDEX, 0);
 	SetTextureStageState(5, D3DTSS_TEXCOORDINDEX, 0);
 	SetTextureStageState(6, D3DTSS_TEXCOORDINDEX, 0);
+
+	// Set color key defaults (for interface v1)
+	if (WrapperInterface)
+	{
+		rsColorKeyEnabled = true;
+	}
+
+	// Set texture blend defaults (for interface v1, v2 and v3)
+	if (WrapperInterface || WrapperInterface2 || WrapperInterface3)
+	{
+		SetRenderState(D3DRENDERSTATE_TEXTUREMAPBLEND, D3DTBLEND_MODULATE);
+	}
 
 	// Get default structures
 	(*d3d9Device)->GetViewport(&DefaultViewport);
