@@ -577,7 +577,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				LOG_LIMIT(100, __FUNCTION__ << " Error: not current Depth Stencil format: " << surfaceDesc2);
 				return DDERR_INVALIDPARAMS;
 			}
-			return (*d3d9Device)->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, ConvertDepthValue(lpDDBltFx->dwFillDepth, surface.Format), 0);
+			return (*d3d9Device)->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, float(double(lpDDBltFx->dwFillDepth) / double(ConvertDepthValue(0xFFFFFFFF, surface.Format))), 0);
 		}
 
 		// Set critical section
