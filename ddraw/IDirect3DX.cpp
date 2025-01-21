@@ -216,6 +216,7 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 		{
 			LPVOID lpContext;
 			LPD3DENUMDEVICESCALLBACK lpCallback;
+			DWORD DirectXVersion;
 
 			static HRESULT CALLBACK ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc, LPVOID lpContext)
 			{
@@ -227,11 +228,17 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 				ConvertDeviceDesc(D3DDRVDevDesc, *lpDeviceDesc);
 				ConvertDeviceDesc(D3DSWDevDesc, *lpDeviceDesc);
 
+				D3DDRVDevDesc.dwSize = (self->DirectXVersion == 1) ? D3DDEVICEDESC1_SIZE :
+					(self->DirectXVersion == 2) ? D3DDEVICEDESC5_SIZE :
+					(self->DirectXVersion == 3) ? D3DDEVICEDESC6_SIZE : sizeof(D3DDEVICEDESC);
+				D3DSWDevDesc.dwSize = D3DDRVDevDesc.dwSize;
+
 				return self->lpCallback(&lpDeviceDesc->deviceGUID, lpDeviceDescription, lpDeviceName, &D3DDRVDevDesc, &D3DSWDevDesc, self->lpContext);
 			}
 		} CallbackContext7 = {};
 		CallbackContext7.lpContext = lpUserArg;
 		CallbackContext7.lpCallback = lpEnumDevicesCallback;
+		CallbackContext7.DirectXVersion = DirectXVersion;
 
 		return EnumDevices7(EnumDevicesStruct7::ConvertCallback, &CallbackContext7, 7);
 	}
@@ -295,6 +302,10 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 			return DDERR_INVALIDOBJECT;
 		}
 
+		DWORD DevSize = (DirectXVersion == 1) ? D3DDEVICEDESC1_SIZE :
+			(DirectXVersion == 2) ? D3DDEVICEDESC5_SIZE :
+			(DirectXVersion == 3) ? D3DDEVICEDESC6_SIZE : sizeof(D3DDEVICEDESC);
+
 		// Loop through all adapters
 		for (auto& entry : Cap9Cache)
 		{
@@ -314,53 +325,21 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 
 				// For conversion
 				D3DDEVICEDESC D3DDRVDevDesc = {}, D3DSWDevDesc = {};
-				DWORD DevSize = (DirectXVersion == 1) ? D3DDEVICEDESC1_SIZE :
-					(DirectXVersion == 2) ? D3DDEVICEDESC5_SIZE :
-					(DirectXVersion == 3) ? D3DDEVICEDESC6_SIZE : sizeof(D3DDEVICEDESC);
-				D3DDRVDevDesc.dwSize = DevSize;
-				D3DSWDevDesc.dwSize = DevSize;
+				D3DDRVDevDesc.dwSize = sizeof(D3DDEVICEDESC);
+				D3DSWDevDesc.dwSize = sizeof(D3DDEVICEDESC);
+
+				char Desc[MAX_PATH] = {};
+				char Name[MAX_PATH] = {};
 
 				switch ((DWORD)Type)
 				{
 				case D3DDEVTYPE_REF:
 					lpName = "RGB Emulation";
 					lpDescription = "Microsoft Direct3D RGB Software Emulation";
-					if (DirectXVersion < 7)
-					{
-						// Get D3DSWDevDesc data (D3DDEVTYPE_REF)
-						ConvertDeviceDesc(D3DSWDevDesc, DeviceDesc7);
-
-						// Get D3DDRVDevDesc data (D3DDEVTYPE_HAL)
-						Caps9 = entry.HAL;
-						Caps9.DeviceType = D3DDEVTYPE_HAL;
-						ConvertDeviceDesc(DeviceDesc7, Caps9);
-						ConvertDeviceDesc(D3DDRVDevDesc, DeviceDesc7);
-
-						if (lpEnumDevicesCallback(&deviceGUID, lpDescription, lpName, &D3DDRVDevDesc, &D3DSWDevDesc, lpUserArg) == DDENUMRET_CANCEL)
-						{
-							return D3D_OK;
-						}
-					}
 					break;
 				case D3DDEVTYPE_HAL:
 					lpName = "Direct3D HAL";
 					lpDescription = "Microsoft Direct3D Hardware acceleration through Direct3D HAL";
-					if (DirectXVersion < 7)
-					{
-						// Get D3DDRVDevDesc data (D3DDEVTYPE_HAL)
-						ConvertDeviceDesc(D3DDRVDevDesc, DeviceDesc7);
-
-						// Get D3DSWDevDesc data (D3DDEVTYPE_REF)
-						Caps9 = entry.REF;
-						Caps9.DeviceType = D3DDEVTYPE_REF;
-						ConvertDeviceDesc(DeviceDesc7, Caps9);
-						ConvertDeviceDesc(D3DSWDevDesc, DeviceDesc7);
-
-						if (lpEnumDevicesCallback(&deviceGUID, lpDescription, lpName, &D3DDRVDevDesc, &D3DSWDevDesc, lpUserArg) == DDENUMRET_CANCEL)
-						{
-							return D3D_OK;
-						}
-					}
 					break;
 				default:
 				case D3DDEVTYPE_HAL + 0x10:
@@ -369,9 +348,31 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 					break;
 				}
 
-				if (DirectXVersion == 7)
+				strcpy_s(Desc, lpDescription);
+				strcpy_s(Name, lpName);
+
+				if (DirectXVersion < 7)
 				{
-					if (lpEnumDevicesCallback7(lpDescription, lpName, &DeviceDesc7, lpUserArg) == DDENUMRET_CANCEL)
+					// Get D3DSWDevDesc data (D3DDEVTYPE_REF)
+					ConvertDeviceDesc(D3DSWDevDesc, DeviceDesc7);
+
+					// Get D3DDRVDevDesc data (D3DDEVTYPE_HAL)
+					Caps9 = entry.HAL;
+					Caps9.DeviceType = D3DDEVTYPE_HAL;
+					ConvertDeviceDesc(DeviceDesc7, Caps9);
+					ConvertDeviceDesc(D3DDRVDevDesc, DeviceDesc7);
+
+					D3DDRVDevDesc.dwSize = DevSize;
+					D3DSWDevDesc.dwSize = DevSize;
+
+					if (lpEnumDevicesCallback(&deviceGUID, Desc, Name, &D3DDRVDevDesc, &D3DSWDevDesc, lpUserArg) == DDENUMRET_CANCEL)
+					{
+						return D3D_OK;
+					}
+				}
+				else if (DirectXVersion == 7)
+				{
+					if (lpEnumDevicesCallback7(Desc, Name, &DeviceDesc7, lpUserArg) == DDENUMRET_CANCEL)
 					{
 						return D3D_OK;
 					}
