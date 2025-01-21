@@ -260,7 +260,7 @@ void m_IDirect3DDeviceX::ReleaseExecuteBuffer(LPDIRECT3DEXECUTEBUFFER lpDirect3D
 	}
 }
 
-inline static void CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& DestVertexCount, BYTE* SrcVertex, DWORD SrcIndex, DWORD VertexTypeDesc)
+void m_IDirect3DDeviceX::CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& DestVertexCount, BYTE* SrcVertex, DWORD SrcIndex, DWORD VertexTypeDesc)
 {
 	// Primitive structures and related defines. Vertex offsets are to types D3DVERTEX, D3DLVERTEX, or D3DTLVERTEX.
 	if (VertexTypeDesc == D3DFVF_VERTEX)
@@ -3359,7 +3359,11 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_TEXTUREADDRESS:		// 3
 			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESS, dwRenderState);
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:	// 4
-			// For the IDirect3DDevice3 interface, the default value is TRUE. For earlier interfaces, the default is FALSE.
+			if (dwRenderState != rsTexturePerspective)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented: " << dwRenderState);
+			}
+			rsTexturePerspective = dwRenderState;
 			return D3D_OK;
 		case D3DRENDERSTATE_WRAPU:				// 5
 			rsTextureWrappingChanged = true;
@@ -3743,8 +3747,7 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_TEXTUREADDRESS:		// 3
 			return GetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESS, lpdwRenderState);
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:	// 4
-			// For the IDirect3DDevice3 interface, the default value is TRUE. For earlier interfaces, the default is FALSE.
-			*lpdwRenderState = TRUE;
+			*lpdwRenderState = rsTexturePerspective;
 			return D3D_OK;
 		case D3DRENDERSTATE_WRAPU:				// 5
 			*lpdwRenderState = rsTextureWrappingU;
@@ -5258,14 +5261,22 @@ void m_IDirect3DDeviceX::SetDefaults()
 	SetTextureStageState(5, D3DTSS_TEXCOORDINDEX, 0);
 	SetTextureStageState(6, D3DTSS_TEXCOORDINDEX, 0);
 
+	DWORD DirectXVersion =
+		WrapperInterface ? 1 :
+		WrapperInterface2 ? 2 :
+		WrapperInterface3 ? 3 : 7;
+
 	// Set color key defaults (for interface v1)
-	if (WrapperInterface)
+	if (DirectXVersion == 1)
 	{
 		rsColorKeyEnabled = true;
 	}
 
+	// For the IDirect3DDevice3 interface, the default value is TRUE. For earlier interfaces, the default is FALSE.
+	rsTexturePerspective = (DirectXVersion > 2);
+
 	// Set texture blend defaults (for interface v1, v2 and v3)
-	if (WrapperInterface || WrapperInterface2 || WrapperInterface3)
+	if (DirectXVersion < 7)
 	{
 		SetRenderState(D3DRENDERSTATE_TEXTUREMAPBLEND, D3DTBLEND_MODULATE);
 	}

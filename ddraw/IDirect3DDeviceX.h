@@ -71,6 +71,7 @@ private:
 	// Render states
 	bool rsAntiAliasChanged;
 	DWORD rsAntiAlias;
+	DWORD rsTexturePerspective;
 	DWORD rsEdgeAntiAlias;
 	bool rsTextureWrappingChanged;
 	DWORD rsTextureWrappingU;
@@ -197,6 +198,7 @@ private:
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 
 	// Execute buffer function
+	inline void CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& DestVertexCount, BYTE* SrcVertex, DWORD SrcIndex, DWORD VertexTypeDesc);
 	HRESULT DrawExecutePoint(D3DPOINT* point, WORD pointCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 	HRESULT DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 	HRESULT DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD triangleCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
