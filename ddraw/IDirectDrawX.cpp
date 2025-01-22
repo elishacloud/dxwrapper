@@ -146,6 +146,7 @@ RECT LastWindowRect;
 
 // Exclusive mode settings
 bool ExclusiveMode;
+bool FullScreenWindowed;
 DISPLAYSETTINGS Exclusive;
 HWND LastUsedHWnd = nullptr;	// Only initialize this here
 
@@ -1714,13 +1715,22 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		// Set windowed mode
 		if (dwFlags & DDSCL_NORMAL)
 		{
-			// Check for exclusive mode
+			// Clear exclusive mode
 			if ((ExclusiveMode && hWnd && Exclusive.hWnd == hWnd && Exclusive.SetBy == this) || !IsWindow(Exclusive.hWnd))
 			{
 				ExclusiveMode = false;
 				Exclusive = {};
+				FullScreenWindowed = (Exclusive.hWnd == hWnd && dwFlags == DDSCL_NORMAL);	// If just marking as non-exclusive
+			}
+			// Set fullscreen windowed
+			else if (!hWnd)
+			{
+				ExclusiveMode = false;
+				Exclusive = {};
+				FullScreenWindowed = true;
 			}
 		}
+		// Set fullscreen mode
 		else if (dwFlags & DDSCL_FULLSCREEN)
 		{
 			if (ExclusiveMode && Exclusive.hWnd != hWnd && IsWindow(Exclusive.hWnd))
@@ -1733,6 +1743,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			ExclusiveMode = true;
 			Exclusive.hWnd = hWnd;
 			Exclusive.SetBy = this;
+			FullScreenWindowed = false;
 		}
 
 		// Check window handle
@@ -1770,11 +1781,22 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			// Set windowed mode
 			Device.IsWindowed = (!ExclusiveMode || Config.EnableWindowMode);
 
-			// Check if just marking as non-exclusive
-			bool MarkingUnexclusive = (hWnd && Exclusive.hWnd == hWnd && dwFlags == DDSCL_NORMAL);
+			// Set device flags
+			Device.AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0) ||
+				(!hWnd || hWnd == LasthWnd ? Device.AllowModeX : 0);
+			Device.MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0) ||
+				(!hWnd || hWnd == LasthWnd ? Device.MultiThreaded : 0);
+			// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
+			Device.FPUPreserve = (((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0) ||
+				(!hWnd || hWnd == LasthWnd ? Device.FPUPreserve : 0);
+			// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
+			Device.NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0) ||
+				(!hWnd || hWnd == LasthWnd ? Device.NoWindowChanges : 0);
 
-			// Don't change flags or device if just marking as non-exclusive
-			if (!MarkingUnexclusive)
+			// Reset if mode was changed
+			if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) &&
+				(d3d9Device || !ExclusiveMode || (DisplayMode.Width && DisplayMode.Height)) &&	// Delay device creation when exclusive and no DisplayMode
+				(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
 			{
 				// Wait for some windows
 				if (ExclusiveMode && LasthWnd != DisplayMode.hWnd)
@@ -1782,25 +1804,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 					Utils::CheckMessageQueue(hWnd);
 				}
 
-				// Set device flags
-				Device.AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0) ||
-					(!hWnd || hWnd == LasthWnd ? Device.AllowModeX : 0);
-				Device.MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0) ||
-					(!hWnd || hWnd == LasthWnd ? Device.MultiThreaded : 0);
-				// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
-				Device.FPUPreserve = (((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0) ||
-					(!hWnd || hWnd == LasthWnd ? Device.FPUPreserve : 0);
-				// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
-				Device.NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0) ||
-					(!hWnd || hWnd == LasthWnd ? Device.NoWindowChanges : 0);
-
-				// Reset if mode was changed
-				if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) &&
-					(d3d9Device || !ExclusiveMode || (DisplayMode.Width && DisplayMode.Height)) &&	// Delay device creation when exclusive and no DisplayMode
-					(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
-				{
-					CreateD9Device(__FUNCTION__);
-				}
+				CreateD9Device(__FUNCTION__);
 			}
 		}
 
@@ -2444,6 +2448,7 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 
 		// Exclusive mode
 		ExclusiveMode = false;
+		FullScreenWindowed = false;
 		Exclusive = {};
 
 		// Display pixel format
@@ -3383,7 +3388,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			ReleaseD9Device();
 
 			// Reset display mode after release when display mode is already setup and there is a primary surface
-			if (presParams.Windowed && PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)
+			if (presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)))
 			{
 				Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
 			}
@@ -3393,7 +3398,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		if (!d3d9Device)
 		{
 			// Prepare window and display size
-			if (!presParams.Windowed && !Config.EnableWindowMode)
+			if ((!presParams.Windowed || FullScreenWindowed) && !Config.EnableWindowMode)
 			{
 				Utils::SetDisplaySettings(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
 
