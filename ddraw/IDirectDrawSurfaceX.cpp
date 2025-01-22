@@ -4331,7 +4331,7 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3d9Texture()
 inline LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::Get3DTexture()
 {
 	// Primary display texture
-	if (PrimaryDisplayTexture)
+	if (PrimaryDisplayTexture && ShouldPresentToWindow(true))
 	{
 		if (IsPalette() && surface.IsUsingWindowedMode && (surface.DisplayTexture || !primary.PaletteTexture))
 		{
