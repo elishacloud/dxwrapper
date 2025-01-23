@@ -1710,7 +1710,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 		HWND LasthWnd = DisplayMode.hWnd;
 		bool LastFPUPreserve = Device.FPUPreserve;
-		bool LastExclusiveMode = ExclusiveMode;
+		bool LastWindowedMode = Device.IsWindowed;
 
 		// Set windowed mode
 		if (dwFlags & DDSCL_NORMAL)
@@ -1725,8 +1725,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			// Set fullscreen windowed
 			else if (!hWnd)
 			{
-				ExclusiveMode = false;
-				Exclusive = {};
 				FullScreenWindowed = true;
 			}
 		}
@@ -1747,10 +1745,11 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		}
 
 		// Check window handle
-		if (IsWindow(hWnd) && (((!ExclusiveMode || Exclusive.hWnd == hWnd) && (!DisplayMode.hWnd || !DisplayMode.SetBy || DisplayMode.SetBy == this)) || !IsWindow(DisplayMode.hWnd)))
+		if (IsWindow(hWnd) && DisplayMode.hWnd != hWnd &&
+			(((!ExclusiveMode || Exclusive.hWnd == hWnd) && (!DisplayMode.hWnd || !DisplayMode.SetBy || DisplayMode.SetBy == this)) || !IsWindow(DisplayMode.hWnd)))
 		{
 			// Check if DC needs to be released
-			if (DisplayMode.hWnd && DisplayMode.DC && (DisplayMode.hWnd != hWnd))
+			if (DisplayMode.hWnd && DisplayMode.DC)
 			{
 				CloseD3DDDI();
 				ReleaseDC(DisplayMode.hWnd, DisplayMode.DC);
@@ -1779,24 +1778,24 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			}
 
 			// Set windowed mode
-			Device.IsWindowed = (!ExclusiveMode || Config.EnableWindowMode);
+			Device.IsWindowed = (!ExclusiveMode || FullScreenWindowed || Config.EnableWindowMode);
 
 			// Set device flags
-			Device.AllowModeX = ((dwFlags & DDSCL_ALLOWMODEX) != 0) ||
-				(!hWnd || hWnd == LasthWnd ? Device.AllowModeX : 0);
-			Device.MultiThreaded = ((dwFlags & DDSCL_MULTITHREADED) != 0) ||
-				(!hWnd || hWnd == LasthWnd ? Device.MultiThreaded : 0);
+			Device.AllowModeX = !hWnd ? Device.AllowModeX :
+				(((dwFlags & DDSCL_ALLOWMODEX) != 0) || (hWnd == LasthWnd ? Device.AllowModeX : 0));
+			Device.MultiThreaded = !hWnd ? Device.MultiThreaded :
+				(((dwFlags & DDSCL_MULTITHREADED) != 0) || (hWnd == LasthWnd ? Device.MultiThreaded : 0));
 			// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
-			Device.FPUPreserve = (((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0) ||
-				(!hWnd || hWnd == LasthWnd ? Device.FPUPreserve : 0);
+			Device.FPUPreserve = !hWnd ? Device.FPUPreserve :
+				((((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0) || (hWnd == LasthWnd ? Device.FPUPreserve : 0));
 			// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
-			Device.NoWindowChanges = ((dwFlags & DDSCL_NOWINDOWCHANGES) != 0) ||
-				(!hWnd || hWnd == LasthWnd ? Device.NoWindowChanges : 0);
+			Device.NoWindowChanges = !hWnd ? Device.NoWindowChanges :
+				(((dwFlags & DDSCL_NOWINDOWCHANGES) != 0) || (hWnd == LasthWnd ? Device.NoWindowChanges : 0));
 
 			// Reset if mode was changed
 			if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) &&
 				(d3d9Device || !ExclusiveMode || (DisplayMode.Width && DisplayMode.Height)) &&	// Delay device creation when exclusive and no DisplayMode
-				(LastExclusiveMode != ExclusiveMode || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
+				(LastWindowedMode != Device.IsWindowed || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
 			{
 				// Wait for some windows
 				if (ExclusiveMode && LasthWnd != DisplayMode.hWnd)
@@ -3225,12 +3224,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		SendMessage(hWnd, WM_APP_CREATE_D3D9_DEVICE, (WPARAM)this, WM_MAKE_KEY(hWnd, this));
 
 		return d3d9Device ? DD_OK : DDERR_GENERIC;
-	}
-
-	// Check status of device
-	if (d3d9Device && d3d9Device->TestCooperativeLevel() == D3DERR_DEVICELOST)
-	{
-		return DD_OK;	// Just return ok because device does exist
 	}
 
 	SetCriticalSection();
