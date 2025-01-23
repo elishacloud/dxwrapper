@@ -1757,7 +1757,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			}
 
 			DisplayMode.hWnd = hWnd;
-			DisplayMode.SetBy = this;
 
 			if (DisplayMode.hWnd && !DisplayMode.DC)
 			{
@@ -1778,6 +1777,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			}
 
 			// Set windowed mode
+			DisplayMode.SetBy = this;
 			Device.IsWindowed = (!ExclusiveMode || FullScreenWindowed || Config.EnableWindowMode);
 
 			// Set device flags
@@ -2641,6 +2641,22 @@ void m_IDirectDrawX::ReleaseInterface()
 	SetCriticalSection();
 	SetPTCriticalSection();
 
+	// Remove ddraw device from vector
+	DDrawVector.erase(std::remove(DDrawVector.begin(), DDrawVector.end(), this), DDrawVector.end());
+
+	// Re-enable exclusive mode once non-exclusive device is released
+	if (ExclusiveMode &&
+		Device.IsWindowed && FullScreenWindowed &&
+		DisplayMode.SetBy == this && DisplayMode.SetBy != Exclusive.SetBy &&
+		std::find(DDrawVector.begin(), DDrawVector.end(), Exclusive.SetBy) != DDrawVector.end())
+	{
+		DisplayMode.SetBy = Exclusive.SetBy;
+		Device.IsWindowed = false;
+		FullScreenWindowed = false;
+
+		CreateD9Device(__FUNCTION__);
+	}
+
 	// Clear SetBy handles
 	if (DisplayMode.SetBy == this)
 	{
@@ -2650,9 +2666,6 @@ void m_IDirectDrawX::ReleaseInterface()
 	{
 		Exclusive.SetBy = nullptr;
 	}
-
-	// Remove ddraw device from vector
-	DDrawVector.erase(std::remove(DDrawVector.begin(), DDrawVector.end(), this), DDrawVector.end());
 
 	// Release Direct3DDevice interfaces
 	if (D3DDeviceInterface)
@@ -2712,7 +2725,7 @@ void m_IDirectDrawX::ReleaseInterface()
 
 	ReleasePTCriticalSection();
 
-	if (DDrawVector.size() == 0)
+	if (DDrawVector.empty())
 	{
 		// Close present thread first
 		if (PresentThread.IsInitialized)
@@ -3383,6 +3396,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			// Reset display mode after release when display mode is already setup and there is a primary surface
 			if (presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)))
 			{
+				FullScreenWindowed = true;
 				Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
 			}
 		}
