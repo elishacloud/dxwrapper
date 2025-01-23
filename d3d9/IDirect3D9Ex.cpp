@@ -620,6 +620,14 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 		return;
 	}
 
+	// Remove clip children for popup windows
+	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+	if ((lStyle & WS_POPUP) && (lStyle & WS_CLIPCHILDREN))
+	{
+		SetWindowLong(MainhWnd, GWL_STYLE, lStyle & ~WS_CLIPCHILDREN);
+		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+	}
+
 	// Set window active and focus
 	if (Config.EnableWindowMode || isWindowed)
 	{
@@ -667,7 +675,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 	Utils::GetDesktopRect(MainhWnd, screenRect);
 
 	// Get window style
-	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+	lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
 	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 
 	// Set window style
