@@ -1764,28 +1764,28 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			}
 		}
 
-		// Check if just marking as non-exclusive
-		bool MarkingUnexclusive = (hWnd && Exclusive.hWnd == hWnd && dwFlags == DDSCL_NORMAL);
-
-		// Don't change flags or device if just marking as non-exclusive
-		if (!MarkingUnexclusive)
+		// Check window handle
+		if (IsWindow(DisplayMode.hWnd) && ((!hWnd && Config.DdrawIntroVideoFix) || DisplayMode.hWnd == hWnd))
 		{
-			// Check window handle
-			if (IsWindow(DisplayMode.hWnd) && ((!hWnd && Config.DdrawIntroVideoFix) || DisplayMode.hWnd == hWnd))
+			// Set exclusive mode resolution
+			if (ExclusiveMode && DisplayMode.Width && DisplayMode.Height && DisplayMode.BPP)
 			{
-				// Set exclusive mode resolution
-				if (ExclusiveMode && DisplayMode.Width && DisplayMode.Height && DisplayMode.BPP)
-				{
-					Exclusive.Width = DisplayMode.Width;
-					Exclusive.Height = DisplayMode.Height;
-					Exclusive.BPP = DisplayMode.BPP;
-					Exclusive.RefreshRate = DisplayMode.RefreshRate;
-				}
+				Exclusive.Width = DisplayMode.Width;
+				Exclusive.Height = DisplayMode.Height;
+				Exclusive.BPP = DisplayMode.BPP;
+				Exclusive.RefreshRate = DisplayMode.RefreshRate;
+			}
 
-				// Set windowed mode
-				DisplayMode.SetBy = this;
-				Device.IsWindowed = (!ExclusiveMode || FullScreenWindowed || Config.EnableWindowMode);
+			// Set windowed mode
+			DisplayMode.SetBy = this;
+			Device.IsWindowed = (!ExclusiveMode || FullScreenWindowed || Config.EnableWindowMode);
 
+			// Check if just marking as non-exclusive
+			bool MarkingUnexclusive = (hWnd && Exclusive.hWnd == hWnd && dwFlags == DDSCL_NORMAL);
+
+			// Don't change flags or device if just marking as non-exclusive
+			if (!MarkingUnexclusive)
+			{
 				// Set device flags
 				Device.AllowModeX = !hWnd ? Device.AllowModeX :
 					(((dwFlags & DDSCL_ALLOWMODEX) != 0) || (hWnd == LasthWnd ? Device.AllowModeX : 0));
