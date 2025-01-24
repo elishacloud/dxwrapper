@@ -1614,7 +1614,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 			if (IsRenderTarget())
 			{
-				ddrawParent->ReSetRenderTarget();
+				ddrawParent->SetCurrentRenderTarget();
 			}
 
 		} while (false);

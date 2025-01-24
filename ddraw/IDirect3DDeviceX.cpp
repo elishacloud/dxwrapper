@@ -2670,6 +2670,8 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 			lpCurrentRenderTargetX->PrepareRenderTarget();
 		}
 
+		ddrawParent->ReSetRenderTarget();
+
 		return (*d3d9Device)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 	}
 
@@ -5328,6 +5330,10 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 		{
 			lpCurrentRenderTargetX->PrepareRenderTarget();
 		}
+		if (ddrawParent)
+		{
+			ddrawParent->ReSetRenderTarget();
+		}
 		if (Config.DdrawFixByteAlignment > 1)
 		{
 			for (UINT x = 0; x < MaxTextureStages; x++)
@@ -5371,7 +5377,7 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, (DWORD)0x01);
 			}
 		}
-		if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
+		if ((dwFlags & D3DDP_DXW_COLORKEYENABLE) && ddrawParent)
 		{
 			if (!colorkeyPixelShader || !*colorkeyPixelShader)
 			{

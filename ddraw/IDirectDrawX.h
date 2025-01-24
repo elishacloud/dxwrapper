@@ -219,8 +219,10 @@ public:
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
 	m_IDirectDrawSurfaceX *GetRenderTargetSurface() { return RenderTargetSurface; }
+	void ClearRenderTarget();
+	void ReSetRenderTarget();
+	void SetCurrentRenderTarget();
 	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface);
-	void ReSetRenderTarget() { if (RenderTargetSurface) { SetRenderTargetSurface(RenderTargetSurface); } }
 	m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
 	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface);
 

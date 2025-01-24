@@ -226,6 +226,7 @@ LPDIRECT3DPIXELSHADER9 gammaPixelShader;
 LPDIRECT3DVERTEXBUFFER9 validateDeviceVertexBuffer;
 LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = nullptr;
 
+bool UsingCustomRenderTarget;
 TLVERTEX DeviceVertices[4];
 bool IsDeviceVerticesSet;
 bool UsingShader32f;
@@ -2503,6 +2504,7 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		validateDeviceVertexBuffer = nullptr;
 
 		presParams = {};
+		UsingCustomRenderTarget = false;
 		IsDeviceVerticesSet = false;
 		BehaviorFlags = 0;
 		hFocusWindow = nullptr;
@@ -3183,6 +3185,9 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 		}
 		else
 		{
+			// Clear render target flag
+			UsingCustomRenderTarget = false;
+
 			// Reset render target
 			ReSetRenderTarget();
 
@@ -3431,6 +3436,14 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			break;
 		}
 
+		// Reset flags after creating device
+		UsingCustomRenderTarget = false;
+		WndProc::SwitchingResolution = false;
+		LastUsedHWnd = hWnd;
+		IsDeviceVerticesSet = false;
+		EnableWaitVsync = false;
+		FourCCsList.clear();
+
 		// Create dummy memory (2x larger)
 		dummySurface.resize(presParams.BackBufferWidth * presParams.BackBufferHeight * 4 * 2);
 
@@ -3439,13 +3452,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 		// Reset D3D device settings
 		RestoreD3DDeviceState();
-
-		// Reset flags after creating device
-		WndProc::SwitchingResolution = false;
-		LastUsedHWnd = hWnd;
-		IsDeviceVerticesSet = false;
-		EnableWaitVsync = false;
-		FourCCsList.clear();
 
 		// Send window change messages for exclusive windows
 		if (!Device.NoWindowChanges && !presParams.Windowed && !Config.EnableWindowMode)
@@ -3674,6 +3680,41 @@ HRESULT m_IDirectDrawX::TestD3D9CooperativeLevel()
 	return DD_OK;
 }
 
+// Set backbuffer to render target
+void m_IDirectDrawX::ClearRenderTarget()
+{
+	if (d3d9Device && UsingCustomRenderTarget)
+	{
+		IDirect3DSurface9* pBackBuffer = nullptr;
+		if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+		{
+			UsingCustomRenderTarget = false;
+
+			d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
+			d3d9Device->SetDepthStencilSurface(nullptr);
+			d3d9Device->SetRenderTarget(0, pBackBuffer);
+
+			pBackBuffer->Release();
+		}
+	}
+}
+
+void m_IDirectDrawX::ReSetRenderTarget()
+{
+	if (RenderTargetSurface && !UsingCustomRenderTarget)
+	{
+		SetRenderTargetSurface(RenderTargetSurface);
+	}
+}
+
+void m_IDirectDrawX::SetCurrentRenderTarget()
+{
+	if (RenderTargetSurface)
+	{
+		SetRenderTargetSurface(RenderTargetSurface);
+	}
+}
+
 HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 {
 	SetCriticalSection();
@@ -3686,22 +3727,9 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 		if (!lpSurface)
 		{
 			RenderTargetSurface = lpSurface;
+			DepthStencilSurface = nullptr;
 
-			SetDepthStencilSurface(nullptr);
-
-			if (d3d9Device)
-			{
-				IDirect3DSurface9* pBackBuffer = nullptr;
-				hr = d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
-				if (SUCCEEDED(hr))
-				{
-					// Set back buffer to render target
-					d3d9Device->SetRenderTarget(0, pBackBuffer);
-
-					// Release back buffer
-					pBackBuffer->Release();
-				}
-			}
+			ClearRenderTarget();
 
 			hr = D3D_OK;
 			break;
@@ -3727,6 +3755,8 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 			LPDIRECT3DSURFACE9 pSurfaceD9 = RenderTargetSurface->GetD3d9Surface();
 			if (pSurfaceD9)
 			{
+				UsingCustomRenderTarget = true;
+
 				hr = d3d9Device->SetRenderTarget(0, pSurfaceD9);
 			}
 		}
@@ -4685,29 +4715,14 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture)
 	// Set vertex format
 	d3d9Device->SetFVF(TLVERTEXFVF);
 
-	// Set back buffer as render target
-	IDirect3DSurface9* pBackBuffer = nullptr;
-	if (RenderTargetSurface)
-	{
-		if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
-		{
-			d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
-			d3d9Device->SetDepthStencilSurface(nullptr);
-			d3d9Device->SetRenderTarget(0, pBackBuffer);
-		}
-	}
+	// Set backbuffer to render target
+	ClearRenderTarget();
 
 	// Draw primitive
 	HRESULT hr = d3d9Device->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, DeviceVertices, sizeof(TLVERTEX));
 
-	// Reset old render target
-	if (pBackBuffer)
-	{
-		ReSetRenderTarget();
-
-		// Release back buffer
-		pBackBuffer->Release();
-	}
+	// Reset redner target if needed
+	ReSetRenderTarget();
 
 	// Reset dirty flags
 	if (SUCCEEDED(hr))
