@@ -144,8 +144,6 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 	if (ref == 0)
 	{
 		SaveInterfaceAddress(this, WrapperInterfaceBackup);
-
-		ReleaseInterface();
 	}
 
 	return ref;
