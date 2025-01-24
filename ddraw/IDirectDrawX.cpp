@@ -1723,7 +1723,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 				FullScreenWindowed = (Exclusive.hWnd == hWnd && dwFlags == DDSCL_NORMAL);	// If just marking as non-exclusive
 			}
 			// Set fullscreen windowed
-			else if (!hWnd && ExclusiveMode)
+			else if (!hWnd && ExclusiveMode && Config.DdrawIntroVideoFix)
 			{
 				FullScreenWindowed = true;
 			}
@@ -1765,7 +1765,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		}
 
 		// Check if handle is valid or just null
-		if (IsWindow(DisplayMode.hWnd) && (!hWnd || DisplayMode.hWnd == hWnd))
+		if (IsWindow(DisplayMode.hWnd) && ((!hWnd && Config.DdrawIntroVideoFix) || DisplayMode.hWnd == hWnd))
 		{
 			// Set exclusive mode resolution
 			if (ExclusiveMode && DisplayMode.Width && DisplayMode.Height && DisplayMode.BPP)
@@ -3180,10 +3180,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 			ReSetRenderTarget();
 
 			// Reset D3D device settings
-			if (D3DDeviceInterface)
-			{
-				D3DDeviceInterface->AfterResetDevice();
-			}
+			RestoreD3DDeviceState();
 		}
 	}
 	// Release and recreate device
@@ -3246,8 +3243,10 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	do {
 		// Last call variables
 		HWND LasthWnd = hFocusWindow;
-		BOOL LastWindowedMode = presParams.Windowed;
 		DWORD LastBehaviorFlags = BehaviorFlags;
+
+		// Backup last present parameters
+		D3DPRESENT_PARAMETERS presParamsBackup = presParams;
 
 		// Store new focus window
 		hFocusWindow = hWnd;
@@ -3283,7 +3282,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			else
 			{
 				// Reset display to get proper screen size
-				if (d3d9Device && !LastWindowedMode && !Config.EnableWindowMode)
+				if (d3d9Device && !presParamsBackup.Windowed && !Config.EnableWindowMode)
 				{
 					ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
 				}
@@ -3291,9 +3290,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				BackBufferHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 			}
 		}
-
-		// Backup last present parameters
-		D3DPRESENT_PARAMETERS presParamsBackup = presParams;
 
 		// Set display window
 		presParams = {};
@@ -3385,7 +3381,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			}
 
 			Logging::Log() << __FUNCTION__ << " Recreate device! Last create: " << LasthWnd << "->" << hWnd << " " <<
-				" Windowed: " << LastWindowedMode << "->" << presParams.Windowed << " " <<
+				" Windowed: " << presParamsBackup.Windowed << "->" << presParams.Windowed << " " <<
 				presParamsBackup.BackBufferWidth << "x" << presParamsBackup.BackBufferHeight << "->" <<
 				presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " <<
 				Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
@@ -3436,10 +3432,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		ReSetRenderTarget();
 
 		// Reset D3D device settings
-		if (D3DDeviceInterface)
-		{
-			D3DDeviceInterface->AfterResetDevice();
-		}
+		RestoreD3DDeviceState();
 
 		// Reset flags after creating device
 		WndProc::SwitchingResolution = false;
@@ -3786,6 +3779,18 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 	}
 
 	return hr;
+}
+
+void m_IDirectDrawX::RestoreD3DDeviceState()
+{
+	for (m_IDirectDrawX*& pDDraw : DDrawVector)
+	{
+		m_IDirect3DDeviceX* Interface = pDDraw->D3DDeviceInterface;
+		if (Interface)
+		{
+			Interface->AfterResetDevice();
+		}
+	}
 }
 
 void m_IDirectDrawX::Clear3DFlagForAllSurfaces()
