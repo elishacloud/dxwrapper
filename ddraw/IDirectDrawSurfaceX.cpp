@@ -2183,7 +2183,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 	return ProxyInterface->GetDC(lphDC);
 }
 
-HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags)
+HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags, bool CheckOnly)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -2192,7 +2192,10 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags)
 		// Flip can be called only for a surface that has the DDSCAPS_FLIP and DDSCAPS_FRONTBUFFER capabilities
 		if (!IsFlipSurface())
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: This surface cannot be flipped");
+			if (!CheckOnly)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: This surface cannot be flipped");
+			}
 			return DDERR_INVALIDSURFACETYPE;
 		}
 

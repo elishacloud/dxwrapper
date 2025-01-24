@@ -2629,7 +2629,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 #endif
 
 			m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
-			if (!PrimarySurface || FAILED(PrimarySurface->GetFlipStatus(DDGFS_CANFLIP)) || PrimarySurface == ddrawParent->GetRenderTargetSurface() || !PrimarySurface->IsRenderTarget())
+			if (!PrimarySurface || FAILED(PrimarySurface->GetFlipStatus(DDGFS_CANFLIP, true)) || PrimarySurface == ddrawParent->GetRenderTargetSurface() || !PrimarySurface->IsRenderTarget())
 			{
 				ddrawParent->PresentScene(nullptr);
 			}

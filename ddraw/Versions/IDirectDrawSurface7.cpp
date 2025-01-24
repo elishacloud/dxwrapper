@@ -205,7 +205,7 @@ HRESULT m_IDirectDrawSurface7::GetFlipStatus(DWORD a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetFlipStatus(a);
+	return ProxyInterface->GetFlipStatus(a, false);
 }
 
 HRESULT m_IDirectDrawSurface7::GetOverlayPosition(LPLONG a, LPLONG b)
