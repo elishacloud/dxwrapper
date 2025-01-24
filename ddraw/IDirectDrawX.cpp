@@ -1710,7 +1710,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 		HWND LasthWnd = DisplayMode.hWnd;
 		bool LastFPUPreserve = Device.FPUPreserve;
-		bool LastWindowedMode = Device.IsWindowed;
+		bool LastWindowed = Device.IsWindowed;
 
 		// Set windowed mode
 		if (dwFlags & DDSCL_NORMAL)
@@ -1723,7 +1723,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 				FullScreenWindowed = (Exclusive.hWnd == hWnd && dwFlags == DDSCL_NORMAL);	// If just marking as non-exclusive
 			}
 			// Set fullscreen windowed
-			else if (!hWnd)
+			else if (!hWnd && ExclusiveMode)
 			{
 				FullScreenWindowed = true;
 			}
@@ -1764,7 +1764,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			}
 		}
 
-		// Check if handle is valid or null (may just be adding device flags)
+		// Check if handle is valid or just null
 		if (IsWindow(DisplayMode.hWnd) && (!hWnd || DisplayMode.hWnd == hWnd))
 		{
 			// Set exclusive mode resolution
@@ -1795,7 +1795,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			// Reset if mode was changed
 			if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) &&
 				(d3d9Device || !ExclusiveMode || (DisplayMode.Width && DisplayMode.Height)) &&	// Delay device creation when exclusive and no DisplayMode
-				(LastWindowedMode != Device.IsWindowed || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
+				(LastWindowed != Device.IsWindowed || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
 			{
 				// Wait for some windows
 				if (ExclusiveMode && LasthWnd != DisplayMode.hWnd)
