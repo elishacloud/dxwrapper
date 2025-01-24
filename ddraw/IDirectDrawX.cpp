@@ -3145,11 +3145,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 	// Hook WndProc before creating device
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
-	if (WndDataStruct)
-	{
-		WndDataStruct->IsDirectDraw = true;
-		WndDataStruct->NoWindowChanges = Device.NoWindowChanges;
-	}
+	if (WndDataStruct) WndDataStruct->IsDirectDraw = true;
 
 	// Check if creating from another thread
 	FocusWindowThreadID = GetWindowThreadProcessId(hWnd, nullptr);

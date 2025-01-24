@@ -309,24 +309,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 				return NULL;
 			}
 		}
-		// Filter some messages when no window changes are enabled
-		if (pDataStruct->NoWindowChanges)
-		{
-			switch (Msg)
-			{
-			case WM_STYLECHANGING:
-			case WM_STYLECHANGED:
-			case WM_ENTERSIZEMOVE:
-			case WM_EXITSIZEMOVE:
-			case WM_MOVING:
-			case WM_MOVE:
-			case WM_SIZING:
-			case WM_SIZE:
-			case WM_WINDOWPOSCHANGING:
-			case WM_WINDOWPOSCHANGED:
-				return NULL;
-			}
-		}
 		// Some games hang when attempting to paint while iconic
 		if (IsIconic(hWnd))
 		{
