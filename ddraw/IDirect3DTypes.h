@@ -89,6 +89,14 @@ typedef struct {
 	FLOAT    tu, tv;
 } D3DLVERTEX9, *LPD3DLVERTEX9;
 
+// Custom vertex
+const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);
+struct TLVERTEX
+{
+    float x, y, z, rhw;
+    float u, v;
+};
+
 typedef enum _D3DSURFACETYPE {
     D3DTYPE_NONE = 0,
     D3DTYPE_OFFPLAINSURFACE = 1,

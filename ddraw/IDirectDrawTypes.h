@@ -2,6 +2,8 @@
 
 #include <ddraw.h>
 
+class m_IDirectDrawX;
+
 constexpr DWORD MaxVidMemory     = 512 * 1024 * 1024;	// 512 MBs
 constexpr DWORD MinUsedVidMemory = 8 * 1024;			// 8 KBs
 
@@ -97,6 +99,84 @@ typedef struct {
 #pragma warning (suppress : 4200)
 	BYTE bdata[];
 } DDS_BUFFER;
+
+// Mouse hook
+struct MOUSEHOOK
+{
+	HANDLE ghWriteEvent = nullptr;
+	HANDLE threadID = nullptr;
+	HHOOK m_hook = nullptr;
+	bool bChange = false;
+	POINT Pos = {};
+};
+
+struct DRAWSTATEBACKUP
+{
+	DWORD ssMagFilter = 0;
+	DWORD ss1addressU = 0;
+	DWORD ss1addressV = 0;
+	DWORD tsColorOP = 0;
+	DWORD tsColorArg1 = 0;
+	DWORD tsColorArg2 = 0;
+	DWORD tsAlphaOP = 0;
+	DWORD rsLighting = 0;
+	DWORD rsAlphaBlendEnable = 0;
+	DWORD rsAlphaTestEnable = 0;
+	DWORD rsFogEnable = 0;
+	DWORD rsZEnable = 0;
+	DWORD rsZWriteEnable = 0;
+	DWORD rsStencilEnable = 0;
+	DWORD rsCullMode = 0;
+	DWORD rsClipping = 0;
+	D3DVIEWPORT9 ViewPort = {};
+	D3DMATRIX WorldMatrix = {};
+	D3DMATRIX ViewMatrix = {};
+	D3DMATRIX ProjectionMatrix = {};
+};
+
+struct DISPLAYSETTINGS
+{
+	HWND hWnd;
+	HDC DC;
+	m_IDirectDrawX* SetBy;
+	DWORD Width;
+	DWORD Height;
+	DWORD BPP;
+	DWORD RefreshRate;
+};
+
+struct DEVICESETTINGS
+{
+	bool IsWindowed;
+	bool AntiAliasing;
+	bool AllowModeX;
+	bool MultiThreaded;
+	bool FPUPreserve;
+	bool NoWindowChanges;
+	DWORD Width;
+	DWORD Height;
+	DWORD RefreshRate;
+};
+
+struct HIGHRESCOUNTER
+{
+	LARGE_INTEGER Frequency = {};
+	LARGE_INTEGER LastPresentTime = {};
+	LONGLONG LastFrameTime = 0;
+	DWORD FrameCounter = 0;
+	DWORD FrameSkipCounter = 0;
+	double PerFrameMS = 1000.0 / 60.0;
+};
+
+struct PRESENTTHREAD
+{
+	bool IsInitialized = false;
+	CRITICAL_SECTION ddpt = {};
+	HANDLE workerEvent = {};
+	HANDLE workerThread = {};
+	LARGE_INTEGER LastPresentTime = {};
+	bool EnableThreadFlag = false;
+};
 
 // Used for 24-bit surfaces
 struct TRIBYTE
