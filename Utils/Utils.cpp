@@ -801,32 +801,6 @@ void Utils::DDrawResolutionHack(HMODULE hD3DIm)
 	}
 }
 
-void Utils::BusyWaitYield(DWORD RemainingMS)
-{
-	static bool supports_pause = []() {
-		int cpu_info[4] = { 0 };
-		__cpuid(cpu_info, 1); // Query CPU features
-		return (cpu_info[3] & (1 << 26)) != 0; // Check for SSE2 support
-		}();
-
-	// If remaining time is very small (e.g., 1 ms or less), use busy-wait with no operations
-	if (RemainingMS < 3 && supports_pause)
-	{
-		// Use _mm_pause or __asm { nop } to prevent unnecessary CPU cycles
-#ifdef YieldProcessor
-		YieldProcessor();
-#else
-		_mm_pause();
-#endif
-	}
-	else
-	{
-		// For larger remaining times, we can relax by yielding to the OS
-		// Sleep(0) yields without consuming CPU excessively
-		Sleep(0); // Let the OS schedule other tasks if there's significant time left
-	}
-}
-
 // Reset FPU if the _SW_INVALID flag is set
 void Utils::ResetInvalidFPUState()
 {

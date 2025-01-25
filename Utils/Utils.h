@@ -2,8 +2,10 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <intrin.h>
 #include "Wrappers\wrapper.h"
 #include "External\MemoryModule\MemoryModule.h"
+#include "Logging\Logging.h"
 
 #undef LoadLibrary
 
@@ -43,7 +45,6 @@ namespace Utils
 	HMEMORYMODULE LoadResourceToMemory(DWORD ResID);
 	DWORD ReverseBits(DWORD v);
 	void DDrawResolutionHack(HMODULE hD3DIm);
-	void BusyWaitYield(DWORD RemainingMS);
 	void ResetInvalidFPUState();
 	void CheckMessageQueue(HWND hWnd);
 	bool IsWindowsVistaOrNewer();
@@ -69,6 +70,34 @@ namespace Utils
 	void GetScreenSize(HWND hwnd, int &screenWidth, int &screenHeight);
 	void GetDesktopRect(HWND hWnd, RECT& screenRect);
 	HRESULT GetVideoRam(UINT AdapterNo, DWORD& TotalMemory);	// Adapters start numbering from '1', based on "Win32_VideoController" WMI class and "DeviceID" property.
+
+	inline void BusyWaitYield(DWORD RemainingMS)
+	{
+		static bool supports_pause = []() {
+			int cpu_info[4] = { 0 };
+			__cpuid(cpu_info, 1); // Query CPU features
+			bool SSE2 = (cpu_info[3] & (1 << 26)) != 0; // Check for SSE2 support
+			LOG_ONCE(__FUNCTION__ << " SSE2 CPU support: " << SSE2);
+			return SSE2;
+			}();
+
+		// If remaining time is very small (e.g., 3 ms or less), use busy-wait with no operations
+		if (RemainingMS < 4 && supports_pause)
+		{
+			// Use _mm_pause or __asm { nop } to prevent unnecessary CPU cycles
+#ifdef YieldProcessor
+			YieldProcessor();
+#else
+			_mm_pause();
+#endif
+		}
+		else
+		{
+			// For larger remaining times, we can relax by yielding to the OS
+			// Sleep(0) yields without consuming CPU excessively
+			Sleep(0); // Let the OS schedule other tasks if there's significant time left
+		}
+	}
 }
 
 namespace WriteMemory

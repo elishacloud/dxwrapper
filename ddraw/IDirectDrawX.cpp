@@ -1726,12 +1726,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 					(d3d9Device || !ExclusiveMode || (DisplayMode.Width && DisplayMode.Height)) &&	// Delay device creation when exclusive and no DisplayMode
 					(LastWindowed != Device.IsWindowed || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
 				{
-					// Wait for some windows
-					if (ExclusiveMode && LasthWnd != DisplayMode.hWnd)
-					{
-						Utils::CheckMessageQueue(hWnd);
-					}
-
 					CreateD9Device(__FUNCTION__);
 				}
 			}
@@ -2001,7 +1995,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			// Fallback: Wait for vertical blank begin using raster status
 			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank)
 			{
-				Utils::BusyWaitYield((DWORD)-1);
+				Utils::BusyWaitYield(0);
 			}
 			return DD_OK;
 
@@ -2016,14 +2010,14 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			{
 				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank)
 				{
-					Utils::BusyWaitYield((DWORD)-1);
+					Utils::BusyWaitYield(0);
 				}
 			}
 
 			// Then, wait for the vertical blank to end
 			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank)
 			{
-				Utils::BusyWaitYield((DWORD)-1);
+				Utils::BusyWaitYield(0);
 			}
 			return DD_OK;
 

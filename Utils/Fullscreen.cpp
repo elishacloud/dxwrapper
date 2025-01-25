@@ -646,9 +646,6 @@ void Fullscreen::SetFullScreen(HWND& hwnd, const MONITORINFO& mi)
 	SetForegroundWindow(hwnd);
 	SetFocus(hwnd);
 	SetActiveWindow(hwnd);
-
-	// Peek messages to help prevent a "Not Responding" window
-	Utils::CheckMessageQueue(hwnd);
 }
 
 
@@ -1015,8 +1012,6 @@ void Fullscreen::MainFunc()
 					// Save last loop information
 					LastFullscreenLoop = CurrentLoop;
 
-					// Peek messages to help prevent a "Not Responding" window
-					Utils::CheckMessageQueue(CurrentLoop.hwnd);
 				} // Window is too small
 
 			} // Change detected in screen resolution or window

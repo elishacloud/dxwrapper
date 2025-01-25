@@ -110,9 +110,6 @@ BOOL WINAPI user_DestroyWindow(HWND hWnd)
 	if (result && ownd)
 	{
 		RedrawWindow(ownd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
-
-		// Peek messages to help prevent a "Not Responding" window
-		Utils::CheckMessageQueue(ownd);
 	}
 
 	return result;

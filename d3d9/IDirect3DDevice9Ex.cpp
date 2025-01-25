@@ -1596,12 +1596,6 @@ HRESULT m_IDirect3DDevice9Ex::Clear(DWORD Count, CONST D3DRECT *pRects, DWORD Fl
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.FullscreenWindowMode && IsWindow(SHARED.DeviceWindow))
-	{
-		// Peek messages to help prevent a "Not Responding" window
-		Utils::CheckMessageQueue(SHARED.DeviceWindow);
-	}
-
 	return ProxyInterface->Clear(Count, pRects, Flags, Color, Z, Stencil);
 }
 
