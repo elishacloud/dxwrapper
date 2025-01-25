@@ -1580,16 +1580,24 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		}
 
 		// Reset mode
-		DisplayMode.Width = 0;
-		DisplayMode.Height = 0;
-		DisplayMode.BPP = 0;
+		Exclusive.Width = DefaultWidth;
+		Exclusive.Height = DefaultHeight;
+		Exclusive.BPP = Utils::GetBitCount(GetHwnd());
+		Exclusive.RefreshRate = 0;
+		DisplayMode.Width = DefaultWidth;
+		DisplayMode.Height = DefaultHeight;
+		DisplayMode.BPP = Exclusive.BPP;
 		DisplayMode.RefreshRate = 0;
-		Device.Width = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? Device.Width : 0;
-		Device.Height = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? Device.Height : 0;
+		Device.Width = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? Device.Width : DefaultWidth;
+		Device.Height = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? Device.Height : DefaultHeight;
 		Device.RefreshRate = 0;
 
 		// Release d3d9 device
-		ResetAllSurfaceDisplay();
+		if (d3d9Device)
+		{
+			ReleaseAllD9Resources(true, false);
+			ReleaseD9Device();
+		}
 
 		return DD_OK;
 	}
