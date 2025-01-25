@@ -2639,10 +2639,10 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// If primary surface and palette surface and created via Lock() then mark as created by lock to emulate surface (eg. Diablo)
-		if (!IsUsingEmulation() && !IsSurfaceTexture() && surfaceDesc2.dwBackBufferCount == 0 && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FLIP) == 0 &&
-			(((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) && !IsPrimaryOrBackBuffer() && IsDisplayResolution(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight))) ||
-			(ShouldEmulate == SC_NOT_CREATED && IsPrimarySurface() && surfaceDesc2.dwFlags == DDSD_CAPS && (ddrawParent && ddrawParent->GetDisplayBPP(nullptr) == 8)))
+		// If primary surface and palette surface and created via Lock() then mark as created by lock to emulate surface (eg. Diablo, Wizardry 8, Wizards and Warriors)
+		if (!IsUsingEmulation() && !IsSurfaceTexture() && surfaceDesc2.dwBackBufferCount == 0 && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FLIP) == 0 && ddrawParent &&
+			(((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) && !IsPrimaryOrBackBuffer() && ddrawParent->IsExclusiveMode() && IsDisplayResolution(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight))) ||
+			(ShouldEmulate == SC_NOT_CREATED && IsPrimarySurface() && surfaceDesc2.dwFlags == DDSD_CAPS && ddrawParent->GetDisplayBPP(nullptr) == 8))
 		{
 			ShouldEmulate = SC_FORCE_EMULATED;
 		}

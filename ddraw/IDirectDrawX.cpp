@@ -3429,7 +3429,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				}
 			}
 
-			// Window focus and activate app
+			// Window focus
 			if (bIsNewWindow)
 			{
 				PostMessage(hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
