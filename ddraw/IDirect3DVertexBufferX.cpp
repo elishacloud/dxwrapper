@@ -174,7 +174,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		// DDLOCK_WRITEONLY should be specified at create time. The presence of the D3DUSAGE_WRITEONLY flag in Usage indicates that the vertex buffer memory is used only for write operations.
 
 		DWORD Flags = (dwFlags & (DDLOCK_READONLY | DDLOCK_DISCARDCONTENTS)) |
-			((dwFlags & D3DLOCK_NOSYSLOCK) || Config.SingleProcAffinity || ddrawParent->GetHwndThreadID() == GetCurrentThreadId() ? D3DLOCK_NOSYSLOCK : 0);
+			((dwFlags & D3DLOCK_NOSYSLOCK) ? D3DLOCK_NOSYSLOCK : 0);
 
 		void* pData = nullptr;
 		HRESULT hr = d3d9VertexBuffer->Lock(0, 0, &pData, Flags);
