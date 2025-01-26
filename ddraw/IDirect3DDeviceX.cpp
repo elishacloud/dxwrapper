@@ -1064,7 +1064,7 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 			break;
 		}
 
-		HRESULT hr = (*d3d9Device)->SetTransform(dtstTransformStateType, lpD3DMatrix);
+		HRESULT hr = SetD9Transform(dtstTransformStateType, lpD3DMatrix);
 
 		if (SUCCEEDED(hr))
 		{
@@ -1940,16 +1940,16 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		switch ((DWORD)dwState)
 		{
 		case D3DTSS_ADDRESS:
-			(*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_ADDRESSU, dwValue);
-			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_ADDRESSV, dwValue);
+			SetD9SamplerState(dwStage, D3DSAMP_ADDRESSU, dwValue);
+			return SetD9SamplerState(dwStage, D3DSAMP_ADDRESSV, dwValue);
 		case D3DTSS_ADDRESSU:
-			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_ADDRESSU, dwValue);
+			return SetD9SamplerState(dwStage, D3DSAMP_ADDRESSU, dwValue);
 		case D3DTSS_ADDRESSV:
-			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_ADDRESSV, dwValue);
+			return SetD9SamplerState(dwStage, D3DSAMP_ADDRESSV, dwValue);
 		case D3DTSS_ADDRESSW:
-			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_ADDRESSW, dwValue);
+			return SetD9SamplerState(dwStage, D3DSAMP_ADDRESSW, dwValue);
 		case D3DTSS_BORDERCOLOR:
-			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_BORDERCOLOR, dwValue);
+			return SetD9SamplerState(dwStage, D3DSAMP_BORDERCOLOR, dwValue);
 		case D3DTSS_MAGFILTER:
 			if (dwValue == D3DTFG_ANISOTROPIC)
 			{
@@ -1959,9 +1959,9 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 			{
 				dwValue = D3DTEXF_LINEAR;
 			}
-			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MAGFILTER, dwValue);
+			return SetD9SamplerState(dwStage, D3DSAMP_MAGFILTER, dwValue);
 		case D3DTSS_MINFILTER:
-			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MINFILTER, dwValue);
+			return SetD9SamplerState(dwStage, D3DSAMP_MINFILTER, dwValue);
 		case D3DTSS_MIPFILTER:
 			switch (dwValue)
 			{
@@ -1977,13 +1977,13 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 				break;
 			}
 			ssMipFilter[dwStage] = dwValue;
-			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MIPFILTER, dwValue);
+			return SetD9SamplerState(dwStage, D3DSAMP_MIPFILTER, dwValue);
 		case D3DTSS_MIPMAPLODBIAS:
-			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MIPMAPLODBIAS, dwValue);
+			return SetD9SamplerState(dwStage, D3DSAMP_MIPMAPLODBIAS, dwValue);
 		case D3DTSS_MAXMIPLEVEL:
-			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MAXMIPLEVEL, dwValue);
+			return SetD9SamplerState(dwStage, D3DSAMP_MAXMIPLEVEL, dwValue);
 		case D3DTSS_MAXANISOTROPY:
-			return (*d3d9Device)->SetSamplerState(dwStage, D3DSAMP_MAXANISOTROPY, dwValue);
+			return SetD9SamplerState(dwStage, D3DSAMP_MAXANISOTROPY, dwValue);
 		}
 
 		if (!CheckTextureStageStateType(dwState))
@@ -1992,7 +1992,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 			return D3D_OK;	// Just return OK for now!
 		}
 
-		return (*d3d9Device)->SetTextureStageState(dwStage, dwState, dwValue);
+		return SetD9TextureStageState(dwStage, dwState, dwValue);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -2406,7 +2406,7 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 			return DDERR_INVALIDOBJECT;
 		}
 
-		return (*d3d9Device)->SetViewport((D3DVIEWPORT9*)lpViewport);
+		return SetD9Viewport((D3DVIEWPORT9*)lpViewport);
 	}
 
 	D3DVIEWPORT7 Viewport7;
@@ -3035,7 +3035,7 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 			}
 		}
 
-		HRESULT hr = (*d3d9Device)->SetLight(dwLightIndex, &Light);
+		HRESULT hr = SetD9Light(dwLightIndex, &Light);
 
 		if (SUCCEEDED(hr))
 		{
@@ -3088,7 +3088,7 @@ HRESULT m_IDirect3DDeviceX::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 			return DDERR_INVALIDOBJECT;
 		}
 
-		HRESULT hr = (*d3d9Device)->LightEnable(dwLightIndex, bEnable);
+		HRESULT hr = LightD9Enable(dwLightIndex, bEnable);
 
 		if (SUCCEEDED(hr))
 		{
@@ -3285,7 +3285,7 @@ HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL7 lpMaterial)
 			return DDERR_INVALIDOBJECT;
 		}
 
-		return (*d3d9Device)->SetMaterial((D3DMATERIAL9*)lpMaterial);
+		return SetD9Material((D3DMATERIAL9*)lpMaterial);
 	}
 
 	return GetProxyInterfaceV7()->SetMaterial(lpMaterial);
@@ -3405,7 +3405,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			{
 			case D3DFILTER_NEAREST:
 			case D3DFILTER_LINEAR:
-				return (*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, dwRenderState);
+				return SetD9SamplerState(0, D3DSAMP_MAGFILTER, dwRenderState);
 			default:
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: unsupported 'D3DRENDERSTATE_TEXTUREMAG' state: " << dwRenderState);
 				return DDERR_INVALIDPARAMS;
@@ -3417,28 +3417,28 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			case D3DFILTER_LINEAR:
 				rsTextureMin = dwRenderState;
 				ssMipFilter[0] = D3DTEXF_NONE;
-				(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, dwRenderState);
-				return (*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
+				SetD9SamplerState(0, D3DSAMP_MINFILTER, dwRenderState);
+				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
 			case D3DFILTER_MIPNEAREST:
 				rsTextureMin = dwRenderState;
 				ssMipFilter[0] = D3DTEXF_POINT;
-				(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
-				return (*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_POINT);
+				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_POINT);
 			case D3DFILTER_MIPLINEAR:
 				rsTextureMin = dwRenderState;
 				ssMipFilter[0] = D3DTEXF_POINT;
-				(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-				return (*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_POINT);
+				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_POINT);
 			case D3DFILTER_LINEARMIPNEAREST:
 				rsTextureMin = dwRenderState;
 				ssMipFilter[0] = D3DTEXF_LINEAR;
-				(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
-				return (*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
 			case D3DFILTER_LINEARMIPLINEAR:
 				rsTextureMin = dwRenderState;
 				ssMipFilter[0] = D3DTEXF_LINEAR;
-				(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-				return (*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
+				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
 			default:
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: unsupported 'D3DRENDERSTATE_TEXTUREMIN' state: " << dwRenderState);
 				return DDERR_INVALIDPARAMS;
@@ -3455,35 +3455,35 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			case D3DTBLEND_COPY:
 			case D3DTBLEND_DECAL:
 				// Reset states
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_CURRENT);
+				SetD9TextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				SetD9TextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
+				SetD9TextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+				SetD9TextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_CURRENT);
 
 				// Decal texture-blending mode is supported. In this mode, the RGB and alpha values of the texture replace the colors that would have been used with no texturing.
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+				SetD9RenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+				SetD9RenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+				SetD9RenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+				SetD9TextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+				SetD9TextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
 				return D3D_OK;
 			case D3DTBLEND_DECALALPHA:
 				// Reset states
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+				SetD9TextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				SetD9TextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
 
 				// Decal-alpha texture-blending mode is supported. In this mode, the RGB and alpha values of the texture are 
 				// blended with the colors that would have been used with no texturing.
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_BLENDTEXTUREALPHA);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG2);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+				SetD9RenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+				SetD9RenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+				SetD9RenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+				SetD9TextureStageState(0, D3DTSS_COLOROP, D3DTOP_BLENDTEXTUREALPHA);
+				SetD9TextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				SetD9TextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG2);
+				SetD9TextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
@@ -3498,39 +3498,39 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 				return D3D_OK;
 			case D3DTBLEND_MODULATE:
 				// Reset states
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+				SetD9TextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				SetD9TextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
 
 				// Modulate texture-blending mode is supported. In this mode, the RGB values of the texture are multiplied 
 				// with the RGB values that would have been used with no texturing. Any alpha values in the texture replace 
 				// the alpha values in the colors that would have been used with no texturing; if the texture does not contain 
 				// an alpha component, alpha values at the vertices in the source are interpolated between vertices.
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+				SetD9RenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+				SetD9RenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+				SetD9RenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+				SetD9TextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+				SetD9TextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				SetD9TextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+				SetD9TextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
 				return D3D_OK;
 			case D3DTBLEND_MODULATEALPHA:
 				// Reset states
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+				SetD9TextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				SetD9TextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
 
 				// Modulate-alpha texture-blending mode is supported. In this mode, the RGB values of the texture are multiplied 
 				// with the RGB values that would have been used with no texturing, and the alpha values of the texture are multiplied 
 				// with the alpha values that would have been used with no texturing.
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+				SetD9RenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+				SetD9RenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+				SetD9RenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+				SetD9TextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+				SetD9TextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				SetD9TextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+				SetD9TextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
@@ -3545,18 +3545,18 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 				return D3D_OK;
 			case D3DTBLEND_ADD:
 				// Reset states
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+				SetD9TextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+				SetD9TextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
 
 				// Add the Gouraud interpolants to the texture lookup with saturation semantics
 				// (that is, if the color value overflows it is set to the maximum possible value).
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-				(*d3d9Device)->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-				(*d3d9Device)->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_ADD);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG2);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+				SetD9RenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+				SetD9RenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+				SetD9RenderState(D3DRS_DESTBLEND, D3DBLEND_ONE);
+				SetD9TextureStageState(0, D3DTSS_COLOROP, D3DTOP_ADD);
+				SetD9TextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+				SetD9TextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG2);
+				SetD9TextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
 
 				// Save state
 				rsTextureMapBlend = dwRenderState;
@@ -3703,7 +3703,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			return D3D_OK;	// Just return OK for now!
 		}
 
-		return (*d3d9Device)->SetRenderState(dwRenderStateType, dwRenderState);
+		return SetD9RenderState(dwRenderStateType, dwRenderState);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -4815,7 +4815,7 @@ HRESULT m_IDirect3DDeviceX::SetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 		}
 
 		// To enable a clipping plane, set the corresponding bit in the DWORD value applied to the D3DRS_CLIPPLANEENABLE render state.
-		(*d3d9Device)->SetRenderState(D3DRS_CLIPPLANEENABLE, D3DCLIPPLANE0 | D3DCLIPPLANE1 | D3DCLIPPLANE2 | D3DCLIPPLANE3 | D3DCLIPPLANE4 | D3DCLIPPLANE5);*/
+		SetD9RenderState(D3DRS_CLIPPLANEENABLE, D3DCLIPPLANE0 | D3DCLIPPLANE1 | D3DCLIPPLANE2 | D3DCLIPPLANE3 | D3DCLIPPLANE4 | D3DCLIPPLANE5);*/
 
 		return D3D_OK;
 	}
@@ -5066,59 +5066,110 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::BackupStates()
+HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState)
 {
-	if (!d3d9Device || !*d3d9Device)
+	HRESULT hr = (*d3d9Device)->SetRenderState(dwRenderStateType, dwRenderState);
+
+	if (SUCCEEDED(hr) && dwRenderStateType < MaxDeviceStates)
 	{
-		Logging::Log() << __FUNCTION__ " Error: Failed to get the device state!";
-		return DDERR_GENERIC;
+		DeviceStates.RenderState[dwRenderStateType].Set = true;
+		DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 	}
 
-	// Backup render states
-	for (UINT x = 0; x < 255; x++)
+	return hr;
+}
+
+HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value)
+{
+	HRESULT hr = (*d3d9Device)->SetTextureStageState(Stage, Type, Value);
+
+	if (SUCCEEDED(hr) && Stage < MaxTextureStages && Type < MaxDeviceStates)
 	{
-		(*d3d9Device)->GetRenderState((D3DRENDERSTATETYPE)x, &backup.RenderState[x]);
+		DeviceStates.TextureState[Stage][Type].Set = true;
+		DeviceStates.TextureState[Stage][Type].State = Value;
 	}
 
-	// Backup texture states
-	for (UINT y = 0; y < MaxTextureStages; y++)
+	return hr;
+}
+
+HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value)
+{
+	HRESULT hr = (*d3d9Device)->SetSamplerState(Sampler, Type, Value);
+
+	if (SUCCEEDED(hr) && Sampler < MaxTextureStages && Type < MaxSamplerStates)
 	{
-		for (UINT x = 0; x < 255; x++)
+		DeviceStates.SamplerState[Sampler][Type].Set = true;
+		DeviceStates.SamplerState[Sampler][Type].State = Value;
+	}
+
+	return hr;
+}
+
+HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, CONST D3DLIGHT9* pLight)
+{
+	HRESULT hr = (*d3d9Device)->SetLight(Index, pLight);
+
+	if (SUCCEEDED(hr) && Index < MAX_LIGHTS)
+	{
+		DeviceStates.Lights[Index].Set = (pLight != nullptr);
+		if (pLight)
 		{
-			(*d3d9Device)->GetTextureStageState(y, (D3DTEXTURESTAGESTATETYPE)x, &backup.TextureState[y][x]);
+			DeviceStates.Lights[Index].Light = *pLight;
 		}
 	}
 
-	// Backup sampler states
-	for (UINT y = 0; y < MaxTextureStages; y++)
+	return hr;
+}
+
+HRESULT m_IDirect3DDeviceX::LightD9Enable(DWORD Index, BOOL bEnable)
+{
+	HRESULT hr = (*d3d9Device)->LightEnable(Index, bEnable);
+
+	if (SUCCEEDED(hr) && Index < MAX_LIGHTS)
 	{
-		for (UINT x = 0; x < 14; x++)
-		{
-			(*d3d9Device)->GetSamplerState(y, (D3DSAMPLERSTATETYPE)x, &backup.SamplerState[y][x]);
-		}
+		DeviceStates.LightEnabled[Index].Set = true;
+		DeviceStates.LightEnabled[Index].Enable = bEnable;
 	}
 
-	// Backup lights
-	for (int i = 0; i < MAX_LIGHTS; ++i)
+	return hr;
+}
+
+HRESULT m_IDirect3DDeviceX::SetD9Viewport(CONST D3DVIEWPORT9* pViewport)
+{
+	HRESULT hr = (*d3d9Device)->SetViewport(pViewport);
+
+	if (SUCCEEDED(hr) && pViewport)
 	{
-		(*d3d9Device)->GetLight(i, &backup.lights[i]);
-		(*d3d9Device)->GetLightEnable(i, &backup.lightEnabled[i]);
+		DeviceStates.Viewport.Set = true;
+		DeviceStates.Viewport.View = *pViewport;
 	}
 
-	// Backup material
-	(*d3d9Device)->GetMaterial(&backup.material);
+	return hr;
+}
 
-	// Backup transform
-	(*d3d9Device)->GetTransform(D3DTS_WORLD, &backup.worldMatrix);
-	(*d3d9Device)->GetTransform(D3DTS_VIEW, &backup.viewMatrix);
-	(*d3d9Device)->GetTransform(D3DTS_PROJECTION, &backup.projectionMatrix);
+HRESULT m_IDirect3DDeviceX::SetD9Material(CONST D3DMATERIAL9* pMaterial)
+{
+	HRESULT hr = (*d3d9Device)->SetMaterial(pMaterial);
 
-	// Backup viewport
-	(*d3d9Device)->GetViewport(&backup.viewport);
+	if (SUCCEEDED(hr) && pMaterial)
+	{
+		DeviceStates.Material.Set = true;
+		DeviceStates.Material.Material = *pMaterial;
+	}
 
-	backup.IsBackedUp = true;
+	return hr;
+}
 
-	return D3D_OK;
+HRESULT m_IDirect3DDeviceX::SetD9Transform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix)
+{
+	HRESULT hr = (*d3d9Device)->SetTransform(State, pMatrix);
+
+	if (SUCCEEDED(hr) && pMatrix)
+	{
+		DeviceStates.Matrix[State] = *pMatrix;
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDeviceX::RestoreStates()
@@ -5129,65 +5180,80 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 		return DDERR_GENERIC;
 	}
 
-	if (!backup.IsBackedUp)
-	{
-		return D3D_OK;
-	}
-
 	// Restore render states
-	for (UINT x = 0; x < 255; x++)
+	for (UINT x = 0; x < MaxDeviceStates; x++)
 	{
-		(*d3d9Device)->SetRenderState((D3DRENDERSTATETYPE)x, backup.RenderState[x]);
+		if (DeviceStates.RenderState[x].Set)
+		{
+			(*d3d9Device)->SetRenderState((D3DRENDERSTATETYPE)x, DeviceStates.RenderState[x].State);
+		}
 	}
 
 	// Restore texture states
 	for (UINT y = 0; y < MaxTextureStages; y++)
 	{
-		for (UINT x = 0; x < 255; x++)
+		for (UINT x = 0; x < MaxDeviceStates; x++)
 		{
-			(*d3d9Device)->SetTextureStageState(y, (D3DTEXTURESTAGESTATETYPE)x, backup.TextureState[y][x]);
+			if (DeviceStates.TextureState[y][x].Set)
+			{
+				(*d3d9Device)->SetTextureStageState(y, (D3DTEXTURESTAGESTATETYPE)x, DeviceStates.TextureState[y][x].State);
+			}
+		}
+	}
+
+	// Restore sampler states
+	for (UINT y = 0; y < MaxTextureStages; y++)
+	{
+		for (UINT x = 0; x < MaxSamplerStates; x++)
+		{
+			if (DeviceStates.SamplerState[y][x].Set)
+			{
+				(*d3d9Device)->SetSamplerState(y, (D3DSAMPLERSTATETYPE)x, DeviceStates.SamplerState[y][x].State);
+			}
 		}
 	}
 
 	// Restore lights
 	for (int i = 0; i < MAX_LIGHTS; ++i)
 	{
-		(*d3d9Device)->SetLight(i, &backup.lights[i]);
-		(*d3d9Device)->LightEnable(i, backup.lightEnabled[i]);
-	}
-
-	// Restore material
-	(*d3d9Device)->SetMaterial(&backup.material);
-
-	// Restore transform
-	(*d3d9Device)->SetTransform(D3DTS_WORLD, &backup.worldMatrix);
-	(*d3d9Device)->SetTransform(D3DTS_VIEW, &backup.viewMatrix);
-	(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &backup.projectionMatrix);
-
-	// Restore sampler states
-	for (UINT y = 0; y < MaxTextureStages; y++)
-	{
-		for (UINT x = 0; x < 14; x++)
+		if (DeviceStates.Lights[i].Set)
 		{
-			(*d3d9Device)->SetSamplerState(y, (D3DSAMPLERSTATETYPE)x, backup.SamplerState[y][x]);
+			(*d3d9Device)->SetLight(i, &DeviceStates.Lights[i].Light);
+		}
+		if (DeviceStates.LightEnabled[i].Set)
+		{
+			(*d3d9Device)->LightEnable(i, DeviceStates.LightEnabled[i].Enable);
 		}
 	}
 
 	// Restore viewport
-	D3DVIEWPORT9 viewport = {};
-	(*d3d9Device)->GetViewport(&viewport);
-	backup.viewport.Width = viewport.Width;
-	backup.viewport.Height = viewport.Height;
-	(*d3d9Device)->SetViewport(&backup.viewport);
+	(*d3d9Device)->GetViewport(&DefaultViewport);
+	if (DeviceStates.Viewport.Set)
+	{
+		D3DVIEWPORT9 viewport = {};
+		(*d3d9Device)->GetViewport(&viewport);
+		DeviceStates.Viewport.View.Width = viewport.Width;
+		DeviceStates.Viewport.View.Height = viewport.Height;
+		(*d3d9Device)->SetViewport(&DeviceStates.Viewport.View);
+	}
 
-	backup.IsBackedUp = false;
+	// Restore material
+	if (DeviceStates.Material.Set)
+	{
+		(*d3d9Device)->SetMaterial(&DeviceStates.Material.Material);
+	}
+
+	// Restore transform
+	for (auto& entry : DeviceStates.Matrix)
+	{
+		(*d3d9Device)->SetTransform(entry.first, &entry.second);
+	}
 
 	return D3D_OK;
 }
 
 void m_IDirect3DDeviceX::BeforeResetDevice()
 {
-	BackupStates();
 	if (IsRecordingState)
 	{
 		DWORD dwBlockHandle = NULL;
@@ -5343,8 +5409,8 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 					(*d3d9Device)->GetSamplerState(x, D3DSAMP_MINFILTER, &DrawStates.ssMinFilter[x]);
 					(*d3d9Device)->GetSamplerState(x, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter[x]);
 
-					(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
-					(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
+					SetD9SamplerState(x, D3DSAMP_MINFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
+					SetD9SamplerState(x, D3DSAMP_MAGFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
 				}
 			}
 		}
@@ -5372,9 +5438,9 @@ inline void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwF
 				(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &DrawStates.rsAlphaFunc);
 				(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &DrawStates.rsAlphaRef);
 
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
-				(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, (DWORD)0x01);
+				SetD9RenderState(D3DRS_ALPHATESTENABLE, TRUE);
+				SetD9RenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
+				SetD9RenderState(D3DRS_ALPHAREF, (DWORD)0x01);
 			}
 		}
 		if ((dwFlags & D3DDP_DXW_COLORKEYENABLE) && ddrawParent)
@@ -5419,16 +5485,16 @@ inline void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD 
 			{
 				if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
 				{
-					(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, DrawStates.ssMinFilter[x]);
-					(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter[x]);
+					SetD9SamplerState(x, D3DSAMP_MINFILTER, DrawStates.ssMinFilter[x]);
+					SetD9SamplerState(x, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter[x]);
 				}
 			}
 		}
 		if (dwFlags & D3DDP_DXW_ALPHACOLORKEY)
 		{
-			(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
-			(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
-			(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
+			SetD9RenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
+			SetD9RenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
+			SetD9RenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
 		}
 		if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
 		{

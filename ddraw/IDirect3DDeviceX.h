@@ -35,16 +35,37 @@ private:
 #endif
 
 	struct {
-		bool IsBackedUp = false;
-		DWORD RenderState[255] = {};
-		DWORD TextureState[MaxTextureStages][255] = {};
-		DWORD SamplerState[MaxTextureStages][14] = {};
-		D3DLIGHT9 lights[MAX_LIGHTS] = {};
-		BOOL lightEnabled[MAX_LIGHTS] = {};
-		D3DVIEWPORT9 viewport = {};
-		D3DMATERIAL9 material = {};
-		D3DMATRIX worldMatrix = {}, viewMatrix = {}, projectionMatrix = {};
-	} backup;
+		struct {
+			bool Set = false;
+			DWORD State = 0;
+		} RenderState[MaxDeviceStates], TextureState[MaxTextureStages][MaxDeviceStates], SamplerState[MaxTextureStages][MaxSamplerStates];
+		struct {
+			bool Set = false;
+			D3DLIGHT9 Light = {};
+		} Lights[MAX_LIGHTS];
+		struct {
+			bool Set = false;
+			BOOL Enable = FALSE;
+		} LightEnabled[MAX_LIGHTS];
+		struct {
+			bool Set = false;
+			D3DVIEWPORT9 View = {};
+		} Viewport;
+		struct {
+			bool Set = false;
+			D3DMATERIAL9 Material = {};
+		} Material = {};
+		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
+	} DeviceStates;
+
+	inline HRESULT SetD9RenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState);
+	inline HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
+	inline HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
+	inline HRESULT SetD9Light(DWORD Index, CONST D3DLIGHT9* pLight);
+	inline HRESULT LightD9Enable(DWORD Index, BOOL bEnable);
+	inline HRESULT SetD9Viewport(CONST D3DVIEWPORT9* pViewport);
+	inline HRESULT SetD9Material(CONST D3DMATERIAL9* pMaterial);
+	inline HRESULT SetD9Transform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix);
 
 	struct {
 		DWORD rsClipping = 0;
@@ -205,7 +226,6 @@ private:
 	HRESULT DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD triangleCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 
 	// Helper functions
-	HRESULT BackupStates();
 	HRESULT RestoreStates();
 	void SetDefaults();
 	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);

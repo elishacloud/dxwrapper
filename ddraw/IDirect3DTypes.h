@@ -4,6 +4,8 @@
 #define DX3DTYPE_H
 #endif
 
+constexpr INT MaxDeviceStates = 255;	// Devices can have up to 255 states.
+constexpr INT MaxSamplerStates = 14;	// Devices can have up to 14 sampler states.
 constexpr UINT MaxTextureStages = 8;	// Devices can have up to eight set textures.
 constexpr UINT MAX_LIGHTS = 8;          // Devices can have up to eight lights.
 
