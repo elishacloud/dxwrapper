@@ -214,7 +214,12 @@ void m_IDirectDrawGammaControl::InitInterface()
 
 void m_IDirectDrawGammaControl::ReleaseInterface()
 {
-	if (ddrawParent && !Config.Exiting)
+	if (Config.Exiting)
+	{
+		return;
+	}
+
+	if (ddrawParent)
 	{
 		ddrawParent->ClearGammaInterface();
 	}

@@ -52,11 +52,11 @@ public:
 
 	void SetProxy(IDirect3DExecuteBuffer* NewProxyInterface, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc)
 	{
-		ProxyInterface = NewProxyInterface;
-		D3DDeviceInterface = NewD3DDInterface;
 		if (NewProxyInterface || NewD3DDInterface)
 		{
 			RefCount = 1;
+			ProxyInterface = NewProxyInterface;
+			D3DDeviceInterface = NewD3DDInterface;
 			InitInterface(lpDesc);
 			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
@@ -64,6 +64,8 @@ public:
 		{
 			ReleaseInterface();
 			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyInterface = nullptr;
+			D3DDeviceInterface = nullptr;
 		}
 	}
 
@@ -82,5 +84,6 @@ public:
 	STDMETHOD(Optimize)(THIS_ DWORD);
 
 	// Helper functions
+	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 	HRESULT GetBuffer(LPVOID* lplpData, D3DEXECUTEDATA& CurrentExecuteData, LPD3DSTATUS* lplpStatus);
 };

@@ -633,6 +633,11 @@ void m_IDirect3DExecuteBuffer::InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc)
 
 void m_IDirect3DExecuteBuffer::ReleaseInterface()
 {
+	if (Config.Exiting)
+	{
+		return;
+	}
+
 	if (D3DDeviceInterface)
 	{
 		D3DDeviceInterface->ReleaseExecuteBuffer(this);

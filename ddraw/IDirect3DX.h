@@ -17,12 +17,24 @@ private:
 	m_IDirect3D3 *WrapperInterface3 = nullptr;
 	m_IDirect3D7 *WrapperInterface7 = nullptr;
 
+	// Device interface pointers
+	m_IDirect3DDeviceX* D3DDeviceInterface = nullptr;
+
 	// Cache Cap9
 	struct DUALCAP9 {
 		D3DCAPS9 REF = {};
 		D3DCAPS9 HAL = {};
 	};
 	std::vector<DUALCAP9> Cap9Cache;
+
+	// Viewport array
+	std::vector<m_IDirect3DViewportX*> ViewportList;
+
+	// Material array
+	std::vector<m_IDirect3DMaterialX*> MaterialList;
+
+	// Light array
+	std::vector<m_IDirect3DLight*> LightList;
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
@@ -103,7 +115,12 @@ public:
 
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
-	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+	void* GetWrapperInterfaceX(DWORD DirectXVersion);
+	inline m_IDirect3DDeviceX** GetD3DDevice() { return &D3DDeviceInterface; }
+	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
+	void ReleaseViewport(m_IDirect3DViewportX* lpViewportX);
+	void ReleaseMaterial(m_IDirect3DMaterialX* lpMaterialX);
+	void ReleaseLight(m_IDirect3DLight* lpLight);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 

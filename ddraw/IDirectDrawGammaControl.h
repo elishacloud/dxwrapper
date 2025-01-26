@@ -44,11 +44,11 @@ public:
 
 	void SetProxy(IDirectDrawGammaControl* NewProxyInterface, m_IDirectDrawX* NewParent)
 	{
-		ProxyInterface = NewProxyInterface;
-		ddrawParent = NewParent;
 		if (NewProxyInterface || NewParent)
 		{
 			RefCount = 1;
+			ProxyInterface = NewProxyInterface;
+			ddrawParent = NewParent;
 			InitInterface();
 			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
@@ -56,6 +56,8 @@ public:
 		{
 			ReleaseInterface();
 			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyInterface = nullptr;
+			ddrawParent = nullptr;
 		}
 	}
 

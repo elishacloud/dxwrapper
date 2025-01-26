@@ -419,7 +419,11 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 			return DDERR_INVALIDOBJECT;
 		}
 
-		*lplpDirect3DLight = (LPDIRECT3DLIGHT)CreateDirect3DLight(nullptr, ddrawParent->GetCurrentD3DDevice());
+		m_IDirect3DLight* Interface = CreateDirect3DLight(nullptr, this);
+
+		LightList.push_back(Interface);
+
+		*lplpDirect3DLight = (LPDIRECT3DLIGHT)Interface;
 
 		return D3D_OK;
 	}
@@ -470,7 +474,9 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 			return DDERR_INVALIDOBJECT;
 		}
 
-		m_IDirect3DMaterialX *Interface = new m_IDirect3DMaterialX(ddrawParent->GetCurrentD3DDevice(), DirectXVersion);
+		m_IDirect3DMaterialX *Interface = new m_IDirect3DMaterialX(this, DirectXVersion);
+
+		MaterialList.push_back(Interface);
 
 		*lplpDirect3DMaterial = (LPDIRECT3DMATERIAL3)Interface->GetWrapperInterfaceX(DirectXVersion);
 
@@ -525,7 +531,9 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 			return DDERR_INVALIDOBJECT;
 		}
 
-		m_IDirect3DViewportX *Interface = new m_IDirect3DViewportX(ddrawParent->GetCurrentD3DDevice(), DirectXVersion);
+		m_IDirect3DViewportX *Interface = new m_IDirect3DViewportX(this, DirectXVersion);
+
+		ViewportList.push_back(Interface);
 
 		*lplpD3DViewport = (LPDIRECT3DVIEWPORT3)Interface->GetWrapperInterfaceX(DirectXVersion);
 
@@ -656,7 +664,15 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 			return DDERR_INVALIDPARAMS;
 		}
 
-		m_IDirect3DDeviceX *p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, lpDDS, riid, DirectXVersion);
+		// Check for existing device
+		if (D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3DDevice is already setup!");
+		}
+
+		m_IDirect3DDeviceX* p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, this, lpDDS, riid, DirectXVersion);
+
+		D3DDeviceInterface = p_IDirect3DDeviceX;
 
 		*lplpD3DDevice = (LPDIRECT3DDEVICE7)p_IDirect3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
 
@@ -910,15 +926,103 @@ void m_IDirect3DX::InitInterface(DWORD DirectXVersion)
 	AddRef(DirectXVersion);
 }
 
+void m_IDirect3DX::ReleaseViewport(m_IDirect3DViewportX* lpViewportX)
+{
+	// Check if the viewport is valid
+	if (!lpViewportX)
+	{
+		return;
+	}
+
+	// Find and remove the viewport from the list
+	auto it = std::find(ViewportList.begin(), ViewportList.end(), lpViewportX);
+	if (it != ViewportList.end())
+	{
+		// Remove it from the list
+		ViewportList.erase(it);
+	}
+}
+
+void m_IDirect3DX::ReleaseMaterial(m_IDirect3DMaterialX* lpMaterialX)
+{
+	// Check if the Material is valid
+	if (!lpMaterialX)
+	{
+		return;
+	}
+
+	// Find and remove the Material from the list
+	auto it = std::find(MaterialList.begin(), MaterialList.end(), lpMaterialX);
+	if (it != MaterialList.end())
+	{
+		// Remove it from the list
+		MaterialList.erase(it);
+	}
+}
+
+void m_IDirect3DX::ReleaseLight(m_IDirect3DLight* lpLight)
+{
+	// Check if the Light is valid
+	if (!lpLight)
+	{
+		return;
+	}
+
+	// Find and remove the Light from the list
+	auto it = std::find(LightList.begin(), LightList.end(), lpLight);
+	if (it != LightList.end())
+	{
+		// Remove it from the list
+		LightList.erase(it);
+	}
+}
+
 void m_IDirect3DX::ReleaseInterface()
 {
+	if (Config.Exiting)
+	{
+		return;
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
 	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
 	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
-	if (ddrawParent && !Config.Exiting)
+	// Release Viewport
+	for (auto& entry : ViewportList)
+	{
+		if (entry->Release())
+		{
+			entry->ClearD3D();
+		}
+	}
+
+	// Release Material
+	for (auto& entry : MaterialList)
+	{
+		if (entry->Release())
+		{
+			entry->ClearD3D();
+		}
+	}
+
+	// Release Light
+	for (auto& entry : LightList)
+	{
+		if (entry->Release())
+		{
+			entry->ClearD3D();
+		}
+	}
+
+	if (D3DDeviceInterface)
+	{
+		D3DDeviceInterface->ClearD3D();
+	}
+
+	if (ddrawParent)
 	{
 		ddrawParent->ClearD3D();
 	}

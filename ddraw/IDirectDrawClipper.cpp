@@ -374,7 +374,12 @@ void m_IDirectDrawClipper::InitInterface(DWORD dwFlags)
 
 void m_IDirectDrawClipper::ReleaseInterface()
 {
-	if (ddrawParent && !Config.Exiting)
+	if (Config.Exiting)
+	{
+		return;
+	}
+
+	if (ddrawParent)
 	{
 		ddrawParent->RemoveClipperFromVector(this);
 	}

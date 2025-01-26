@@ -5008,6 +5008,11 @@ void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 
 void m_IDirect3DDeviceX::ReleaseInterface()
 {
+	if (Config.Exiting)
+	{
+		return;
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
@@ -5015,25 +5020,20 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
 	// Release ExecuteBuffers
-	std::vector<m_IDirect3DExecuteBuffer*> NewExecuteBufferList;
-	NewExecuteBufferList = std::move(ExecuteBufferList);
-	for (auto& entry : NewExecuteBufferList)
+	for (auto& entry : ExecuteBufferList)
 	{
 		if (entry->Release())
 		{
-			entry->DeleteMe();
+			entry->ClearD3DDevice();
 		}
 	}
 
-	// ToDo: Clear device interface for m_IDirect3DLight
+	if (D3DInterface)
+	{
+		D3DInterface->ClearD3DDevice();
+	}
 
-	// ToDo: Clear device interface for m_IDirect3DMaterial
-
-	// ToDo: Clear device interface for m_IDirect3DVertexBuffer
-
-	// ToDo: Clear device interface for m_IDirect3DViewport
-
-	if (ddrawParent && !Config.Exiting)
+	if (ddrawParent)
 	{
 		ReleaseAllStateBlocks();
 		ddrawParent->ClearD3DDevice();

@@ -233,7 +233,12 @@ void m_IDirectDrawColorControl::InitInterface()
 
 void m_IDirectDrawColorControl::ReleaseInterface()
 {
-	if (ddrawParent && !Config.Exiting)
+	if (Config.Exiting)
+	{
+		return;
+	}
+
+	if (ddrawParent)
 	{
 		ddrawParent->ClearColorInterface();
 	}

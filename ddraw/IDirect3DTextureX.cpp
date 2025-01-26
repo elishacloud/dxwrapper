@@ -367,6 +367,11 @@ void m_IDirect3DTextureX::InitInterface(DWORD DirectXVersion)
 
 void m_IDirect3DTextureX::ReleaseInterface()
 {
+	if (Config.Exiting)
+	{
+		return;
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);

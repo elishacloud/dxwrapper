@@ -2546,6 +2546,11 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 
 void m_IDirectDrawX::ReleaseInterface()
 {
+	if (Config.Exiting)
+	{
+		return;
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
@@ -2558,7 +2563,7 @@ void m_IDirectDrawX::ReleaseInterface()
 		UnhookWindowsHookEx(g_hook);
 	}
 
-	if (!Config.Dd7to9 || Config.Exiting)
+	if (!Config.Dd7to9)
 	{
 		return;
 	}

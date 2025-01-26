@@ -47,13 +47,17 @@ private:
 		D3DMATERIALHANDLE hMat = NULL;
 	} MaterialBackground;
 
-	// Convert Viewport
-	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
+	// Device interface pointers
+	m_IDirect3DX* D3DInterface = nullptr;
+	m_IDirect3DDeviceX** D3DDeviceInterface = nullptr;
 
 	// Store version wrappers
 	m_IDirect3DViewport *WrapperInterface = nullptr;
 	m_IDirect3DViewport2 *WrapperInterface2 = nullptr;
 	m_IDirect3DViewport3 *WrapperInterface3 = nullptr;
+
+	// Helper functions
+	HRESULT CheckInterface(char* FunctionName);
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
@@ -92,7 +96,7 @@ public:
 
 		InitInterface(DirectXVersion);
 	}
-	m_IDirect3DViewportX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
+	m_IDirect3DViewportX(m_IDirect3DX* D3D, DWORD DirectXVersion) : D3DInterface(D3D)
 	{
 		ProxyDirectXVersion = (!Config.Dd7to9) ? 3 : 9;
 
@@ -147,6 +151,7 @@ public:
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	void SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
+	inline void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 };

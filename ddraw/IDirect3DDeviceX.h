@@ -23,6 +23,7 @@ private:
 
 	// Convert Device
 	m_IDirectDrawX *ddrawParent = nullptr;
+	m_IDirect3DX* D3DInterface = nullptr;
 	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 	LPDIRECT3DPIXELSHADER9* colorkeyPixelShader = nullptr;
@@ -232,7 +233,8 @@ public:
 
 		InitInterface(DirectXVersion);
 	}
-	m_IDirect3DDeviceX(m_IDirectDrawX *lpDdraw, LPDIRECTDRAWSURFACE7 pRenderTarget, REFCLSID rclsid, DWORD DirectXVersion) : ddrawParent(lpDdraw), CurrentRenderTarget(pRenderTarget), ClassID(rclsid)
+	m_IDirect3DDeviceX(m_IDirectDrawX* lpDdraw, m_IDirect3DX* lpD3D, LPDIRECTDRAWSURFACE7 pRenderTarget, REFCLSID rclsid, DWORD DirectXVersion) :
+		ddrawParent(lpDdraw), D3DInterface(lpD3D), CurrentRenderTarget(pRenderTarget), ClassID(rclsid)
 	{
 		ProxyDirectXVersion = 9;
 
@@ -356,6 +358,9 @@ public:
 
 	// Light index function
 	void ReleaseLightInterface(m_IDirect3DLight* lpLight);
+
+	// Functions handling the Direct3D parent interface
+	inline void ClearD3D() { D3DInterface = nullptr; }
 
 	// Functions handling the ddraw parent interface
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)

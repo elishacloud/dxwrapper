@@ -49,11 +49,11 @@ public:
 
 	void SetProxy(IDirectDrawPalette* NewProxyInterface, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
 	{
-		ProxyInterface = NewProxyInterface;
-		ddrawParent = NewParent;
 		if (NewProxyInterface || NewParent)
 		{
 			RefCount = 1;
+			ProxyInterface = NewProxyInterface;
+			ddrawParent = NewParent;
 			InitInterface(dwFlags, lpDDColorArray);
 			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
@@ -61,6 +61,8 @@ public:
 		{
 			ReleaseInterface();
 			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyInterface = nullptr;
+			ddrawParent = nullptr;
 		}
 	}
 

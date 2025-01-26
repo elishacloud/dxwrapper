@@ -86,6 +86,8 @@ public:
 
 	// Handle functions
 	HRESULT m_IDirect3DTextureX::SetHandle(DWORD dwHandle);
+	inline void SetD3DDevice(m_IDirect3DDeviceX** D3DDevice) { D3DDeviceInterface = D3DDevice; }
+	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 
 	// Surface functions
 	void ClearSurface() { DDrawSurface = nullptr; }

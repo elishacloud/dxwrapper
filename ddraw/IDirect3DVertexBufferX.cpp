@@ -563,13 +563,18 @@ void m_IDirect3DVertexBufferX::InitInterface(DWORD DirectXVersion)
 
 void m_IDirect3DVertexBufferX::ReleaseInterface()
 {
+	if (Config.Exiting)
+	{
+		return;
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
 	ReleaseD9Buffer(false, false);
 
-	if (ddrawParent && !Config.Exiting)
+	if (ddrawParent)
 	{
 		ddrawParent->RemoveVertexBufferFromVector(this);
 	}

@@ -4166,6 +4166,27 @@ void m_IDirectDrawSurfaceX::InitInterface(DWORD DirectXVersion)
 	InitSurfaceDesc(DirectXVersion);
 }
 
+void m_IDirectDrawSurfaceX::SetDdrawParent(m_IDirectDrawX* ddraw)
+{
+	ddrawParent = ddraw;
+
+	if (attached3DTexture && ddrawParent)
+	{
+		attached3DTexture->SetD3DDevice(ddrawParent->GetCurrentD3DDevice());
+	}
+}
+
+void m_IDirectDrawSurfaceX::ClearDdraw()
+{
+	ddrawParent = nullptr;
+	d3d9Device = nullptr;
+
+	if (attached3DTexture)
+	{
+		attached3DTexture->ClearD3DDevice();
+	}
+}
+
 inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 {
 	if (attachedClipper)
@@ -4181,6 +4202,7 @@ inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 	if (attached3DTexture)
 	{
 		attached3DTexture->ClearSurface();
+		attached3DTexture->ClearD3DDevice();
 	}
 
 	if (ddrawParent)
@@ -4191,6 +4213,11 @@ inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 
 void m_IDirectDrawSurfaceX::ReleaseInterface()
 {
+	if (Config.Exiting)
+	{
+		return;
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
@@ -4211,7 +4238,7 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 		}
 	}
 
-	if (!Config.Dd7to9 || Config.Exiting)
+	if (!Config.Dd7to9)
 	{
 		return;
 	}
@@ -4420,7 +4447,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 			return DDERR_INVALIDOBJECT;
 		}
 
-		ddrawParent = DDrawVector[0];
+		SetDdrawParent(DDrawVector[0]);
 		ddrawParent->AddSurfaceToVector(this);
 
 		d3d9Device = ddrawParent->GetDirectD9Device();

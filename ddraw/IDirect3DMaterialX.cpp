@@ -180,9 +180,9 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -255,9 +255,9 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDevice does not exist!");
 			return DDERR_GENERIC;
 		}
 
@@ -336,6 +336,29 @@ HRESULT m_IDirect3DMaterialX::Unreserve()
 /*** Helper functions ***/
 /************************/
 
+HRESULT m_IDirect3DMaterialX::CheckInterface(char* FunctionName)
+{
+	// Check D3DInterface device
+	if (!D3DInterface)
+	{
+		LOG_LIMIT(100, FunctionName << " Error: no D3D parent!");
+		return DDERR_INVALIDOBJECT;
+	}
+
+	// Check d3d9 device
+	if (!D3DDeviceInterface || !*D3DDeviceInterface)
+	{
+		D3DDeviceInterface = D3DInterface->GetD3DDevice();
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, FunctionName << " Error: could not get the D3DDevice!");
+			return DDERR_INVALIDOBJECT;
+		}
+	}
+
+	return D3D_OK;
+}
+
 void m_IDirect3DMaterialX::InitInterface(DWORD DirectXVersion)
 {
 	if (ProxyInterface)
@@ -350,6 +373,11 @@ void m_IDirect3DMaterialX::InitInterface(DWORD DirectXVersion)
 
 void m_IDirect3DMaterialX::ReleaseInterface()
 {
+	if (Config.Exiting)
+	{
+		return;
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
@@ -358,5 +386,10 @@ void m_IDirect3DMaterialX::ReleaseInterface()
 	if (mHandle && D3DDeviceInterface && *D3DDeviceInterface)
 	{
 		(*D3DDeviceInterface)->ReleaseMaterialHandle(mHandle);
+	}
+
+	if (D3DInterface)
+	{
+		D3DInterface->ReleaseMaterial(this);
 	}
 }

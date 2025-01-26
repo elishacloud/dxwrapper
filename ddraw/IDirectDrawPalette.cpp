@@ -401,7 +401,12 @@ void m_IDirectDrawPalette::InitInterface(DWORD dwFlags, LPPALETTEENTRY lpDDColor
 
 void m_IDirectDrawPalette::ReleaseInterface()
 {
-	if (ddrawParent && !Config.Exiting)
+	if (Config.Exiting)
+	{
+		return;
+	}
+
+	if (ddrawParent)
 	{
 		ddrawParent->RemovePaletteFromVector(this);
 	}

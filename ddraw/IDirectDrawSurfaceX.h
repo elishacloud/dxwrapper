@@ -464,8 +464,8 @@ public:
 	void RemoveScanlines(LASTLOCK &LLock) const;
 
 	// Functions handling the ddraw parent interface
-	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	inline void ClearDdraw() { ddrawParent = nullptr; d3d9Device = nullptr; }
+	void SetDdrawParent(m_IDirectDrawX* ddraw);
+	void ClearDdraw();
 
 	// Direct3D9 interface functions
 	void SetAsRenderTarget();
