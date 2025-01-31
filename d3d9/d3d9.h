@@ -26,6 +26,65 @@ class m_IDirect3DVolumeTexture9;
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
+struct D3DDISPLAYMODEEX_CONVERT : public D3DDISPLAYMODEEX {
+	D3DDISPLAYMODEEX_CONVERT() {
+		Size = sizeof(D3DDISPLAYMODEEX);
+		Width = 0;
+		Height = 0;
+		RefreshRate = 0;
+		Format = D3DFMT_UNKNOWN;
+		ScanLineOrdering = D3DSCANLINEORDERING_UNKNOWN;
+	}
+
+	explicit D3DDISPLAYMODEEX_CONVERT(const D3DDISPLAYMODE& mode) {
+		Size = sizeof(D3DDISPLAYMODEEX);
+		Width = mode.Width;
+		Height = mode.Height;
+		RefreshRate = mode.RefreshRate;
+		Format = mode.Format;
+		ScanLineOrdering = D3DSCANLINEORDERING_UNKNOWN;
+	}
+
+	explicit D3DDISPLAYMODEEX_CONVERT(const D3DDISPLAYMODEEX& mode) {
+		Size = mode.Size;
+		Width = mode.Width;
+		Height = mode.Height;
+		RefreshRate = mode.RefreshRate;
+		Format = mode.Format;
+		ScanLineOrdering = mode.ScanLineOrdering;
+	}
+
+	D3DDISPLAYMODEEX_CONVERT& operator=(const D3DDISPLAYMODE& mode) {
+		Size = sizeof(D3DDISPLAYMODEEX);
+		Width = mode.Width;
+		Height = mode.Height;
+		RefreshRate = mode.RefreshRate;
+		Format = mode.Format;
+		ScanLineOrdering = D3DSCANLINEORDERING_UNKNOWN;
+		return *this;
+	}
+
+	// Returns a pointer to the D3DDISPLAYMODE part (offset 4 bytes into the struct)
+	D3DDISPLAYMODE* Ptr() {
+		return reinterpret_cast<D3DDISPLAYMODE*>(reinterpret_cast<uint8_t*>(this) + sizeof(Size));
+	}
+
+	// Returns a pointer to the full D3DDISPLAYMODEEX struct
+	D3DDISPLAYMODEEX* PtrEx() {
+		return this;
+	}
+
+	// Returns the D3DDISPLAYMODE data
+	D3DDISPLAYMODE Data() {
+		return *this->Ptr();
+	}
+
+	// Returns the full D3DDISPLAYMODEEX data
+	D3DDISPLAYMODEEX DataEx() {
+		return *this;
+	}
+};
+
 typedef int(WINAPI* D3DPERF_BeginEventProc)(D3DCOLOR, LPCWSTR);
 typedef int(WINAPI* D3DPERF_EndEventProc)();
 typedef DWORD(WINAPI* D3DPERF_GetStatusProc)();

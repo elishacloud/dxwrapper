@@ -1583,14 +1583,11 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		Exclusive.Width = DefaultWidth;
 		Exclusive.Height = DefaultHeight;
 		Exclusive.BPP = Utils::GetBitCount(GetHwnd());
-		Exclusive.RefreshRate = 0;
 		DisplayMode.Width = DefaultWidth;
 		DisplayMode.Height = DefaultHeight;
 		DisplayMode.BPP = Exclusive.BPP;
-		DisplayMode.RefreshRate = 0;
 		Device.Width = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? Device.Width : DefaultWidth;
 		Device.Height = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? Device.Height : DefaultHeight;
-		Device.RefreshRate = 0;
 
 		// Release d3d9 device
 		if (d3d9Device)
@@ -3342,6 +3339,12 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			{
 				presParams.FullScreen_RefreshRateInHz = 0;
 				hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+				if (SUCCEEDED(hr))
+				{
+					Device.RefreshRate = 0;
+					DisplayMode.RefreshRate = 0;
+					Exclusive.RefreshRate = 0;
+				}
 			}
 		}
 
