@@ -90,7 +90,7 @@ ULONG m_IDirect3DDevice9Ex::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ReleaseGammaResources();
+	ReleaseResources(false);
 
 	ULONG ref = ProxyInterface->Release();
 
@@ -157,7 +157,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 		return D3DERR_INVALIDCALL;
 	}
 
-	ReleaseGammaResources();
+	ReleaseResources(true);
 
 #ifdef ENABLE_DEBUGOVERLAY
 	// Teardown debug overlay before reset
@@ -891,7 +891,7 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, tsAlphaOP);
 }
 
-void m_IDirect3DDevice9Ex::ReleaseGammaResources() const
+void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset) const
 {
 	if (SHARED.GammaLUTTexture)
 	{
@@ -921,6 +921,25 @@ void m_IDirect3DDevice9Ex::ReleaseGammaResources() const
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'gammaPixelShader' " << ref;
 		}
 		SHARED.gammaPixelShader = nullptr;
+	}
+
+	if (isReset)
+	{
+		// Anisotropic Filtering
+		SHARED.isAnisotropySet = false;
+		SHARED.AnisotropyDisabledFlag = false;
+
+		// For CacheClipPlane
+		SHARED.isClipPlaneSet = false;
+		SHARED.m_clipPlaneRenderState = 0;
+		for (int i = 0; i < MAX_CLIP_PLANES; ++i)
+		{
+			std::fill(std::begin(SHARED.m_storedClipPlanes[i]), std::end(SHARED.m_storedClipPlanes[i]), 0.0f);
+		}
+
+		// For gamma
+		SHARED.IsGammaSet = false;
+		SHARED.UsingShader32f = true;
 	}
 }
 
@@ -1228,10 +1247,8 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 	return hr;
 }
 
-HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
+inline void m_IDirect3DDevice9Ex::ApplyDrawFixes()
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
 	// CacheClipPlane
 	if (Config.CacheClipPlane && SHARED.isClipPlaneSet)
 	{
@@ -1243,6 +1260,13 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, 
 	{
 		ReeableAnisotropicSamplerState();
 	}
+}
+
+HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	ApplyDrawFixes();
 
 	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 }
@@ -1251,17 +1275,7 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveT
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// CacheClipPlane
-	if (Config.CacheClipPlane && SHARED.isClipPlaneSet)
-	{
-		ApplyClipPlanes();
-	}
-
-	// Reenable Anisotropic Filtering
-	if (SHARED.MaxAnisotropy)
-	{
-		ReeableAnisotropicSamplerState();
-	}
+	ApplyDrawFixes();
 
 	return ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinIndex, NumVertices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
 }
@@ -1270,17 +1284,7 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// CacheClipPlane
-	if (Config.CacheClipPlane && SHARED.isClipPlaneSet)
-	{
-		ApplyClipPlanes();
-	}
-
-	// Reenable Anisotropic Filtering
-	if (SHARED.MaxAnisotropy)
-	{
-		ReeableAnisotropicSamplerState();
-	}
+	ApplyDrawFixes();
 
 	return ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
 }
@@ -1289,17 +1293,7 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UI
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// CacheClipPlane
-	if (Config.CacheClipPlane && SHARED.isClipPlaneSet)
-	{
-		ApplyClipPlanes();
-	}
-
-	// Reenable Anisotropic Filtering
-	if (SHARED.MaxAnisotropy)
-	{
-		ReeableAnisotropicSamplerState();
-	}
+	ApplyDrawFixes();
 
 	return ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
 }
@@ -1577,7 +1571,7 @@ HRESULT m_IDirect3DDevice9Ex::SetClipPlane(DWORD Index, CONST float *pPlane)
 }
 
 // CacheClipPlane
-void m_IDirect3DDevice9Ex::ApplyClipPlanes()
+inline void m_IDirect3DDevice9Ex::ApplyClipPlanes()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -1975,7 +1969,7 @@ void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bo
 	}
 }
 
-void m_IDirect3DDevice9Ex::ReeableAnisotropicSamplerState()
+inline void m_IDirect3DDevice9Ex::ReeableAnisotropicSamplerState()
 {
 	if (SHARED.AnisotropyDisabledFlag)
 	{

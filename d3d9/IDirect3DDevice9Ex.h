@@ -69,6 +69,8 @@ private:
 
 	UINT DDKey;
 
+	void ApplyDrawFixes();
+
 	// Limit frame rate
 	void LimitFrameRate();
 
@@ -83,7 +85,7 @@ private:
 	HRESULT SetBrightnessLevel(D3DGAMMARAMP& Ramp);
 	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader() const;
 	void ApplyBrightnessLevel();
-	void ReleaseGammaResources() const;
+	void ReleaseResources(bool isReset) const;
 
 	// For Reset & ResetEx
 	void ReInitInterface();
