@@ -468,6 +468,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.DsoundHookSystem32 = NOT_EXIST;
 	Config.DdrawResolutionHack = NOT_EXIST;
 	Config.CacheClipPlane = NOT_EXIST;
+	Config.EnvironmentMapCubeFix = NOT_EXIST;
 
 	// Other values that may not exist in ini file
 	Config.DisableMaxWindowedModeNotSet = true;
@@ -771,4 +772,5 @@ void CONFIG::SetConfig()
 	// Set unset options
 	DdrawResolutionHack = (DdrawResolutionHack != 0);
 	CacheClipPlane = (CacheClipPlane != 0);
+	EnvironmentMapCubeFix = (EnvironmentMapCubeFix != 0);
 }

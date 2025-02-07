@@ -6,9 +6,11 @@ private:
 	LPDIRECT3DVERTEXSHADER9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	REFIID WrapperID = IID_IDirect3DVertexShader9;
+	const bool bRequiresCubeMap;
 
 public:
-	m_IDirect3DVertexShader9(LPDIRECT3DVERTEXSHADER9 pShader9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pShader9), m_pDeviceEx(pDevice)
+	m_IDirect3DVertexShader9(LPDIRECT3DVERTEXSHADER9 pShader9, m_IDirect3DDevice9Ex* pDevice) :
+		ProxyInterface(pShader9), m_pDeviceEx(pDevice), bRequiresCubeMap(ShaderRequiresCubeMap(pShader9))
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
@@ -30,4 +32,5 @@ public:
 
 	// Helper functions
 	LPDIRECT3DVERTEXSHADER9 GetProxyInterface() { return ProxyInterface; }
+	inline bool RequiresCubeMap() const { return bRequiresCubeMap; }
 };

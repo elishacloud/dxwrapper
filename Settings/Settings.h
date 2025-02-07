@@ -64,6 +64,7 @@
 	visit(DisableLogging) \
 	visit(DirectShowEmulation) \
 	visit(CacheClipPlane) \
+	visit(EnvironmentMapCubeFix) \
 	visit(ConvertToDirectDraw7) \
 	visit(ConvertToDirect3D7) \
 	visit(EnableDdrawWrapper) \
@@ -258,6 +259,7 @@ struct CONFIG
 	bool DisableLogging = false;				// Disables the logging file
 	DWORD SetSwapEffectShim = 0;				// Disables the call to d3d9.dll 'Direct3D9SetSwapEffectUpgradeShim' to switch present mode
 	DWORD CacheClipPlane = 0;					// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
+	DWORD EnvironmentMapCubeFix = 0;			// Fixes environment cube maps when no texture is applied, issue exists in d3d8
 	bool ConvertToDirectDraw7 = false;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool ConvertToDirect3D7 = false;			// Converts Direct3D 1-6 to Direct3D 7
 	bool EnableDdrawWrapper = false;			// Enables the ddraw wrapper

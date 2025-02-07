@@ -136,7 +136,7 @@ ULONG m_IDirect3DDevice9Ex::Release()
 	return ref;
 }
 
-void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters)
+inline void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters) const
 {
 	UNREFERENCED_PARAMETER(pPresentationParameters);
 
@@ -150,7 +150,7 @@ void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParamet
 }
 
 template <typename T>
-HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
+inline HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
 {
 	if (!pPresentationParameters)
 	{
@@ -684,12 +684,23 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 
 HRESULT m_IDirect3DDevice9Ex::SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX *pMatrix)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") State: " << State;
 
-	return ProxyInterface->SetTransform(State, pMatrix);
+	HRESULT hr = ProxyInterface->SetTransform(State, pMatrix);
+
+	if (SUCCEEDED(hr))
+	{
+		// Check if this is a texture stage transform
+		if (Config.EnvironmentMapCubeFix)
+		{
+			CheckTransformForCubeMap(State, pMatrix);
+		}
+	}
+
+	return hr;
 }
 
-HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
+inline HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -739,7 +750,7 @@ HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
 	return D3D_OK;
 }
 
-LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
+inline LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
 {
 	// Create pixel shaders
 	if (!SHARED.gammaPixelShader)
@@ -749,7 +760,7 @@ LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
 	return SHARED.gammaPixelShader;
 }
 
-void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
+inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 {
 	if (!SHARED.GammaLUTTexture)
 	{
@@ -891,7 +902,7 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, tsAlphaOP);
 }
 
-void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset) const
+inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset) const
 {
 	if (SHARED.GammaLUTTexture)
 	{
@@ -923,11 +934,32 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset) const
 		SHARED.gammaPixelShader = nullptr;
 	}
 
+	if (SHARED.BlankTexture)
+	{
+		ULONG ref = SHARED.BlankTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'BlankTexture' " << ref;
+		}
+		SHARED.BlankTexture = nullptr;
+	}
+
 	if (isReset)
 	{
 		// Anisotropic Filtering
 		SHARED.isAnisotropySet = false;
 		SHARED.AnisotropyDisabledFlag = false;
+
+		// For environment map cube
+		SHARED.isPixelShaderMapCube = false;
+		SHARED.isVertexShaderMapCube = false;
+		std::fill(std::begin(SHARED.isTextureMapCube), std::end(SHARED.isTextureMapCube), false);
+		std::fill(std::begin(SHARED.isEnvironmentMapCube), std::end(SHARED.isEnvironmentMapCube), false);
+		std::fill(std::begin(SHARED.isTransformMapCube), std::end(SHARED.isTransformMapCube), false);
+		std::fill(std::begin(SHARED.texCoordIndex), std::end(SHARED.texCoordIndex), 0);
+		std::fill(std::begin(SHARED.texTransformFlags), std::end(SHARED.texTransformFlags), 0);
+		std::fill(std::begin(SHARED.isBlankTextureUsed), std::end(SHARED.isBlankTextureUsed), false);
+		std::fill(std::begin(SHARED.pCurrentTexture), std::end(SHARED.pCurrentTexture), nullptr);
 
 		// For CacheClipPlane
 		SHARED.isClipPlaneSet = false;
@@ -1205,12 +1237,25 @@ HRESULT m_IDirect3DDevice9Ex::SetPixelShader(THIS_ IDirect3DPixelShader9* pShade
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	m_IDirect3DPixelShader9* pShaderX = reinterpret_cast<m_IDirect3DPixelShader9*>(pShader);
+
 	if (pShader)
 	{
 		pShader = static_cast<m_IDirect3DPixelShader9 *>(pShader)->GetProxyInterface();
 	}
 
-	return ProxyInterface->SetPixelShader(pShader);
+	HRESULT hr = ProxyInterface->SetPixelShader(pShader);
+
+	if (SUCCEEDED(hr))
+	{
+		// Check if shader requires cube map
+		if (Config.EnvironmentMapCubeFix)
+		{
+			SHARED.isPixelShaderMapCube = pShaderX ? pShaderX->RequiresCubeMap() : false;
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
@@ -1260,6 +1305,24 @@ inline void m_IDirect3DDevice9Ex::ApplyDrawFixes()
 	{
 		ReeableAnisotropicSamplerState();
 	}
+
+	// Fix environment map cubes
+	if (Config.EnvironmentMapCubeFix)
+	{
+		SetEnvironmentMapCubeTexture();
+	}
+}
+
+inline void m_IDirect3DDevice9Ex::RestoreDrawFixes()
+{
+	for (DWORD i = 0; i < MAX_TEXTURE_STAGES; i++)
+	{
+		if (SHARED.isBlankTextureUsed[i])
+		{
+			SHARED.isBlankTextureUsed[i] = false;
+			ProxyInterface->SetTexture(i, nullptr);
+		}
+	}
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
@@ -1268,7 +1331,11 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, 
 
 	ApplyDrawFixes();
 
-	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
+	HRESULT hr = ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
+
+	RestoreDrawFixes();
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT MinIndex, UINT NumVertices, UINT PrimitiveCount, CONST void *pIndexData, D3DFORMAT IndexDataFormat, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
@@ -1277,7 +1344,11 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveT
 
 	ApplyDrawFixes();
 
-	return ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinIndex, NumVertices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
+	HRESULT hr = ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinIndex, NumVertices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
+
+	RestoreDrawFixes();
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
@@ -1286,7 +1357,11 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT
 
 	ApplyDrawFixes();
 
-	return ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
+	HRESULT hr = ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
+
+	RestoreDrawFixes();
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
@@ -1295,7 +1370,11 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UI
 
 	ApplyDrawFixes();
 
-	return ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
+	HRESULT hr = ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
+
+	RestoreDrawFixes();
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::BeginScene()
@@ -1435,10 +1514,172 @@ HRESULT m_IDirect3DDevice9Ex::GetTextureStageState(DWORD Stage, D3DTEXTURESTAGES
 	return ProxyInterface->GetTextureStageState(Stage, Type, pValue);
 }
 
+// Check if shader requires cube map
+template <typename T>
+inline bool ShaderRequiresCubeMap(T* pShader)
+{
+	if (!Config.EnvironmentMapCubeFix) return false;
+
+	if (!pShader) return false;
+
+	UINT size = 0;
+	pShader->GetFunction(nullptr, &size);
+	if (size == 0) return false;
+
+	std::vector<DWORD> shaderCode(size / sizeof(DWORD));
+	if (FAILED(pShader->GetFunction(shaderCode.data(), &size))) return false;
+
+	const DWORD* pCode = shaderCode.data();
+	const DWORD* pEnd = pCode + (size / sizeof(DWORD));
+
+	while (pCode < pEnd)
+	{
+		DWORD opcode = pCode[0] & D3DSI_OPCODE_MASK;
+
+		if (opcode == D3DSIO_TEX ||
+			(std::is_same_v<T, IDirect3DPixelShader9> && (opcode == D3DSIO_TEXLDD || opcode == D3DSIO_TEXLDL)))
+		{
+			DWORD srcReg = pCode[1];
+			DWORD regType = (srcReg & D3DSP_REGTYPE_MASK) >> D3DSP_REGTYPE_SHIFT;
+
+			if (regType == D3DSPR_SAMPLER)
+			{
+				return true; // Shader needs a cube map
+			}
+		}
+
+		pCode += ((*pCode) & D3DSI_INSTLENGTH_MASK) >> D3DSI_INSTLENGTH_SHIFT;
+	}
+
+	return false;
+}
+
+// Check if this is a texture stage transform
+inline void m_IDirect3DDevice9Ex::CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix) const
+{
+	if (State >= D3DTS_TEXTURE0 && State <= D3DTS_TEXTURE7)
+	{
+		DWORD stage = State - D3DTS_TEXTURE0;
+
+		// Detect if the transformation is likely for cube mapping
+		if (pMatrix)
+		{
+			bool isCubeMap = false;
+
+			const D3DMATRIX& m = *pMatrix;
+
+			// Check if matrix is different from the identity matrix
+			static const D3DMATRIX identityMatrix = {
+				1.0f, 0.0f, 0.0f, 0.0f,
+				0.0f, 1.0f, 0.0f, 0.0f,
+				0.0f, 0.0f, 1.0f, 0.0f,
+				0.0f, 0.0f, 0.0f, 1.0f
+			};
+
+			if (memcmp(&m, &identityMatrix, sizeof(D3DMATRIX)) != 0)
+			{
+				// Cube mapping typically involves a transformation that modifies
+				// a 3D reflection vector or normal vector without translation.
+				if (m._41 == 0.0f && m._42 == 0.0f && m._43 == 0.0f && m._44 == 1.0f)
+				{
+					// Additionally, ensure it's not a typical 2D texture transform
+					if (m._14 == 0.0f && m._24 == 0.0f && m._34 == 0.0f)		// No perspective projection
+					{
+						isCubeMap = true;
+					}
+				}
+			}
+
+			// Store cube map detection result
+			SHARED.isTransformMapCube[stage] = isCubeMap;
+		}
+	}
+}
+
+// Check if an environment cube map is being used
+inline void m_IDirect3DDevice9Ex::CheckTextureStageForCubeMap() const
+{
+	bool isUsingEnvCubeMap[MAX_TEXTURE_STAGES] = {};
+	for (DWORD i = 0; i < MAX_TEXTURE_STAGES; i++)
+	{
+		if ((SHARED.texCoordIndex[i] == D3DTSS_TCI_CAMERASPACEREFLECTIONVECTOR || SHARED.texCoordIndex[i] == D3DTSS_TCI_CAMERASPACENORMAL) &&
+			((SHARED.texTransformFlags[i] & D3DTTFF_COUNT3) || (SHARED.texTransformFlags[i] & D3DTTFF_COUNT4)))
+		{
+			isUsingEnvCubeMap[i] = true;
+			break;
+		}
+	}
+
+	for (DWORD i = 0; i < MAX_TEXTURE_STAGES; i++)
+	{
+		SHARED.isEnvironmentMapCube[i] = isUsingEnvCubeMap[i];
+	}
+}
+
+inline void m_IDirect3DDevice9Ex::SetEnvironmentMapCubeTexture()
+{
+	CheckTextureStageForCubeMap();
+
+	const bool isCubeMap = SHARED.isPixelShaderMapCube || SHARED.isVertexShaderMapCube ||
+		[&]() {
+		for (int i = 0; i < MAX_TEXTURE_STAGES; ++i)
+		{
+			if (SHARED.isTextureMapCube[i] || SHARED.isEnvironmentMapCube[i] || SHARED.isTransformMapCube[i])
+			{
+				return true;
+			}
+		}
+		return false;
+		}();
+
+	for (DWORD i = 0; i < MAX_TEXTURE_STAGES; i++)
+	{
+		if ((SHARED.isEnvironmentMapCube[i] || SHARED.isTransformMapCube[i] || (i == 0 && isCubeMap)) && !SHARED.pCurrentTexture[i])
+		{
+			if (!SHARED.BlankTexture)
+			{
+				const UINT CubeSize = 64;
+				HRESULT hr = ProxyInterface->CreateCubeTexture(CubeSize, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &SHARED.BlankTexture, nullptr);
+				if (FAILED(hr))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create BlankCubeTexture for environment map!");
+					return;
+				}
+
+				D3DLOCKED_RECT lockedRect;
+				for (UINT face = 0; face < 6; ++face)
+				{
+					if (SUCCEEDED(SHARED.BlankTexture->LockRect((D3DCUBEMAP_FACES)face, 0, &lockedRect, nullptr, 0)))
+					{
+						DWORD* pixels = static_cast<DWORD*>(lockedRect.pBits);
+						for (UINT y = 0; y < CubeSize; ++y)
+						{
+							for (UINT x = 0; x < CubeSize; ++x)
+							{
+								pixels[x] = D3DCOLOR_ARGB(255, 255, 255, 255); // White with full alpha
+							}
+							pixels += lockedRect.Pitch / sizeof(DWORD);
+						}
+						SHARED.BlankTexture->UnlockRect((D3DCUBEMAP_FACES)face, 0);
+					}
+					else
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock BlankCubeTexture face: " << face);
+					}
+				}
+			}
+
+			SHARED.isBlankTextureUsed[i] = true;
+			ProxyInterface->SetTexture(i, SHARED.BlankTexture);
+		}
+	}
+}
+
 HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTexture)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	bool isTexCube = false;
 	if (pTexture)
 	{
 		switch (pTexture->GetType())
@@ -1459,6 +1700,7 @@ HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTe
 			break;
 		case D3DRTYPE_CUBETEXTURE:
 			pTexture = static_cast<m_IDirect3DCubeTexture9 *>(pTexture)->GetProxyInterface();
+			isTexCube = true;
 			if (SHARED.MaxAnisotropy && Stage > 0)
 			{
 				DisableAnisotropicSamplerState((SHARED.Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (SHARED.Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
@@ -1469,14 +1711,42 @@ HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTe
 		}
 	}
 
-	return ProxyInterface->SetTexture(Stage, pTexture);
+	HRESULT hr = ProxyInterface->SetTexture(Stage, pTexture);
+
+	if (SUCCEEDED(hr))
+	{
+		if (Stage < MAX_TEXTURE_STAGES)
+		{
+			SHARED.isTextureMapCube[Stage] = isTexCube;
+			SHARED.pCurrentTexture[Stage] = pTexture;
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::SetTextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") Stage: " << Stage << " Type: " << Type << " Value: " << Value;
 
-	return ProxyInterface->SetTextureStageState(Stage, Type, Value);
+	HRESULT hr = ProxyInterface->SetTextureStageState(Stage, Type, Value);
+
+	if (SUCCEEDED(hr))
+	{
+		if (Stage < MAX_TEXTURE_STAGES)
+		{
+			if (Type == D3DTSS_TEXCOORDINDEX)
+			{
+				SHARED.texCoordIndex[Stage] = Value;
+			}
+			else if (Type == D3DTSS_TEXTURETRANSFORMFLAGS)
+			{
+				SHARED.texTransformFlags[Stage] = Value;
+			}
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::UpdateTexture(IDirect3DBaseTexture9 *pSourceTexture, IDirect3DBaseTexture9 *pDestinationTexture)
@@ -1646,12 +1916,25 @@ HRESULT m_IDirect3DDevice9Ex::SetVertexShader(THIS_ IDirect3DVertexShader9* pSha
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	m_IDirect3DVertexShader9* pShaderX = reinterpret_cast<m_IDirect3DVertexShader9*>(pShader);
+
 	if (pShader)
 	{
 		pShader = static_cast<m_IDirect3DVertexShader9 *>(pShader)->GetProxyInterface();
 	}
 
-	return ProxyInterface->SetVertexShader(pShader);
+	HRESULT hr = ProxyInterface->SetVertexShader(pShader);
+
+	if (SUCCEEDED(hr))
+	{
+		// Check if shader requires cube map
+		if (Config.EnvironmentMapCubeFix)
+		{
+			SHARED.isVertexShaderMapCube = pShaderX ? pShaderX->RequiresCubeMap() : false;
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::CreateQuery(THIS_ D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery)
@@ -1945,7 +2228,7 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	return ProxyInterface->SetSamplerState(Sampler, Type, Value);
 }
 
-void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag)
+inline void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag)
 {
 	DWORD Value = 0;
 	for (int x = 0; x < 4; x++)
@@ -2669,7 +2952,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 }
 
 // Runs when device is created and on every successful Reset()
-void m_IDirect3DDevice9Ex::ReInitInterface()
+inline void m_IDirect3DDevice9Ex::ReInitInterface() const
 {
 	Utils::GetScreenSize(SHARED.DeviceWindow, SHARED.screenWidth, SHARED.screenHeight);
 
@@ -2686,7 +2969,7 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 	}
 }
 
-void m_IDirect3DDevice9Ex::LimitFrameRate()
+inline void m_IDirect3DDevice9Ex::LimitFrameRate() const
 {
 	// Count the number of frames
 	SHARED.Counter.FrameCounter++;
@@ -2738,7 +3021,7 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 	SHARED.Counter.LastPresentTime.QuadPart = TargetEndTicks;
 }
 
-void m_IDirect3DDevice9Ex::CalculateFPS()
+inline void m_IDirect3DDevice9Ex::CalculateFPS() const
 {
 	// Calculate frame time
 	auto endTime = std::chrono::steady_clock::now();
