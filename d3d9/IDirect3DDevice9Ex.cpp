@@ -136,7 +136,7 @@ ULONG m_IDirect3DDevice9Ex::Release()
 	return ref;
 }
 
-void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters)
+inline void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters) const
 {
 	UNREFERENCED_PARAMETER(pPresentationParameters);
 
@@ -150,7 +150,7 @@ void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParamet
 }
 
 template <typename T>
-HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
+inline HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
 {
 	if (!pPresentationParameters)
 	{
@@ -684,12 +684,23 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 
 HRESULT m_IDirect3DDevice9Ex::SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX *pMatrix)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") State: " << State;
 
-	return ProxyInterface->SetTransform(State, pMatrix);
+	HRESULT hr = ProxyInterface->SetTransform(State, pMatrix);
+
+	if (SUCCEEDED(hr))
+	{
+		// Check if this is a texture stage transform
+		if (Config.EnvironmentMapCubeFix)
+		{
+			CheckTransformForCubeMap(State, pMatrix);
+		}
+	}
+
+	return hr;
 }
 
-HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
+inline HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -739,7 +750,7 @@ HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
 	return D3D_OK;
 }
 
-LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
+inline LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
 {
 	// Create pixel shaders
 	if (!SHARED.gammaPixelShader)
@@ -749,7 +760,7 @@ LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
 	return SHARED.gammaPixelShader;
 }
 
-void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
+inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 {
 	if (!SHARED.GammaLUTTexture)
 	{
@@ -891,7 +902,7 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, tsAlphaOP);
 }
 
-void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset) const
+inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset) const
 {
 	if (SHARED.GammaLUTTexture)
 	{
@@ -923,11 +934,29 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset) const
 		SHARED.gammaPixelShader = nullptr;
 	}
 
+	if (SHARED.BlankTexture)
+	{
+		ULONG ref = SHARED.BlankTexture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'BlankTexture' " << ref;
+		}
+		SHARED.BlankTexture = nullptr;
+	}
+
 	if (isReset)
 	{
 		// Anisotropic Filtering
 		SHARED.isAnisotropySet = false;
 		SHARED.AnisotropyDisabledFlag = false;
+
+		// For environment map cube
+		std::fill(std::begin(SHARED.isTextureMapCube), std::end(SHARED.isTextureMapCube), false);
+		std::fill(std::begin(SHARED.isTransformMapCube), std::end(SHARED.isTransformMapCube), false);
+		std::fill(std::begin(SHARED.texCoordIndex), std::end(SHARED.texCoordIndex), 0);
+		std::fill(std::begin(SHARED.texTransformFlags), std::end(SHARED.texTransformFlags), 0);
+		SHARED.isBlankTextureUsed = false;
+		SHARED.pCurrentTexture = nullptr;
 
 		// For CacheClipPlane
 		SHARED.isClipPlaneSet = false;
@@ -1260,6 +1289,24 @@ inline void m_IDirect3DDevice9Ex::ApplyDrawFixes()
 	{
 		ReeableAnisotropicSamplerState();
 	}
+
+	// Fix environment map cubes
+	if (Config.EnvironmentMapCubeFix)
+	{
+		SetEnvironmentMapCubeTexture();
+	}
+}
+
+inline void m_IDirect3DDevice9Ex::RestoreDrawFixes()
+{
+	for (DWORD i = 0; i < MAX_TEXTURE_STAGES; i++)
+	{
+		if (SHARED.isBlankTextureUsed)
+		{
+			SHARED.isBlankTextureUsed = false;
+			ProxyInterface->SetTexture(0, nullptr);
+		}
+	}
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
@@ -1268,7 +1315,11 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, 
 
 	ApplyDrawFixes();
 
-	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
+	HRESULT hr = ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
+
+	RestoreDrawFixes();
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT MinIndex, UINT NumVertices, UINT PrimitiveCount, CONST void *pIndexData, D3DFORMAT IndexDataFormat, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
@@ -1277,7 +1328,11 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveT
 
 	ApplyDrawFixes();
 
-	return ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinIndex, NumVertices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
+	HRESULT hr = ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinIndex, NumVertices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
+
+	RestoreDrawFixes();
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
@@ -1286,7 +1341,11 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT
 
 	ApplyDrawFixes();
 
-	return ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
+	HRESULT hr = ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
+
+	RestoreDrawFixes();
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
@@ -1295,7 +1354,11 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UI
 
 	ApplyDrawFixes();
 
-	return ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
+	HRESULT hr = ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
+
+	RestoreDrawFixes();
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::BeginScene()
@@ -1435,10 +1498,124 @@ HRESULT m_IDirect3DDevice9Ex::GetTextureStageState(DWORD Stage, D3DTEXTURESTAGES
 	return ProxyInterface->GetTextureStageState(Stage, Type, pValue);
 }
 
+// Check if this is a texture stage transform for cube mapping
+inline void m_IDirect3DDevice9Ex::CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix) const
+{
+	if (State >= D3DTS_TEXTURE0 && State <= D3DTS_TEXTURE7)
+	{
+		DWORD stage = State - D3DTS_TEXTURE0;
+
+		if (pMatrix)
+		{
+			const D3DMATRIX& m = *pMatrix;
+			bool isCubeMap = false;
+
+			// Cube maps typically do not have translation
+			if (m._41 == 0.0f && m._42 == 0.0f && m._43 == 0.0f && m._44 == 1.0f)
+			{
+				// Ensure no perspective projection
+				if (m._14 == 0.0f && m._24 == 0.0f && m._34 == 0.0f)
+				{
+					// Check for a rotation matrix (orthonormal basis vectors)
+					float dotX = m._11 * m._11 + m._21 * m._21 + m._31 * m._31;
+					float dotY = m._12 * m._12 + m._22 * m._22 + m._32 * m._32;
+					float dotZ = m._13 * m._13 + m._23 * m._23 + m._33 * m._33;
+
+					float dotXY = m._11 * m._12 + m._21 * m._22 + m._31 * m._32;
+					float dotXZ = m._11 * m._13 + m._21 * m._23 + m._31 * m._33;
+					float dotYZ = m._12 * m._13 + m._22 * m._23 + m._32 * m._33;
+
+					// A proper rotation matrix should have:
+					// - Each column close to unit length (1.0)
+					// - Orthogonality (dot product of different columns near 0)
+					const float epsilon = 0.01f; // Allow small floating-point error
+					if (fabs(dotX - 1.0f) < epsilon && fabs(dotY - 1.0f) < epsilon && fabs(dotZ - 1.0f) < epsilon &&
+						fabs(dotXY) < epsilon && fabs(dotXZ) < epsilon && fabs(dotYZ) < epsilon)
+					{
+						isCubeMap = true;
+					}
+				}
+			}
+
+			// Store cube map detection result
+			SHARED.isTransformMapCube[stage] = isCubeMap;
+		}
+	}
+}
+
+// Check if an environment cube map is being used
+inline bool m_IDirect3DDevice9Ex::CheckTextureStageForCubeMap() const
+{
+	for (DWORD i = 0; i < MAX_TEXTURE_STAGES; i++)
+	{
+		if ((SHARED.texCoordIndex[i] == D3DTSS_TCI_CAMERASPACEREFLECTIONVECTOR || SHARED.texCoordIndex[i] == D3DTSS_TCI_CAMERASPACENORMAL) &&
+			((SHARED.texTransformFlags[i] & D3DTTFF_COUNT3) || (SHARED.texTransformFlags[i] & D3DTTFF_COUNT4)))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+inline void m_IDirect3DDevice9Ex::SetEnvironmentMapCubeTexture()
+{
+	const bool isCubeMap = CheckTextureStageForCubeMap() ||
+		[&]() {
+		for (int i = 0; i < MAX_TEXTURE_STAGES; ++i)
+		{
+			if (SHARED.isTextureMapCube[i] || SHARED.isTransformMapCube[i])
+			{
+				return true;
+			}
+		}
+		return false;
+		}();
+
+	if (isCubeMap && SHARED.pCurrentTexture == nullptr)
+	{
+		if (!SHARED.BlankTexture)
+		{
+			const UINT CubeSize = 64;
+			HRESULT hr = ProxyInterface->CreateCubeTexture(CubeSize, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &SHARED.BlankTexture, nullptr);
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create BlankCubeTexture for environment map!");
+				return;
+			}
+
+			D3DLOCKED_RECT lockedRect;
+			for (UINT face = 0; face < 6; ++face)
+			{
+				if (SUCCEEDED(SHARED.BlankTexture->LockRect((D3DCUBEMAP_FACES)face, 0, &lockedRect, nullptr, 0)))
+				{
+					DWORD* pixels = static_cast<DWORD*>(lockedRect.pBits);
+					for (UINT y = 0; y < CubeSize; ++y)
+					{
+						for (UINT x = 0; x < CubeSize; ++x)
+						{
+							pixels[x] = D3DCOLOR_ARGB(255, 255, 255, 255); // White with full alpha
+						}
+						pixels += lockedRect.Pitch / sizeof(DWORD);
+					}
+					SHARED.BlankTexture->UnlockRect((D3DCUBEMAP_FACES)face, 0);
+				}
+				else
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock BlankCubeTexture face: " << face);
+				}
+			}
+		}
+
+		SHARED.isBlankTextureUsed = true;
+		ProxyInterface->SetTexture(0, SHARED.BlankTexture);
+	}
+}
+
 HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTexture)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	bool isTexCube = false;
 	if (pTexture)
 	{
 		switch (pTexture->GetType())
@@ -1459,6 +1636,7 @@ HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTe
 			break;
 		case D3DRTYPE_CUBETEXTURE:
 			pTexture = static_cast<m_IDirect3DCubeTexture9 *>(pTexture)->GetProxyInterface();
+			isTexCube = true;
 			if (SHARED.MaxAnisotropy && Stage > 0)
 			{
 				DisableAnisotropicSamplerState((SHARED.Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (SHARED.Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
@@ -1469,14 +1647,45 @@ HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTe
 		}
 	}
 
-	return ProxyInterface->SetTexture(Stage, pTexture);
+	HRESULT hr = ProxyInterface->SetTexture(Stage, pTexture);
+
+	if (SUCCEEDED(hr))
+	{
+		if (Stage < MAX_TEXTURE_STAGES)
+		{
+			SHARED.isTextureMapCube[Stage] = isTexCube;
+		}
+		if (Stage == 0)
+		{
+			SHARED.pCurrentTexture = pTexture;
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::SetTextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") Stage: " << Stage << " Type: " << Type << " Value: " << Value;
 
-	return ProxyInterface->SetTextureStageState(Stage, Type, Value);
+	HRESULT hr = ProxyInterface->SetTextureStageState(Stage, Type, Value);
+
+	if (SUCCEEDED(hr))
+	{
+		if (Stage < MAX_TEXTURE_STAGES)
+		{
+			if (Type == D3DTSS_TEXCOORDINDEX)
+			{
+				SHARED.texCoordIndex[Stage] = Value;
+			}
+			else if (Type == D3DTSS_TEXTURETRANSFORMFLAGS)
+			{
+				SHARED.texTransformFlags[Stage] = Value;
+			}
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::UpdateTexture(IDirect3DBaseTexture9 *pSourceTexture, IDirect3DBaseTexture9 *pDestinationTexture)
@@ -1945,7 +2154,7 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	return ProxyInterface->SetSamplerState(Sampler, Type, Value);
 }
 
-void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag)
+inline void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag)
 {
 	DWORD Value = 0;
 	for (int x = 0; x < 4; x++)
@@ -2669,7 +2878,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 }
 
 // Runs when device is created and on every successful Reset()
-void m_IDirect3DDevice9Ex::ReInitInterface()
+inline void m_IDirect3DDevice9Ex::ReInitInterface() const
 {
 	Utils::GetScreenSize(SHARED.DeviceWindow, SHARED.screenWidth, SHARED.screenHeight);
 
@@ -2686,7 +2895,7 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 	}
 }
 
-void m_IDirect3DDevice9Ex::LimitFrameRate()
+inline void m_IDirect3DDevice9Ex::LimitFrameRate() const
 {
 	// Count the number of frames
 	SHARED.Counter.FrameCounter++;
@@ -2738,7 +2947,7 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 	SHARED.Counter.LastPresentTime.QuadPart = TargetEndTicks;
 }
 
-void m_IDirect3DDevice9Ex::CalculateFPS()
+inline void m_IDirect3DDevice9Ex::CalculateFPS() const
 {
 	// Calculate frame time
 	auto endTime = std::chrono::steady_clock::now();
