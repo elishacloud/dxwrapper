@@ -578,11 +578,22 @@ HRESULT m_IDirect3DDevice9Ex::CreateStateBlock(THIS_ D3DSTATEBLOCKTYPE Type, IDi
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSB = new m_IDirect3DStateBlock9(*ppSB, this);
+		m_IDirect3DStateBlock9* StateBlockX = new m_IDirect3DStateBlock9(*ppSB, this);
+
+		if (Config.LimitStateBlocks)
+		{
+			SHARED.StateBlockTable.AddStateBlock(StateBlockX);
+
+			StateBlockX->SetDDKey(DDKey);
+		}
+
+		*ppSB = StateBlockX;
+
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Type;
+
 	return hr;
 }
 
@@ -590,11 +601,25 @@ HRESULT m_IDirect3DDevice9Ex::EndStateBlock(THIS_ IDirect3DStateBlock9** ppSB)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ppSB)
+	{
+		return D3DERR_INVALIDCALL;
+	}
+
 	HRESULT hr = ProxyInterface->EndStateBlock(ppSB);
 
-	if (SUCCEEDED(hr) && ppSB)
+	if (SUCCEEDED(hr))
 	{
-		*ppSB = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(*ppSB, this, IID_IDirect3DStateBlock9, nullptr);
+		m_IDirect3DStateBlock9* StateBlockX = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(*ppSB, this, IID_IDirect3DStateBlock9, nullptr);
+
+		if (Config.LimitStateBlocks)
+		{
+			SHARED.StateBlockTable.AddStateBlock(StateBlockX);
+
+			StateBlockX->SetDDKey(DDKey);
+		}
+
+		*ppSB = StateBlockX;
 	}
 
 	return hr;
@@ -946,6 +971,9 @@ inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset) const
 
 	if (isReset)
 	{
+		// Clear all state blocks on reset
+		SHARED.StateBlockTable.ReleaseAllStateBlocks();
+
 		// Anisotropic Filtering
 		SHARED.isAnisotropySet = false;
 		SHARED.AnisotropyDisabledFlag = false;

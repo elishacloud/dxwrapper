@@ -6,6 +6,7 @@ private:
 	LPDIRECT3DSTATEBLOCK9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	REFIID WrapperID = IID_IDirect3DStateBlock9;
+	UINT DDKey = NO_MAP_VALUE;
 
 public:
 	m_IDirect3DStateBlock9(LPDIRECT3DSTATEBLOCK9 pBlock9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pBlock9), m_pDeviceEx(pDevice)
@@ -17,6 +18,11 @@ public:
 	~m_IDirect3DStateBlock9()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		if (DDKey != NO_MAP_VALUE)
+		{
+			DeviceDetailsMap[DDKey].StateBlockTable.RemoveStateBlock(this);
+		}
 	}
 
 	/*** IUnknown methods ***/
@@ -31,4 +37,6 @@ public:
 
 	// Helper functions
 	LPDIRECT3DSTATEBLOCK9 GetProxyInterface() { return ProxyInterface; }
+	void ClearDirect3DDevice() { DDKey = NO_MAP_VALUE; }
+	void SetDDKey(UINT NewDDKey) { DDKey = NewDDKey; }
 };

@@ -2,6 +2,7 @@
 
 static constexpr size_t MAX_CLIP_PLANES = 6;
 static constexpr size_t MAX_TEXTURE_STAGES = 8;
+static constexpr size_t MAX_STATE_BLOCKS = 1024;
 const std::chrono::seconds FPS_CALCULATION_WINDOW(1);	// Define a constant for the desired duration of FPS calculation
 
 struct DEVICEDETAILS
@@ -14,6 +15,8 @@ struct DEVICEDETAILS
 	std::unordered_map<m_IDirect3DDevice9Ex*, BOOL> DeviceMap;
 
 	AddressLookupTableD3d9 ProxyAddressLookupTable9;
+
+	StateBlockCache StateBlockTable;
 
 	D3DCAPS9 Caps = {};
 
