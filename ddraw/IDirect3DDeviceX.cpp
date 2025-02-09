@@ -5070,10 +5070,10 @@ HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE dwRenderStateTyp
 {
 	HRESULT hr = (*d3d9Device)->SetRenderState(dwRenderStateType, dwRenderState);
 
-	if (SUCCEEDED(hr) && dwRenderStateType < MaxDeviceStates)
+	if (SUCCEEDED(hr) && (UINT)dwRenderStateType < MaxDeviceStates)
 	{
-		DeviceStates.RenderState[dwRenderStateType].Set = true;
-		DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
+		DeviceStates.RenderState[(UINT)dwRenderStateType].Set = true;
+		DeviceStates.RenderState[(UINT)dwRenderStateType].State = dwRenderState;
 	}
 
 	return hr;
@@ -5083,10 +5083,10 @@ HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 {
 	HRESULT hr = (*d3d9Device)->SetTextureStageState(Stage, Type, Value);
 
-	if (SUCCEEDED(hr) && Stage < MaxTextureStages && Type < MaxDeviceStates)
+	if (SUCCEEDED(hr) && Stage < MaxTextureStages && (UINT)Type < MaxDeviceStates)
 	{
-		DeviceStates.TextureState[Stage][Type].Set = true;
-		DeviceStates.TextureState[Stage][Type].State = Value;
+		DeviceStates.TextureState[Stage][(UINT)Type].Set = true;
+		DeviceStates.TextureState[Stage][(UINT)Type].State = Value;
 	}
 
 	return hr;
@@ -5096,10 +5096,10 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 {
 	HRESULT hr = (*d3d9Device)->SetSamplerState(Sampler, Type, Value);
 
-	if (SUCCEEDED(hr) && Sampler < MaxTextureStages && Type < MaxSamplerStates)
+	if (SUCCEEDED(hr) && Sampler < MaxTextureStages && (UINT)Type < MaxSamplerStates)
 	{
-		DeviceStates.SamplerState[Sampler][Type].Set = true;
-		DeviceStates.SamplerState[Sampler][Type].State = Value;
+		DeviceStates.SamplerState[Sampler][(UINT)Type].Set = true;
+		DeviceStates.SamplerState[Sampler][(UINT)Type].State = Value;
 	}
 
 	return hr;

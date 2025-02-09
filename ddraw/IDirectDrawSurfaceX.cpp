@@ -3193,12 +3193,6 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 			return DDERR_NOCOLORKEYHW;
 		}
 
-		// Reset shader flag
-		if (dds == DDSD_CKSRCBLT)
-		{
-			ShaderColorKey.IsSet = false;
-		}
-
 		// Set color key
 		if (!lpDDColorKey)
 		{
@@ -3208,9 +3202,6 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 		{
 			// You must add the flag DDCKEY_COLORSPACE, otherwise DirectDraw will collapse the range to one value
 			DDCOLORKEY ColorKey = { lpDDColorKey->dwColorSpaceLowValue, lpDDColorKey->dwColorSpaceLowValue };
-
-			// Set color key flag
-			surfaceDesc2.dwFlags |= dds;
 
 			// Set color key
 			switch (dds)
@@ -3222,12 +3213,20 @@ HRESULT m_IDirectDrawSurfaceX::SetColorKey(DWORD dwFlags, LPDDCOLORKEY lpDDColor
 				surfaceDesc2.ddckCKDestOverlay = ColorKey;
 				break;
 			case DDSD_CKSRCBLT:
+				if (!(surfaceDesc2.dwFlags & dds) || ColorKey.dwColorSpaceLowValue != surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue)
+				{
+					ShaderColorKey.IsSet = false;
+					surface.IsDrawTextureDirty = true;
+				}
 				surfaceDesc2.ddckCKSrcBlt = ColorKey;
 				break;
 			case DDSD_CKSRCOVERLAY:
 				surfaceDesc2.ddckCKSrcOverlay = ColorKey;
 				break;
 			}
+
+			// Set color key flag
+			surfaceDesc2.dwFlags |= dds;
 		}
 
 		// Return
