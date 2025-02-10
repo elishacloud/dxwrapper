@@ -993,7 +993,8 @@ void m_IDirect3DX::ReleaseInterface()
 	// Release Viewport
 	for (auto& entry : ViewportList)
 	{
-		if (entry->Release())
+		m_IDirect3DViewport* Viewport = (m_IDirect3DViewport*)entry->GetWrapperInterfaceX(0);
+		if (!Viewport || Viewport->Release())
 		{
 			entry->ClearD3D();
 		}
@@ -1002,7 +1003,8 @@ void m_IDirect3DX::ReleaseInterface()
 	// Release Material
 	for (auto& entry : MaterialList)
 	{
-		if (entry->Release())
+		m_IDirect3DMaterial* Material = (m_IDirect3DMaterial*)entry->GetWrapperInterfaceX(0);
+		if (!Material || Material->Release())
 		{
 			entry->ClearD3D();
 		}

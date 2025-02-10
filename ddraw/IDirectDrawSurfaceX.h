@@ -165,7 +165,7 @@ private:
 	CRITICAL_SECTION ddscs = {};
 	CRITICAL_SECTION ddlcs = {};
 	m_IDirectDrawX *ddrawParent = nullptr;				// DirectDraw parent device
-	SURFACEOVERLAY SurfaceOverlay;					// The overlays for this surface
+	SURFACEOVERLAY SurfaceOverlay;						// The overlays for this surface
 	std::vector<MIPMAP> MipMaps;						// MipMaps structure with addresses
 	DWORD MaxMipMapLevel = 0;							// Total number of manually created MipMap levels
 	bool IsMipMapReadyToUse = false;					// Used for MipMap filtering
@@ -174,6 +174,7 @@ private:
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
 	m_IDirect3DTextureX *attached3DTexture = nullptr;	// Associated texture
+	DWORD attached3dTextureRefversion = 0;				// Reference wrapper version for associated texture
 	DDSURFACEDESC2 surfaceDesc2 = {};					// Surface description for this surface
 	DWORD ResetDisplayFlags = 0;						// Flags that need to be reset when display mode changes
 	DWORD UniquenessValue = 0;
@@ -521,7 +522,7 @@ public:
 	inline D3DFORMAT GetD3d9Format() const { return surface.Format; }
 	inline LPDIRECT3DTEXTURE9 GetD3d9PaletteTexture() const { return primary.PaletteTexture; }
 	inline m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
-	inline void ClearAttachedTexture() { attached3DTexture = nullptr; }
+	void ClearAttachedTexture();
 	void ClearUsing3DFlag();
 	HRESULT GetPresentWindowRect(LPRECT pRect, RECT& DestRect);
 

@@ -160,6 +160,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		{
 			InterfaceX = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), DxVersion, this);
 			attached3DTexture = InterfaceX;
+			attached3dTextureRefversion = DirectXVersion;
+			AddRef(attached3dTextureRefversion);
 		}
 
 		*ppvObj = InterfaceX->GetWrapperInterfaceX(DxVersion);
@@ -4163,6 +4165,12 @@ void m_IDirectDrawSurfaceX::InitInterface(DWORD DirectXVersion)
 
 	// Update surface description and create backbuffers
 	InitSurfaceDesc(DirectXVersion);
+}
+
+void m_IDirectDrawSurfaceX::ClearAttachedTexture()
+{
+	attached3DTexture = nullptr;
+	Release(attached3dTextureRefversion);
 }
 
 void m_IDirectDrawSurfaceX::SetDdrawParent(m_IDirectDrawX* ddraw)
