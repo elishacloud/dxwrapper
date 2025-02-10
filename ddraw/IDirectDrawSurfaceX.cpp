@@ -158,10 +158,10 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		}
 		else
 		{
-			InterfaceX = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), DxVersion, this);
-			attached3DTexture = InterfaceX;
-			attached3dTextureRefversion = DirectXVersion;
-			AddRef(attached3dTextureRefversion);
+			if (FAILED(CreateAttachedTexture(&InterfaceX, DxVersion, DirectXVersion)))
+			{
+				return E_NOINTERFACE;
+			}
 		}
 
 		*ppvObj = InterfaceX->GetWrapperInterfaceX(DxVersion);
@@ -4167,10 +4167,27 @@ void m_IDirectDrawSurfaceX::InitInterface(DWORD DirectXVersion)
 	InitSurfaceDesc(DirectXVersion);
 }
 
-void m_IDirectDrawSurfaceX::ClearAttachedTexture()
+HRESULT m_IDirectDrawSurfaceX::CreateAttachedTexture(m_IDirect3DTextureX** lpTexture, DWORD DxTextureVersion, DWORD DirectXVersion)
 {
-	attached3DTexture = nullptr;
+	if (lpTexture)
+	{
+		*lpTexture = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), DxTextureVersion, this);
+
+		attached3DTexture = *lpTexture;
+		attached3dTextureRefversion = DirectXVersion;
+
+		AddRef(attached3dTextureRefversion);
+
+		return DD_OK;
+	}
+	return DDERR_GENERIC;
+}
+
+void m_IDirectDrawSurfaceX::ReleaseAttachedTexture()
+{
 	Release(attached3dTextureRefversion);
+
+	attached3DTexture = nullptr;
 }
 
 void m_IDirectDrawSurfaceX::SetDdrawParent(m_IDirectDrawX* ddraw)

@@ -522,7 +522,8 @@ public:
 	inline D3DFORMAT GetD3d9Format() const { return surface.Format; }
 	inline LPDIRECT3DTEXTURE9 GetD3d9PaletteTexture() const { return primary.PaletteTexture; }
 	inline m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
-	void ClearAttachedTexture();
+	HRESULT CreateAttachedTexture(m_IDirect3DTextureX** lpTexture, DWORD DxTextureVersion, DWORD DirectXVersion);
+	void ReleaseAttachedTexture();
 	void ClearUsing3DFlag();
 	HRESULT GetPresentWindowRect(LPRECT pRect, RECT& DestRect);
 

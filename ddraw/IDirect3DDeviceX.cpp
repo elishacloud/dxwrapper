@@ -228,6 +228,8 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 
 		ExecuteBufferList.push_back(pExecuteBuffer);
 
+		AddRef(1);
+
 		*lplpDirect3DExecuteBuffer = pExecuteBuffer;
 
 		return D3D_OK;
@@ -255,7 +257,8 @@ void m_IDirect3DDeviceX::ReleaseExecuteBuffer(LPDIRECT3DEXECUTEBUFFER lpDirect3D
 	auto it = std::find(ExecuteBufferList.begin(), ExecuteBufferList.end(), lpDirect3DExecuteBuffer);
 	if (it != ExecuteBufferList.end())
 	{
-		// Remove it from the list
+		Release(1);
+
 		ExecuteBufferList.erase(it);
 	}
 }
@@ -5030,7 +5033,7 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 
 	if (D3DInterface)
 	{
-		D3DInterface->ClearD3DDevice();
+		D3DInterface->ReleaseD3DDevice();
 	}
 
 	if (ddrawParent)

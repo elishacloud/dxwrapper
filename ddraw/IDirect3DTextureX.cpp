@@ -383,6 +383,6 @@ void m_IDirect3DTextureX::ReleaseInterface()
 
 	if (DDrawSurface)
 	{
-		DDrawSurface->ClearAttachedTexture();
+		DDrawSurface->ReleaseAttachedTexture();
 	}
 }

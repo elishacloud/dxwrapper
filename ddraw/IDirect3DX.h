@@ -19,6 +19,7 @@ private:
 
 	// Device interface pointers
 	m_IDirect3DDeviceX* D3DDeviceInterface = nullptr;
+	DWORD D3DDeviceInterfaceRefversion = 0;
 
 	// Cache Cap9
 	struct DUALCAP9 {
@@ -27,14 +28,17 @@ private:
 	};
 	std::vector<DUALCAP9> Cap9Cache;
 
-	// Viewport array
-	std::vector<m_IDirect3DViewportX*> ViewportList;
+	// Light array
+	std::vector<std::pair<m_IDirect3DLight*, DWORD>> LightList;
 
 	// Material array
-	std::vector<m_IDirect3DMaterialX*> MaterialList;
+	std::vector<std::pair<m_IDirect3DMaterialX*, DWORD>> MaterialList;
 
-	// Light array
-	std::vector<m_IDirect3DLight*> LightList;
+	// VertexBuffer array
+	std::vector<std::pair<m_IDirect3DVertexBufferX*, DWORD>> VertexBufferList;
+
+	// Viewport array
+	std::vector<std::pair<m_IDirect3DViewportX*, DWORD>> ViewportList;
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
@@ -104,7 +108,7 @@ public:
 	STDMETHOD(Initialize)(THIS_ REFCLSID);
 	HRESULT EnumDevices(LPD3DENUMDEVICESCALLBACK, LPVOID, DWORD);
 	HRESULT EnumDevices7(LPD3DENUMDEVICESCALLBACK7, LPVOID, DWORD);
-	STDMETHOD(CreateLight)(THIS_ LPDIRECT3DLIGHT*, LPUNKNOWN);
+	STDMETHOD(CreateLight)(THIS_ LPDIRECT3DLIGHT*, LPUNKNOWN, DWORD);
 	STDMETHOD(CreateMaterial)(THIS_ LPDIRECT3DMATERIAL3*, LPUNKNOWN, DWORD);
 	STDMETHOD(CreateViewport)(THIS_ LPDIRECT3DVIEWPORT3*, LPUNKNOWN, DWORD);
 	STDMETHOD(FindDevice)(THIS_ LPD3DFINDDEVICESEARCH, LPD3DFINDDEVICERESULT);
@@ -117,10 +121,11 @@ public:
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void* GetWrapperInterfaceX(DWORD DirectXVersion);
 	inline m_IDirect3DDeviceX** GetD3DDevice() { return &D3DDeviceInterface; }
-	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
-	void ReleaseViewport(m_IDirect3DViewportX* lpViewportX);
-	void ReleaseMaterial(m_IDirect3DMaterialX* lpMaterialX);
+	void ReleaseD3DDevice();
 	void ReleaseLight(m_IDirect3DLight* lpLight);
+	void ReleaseMaterial(m_IDirect3DMaterialX* lpMaterialX);
+	void ReleaseVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX);
+	void ReleaseViewport(m_IDirect3DViewportX* lpViewportX);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 

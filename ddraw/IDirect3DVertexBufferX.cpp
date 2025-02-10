@@ -574,6 +574,11 @@ void m_IDirect3DVertexBufferX::ReleaseInterface()
 
 	ReleaseD9Buffer(false, false);
 
+	if (D3DInterface)
+	{
+		D3DInterface->ReleaseVertexBuffer(this);
+	}
+
 	if (ddrawParent)
 	{
 		ddrawParent->RemoveVertexBufferFromVector(this);

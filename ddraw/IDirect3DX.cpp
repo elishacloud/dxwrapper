@@ -386,7 +386,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 	return GetProxyInterfaceV7()->EnumDevices(lpEnumDevicesCallback7, lpUserArg);
 }
 
-HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN pUnkOuter)
+HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -421,7 +421,9 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 
 		m_IDirect3DLight* Interface = CreateDirect3DLight(nullptr, this);
 
-		LightList.push_back(Interface);
+		LightList.push_back(std::make_pair(Interface, DirectXVersion));
+		
+		AddRef(DirectXVersion);
 
 		*lplpDirect3DLight = (LPDIRECT3DLIGHT)Interface;
 
@@ -437,6 +439,30 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 	}
 
 	return hr;
+}
+
+void m_IDirect3DX::ReleaseLight(m_IDirect3DLight* lpLight)
+{
+	// Check if the Light is valid
+	if (!lpLight)
+	{
+		return;
+	}
+
+	// Find the Light in the list by matching the first element of the pair
+	auto it = std::find_if(LightList.begin(), LightList.end(),
+		[lpLight](const auto& entry)
+		{
+			return entry.first == lpLight;
+		});
+
+	// If found, erase it from the list
+	if (it != LightList.end())
+	{
+		Release(it->second);
+
+		LightList.erase(it);
+	}
 }
 
 HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
@@ -476,7 +502,9 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 
 		m_IDirect3DMaterialX *Interface = new m_IDirect3DMaterialX(this, DirectXVersion);
 
-		MaterialList.push_back(Interface);
+		MaterialList.push_back(std::make_pair(Interface, DirectXVersion));
+
+		AddRef(DirectXVersion);
 
 		*lplpDirect3DMaterial = (LPDIRECT3DMATERIAL3)Interface->GetWrapperInterfaceX(DirectXVersion);
 
@@ -494,6 +522,30 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 	}
 
 	return hr;
+}
+
+void m_IDirect3DX::ReleaseMaterial(m_IDirect3DMaterialX* lpMaterialX)
+{
+	// Check if the Material is valid
+	if (!lpMaterialX)
+	{
+		return;
+	}
+
+	// Find and remove the Material from the list
+	auto it = std::find_if(MaterialList.begin(), MaterialList.end(),
+		[lpMaterialX](const auto& entry)
+		{
+			return entry.first == lpMaterialX;
+		});
+
+	// If found, erase it from the list
+	if (it != MaterialList.end())
+	{
+		Release(it->second);
+
+		MaterialList.erase(it);
+	}
 }
 
 HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
@@ -533,7 +585,9 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 
 		m_IDirect3DViewportX *Interface = new m_IDirect3DViewportX(this, DirectXVersion);
 
-		ViewportList.push_back(Interface);
+		ViewportList.push_back(std::make_pair(Interface, DirectXVersion));
+
+		AddRef(DirectXVersion);
 
 		*lplpD3DViewport = (LPDIRECT3DVIEWPORT3)Interface->GetWrapperInterfaceX(DirectXVersion);
 
@@ -551,6 +605,30 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 	}
 
 	return hr;
+}
+
+void m_IDirect3DX::ReleaseViewport(m_IDirect3DViewportX* lpViewportX)
+{
+	// Check if the viewport is valid
+	if (!lpViewportX)
+	{
+		return;
+	}
+
+	// Find and remove the viewport from the list
+	auto it = std::find_if(ViewportList.begin(), ViewportList.end(),
+		[lpViewportX](const auto& entry)
+		{
+			return entry.first == lpViewportX;
+		});
+
+	// If found, erase it from the list
+	if (it != ViewportList.end())
+	{
+		Release(it->second);
+
+		ViewportList.erase(it);
+	}
 }
 
 HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICERESULT lpD3DFDR)
@@ -667,12 +745,17 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		// Check for existing device
 		if (D3DDeviceInterface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3DDevice is already setup!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Direct3DDevice is already setup!");
+			return DDERR_GENERIC;
 		}
 
 		m_IDirect3DDeviceX* p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, this, lpDDS, riid, DirectXVersion);
 
 		D3DDeviceInterface = p_IDirect3DDeviceX;
+
+		D3DDeviceInterfaceRefversion = DirectXVersion;
+
+		AddRef(D3DDeviceInterfaceRefversion);
 
 		*lplpD3DDevice = (LPDIRECT3DDEVICE7)p_IDirect3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
 
@@ -715,6 +798,13 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 	}
 
 	return hr;
+}
+
+void m_IDirect3DX::ReleaseD3DDevice()
+{
+	Release(D3DDeviceInterfaceRefversion);
+
+	D3DDeviceInterface = nullptr;
 }
 
 HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIRECT3DVERTEXBUFFER7* lplpD3DVertexBuffer, DWORD dwFlags, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
@@ -765,7 +855,11 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 			return DDERR_INVALIDOBJECT;
 		}
 
-		m_IDirect3DVertexBufferX *Interface = new m_IDirect3DVertexBufferX(ddrawParent, lpVBDesc, DirectXVersion);
+		m_IDirect3DVertexBufferX *Interface = new m_IDirect3DVertexBufferX(ddrawParent, this, lpVBDesc, DirectXVersion);
+
+		VertexBufferList.push_back(std::make_pair(Interface, DirectXVersion));
+
+		AddRef(DirectXVersion);
 
 		*lplpD3DVertexBuffer = (LPDIRECT3DVERTEXBUFFER7)Interface->GetWrapperInterfaceX(DirectXVersion);
 
@@ -781,6 +875,30 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 	}
 
 	return hr;
+}
+
+void m_IDirect3DX::ReleaseVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX)
+{
+	// Check if the vertex buffer is valid
+	if (!lpVertexBufferX)
+	{
+		return;
+	}
+
+	// Find and remove the vertex buffer from the list
+	auto it = std::find_if(VertexBufferList.begin(), VertexBufferList.end(),
+		[lpVertexBufferX](const auto& entry)
+		{
+			return entry.first == lpVertexBufferX;
+		});
+
+	// If found, erase it from the list
+	if (it != VertexBufferList.end())
+	{
+		Release(it->second);
+
+		VertexBufferList.erase(it);
+	}
 }
 
 HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext)
@@ -926,57 +1044,6 @@ void m_IDirect3DX::InitInterface(DWORD DirectXVersion)
 	AddRef(DirectXVersion);
 }
 
-void m_IDirect3DX::ReleaseViewport(m_IDirect3DViewportX* lpViewportX)
-{
-	// Check if the viewport is valid
-	if (!lpViewportX)
-	{
-		return;
-	}
-
-	// Find and remove the viewport from the list
-	auto it = std::find(ViewportList.begin(), ViewportList.end(), lpViewportX);
-	if (it != ViewportList.end())
-	{
-		// Remove it from the list
-		ViewportList.erase(it);
-	}
-}
-
-void m_IDirect3DX::ReleaseMaterial(m_IDirect3DMaterialX* lpMaterialX)
-{
-	// Check if the Material is valid
-	if (!lpMaterialX)
-	{
-		return;
-	}
-
-	// Find and remove the Material from the list
-	auto it = std::find(MaterialList.begin(), MaterialList.end(), lpMaterialX);
-	if (it != MaterialList.end())
-	{
-		// Remove it from the list
-		MaterialList.erase(it);
-	}
-}
-
-void m_IDirect3DX::ReleaseLight(m_IDirect3DLight* lpLight)
-{
-	// Check if the Light is valid
-	if (!lpLight)
-	{
-		return;
-	}
-
-	// Find and remove the Light from the list
-	auto it = std::find(LightList.begin(), LightList.end(), lpLight);
-	if (it != LightList.end())
-	{
-		// Remove it from the list
-		LightList.erase(it);
-	}
-}
-
 void m_IDirect3DX::ReleaseInterface()
 {
 	if (Config.Exiting)
@@ -990,32 +1057,42 @@ void m_IDirect3DX::ReleaseInterface()
 	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
 	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
-	// Release Viewport
-	for (auto& entry : ViewportList)
+	// Release Light
+	for (auto& entry : LightList)
 	{
-		m_IDirect3DViewport* Viewport = (m_IDirect3DViewport*)entry->GetWrapperInterfaceX(0);
-		if (!Viewport || Viewport->Release())
+		if (entry.first->Release())
 		{
-			entry->ClearD3D();
+			entry.first->ClearD3D();
 		}
 	}
 
 	// Release Material
 	for (auto& entry : MaterialList)
 	{
-		m_IDirect3DMaterial* Material = (m_IDirect3DMaterial*)entry->GetWrapperInterfaceX(0);
+		m_IDirect3DMaterial* Material = (m_IDirect3DMaterial*)entry.first->GetWrapperInterfaceX(0);
 		if (!Material || Material->Release())
 		{
-			entry->ClearD3D();
+			entry.first->ClearD3D();
 		}
 	}
 
-	// Release Light
-	for (auto& entry : LightList)
+	// Release Vertex Buffer
+	for (auto& entry : VertexBufferList)
 	{
-		if (entry->Release())
+		m_IDirect3DVertexBuffer* VertexBuffer = (m_IDirect3DVertexBuffer*)entry.first->GetWrapperInterfaceX(0);
+		if (!VertexBuffer || VertexBuffer->Release())
 		{
-			entry->ClearD3D();
+			entry.first->ClearD3D();
+		}
+	}
+
+	// Release Viewport
+	for (auto& entry : ViewportList)
+	{
+		m_IDirect3DViewport* Viewport = (m_IDirect3DViewport*)entry.first->GetWrapperInterfaceX(0);
+		if (!Viewport || Viewport->Release())
+		{
+			entry.first->ClearD3D();
 		}
 	}
 
