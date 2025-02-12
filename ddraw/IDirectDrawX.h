@@ -246,7 +246,6 @@ public:
 	// Vertex buffer vector functions
 	void AddVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer);
 	void ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer);
-	bool DoesVertexBufferExist(m_IDirect3DVertexBufferX* lpVertexBuffer);
 
 	// Color and gamma control
 	inline m_IDirectDrawColorControl* GetColorControlInterface() { return ColorControlInterface; }

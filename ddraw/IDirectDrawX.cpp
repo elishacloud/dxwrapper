@@ -860,10 +860,15 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 
 	if (Config.Dd7to9)
 	{
+		if (!lpDDSurface || !lplpDupDDSurface)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		SetCriticalSection();
 
-		m_IDirectDrawSurfaceX *lpDDSurfaceX = (m_IDirectDrawSurfaceX*)lpDDSurface;
-		if (!DoesSurfaceExist(lpDDSurfaceX))
+		m_IDirectDrawSurfaceX *lpDDSurfaceX = nullptr;
+		if (FAILED(lpDDSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSurfaceX)) || !DoesSurfaceExist(lpDDSurfaceX))
 		{
 			ReleaseCriticalSection();
 
@@ -4291,10 +4296,16 @@ void m_IDirectDrawX::ClearGammaControl(m_IDirectDrawGammaControl* lpGammaControl
 // Add released surface wrapper
 void m_IDirectDrawX::AddReleasedSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
-	if (lpSurfaceX && std::find(ReleasedSurfaceList.begin(), ReleasedSurfaceList.end(), lpSurfaceX) == std::end(ReleasedSurfaceList))
+	if (!lpSurfaceX)
 	{
-		ReleasedSurfaceList.push_back(lpSurfaceX);
+		return;
 	}
+
+	SetCriticalSection();
+
+	ReleasedSurfaceList.push_back(lpSurfaceX);
+
+	ReleaseCriticalSection();
 }
 
 // Check if surface wrapper exists
@@ -4356,10 +4367,16 @@ bool m_IDirectDrawX::DoesPaletteExist(m_IDirectDrawPalette* lpPalette)
 
 void m_IDirectDrawX::AddVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer)
 {
-	if (lpVertexBuffer && !DoesVertexBufferExist(lpVertexBuffer))
+	if (!lpVertexBuffer)
 	{
-		VertexBufferList.push_back(lpVertexBuffer);
+		return;
 	}
+
+	SetCriticalSection();
+
+	VertexBufferList.push_back(lpVertexBuffer);
+
+	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawX::ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer)
@@ -4380,22 +4397,6 @@ void m_IDirectDrawX::ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer)
 	}
 
 	ReleaseCriticalSection();
-}
-
-bool m_IDirectDrawX::DoesVertexBufferExist(m_IDirect3DVertexBufferX* lpVertexBuffer)
-{
-	if (!lpVertexBuffer)
-	{
-		return false;
-	}
-
-	SetCriticalSection();
-
-	const bool found = std::find(VertexBufferList.begin(), VertexBufferList.end(), lpVertexBuffer) != std::end(VertexBufferList);
-
-	ReleaseCriticalSection();
-
-	return found;
 }
 
 void m_IDirectDrawX::SetVsync()
