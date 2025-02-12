@@ -250,6 +250,10 @@ public:
 		{
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
+		if (Config.Dd7to9)
+		{
+			Logging::Log() << __FUNCTION__ << " (" << this << ") Warning: created from non-dd7to9 interface!";
+		}
 
 		InitInterface(DirectXVersion);
 	}
@@ -360,27 +364,29 @@ public:
 	bool IsDeviceInScene() const { return IsInScene; }
 
 	// ExecuteBuffer
-	void ReleaseExecuteBuffer(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuffer);
+	void AddExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer);
+	void ClearExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer);
 
 	// Viewport functions
 	inline void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
 	inline bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
-	void ReleaseViewport(m_IDirect3DViewportX* lpViewportX);
+	void ClearViewport(m_IDirect3DViewportX* lpViewportX);
 
 	// Texture handle function
-	void ReleaseTextureHandle(D3DTEXTUREHANDLE tHandle);
+	void ClearTextureHandle(D3DTEXTUREHANDLE tHandle);
 	HRESULT SetTextureHandle(D3DTEXTUREHANDLE& tHandle, m_IDirect3DTextureX* pTextureX);
 
 	// Material handle function
-	void ReleaseMaterialHandle(D3DMATERIALHANDLE mHandle);
+	void ClearMaterialHandle(D3DMATERIALHANDLE mHandle);
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial);
 	inline bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == lsMaterialHandle); }
 
 	// Light index function
-	void ReleaseLightInterface(m_IDirect3DLight* lpLight);
+	void ClearLight(m_IDirect3DLight* lpLight);
 
 	// Functions handling the Direct3D parent interface
-	inline void ClearD3D() { D3DInterface = nullptr; }
+	void SetD3D(m_IDirect3DX* lpD3D);
+	void ClearD3D(m_IDirect3DX* lpD3D);
 
 	// Functions handling the ddraw parent interface
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)

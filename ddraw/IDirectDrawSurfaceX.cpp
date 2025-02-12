@@ -137,11 +137,43 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		}
 		if (riid == IID_IDirectDrawColorControl)
 		{
-			return SUCCEEDED(ddrawParent->CreateColorInterface(ppvObj)) ? DD_OK : E_NOINTERFACE;
+			m_IDirectDrawColorControl* lpColorControl = ddrawParent->GetColorControlInterface();
+
+			if (lpColorControl)
+			{
+				*ppvObj = lpColorControl;
+
+				lpColorControl->AddRef();
+			}
+			else
+			{
+				if (FAILED(ddrawParent->CreateColorControl(reinterpret_cast<m_IDirectDrawColorControl**>(ppvObj))))
+				{
+					return E_NOINTERFACE;
+				}
+			}
+
+			return DD_OK;
 		}
 		if (riid == IID_IDirectDrawGammaControl)
 		{
-			return SUCCEEDED(ddrawParent->CreateGammaInterface(ppvObj)) ? DD_OK : E_NOINTERFACE;
+			m_IDirectDrawGammaControl* lpGammaControl = ddrawParent->GetGammaControlInterface();
+
+			if (lpGammaControl)
+			{
+				*ppvObj = lpGammaControl;
+
+				lpGammaControl->AddRef();
+			}
+			else
+			{
+				if (FAILED(ddrawParent->CreateGammaControl(reinterpret_cast<m_IDirectDrawGammaControl**>(ppvObj))))
+				{
+					return E_NOINTERFACE;
+				}
+			}
+
+			return DD_OK;
 		}
 	}
 
@@ -158,7 +190,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		}
 		else
 		{
-			if (FAILED(CreateAttachedTexture(&InterfaceX, DxVersion, DirectXVersion)))
+			if (FAILED(CreateAttachedTexture(&InterfaceX, DxVersion)))
 			{
 				return E_NOINTERFACE;
 			}
@@ -332,7 +364,7 @@ ULONG m_IDirectDrawSurfaceX::Release(DWORD DirectXVersion)
 					Logging::Log() << __FUNCTION__ << " Warning: surface still in use! Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting();
 					if (ddrawParent)
 					{
-						ddrawParent->AddReleasedSurfaceToVector(this);
+						ddrawParent->AddReleasedSurface(this);
 					}
 					ReleaseD9AuxiliarySurfaces();
 					ReleaseDirectDrawResources();
@@ -4142,96 +4174,28 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 
 void m_IDirectDrawSurfaceX::InitInterface(DWORD DirectXVersion)
 {
-	if (!Config.Dd7to9)
-	{
-		return;
-	}
-
-	AddRef(DirectXVersion);
-
-	InitializeCriticalSection(&ddscs);
-	InitializeCriticalSection(&ddlcs);
-
-	// Store surface, needs to run before InitSurfaceDesc()
 	if (ddrawParent)
 	{
-		ddrawParent->AddSurfaceToVector(this);
-
-		d3d9Device = ddrawParent->GetDirectD9Device();
+		ddrawParent->AddSurface(this);
 	}
 
-	// Set Uniqueness Value
-	UniquenessValue = 1;
-
-	// Update surface description and create backbuffers
-	InitSurfaceDesc(DirectXVersion);
-}
-
-HRESULT m_IDirectDrawSurfaceX::CreateAttachedTexture(m_IDirect3DTextureX** lpTexture, DWORD DxTextureVersion, DWORD DirectXVersion)
-{
-	if (lpTexture)
+	if (Config.Dd7to9)
 	{
-		*lpTexture = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), DxTextureVersion, this);
+		AddRef(DirectXVersion);
 
-		attached3DTexture = *lpTexture;
-		attached3dTextureRefversion = DirectXVersion;
+		InitializeCriticalSection(&ddscs);
+		InitializeCriticalSection(&ddlcs);
 
-		AddRef(attached3dTextureRefversion);
+		if (ddrawParent)
+		{
+			d3d9Device = ddrawParent->GetDirectD9Device();
+		}
 
-		return DD_OK;
-	}
-	return DDERR_GENERIC;
-}
+		// Set Uniqueness Value
+		UniquenessValue = 1;
 
-void m_IDirectDrawSurfaceX::ReleaseAttachedTexture()
-{
-	Release(attached3dTextureRefversion);
-
-	attached3DTexture = nullptr;
-}
-
-void m_IDirectDrawSurfaceX::SetDdrawParent(m_IDirectDrawX* ddraw)
-{
-	ddrawParent = ddraw;
-
-	if (attached3DTexture && ddrawParent)
-	{
-		attached3DTexture->SetD3DDevice(ddrawParent->GetCurrentD3DDevice());
-	}
-}
-
-void m_IDirectDrawSurfaceX::ClearDdraw()
-{
-	ddrawParent = nullptr;
-	d3d9Device = nullptr;
-
-	if (attached3DTexture)
-	{
-		attached3DTexture->ClearD3DDevice();
-	}
-}
-
-inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
-{
-	if (attachedClipper)
-	{
-		attachedClipper->Release();
-	}
-
-	if (attachedPalette)
-	{
-		attachedPalette->Release();
-	}
-
-	if (attached3DTexture)
-	{
-		attached3DTexture->ClearSurface();
-		attached3DTexture->ClearD3DDevice();
-	}
-
-	if (ddrawParent)
-	{
-		ddrawParent->RemoveSurfaceFromVector(this);
+		// Update surface description and create backbuffers
+		InitSurfaceDesc(DirectXVersion);
 	}
 }
 
@@ -4240,6 +4204,13 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 	if (Config.Exiting)
 	{
 		return;
+	}
+
+	SetCriticalSection();
+
+	if (ddrawParent)
+	{
+		ddrawParent->ClearSurface(this);
 	}
 
 	// Don't delete wrapper interface
@@ -4262,18 +4233,119 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 		}
 	}
 
-	if (!Config.Dd7to9)
+	ReleaseDirectDrawResources();
+
+	if (Config.Dd7to9)
+	{
+		ReleaseD9Surface(false, false);
+
+		// Delete critical section last
+		DeleteCriticalSection(&ddscs);
+		DeleteCriticalSection(&ddlcs);
+	}
+
+	ReleaseCriticalSection();
+}
+
+HRESULT m_IDirectDrawSurfaceX::CreateAttachedTexture(m_IDirect3DTextureX** lplpTexture, DWORD DxTextureVersion)
+{
+	if (lplpTexture)
+	{
+		SetCriticalSection();
+
+		*lplpTexture = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), DxTextureVersion, this);
+
+		ReleaseCriticalSection();
+
+		return DD_OK;
+	}
+	return DDERR_GENERIC;
+}
+
+void m_IDirectDrawSurfaceX::SetAttachedTexture(m_IDirect3DTextureX* lpTexture)
+{
+	if (!lpTexture)
 	{
 		return;
 	}
 
-	ReleaseDirectDrawResources();
+	SetCriticalSection();
 
-	ReleaseD9Surface(false, false);
+	if (attached3DTexture && attached3DTexture != lpTexture)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: 3DTexture has already been created!");
+	}
 
-	// Delete critical section last
-	DeleteCriticalSection(&ddscs);
-	DeleteCriticalSection(&ddlcs);
+	attached3DTexture = lpTexture;
+
+	ReleaseCriticalSection();
+}
+
+void m_IDirectDrawSurfaceX::ClearAttachedTexture(m_IDirect3DTextureX* lpTexture)
+{
+	SetCriticalSection();
+
+	if (lpTexture != attached3DTexture)
+	{
+		Logging::Log() << __FUNCTION__ << " Warning: released attached 3DTexture interface does not match cached one!";
+	}
+
+	attached3DTexture = nullptr;
+
+	ReleaseCriticalSection();
+}
+
+void m_IDirectDrawSurfaceX::SetDdrawParent(m_IDirectDrawX* ddraw)
+{
+	SetCriticalSection();
+
+	ddrawParent = ddraw;
+
+	if (attached3DTexture && ddrawParent)
+	{
+		attached3DTexture->SetD3DDevice(ddrawParent->GetCurrentD3DDevice());
+	}
+
+	ReleaseCriticalSection();
+}
+
+void m_IDirectDrawSurfaceX::ClearDdraw()
+{
+	SetCriticalSection();
+
+	ddrawParent = nullptr;
+	d3d9Device = nullptr;
+
+	if (attached3DTexture)
+	{
+		attached3DTexture->ClearD3DDevice();
+	}
+
+	ReleaseCriticalSection();
+}
+
+inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
+{
+	if (attachedClipper)
+	{
+		attachedClipper->Release();
+	}
+
+	if (attachedPalette)
+	{
+		attachedPalette->Release();
+	}
+
+	if (attached3DTexture)
+	{
+		attached3DTexture->ClearSurface();
+		attached3DTexture->ClearD3DDevice();
+	}
+
+	if (ddrawParent)
+	{
+		ddrawParent->ClearSurface(this);
+	}
 }
 
 LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::GetD3d9Surface()
@@ -4472,7 +4544,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char *FunctionName, bool CheckD3DD
 		}
 
 		SetDdrawParent(DDrawVector[0]);
-		ddrawParent->AddSurfaceToVector(this);
+		ddrawParent->AddSurface(this);
 
 		d3d9Device = ddrawParent->GetDirectD9Device();
 	}
@@ -6327,11 +6399,6 @@ void m_IDirectDrawSurfaceX::AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSur
 // Remove attached surface from map
 void m_IDirectDrawSurfaceX::RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
-	if (!lpSurfaceX)
-	{
-		return;
-	}
-
 	auto it = std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
 		[=](auto Map) -> bool { return Map.second.pSurface == lpSurfaceX; });
 

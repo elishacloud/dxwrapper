@@ -224,13 +224,13 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: lpData is non-null, using application data.");
 		}
 
+		SetCriticalSection();
+
 		m_IDirect3DExecuteBuffer* pExecuteBuffer = CreateDirect3DExecuteBuffer(*lplpDirect3DExecuteBuffer, this, lpDesc);
 
-		ExecuteBufferList.push_back(pExecuteBuffer);
-
-		AddRef(1);
-
 		*lplpDirect3DExecuteBuffer = pExecuteBuffer;
+
+		ReleaseCriticalSection();
 
 		return D3D_OK;
 	}
@@ -245,22 +245,32 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 	return hr;
 }
 
-void m_IDirect3DDeviceX::ReleaseExecuteBuffer(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuffer)
+void m_IDirect3DDeviceX::AddExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer)
 {
-	// Check if the input buffer is valid
-	if (!lpDirect3DExecuteBuffer)
+	if (!lpExecuteBuffer)
 	{
 		return;
 	}
 
+	SetCriticalSection();
+
+	ExecuteBufferList.push_back(lpExecuteBuffer);
+
+	ReleaseCriticalSection();
+}
+
+void m_IDirect3DDeviceX::ClearExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer)
+{
+	SetCriticalSection();
+
 	// Find and remove the buffer from the list
-	auto it = std::find(ExecuteBufferList.begin(), ExecuteBufferList.end(), lpDirect3DExecuteBuffer);
+	auto it = std::find(ExecuteBufferList.begin(), ExecuteBufferList.end(), lpExecuteBuffer);
 	if (it != ExecuteBufferList.end())
 	{
-		Release(1);
-
 		ExecuteBufferList.erase(it);
 	}
+
+	ReleaseCriticalSection();
 }
 
 void m_IDirect3DDeviceX::CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& DestVertexCount, BYTE* SrcVertex, DWORD SrcIndex, DWORD VertexTypeDesc)
@@ -952,6 +962,8 @@ HRESULT m_IDirect3DDeviceX::CreateMatrix(LPD3DMATRIXHANDLE lpD3DMatHandle)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		SetCriticalSection();
+
 		D3DMATRIX Matrix = {
 			1.0f, 0.0f, 0.0f, 0.0f,
 			0.0f, 1.0f, 0.0f, 0.0f,
@@ -970,6 +982,8 @@ HRESULT m_IDirect3DDeviceX::CreateMatrix(LPD3DMATRIXHANDLE lpD3DMatHandle)
 		MatrixMap[D3DMatHandle] = { true, Matrix };
 
 		*lpD3DMatHandle = D3DMatHandle;
+
+		ReleaseCriticalSection();
 
 		return D3D_OK;
 	}
@@ -1562,10 +1576,12 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 	return hr;
 }
 
-void m_IDirect3DDeviceX::ReleaseTextureHandle(D3DTEXTUREHANDLE tHandle)
+void m_IDirect3DDeviceX::ClearTextureHandle(D3DTEXTUREHANDLE tHandle)
 {
 	if (tHandle)
 	{
+		SetCriticalSection();
+
 		TextureHandleMap.erase(tHandle);
 
 		// If texture handle is set then clear it
@@ -1573,6 +1589,8 @@ void m_IDirect3DDeviceX::ReleaseTextureHandle(D3DTEXTUREHANDLE tHandle)
 		{
 			SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, 0);
 		}
+
+		ReleaseCriticalSection();
 	}
 }
 
@@ -2151,13 +2169,17 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 	}
 }
 
-void m_IDirect3DDeviceX::ReleaseViewport(m_IDirect3DViewportX* lpViewportX)
+void m_IDirect3DDeviceX::ClearViewport(m_IDirect3DViewportX* lpViewportX)
 {
+	SetCriticalSection();
+
 	if (lpViewportX == lpCurrentViewportX)
 	{
 		lpCurrentViewport = nullptr;
 		lpCurrentViewportX = nullptr;
 	}
+
+	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
@@ -2905,8 +2927,10 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 	}
 }
 
-void m_IDirect3DDeviceX::ReleaseLightInterface(m_IDirect3DLight* lpLight)
+void m_IDirect3DDeviceX::ClearLight(m_IDirect3DLight* lpLight)
 {
+	SetCriticalSection();
+
 	// Find handle associated with Light
 	auto it = LightIndexMap.begin();
 	while (it != LightIndexMap.end())
@@ -2924,6 +2948,8 @@ void m_IDirect3DDeviceX::ReleaseLightInterface(m_IDirect3DLight* lpLight)
 			++it;
 		}
 	}
+
+	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLIGHT lpLight)
@@ -3204,10 +3230,12 @@ HRESULT m_IDirect3DDeviceX::MultiplyTransform(D3DTRANSFORMSTATETYPE dtstTransfor
 	}
 }
 
-void m_IDirect3DDeviceX::ReleaseMaterialHandle(D3DMATERIALHANDLE mHandle)
+void m_IDirect3DDeviceX::ClearMaterialHandle(D3DMATERIALHANDLE mHandle)
 {
 	if (mHandle)
 	{
+		SetCriticalSection();
+
 		TextureHandleMap.erase(mHandle);
 
 		// If material handle is set then clear it
@@ -3215,6 +3243,8 @@ void m_IDirect3DDeviceX::ReleaseMaterialHandle(D3DMATERIALHANDLE mHandle)
 		{
 			SetLightState(D3DLIGHTSTATE_MATERIAL, 0);
 		}
+
+		ReleaseCriticalSection();
 	}
 }
 
@@ -4686,12 +4716,16 @@ HRESULT m_IDirect3DDeviceX::CreateStateBlock(D3DSTATEBLOCKTYPE d3dsbtype, LPDWOR
 			return DDERR_INVALIDOBJECT;
 		}
 
+		SetCriticalSection();
+
 		HRESULT hr = (*d3d9Device)->CreateStateBlock(d3dsbtype, reinterpret_cast<IDirect3DStateBlock9**>(lpdwBlockHandle));
 
 		if (SUCCEEDED(hr))
 		{
 			StateBlockTokens.insert(*lpdwBlockHandle);
 		}
+
+		ReleaseCriticalSection();
 
 		return hr;
 	}
@@ -4983,30 +5017,37 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 
 void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 {
-	if (!Config.Dd7to9)
-	{
-		return;
-	}
-
 	if (ddrawParent)
 	{
-		d3d9Device = ddrawParent->GetDirectD9Device();
 		ddrawParent->SetD3DDevice(this);
-
-		if (CurrentRenderTarget)
-		{
-			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
-
-			CurrentRenderTarget->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
-			if (lpDDSrcSurfaceX)
-			{
-				lpCurrentRenderTargetX = lpDDSrcSurfaceX;
-				ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
-			}
-		}
 	}
 
-	AddRef(DirectXVersion);
+	if (D3DInterface)
+	{
+		D3DInterface->SetD3DDevice(this);
+	}
+
+	if (Config.Dd7to9)
+	{
+		if (ddrawParent)
+		{
+			d3d9Device = ddrawParent->GetDirectD9Device();
+
+			if (CurrentRenderTarget)
+			{
+				m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
+
+				CurrentRenderTarget->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
+				if (lpDDSrcSurfaceX)
+				{
+					lpCurrentRenderTargetX = lpDDSrcSurfaceX;
+					ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+				}
+			}
+		}
+
+		AddRef(DirectXVersion);
+	}
 }
 
 void m_IDirect3DDeviceX::ReleaseInterface()
@@ -5016,31 +5057,33 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 		return;
 	}
 
+	SetCriticalSection();
+
+	if (ddrawParent)
+	{
+		ddrawParent->ClearD3DDevice(this);
+	}
+
+	if (D3DInterface)
+	{
+		D3DInterface->ClearD3DDevice(this);
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
 	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
 	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
-	// Release ExecuteBuffers
+	// Clear ExecuteBuffers
 	for (auto& entry : ExecuteBufferList)
 	{
-		if (entry->Release())
-		{
-			entry->ClearD3DDevice();
-		}
+		entry->ClearD3DDevice();
 	}
 
-	if (D3DInterface)
-	{
-		D3DInterface->ReleaseD3DDevice();
-	}
+	ReleaseAllStateBlocks();
 
-	if (ddrawParent)
-	{
-		ReleaseAllStateBlocks();
-		ddrawParent->ClearD3DDevice();
-	}
+	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
@@ -5067,6 +5110,39 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 	}
 
 	return D3D_OK;
+}
+
+void m_IDirect3DDeviceX::SetD3D(m_IDirect3DX* lpD3D)
+{
+	if (!lpD3D)
+	{
+		return;
+	}
+
+	SetCriticalSection();
+
+	if (D3DInterface && D3DInterface != lpD3D)
+	{
+		Logging::Log() << __FUNCTION__ << " Warning: Direct3D interface has already been created!";
+	}
+
+	D3DInterface = lpD3D;
+
+	ReleaseCriticalSection();
+}
+
+void m_IDirect3DDeviceX::ClearD3D(m_IDirect3DX* lpD3D)
+{
+	SetCriticalSection();
+
+	if (lpD3D != D3DInterface)
+	{
+		Logging::Log() << __FUNCTION__ << " Warning: released Direct3D interface does not match cached one!";
+	}
+
+	D3DInterface = nullptr;
+
+	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState)
@@ -5274,14 +5350,20 @@ void m_IDirect3DDeviceX::AfterResetDevice()
 
 void m_IDirect3DDeviceX::ClearDdraw()
 {
+	SetCriticalSection();
+
 	ReleaseAllStateBlocks();
 	ddrawParent = nullptr;
 	colorkeyPixelShader = nullptr;
 	d3d9Device = nullptr;
+
+	ReleaseCriticalSection();
 }
 
 void m_IDirect3DDeviceX::ReleaseAllStateBlocks()
 {
+	SetCriticalSection();
+
 	while (!StateBlockTokens.empty())
 	{
 		DWORD Token = *StateBlockTokens.begin();
@@ -5291,6 +5373,8 @@ void m_IDirect3DDeviceX::ReleaseAllStateBlocks()
 			break;
 		}
 	}
+
+	ReleaseCriticalSection();
 }
 
 void m_IDirect3DDeviceX::SetDefaults()

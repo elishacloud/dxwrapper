@@ -174,7 +174,6 @@ private:
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
 	m_IDirect3DTextureX *attached3DTexture = nullptr;	// Associated texture
-	DWORD attached3dTextureRefversion = 0;				// Reference wrapper version for associated texture
 	DDSURFACEDESC2 surfaceDesc2 = {};					// Surface description for this surface
 	DWORD ResetDisplayFlags = 0;						// Flags that need to be reset when display mode changes
 	DWORD UniquenessValue = 0;
@@ -351,6 +350,10 @@ public:
 		{
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
+		if (Config.Dd7to9)
+		{
+			Logging::Log() << __FUNCTION__ << " (" << this << ") Warning: created from non-dd7to9 interface!";
+		}
 
 		InitInterface(DirectXVersion);
 	}
@@ -522,8 +525,9 @@ public:
 	inline D3DFORMAT GetD3d9Format() const { return surface.Format; }
 	inline LPDIRECT3DTEXTURE9 GetD3d9PaletteTexture() const { return primary.PaletteTexture; }
 	inline m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
-	HRESULT CreateAttachedTexture(m_IDirect3DTextureX** lpTexture, DWORD DxTextureVersion, DWORD DirectXVersion);
-	void ReleaseAttachedTexture();
+	HRESULT CreateAttachedTexture(m_IDirect3DTextureX** lplpTexture, DWORD DxTextureVersion);
+	void SetAttachedTexture(m_IDirect3DTextureX* lpTexture);
+	void ClearAttachedTexture(m_IDirect3DTextureX* lpTexture);
 	void ClearUsing3DFlag();
 	HRESULT GetPresentWindowRect(LPRECT pRect, RECT& DestRect);
 

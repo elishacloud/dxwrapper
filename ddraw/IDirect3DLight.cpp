@@ -318,6 +318,11 @@ HRESULT m_IDirect3DLight::CheckInterface(char* FunctionName)
 
 void m_IDirect3DLight::InitInterface()
 {
+	if (D3DInterface)
+	{
+		D3DInterface->AddLight(this);
+	}
+
 	LightSet = false;
 }
 
@@ -328,15 +333,19 @@ void m_IDirect3DLight::ReleaseInterface()
 		return;
 	}
 
+	SetCriticalSection();
+
+	if (D3DInterface)
+	{
+		D3DInterface->ClearLight(this);
+	}
+
 	if (D3DDeviceInterface && *D3DDeviceInterface)
 	{
-		(*D3DDeviceInterface)->ReleaseLightInterface(this);
+		(*D3DDeviceInterface)->ClearLight(this);
 	}
 
 	ClearD3D();
 
-	if (D3DInterface)
-	{
-		D3DInterface->ReleaseLight(this);
-	}
+	ReleaseCriticalSection();
 }

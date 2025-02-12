@@ -34,10 +34,6 @@ bool CheckDirectDrawXInterface(void* pInterface);
 
 class m_IDirectDrawClipper;
 
-void AddBaseClipperToVetor(m_IDirectDrawClipper* lpClipper);
-void RemoveBaseClipperFromVector(m_IDirectDrawClipper* lpClipper);
-bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper);
-
 DWORD GetDDrawBitsPixel(HWND hWnd);
 DWORD GetDDrawWidth();
 DWORD GetDDrawHeight();

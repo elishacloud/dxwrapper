@@ -383,11 +383,15 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 			return DDERR_INVALIDPARAMS;
 		}
 
+		SetCriticalSection();
+
 		m_IDirectDrawClipper* ClipperX = CreateDirectDrawClipper(nullptr, nullptr, dwFlags);
 
-		AddBaseClipperToVetor(ClipperX);
+		AddBaseClipper(ClipperX);
 
 		*lplpDDClipper = ClipperX;
+
+		ReleaseCriticalSection();
 
 		return DD_OK;
 	}
@@ -439,9 +443,13 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 		LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' " << riid << " to --> 'Direct3DCreate9'");
 
+		SetCriticalSection();
+
 		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(DxVersion);
 
 		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(DxVersion);
+
+		ReleaseCriticalSection();
 
 		// Success
 		return DD_OK;
@@ -888,24 +896,32 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 	return SetAppCompatData(Type, Value);
 }
 
-void AddBaseClipperToVetor(m_IDirectDrawClipper* lpClipper)
+void AddBaseClipper(m_IDirectDrawClipper* lpClipper)
 {
 	if (!lpClipper || DoesBaseClipperExist(lpClipper))
 	{
 		return;
 	}
 
+	SetCriticalSection();
+
 	BaseClipperVector.push_back(lpClipper);
+
+	ReleaseCriticalSection();
 }
 
-void RemoveBaseClipperFromVector(m_IDirectDrawClipper* lpClipper)
+void ClearBaseClipper(m_IDirectDrawClipper* lpClipper)
 {
 	if (!lpClipper)
 	{
 		return;
 	}
 
+	SetCriticalSection();
+
 	BaseClipperVector.erase(std::remove(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper), BaseClipperVector.end());
+
+	ReleaseCriticalSection();
 }
 
 bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper)
@@ -915,7 +931,13 @@ bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper)
 		return false;
 	}
 
-	return (std::find(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper) != std::end(BaseClipperVector));
+	SetCriticalSection();
+
+	const bool found = (std::find(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper) != std::end(BaseClipperVector));
+
+	ReleaseCriticalSection();
+
+	return found;
 }
 
 HRESULT DdrawWrapper::SetCriticalSection()

@@ -219,6 +219,11 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 
 void m_IDirectDrawColorControl::InitInterface()
 {
+	if (ddrawParent)
+	{
+		ddrawParent->SetColorControl(this);
+	}
+
 	ColorControl.dwSize = sizeof(DDCOLORCONTROL);
 	ColorControl.dwFlags = DDCOLOR_BRIGHTNESS | DDCOLOR_CONTRAST | DDCOLOR_HUE | DDCOLOR_SATURATION | DDCOLOR_SHARPNESS | DDCOLOR_GAMMA | DDCOLOR_COLORENABLE;
 	ColorControl.lBrightness = 750;
@@ -238,8 +243,12 @@ void m_IDirectDrawColorControl::ReleaseInterface()
 		return;
 	}
 
+	SetCriticalSection();
+
 	if (ddrawParent)
 	{
-		ddrawParent->ClearColorInterface();
+		ddrawParent->ClearColorControl(this);
 	}
+
+	ReleaseCriticalSection();
 }

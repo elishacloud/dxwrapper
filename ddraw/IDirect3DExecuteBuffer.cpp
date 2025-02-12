@@ -604,6 +604,11 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 
 void m_IDirect3DExecuteBuffer::InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc)
 {
+	if (D3DDeviceInterface)
+	{
+		D3DDeviceInterface->AddExecuteBuffer(this);
+	}
+
 	IsLocked = false;
 	IsDataValidated = false;
 	ExecuteData = {};
@@ -638,8 +643,12 @@ void m_IDirect3DExecuteBuffer::ReleaseInterface()
 		return;
 	}
 
+	SetCriticalSection();
+
 	if (D3DDeviceInterface)
 	{
-		D3DDeviceInterface->ReleaseExecuteBuffer(this);
+		D3DDeviceInterface->ClearExecuteBuffer(this);
 	}
+
+	ReleaseCriticalSection();
 }

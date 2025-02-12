@@ -357,12 +357,15 @@ HRESULT m_IDirect3DTextureX::Unload()
 
 void m_IDirect3DTextureX::InitInterface(DWORD DirectXVersion)
 {
-	if (ProxyInterface)
+	if (DDrawSurface)
 	{
-		return;
+		DDrawSurface->SetAttachedTexture(this);
 	}
 
-	AddRef(DirectXVersion);
+	if (!ProxyInterface)
+	{
+		AddRef(DirectXVersion);
+	}
 }
 
 void m_IDirect3DTextureX::ReleaseInterface()
@@ -372,17 +375,21 @@ void m_IDirect3DTextureX::ReleaseInterface()
 		return;
 	}
 
+	SetCriticalSection();
+
+	if (DDrawSurface)
+	{
+		DDrawSurface->ClearAttachedTexture(this);
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
 
 	if (tHandle && D3DDeviceInterface && *D3DDeviceInterface)
 	{
-		(*D3DDeviceInterface)->ReleaseTextureHandle(tHandle);
+		(*D3DDeviceInterface)->ClearTextureHandle(tHandle);
 	}
 
-	if (DDrawSurface)
-	{
-		DDrawSurface->ReleaseAttachedTexture();
-	}
+	ReleaseCriticalSection();
 }

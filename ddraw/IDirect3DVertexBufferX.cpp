@@ -546,19 +546,25 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 
 void m_IDirect3DVertexBufferX::InitInterface(DWORD DirectXVersion)
 {
-	if (!Config.Dd7to9)
-	{
-		return;
-	}
-
 	if (ddrawParent)
 	{
-		ddrawParent->AddVertexBufferToVector(this);
-
-		d3d9Device = ddrawParent->GetDirectD9Device();
+		ddrawParent->AddVertexBuffer(this);
 	}
 
-	AddRef(DirectXVersion);
+	if (D3DInterface)
+	{
+		D3DInterface->AddVertexBuffer(this);
+	}
+
+	if (Config.Dd7to9)
+	{
+		if (ddrawParent)
+		{
+			d3d9Device = ddrawParent->GetDirectD9Device();
+		}
+
+		AddRef(DirectXVersion);
+	}
 }
 
 void m_IDirect3DVertexBufferX::ReleaseInterface()
@@ -568,21 +574,25 @@ void m_IDirect3DVertexBufferX::ReleaseInterface()
 		return;
 	}
 
+	SetCriticalSection();
+
+	if (ddrawParent)
+	{
+		ddrawParent->ClearVertexBuffer(this);
+	}
+
+	if (D3DInterface)
+	{
+		D3DInterface->ClearVertexBuffer(this);
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
 	ReleaseD9Buffer(false, false);
 
-	if (D3DInterface)
-	{
-		D3DInterface->ReleaseVertexBuffer(this);
-	}
-
-	if (ddrawParent)
-	{
-		ddrawParent->RemoveVertexBufferFromVector(this);
-	}
+	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DVertexBuffer)

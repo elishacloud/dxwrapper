@@ -787,12 +787,15 @@ HRESULT m_IDirect3DViewportX::CheckInterface(char* FunctionName)
 
 void m_IDirect3DViewportX::InitInterface(DWORD DirectXVersion)
 {
-	if (ProxyInterface)
+	if (D3DInterface)
 	{
-		return;
+		D3DInterface->AddViewport(this);
 	}
 
-	AddRef(DirectXVersion);
+	if (!ProxyInterface)
+	{
+		AddRef(DirectXVersion);
+	}
 }
 
 void m_IDirect3DViewportX::ReleaseInterface()
@@ -802,6 +805,13 @@ void m_IDirect3DViewportX::ReleaseInterface()
 		return;
 	}
 
+	SetCriticalSection();
+
+	if (D3DInterface)
+	{
+		D3DInterface->ClearViewport(this);
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
@@ -809,11 +819,8 @@ void m_IDirect3DViewportX::ReleaseInterface()
 
 	if (D3DDeviceInterface && *D3DDeviceInterface)
 	{
-		(*D3DDeviceInterface)->ReleaseViewport(this);
+		(*D3DDeviceInterface)->ClearViewport(this);
 	}
 
-	if (D3DInterface)
-	{
-		D3DInterface->ReleaseViewport(this);
-	}
+	ReleaseCriticalSection();
 }

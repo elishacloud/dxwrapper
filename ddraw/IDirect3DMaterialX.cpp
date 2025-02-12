@@ -361,14 +361,17 @@ HRESULT m_IDirect3DMaterialX::CheckInterface(char* FunctionName)
 
 void m_IDirect3DMaterialX::InitInterface(DWORD DirectXVersion)
 {
-	if (ProxyInterface)
+	if (D3DInterface)
 	{
-		return;
+		D3DInterface->AddMaterial(this);
 	}
 
-	Material.dwSize = sizeof(D3DMATERIAL);
+	if (!ProxyInterface)
+	{
+		Material.dwSize = sizeof(D3DMATERIAL);
 
-	AddRef(DirectXVersion);
+		AddRef(DirectXVersion);
+	}
 }
 
 void m_IDirect3DMaterialX::ReleaseInterface()
@@ -378,6 +381,13 @@ void m_IDirect3DMaterialX::ReleaseInterface()
 		return;
 	}
 
+	SetCriticalSection();
+
+	if (D3DInterface)
+	{
+		D3DInterface->ClearMaterial(this);
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
@@ -385,11 +395,8 @@ void m_IDirect3DMaterialX::ReleaseInterface()
 
 	if (mHandle && D3DDeviceInterface && *D3DDeviceInterface)
 	{
-		(*D3DDeviceInterface)->ReleaseMaterialHandle(mHandle);
+		(*D3DDeviceInterface)->ClearMaterialHandle(mHandle);
 	}
 
-	if (D3DInterface)
-	{
-		D3DInterface->ReleaseMaterial(this);
-	}
+	ReleaseCriticalSection();
 }

@@ -360,16 +360,16 @@ HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 
 void m_IDirectDrawClipper::InitInterface(DWORD dwFlags)
 {
+	if (ddrawParent)
+	{
+		ddrawParent->AddClipper(this);
+	}
+
 	clipperCaps = dwFlags;
 	cliphWnd = nullptr;
 	ClipList.clear();
 	IsClipListSet = false;
 	IsClipListChangedFlag = false;
-
-	if (ddrawParent)
-	{
-		ddrawParent->AddClipperToVector(this);
-	}
 }
 
 void m_IDirectDrawClipper::ReleaseInterface()
@@ -379,8 +379,14 @@ void m_IDirectDrawClipper::ReleaseInterface()
 		return;
 	}
 
+	SetCriticalSection();
+
+	ClearBaseClipper(this);
+
 	if (ddrawParent)
 	{
-		ddrawParent->RemoveClipperFromVector(this);
+		ddrawParent->ClearClipper(this);
 	}
+
+	ReleaseCriticalSection();
 }

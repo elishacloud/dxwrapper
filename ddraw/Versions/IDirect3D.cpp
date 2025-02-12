@@ -75,7 +75,7 @@ HRESULT m_IDirect3D::CreateLight(LPDIRECT3DLIGHT * a, IUnknown * b)
 		}
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->CreateLight(a, b, DirectXVersion);
+	return ProxyInterface->CreateLight(a, b);
 }
 
 HRESULT m_IDirect3D::CreateMaterial(LPDIRECT3DMATERIAL * a, IUnknown * b)

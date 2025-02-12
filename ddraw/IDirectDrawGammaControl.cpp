@@ -209,7 +209,10 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 
 void m_IDirectDrawGammaControl::InitInterface()
 {
-	// Initialize gamma control
+	if (ddrawParent)
+	{
+		ddrawParent->SetGammaControl(this);
+	}
 }
 
 void m_IDirectDrawGammaControl::ReleaseInterface()
@@ -219,8 +222,12 @@ void m_IDirectDrawGammaControl::ReleaseInterface()
 		return;
 	}
 
+	SetCriticalSection();
+
 	if (ddrawParent)
 	{
-		ddrawParent->ClearGammaInterface();
+		ddrawParent->ClearGammaControl(this);
 	}
+
+	ReleaseCriticalSection();
 }
