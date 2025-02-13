@@ -55,9 +55,21 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 	{
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 
-		AddRef(DxVersion);
+		if (DDrawSurface)
+		{
+			DDrawSurface->AddRef(DDrawSurfaceVersion);	// 3DTextures share reference count with surface
+		}
+		else
+		{
+			AddRef(DxVersion);
+		}
 
 		return D3D_OK;
+	}
+
+	if (DDrawSurface)
+	{
+		return DDrawSurface->QueryInterface(riid, ppvObj, DDrawSurfaceVersion);
 	}
 
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
@@ -84,6 +96,12 @@ ULONG m_IDirect3DTextureX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
+	// 3DTextures share reference count with surface
+	if (DDrawSurface)
+	{
+		return DDrawSurface->AddRef(DDrawSurfaceVersion);
+	}
+
 	if (!ProxyInterface)
 	{
 		switch (DirectXVersion)
@@ -104,6 +122,12 @@ ULONG m_IDirect3DTextureX::AddRef(DWORD DirectXVersion)
 ULONG m_IDirect3DTextureX::Release(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
+
+	// 3DTextures share reference count with surface
+	if (DDrawSurface)
+	{
+		return DDrawSurface->Release(DDrawSurfaceVersion);
+	}
 
 	ULONG ref;
 
@@ -357,12 +381,8 @@ HRESULT m_IDirect3DTextureX::Unload()
 
 void m_IDirect3DTextureX::InitInterface(DWORD DirectXVersion)
 {
-	if (DDrawSurface)
-	{
-		DDrawSurface->SetAttachedTexture(this);
-	}
-
-	if (!ProxyInterface)
+	// 3DTextures reference handled by ddraw surface
+	if (!ProxyInterface && !DDrawSurface)
 	{
 		AddRef(DirectXVersion);
 	}
@@ -376,11 +396,6 @@ void m_IDirect3DTextureX::ReleaseInterface()
 	}
 
 	SetCriticalSection();
-
-	if (DDrawSurface)
-	{
-		DDrawSurface->ClearAttachedTexture(this);
-	}
 
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);

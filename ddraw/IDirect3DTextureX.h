@@ -11,6 +11,7 @@ private:
 	// Convert Texture
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
 	m_IDirectDrawSurfaceX *DDrawSurface = nullptr;
+	DWORD DDrawSurfaceVersion = 0;
 	DWORD tHandle = 0;
 
 	// Store d3d texture version wrappers
@@ -55,7 +56,8 @@ public:
 
 		InitInterface(DirectXVersion);
 	}
-	m_IDirect3DTextureX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion, m_IDirectDrawSurfaceX *lpSurface) : D3DDeviceInterface(D3DDInterface), DDrawSurface(lpSurface)
+	m_IDirect3DTextureX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion, m_IDirectDrawSurfaceX *lpSurface, DWORD DXSurfaceVersion) :
+		D3DDeviceInterface(D3DDInterface), DDrawSurface(lpSurface), DDrawSurfaceVersion(DXSurfaceVersion)
 	{
 		ProxyDirectXVersion = (Config.Dd7to9) ? 9 : 7;
 
@@ -94,6 +96,5 @@ public:
 	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 
 	// Surface functions
-	void ClearSurface() { DDrawSurface = nullptr; }
 	m_IDirectDrawSurfaceX *GetSurface() { return DDrawSurface; }
 };
