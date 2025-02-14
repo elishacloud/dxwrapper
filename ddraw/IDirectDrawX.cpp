@@ -184,7 +184,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirectDraw7)) ? GetGUIDVersion(riid) : DirectXVersion;
 
-	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
+	if ((riid == GetWrapperType(DxVersion) && riid != IID_IDirectDraw3) || riid == IID_IUnknown)
 	{
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 
@@ -224,45 +224,9 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 			return DD_OK;
 		}
-		if (riid == IID_IDirectDrawColorControl)
-		{
-			if (ColorControlInterface)
-			{
-				*ppvObj = ColorControlInterface;
-
-				ColorControlInterface->AddRef();
-			}
-			else
-			{
-				if (FAILED(CreateColorControl(reinterpret_cast<m_IDirectDrawColorControl**>(ppvObj))))
-				{
-					return E_NOINTERFACE;
-				}
-			}
-
-			return DD_OK;
-		}
-		if (riid == IID_IDirectDrawGammaControl)
-		{
-			if (GammaControlInterface)
-			{
-				*ppvObj = GammaControlInterface;
-
-				GammaControlInterface->AddRef();
-			}
-			else
-			{
-				if (FAILED(CreateGammaControl(reinterpret_cast<m_IDirectDrawGammaControl**>(ppvObj))))
-				{
-					return E_NOINTERFACE;
-				}
-			}
-
-			return DD_OK;
-		}
 	}
 
-	HRESULT hr = ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
+	HRESULT hr = ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 
 	if (SUCCEEDED(hr) && Config.ConvertToDirect3D7)
 	{
@@ -799,14 +763,16 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 		SetCriticalSection();
 
-		m_IDirectDrawSurfaceX *Interface = new m_IDirectDrawSurfaceX(this, DirectXVersion, &Desc2);
+		DWORD DxVersion = DirectXVersion < 4 ? 1 : DirectXVersion;	// The first 3 versions create interface version 1
+
+		m_IDirectDrawSurfaceX *Interface = new m_IDirectDrawSurfaceX(this, DxVersion, &Desc2);
 
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
 			PrimarySurface = Interface;
 		}
 
-		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)Interface->GetWrapperInterfaceX(DirectXVersion);
+		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)Interface->GetWrapperInterfaceX(DxVersion);
 
 		ReleaseCriticalSection();
 

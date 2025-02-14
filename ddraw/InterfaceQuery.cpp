@@ -146,19 +146,7 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 
 	if (!*ppvObj)
 	{
-		if (riid == IID_IDirectDrawColorControl)
-		{
-			*ppvObj = CreateDirectDrawColorControl((IDirectDrawColorControl*)nullptr, nullptr);
-		}
-		else if (riid == IID_IDirectDrawGammaControl)
-		{
-			*ppvObj = CreateDirectDrawGammaControl((IDirectDrawGammaControl*)nullptr, nullptr);
-		}
-		else if (riid == IID_IDirectDrawClipper)
-		{
-			*ppvObj = CreateDirectDrawClipper(nullptr, nullptr, 0);
-		}
-		else if (Config.DirectShowEmulation && (riid == IID_IMediaStream || riid == IID_IAMMediaStream))
+		if (Config.DirectShowEmulation && (riid == IID_IMediaStream || riid == IID_IAMMediaStream))
 		{
 			*ppvObj = new m_IAMMediaStream(riid);
 		}
@@ -169,26 +157,6 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 		else if (riid == IID_IDirectDrawFactory)
 		{
 			*ppvObj = new m_IDirectDrawFactory(nullptr);
-		}
-		else if (Config.Dd7to9 &&
-			(riid == IID_IDirectDraw ||
-			riid == IID_IDirectDraw2 ||
-			riid == IID_IDirectDraw3 ||
-			riid == IID_IDirectDraw4 ||
-			riid == IID_IDirectDraw7))
-		{
-			if (DDrawVector.empty())
-			{
-				dd_DirectDrawCreateEx(nullptr, ppvObj, riid, nullptr);
-			}
-			else
-			{
-				LPDIRECTDRAW7 pDirectDraw = (LPDIRECTDRAW7)DDrawVector[0]->GetWrapperInterfaceX(GetGUIDVersion(riid));
-
-				pDirectDraw->AddRef();
-
-				*ppvObj = pDirectDraw;
-			}
 		}
 
 		if (*ppvObj && !Config.Dd7to9)

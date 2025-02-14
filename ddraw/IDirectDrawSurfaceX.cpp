@@ -240,7 +240,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		return SUCCEEDED(hr) ? DD_OK : E_NOINTERFACE;
 	}
 
-	HRESULT hr = ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
+	HRESULT hr = ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 
 	if (IsD3DDevice && SUCCEEDED(hr))
 	{

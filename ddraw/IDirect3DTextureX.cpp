@@ -72,7 +72,7 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 		return DDrawSurface->QueryInterface(riid, ppvObj, DDrawSurfaceVersion);
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
 void *m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
