@@ -195,7 +195,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 	if (Config.Dd7to9)
 	{
-		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7)
+		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || (riid == IID_IDirect3D7 && DirectXVersion == 7))
 		{
 			if (Config.DdrawDisableDirect3DCaps)
 			{
@@ -204,23 +204,14 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 			DxVersion = GetGUIDVersion(riid);
 
-			if (D3DInterface)
+			if (!D3DInterface)
 			{
-				*ppvObj = D3DInterface->GetWrapperInterfaceX(DxVersion);
-
-				D3DInterface->AddRef(DxVersion);
+				D3DInterface = new m_IDirect3DX(this, DxVersion, DirectXVersion);
 			}
-			else
-			{
-				m_IDirect3DX* p_IDirect3DX = nullptr;
 
-				if (FAILED(CreateD3D(&p_IDirect3DX, DxVersion)))
-				{
-					return E_NOINTERFACE;
-				}
+			AddRef(DirectXVersion);
 
-				*ppvObj = p_IDirect3DX->GetWrapperInterfaceX(DxVersion);
-			}
+			*ppvObj = D3DInterface->GetWrapperInterfaceX(DxVersion);
 
 			return DD_OK;
 		}
@@ -2736,7 +2727,7 @@ void m_IDirectDrawX::ReleaseInterface()
 	// Release Direct3D interfaces
 	if (D3DInterface)
 	{
-		D3DInterface->ClearDdraw();
+		D3DInterface->DeleteMe();
 		D3DInterface = nullptr;
 	}
 
@@ -2744,12 +2735,14 @@ void m_IDirectDrawX::ReleaseInterface()
 	if (ColorControlInterface)
 	{
 		ColorControlInterface->ClearDdraw();
+		ColorControlInterface = nullptr;
 	}
 
 	// Release gamma control
 	if (GammaControlInterface)
 	{
 		GammaControlInterface->ClearDdraw();
+		ColorControlInterface = nullptr;
 	}
 
 	// Release clippers
@@ -4113,54 +4106,6 @@ void m_IDirectDrawX::ReleaseD9Object()
 		}
 		d3d9Object = nullptr;
 	}
-}
-
-HRESULT m_IDirectDrawX::CreateD3D(m_IDirect3DX** lpD3D, DWORD DxD3DVersion)
-{
-	if (lpD3D)
-	{
-		SetCriticalSection();
-
-		*lpD3D = new m_IDirect3DX(this, DxD3DVersion);
-
-		ReleaseCriticalSection();
-
-		return DD_OK;
-	}
-	return DDERR_GENERIC;
-}
-
-void m_IDirectDrawX::SetD3D(m_IDirect3DX* lpD3D)
-{
-	if (!lpD3D)
-	{
-		return;
-	}
-
-	SetCriticalSection();
-
-	if (D3DInterface && D3DInterface != lpD3D)
-	{
-		Logging::Log() << __FUNCTION__ << " Warning: Direct3D interface has already been created!";
-	}
-
-	D3DInterface = lpD3D;
-
-	ReleaseCriticalSection();
-}
-
-void m_IDirectDrawX::ClearD3D(m_IDirect3DX* lpD3D)
-{
-	SetCriticalSection();
-
-	if (lpD3D != D3DInterface)
-	{
-		Logging::Log() << __FUNCTION__ << " Warning: released Direct3D interface does not match cached one!";
-	}
-
-	D3DInterface = nullptr;
-
-	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirectDrawX::CreateColorControl(m_IDirectDrawColorControl** lplpColorControl)

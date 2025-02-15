@@ -74,11 +74,18 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD Dir
 
 	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirect3D7)) ? GetGUIDVersion(riid) : DirectXVersion;
 
-	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
+	if ((riid == GetWrapperType(DxVersion) && (riid != IID_IDirect3D7 || DirectXVersion == 7)) || riid == IID_IUnknown)
 	{
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 
-		AddRef(DxVersion);
+		if (ddrawParent)
+		{
+			ddrawParent->AddRef(DDrawVersion);	// Direct3D shares reference count with DirectDraw
+		}
+		else
+		{
+			AddRef(DxVersion);
+		}
 
 		return D3D_OK;
 	}
@@ -113,6 +120,12 @@ ULONG m_IDirect3DX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Direct3D shares reference count with DirectDraw
+	if (ddrawParent)
+	{
+		return ddrawParent->AddRef(DDrawVersion);
+	}
+
 	if (Config.Dd7to9)
 	{
 		switch (DirectXVersion)
@@ -137,6 +150,12 @@ ULONG m_IDirect3DX::AddRef(DWORD DirectXVersion)
 ULONG m_IDirect3DX::Release(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	// Direct3D shares reference count with DirectDraw
+	if (ddrawParent)
+	{
+		return ddrawParent->Release(DDrawVersion);
+	}
 
 	ULONG ref;
 
@@ -1064,13 +1083,8 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DX::InitInterface(DWORD DirectXVersion)
+void m_IDirect3DX::InitInterface()
 {
-	if (ddrawParent)
-	{
-		ddrawParent->SetD3D(this);
-	}
-
 	if (D3DDeviceInterface)
 	{
 		D3DDeviceInterface->SetD3D(this);
@@ -1085,8 +1099,6 @@ void m_IDirect3DX::InitInterface(DWORD DirectXVersion)
 
 	// Get Cap9 cache
 	GetCap9Cache();
-
-	AddRef(DirectXVersion);
 }
 
 void m_IDirect3DX::ReleaseInterface()
@@ -1097,11 +1109,6 @@ void m_IDirect3DX::ReleaseInterface()
 	}
 
 	SetCriticalSection();
-
-	if (ddrawParent)
-	{
-		ddrawParent->ClearD3D(this);
-	}
 
 	if (D3DDeviceInterface)
 	{

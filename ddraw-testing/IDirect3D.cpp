@@ -43,6 +43,91 @@ void TestCreateDirect3DT(DDType* pDDraw)
         LOG_TEST_RESULT(TestID, riid << " Ref count: ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
         pDDraw->Release();
 
+        struct InterfaceEntry {
+            const IID* iid;
+            const char* name;
+        };
+
+        // List of interfaces to test
+        const InterfaceEntry interfaces[] = {
+            {&IID_IDirect3D, "IDirect3D"},
+            {&IID_IDirect3D2, "IDirect3D2"},
+            {&IID_IDirect3D3, "IDirect3D3"},
+            {&IID_IDirect3D7, "IDirect3D7"},
+        };
+
+        DWORD TestIDBase = 506;
+        for (size_t i = 0; i < std::size(interfaces); ++i)
+        {
+            IUnknown* pQueriedInterface = nullptr;
+            hr = pDirect3D->QueryInterface(*interfaces[i].iid, reinterpret_cast<LPVOID*>(&pQueriedInterface));
+
+            // ****  Base + 0  ****
+            TestID = TestIDBase + (DWORD)(i * 10) + 0;
+            if (SUCCEEDED(hr))
+            {
+                LOG_TEST_RESULT(TestID, "Successfully queried " << interfaces[i].name << ". Ref count: ", GetRefCount(pQueriedInterface), GetResults<DDType>(TestID));
+
+                // ****  Base + 1  ****
+                TestID = TestIDBase + (DWORD)(i * 10) + 1;
+                LOG_TEST_RESULT(TestID, "Base interface Ref count: ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+
+                // ****  Base + 2  ****
+                TestID = TestIDBase + (DWORD)(i * 10) + 2;
+                LOG_TEST_RESULT(TestID, "DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+                // ****  Base + 3  ****
+                TestID = TestIDBase + (DWORD)(i * 10) + 3;
+                pQueriedInterface->AddRef();
+                LOG_TEST_RESULT(TestID, "AddRef " << interfaces[i].name << ". Ref count: ", GetRefCount(pQueriedInterface), GetResults<DDType>(TestID));
+
+                // ****  Base + 4  ****
+                TestID = TestIDBase + (DWORD)(i * 10) + 4;
+                LOG_TEST_RESULT(TestID, "Base interface Ref count: ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+
+                // ****  Base + 5  ****
+                TestID = TestIDBase + (DWORD)(i * 10) + 5;
+                LOG_TEST_RESULT(TestID, "DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+                pQueriedInterface->Release();
+
+                REFIID dd_riid = std::is_same_v<DDType, IDirectDraw4> ? IID_IDirectDraw2 : IID_IDirectDraw4;
+
+                IUnknown* pDDraw2 = nullptr;
+                hr = pDDraw->QueryInterface(dd_riid, reinterpret_cast<LPVOID*>(&pDDraw2));
+
+                // ****  Base + 6  ****
+                TestID = TestIDBase + (DWORD)(i * 10) + 6;
+                if (SUCCEEDED(hr))
+                {
+                    LOG_TEST_RESULT(TestID, "Successfully queried " << dd_riid << ". Ref count: ", GetRefCount(pDDraw2), GetResults<DDType>(TestID));
+
+                    // ****  Base + 7  ****
+                    TestID = TestIDBase + (DWORD)(i * 10) + 7;
+                    LOG_TEST_RESULT(TestID, interfaces[i].name << ". Ref count: ", GetRefCount(pQueriedInterface), GetResults<DDType>(TestID));
+
+                    // ****  Base + 8  ****
+                    TestID = TestIDBase + (DWORD)(i * 10) + 8;
+                    LOG_TEST_RESULT(TestID, "Base interface Ref count: ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+
+                    // ****  Base + 9  ****
+                    TestID = TestIDBase + (DWORD)(i * 10) + 9;
+                    LOG_TEST_RESULT(TestID, "DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+                    pDDraw2->Release();
+                }
+                else
+                {
+                    LOG_TEST_RESULT(TestID, "Failed to query " << dd_riid << ". Error: ", (DDERR)hr, GetResults<DDType>(TestID));
+                }
+
+                pQueriedInterface->Release();
+            }
+            else
+            {
+                LOG_TEST_RESULT(TestID, "Failed to query " << interfaces[i].name << ". Error: ", (DDERR)hr, GetResults<DDType>(TestID));
+            }
+        }
+
         pDirect3D->Release();
     }
     else

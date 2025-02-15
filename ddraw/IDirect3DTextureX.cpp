@@ -67,11 +67,6 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 		return D3D_OK;
 	}
 
-	if (DDrawSurface)
-	{
-		return DDrawSurface->QueryInterface(riid, ppvObj, DDrawSurfaceVersion);
-	}
-
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
@@ -379,13 +374,9 @@ HRESULT m_IDirect3DTextureX::Unload()
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DTextureX::InitInterface(DWORD DirectXVersion)
+void m_IDirect3DTextureX::InitInterface()
 {
-	// 3DTextures reference handled by ddraw surface
-	if (!ProxyInterface && !DDrawSurface)
-	{
-		AddRef(DirectXVersion);
-	}
+	// Blank for now
 }
 
 void m_IDirect3DTextureX::ReleaseInterface()

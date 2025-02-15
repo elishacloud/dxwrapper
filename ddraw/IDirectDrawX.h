@@ -86,9 +86,6 @@ private:
 	void ReleaseD9Device();
 	void ReleaseD9Object();
 
-	// Device interfaces
-	HRESULT CreateD3D(m_IDirect3DX** lpD3D, DWORD DxD3DVersion);
-
 	// Gamma functions
 	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader();
 	HRESULT SetBrightnessLevel(D3DGAMMARAMP& RampData);
@@ -186,8 +183,6 @@ public:
 
 	// Direct3D interfaces
 	inline m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
-	void SetD3D(m_IDirect3DX* lpD3D);
-	void ClearD3D(m_IDirect3DX* lpD3D);
 	void SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);

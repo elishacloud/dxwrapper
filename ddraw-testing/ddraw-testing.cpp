@@ -71,16 +71,13 @@ void TestQueryInterfaces(DDType* pDDraw, IUnknown* pInterface, const char* Paren
         {
             LOG_TEST_RESULT(TestID, "Successfully queried " << interfaces[i].name << " from " << ParentName << ". Ref count: ", GetRefCount(pQueriedInterface), GetResults<DDType>(TestID));
 
-            // ****  Base + 2  ****
+            // ****  Base + 1  ****
             TestID = TestIDBase + (DWORD)(i * 3) + 1;
             LOG_TEST_RESULT(TestID, "Base interface Ref count: ", GetRefCount(pInterface), GetResults<DDType>(TestID));
 
-            // ****  Base + 3  ****
+            // ****  Base + 2  ****
             TestID = TestIDBase + (DWORD)(i * 3) + 2;
             LOG_TEST_RESULT(TestID, "DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
-
-            IDirectDrawGammaControl* pGammaControl2 = nullptr;
-            hr = pDDraw->QueryInterface(IID_IDirectDrawGammaControl, reinterpret_cast<LPVOID*>(&pGammaControl2));
 
             pQueriedInterface->Release();
         }

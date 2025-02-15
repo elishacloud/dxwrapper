@@ -10,6 +10,7 @@ private:
 	ULONG RefCount3 = 0;
 	ULONG RefCount7 = 0;
 	m_IDirectDrawX *ddrawParent = nullptr;
+	DWORD DDrawVersion = 0;
 
 	// Store d3d version wrappers
 	m_IDirect3D *WrapperInterface = nullptr;
@@ -64,7 +65,7 @@ private:
 	void ResolutionHack();
 
 	// Interface initialization functions
-	void InitInterface(DWORD DirectXVersion);
+	void InitInterface();
 	void ReleaseInterface();
 
 public:
@@ -85,15 +86,15 @@ public:
 			Logging::Log() << __FUNCTION__ << " (" << this << ") Warning: created from non-dd7to9 interface!";
 		}
 
-		InitInterface(DirectXVersion);
+		InitInterface();
 	}
-	m_IDirect3DX(m_IDirectDrawX *lpDdraw, DWORD DirectXVersion) : ddrawParent(lpDdraw)
+	m_IDirect3DX(m_IDirectDrawX *lpDdraw, DWORD DirectXVersion, DWORD DXDrawVersion) : ddrawParent(lpDdraw), DDrawVersion(DXDrawVersion)
 	{
 		ProxyDirectXVersion = 9;
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		InitInterface(DirectXVersion);
+		InitInterface();
 	}
 	~m_IDirect3DX()
 	{
