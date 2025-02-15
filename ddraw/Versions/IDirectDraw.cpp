@@ -79,7 +79,7 @@ HRESULT m_IDirectDraw::CreatePalette(DWORD a, LPPALETTEENTRY b, LPDIRECTDRAWPALE
 		}
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->CreatePalette(a, b, c, d);
+	return ProxyInterface->CreatePalette(a, b, c, d, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw::CreateSurface(LPDDSURFACEDESC a, LPDIRECTDRAWSURFACE FAR * b, IUnknown FAR * c)

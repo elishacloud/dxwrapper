@@ -419,7 +419,7 @@ void m_IDirectDrawX::ClearClipper(m_IDirectDrawClipper* lpClipper)
 	ReleaseCriticalSection();
 }
 
-HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray, LPDIRECTDRAWPALETTE FAR * lplpDDPalette, IUnknown FAR * pUnkOuter)
+HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray, LPDIRECTDRAWPALETTE FAR * lplpDDPalette, IUnknown FAR * pUnkOuter, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -433,6 +433,22 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 		SetCriticalSection();
 
 		m_IDirectDrawPalette* Interface = CreateDirectDrawPalette(nullptr, this, dwFlags, lpDDColorArray);
+
+		if (DirectXVersion > 3)
+		{
+			for (auto& entry : PaletteList)
+			{
+				if (entry.Interface == Interface)
+				{
+					entry.DxVersion = DirectXVersion;
+					entry.RefCount = 1;
+
+					AddRef(entry.DxVersion);
+
+					break;
+				}
+			}
+		}
 
 		*lplpDDPalette = Interface;
 
@@ -460,7 +476,7 @@ void m_IDirectDrawX::AddPalette(m_IDirectDrawPalette* lpPalette)
 
 	SetCriticalSection();
 
-	PaletteList.push_back(lpPalette);
+	PaletteList.push_back({ lpPalette, 0, 0 });
 
 	ReleaseCriticalSection();
 }
@@ -470,9 +486,16 @@ void m_IDirectDrawX::ClearPalette(m_IDirectDrawPalette* lpPalette)
 	SetCriticalSection();
 
 	// Find and remove the palette from the list
-	auto it = std::find(PaletteList.begin(), PaletteList.end(), lpPalette);
+	auto it = std::find_if(PaletteList.begin(), PaletteList.end(),
+		[lpPalette](auto entry) {
+			return entry.Interface == lpPalette;
+		});
 	if (it != PaletteList.end())
 	{
+		if (it->RefCount == 1)
+		{
+			Release(it->DxVersion);
+		}
 		PaletteList.erase(it);
 	}
 
@@ -935,8 +958,7 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 		}
 
 		auto it = std::find_if(pDDraw->SurfaceList.begin(), pDDraw->SurfaceList.end(),
-			[lpSurfaceX](auto entry)
-			{
+			[lpSurfaceX](auto entry) {
 				return entry.Interface == lpSurfaceX;
 			});
 		if (it != std::end(pDDraw->SurfaceList))
@@ -2793,7 +2815,7 @@ void m_IDirectDrawX::ReleaseInterface()
 	// Release palettes
 	for (const auto& pPalette : PaletteList)
 	{
-		pPalette->ClearDdraw();
+		pPalette.Interface->ClearDdraw();
 	}
 	PaletteList.clear();
 
@@ -4268,8 +4290,7 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 	SetCriticalSection();
 
 	const bool found = std::find_if(SurfaceList.begin(), SurfaceList.end(),
-		[lpSurfaceX](auto entry)
-		{
+		[lpSurfaceX](auto entry) {
 			return entry.Interface == lpSurfaceX;
 		}) != std::end(SurfaceList);
 
@@ -4311,7 +4332,10 @@ bool m_IDirectDrawX::DoesPaletteExist(m_IDirectDrawPalette* lpPalette)
 
 	SetCriticalSection();
 
-	const bool found = std::find(PaletteList.begin(), PaletteList.end(), lpPalette) != std::end(PaletteList);
+	const bool found = std::find_if(PaletteList.begin(), PaletteList.end(),
+		[lpPalette](auto entry) {
+			return entry.Interface == lpPalette;
+		}) != std::end(PaletteList);
 
 	ReleaseCriticalSection();
 

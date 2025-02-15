@@ -2,6 +2,34 @@
 #include "testing-harness.h"
 
 template <typename DDType>
+void TestCreatePalette(DDType* pDDraw)
+{
+    PALETTEENTRY DDColorArray[256] = {};
+
+    IDirectDrawPalette* pPalette = nullptr;
+    HRESULT hr = pDDraw->CreatePalette(DDPCAPS_8BIT, DDColorArray, &pPalette, nullptr);
+
+    // ****  600  ****
+    DWORD TestID = 600;
+    if (FAILED(hr))
+    {
+        LOG_TEST_RESULT(TestID, "Failed to create palette. Error: ", (DDERR)hr, TEST_FAILED);
+        return;
+    }
+    LOG_TEST_RESULT(TestID, "Palette created. Ref count: ", GetRefCount(pPalette), GetResults<DDType>(TestID));
+
+    // ****  601  ****
+    TestID = 601;
+    LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+    pPalette->Release();
+
+    // ****  602  ****
+    TestID = 602;
+    LOG_TEST_RESULT(TestID, "After palette release. DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+}
+
+template <typename DDType>
 DDType* TestDirectDrawCreateT()
 {
     DDType* pDDraw = nullptr;
@@ -120,8 +148,11 @@ void TestDirectDrawCreate()
     TestID = 106;
     LOG_TEST_RESULT(TestID, "SetDisplayMode result: ", (DDERR)hr, (DDERR)GetResults<DDType>(TestID));
 
-    // Test creating a surface
+    // Test creating surfaces
     TestCreateSurface(pDDraw);
+
+    // Test creating palettes
+    TestCreatePalette(pDDraw);
 
     // Test creating a Direct3D interface
     TestCreateDirect3D(pDDraw);
