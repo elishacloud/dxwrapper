@@ -915,6 +915,22 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 
 		m_IDirect3DVertexBufferX *Interface = new m_IDirect3DVertexBufferX(ddrawParent, this, lpVBDesc, DirectXVersion);
 
+		if (DirectXVersion > 3)
+		{
+			for (auto& entry : VertexBufferList)
+			{
+				if (entry.Interface == Interface)
+				{
+					entry.DxVersion = DirectXVersion;
+					entry.RefCount = 1;
+
+					AddRef(entry.DxVersion);
+
+					break;
+				}
+			}
+		}
+
 		*lplpD3DVertexBuffer = (LPDIRECT3DVERTEXBUFFER7)Interface->GetWrapperInterfaceX(DirectXVersion);
 
 		ReleaseCriticalSection();
@@ -942,7 +958,7 @@ void m_IDirect3DX::AddVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX)
 
 	SetCriticalSection();
 
-	VertexBufferList.push_back(lpVertexBufferX);
+	VertexBufferList.push_back({ lpVertexBufferX, 0, 0 });
 
 	ReleaseCriticalSection();
 }
@@ -952,9 +968,16 @@ void m_IDirect3DX::ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX)
 	SetCriticalSection();
 
 	// Find and remove the buffer from the list
-	auto it = std::find(VertexBufferList.begin(), VertexBufferList.end(), lpVertexBufferX);
+	auto it = std::find_if(VertexBufferList.begin(), VertexBufferList.end(),
+		[lpVertexBufferX](auto entry) {
+			return entry.Interface == lpVertexBufferX;
+		});
 	if (it != VertexBufferList.end())
 	{
+		if (it->RefCount == 1)
+		{
+			Release(it->DxVersion);
+		}
 		VertexBufferList.erase(it);
 	}
 
@@ -1137,7 +1160,7 @@ void m_IDirect3DX::ReleaseInterface()
 	// Release Vertex Buffer
 	for (auto& entry : VertexBufferList)
 	{
-		entry->ClearD3D();
+		entry.Interface->ClearD3D();
 	}
 
 	// Release Viewport

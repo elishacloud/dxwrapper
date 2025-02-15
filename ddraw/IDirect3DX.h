@@ -35,7 +35,12 @@ private:
 	std::vector<m_IDirect3DMaterialX*> MaterialList;
 
 	// VertexBuffer array
-	std::vector<m_IDirect3DVertexBufferX*> VertexBufferList;
+	struct VERTEXBUFFERLIST {
+		m_IDirect3DVertexBufferX* Interface = nullptr;
+		DWORD DxVersion = 0;
+		DWORD RefCount = 0;
+	};
+	std::vector<VERTEXBUFFERLIST> VertexBufferList;
 
 	// Viewport array
 	std::vector<m_IDirect3DViewportX*> ViewportList;

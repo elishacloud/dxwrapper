@@ -1,6 +1,145 @@
 #include "ddraw-testing.h"
 #include "testing-harness.h"
 
+template <typename DDType, typename D3DType, typename D3MType>
+void TestCreateVertexBuffer(DDType* pDDraw, D3DType* pDirect3D)
+{
+    D3DVERTEXBUFFERDESC BuffDesc = {};
+    BuffDesc.dwSize = sizeof(D3DVERTEXBUFFERDESC);
+    BuffDesc.dwCaps = D3DVBCAPS_SYSTEMMEMORY;
+    BuffDesc.dwFVF = D3DFVF_XYZ | D3DFVF_DIFFUSE;
+    BuffDesc.dwNumVertices = 100;
+
+    D3MType* pVertexBuffer = nullptr;
+    HRESULT hr;
+    
+    if constexpr (std::is_same_v<D3DType, IDirect3D3>)
+    {
+        hr = pDirect3D->CreateVertexBuffer(&BuffDesc, &pVertexBuffer, 0, nullptr);
+    }
+    else if constexpr (std::is_same_v<D3DType, IDirect3D7>)
+    {
+        hr = pDirect3D->CreateVertexBuffer(&BuffDesc, &pVertexBuffer, 0);
+    }
+
+    // ****  730  ****
+    DWORD TestID = 730;
+    if (FAILED(hr))
+    {
+        LOG_TEST_RESULT(TestID, "Failed to create VertexBuffer. Error: ", (DDERR)hr, TEST_FAILED);
+        return;
+    }
+
+    LOG_TEST_RESULT(TestID, "VertexBuffer created. Ref count: ", GetRefCount(pVertexBuffer), GetResults<DDType>(TestID));
+
+    // ****  731  ****
+    TestID = 731;
+    LOG_TEST_RESULT(TestID, "Direct3D Ref count ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+
+    // ****  732  ****
+    TestID = 732;
+    LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+    pVertexBuffer->Release();
+
+    // ****  733  ****
+    TestID = 733;
+    LOG_TEST_RESULT(TestID, "After VertexBuffer release. Direct3D Ref count ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+}
+
+template <typename DDType, typename D3DType, typename D3MType>
+void TestCreateViewport(DDType* pDDraw, D3DType* pDirect3D)
+{
+    D3MType* pViewport = nullptr;
+    HRESULT hr = pDirect3D->CreateViewport(&pViewport, nullptr);
+
+    // ****  720  ****
+    DWORD TestID = 720;
+    if (FAILED(hr))
+    {
+        LOG_TEST_RESULT(TestID, "Failed to create Viewport. Error: ", (DDERR)hr, TEST_FAILED);
+        return;
+    }
+
+    LOG_TEST_RESULT(TestID, "Viewport created. Ref count: ", GetRefCount(pViewport), GetResults<DDType>(TestID));
+
+    // ****  721  ****
+    TestID = 721;
+    LOG_TEST_RESULT(TestID, "Direct3D Ref count ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+
+    // ****  722  ****
+    TestID = 722;
+    LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+    pViewport->Release();
+
+    // ****  723  ****
+    TestID = 723;
+    LOG_TEST_RESULT(TestID, "After Viewport release. Direct3D Ref count ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+}
+
+template <typename DDType, typename D3DType, typename D3MType>
+void TestCreateMaterial(DDType* pDDraw, D3DType* pDirect3D)
+{
+    D3MType* pMaterial = nullptr;
+    HRESULT hr = pDirect3D->CreateMaterial(&pMaterial, nullptr);
+
+    // ****  710  ****
+    DWORD TestID = 710;
+    if (FAILED(hr))
+    {
+        LOG_TEST_RESULT(TestID, "Failed to create Material. Error: ", (DDERR)hr, TEST_FAILED);
+        return;
+    }
+
+    LOG_TEST_RESULT(TestID, "Material created. Ref count: ", GetRefCount(pMaterial), GetResults<DDType>(TestID));
+
+    // ****  711  ****
+    TestID = 711;
+    LOG_TEST_RESULT(TestID, "Direct3D Ref count ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+
+    // ****  712  ****
+    TestID = 712;
+    LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+    pMaterial->Release();
+
+    // ****  713  ****
+    TestID = 713;
+    LOG_TEST_RESULT(TestID, "After Material release. Direct3D Ref count ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+}
+
+template <typename DDType, typename D3DType>
+void TestCreateLight(DDType* pDDraw, D3DType* pDirect3D)
+{
+    IDirect3DLight* pLight = nullptr;
+    HRESULT hr = pDirect3D->CreateLight(&pLight, nullptr);
+
+    // ****  700  ****
+    DWORD TestID = 700;
+    if (FAILED(hr))
+    {
+        LOG_TEST_RESULT(TestID, "Failed to create Light. Error: ", (DDERR)hr, TEST_FAILED);
+        return;
+    }
+
+    LOG_TEST_RESULT(TestID, "Light created. Ref count: ", GetRefCount(pLight), GetResults<DDType>(TestID));
+
+    // ****  701  ****
+    TestID = 701;
+    LOG_TEST_RESULT(TestID, "Direct3D Ref count ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+
+    // ****  702  ****
+    TestID = 702;
+    LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+    pLight->Release();
+
+    // ****  703  ****
+    TestID = 703;
+    LOG_TEST_RESULT(TestID, "After Light release. Direct3D Ref count ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+}
+
 template <typename DDType, typename D3DType>
 void TestCreateDirect3DT(DDType* pDDraw)
 {
@@ -126,6 +265,38 @@ void TestCreateDirect3DT(DDType* pDDraw)
             {
                 LOG_TEST_RESULT(TestID, "Failed to query " << interfaces[i].name << ". Error: ", (DDERR)hr, GetResults<DDType>(TestID));
             }
+        }
+
+        if constexpr (std::is_same_v<D3DType, IDirect3D> || std::is_same_v<D3DType, IDirect3D2> || std::is_same_v<D3DType, IDirect3D3>)
+        {
+            // Testing 3D Light
+            TestCreateLight<DDType, D3DType>(pDDraw, pDirect3D);
+        }
+
+        // Testing 3D Material / Viewport / VertexBuffer
+        if constexpr (std::is_same_v<D3DType, IDirect3D>)
+        {
+            TestCreateMaterial<DDType, D3DType, IDirect3DMaterial>(pDDraw, pDirect3D);
+
+            TestCreateViewport<DDType, D3DType, IDirect3DViewport>(pDDraw, pDirect3D);
+        }
+        else if constexpr (std::is_same_v<D3DType, IDirect3D2>)
+        {
+            TestCreateMaterial<DDType, D3DType, IDirect3DMaterial2>(pDDraw, pDirect3D);
+
+            TestCreateViewport<DDType, D3DType, IDirect3DViewport2>(pDDraw, pDirect3D);
+        }
+        else if constexpr (std::is_same_v<D3DType, IDirect3D3>)
+        {
+            TestCreateMaterial<DDType, D3DType, IDirect3DMaterial3>(pDDraw, pDirect3D);
+
+            TestCreateViewport<DDType, D3DType, IDirect3DViewport3>(pDDraw, pDirect3D);
+
+            TestCreateVertexBuffer<DDType, D3DType, IDirect3DVertexBuffer>(pDDraw, pDirect3D);
+        }
+        else if constexpr (std::is_same_v<D3DType, IDirect3D7>)
+        {
+            TestCreateVertexBuffer<DDType, D3DType, IDirect3DVertexBuffer7>(pDDraw, pDirect3D);
         }
 
         pDirect3D->Release();
