@@ -66,7 +66,7 @@ HRESULT m_IDirectDraw4::CreateClipper(DWORD a, LPDIRECTDRAWCLIPPER FAR * b, IUnk
 		}
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->CreateClipper(a, b, c);
+	return ProxyInterface->CreateClipper(a, b, c, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw4::CreatePalette(DWORD a, LPPALETTEENTRY b, LPDIRECTDRAWPALETTE FAR * c, IUnknown FAR * d)

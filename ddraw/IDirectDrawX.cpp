@@ -359,7 +359,7 @@ HRESULT m_IDirectDrawX::Compact()
 	return ProxyInterface->Compact();
 }
 
-HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * lplpDDClipper, IUnknown FAR * pUnkOuter)
+HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * lplpDDClipper, IUnknown FAR * pUnkOuter, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -373,6 +373,22 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 		SetCriticalSection();
 
 		m_IDirectDrawClipper* Interface = CreateDirectDrawClipper(nullptr, this, dwFlags);
+
+		if (DirectXVersion > 3)
+		{
+			for (auto& entry : ClipperList)
+			{
+				if (entry.Interface == Interface)
+				{
+					entry.DxVersion = DirectXVersion;
+					entry.RefCount = 1;
+
+					AddRef(entry.DxVersion);
+
+					break;
+				}
+			}
+		}
 
 		*lplpDDClipper = Interface;
 
@@ -400,7 +416,7 @@ void m_IDirectDrawX::AddClipper(m_IDirectDrawClipper* lpClipper)
 
 	SetCriticalSection();
 
-	ClipperList.push_back(lpClipper);
+	ClipperList.push_back({ lpClipper, 0, 0 });
 
 	ReleaseCriticalSection();
 }
@@ -410,9 +426,16 @@ void m_IDirectDrawX::ClearClipper(m_IDirectDrawClipper* lpClipper)
 	SetCriticalSection();
 
 	// Find and remove the clipper from the list
-	auto it = std::find(ClipperList.begin(), ClipperList.end(), lpClipper);
+	auto it = std::find_if(ClipperList.begin(), ClipperList.end(),
+		[lpClipper](auto entry) {
+			return entry.Interface == lpClipper;
+		});
 	if (it != ClipperList.end())
 	{
+		if (it->RefCount == 1)
+		{
+			Release(it->DxVersion);
+		}
 		ClipperList.erase(it);
 	}
 
@@ -2808,7 +2831,7 @@ void m_IDirectDrawX::ReleaseInterface()
 	// Release clippers
 	for (const auto& pClipper : ClipperList)
 	{
-		pClipper->ClearDdraw();
+		pClipper.Interface->ClearDdraw();
 	}
 	ClipperList.clear();
 
@@ -4315,7 +4338,10 @@ bool m_IDirectDrawX::DoesClipperExist(m_IDirectDrawClipper* lpClipper)
 
 	SetCriticalSection();
 
-	const bool found = std::find(ClipperList.begin(), ClipperList.end(), lpClipper) != std::end(ClipperList);
+	const bool found = std::find_if(ClipperList.begin(), ClipperList.end(),
+		[lpClipper](auto entry) {
+			return entry.Interface == lpClipper;
+		}) != std::end(ClipperList);
 
 	ReleaseCriticalSection();
 

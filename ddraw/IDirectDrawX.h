@@ -37,7 +37,12 @@ private:
 	m_IDirectDrawGammaControl* GammaControlInterface = nullptr;
 
 	// Store a list of clippers
-	std::vector<m_IDirectDrawClipper*> ClipperList;
+	struct CLIPPERLIST {
+		m_IDirectDrawClipper* Interface = nullptr;
+		DWORD DxVersion = 0;
+		DWORD RefCount = 0;
+	};
+	std::vector<CLIPPERLIST> ClipperList;
 
 	// Store a list of palettes
 	struct PALETTELIST {
@@ -147,7 +152,7 @@ public:
 
 	/*** IDirectDraw methods ***/
 	STDMETHOD(Compact)(THIS);
-	STDMETHOD(CreateClipper)(THIS_ DWORD, LPDIRECTDRAWCLIPPER FAR *, IUnknown FAR *);
+	STDMETHOD(CreateClipper)(THIS_ DWORD, LPDIRECTDRAWCLIPPER FAR *, IUnknown FAR *, DWORD);
 	STDMETHOD(CreatePalette)(THIS_ DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE FAR *, IUnknown FAR *, DWORD);
 	HRESULT CreateSurface(LPDDSURFACEDESC, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *, DWORD);
 	HRESULT CreateSurface2(LPDDSURFACEDESC2, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *, DWORD);

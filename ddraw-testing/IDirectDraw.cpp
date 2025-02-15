@@ -2,6 +2,32 @@
 #include "testing-harness.h"
 
 template <typename DDType>
+void TestCreateClipper(DDType* pDDraw)
+{
+    IDirectDrawClipper* pClipper = nullptr;
+    HRESULT hr = pDDraw->CreateClipper(0, &pClipper, nullptr);
+
+    // ****  650  ****
+    DWORD TestID = 650;
+    if (FAILED(hr))
+    {
+        LOG_TEST_RESULT(TestID, "Failed to create clipper. Error: ", (DDERR)hr, TEST_FAILED);
+        return;
+    }
+    LOG_TEST_RESULT(TestID, "Clipper created. Ref count: ", GetRefCount(pClipper), GetResults<DDType>(TestID));
+
+    // ****  651  ****
+    TestID = 651;
+    LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+    pClipper->Release();
+
+    // ****  652  ****
+    TestID = 652;
+    LOG_TEST_RESULT(TestID, "After clipper release. DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+}
+
+template <typename DDType>
 void TestCreatePalette(DDType* pDDraw)
 {
     PALETTEENTRY DDColorArray[256] = {};
@@ -153,6 +179,9 @@ void TestDirectDrawCreate()
 
     // Test creating palettes
     TestCreatePalette(pDDraw);
+
+    // Test creating clippers
+    TestCreateClipper(pDDraw);
 
     // Test creating a Direct3D interface
     TestCreateDirect3D(pDDraw);

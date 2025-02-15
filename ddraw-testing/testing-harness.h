@@ -167,10 +167,13 @@ constexpr TESTMATRIX TestResults[] = {
 	{ 544, { 3, 3, 3, 3, 3, 3 } },
 	{ 545, { 3, 3, 3, 3, 3, 3 } },
 
-	// IDirectDrawPalette
+	// IDirectDrawPalette / IDirectDrawClipper
 	{ 600, { 1, 1, 1, 1, 1, 1 } },
 	{ 601, { 1, 1, 1, 2, 2, 2 } },
 	{ 602, { 1, 1, 1, 1, 1, 1 } },
+	{ 650, { 1, 1, 1, 1, 1, 1 } },
+	{ 651, { 1, 1, 1, 2, 2, 2 } },
+	{ 652, { 1, 1, 1, 1, 1, 1 } },
 
 	// All interfaces quried by IDirectDraw
 	{ 1000, { 2, 1, (DWORD)E_NOINTERFACE, 1, 1, 1 } },
