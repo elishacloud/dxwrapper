@@ -754,13 +754,35 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 		SetCriticalSection();
 
-		DWORD DxVersion = DirectXVersion < 4 ? 1 : DirectXVersion;	// The first 3 versions create interface version 1
+		DWORD DxVersion = DirectXVersion > 3 ? DirectXVersion : 1;	// The first 3 versions create interface version 1
 
 		m_IDirectDrawSurfaceX *Interface = new m_IDirectDrawSurfaceX(this, DxVersion, &Desc2);
 
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
 			PrimarySurface = Interface;
+		}
+
+		if (DirectXVersion > 3)
+		{
+			for (auto& entry : SurfaceList)
+			{
+				if (entry.Interface == Interface)
+				{
+					entry.DxVersion = DirectXVersion;
+					entry.RefCount = IsCreatedEx() && (Desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) ? 2 : 1;
+					if (entry.RefCount == 1)
+					{
+						AddRef(entry.DxVersion);
+					}
+					else if (entry.RefCount == 2)
+					{
+						AddRef(entry.DxVersion);
+						AddRef(entry.DxVersion);
+					}
+					break;
+				}
+			}
 		}
 
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)Interface->GetWrapperInterfaceX(DxVersion);
@@ -839,6 +861,28 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 
 		m_IDirectDrawSurfaceX* Interface = new m_IDirectDrawSurfaceX(this, DirectXVersion, &Desc2);
 
+		if (DirectXVersion > 3)
+		{
+			for (auto& entry : SurfaceList)
+			{
+				if (entry.Interface == Interface)
+				{
+					entry.DxVersion = DirectXVersion;
+					entry.RefCount = IsCreatedEx() && (Desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) ? 2 : 1;
+					if (entry.RefCount == 1)
+					{
+						AddRef(entry.DxVersion);
+					}
+					else if (entry.RefCount == 2)
+					{
+						AddRef(entry.DxVersion);
+						AddRef(entry.DxVersion);
+					}
+					break;
+				}
+			}
+		}
+
 		*lplpDupDDSurface = (LPDIRECTDRAWSURFACE7)Interface->GetWrapperInterfaceX(DirectXVersion);
 
 		ReleaseCriticalSection();
@@ -877,7 +921,7 @@ void m_IDirectDrawX::AddSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 
 	SetCriticalSection();
 
-	SurfaceList.push_back(lpSurfaceX);
+	SurfaceList.push_back({ lpSurfaceX, 0, 0 });
 
 	ReleaseCriticalSection();
 }
@@ -909,15 +953,28 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 			pDDraw->SetDepthStencilSurface(nullptr);
 		}
 
-		auto it = std::find(pDDraw->SurfaceList.begin(), pDDraw->SurfaceList.end(), lpSurfaceX);
+		auto it = std::find_if(pDDraw->SurfaceList.begin(), pDDraw->SurfaceList.end(),
+			[lpSurfaceX](auto entry)
+			{
+				return entry.Interface == lpSurfaceX;
+			});
 		if (it != std::end(pDDraw->SurfaceList))
 		{
+			if (it->RefCount == 1)
+			{
+				Release(it->DxVersion);
+			}
+			else if (it->RefCount == 2)
+			{
+				Release(it->DxVersion);
+				Release(it->DxVersion);
+			}
 			pDDraw->SurfaceList.erase(it);
 		}
 
 		for (const auto& pSurface : pDDraw->SurfaceList)
 		{
-			pSurface->RemoveAttachedSurfaceFromMap(lpSurfaceX);
+			pSurface.Interface->RemoveAttachedSurfaceFromMap(lpSurfaceX);
 		}
 	}
 
@@ -1257,13 +1314,13 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 		case (DDENUMSURFACES_DOESEXIST | DDENUMSURFACES_ALL):
 			for (const auto& pSurfaceX : SurfaceList)
 			{
-				LPDIRECTDRAWSURFACE7 pSurface7 = (LPDIRECTDRAWSURFACE7)pSurfaceX->GetWrapperInterfaceX(DirectXVersion);
+				LPDIRECTDRAWSURFACE7 pSurface7 = (LPDIRECTDRAWSURFACE7)pSurfaceX.Interface->GetWrapperInterfaceX(DirectXVersion);
 
 				if (pSurface7)
 				{
 					DDSURFACEDESC2 Desc2 = {};
 					Desc2.dwSize = sizeof(DDSURFACEDESC2);
-					pSurfaceX->GetSurfaceDesc2(&Desc2, 0, DirectXVersion);
+					pSurfaceX.Interface->GetSurfaceDesc2(&Desc2, 0, DirectXVersion);
 
 					// When using the DDENUMSURFACES_DOESEXIST flag, an enumerated surface's reference count is incremented
 					pSurface7->AddRef();
@@ -2323,7 +2380,7 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 			{
 				for (const auto& pSurface : pDDraw->SurfaceList)
 				{
-					pSurface->Restore();
+					pSurface.Interface->Restore();
 				}
 			}
 
@@ -2762,8 +2819,8 @@ void m_IDirectDrawX::ReleaseInterface()
 	// Release surfaces
 	for (const auto& pSurface : SurfaceList)
 	{
-		pSurface->ReleaseD9Surface(false, false);
-		pSurface->ClearDdraw();
+		pSurface.Interface->ReleaseD9Surface(false, false);
+		pSurface.Interface->ClearDdraw();
 	}
 	SurfaceList.clear();
 
@@ -3895,7 +3952,7 @@ void m_IDirectDrawX::Clear3DFlagForAllSurfaces()
 	{
 		for (const auto& pSurface : pDDraw->SurfaceList)
 		{
-			pSurface->ClearUsing3DFlag();
+			pSurface.Interface->ClearUsing3DFlag();
 		}
 	}
 
@@ -3910,7 +3967,7 @@ inline void m_IDirectDrawX::ResetAllSurfaceDisplay()
 	{
 		for (const auto& pSurface : pDDraw->SurfaceList)
 		{
-			pSurface->ResetSurfaceDisplay();
+			pSurface.Interface->ResetSurfaceDisplay();
 		}
 	}
 
@@ -3949,7 +4006,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 	{
 		for (const auto& pSurface : pDDraw->SurfaceList)
 		{
-			pSurface->ReleaseD9Surface(BackupData, ResetInterface);
+			pSurface.Interface->ReleaseD9Surface(BackupData, ResetInterface);
 		}
 		for (const auto& pSurface : pDDraw->ReleasedSurfaceList)
 		{
@@ -4229,7 +4286,11 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 
 	SetCriticalSection();
 
-	const bool found = std::find(SurfaceList.begin(), SurfaceList.end(), lpSurfaceX) != std::end(SurfaceList);
+	const bool found = std::find_if(SurfaceList.begin(), SurfaceList.end(),
+		[lpSurfaceX](auto entry)
+		{
+			return entry.Interface == lpSurfaceX;
+		}) != std::end(SurfaceList);
 
 	ReleaseCriticalSection();
 

@@ -43,7 +43,12 @@ private:
 	std::vector<m_IDirectDrawPalette*> PaletteList;
 
 	// Store a list of surfaces
-	std::vector<m_IDirectDrawSurfaceX*> SurfaceList;
+	struct SURFACELIST {
+		m_IDirectDrawSurfaceX* Interface = nullptr;
+		DWORD DxVersion = 0;
+		DWORD RefCount = 0;
+	};
+	std::vector<SURFACELIST> SurfaceList;
 	std::vector<m_IDirectDrawSurfaceX*> ReleasedSurfaceList;
 
 	// Store a list of vertex buffers
@@ -187,7 +192,7 @@ public:
 	void SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
-	inline bool IsCreatedEx() { return IsUsingEx; }
+	inline bool IsCreatedEx() const { return IsUsingEx; }
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() const { return Using3D; }
 	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
