@@ -83,7 +83,6 @@ private:
 	UINT DDKey;
 
 	void ApplyDrawFixes();
-	void RestoreDrawFixes();
 
 	// Limit frame rate
 	void LimitFrameRate() const;
@@ -99,7 +98,7 @@ private:
 	HRESULT SetBrightnessLevel(D3DGAMMARAMP& Ramp);
 	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader() const;
 	void ApplyBrightnessLevel();
-	void ReleaseResources(bool isReset) const;
+	void ReleaseResources(bool isReset);
 
 	// For environment map cube
 	void CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix) const;

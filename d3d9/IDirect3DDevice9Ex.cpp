@@ -927,7 +927,7 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, tsAlphaOP);
 }
 
-inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset) const
+inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 {
 	if (SHARED.GammaLUTTexture)
 	{
@@ -961,6 +961,11 @@ inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset) const
 
 	if (SHARED.BlankTexture)
 	{
+		if (SHARED.isBlankTextureUsed)
+		{
+			SHARED.isBlankTextureUsed = false;
+			ProxyInterface->SetTexture(0, nullptr);
+		}
 		ULONG ref = SHARED.BlankTexture->Release();
 		if (ref)
 		{
@@ -1325,29 +1330,13 @@ inline void m_IDirect3DDevice9Ex::ApplyDrawFixes()
 	}
 }
 
-inline void m_IDirect3DDevice9Ex::RestoreDrawFixes()
-{
-	for (DWORD i = 0; i < MAX_TEXTURE_STAGES; i++)
-	{
-		if (SHARED.isBlankTextureUsed)
-		{
-			SHARED.isBlankTextureUsed = false;
-			ProxyInterface->SetTexture(0, nullptr);
-		}
-	}
-}
-
 HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	ApplyDrawFixes();
 
-	HRESULT hr = ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
-
-	RestoreDrawFixes();
-
-	return hr;
+	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT MinIndex, UINT NumVertices, UINT PrimitiveCount, CONST void *pIndexData, D3DFORMAT IndexDataFormat, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
@@ -1356,11 +1345,7 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveT
 
 	ApplyDrawFixes();
 
-	HRESULT hr = ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinIndex, NumVertices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
-
-	RestoreDrawFixes();
-
-	return hr;
+	return ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinIndex, NumVertices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
@@ -1369,11 +1354,7 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT
 
 	ApplyDrawFixes();
 
-	HRESULT hr = ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
-
-	RestoreDrawFixes();
-
-	return hr;
+	return ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, CONST void *pVertexStreamZeroData, UINT VertexStreamZeroStride)
@@ -1382,11 +1363,7 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UI
 
 	ApplyDrawFixes();
 
-	HRESULT hr = ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
-
-	RestoreDrawFixes();
-
-	return hr;
+	return ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 
 HRESULT m_IDirect3DDevice9Ex::BeginScene()
@@ -1685,6 +1662,7 @@ HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTe
 		}
 		if (Stage == 0)
 		{
+			SHARED.isBlankTextureUsed = false;
 			SHARED.pCurrentTexture = pTexture;
 		}
 	}
