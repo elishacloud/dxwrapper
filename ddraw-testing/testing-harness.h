@@ -87,7 +87,7 @@ constexpr TESTMATRIX TestResults[] = {
 	{ 315, { 4, 4, 4, 4, 4, 0 } },
 	{ 316, { 1, 1, 1, 3, 3, 0 } },
 
-	// IDirectDrawGammaControl
+	// IDirectDrawGammaControl / IDirectDrawColorControl
 	{ 400, { 1, 1, 1, 1, 1, 1 } },
 	{ 401, { 1, 1, 1, 1, 1, 1 } },
 	{ 402, { 1, 1, 1, 2, 2, 2 } },
@@ -116,6 +116,7 @@ constexpr TESTMATRIX TestResults[] = {
 	{ 431, { 1, 1, 1, 1, 2, 2 } },
 	{ 432, { 1, 1, 1, 2, 2, 2 } },
 	{ 433, { (DWORD)E_NOINTERFACE, (DWORD)E_NOINTERFACE, (DWORD)E_NOINTERFACE, (DWORD)E_NOINTERFACE, (DWORD)E_NOINTERFACE, (DWORD)E_NOINTERFACE } },
+	{ 450, { (DWORD)E_NOINTERFACE, (DWORD)E_NOINTERFACE, (DWORD)E_NOINTERFACE, (DWORD)E_NOINTERFACE, (DWORD)E_NOINTERFACE, (DWORD)E_NOINTERFACE } },
 
 	// IDirect3D
 	{ 500, { 2, 2, 2, 2, (DWORD)E_NOINTERFACE, 2 } },

@@ -135,7 +135,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 
 			return E_NOINTERFACE;
 		}
-		if (riid == IID_IDirectDrawColorControl)
+		// ColorControl doesn't work on native ddraw
+		/*if (riid == IID_IDirectDrawColorControl)
 		{
 			m_IDirectDrawColorControl* lpColorControl = ddrawParent->GetColorControlInterface();
 
@@ -154,7 +155,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 			}
 
 			return DD_OK;
-		}
+		}*/
 		if (riid == IID_IDirectDrawGammaControl)
 		{
 			m_IDirectDrawGammaControl* lpGammaControl = ddrawParent->GetGammaControlInterface();

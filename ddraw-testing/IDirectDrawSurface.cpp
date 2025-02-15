@@ -1,6 +1,27 @@
 #include "ddraw-testing.h"
 #include "testing-harness.h"
 
+
+template <typename DDType, typename T>
+void TestCreateColorControl(DDType*, T* pInterface, const char* ParentName, DWORD TestIDBase)
+{
+    IDirectDrawColorControl* pColorControl = nullptr;
+    HRESULT hr = pInterface->QueryInterface(IID_IDirectDrawColorControl, reinterpret_cast<LPVOID*>(&pColorControl));
+
+    // ****  Base + 0  ****
+    DWORD TestID = TestIDBase + 0;
+    if (SUCCEEDED(hr))
+    {
+        LOG_TEST_RESULT(TestID, "ColorControl created from " << ParentName << ". Ref count: ", GetRefCount(pColorControl), GetResults<DDType>(TestID));
+
+        pColorControl->Release();
+    }
+    else
+    {
+        LOG_TEST_RESULT(TestID, "Failed to create IDirectDrawColorControl from " << ParentName << ". Error: ", (DDERR)hr, GetResults<DDType>(TestID));
+    }
+}
+
 template <typename DDType, typename T>
 void TestCreateGammaControl(DDType* pDDraw, T* pInterface, const char* ParentName, DWORD TestIDBase)
 {
@@ -177,6 +198,9 @@ void TestCreateSurfaceT(DDType* pDDraw)
 
     // Test GammaControl
     TestCreateGammaControl<DDType, DSType>(pDDraw, pPrimarySurface, "Primary Surface", 400);
+
+    // Test ColorControl
+    TestCreateColorControl<DDType, DSType>(pDDraw, pPrimarySurface, "Primary Surface", 450);
 
     // Test QueryInterface
     for (int x = 0; x < 5; x++)
