@@ -11,6 +11,7 @@ private:
 	ULONG RefCount4 = 0;
 	ULONG RefCount7 = 0;
 
+	const bool IsUsingEx = false;
 	bool Using3D = false;
 
 	// Fix exclusive mode issue
@@ -114,7 +115,7 @@ public:
 
 		InitInterface(DirectXVersion);
 	}
-	m_IDirectDrawX(DWORD DirectXVersion)
+	m_IDirectDrawX(DWORD DirectXVersion, bool IsEx) : IsUsingEx(IsEx)
 	{
 		ProxyDirectXVersion = 9;
 
@@ -186,6 +187,7 @@ public:
 	void SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
+	inline bool IsCreatedEx() { return IsUsingEx; }
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() const { return Using3D; }
 	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }

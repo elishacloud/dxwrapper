@@ -195,7 +195,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 	if (Config.Dd7to9)
 	{
-		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || (riid == IID_IDirect3D7 && DirectXVersion == 7))
+		if (((riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3) && !IsCreatedEx()) || (riid == IID_IDirect3D7 && IsCreatedEx()))
 		{
 			if (Config.DdrawDisableDirect3DCaps)
 			{

@@ -177,7 +177,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		}
 	}
 
-	if (Config.ConvertToDirect3D7 && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2) && ddrawParent)
+	if (Config.ConvertToDirect3D7 && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2) && ddrawParent && !ddrawParent->IsCreatedEx())
 	{
 		DxVersion = GetGUIDVersion(riid);
 

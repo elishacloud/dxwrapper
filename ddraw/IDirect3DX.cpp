@@ -74,7 +74,8 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD Dir
 
 	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirect3D7)) ? GetGUIDVersion(riid) : DirectXVersion;
 
-	if ((riid == GetWrapperType(DxVersion) && (riid != IID_IDirect3D7 || DirectXVersion == 7)) || riid == IID_IUnknown)
+	if ((ddrawParent && ((riid == IID_IDirect3D7 && ddrawParent->IsCreatedEx()) || (riid == GetWrapperType(DxVersion) && riid != IID_IDirect3D7 && !ddrawParent->IsCreatedEx()))) ||
+		(!ddrawParent && (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)))
 	{
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 

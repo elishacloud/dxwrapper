@@ -323,7 +323,18 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 
 	if (Config.Dd7to9 || (Config.ConvertToDirect3D7 && Config.ConvertToDirectDraw7))
 	{
-		return dd_DirectDrawCreateEx(lpGUID, (LPVOID*)lplpDD, IID_IDirectDraw, pUnkOuter);
+		LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' to --> 'Direct3DCreate9'");
+
+		SetCriticalSection();
+
+		m_IDirectDrawX* p_IDirectDrawX = new m_IDirectDrawX(1, false);
+
+		*lplpDD = reinterpret_cast<LPDIRECTDRAW>(p_IDirectDrawX->GetWrapperInterfaceX(1));
+
+		ReleaseCriticalSection();
+
+		// Success
+		return DD_OK;
 	}
 
 	DEFINE_STATIC_PROC_ADDRESS(DirectDrawCreateProc, DirectDrawCreate, DirectDrawCreate_out);
@@ -424,30 +435,19 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (riid != IID_IDirectDraw &&
-			riid != IID_IDirectDraw2 &&
-			riid != IID_IDirectDraw3 &&
-			riid != IID_IDirectDraw4 &&
-			riid != IID_IDirectDraw7)
+		if (riid != IID_IDirectDraw7)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID " << riid);
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (Config.SetSwapEffectShim < 2)
-		{
-			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
-		}
-
-		DWORD DxVersion = GetGUIDVersion(riid);
-
-		LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' " << riid << " to --> 'Direct3DCreate9'");
+		LOG_LIMIT(3, "Redirecting 'DirectDrawCreateEx' to --> 'Direct3DCreate9'");
 
 		SetCriticalSection();
 
-		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(DxVersion);
+		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(7, true);
 
-		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(DxVersion);
+		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(7);
 
 		ReleaseCriticalSection();
 
