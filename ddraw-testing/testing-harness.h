@@ -47,6 +47,10 @@ constexpr TESTMATRIX TestResults[] = {
 	{ 203, { 1, 1, 1, 3, 3, 4 } },
 	{ 204, { 1, 1, 1, 2, 2, 2 } },
 	{ 205, { 1, 1, 1, 1, 1, 1 } },
+	{ 206, { 1, 1, 1, 1, 1, 1 } },
+	{ 207, { 1, 1, 1, 3, 3, 3 } },
+	{ 208, { 1, 1, 1, 1, 1, 1 } },
+	{ 209, { 1, 1, 1, 3, 3, 3 } },
 	{ 210, { 2, 1, 1, 1, 1, 1 } },
 	{ 211, { 1, 2, 1, 1, 1, 1 } },
 	{ 212, { 1, 1, 2, 1, 1, 1 } },
@@ -62,6 +66,7 @@ constexpr TESTMATRIX TestResults[] = {
 	{ 222, { 1, 1, 1, 2, 2, 2 } },
 	{ 223, { 1, 1, 1, 2, 2, 2 } },
 	{ 224, { 1, 1, 1, 2, 2, 2 } },
+	{ 225, { (DWORD)DDERR_CANTDUPLICATE, (DWORD)DDERR_CANTDUPLICATE, (DWORD)DDERR_CANTDUPLICATE, (DWORD)DDERR_CANTDUPLICATE, (DWORD)DDERR_CANTDUPLICATE, (DWORD)DDERR_CANTDUPLICATE } },
 
 	// IDirect3DTexture
 	{ 300, { 2, 2, 2, 2, 2, (DWORD)E_NOINTERFACE } },

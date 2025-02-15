@@ -844,44 +844,25 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 			return DDERR_INVALIDPARAMS;
 		}
 
-		SetCriticalSection();
-
 		m_IDirectDrawSurfaceX *lpDDSurfaceX = nullptr;
 		if (FAILED(lpDDSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSurfaceX)) || !DoesSurfaceExist(lpDDSurfaceX))
 		{
-			ReleaseCriticalSection();
-
 			return DDERR_INVALIDPARAMS;
 		}
+
+		// A primary surface, 3-D surface, or implicitly created surface cannot be duplicated.
+		if (lpDDSurfaceX->IsPrimarySurface() || lpDDSurfaceX->IsSurface3D() || !lpDDSurfaceX->CanSurfaceBeDeleted())
+		{
+			return DDERR_CANTDUPLICATE;
+		}
+
+		SetCriticalSection();
 
 		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		lpDDSurfaceX->GetSurfaceDesc2(&Desc2, 0, DirectXVersion);
-		Desc2.ddsCaps.dwCaps &= ~DDSCAPS_PRIMARYSURFACE;		// Remove Primary surface flag
 
 		m_IDirectDrawSurfaceX* Interface = new m_IDirectDrawSurfaceX(this, DirectXVersion, &Desc2);
-
-		if (DirectXVersion > 3)
-		{
-			for (auto& entry : SurfaceList)
-			{
-				if (entry.Interface == Interface)
-				{
-					entry.DxVersion = DirectXVersion;
-					entry.RefCount = IsCreatedEx() && (Desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) ? 2 : 1;
-					if (entry.RefCount == 1)
-					{
-						AddRef(entry.DxVersion);
-					}
-					else if (entry.RefCount == 2)
-					{
-						AddRef(entry.DxVersion);
-						AddRef(entry.DxVersion);
-					}
-					break;
-				}
-			}
-		}
 
 		*lplpDupDDSurface = (LPDIRECTDRAWSURFACE7)Interface->GetWrapperInterfaceX(DirectXVersion);
 

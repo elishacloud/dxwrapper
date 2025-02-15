@@ -215,7 +215,6 @@ void TestCreateSurfaceT(DDType* pDDraw)
         }
     }
 
-
     // Create an offscreen surface
     DSDesc ddsd = {};
     ddsd.dwSize = sizeof(ddsd);
@@ -252,6 +251,70 @@ void TestCreateSurfaceT(DDType* pDDraw)
     else
     {
         LOG_TEST_RESULT(TestID, "Failed to create 3D surface. Error: ", (DDERR)hr, TEST_FAILED);
+    }
+
+    // Create an offscreen surface
+    ddsd = {};
+    ddsd.dwSize = sizeof(ddsd);
+    ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
+    ddsd.ddsCaps.dwCaps = DDSCAPS_SYSTEMMEMORY | DDSCAPS_OFFSCREENPLAIN;
+    ddsd.dwWidth = 640;
+    ddsd.dwHeight = 480;
+
+    pSurface = nullptr;
+    hr = pDDraw->CreateSurface(&ddsd, &pSurface, nullptr);
+
+    // ****  206  ****
+    TestID = 206;
+    if (SUCCEEDED(hr))
+    {
+        LOG_TEST_RESULT(TestID, "Offscreen surface created. Ref count: ", GetRefCount(pSurface), GetResults<DDType>(TestID));
+
+        // ****  207  ****
+        TestID = 207;
+        LOG_TEST_RESULT(TestID, "DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+        DSType* pSurfaceDup = nullptr;
+        hr = pDDraw->DuplicateSurface(pSurface, &pSurfaceDup);
+
+        // ****  208  ****
+        TestID = 208;
+        if (SUCCEEDED(hr))
+        {
+            LOG_TEST_RESULT(TestID, "Duplcate offscreen surface created. Ref count: ", GetRefCount(pSurfaceDup), GetResults<DDType>(TestID));
+
+            // ****  209  ****
+            TestID = 209;
+            LOG_TEST_RESULT(TestID, "DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+            pSurfaceDup->Release();
+        }
+        else
+        {
+            LOG_TEST_RESULT(TestID, "Failed to create offscreen surface. Error: ", (DDERR)hr, TEST_FAILED);
+        }
+
+        pSurface->Release();
+    }
+    else
+    {
+        LOG_TEST_RESULT(TestID, "Failed to create offscreen surface. Error: ", (DDERR)hr, TEST_FAILED);
+    }
+
+    DSType* pSurfaceDup = nullptr;
+    hr = pDDraw->DuplicateSurface(pPrimarySurface, &pSurfaceDup);
+
+    // ****  225  ****
+    TestID = 225;
+    if (SUCCEEDED(hr))
+    {
+        LOG_TEST_RESULT(TestID, "Duplcate primary surface created. Ref count: ", GetRefCount(pSurfaceDup), GetResults<DDType>(TestID));
+
+        pSurfaceDup->Release();
+    }
+    else
+    {
+        LOG_TEST_RESULT(TestID, "Failed to create offscreen surface. Error: ", (DDERR)hr, GetResults<DDType>(TestID));
     }
 
     // Cleanup primary surface
