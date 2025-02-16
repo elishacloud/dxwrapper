@@ -1781,7 +1781,14 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 
 		if (SUCCEEDED(hr))
 		{
+			if (CurrentRenderTarget)
+			{
+				CurrentRenderTarget->Release();
+			}
+			
 			lpNewRenderTarget = CurrentRenderTarget;
+
+			CurrentRenderTarget->AddRef();
 
 			lpCurrentRenderTargetX = lpDDSrcSurfaceX;
 		}
@@ -5036,13 +5043,9 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 
 void m_IDirect3DDeviceX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
-	if (attached3DSurfaceX == lpSurfaceX)
-	{
-		attached3DSurfaceX = nullptr;
-		attached3DSurface = nullptr;
-	}
 	if (lpCurrentRenderTargetX == lpSurfaceX)
 	{
+		CurrentRenderTarget = nullptr;
 		lpCurrentRenderTargetX = nullptr;
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: clearing current render target!");
 	}
@@ -5097,7 +5100,10 @@ void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 				CurrentRenderTarget->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
 				if (lpDDSrcSurfaceX)
 				{
+					CurrentRenderTarget->AddRef();
+
 					lpCurrentRenderTargetX = lpDDSrcSurfaceX;
+
 					ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
 				}
 			}
@@ -5126,9 +5132,9 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 		D3DInterface->ClearD3DDevice(this);
 	}
 
-	if (attached3DSurfaceX && attached3DSurface)
+	if (CurrentRenderTarget)
 	{
-		attached3DSurface->Release();
+		CurrentRenderTarget->Release();
 	}
 
 	// Don't delete wrapper interface

@@ -145,8 +145,10 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 
 				attached3DDevice->SetParent3DSurface(this, DirectXVersion);
 			}
-
-			AddRef(DirectXVersion);
+			else
+			{
+				AddRef(DirectXVersion);		// No need to add a ref when creating a device because it is already added by setting it as a render target
+			}
 
 			DxVersion = (DxVersion == 4) ? 3 : DxVersion;
 

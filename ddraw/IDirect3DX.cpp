@@ -785,11 +785,15 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 		m_IDirect3DDeviceX* p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, this, lpDDS, riid, DirectXVersion);
 
-		//p_IDirect3DDeviceX->SetAttached3DSurface(DdrawSurface3D, lpDDS);
-
-		//lpDDS->AddRef();
-
 		*lplpD3DDevice = (LPDIRECT3DDEVICE7)p_IDirect3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
+
+		if (ddrawParent && ddrawParent->IsCreatedEx())
+		{
+			Direct3DDeviceEx.RefCount = 1;
+			Direct3DDeviceEx.DxVersion = DirectXVersion;
+
+			AddRef(DirectXVersion);
+		}
 
 		ReleaseCriticalSection();
 
@@ -861,6 +865,13 @@ void m_IDirect3DX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 	{
 		Logging::Log() << __FUNCTION__ << " Warning: released Direct3DDevice interface does not match cached one!";
 	}
+
+	if (D3DDeviceInterface && Direct3DDeviceEx.RefCount)
+	{
+		Release(Direct3DDeviceEx.DxVersion);
+	}
+
+	Direct3DDeviceEx = {};
 
 	D3DDeviceInterface = nullptr;
 

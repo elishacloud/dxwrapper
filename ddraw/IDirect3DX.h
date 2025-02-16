@@ -19,7 +19,12 @@ private:
 	m_IDirect3D7 *WrapperInterface7 = nullptr;
 
 	// Device interface pointers
-	m_IDirect3DDeviceX* D3DDeviceInterface = nullptr;
+	struct {
+		m_IDirect3DDeviceX* Interface = nullptr;
+		DWORD DxVersion = 0;
+		DWORD RefCount = 0;
+	} Direct3DDeviceEx;
+	m_IDirect3DDeviceX*& D3DDeviceInterface = Direct3DDeviceEx.Interface;
 
 	// Cache Cap9
 	struct DUALCAP9 {
