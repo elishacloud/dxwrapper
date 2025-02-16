@@ -791,14 +791,10 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 				{
 					entry.DxVersion = DirectXVersion;
 					entry.RefCount = IsCreatedEx() && (Desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) ? 2 : 1;
-					if (entry.RefCount == 1)
+
+					for (UINT x = 0; x < entry.RefCount; x++)
 					{
-						AddRef(entry.DxVersion);
-					}
-					else if (entry.RefCount == 2)
-					{
-						AddRef(entry.DxVersion);
-						AddRef(entry.DxVersion);
+						AddRef(DirectXVersion);
 					}
 					break;
 				}
@@ -948,15 +944,9 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 			});
 		if (it != std::end(pDDraw->SurfaceList))
 		{
-			if (it->RefCount == 1)
-			{
-				Release(it->DxVersion);
-			}
-			else if (it->RefCount == 2)
-			{
-				Release(it->DxVersion);
-				Release(it->DxVersion);
-			}
+			UINT x = it->RefCount;
+			while (x-- && Release(it->DxVersion)) {};
+
 			pDDraw->SurfaceList.erase(it);
 		}
 

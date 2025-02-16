@@ -751,10 +751,13 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 		if (ddrawParent && ddrawParent->IsCreatedEx())
 		{
-			Direct3DDeviceEx.RefCount = 1;
+			Direct3DDeviceEx.RefCount = 7;
 			Direct3DDeviceEx.DxVersion = DirectXVersion;
 
-			AddRef(DirectXVersion);
+			for (UINT x = 0; x < Direct3DDeviceEx.RefCount; x++)
+			{
+				AddRef(DirectXVersion);
+			}
 		}
 
 		return D3D_OK;
@@ -822,7 +825,9 @@ void m_IDirect3DX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 
 	if (D3DDeviceInterface && Direct3DDeviceEx.RefCount)
 	{
-		Release(Direct3DDeviceEx.DxVersion);
+		UINT x = Direct3DDeviceEx.RefCount;
+
+		while (x-- && Release(Direct3DDeviceEx.DxVersion)) {};
 	}
 
 	Direct3DDeviceEx = {};
