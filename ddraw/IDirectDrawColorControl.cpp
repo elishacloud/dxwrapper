@@ -25,7 +25,6 @@ inline static void SaveInterfaceAddress(m_IDirectDrawColorControl* Interface, m_
 {
 	if (Interface)
 	{
-		SetCriticalSection();
 		Interface->SetProxy(nullptr, nullptr);
 		if (InterfaceBackup)
 		{
@@ -33,13 +32,11 @@ inline static void SaveInterfaceAddress(m_IDirectDrawColorControl* Interface, m_
 			InterfaceBackup = nullptr;
 		}
 		InterfaceBackup = Interface;
-		ReleaseCriticalSection();
 	}
 }
 
 m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent)
 {
-	SetCriticalSection();
 	m_IDirectDrawColorControl* Interface = nullptr;
 	if (WrapperInterfaceBackup)
 	{
@@ -58,7 +55,6 @@ m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl*
 			Interface = new m_IDirectDrawColorControl(NewParent);
 		}
 	}
-	ReleaseCriticalSection();
 	return Interface;
 }
 
@@ -243,12 +239,8 @@ void m_IDirectDrawColorControl::ReleaseInterface()
 		return;
 	}
 
-	SetCriticalSection();
-
 	if (ddrawParent)
 	{
 		ddrawParent->ClearColorControl(this);
 	}
-
-	ReleaseCriticalSection();
 }

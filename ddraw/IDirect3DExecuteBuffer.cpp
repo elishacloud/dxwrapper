@@ -25,7 +25,6 @@ inline static void SaveInterfaceAddress(m_IDirect3DExecuteBuffer* Interface, m_I
 {
 	if (Interface)
 	{
-		SetCriticalSection();
 		Interface->SetProxy(nullptr, nullptr, nullptr);
 		if (InterfaceBackup)
 		{
@@ -33,13 +32,11 @@ inline static void SaveInterfaceAddress(m_IDirect3DExecuteBuffer* Interface, m_I
 			InterfaceBackup = nullptr;
 		}
 		InterfaceBackup = Interface;
-		ReleaseCriticalSection();
 	}
 }
 
 m_IDirect3DExecuteBuffer* CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc)
 {
-	SetCriticalSection();
 	m_IDirect3DExecuteBuffer* Interface = nullptr;
 	if (WrapperInterfaceBackup)
 	{
@@ -58,7 +55,6 @@ m_IDirect3DExecuteBuffer* CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aO
 			Interface = new m_IDirect3DExecuteBuffer(NewD3DDInterface, lpDesc);
 		}
 	}
-	ReleaseCriticalSection();
 	return Interface;
 }
 
@@ -643,12 +639,8 @@ void m_IDirect3DExecuteBuffer::ReleaseInterface()
 		return;
 	}
 
-	SetCriticalSection();
-
 	if (D3DDeviceInterface)
 	{
 		D3DDeviceInterface->ClearExecuteBuffer(this);
 	}
-
-	ReleaseCriticalSection();
 }

@@ -386,8 +386,6 @@ void m_IDirect3DTextureX::ReleaseInterface()
 		return;
 	}
 
-	SetCriticalSection();
-
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
@@ -396,6 +394,4 @@ void m_IDirect3DTextureX::ReleaseInterface()
 	{
 		(*D3DDeviceInterface)->ClearTextureHandle(tHandle);
 	}
-
-	ReleaseCriticalSection();
 }

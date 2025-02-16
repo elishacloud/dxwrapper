@@ -805,8 +805,6 @@ void m_IDirect3DViewportX::ReleaseInterface()
 		return;
 	}
 
-	SetCriticalSection();
-
 	if (D3DInterface)
 	{
 		D3DInterface->ClearViewport(this);
@@ -821,6 +819,4 @@ void m_IDirect3DViewportX::ReleaseInterface()
 	{
 		(*D3DDeviceInterface)->ClearViewport(this);
 	}
-
-	ReleaseCriticalSection();
 }

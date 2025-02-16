@@ -439,13 +439,9 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 			return DDERR_INVALIDOBJECT;
 		}
 
-		SetCriticalSection();
-
 		m_IDirect3DLight* Interface = CreateDirect3DLight(nullptr, this);
 
 		*lplpDirect3DLight = (LPDIRECT3DLIGHT)Interface;
-
-		ReleaseCriticalSection();
 
 		return D3D_OK;
 	}
@@ -468,25 +464,17 @@ void m_IDirect3DX::AddLight(m_IDirect3DLight* lpLight)
 		return;
 	}
 
-	SetCriticalSection();
-
 	LightList.push_back(lpLight);
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirect3DX::ClearLight(m_IDirect3DLight* lpLight)
 {
-	SetCriticalSection();
-
 	// Find and remove the light from the list
 	auto it = std::find(LightList.begin(), LightList.end(), lpLight);
 	if (it != LightList.end())
 	{
 		LightList.erase(it);
 	}
-
-	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
@@ -524,13 +512,9 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 			return DDERR_INVALIDOBJECT;
 		}
 
-		SetCriticalSection();
-
 		m_IDirect3DMaterialX *Interface = new m_IDirect3DMaterialX(this, DirectXVersion);
 
 		*lplpDirect3DMaterial = (LPDIRECT3DMATERIAL3)Interface->GetWrapperInterfaceX(DirectXVersion);
-
-		ReleaseCriticalSection();
 
 		return D3D_OK;
 	}
@@ -555,25 +539,17 @@ void m_IDirect3DX::AddMaterial(m_IDirect3DMaterialX* lpMaterialX)
 		return;
 	}
 
-	SetCriticalSection();
-
 	MaterialList.push_back(lpMaterialX);
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirect3DX::ClearMaterial(m_IDirect3DMaterialX* lpMaterialX)
 {
-	SetCriticalSection();
-
 	// Find and remove the material from the list
 	auto it = std::find(MaterialList.begin(), MaterialList.end(), lpMaterialX);
 	if (it != MaterialList.end())
 	{
 		MaterialList.erase(it);
 	}
-
-	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
@@ -611,13 +587,9 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 			return DDERR_INVALIDOBJECT;
 		}
 
-		SetCriticalSection();
-
 		m_IDirect3DViewportX *Interface = new m_IDirect3DViewportX(this, DirectXVersion);
 
 		*lplpD3DViewport = (LPDIRECT3DVIEWPORT3)Interface->GetWrapperInterfaceX(DirectXVersion);
-
-		ReleaseCriticalSection();
 
 		return D3D_OK;
 	}
@@ -642,25 +614,17 @@ void m_IDirect3DX::AddViewport(m_IDirect3DViewportX* lpViewportX)
 		return;
 	}
 
-	SetCriticalSection();
-
 	ViewportList.push_back(lpViewportX);
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirect3DX::ClearViewport(m_IDirect3DViewportX* lpViewportX)
 {
-	SetCriticalSection();
-
 	// Find and remove the viewport from the list
 	auto it = std::find(ViewportList.begin(), ViewportList.end(), lpViewportX);
 	if (it != ViewportList.end())
 	{
 		ViewportList.erase(it);
 	}
-
-	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICERESULT lpD3DFDR)
@@ -781,8 +745,6 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 			return DDERR_GENERIC;
 		}
 
-		SetCriticalSection();
-
 		m_IDirect3DDeviceX* p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, this, lpDDS, riid, DirectXVersion);
 
 		*lplpD3DDevice = (LPDIRECT3DDEVICE7)p_IDirect3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
@@ -794,8 +756,6 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 			AddRef(DirectXVersion);
 		}
-
-		ReleaseCriticalSection();
 
 		return D3D_OK;
 	}
@@ -845,22 +805,16 @@ void m_IDirect3DX::SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 		return;
 	}
 
-	SetCriticalSection();
-
 	if (D3DDeviceInterface && D3DDeviceInterface != lpD3DDevice)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device has already been created!");
 	}
 
 	D3DDeviceInterface = lpD3DDevice;
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirect3DX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 {
-	SetCriticalSection();
-
 	if (lpD3DDevice != D3DDeviceInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Warning: released Direct3DDevice interface does not match cached one!";
@@ -874,8 +828,6 @@ void m_IDirect3DX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 	Direct3DDeviceEx = {};
 
 	D3DDeviceInterface = nullptr;
-
-	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIRECT3DVERTEXBUFFER7* lplpD3DVertexBuffer, DWORD dwFlags, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
@@ -926,8 +878,6 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 			return DDERR_INVALIDOBJECT;
 		}
 
-		SetCriticalSection();
-
 		m_IDirect3DVertexBufferX *Interface = new m_IDirect3DVertexBufferX(ddrawParent, this, lpVBDesc, DirectXVersion);
 
 		if (DirectXVersion > 3)
@@ -947,8 +897,6 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 		}
 
 		*lplpD3DVertexBuffer = (LPDIRECT3DVERTEXBUFFER7)Interface->GetWrapperInterfaceX(DirectXVersion);
-
-		ReleaseCriticalSection();
 
 		return D3D_OK;
 	}
@@ -971,17 +919,11 @@ void m_IDirect3DX::AddVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX)
 		return;
 	}
 
-	SetCriticalSection();
-
 	VertexBufferList.push_back({ lpVertexBufferX, 0, 0 });
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirect3DX::ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX)
 {
-	SetCriticalSection();
-
 	// Find and remove the buffer from the list
 	auto it = std::find_if(VertexBufferList.begin(), VertexBufferList.end(),
 		[lpVertexBufferX](auto entry) {
@@ -995,8 +937,6 @@ void m_IDirect3DX::ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX)
 		}
 		VertexBufferList.erase(it);
 	}
-
-	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext)
@@ -1147,8 +1087,6 @@ void m_IDirect3DX::ReleaseInterface()
 		return;
 	}
 
-	SetCriticalSection();
-
 	if (D3DDeviceInterface)
 	{
 		D3DDeviceInterface->ClearD3D(this);
@@ -1183,8 +1121,6 @@ void m_IDirect3DX::ReleaseInterface()
 	{
 		entry->ClearD3D();
 	}
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirect3DX::ResolutionHack()

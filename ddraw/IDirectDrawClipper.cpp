@@ -27,7 +27,6 @@ inline static void SaveInterfaceAddress(m_IDirectDrawClipper* Interface, m_IDire
 {
 	if (Interface)
 	{
-		SetCriticalSection();
 		Interface->SetProxy(nullptr, nullptr, 0);
 		if (InterfaceBackup)
 		{
@@ -35,13 +34,11 @@ inline static void SaveInterfaceAddress(m_IDirectDrawClipper* Interface, m_IDire
 			InterfaceBackup = nullptr;
 		}
 		InterfaceBackup = Interface;
-		ReleaseCriticalSection();
 	}
 }
 
 m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags)
 {
-	SetCriticalSection();
 	m_IDirectDrawClipper* Interface = nullptr;
 	if (WrapperInterfaceBackup)
 	{
@@ -60,7 +57,6 @@ m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_I
 			Interface = new m_IDirectDrawClipper(NewParent, dwFlags);
 		}
 	}
-	ReleaseCriticalSection();
 	return Interface;
 }
 
@@ -379,14 +375,10 @@ void m_IDirectDrawClipper::ReleaseInterface()
 		return;
 	}
 
-	SetCriticalSection();
-
 	ClearBaseClipper(this);
 
 	if (ddrawParent)
 	{
 		ddrawParent->ClearClipper(this);
 	}
-
-	ReleaseCriticalSection();
 }

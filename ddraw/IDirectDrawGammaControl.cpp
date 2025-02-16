@@ -25,7 +25,6 @@ inline static void SaveInterfaceAddress(m_IDirectDrawGammaControl* Interface, m_
 {
 	if (Interface)
 	{
-		SetCriticalSection();
 		Interface->SetProxy(nullptr, nullptr);
 		if (InterfaceBackup)
 		{
@@ -33,13 +32,11 @@ inline static void SaveInterfaceAddress(m_IDirectDrawGammaControl* Interface, m_
 			InterfaceBackup = nullptr;
 		}
 		InterfaceBackup = Interface;
-		ReleaseCriticalSection();
 	}
 }
 
 m_IDirectDrawGammaControl* CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent)
 {
-	SetCriticalSection();
 	m_IDirectDrawGammaControl* Interface = nullptr;
 	if (WrapperInterfaceBackup)
 	{
@@ -58,7 +55,6 @@ m_IDirectDrawGammaControl* CreateDirectDrawGammaControl(IDirectDrawGammaControl*
 			Interface = new m_IDirectDrawGammaControl(NewParent);
 		}
 	}
-	ReleaseCriticalSection();
 	return Interface;
 }
 
@@ -222,12 +218,8 @@ void m_IDirectDrawGammaControl::ReleaseInterface()
 		return;
 	}
 
-	SetCriticalSection();
-
 	if (ddrawParent)
 	{
 		ddrawParent->ClearGammaControl(this);
 	}
-
-	ReleaseCriticalSection();
 }

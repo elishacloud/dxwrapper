@@ -574,8 +574,6 @@ void m_IDirect3DVertexBufferX::ReleaseInterface()
 		return;
 	}
 
-	SetCriticalSection();
-
 	if (ddrawParent)
 	{
 		ddrawParent->ClearVertexBuffer(this);
@@ -591,8 +589,6 @@ void m_IDirect3DVertexBufferX::ReleaseInterface()
 	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
 	ReleaseD9Buffer(false, false);
-
-	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DVertexBuffer)

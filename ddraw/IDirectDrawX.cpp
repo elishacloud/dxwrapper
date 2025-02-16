@@ -370,8 +370,6 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 			return DDERR_INVALIDPARAMS;
 		}
 
-		SetCriticalSection();
-
 		m_IDirectDrawClipper* Interface = CreateDirectDrawClipper(nullptr, this, dwFlags);
 
 		if (DirectXVersion > 3)
@@ -391,8 +389,6 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 		}
 
 		*lplpDDClipper = Interface;
-
-		ReleaseCriticalSection();
 
 		return DD_OK;
 	}
@@ -414,17 +410,11 @@ void m_IDirectDrawX::AddClipper(m_IDirectDrawClipper* lpClipper)
 		return;
 	}
 
-	SetCriticalSection();
-
 	ClipperList.push_back({ lpClipper, 0, 0 });
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawX::ClearClipper(m_IDirectDrawClipper* lpClipper)
 {
-	SetCriticalSection();
-
 	// Find and remove the clipper from the list
 	auto it = std::find_if(ClipperList.begin(), ClipperList.end(),
 		[lpClipper](auto entry) {
@@ -438,8 +428,6 @@ void m_IDirectDrawX::ClearClipper(m_IDirectDrawClipper* lpClipper)
 		}
 		ClipperList.erase(it);
 	}
-
-	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray, LPDIRECTDRAWPALETTE FAR * lplpDDPalette, IUnknown FAR * pUnkOuter, DWORD DirectXVersion)
@@ -452,8 +440,6 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-
-		SetCriticalSection();
 
 		m_IDirectDrawPalette* Interface = CreateDirectDrawPalette(nullptr, this, dwFlags, lpDDColorArray);
 
@@ -475,8 +461,6 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 
 		*lplpDDPalette = Interface;
 
-		ReleaseCriticalSection();
-
 		return DD_OK;
 	}
 
@@ -497,17 +481,11 @@ void m_IDirectDrawX::AddPalette(m_IDirectDrawPalette* lpPalette)
 		return;
 	}
 
-	SetCriticalSection();
-
 	PaletteList.push_back({ lpPalette, 0, 0 });
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawX::ClearPalette(m_IDirectDrawPalette* lpPalette)
 {
-	SetCriticalSection();
-
 	// Find and remove the palette from the list
 	auto it = std::find_if(PaletteList.begin(), PaletteList.end(),
 		[lpPalette](auto entry) {
@@ -521,8 +499,6 @@ void m_IDirectDrawX::ClearPalette(m_IDirectDrawPalette* lpPalette)
 		}
 		PaletteList.erase(it);
 	}
-
-	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTDRAWSURFACE7 FAR * lplpDDSurface, IUnknown FAR * pUnkOuter, DWORD DirectXVersion)
@@ -798,8 +774,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 				" ddsCaps: " << Logging::hex(Desc2.ddsCaps.dwCaps) << ", " << Logging::hex(Desc2.ddsCaps.dwCaps2) << ", " << LOWORD(Desc2.ddsCaps.dwVolumeDepth);
 		}
 
-		SetCriticalSection();
-
 		DWORD DxVersion = DirectXVersion > 3 ? DirectXVersion : 1;	// The first 3 versions create interface version 1
 
 		m_IDirectDrawSurfaceX *Interface = new m_IDirectDrawSurfaceX(this, DxVersion, &Desc2);
@@ -832,8 +806,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)Interface->GetWrapperInterfaceX(DxVersion);
-
-		ReleaseCriticalSection();
 
 		return DD_OK;
 	}
@@ -902,8 +874,6 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 			return DDERR_CANTDUPLICATE;
 		}
 
-		SetCriticalSection();
-
 		DDSURFACEDESC2 Desc2 = {};
 		Desc2.dwSize = sizeof(DDSURFACEDESC2);
 		lpDDSurfaceX->GetSurfaceDesc2(&Desc2, 0, DirectXVersion);
@@ -911,8 +881,6 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 		m_IDirectDrawSurfaceX* Interface = new m_IDirectDrawSurfaceX(this, DirectXVersion, &Desc2);
 
 		*lplpDupDDSurface = (LPDIRECTDRAWSURFACE7)Interface->GetWrapperInterfaceX(DirectXVersion);
-
-		ReleaseCriticalSection();
 
 		return DD_OK;
 	}
@@ -946,17 +914,11 @@ void m_IDirectDrawX::AddSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 		return;
 	}
 
-	SetCriticalSection();
-
 	SurfaceList.push_back({ lpSurfaceX, 0, 0 });
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
-	SetCriticalSection();
-
 	// Remove attached surface from map
 	for (const auto& pDDraw : DDrawVector)
 	{
@@ -1003,8 +965,6 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 			pSurface.Interface->RemoveAttachedSurfaceFromMap(lpSurfaceX);
 		}
 	}
-
-	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK lpEnumModesCallback, DWORD DirectXVersion)
@@ -2400,8 +2360,6 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 		// Check device status
 		if (hr == DD_OK || hr == DDERR_NOEXCLUSIVEMODE)
 		{
-			SetCriticalSection();
-
 			for (const auto& pDDraw : DDrawVector)
 			{
 				for (const auto& pSurface : pDDraw->SurfaceList)
@@ -2409,8 +2367,6 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 					pSurface.Interface->Restore();
 				}
 			}
-
-			ReleaseCriticalSection();
 		}
 
 		return hr;
@@ -3042,22 +2998,16 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 		return;
 	}
 
-	SetCriticalSection();
-
 	if (D3DDeviceInterface && D3DDeviceInterface != lpD3DDevice)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device has already been created!");
 	}
 
 	D3DDeviceInterface = lpD3DDevice;
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 {
-	SetCriticalSection();
-
 	if (D3DDeviceInterface != lpD3DDevice)
 	{
 		Logging::Log() << __FUNCTION__ << " Warning: released Direct3DDevice interface does not match cached one!";
@@ -3070,8 +3020,6 @@ void m_IDirectDrawX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 	SetRenderTargetSurface(nullptr);
 
 	Clear3DFlagForAllSurfaces();
-
-	ReleaseCriticalSection();
 }
 
 bool m_IDirectDrawX::IsInScene()
@@ -3972,8 +3920,6 @@ void m_IDirectDrawX::RestoreD3DDeviceState()
 
 void m_IDirectDrawX::Clear3DFlagForAllSurfaces()
 {
-	SetCriticalSection();
-
 	for (const auto& pDDraw : DDrawVector)
 	{
 		for (const auto& pSurface : pDDraw->SurfaceList)
@@ -3981,14 +3927,10 @@ void m_IDirectDrawX::Clear3DFlagForAllSurfaces()
 			pSurface.Interface->ClearUsing3DFlag();
 		}
 	}
-
-	ReleaseCriticalSection();
 }
 
 inline void m_IDirectDrawX::ResetAllSurfaceDisplay()
 {
-	SetCriticalSection();
-
 	for (const auto& pDDraw : DDrawVector)
 	{
 		for (const auto& pSurface : pDDraw->SurfaceList)
@@ -3996,8 +3938,6 @@ inline void m_IDirectDrawX::ResetAllSurfaceDisplay()
 			pSurface.Interface->ResetSurfaceDisplay();
 		}
 	}
-
-	ReleaseCriticalSection();
 }
 
 inline void m_IDirectDrawX::ReleaseD3D9IndexBuffer()
@@ -4195,11 +4135,7 @@ HRESULT m_IDirectDrawX::CreateColorControl(m_IDirectDrawColorControl** lplpColor
 {
 	if (lplpColorControl)
 	{
-		SetCriticalSection();
-
 		*lplpColorControl = CreateDirectDrawColorControl(nullptr, this);
-
-		ReleaseCriticalSection();
 
 		return DD_OK;
 	}
@@ -4213,41 +4149,29 @@ void m_IDirectDrawX::SetColorControl(m_IDirectDrawColorControl* lpColorControl)
 		return;
 	}
 
-	SetCriticalSection();
-
 	if (ColorControlInterface && ColorControlInterface != lpColorControl)
 	{
 		Logging::Log() << __FUNCTION__ << " Warning: ColorControl interface has already been created!";
 	}
 
 	ColorControlInterface = lpColorControl;
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawX::ClearColorControl(m_IDirectDrawColorControl* lpColorControl)
 {
-	SetCriticalSection();
-
 	if (lpColorControl != ColorControlInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Warning: released ColorControl interface does not match cached one!";
 	}
 
 	ColorControlInterface = nullptr;
-
-	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirectDrawX::CreateGammaControl(m_IDirectDrawGammaControl** lplpGammaControl)
 {
 	if (lplpGammaControl)
 	{
-		SetCriticalSection();
-
 		*lplpGammaControl = CreateDirectDrawGammaControl(nullptr, this);
-
-		ReleaseCriticalSection();
 
 		return DD_OK;
 	}
@@ -4261,30 +4185,22 @@ void m_IDirectDrawX::SetGammaControl(m_IDirectDrawGammaControl* lpGammaControl)
 		return;
 	}
 
-	SetCriticalSection();
-
 	if (GammaControlInterface && GammaControlInterface != lpGammaControl)
 	{
 		Logging::Log() << __FUNCTION__ << " Warning: GammaControl interface has already been created!";
 	}
 
 	GammaControlInterface = lpGammaControl;
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawX::ClearGammaControl(m_IDirectDrawGammaControl* lpGammaControl)
 {
-	SetCriticalSection();
-
 	if (lpGammaControl != GammaControlInterface)
 	{
 		Logging::Log() << __FUNCTION__ << " Warning: released GammaControl interface does not match cached one!";
 	}
 
 	GammaControlInterface = nullptr;
-
-	ReleaseCriticalSection();
 }
 
 // Add released surface wrapper
@@ -4295,11 +4211,7 @@ void m_IDirectDrawX::AddReleasedSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 		return;
 	}
 
-	SetCriticalSection();
-
 	ReleasedSurfaceList.push_back(lpSurfaceX);
-
-	ReleaseCriticalSection();
 }
 
 // Check if surface wrapper exists
@@ -4310,14 +4222,10 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 		return false;
 	}
 
-	SetCriticalSection();
-
 	const bool found = std::find_if(SurfaceList.begin(), SurfaceList.end(),
 		[lpSurfaceX](auto entry) {
 			return entry.Interface == lpSurfaceX;
 		}) != std::end(SurfaceList);
-
-	ReleaseCriticalSection();
 
 	return found;
 }
@@ -4336,14 +4244,10 @@ bool m_IDirectDrawX::DoesClipperExist(m_IDirectDrawClipper* lpClipper)
 		return true;
 	}
 
-	SetCriticalSection();
-
 	const bool found = std::find_if(ClipperList.begin(), ClipperList.end(),
 		[lpClipper](auto entry) {
 			return entry.Interface == lpClipper;
 		}) != std::end(ClipperList);
-
-	ReleaseCriticalSection();
 
 	return found;
 }
@@ -4356,14 +4260,10 @@ bool m_IDirectDrawX::DoesPaletteExist(m_IDirectDrawPalette* lpPalette)
 		return false;
 	}
 
-	SetCriticalSection();
-
 	const bool found = std::find_if(PaletteList.begin(), PaletteList.end(),
 		[lpPalette](auto entry) {
 			return entry.Interface == lpPalette;
 		}) != std::end(PaletteList);
-
-	ReleaseCriticalSection();
 
 	return found;
 }
@@ -4375,17 +4275,11 @@ void m_IDirectDrawX::AddVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer)
 		return;
 	}
 
-	SetCriticalSection();
-
 	VertexBufferList.push_back(lpVertexBuffer);
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawX::ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer)
 {
-	SetCriticalSection();
-
 	// Remove palette from attached surface
 	for (const auto& pDDraw : DDrawVector)
 	{
@@ -4398,8 +4292,6 @@ void m_IDirectDrawX::ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer)
 			pDDraw->VertexBufferList.erase(it);
 		}
 	}
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawX::SetVsync()

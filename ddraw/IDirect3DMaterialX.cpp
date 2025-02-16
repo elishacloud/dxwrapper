@@ -381,8 +381,6 @@ void m_IDirect3DMaterialX::ReleaseInterface()
 		return;
 	}
 
-	SetCriticalSection();
-
 	if (D3DInterface)
 	{
 		D3DInterface->ClearMaterial(this);
@@ -397,6 +395,4 @@ void m_IDirect3DMaterialX::ReleaseInterface()
 	{
 		(*D3DDeviceInterface)->ClearMaterialHandle(mHandle);
 	}
-
-	ReleaseCriticalSection();
 }

@@ -25,7 +25,6 @@ inline static void SaveInterfaceAddress(m_IDirect3DLight* Interface, m_IDirect3D
 {
 	if (Interface)
 	{
-		SetCriticalSection();
 		Interface->SetProxy(nullptr, nullptr);
 		if (InterfaceBackup)
 		{
@@ -33,13 +32,11 @@ inline static void SaveInterfaceAddress(m_IDirect3DLight* Interface, m_IDirect3D
 			InterfaceBackup = nullptr;
 		}
 		InterfaceBackup = Interface;
-		ReleaseCriticalSection();
 	}
 }
 
 m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface)
 {
-	SetCriticalSection();
 	m_IDirect3DLight* Interface = nullptr;
 	if (WrapperInterfaceBackup)
 	{
@@ -58,7 +55,6 @@ m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* N
 			Interface = new m_IDirect3DLight(NewD3DInterface);
 		}
 	}
-	ReleaseCriticalSection();
 	return Interface;
 }
 
@@ -333,8 +329,6 @@ void m_IDirect3DLight::ReleaseInterface()
 		return;
 	}
 
-	SetCriticalSection();
-
 	if (D3DInterface)
 	{
 		D3DInterface->ClearLight(this);
@@ -346,6 +340,4 @@ void m_IDirect3DLight::ReleaseInterface()
 	}
 
 	ClearD3D();
-
-	ReleaseCriticalSection();
 }

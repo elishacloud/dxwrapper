@@ -137,8 +137,6 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D not setup when creating Direct3DDevice.");
 			}
 
-			SetCriticalSection();
-
 			if (!attached3DDevice)
 			{
 				attached3DDevice = new m_IDirect3DDeviceX(ddrawParent, D3DX, (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(DirectXVersion), riid, DirectXVersion);
@@ -153,8 +151,6 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 			DxVersion = (DxVersion == 4) ? 3 : DxVersion;
 
 			*ppvObj = (LPDIRECT3DDEVICE7)attached3DDevice->GetWrapperInterfaceX(DxVersion);
-
-			ReleaseCriticalSection();
 
 			return D3D_OK;
 		}
@@ -255,9 +251,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 			{
 				lpD3DDeviceX->SetDdrawParent(ddrawParent);
 
-				SetCriticalSection();
 				ddrawParent->SetD3DDevice(lpD3DDeviceX);
-				ReleaseCriticalSection();
 			}
 		}
 
@@ -4226,8 +4220,6 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 		return;
 	}
 
-	SetCriticalSection();
-
 	if (ddrawParent)
 	{
 		ddrawParent->ClearSurface(this);
@@ -4263,8 +4255,6 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 		DeleteCriticalSection(&ddscs);
 		DeleteCriticalSection(&ddlcs);
 	}
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawSurfaceX::SetDdrawParent(m_IDirectDrawX* ddraw)
@@ -4273,8 +4263,6 @@ void m_IDirectDrawSurfaceX::SetDdrawParent(m_IDirectDrawX* ddraw)
 	{
 		return;
 	}
-
-	SetCriticalSection();
 
 	if (ddrawParent && ddrawParent != ddraw)
 	{
@@ -4289,14 +4277,10 @@ void m_IDirectDrawSurfaceX::SetDdrawParent(m_IDirectDrawX* ddraw)
 	}
 
 	d3d9Device = ddrawParent->GetDirectD9Device();
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawSurfaceX::ClearDdraw()
 {
-	SetCriticalSection();
-
 	ddrawParent = nullptr;
 	d3d9Device = nullptr;
 
@@ -4304,8 +4288,6 @@ void m_IDirectDrawSurfaceX::ClearDdraw()
 	{
 		attached3DTexture->ClearD3DDevice();
 	}
-
-	ReleaseCriticalSection();
 }
 
 inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()

@@ -27,7 +27,6 @@ inline static void SaveInterfaceAddress(m_IDirectDrawPalette* Interface, m_IDire
 {
 	if (Interface)
 	{
-		SetCriticalSection();
 		Interface->SetProxy(nullptr, nullptr, 0, nullptr);
 		if (InterfaceBackup)
 		{
@@ -35,13 +34,11 @@ inline static void SaveInterfaceAddress(m_IDirectDrawPalette* Interface, m_IDire
 			InterfaceBackup = nullptr;
 		}
 		InterfaceBackup = Interface;
-		ReleaseCriticalSection();
 	}
 }
 
 m_IDirectDrawPalette* CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
 {
-	SetCriticalSection();
 	m_IDirectDrawPalette* Interface = nullptr;
 	if (WrapperInterfaceBackup)
 	{
@@ -60,7 +57,6 @@ m_IDirectDrawPalette* CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_I
 			Interface = new m_IDirectDrawPalette(NewParent, dwFlags, lpDDColorArray);
 		}
 	}
-	ReleaseCriticalSection();
 	return Interface;
 }
 
@@ -404,12 +400,8 @@ void m_IDirectDrawPalette::ReleaseInterface()
 		return;
 	}
 
-	SetCriticalSection();
-
 	if (ddrawParent)
 	{
 		ddrawParent->ClearPalette(this);
 	}
-
-	ReleaseCriticalSection();
 }
