@@ -785,6 +785,10 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 		m_IDirect3DDeviceX* p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, this, lpDDS, riid, DirectXVersion);
 
+		p_IDirect3DDeviceX->SetAttached3DSurface(DdrawSurface3D, lpDDS);
+
+		lpDDS->AddRef();
+
 		*lplpD3DDevice = (LPDIRECT3DDEVICE7)p_IDirect3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
 
 		ReleaseCriticalSection();

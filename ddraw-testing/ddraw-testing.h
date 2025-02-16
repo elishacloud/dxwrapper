@@ -64,3 +64,6 @@ void TestCreateSurface(DDType* pDDraw);
 
 template <typename DDType>
 void TestCreateDirect3D(DDType* pDDraw);
+
+template <typename DDType, typename D3DType>
+void TestCreate3DDevice(DDType* pDDraw, D3DType* pDirect3D);

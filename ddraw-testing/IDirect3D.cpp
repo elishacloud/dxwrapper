@@ -299,6 +299,9 @@ void TestCreateDirect3DT(DDType* pDDraw)
             TestCreateVertexBuffer<DDType, D3DType, IDirect3DVertexBuffer7>(pDDraw, pDirect3D);
         }
 
+        // Test IDirect3DDevice
+        TestCreate3DDevice<DDType, D3DType>(pDDraw, pDirect3D);
+
         pDirect3D->Release();
     }
     else

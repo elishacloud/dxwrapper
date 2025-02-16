@@ -131,6 +131,7 @@
   <ItemGroup>
     <ClCompile Include="..\External\Logging\Logging.cpp" />
     <ClCompile Include="IDirect3D.cpp" />
+    <ClCompile Include="IDirect3DDevice.cpp" />
     <ClCompile Include="IDirectDraw.cpp" />
     <ClCompile Include="IDirectDrawSurface.cpp" />
     <ClCompile Include="Logging.cpp" />

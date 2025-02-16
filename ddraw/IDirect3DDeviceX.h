@@ -24,6 +24,8 @@ private:
 	// Convert Device
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirect3DX* D3DInterface = nullptr;
+	IDirectDrawSurface7* attached3DSurface = nullptr;
+	m_IDirectDrawSurfaceX* attached3DSurfaceX = nullptr;
 	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 	LPDIRECT3DPIXELSHADER9* colorkeyPixelShader = nullptr;
@@ -362,6 +364,7 @@ public:
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 	bool IsDeviceInScene() const { return IsInScene; }
+	inline void SetAttached3DSurface(m_IDirectDrawSurfaceX* lpSurfaceX, IDirectDrawSurface7* lpSurface) { attached3DSurfaceX = lpSurfaceX; attached3DSurface = lpSurface; }
 
 	// ExecuteBuffer
 	void AddExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer);
@@ -389,37 +392,8 @@ public:
 	void ClearD3D(m_IDirect3DX* lpD3D);
 
 	// Functions handling the ddraw parent interface
-	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
-	{
-		if (lpCurrentRenderTargetX == lpSurfaceX)
-		{
-			lpCurrentRenderTargetX = nullptr;
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: clearing current render target!");
-		}
-		for (UINT x = 0; x < MaxTextureStages; x++)
-		{			
-			if (CurrentTextureSurfaceX[x] == lpSurfaceX)
-			{
-				SetTexture(x, (LPDIRECTDRAWSURFACE7)nullptr);
-				AttachedTexture[x] = nullptr;
-				CurrentTextureSurfaceX[x] = nullptr;
-			}
-		}
-	}
-	void SetDdrawParent(m_IDirectDrawX *ddraw)
-	{
-		ddrawParent = ddraw;
-
-		// Store D3DDevice
-		if (ddrawParent)
-		{
-			ddrawParent->SetD3DDevice(this);
-			if (lpCurrentRenderTargetX)
-			{
-				ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
-			}
-		}
-	}
+	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
+	void SetDdrawParent(m_IDirectDrawX* ddraw);
 	void ClearDdraw();
 	void BeforeResetDevice();
 	void AfterResetDevice();

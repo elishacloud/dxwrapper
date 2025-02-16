@@ -5015,6 +5015,44 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 /*** Helper functions ***/
 /************************/
 
+void m_IDirect3DDeviceX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
+{
+	if (attached3DSurfaceX == lpSurfaceX)
+	{
+		attached3DSurfaceX = nullptr;
+		attached3DSurface = nullptr;
+	}
+	if (lpCurrentRenderTargetX == lpSurfaceX)
+	{
+		lpCurrentRenderTargetX = nullptr;
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: clearing current render target!");
+	}
+	for (UINT x = 0; x < MaxTextureStages; x++)
+	{
+		if (CurrentTextureSurfaceX[x] == lpSurfaceX)
+		{
+			SetTexture(x, (LPDIRECTDRAWSURFACE7)nullptr);
+			AttachedTexture[x] = nullptr;
+			CurrentTextureSurfaceX[x] = nullptr;
+		}
+	}
+}
+
+void m_IDirect3DDeviceX::SetDdrawParent(m_IDirectDrawX* ddraw)
+{
+	ddrawParent = ddraw;
+
+	// Store D3DDevice
+	if (ddrawParent)
+	{
+		ddrawParent->SetD3DDevice(this);
+		if (lpCurrentRenderTargetX)
+		{
+			ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+		}
+	}
+}
+
 void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 {
 	if (ddrawParent)
@@ -5067,6 +5105,11 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 	if (D3DInterface)
 	{
 		D3DInterface->ClearD3DDevice(this);
+	}
+
+	if (attached3DSurfaceX && attached3DSurface)
+	{
+		attached3DSurface->Release();
 	}
 
 	// Don't delete wrapper interface

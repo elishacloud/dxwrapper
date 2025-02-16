@@ -9,6 +9,7 @@
     <ClCompile Include="IDirectDraw.cpp" />
     <ClCompile Include="IDirectDrawSurface.cpp" />
     <ClCompile Include="IDirect3D.cpp" />
+    <ClCompile Include="IDirect3DDevice.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
