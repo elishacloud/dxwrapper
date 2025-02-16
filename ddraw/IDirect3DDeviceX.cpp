@@ -60,7 +60,14 @@ HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWO
 	{
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 
-		AddRef(DxVersion);
+		if (parent3DSurface.Interface)
+		{
+			parent3DSurface.Interface->AddRef(parent3DSurface.DxVersion);	// Some Direct3DDevices share reference count with parent surfaces
+		}
+		else
+		{
+			AddRef(DxVersion);
+		}
 
 		return D3D_OK;
 	}
@@ -97,6 +104,12 @@ ULONG m_IDirect3DDeviceX::AddRef(DWORD DirectXVersion)
 
 	if (Config.Dd7to9)
 	{
+		// Some Direct3DDevices share reference count with parent surfaces
+		if (parent3DSurface.Interface)
+		{
+			return parent3DSurface.Interface->AddRef(parent3DSurface.DxVersion);
+		}
+
 		switch (DirectXVersion)
 		{
 		case 1:
@@ -124,6 +137,12 @@ ULONG m_IDirect3DDeviceX::Release(DWORD DirectXVersion)
 
 	if (Config.Dd7to9)
 	{
+		// Some Direct3DDevices share reference count with parent surfaces
+		if (parent3DSurface.Interface)
+		{
+			return parent3DSurface.Interface->Release(parent3DSurface.DxVersion);
+		}
+
 		switch (DirectXVersion)
 		{
 		case 1:

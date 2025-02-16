@@ -55,9 +55,9 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 	{
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 
-		if (DDrawSurface)
+		if (parent3DSurface.Interface)
 		{
-			DDrawSurface->AddRef(DDrawSurfaceVersion);	// 3DTextures share reference count with surface
+			parent3DSurface.Interface->AddRef(parent3DSurface.DxVersion);	// 3DTextures share reference count with surface
 		}
 		else
 		{
@@ -92,9 +92,9 @@ ULONG m_IDirect3DTextureX::AddRef(DWORD DirectXVersion)
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
 	// 3DTextures share reference count with surface
-	if (DDrawSurface)
+	if (parent3DSurface.Interface)
 	{
-		return DDrawSurface->AddRef(DDrawSurfaceVersion);
+		return parent3DSurface.Interface->AddRef(parent3DSurface.DxVersion);
 	}
 
 	if (!ProxyInterface)
@@ -119,9 +119,9 @@ ULONG m_IDirect3DTextureX::Release(DWORD DirectXVersion)
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
 	// 3DTextures share reference count with surface
-	if (DDrawSurface)
+	if (parent3DSurface.Interface)
 	{
-		return DDrawSurface->Release(DDrawSurfaceVersion);
+		return parent3DSurface.Interface->Release(parent3DSurface.DxVersion);
 	}
 
 	ULONG ref;
@@ -294,7 +294,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 			return DDERR_GENERIC;
 		}
 
-		if (!DDrawSurface)
+		if (!parent3DSurface.Interface)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not attached!");
 			return DDERR_GENERIC;
@@ -322,14 +322,14 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 			return DDERR_GENERIC;
 		}
 
-		if (pSrcSurfaceX == DDrawSurface)
+		if (pSrcSurfaceX == parent3DSurface.Interface)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: source surface is the same!");
 			return D3D_OK;
 		}
 
 		IDirectDrawSurface7* pSrcSurface7 = (IDirectDrawSurface7*)pSrcSurfaceX->GetWrapperInterfaceX(0);
-		IDirectDrawSurface7* pDestSurface7 = (IDirectDrawSurface7*)DDrawSurface->GetWrapperInterfaceX(0);
+		IDirectDrawSurface7* pDestSurface7 = (IDirectDrawSurface7*)parent3DSurface.Interface->GetWrapperInterfaceX(0);
 
 		if (!pDestSurface7 || !pSrcSurface7)
 		{

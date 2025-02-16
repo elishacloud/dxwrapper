@@ -777,7 +777,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		// Check for existing device
 		if (D3DDeviceInterface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Direct3DDevice is already setup!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Direct3DDevice is already setup. Multiple Direct3DDevice's are not implemented!");
 			return DDERR_GENERIC;
 		}
 
@@ -785,9 +785,9 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 
 		m_IDirect3DDeviceX* p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, this, lpDDS, riid, DirectXVersion);
 
-		p_IDirect3DDeviceX->SetAttached3DSurface(DdrawSurface3D, lpDDS);
+		//p_IDirect3DDeviceX->SetAttached3DSurface(DdrawSurface3D, lpDDS);
 
-		lpDDS->AddRef();
+		//lpDDS->AddRef();
 
 		*lplpD3DDevice = (LPDIRECT3DDEVICE7)p_IDirect3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
 

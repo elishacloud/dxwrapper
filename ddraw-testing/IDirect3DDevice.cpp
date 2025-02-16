@@ -20,7 +20,7 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
     DWORD TestID = 800;
     if (FAILED(hr))
     {
-        LOG_TEST_RESULT(TestID, "Failed to create primary surface. Error: ", (DDERR)hr, TEST_FAILED);
+        LOG_TEST_RESULT(TestID, "Failed to create 3D Surface1. Error: ", (DDERR)hr, TEST_FAILED);
         return;
     }
 
@@ -168,7 +168,7 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
             }
             else
             {
-                LOG_TEST_RESULT(TestID, "Failed to create 3D Device. Error: ", (DDERR)hr, TEST_FAILED);
+                LOG_TEST_RESULT(TestID, "Failed to create 3D Device2. Error: ", (DDERR)hr, TEST_FAILED);
             }
 
             pSurface2->Release();
@@ -191,7 +191,7 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
         }
         else
         {
-            LOG_TEST_RESULT(TestID, "Failed to create primary surface. Error: ", (DDERR)hr, TEST_FAILED);
+            LOG_TEST_RESULT(TestID, "Failed to create 3D Surface2. Error: ", (DDERR)hr, TEST_FAILED);
         }
 
         pD3DDevice1->AddRef();
@@ -246,7 +246,7 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
     }
     else
     {
-        LOG_TEST_RESULT(TestID, "Failed to create 3D Device. Error: ", (DDERR)hr, TEST_FAILED);
+        LOG_TEST_RESULT(TestID, "Failed to create 3D Device1. Error: ", (DDERR)hr, TEST_FAILED);
     }
 
     pSurface1->Release();

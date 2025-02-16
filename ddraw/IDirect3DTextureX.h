@@ -10,9 +10,11 @@ private:
 
 	// Convert Texture
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
-	m_IDirectDrawSurfaceX *DDrawSurface = nullptr;
-	DWORD DDrawSurfaceVersion = 0;
 	DWORD tHandle = 0;
+	struct {
+		m_IDirectDrawSurfaceX* Interface = nullptr;
+		DWORD DxVersion = 0;
+	} parent3DSurface;
 
 	// Store d3d texture version wrappers
 	m_IDirect3DTexture *WrapperInterface = nullptr;
@@ -56,12 +58,14 @@ public:
 
 		InitInterface();
 	}
-	m_IDirect3DTextureX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion, m_IDirectDrawSurfaceX *lpSurface, DWORD DXSurfaceVersion) :
-		D3DDeviceInterface(D3DDInterface), DDrawSurface(lpSurface), DDrawSurfaceVersion(DXSurfaceVersion)
+	m_IDirect3DTextureX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion, m_IDirectDrawSurfaceX *lpSurface, DWORD DXSurfaceVersion) : D3DDeviceInterface(D3DDInterface)
 	{
 		ProxyDirectXVersion = (Config.Dd7to9) ? 9 : 7;
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+
+		parent3DSurface.Interface = lpSurface;
+		parent3DSurface.DxVersion = DXSurfaceVersion;
 
 		InitInterface();
 	}
@@ -96,5 +100,5 @@ public:
 	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 
 	// Surface functions
-	m_IDirectDrawSurfaceX *GetSurface() { return DDrawSurface; }
+	m_IDirectDrawSurfaceX *GetSurface() { return parent3DSurface.Interface; }
 };

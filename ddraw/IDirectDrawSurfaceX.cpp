@@ -107,33 +107,54 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 
 		if (IsD3DDevice)
 		{
-			DxVersion = (DxVersion == 4) ? 3 : DxVersion;
+			// Check for Direct3D surface
+			if (!IsSurface3D())
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not a Direct3D surface!");
+				return E_NOINTERFACE;
+			}
 
 			m_IDirect3DDeviceX* D3DDeviceX = *ddrawParent->GetCurrentD3DDevice();
 
 			if (D3DDeviceX)
 			{
-				*ppvObj = D3DDeviceX->GetWrapperInterfaceX(DxVersion);
-
-				D3DDeviceX->AddRef(DxVersion);
-
-				return DD_OK;
+				if (!attached3DDevice)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: Direct3DDevice is already setup. Multiple Direct3DDevice's are not implemented!");
+					return DDERR_GENERIC;
+				}
+				else if (attached3DDevice != D3DDeviceX)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: multiple Direct3DDevice's created!");
+					return DDERR_GENERIC;
+				}
 			}
 
 			m_IDirect3DX* D3DX = *ddrawParent->GetCurrentD3D();
 
-			if (D3DX)
+			if (!D3DX)
 			{
-				D3DX->CreateDevice(riid, (LPDIRECTDRAWSURFACE7)this, (LPDIRECT3DDEVICE7*)&D3DDeviceX, nullptr, DxVersion);
-
-				*ppvObj = D3DDeviceX;
-
-				return DD_OK;
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D not setup when creating Direct3DDevice.");
 			}
 
-			LOG_LIMIT(100, __FUNCTION__ << " Query failed for " << riid << " from " << GetWrapperType(DirectXVersion));
+			SetCriticalSection();
 
-			return E_NOINTERFACE;
+			if (!attached3DDevice)
+			{
+				attached3DDevice = new m_IDirect3DDeviceX(ddrawParent, D3DX, (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(DirectXVersion), riid, DirectXVersion);
+
+				attached3DDevice->SetParent3DSurface(this, DirectXVersion);
+			}
+
+			AddRef(DirectXVersion);
+
+			DxVersion = (DxVersion == 4) ? 3 : DxVersion;
+
+			*ppvObj = (LPDIRECT3DDEVICE7)attached3DDevice->GetWrapperInterfaceX(DxVersion);
+
+			ReleaseCriticalSection();
+
+			return D3D_OK;
 		}
 		// ColorControl doesn't work on native ddraw
 		/*if (riid == IID_IDirectDrawColorControl)
@@ -4305,6 +4326,11 @@ inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 		attached3DTexture = nullptr;
 	}
 
+	if (attached3DDevice)
+	{
+		attached3DDevice->DeleteMe();
+		attached3DDevice = nullptr;
+	}
 
 	if (ddrawParent)
 	{

@@ -13,7 +13,7 @@ private:
 	ULONG RefCount2 = 0;
 	ULONG RefCount3 = 0;
 	ULONG RefCount7 = 0;
-	REFCLSID ClassID;
+	REFCLSID ClassID = IID_IUnknown;
 
 	// Store d3d device version wrappers
 	m_IDirect3DDevice* WrapperInterface = nullptr;
@@ -31,6 +31,10 @@ private:
 	LPDIRECT3DPIXELSHADER9* colorkeyPixelShader = nullptr;
 	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
 	m_IDirect3DViewportX* lpCurrentViewportX = nullptr;
+	struct {
+		m_IDirectDrawSurfaceX* Interface = nullptr;
+		DWORD DxVersion = 0;
+	} parent3DSurface;
 
 #ifdef ENABLE_PROFILING
 	std::chrono::steady_clock::time_point sceneTime;
@@ -365,6 +369,7 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 	bool IsDeviceInScene() const { return IsInScene; }
 	inline void SetAttached3DSurface(m_IDirectDrawSurfaceX* lpSurfaceX, IDirectDrawSurface7* lpSurface) { attached3DSurfaceX = lpSurfaceX; attached3DSurface = lpSurface; }
+	inline void SetParent3DSurface(m_IDirectDrawSurfaceX* lpSurfaceX, DWORD DxVersion) { parent3DSurface = { lpSurfaceX, DxVersion }; }
 
 	// ExecuteBuffer
 	void AddExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer);
