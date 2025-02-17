@@ -341,6 +341,46 @@ void TestCreateSurfaceT(DDType* pDDraw)
         LOG_TEST_RESULT(TestID, "Failed to create offscreen surface. Error: ", (DDERR)hr, GetResults<DDType>(TestID));
     }
 
+    ddsd = {};
+    ddsd.dwSize = sizeof(ddsd);
+    ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT | DDSD_MIPMAPCOUNT;
+    ddsd.ddsCaps.dwCaps = DDSCAPS_COMPLEX | DDSCAPS_MIPMAP | DDSCAPS_TEXTURE;
+    ddsd.dwWidth = 64;
+    ddsd.dwHeight = 64;
+    ddsd.dwMipMapCount = 5;
+    ddsd.ddpfPixelFormat.dwSize = sizeof(ddsd.ddpfPixelFormat);
+    ddsd.ddpfPixelFormat.dwFlags = DDPF_RGB;
+    ddsd.ddpfPixelFormat.dwFourCC = 0;
+    ddsd.ddpfPixelFormat.dwRGBBitCount = 32;
+    ddsd.ddpfPixelFormat.dwRBitMask = 0xff0000;
+    ddsd.ddpfPixelFormat.dwGBitMask = 0xff00;
+    ddsd.ddpfPixelFormat.dwBBitMask = 0xff;
+    ddsd.ddpfPixelFormat.dwRGBAlphaBitMask = 0x0;
+    if constexpr (std::is_same_v<DSType, DDSURFACEDESC2>)
+    {
+        ddsd.ddsCaps.dwCaps2 = DDSCAPS2_TEXTUREMANAGE;
+    }
+
+    pSurface = nullptr;
+    hr = pDDraw->CreateSurface(&ddsd, &pSurface, nullptr);
+
+    // ****  226  ****
+    TestID = 226;
+    if (SUCCEEDED(hr))
+    {
+        LOG_TEST_RESULT(TestID, "Complex surface created. Ref count: ", GetRefCount(pSurface), GetResults<DDType>(TestID));
+
+        // ****  227  ****
+        TestID = 227;
+        LOG_TEST_RESULT(TestID, "DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+        pSurface->Release();
+    }
+    else
+    {
+        LOG_TEST_RESULT(TestID, "Failed to create Complex surface. Error: ", (DDERR)hr, TEST_FAILED);
+    }
+
     // Cleanup primary surface
     pPrimarySurface->Release();
 

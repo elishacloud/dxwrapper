@@ -89,6 +89,8 @@ private:
 	{
 		m_IDirectDrawSurfaceX* pSurface = nullptr;
 		bool isAttachedSurfaceAdded = false;
+		DWORD DxVersion = 0;
+		DWORD RefCount = 0;
 	};
 
 	struct COLORKEY
@@ -314,7 +316,7 @@ private:
 
 	// Attached surfaces
 	void InitSurfaceDesc(DWORD DirectXVersion);
-	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX, bool MarkAttached = false);
+	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX, bool MarkAttached, DWORD DxVersion, DWORD RefCount);
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool WasAttachedSurfaceAdded(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX);
@@ -384,7 +386,7 @@ public:
 	STDMETHOD_(ULONG, Release) (THIS) { return Release(0); }
 
 	/*** IDirectDrawSurface methods ***/
-	STDMETHOD(AddAttachedSurface)(THIS_ LPDIRECTDRAWSURFACE7);
+	STDMETHOD(AddAttachedSurface)(THIS_ LPDIRECTDRAWSURFACE7, DWORD);
 	STDMETHOD(AddOverlayDirtyRect)(THIS_ LPRECT);
 	HRESULT Blt(LPRECT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, LPDDBLTFX, DWORD, bool PresentBlt = true);
 	STDMETHOD(BltBatch)(THIS_ LPDDBLTBATCH, DWORD, DWORD, DWORD);

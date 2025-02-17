@@ -407,7 +407,7 @@ ULONG m_IDirectDrawSurfaceX::Release(DWORD DirectXVersion)
 /*** IDirectDrawSurface methods ***/
 /**********************************/
 
-HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurface)
+HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -476,9 +476,7 @@ HRESULT m_IDirectDrawSurfaceX::AddAttachedSurface(LPDIRECTDRAWSURFACE7 lpDDSurfa
 			UpdateAttachedDepthStencil(lpAttachedSurfaceX);
 		}
 
-		AddAttachedSurfaceToMap(lpAttachedSurfaceX, true);
-
-		lpDDSurface->AddRef();
+		AddAttachedSurfaceToMap(lpAttachedSurfaceX, true, DirectXVersion, 1);
 
 		return DD_OK;
 	}
@@ -4320,6 +4318,15 @@ inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 	{
 		ddrawParent->ClearSurface(this);
 	}
+
+	for (const auto& entry : AttachedSurfaceMap)
+	{
+		if (entry.second.RefCount == 1)
+		{
+			entry.second.pSurface->Release(entry.second.DxVersion);
+		}
+	}
+	AttachedSurfaceMap.clear();
 }
 
 LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::GetD3d9Surface()
@@ -6243,6 +6250,10 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		surfaceDesc2.ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM | DDSCAPS_VIDEOMEMORY;
 		surfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_NONLOCALVIDMEM;
 	}
+	if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) && (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_CREATESURFACE))
+	{
+		ComplexRoot = true;
+	}
 
 	// Create backbuffers
 	if (surfaceDesc2.dwBackBufferCount)
@@ -6260,24 +6271,17 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		// Create complex surfaces
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX)
 		{
-			if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_CREATESURFACE)
-			{
-				ComplexRoot = true;
-			}
-
 			BackBufferInterface = std::make_unique<m_IDirectDrawSurfaceX>(ddrawParent, DirectXVersion, &Desc2);
 
 			m_IDirectDrawSurfaceX *attachedSurface = BackBufferInterface.get();
 
-			AddAttachedSurfaceToMap(attachedSurface);
-
-			attachedSurface->AddRef(DirectXVersion);
+			AddAttachedSurfaceToMap(attachedSurface, false, DirectXVersion, 1);
 		}
 		else
 		{
 			m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(ddrawParent, DirectXVersion, &Desc2);
 
-			AddAttachedSurfaceToMap(attachedSurface);
+			AddAttachedSurfaceToMap(attachedSurface, false, DirectXVersion, 0);
 		}
 	}
 
@@ -6289,7 +6293,7 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		// Check if source Surface exists and add to surface map
 		if (ddrawParent && ddrawParent->DoesSurfaceExist(attachedSurface))
 		{
-			AddAttachedSurfaceToMap(attachedSurface);
+			AddAttachedSurfaceToMap(attachedSurface, false, DirectXVersion, 0);
 		}
 	}
 
@@ -6353,7 +6357,7 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 }
 
 // Add attached surface to map
-void m_IDirectDrawSurfaceX::AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX, bool MarkAttached)
+void m_IDirectDrawSurfaceX::AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX, bool MarkAttached, DWORD DxVersion, DWORD RefCount)
 {
 	if (!lpSurfaceX)
 	{
@@ -6362,9 +6366,14 @@ void m_IDirectDrawSurfaceX::AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSur
 
 	// Store surface
 	AttachedSurfaceMap[++MapKey].pSurface = lpSurfaceX;
-	if (MarkAttached)
+	AttachedSurfaceMap[MapKey].isAttachedSurfaceAdded = MarkAttached;
+
+	AttachedSurfaceMap[MapKey].DxVersion = DxVersion;
+	AttachedSurfaceMap[MapKey].RefCount = RefCount;
+
+	if (RefCount == 1)
 	{
-		AttachedSurfaceMap[MapKey].isAttachedSurfaceAdded = true;
+		lpSurfaceX->AddRef(DxVersion);
 	}
 }
 
@@ -6376,6 +6385,10 @@ void m_IDirectDrawSurfaceX::RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* 
 
 	if (it != std::end(AttachedSurfaceMap))
 	{
+		if (it->second.RefCount == 1)
+		{
+			it->second.pSurface->Release(it->second.DxVersion);
+		}
 		AttachedSurfaceMap.erase(it);
 	}
 }

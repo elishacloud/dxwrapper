@@ -825,9 +825,10 @@ void m_IDirect3DX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 
 	if (D3DDeviceInterface && Direct3DDeviceEx.RefCount)
 	{
-		UINT x = Direct3DDeviceEx.RefCount;
-
-		while (x-- && Release(Direct3DDeviceEx.DxVersion)) {};
+		for (UINT x = 0; x < Direct3DDeviceEx.RefCount; x++)
+		{
+			if (!Release(Direct3DDeviceEx.DxVersion)) break;
+		}
 	}
 
 	Direct3DDeviceEx = {};

@@ -944,8 +944,10 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 			});
 		if (it != std::end(pDDraw->SurfaceList))
 		{
-			UINT x = it->RefCount;
-			while (x-- && Release(it->DxVersion)) {};
+			for (UINT x = 0; x < it->RefCount; x++)
+			{
+				if (!Release(it->DxVersion)) break;
+			}
 
 			pDDraw->SurfaceList.erase(it);
 		}

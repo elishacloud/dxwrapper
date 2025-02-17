@@ -58,7 +58,7 @@ HRESULT m_IDirectDrawSurface2::AddAttachedSurface(LPDIRECTDRAWSURFACE2 a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->AddAttachedSurface((LPDIRECTDRAWSURFACE7)a);
+	return ProxyInterface->AddAttachedSurface((LPDIRECTDRAWSURFACE7)a, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface2::AddOverlayDirtyRect(LPRECT a)
