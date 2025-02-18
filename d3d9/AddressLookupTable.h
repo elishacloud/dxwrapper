@@ -1,5 +1,6 @@
 #pragma once
 
+#include <deque>
 #include <unordered_map>
 #include <algorithm>
 
@@ -69,4 +70,17 @@ public:
 private:
 	bool ConstructorFlag = false;
 	std::unordered_map<void*, class AddressLookupTableD3d9Object*> g_map[MaxIndex];
+};
+
+class StateBlockCache
+{
+private:
+	std::vector<m_IDirect3DStateBlock9*> stateBlocks;
+
+public:
+	~StateBlockCache();
+
+	void AddStateBlock(m_IDirect3DStateBlock9* stateBlock);
+	void RemoveStateBlock(m_IDirect3DStateBlock9* stateBlock);
+	void ReleaseAllStateBlocks();
 };

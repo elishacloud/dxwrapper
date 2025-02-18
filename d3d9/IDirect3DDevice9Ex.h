@@ -1,6 +1,8 @@
 #pragma once
 
 static constexpr size_t MAX_CLIP_PLANES = 6;
+static constexpr size_t MAX_TEXTURE_STAGES = 8;
+static constexpr size_t MAX_STATE_BLOCKS = 1024;
 const std::chrono::seconds FPS_CALCULATION_WINDOW(1);	// Define a constant for the desired duration of FPS calculation
 
 struct DEVICEDETAILS
@@ -14,6 +16,8 @@ struct DEVICEDETAILS
 
 	AddressLookupTableD3d9 ProxyAddressLookupTable9;
 
+	StateBlockCache StateBlockTable;
+
 	D3DCAPS9 Caps = {};
 
 	// Limit frame rate
@@ -25,7 +29,7 @@ struct DEVICEDETAILS
 	// Frame counter
 	double AverageFPSCounter = 0.0;
 	std::deque<std::pair<std::chrono::steady_clock::time_point, std::chrono::duration<double>>> frameTimes;	// Store frame times in a deque
-	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();// Store start time for PFS counter
+	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();	// Store start time for PFS counter
 
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;
@@ -38,6 +42,15 @@ struct DEVICEDETAILS
 	bool isAnisotropySet = false;
 	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
 
+	// For environment map cube
+	bool isTextureMapCube[MAX_TEXTURE_STAGES] = {};
+	bool isTransformMapCube[MAX_TEXTURE_STAGES] = {};
+	DWORD texCoordIndex[MAX_TEXTURE_STAGES] = {};
+	DWORD texTransformFlags[MAX_TEXTURE_STAGES] = {};
+	bool isBlankTextureUsed = false;
+	IDirect3DBaseTexture9* pCurrentTexture = nullptr;
+	IDirect3DCubeTexture9* BlankTexture = nullptr;
+
 	// For CacheClipPlane
 	bool isClipPlaneSet = false;
 	DWORD m_clipPlaneRenderState = 0;
@@ -46,8 +59,8 @@ struct DEVICEDETAILS
 	// For gamma
 	bool IsGammaSet = false;
 	bool UsingShader32f = true;
-	D3DGAMMARAMP RampData;
-	D3DGAMMARAMP DefaultRampData;
+	D3DGAMMARAMP RampData = {};
+	D3DGAMMARAMP DefaultRampData = {};
 	LPDIRECT3DTEXTURE9 GammaLUTTexture = nullptr;
 	LPDIRECT3DTEXTURE9 ScreenCopyTexture = nullptr;
 	LPDIRECT3DPIXELSHADER9 gammaPixelShader = nullptr;
@@ -69,11 +82,13 @@ private:
 
 	UINT DDKey;
 
+	void ApplyDrawFixes();
+
 	// Limit frame rate
-	void LimitFrameRate();
+	void LimitFrameRate() const;
 
 	// Frame counter
-	void CalculateFPS();
+	void CalculateFPS() const;
 
 	// Anisotropic Filtering
 	void DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag);
@@ -83,18 +98,23 @@ private:
 	HRESULT SetBrightnessLevel(D3DGAMMARAMP& Ramp);
 	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader() const;
 	void ApplyBrightnessLevel();
-	void ReleaseGammaResources() const;
+	void ReleaseResources(bool isReset);
+
+	// For environment map cube
+	void CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix) const;
+	bool CheckTextureStageForCubeMap() const;
+	void SetEnvironmentMapCubeTexture();
 
 	// For Reset & ResetEx
-	void ReInitInterface();
-	void ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters);
+	void ReInitInterface() const;
+	void ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters) const;
 	typedef HRESULT(WINAPI* fReset)(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fResetEx)(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
 	template <typename T>
 	HRESULT ResetT(T, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode = nullptr);
-	HRESULT ResetT(fReset, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX*)
+	inline HRESULT ResetT(fReset, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX*)
 	{ return ProxyInterface->Reset(pPresentationParameters); }
-	HRESULT ResetT(fResetEx, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
+	inline HRESULT ResetT(fResetEx, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
 	{ return (ProxyInterfaceEx) ? ProxyInterfaceEx->ResetEx(pPresentationParameters, pFullscreenDisplayMode) : D3DERR_INVALIDCALL; }
 
 public:
@@ -269,9 +289,8 @@ public:
 	STDMETHOD(GetDisplayModeEx)(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
 
 	// Helper functions
-	inline LPDIRECT3DDEVICE9 GetProxyInterface() { return ProxyInterface; }
-	inline AddressLookupTableD3d9* GetLookupTable() { return &SHARED.ProxyAddressLookupTable9; }
-	inline D3DMULTISAMPLE_TYPE GetMultiSampleType() { return SHARED.DeviceMultiSampleType; }
+	inline LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
+	inline AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
 	REFIID GetIID() { return WrapperID; }
 };
 #undef SHARED

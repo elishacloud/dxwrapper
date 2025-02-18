@@ -89,6 +89,8 @@ private:
 	{
 		m_IDirectDrawSurfaceX* pSurface = nullptr;
 		bool isAttachedSurfaceAdded = false;
+		DWORD DxVersion = 0;
+		DWORD RefCount = 0;
 	};
 
 	struct COLORKEY
@@ -165,7 +167,7 @@ private:
 	CRITICAL_SECTION ddscs = {};
 	CRITICAL_SECTION ddlcs = {};
 	m_IDirectDrawX *ddrawParent = nullptr;				// DirectDraw parent device
-	SURFACEOVERLAY SurfaceOverlay;					// The overlays for this surface
+	SURFACEOVERLAY SurfaceOverlay;						// The overlays for this surface
 	std::vector<MIPMAP> MipMaps;						// MipMaps structure with addresses
 	DWORD MaxMipMapLevel = 0;							// Total number of manually created MipMap levels
 	bool IsMipMapReadyToUse = false;					// Used for MipMap filtering
@@ -174,6 +176,7 @@ private:
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
 	m_IDirect3DTextureX *attached3DTexture = nullptr;	// Associated texture
+	m_IDirect3DDeviceX *attached3DDevice = nullptr;		// Associated device
 	DDSURFACEDESC2 surfaceDesc2 = {};					// Surface description for this surface
 	DWORD ResetDisplayFlags = 0;						// Flags that need to be reset when display mode changes
 	DWORD UniquenessValue = 0;
@@ -306,7 +309,6 @@ private:
 	inline DWORD GetD3d9MipMapLevel(DWORD MipMapLevel) const { return min(MipMapLevel, MaxMipMapLevel); }
 	inline DWORD GetWidth() const { return surfaceDesc2.dwWidth; }
 	inline DWORD GetHeight() const { return surfaceDesc2.dwHeight; }
-	inline bool CanSurfaceBeDeleted() const { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
 	inline DDSCAPS2 GetSurfaceCaps() const { return surfaceDesc2.ddsCaps; }
 	inline D3DFORMAT GetSurfaceFormat() const { return surface.Format; }
 
@@ -314,7 +316,7 @@ private:
 
 	// Attached surfaces
 	void InitSurfaceDesc(DWORD DirectXVersion);
-	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX, bool MarkAttached = false);
+	void AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSurfaceX, bool MarkAttached, DWORD DxVersion, DWORD RefCount);
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool WasAttachedSurfaceAdded(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX);
@@ -350,6 +352,10 @@ public:
 		{
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
+		if (Config.Dd7to9)
+		{
+			Logging::Log() << __FUNCTION__ << " (" << this << ") Warning: created from non-dd7to9 interface!";
+		}
 
 		InitInterface(DirectXVersion);
 	}
@@ -380,7 +386,7 @@ public:
 	STDMETHOD_(ULONG, Release) (THIS) { return Release(0); }
 
 	/*** IDirectDrawSurface methods ***/
-	STDMETHOD(AddAttachedSurface)(THIS_ LPDIRECTDRAWSURFACE7);
+	STDMETHOD(AddAttachedSurface)(THIS_ LPDIRECTDRAWSURFACE7, DWORD);
 	STDMETHOD(AddOverlayDirtyRect)(THIS_ LPRECT);
 	HRESULT Blt(LPRECT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD, LPDDBLTFX, DWORD, bool PresentBlt = true);
 	STDMETHOD(BltBatch)(THIS_ LPDDBLTBATCH, DWORD, DWORD, DWORD);
@@ -401,7 +407,7 @@ public:
 	STDMETHOD(GetClipper)(THIS_ LPDIRECTDRAWCLIPPER FAR*);
 	STDMETHOD(GetColorKey)(THIS_ DWORD, LPDDCOLORKEY);
 	STDMETHOD(GetDC)(THIS_ HDC FAR *, DWORD MipMapLevel);
-	STDMETHOD(GetFlipStatus)(THIS_ DWORD);
+	STDMETHOD(GetFlipStatus)(THIS_ DWORD, bool);
 	STDMETHOD(GetOverlayPosition)(THIS_ LPLONG, LPLONG);
 	STDMETHOD(GetPalette)(THIS_ LPDIRECTDRAWPALETTE FAR*);
 	STDMETHOD(GetPixelFormat)(THIS_ LPDDPIXELFORMAT);
@@ -464,8 +470,8 @@ public:
 	void RemoveScanlines(LASTLOCK &LLock) const;
 
 	// Functions handling the ddraw parent interface
-	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	inline void ClearDdraw() { ddrawParent = nullptr; d3d9Device = nullptr; }
+	void SetDdrawParent(m_IDirectDrawX* ddraw);
+	void ClearDdraw();
 
 	// Direct3D9 interface functions
 	void SetAsRenderTarget();
@@ -486,6 +492,7 @@ public:
 	inline bool IsPalette() const { return (surface.Format == D3DFMT_P8); }
 	inline bool IsDepthStencil() const { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	inline bool IsSurfaceManaged() const { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
+	inline bool CanSurfaceBeDeleted() const { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
 	inline bool CanSurfaceUseEmulation() const
 	{ return ((IsPixelFormatRGB(surfaceDesc2.ddpfPixelFormat) || IsPixelFormatPalette(surfaceDesc2.ddpfPixelFormat)) && (!IsSurface3D() || !Using3D) && !surface.UsingSurfaceMemory); }
 	inline bool IsUsingEmulation() const { return (surface.emu && surface.emu->DC && surface.emu->GameDC && surface.emu->pBits); }
@@ -521,7 +528,6 @@ public:
 	inline D3DFORMAT GetD3d9Format() const { return surface.Format; }
 	inline LPDIRECT3DTEXTURE9 GetD3d9PaletteTexture() const { return primary.PaletteTexture; }
 	inline m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
-	inline void ClearAttachedTexture() { attached3DTexture = nullptr; }
 	void ClearUsing3DFlag();
 	HRESULT GetPresentWindowRect(LPRECT pRect, RECT& DestRect);
 

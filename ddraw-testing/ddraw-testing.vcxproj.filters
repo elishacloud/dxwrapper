@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="ddraw-testing.cpp" />
+    <ClCompile Include="Logging.cpp" />
+    <ClCompile Include="..\External\Logging\Logging.cpp">
+      <Filter>External\Logging</Filter>
+    </ClCompile>
+    <ClCompile Include="IDirectDraw.cpp" />
+    <ClCompile Include="IDirectDrawSurface.cpp" />
+    <ClCompile Include="IDirect3D.cpp" />
+    <ClCompile Include="IDirect3DDevice.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="Include\VersionHelpers.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\winapifamily.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw-testing.h" />
+    <ClInclude Include="testing-harness.h" />
+    <ClInclude Include="Logging.h" />
+    <ClInclude Include="..\External\Logging\Logging.h">
+      <Filter>External\Logging</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Include">
+      <UniqueIdentifier>{52ed0387-73ab-49d1-9885-a27bcea3d8c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External">
+      <UniqueIdentifier>{278f6dbd-716a-4fb0-bd2b-21816200a869}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="External\Logging">
+      <UniqueIdentifier>{f892643b-ec23-4837-8688-9750b30498f7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ddraw-testing.rc" />
+  </ItemGroup>
+</Project>

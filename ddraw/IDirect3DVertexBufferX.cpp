@@ -60,7 +60,7 @@ HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID FAR * ppvOb
 		return D3D_OK;
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
 void *m_IDirect3DVertexBufferX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -174,7 +174,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		// DDLOCK_WRITEONLY should be specified at create time. The presence of the D3DUSAGE_WRITEONLY flag in Usage indicates that the vertex buffer memory is used only for write operations.
 
 		DWORD Flags = (dwFlags & (DDLOCK_READONLY | DDLOCK_DISCARDCONTENTS)) |
-			((dwFlags & D3DLOCK_NOSYSLOCK) || Config.SingleProcAffinity || ddrawParent->GetHwndThreadID() == GetCurrentThreadId() ? D3DLOCK_NOSYSLOCK : 0);
+			((dwFlags & D3DLOCK_NOSYSLOCK) ? D3DLOCK_NOSYSLOCK : 0);
 
 		void* pData = nullptr;
 		HRESULT hr = d3d9VertexBuffer->Lock(0, 0, &pData, Flags);
@@ -288,7 +288,6 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_EXTENTS' not handled!");
 		}
 
-		// ToDo: Validate vertex buffer
 		m_IDirect3DVertexBufferX* pSrcVertexBufferX = nullptr;
 		lpSrcBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pSrcVertexBufferX);
 
@@ -547,33 +546,49 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 
 void m_IDirect3DVertexBufferX::InitInterface(DWORD DirectXVersion)
 {
-	if (!Config.Dd7to9)
+	if (ddrawParent)
+	{
+		ddrawParent->AddVertexBuffer(this);
+	}
+
+	if (D3DInterface)
+	{
+		D3DInterface->AddVertexBuffer(this);
+	}
+
+	if (Config.Dd7to9)
+	{
+		if (ddrawParent)
+		{
+			d3d9Device = ddrawParent->GetDirectD9Device();
+		}
+
+		AddRef(DirectXVersion);
+	}
+}
+
+void m_IDirect3DVertexBufferX::ReleaseInterface()
+{
+	if (Config.Exiting)
 	{
 		return;
 	}
 
 	if (ddrawParent)
 	{
-		ddrawParent->AddVertexBufferToVector(this);
-
-		d3d9Device = ddrawParent->GetDirectD9Device();
+		ddrawParent->ClearVertexBuffer(this);
 	}
 
-	AddRef(DirectXVersion);
-}
+	if (D3DInterface)
+	{
+		D3DInterface->ClearVertexBuffer(this);
+	}
 
-void m_IDirect3DVertexBufferX::ReleaseInterface()
-{
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
 	ReleaseD9Buffer(false, false);
-
-	if (ddrawParent && !Config.Exiting)
-	{
-		ddrawParent->RemoveVertexBufferFromVector(this);
-	}
 }
 
 HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DVertexBuffer)

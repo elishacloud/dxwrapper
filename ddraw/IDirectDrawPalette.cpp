@@ -27,7 +27,6 @@ inline static void SaveInterfaceAddress(m_IDirectDrawPalette* Interface, m_IDire
 {
 	if (Interface)
 	{
-		SetCriticalSection();
 		Interface->SetProxy(nullptr, nullptr, 0, nullptr);
 		if (InterfaceBackup)
 		{
@@ -35,13 +34,11 @@ inline static void SaveInterfaceAddress(m_IDirectDrawPalette* Interface, m_IDire
 			InterfaceBackup = nullptr;
 		}
 		InterfaceBackup = Interface;
-		ReleaseCriticalSection();
 	}
 }
 
 m_IDirectDrawPalette* CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
 {
-	SetCriticalSection();
 	m_IDirectDrawPalette* Interface = nullptr;
 	if (WrapperInterfaceBackup)
 	{
@@ -60,7 +57,6 @@ m_IDirectDrawPalette* CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_I
 			Interface = new m_IDirectDrawPalette(NewParent, dwFlags, lpDDColorArray);
 		}
 	}
-	ReleaseCriticalSection();
 	return Interface;
 }
 
@@ -320,89 +316,92 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 
 void m_IDirectDrawPalette::InitInterface(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
 {
-	paletteCaps = (dwFlags & ~DDPCAPS_INITIALIZE);
-
-	if (ProxyInterface)
-	{
-		return;
-	}
-
-	// Compute new USN number
-	PaletteUSN = ComputeRND(PaletteUSN, (DWORD)this);
-
-	// Create palette of requested bit size
-	if ((paletteCaps & DDPCAPS_8BIT) || (paletteCaps & DDPCAPS_ALLOW256))
-	{
-		entryCount = 256;
-	}
-	else if (paletteCaps & DDPCAPS_1BIT)
-	{
-		entryCount = 2;
-	}
-	else if (paletteCaps & DDPCAPS_2BIT)
-	{
-		entryCount = 4;
-	}
-	else if (paletteCaps & DDPCAPS_4BIT)
-	{
-		entryCount = 16;
-	}
-
-	// Check for unsupported flags
-	if (paletteCaps & DDPCAPS_PRIMARYSURFACELEFT)
-	{
-		Logging::Log() << __FUNCTION__ << " Warning: Primary surface left is not implemented.";
-	}
-
-	// The palette entries are 1 byte each if the DDPCAPS_8BITENTRIES flag is set, and 4 bytes otherwise.
-	if (paletteCaps & DDPCAPS_ALPHA)
-	{
-		Logging::Log() << __FUNCTION__ << " Warning: alpha palette entries are not implemented.";
-	}
-
-	// The palette entries are 1 byte each if the DDPCAPS_8BITENTRIES flag is set, and 4 bytes otherwise.
-	// This flag is valid only when used with the DDPCAPS_1BIT, DDPCAPS_2BIT, or DDPCAPS_4BIT flag, and when the target surface is 8 bpp.
-	if ((paletteCaps & DDPCAPS_8BITENTRIES) && (paletteCaps & (DDPCAPS_1BIT | DDPCAPS_2BIT | DDPCAPS_4BIT)))
-	{
-		Logging::Log() << __FUNCTION__ << " Warning: DDPCAPS_8BITENTRIES is not implemented.";
-	}
-	else
-	{
-		paletteCaps &= ~DDPCAPS_8BITENTRIES;
-	}
-
-	ZeroMemory(rawPalette, sizeof(rawPalette));
-	ZeroMemory(rgbPalette, sizeof(rgbPalette));
-
-	// Init palette entry 255 to white to simulate ddraw functionality
-	if (entryCount == 256)
-	{
-		// Palette entry
-		rawPalette[255].peRed = 0xFF;
-		rawPalette[255].peGreen = 0xFF;
-		rawPalette[255].peBlue = 0xFF;
-		// RGB palette
-		rgbPalette[255].rgbBlue = 0xFF;
-		rgbPalette[255].rgbGreen = 0xFF;
-		rgbPalette[255].rgbRed = 0xFF;
-	}
-
-	// Set initial entries after initializing the palette
-	if (lpDDColorArray)
-	{
-		SetEntries(dwFlags, 0, entryCount, lpDDColorArray);
-	}
-
 	if (ddrawParent)
 	{
-		ddrawParent->AddPaletteToVector(this);
+		ddrawParent->AddPalette(this);
+	}
+
+	if (!ProxyInterface)
+	{
+		paletteCaps = (dwFlags & ~DDPCAPS_INITIALIZE);
+
+		// Compute new USN number
+		PaletteUSN = ComputeRND(PaletteUSN, (DWORD)this);
+
+		// Create palette of requested bit size
+		if ((paletteCaps & DDPCAPS_8BIT) || (paletteCaps & DDPCAPS_ALLOW256))
+		{
+			entryCount = 256;
+		}
+		else if (paletteCaps & DDPCAPS_1BIT)
+		{
+			entryCount = 2;
+		}
+		else if (paletteCaps & DDPCAPS_2BIT)
+		{
+			entryCount = 4;
+		}
+		else if (paletteCaps & DDPCAPS_4BIT)
+		{
+			entryCount = 16;
+		}
+
+		// Check for unsupported flags
+		if (paletteCaps & DDPCAPS_PRIMARYSURFACELEFT)
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: Primary surface left is not implemented.";
+		}
+
+		// The palette entries are 1 byte each if the DDPCAPS_8BITENTRIES flag is set, and 4 bytes otherwise.
+		if (paletteCaps & DDPCAPS_ALPHA)
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: alpha palette entries are not implemented.";
+		}
+
+		// The palette entries are 1 byte each if the DDPCAPS_8BITENTRIES flag is set, and 4 bytes otherwise.
+		// This flag is valid only when used with the DDPCAPS_1BIT, DDPCAPS_2BIT, or DDPCAPS_4BIT flag, and when the target surface is 8 bpp.
+		if ((paletteCaps & DDPCAPS_8BITENTRIES) && (paletteCaps & (DDPCAPS_1BIT | DDPCAPS_2BIT | DDPCAPS_4BIT)))
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: DDPCAPS_8BITENTRIES is not implemented.";
+		}
+		else
+		{
+			paletteCaps &= ~DDPCAPS_8BITENTRIES;
+		}
+
+		ZeroMemory(rawPalette, sizeof(rawPalette));
+		ZeroMemory(rgbPalette, sizeof(rgbPalette));
+
+		// Init palette entry 255 to white to simulate ddraw functionality
+		if (entryCount == 256)
+		{
+			// Palette entry
+			rawPalette[255].peRed = 0xFF;
+			rawPalette[255].peGreen = 0xFF;
+			rawPalette[255].peBlue = 0xFF;
+			// RGB palette
+			rgbPalette[255].rgbBlue = 0xFF;
+			rgbPalette[255].rgbGreen = 0xFF;
+			rgbPalette[255].rgbRed = 0xFF;
+		}
+
+		// Set initial entries after initializing the palette
+		if (lpDDColorArray)
+		{
+			SetEntries(dwFlags, 0, entryCount, lpDDColorArray);
+		}
 	}
 }
 
 void m_IDirectDrawPalette::ReleaseInterface()
 {
-	if (ddrawParent && !Config.Exiting)
+	if (Config.Exiting)
 	{
-		ddrawParent->RemovePaletteFromVector(this);
+		return;
+	}
+
+	if (ddrawParent)
+	{
+		ddrawParent->ClearPalette(this);
 	}
 }

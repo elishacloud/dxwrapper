@@ -10,7 +10,6 @@ inline void SaveInterfaceAddress(T*& Interface, T*& InterfaceBackup)
 {
 	if (Interface)
 	{
-		SetCriticalSection();
 		Interface->SetProxy(nullptr);
 		if (InterfaceBackup)
 		{
@@ -18,7 +17,6 @@ inline void SaveInterfaceAddress(T*& Interface, T*& InterfaceBackup)
 			InterfaceBackup = nullptr;
 		}
 		InterfaceBackup = Interface;
-		ReleaseCriticalSection();
 	}
 }
 
@@ -27,7 +25,6 @@ inline T* GetInterfaceAddress(T*& Interface, T*& InterfaceBackup, S* ProxyInterf
 {
 	if (!Interface)
 	{
-		SetCriticalSection();
 		if (InterfaceBackup)
 		{
 			Interface = InterfaceBackup;
@@ -38,7 +35,6 @@ inline T* GetInterfaceAddress(T*& Interface, T*& InterfaceBackup, S* ProxyInterf
 		{
 			Interface = new T(ProxyInterface, InterfaceX);
 		}
-		ReleaseCriticalSection();
 	}
 	return Interface;
 }

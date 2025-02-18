@@ -8,6 +8,7 @@ private:
 	ULONG RefCount1 = 0;
 	ULONG RefCount7 = 0;
 	m_IDirectDrawX* ddrawParent = nullptr;
+	m_IDirect3DX* D3DInterface = nullptr;
 	LPDIRECT3DDEVICE9* d3d9Device = nullptr;
 
 	// Vertex buffer desc
@@ -64,10 +65,14 @@ public:
 		{
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
+		if (Config.Dd7to9)
+		{
+			Logging::Log() << __FUNCTION__ << " (" << this << ") Warning: created from non-dd7to9 interface!";
+		}
 
 		InitInterface(DirectXVersion);
 	}
-	m_IDirect3DVertexBufferX(m_IDirectDrawX* lpDdraw, LPD3DVERTEXBUFFERDESC lpVBDesc, DWORD DirectXVersion) : ddrawParent(lpDdraw)
+	m_IDirect3DVertexBufferX(m_IDirectDrawX* lpDdraw, m_IDirect3DX* D3D, LPD3DVERTEXBUFFERDESC lpVBDesc, DWORD DirectXVersion) : ddrawParent(lpDdraw), D3DInterface(D3D)
 	{
 		ProxyDirectXVersion = 9;
 
@@ -117,7 +122,8 @@ public:
 	void ClearDdraw() { ddrawParent = nullptr; d3d9Device = nullptr; }
 
 	// Direct3D9 interfaces
-	const LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() const { return d3d9VertexBuffer; };
+	inline const LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() const { return d3d9VertexBuffer; };
+	inline void ClearD3D() { D3DInterface = nullptr; }
 	void ReleaseD9Buffer(bool BackupData, bool ResetBuffer);
 
 	DWORD GetFVF9() const { return d3d9VBDesc.FVF; };

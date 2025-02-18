@@ -31,6 +31,14 @@ HRESULT m_IDirectDrawSurface7::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 		*ppvObj = (void*)MipMapLevel;
 		return DD_OK;
 	}
+	if (ppvObj && MipMapLevel && (riid == WrapperID || riid == IID_IUnknown))
+	{
+		*ppvObj = this;
+
+		AddRef();
+
+		return DD_OK;
+	}
 	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 
@@ -39,6 +47,10 @@ ULONG m_IDirectDrawSurface7::AddRef()
 	if (!ProxyInterface)
 	{
 		return 0;
+	}
+	if (MipMapLevel)
+	{
+		return InterlockedIncrement(&RefCount);
 	}
 	return ProxyInterface->AddRef(DirectXVersion);
 }
@@ -49,6 +61,10 @@ ULONG m_IDirectDrawSurface7::Release()
 	{
 		return 0;
 	}
+	if (MipMapLevel)
+	{
+		return (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
+	}
 	return ProxyInterface->Release(DirectXVersion);
 }
 
@@ -58,7 +74,7 @@ HRESULT m_IDirectDrawSurface7::AddAttachedSurface(LPDIRECTDRAWSURFACE7 a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->AddAttachedSurface(a);
+	return ProxyInterface->AddAttachedSurface(a, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface7::AddOverlayDirtyRect(LPRECT a)
@@ -205,7 +221,7 @@ HRESULT m_IDirectDrawSurface7::GetFlipStatus(DWORD a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetFlipStatus(a);
+	return ProxyInterface->GetFlipStatus(a, false);
 }
 
 HRESULT m_IDirectDrawSurface7::GetOverlayPosition(LPLONG a, LPLONG b)

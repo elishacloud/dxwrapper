@@ -61,7 +61,7 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, D
 		return D3D_OK;
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
 void *m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -184,9 +184,9 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -227,9 +227,9 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -295,13 +295,12 @@ HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 
 	if (!ProxyInterface)
 	{
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
-		// ToDo: validate handle
 		MaterialBackground.IsSet = TRUE;
 		MaterialBackground.hMat = hMat;
 
@@ -402,9 +401,9 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -426,7 +425,6 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 			}
 		}
 
-		// ToDo: Validate Light address
 		AttachedLights.push_back(lpDirect3DLight);
 
 		lpDirect3DLight->AddRef();
@@ -453,9 +451,9 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -466,7 +464,6 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// ToDo: Validate Light address
 		lpDirect3DLight->Release();
 
 		// If current viewport is then deactivate the light
@@ -541,7 +538,6 @@ HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIREC
 			break;
 		}
 
-		// ToDo: Validate return Light address
 		return D3D_OK;
 	}
 
@@ -584,9 +580,9 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 		}
 		else
 		{
-			if (!D3DDeviceInterface || !*D3DDeviceInterface)
+			// Check for device interface
+			if (FAILED(CheckInterface(__FUNCTION__)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 				return DDERR_GENERIC;
 			}
 
@@ -615,9 +611,9 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -653,9 +649,9 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 
 void m_IDirect3DViewportX::SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData)
 {
-	if (!D3DDeviceInterface || !*D3DDeviceInterface)
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 		return;
 	}
 
@@ -750,9 +746,9 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 
 	if (!ProxyInterface)
 	{
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -766,22 +762,61 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DViewportX::InitInterface(DWORD DirectXVersion)
+HRESULT m_IDirect3DViewportX::CheckInterface(char* FunctionName)
 {
-	if (ProxyInterface)
+	// Check D3DInterface device
+	if (!D3DInterface)
 	{
-		return;
+		LOG_LIMIT(100, FunctionName << " Error: no D3D parent!");
+		return DDERR_INVALIDOBJECT;
 	}
 
-	AddRef(DirectXVersion);
+	// Check d3d9 device
+	if (!D3DDeviceInterface || !*D3DDeviceInterface)
+	{
+		D3DDeviceInterface = D3DInterface->GetD3DDevice();
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, FunctionName << " Error: could not get the D3DDevice!");
+			return DDERR_INVALIDOBJECT;
+		}
+	}
+
+	return D3D_OK;
+}
+
+void m_IDirect3DViewportX::InitInterface(DWORD DirectXVersion)
+{
+	if (D3DInterface)
+	{
+		D3DInterface->AddViewport(this);
+	}
+
+	if (!ProxyInterface)
+	{
+		AddRef(DirectXVersion);
+	}
 }
 
 void m_IDirect3DViewportX::ReleaseInterface()
 {
+	if (Config.Exiting)
+	{
+		return;
+	}
+
+	if (D3DInterface)
+	{
+		D3DInterface->ClearViewport(this);
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
 	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
 
-	// ToDo: remove from AttachedViewports vector
+	if (D3DDeviceInterface && *D3DDeviceInterface)
+	{
+		(*D3DDeviceInterface)->ClearViewport(this);
+	}
 }

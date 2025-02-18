@@ -109,6 +109,36 @@ HRESULT m_IDirect3D9Ex::EnumAdapterModes(THIS_ UINT Adapter, D3DFORMAT Format, U
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (Config.OverrideRefreshRate)
+	{
+		if (!pMode)
+		{
+			return D3DERR_INVALIDCALL;
+		}
+
+		// Required to build the cache, if it doesn't exist
+		if (Mode >= GetAdapterModeCache(Adapter, Format, false, nullptr))
+		{
+			return D3DERR_INVALIDCALL;
+		}
+
+		for (auto& entry : AdapterModesCache)
+		{
+			if (entry.Adapter == Adapter && !entry.IsEx && entry.Filter.Format == Format)
+			{
+				if (Mode < entry.DisplayModeList.size())
+				{
+					*pMode = entry.DisplayModeList[Mode].Data();
+
+					return D3D_OK;
+				}
+				return D3DERR_INVALIDCALL;
+			}
+		}
+
+		return D3DERR_INVALIDCALL;
+	}
+
 	return ProxyInterface->EnumAdapterModes(Adapter, Format, Mode, pMode);
 }
 
@@ -133,9 +163,80 @@ HRESULT m_IDirect3D9Ex::GetAdapterIdentifier(UINT Adapter, DWORD Flags, D3DADAPT
 	return ProxyInterface->GetAdapterIdentifier(Adapter, Flags, pIdentifier);
 }
 
+UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, bool IsEx, CONST D3DDISPLAYMODEFILTER* pFilter)
+{
+	if (IsEx && (!pFilter || !ProxyInterfaceEx))
+	{
+		return 0;
+	}
+
+	for (auto& entry : AdapterModesCache)
+	{
+		if (entry.Adapter == Adapter && entry.IsEx == IsEx &&
+			(!IsEx && entry.Filter.Format == Format) ||
+			(IsEx && entry.Filter.Format == pFilter->Format && entry.Filter.ScanLineOrdering == pFilter->ScanLineOrdering))
+		{
+			return entry.DisplayModeList.size();
+		}
+	}
+
+	ENUM_ADAPTERS_CACHE NewCacheEntry;
+	NewCacheEntry.Adapter = Adapter;
+	NewCacheEntry.IsEx = IsEx;
+	NewCacheEntry.Filter.Format = Format;
+	if (pFilter)
+	{
+		NewCacheEntry.Filter = *pFilter;
+	}
+
+	UINT Count = 0;
+	if (!IsEx)
+	{
+		Count = ProxyInterface->GetAdapterModeCount(Adapter, Format);
+	}
+	else
+	{
+		Count = ProxyInterfaceEx->GetAdapterModeCountEx(Adapter, pFilter);
+	}
+
+	UINT RefreshRate = 0;
+	std::vector<D3DDISPLAYMODEEX_CONVERT> NewDisplayModeList;
+
+	for (UINT x = 0; x < Count; x++)
+	{
+		D3DDISPLAYMODEEX_CONVERT DisplayMode;
+		if (SUCCEEDED(!IsEx ? ProxyInterface->EnumAdapterModes(Adapter, Format, x, DisplayMode.Ptr()) :
+			ProxyInterfaceEx->EnumAdapterModesEx(Adapter, pFilter, x, DisplayMode.PtrEx())))
+		{
+			if (RefreshRate == 0 || std::abs((INT)Config.OverrideRefreshRate - (INT)DisplayMode.RefreshRate) < std::abs((INT)Config.OverrideRefreshRate - (INT)RefreshRate))
+			{
+				RefreshRate = DisplayMode.RefreshRate;
+			}
+			NewDisplayModeList.push_back(DisplayMode);
+		}
+	}
+
+	for (auto& entry : NewDisplayModeList)
+	{
+		if (entry.RefreshRate == RefreshRate)
+		{
+			NewCacheEntry.DisplayModeList.push_back(entry);
+		}
+	}
+
+	AdapterModesCache.push_back(NewCacheEntry);
+
+	return NewCacheEntry.DisplayModeList.size();
+}
+
 UINT m_IDirect3D9Ex::GetAdapterModeCount(THIS_ UINT Adapter, D3DFORMAT Format)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.OverrideRefreshRate)
+	{
+		return GetAdapterModeCache(Adapter, Format, false, nullptr);
+	}
 
 	return ProxyInterface->GetAdapterModeCount(Adapter, Format);
 }
@@ -348,7 +449,12 @@ UINT m_IDirect3D9Ex::GetAdapterModeCountEx(THIS_ UINT Adapter, CONST D3DDISPLAYM
 	if (!ProxyInterfaceEx)
 	{
 		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
-		return NULL;
+		return 0;
+	}
+
+	if (Config.OverrideRefreshRate)
+	{
+		return GetAdapterModeCache(Adapter, D3DFMT_UNKNOWN, true, pFilter);
 	}
 
 	return ProxyInterfaceEx->GetAdapterModeCountEx(Adapter, pFilter);
@@ -361,6 +467,36 @@ HRESULT m_IDirect3D9Ex::EnumAdapterModesEx(THIS_ UINT Adapter, CONST D3DDISPLAYM
 	if (!ProxyInterfaceEx)
 	{
 		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	if (Config.OverrideRefreshRate)
+	{
+		if (!pMode)
+		{
+			return D3DERR_INVALIDCALL;
+		}
+
+		// Required to build the cache, if it doesn't exist
+		if (Mode >= GetAdapterModeCache(Adapter, D3DFMT_UNKNOWN, true, pFilter))
+		{
+			return D3DERR_INVALIDCALL;
+		}
+
+		for (auto& entry : AdapterModesCache)
+		{
+			if (entry.Adapter == Adapter && entry.IsEx && entry.Filter.Format == pFilter->Format && entry.Filter.ScanLineOrdering == pFilter->ScanLineOrdering)
+			{
+				if (Mode < entry.DisplayModeList.size())
+				{
+					*pMode = entry.DisplayModeList[Mode].DataEx();
+
+					return D3D_OK;
+				}
+				return D3DERR_INVALIDCALL;
+			}
+		}
+
 		return D3DERR_INVALIDCALL;
 	}
 
@@ -507,12 +643,6 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
 	}
 
-	// Set refresh rate if using exclusive fullscreen mode
-	if (Config.OverrideRefreshRate && !pPresentationParameters->Windowed)
-	{
-		pPresentationParameters->FullScreen_RefreshRateInHz = Config.OverrideRefreshRate;
-	}
-
 	// Store last window data
 	LONG LastBufferWidth = DeviceDetails.BufferWidth;
 	LONG LastBufferHeight = DeviceDetails.BufferHeight;
@@ -620,6 +750,14 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 		return;
 	}
 
+	// Remove clip children for popup windows
+	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+	if ((lStyle & WS_POPUP) && (lStyle & WS_CLIPCHILDREN))
+	{
+		SetWindowLong(MainhWnd, GWL_STYLE, lStyle & ~WS_CLIPCHILDREN);
+		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+	}
+
 	// Set window active and focus
 	if (Config.EnableWindowMode || isWindowed)
 	{
@@ -667,7 +805,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 	Utils::GetDesktopRect(MainhWnd, screenRect);
 
 	// Get window style
-	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+	lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
 	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 
 	// Set window style

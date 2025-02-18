@@ -18,7 +18,7 @@ private:
 	bool IsDataValidated = false;
 
 	// Instruction data 
-	HRESULT ValidateInstructionData(DWORD dwInstructionOffset, DWORD dwInstructionLength);
+	HRESULT ValidateInstructionData(LPD3DEXECUTEDATA lpExecuteData, LPDWORD lpdwOffset, LPD3DVALIDATECALLBACK lpFunc, LPVOID lpUserArg);
 
 	// Interface initialization functions
 	void InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc);
@@ -28,6 +28,11 @@ public:
 	m_IDirect3DExecuteBuffer(IDirect3DExecuteBuffer *aOriginal) : ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
+
+		if (Config.Dd7to9)
+		{
+			Logging::Log() << __FUNCTION__ << " (" << this << ") Warning: created from non-dd7to9 interface!";
+		}
 
 		InitInterface(nullptr);
 
@@ -52,11 +57,11 @@ public:
 
 	void SetProxy(IDirect3DExecuteBuffer* NewProxyInterface, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc)
 	{
-		ProxyInterface = NewProxyInterface;
-		D3DDeviceInterface = NewD3DDInterface;
 		if (NewProxyInterface || NewD3DDInterface)
 		{
 			RefCount = 1;
+			ProxyInterface = NewProxyInterface;
+			D3DDeviceInterface = NewD3DDInterface;
 			InitInterface(lpDesc);
 			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
@@ -64,6 +69,8 @@ public:
 		{
 			ReleaseInterface();
 			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyInterface = nullptr;
+			D3DDeviceInterface = nullptr;
 		}
 	}
 
@@ -82,5 +89,6 @@ public:
 	STDMETHOD(Optimize)(THIS_ DWORD);
 
 	// Helper functions
-	HRESULT GetExecuteData(D3DEXECUTEBUFFERDESC& CurrentDesc, LPD3DEXECUTEDATA* lplpCurrentExecuteData);
+	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
+	HRESULT GetBuffer(LPVOID* lplpData, D3DEXECUTEDATA& CurrentExecuteData, LPD3DSTATUS* lplpStatus);
 };

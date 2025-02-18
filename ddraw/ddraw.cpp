@@ -323,7 +323,23 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 
 	if (Config.Dd7to9 || (Config.ConvertToDirect3D7 && Config.ConvertToDirectDraw7))
 	{
-		return dd_DirectDrawCreateEx(lpGUID, (LPVOID*)lplpDD, IID_IDirectDraw, pUnkOuter);
+		LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' to --> 'Direct3DCreate9'");
+
+		if (Config.SetSwapEffectShim < 2)
+		{
+			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
+		}
+
+		SetCriticalSection();
+
+		m_IDirectDrawX* p_IDirectDrawX = new m_IDirectDrawX(1, false);
+
+		*lplpDD = reinterpret_cast<LPDIRECTDRAW>(p_IDirectDrawX->GetWrapperInterfaceX(1));
+
+		ReleaseCriticalSection();
+
+		// Success
+		return DD_OK;
 	}
 
 	DEFINE_STATIC_PROC_ADDRESS(DirectDrawCreateProc, DirectDrawCreate, DirectDrawCreate_out);
@@ -383,11 +399,15 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 			return DDERR_INVALIDPARAMS;
 		}
 
+		SetCriticalSection();
+
 		m_IDirectDrawClipper* ClipperX = CreateDirectDrawClipper(nullptr, nullptr, dwFlags);
 
-		AddBaseClipperToVetor(ClipperX);
+		AddBaseClipper(ClipperX);
 
 		*lplpDDClipper = ClipperX;
+
+		ReleaseCriticalSection();
 
 		return DD_OK;
 	}
@@ -420,28 +440,26 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (riid != IID_IDirectDraw &&
-			riid != IID_IDirectDraw2 &&
-			riid != IID_IDirectDraw3 &&
-			riid != IID_IDirectDraw4 &&
-			riid != IID_IDirectDraw7)
+		if (riid != IID_IDirectDraw7)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID " << riid);
 			return DDERR_INVALIDPARAMS;
 		}
+
+		LOG_LIMIT(3, "Redirecting 'DirectDrawCreateEx' to --> 'Direct3DCreate9'");
 
 		if (Config.SetSwapEffectShim < 2)
 		{
 			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
 
-		DWORD DxVersion = GetGUIDVersion(riid);
+		SetCriticalSection();
 
-		LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' " << riid << " to --> 'Direct3DCreate9'");
+		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(7, true);
 
-		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(DxVersion);
+		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(7);
 
-		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(DxVersion);
+		ReleaseCriticalSection();
 
 		// Success
 		return DD_OK;
@@ -888,24 +906,32 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 	return SetAppCompatData(Type, Value);
 }
 
-void AddBaseClipperToVetor(m_IDirectDrawClipper* lpClipper)
+void AddBaseClipper(m_IDirectDrawClipper* lpClipper)
 {
 	if (!lpClipper || DoesBaseClipperExist(lpClipper))
 	{
 		return;
 	}
 
+	SetCriticalSection();
+
 	BaseClipperVector.push_back(lpClipper);
+
+	ReleaseCriticalSection();
 }
 
-void RemoveBaseClipperFromVector(m_IDirectDrawClipper* lpClipper)
+void ClearBaseClipper(m_IDirectDrawClipper* lpClipper)
 {
 	if (!lpClipper)
 	{
 		return;
 	}
 
+	SetCriticalSection();
+
 	BaseClipperVector.erase(std::remove(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper), BaseClipperVector.end());
+
+	ReleaseCriticalSection();
 }
 
 bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper)
@@ -915,7 +941,13 @@ bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper)
 		return false;
 	}
 
-	return (std::find(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper) != std::end(BaseClipperVector));
+	SetCriticalSection();
+
+	const bool found = (std::find(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper) != std::end(BaseClipperVector));
+
+	ReleaseCriticalSection();
+
+	return found;
 }
 
 HRESULT DdrawWrapper::SetCriticalSection()

@@ -4,6 +4,8 @@
 #define DX3DTYPE_H
 #endif
 
+constexpr UINT MaxDeviceStates = 255;	// Devices can have up to 255 states.
+constexpr UINT MaxSamplerStates = 14;	// Devices can have up to 14 sampler states.
 constexpr UINT MaxTextureStages = 8;	// Devices can have up to eight set textures.
 constexpr UINT MAX_LIGHTS = 8;          // Devices can have up to eight lights.
 
@@ -88,6 +90,14 @@ typedef struct {
 	D3DCOLOR diffuse, specular;
 	FLOAT    tu, tv;
 } D3DLVERTEX9, *LPD3DLVERTEX9;
+
+// Custom vertex
+const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);
+struct TLVERTEX
+{
+    float x, y, z, rhw;
+    float u, v;
+};
 
 typedef enum _D3DSURFACETYPE {
     D3DTYPE_NONE = 0,

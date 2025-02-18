@@ -55,12 +55,19 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 	{
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 
-		AddRef(DxVersion);
+		if (parent3DSurface.Interface)
+		{
+			parent3DSurface.Interface->AddRef(parent3DSurface.DxVersion);	// 3DTextures share reference count with surface
+		}
+		else
+		{
+			AddRef(DxVersion);
+		}
 
 		return D3D_OK;
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
 void *m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -84,6 +91,12 @@ ULONG m_IDirect3DTextureX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
+	// 3DTextures share reference count with surface
+	if (parent3DSurface.Interface)
+	{
+		return parent3DSurface.Interface->AddRef(parent3DSurface.DxVersion);
+	}
+
 	if (!ProxyInterface)
 	{
 		switch (DirectXVersion)
@@ -104,6 +117,12 @@ ULONG m_IDirect3DTextureX::AddRef(DWORD DirectXVersion)
 ULONG m_IDirect3DTextureX::Release(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
+
+	// 3DTextures share reference count with surface
+	if (parent3DSurface.Interface)
+	{
+		return parent3DSurface.Interface->Release(parent3DSurface.DxVersion);
+	}
 
 	ULONG ref;
 
@@ -180,7 +199,6 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 			return DDERR_GENERIC;
 		}
 
-		// ToDo: Validate Direct3D Device
 		m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
 		lpDirect3DDevice2->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
 		if (!pDirect3DDeviceX)
@@ -196,11 +214,13 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 
 		if (!tHandle)
 		{
-			tHandle = (DWORD)this + 32;
+			tHandle = (DWORD)this;
 		}
 
+		// Makes tHandle unique and then stores it
 		(*D3DDeviceInterface)->SetTextureHandle(tHandle, this);
 
+		// Set lpHandle after setting texture handle in D3D device
 		*lpHandle = tHandle;
 
 		return D3D_OK;
@@ -274,7 +294,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 			return DDERR_GENERIC;
 		}
 
-		if (!DDrawSurface)
+		if (!parent3DSurface.Interface)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not attached!");
 			return DDERR_GENERIC;
@@ -302,14 +322,14 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 			return DDERR_GENERIC;
 		}
 
-		if (pSrcSurfaceX == DDrawSurface)
+		if (pSrcSurfaceX == parent3DSurface.Interface)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: source surface is the same!");
 			return D3D_OK;
 		}
 
 		IDirectDrawSurface7* pSrcSurface7 = (IDirectDrawSurface7*)pSrcSurfaceX->GetWrapperInterfaceX(0);
-		IDirectDrawSurface7* pDestSurface7 = (IDirectDrawSurface7*)DDrawSurface->GetWrapperInterfaceX(0);
+		IDirectDrawSurface7* pDestSurface7 = (IDirectDrawSurface7*)parent3DSurface.Interface->GetWrapperInterfaceX(0);
 
 		if (!pDestSurface7 || !pSrcSurface7)
 		{
@@ -343,7 +363,7 @@ HRESULT m_IDirect3DTextureX::Unload()
 
 	if (ProxyDirectXVersion != 1)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: Not Implemented");
+		// Textures are loaded as managed in Direct3D9, so there is no need to manualy unload the texture
 		return D3D_OK;
 	}
 
@@ -354,29 +374,24 @@ HRESULT m_IDirect3DTextureX::Unload()
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DTextureX::InitInterface(DWORD DirectXVersion)
+void m_IDirect3DTextureX::InitInterface()
 {
-	if (ProxyInterface)
-	{
-		return;
-	}
-
-	AddRef(DirectXVersion);
+	// Blank for now
 }
 
 void m_IDirect3DTextureX::ReleaseInterface()
 {
+	if (Config.Exiting)
+	{
+		return;
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
 
 	if (tHandle && D3DDeviceInterface && *D3DDeviceInterface)
 	{
-		(*D3DDeviceInterface)->ReleaseTextureHandle(this);
-	}
-
-	if (DDrawSurface)
-	{
-		DDrawSurface->ClearAttachedTexture();
+		(*D3DDeviceInterface)->ClearTextureHandle(tHandle);
 	}
 }

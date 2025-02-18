@@ -10,9 +10,13 @@ private:
 	ULONG RefCount3 = 0;
 
 	// Convert Material
-	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
+	m_IDirect3DX* D3DInterface = nullptr;
+	m_IDirect3DDeviceX** D3DDeviceInterface = nullptr;
 	D3DMATERIAL Material = {};		// Defaults to all null
 	D3DMATERIALHANDLE mHandle = 0;
+
+	// Helper functions
+	HRESULT CheckInterface(char* FunctionName);
 
 	// Store d3d material version wrappers
 	m_IDirect3DMaterial *WrapperInterface = nullptr;
@@ -53,10 +57,14 @@ public:
 		{
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
+		if (Config.Dd7to9)
+		{
+			Logging::Log() << __FUNCTION__ << " (" << this << ") Warning: created from non-dd7to9 interface!";
+		}
 
 		InitInterface(DirectXVersion);
 	}
-	m_IDirect3DMaterialX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion) : D3DDeviceInterface(D3DDInterface)
+	m_IDirect3DMaterialX(m_IDirect3DX *D3D, DWORD DirectXVersion) : D3DInterface(D3D)
 	{
 		ProxyDirectXVersion = (!Config.Dd7to9) ? 3 : 9;
 
@@ -94,6 +102,7 @@ public:
 	// Helper function
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+	inline void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 };

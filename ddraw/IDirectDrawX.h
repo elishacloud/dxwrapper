@@ -11,6 +11,7 @@ private:
 	ULONG RefCount4 = 0;
 	ULONG RefCount7 = 0;
 
+	const bool IsUsingEx = false;
 	bool Using3D = false;
 
 	// Fix exclusive mode issue
@@ -29,24 +30,39 @@ private:
 	m_IDirectDrawSurfaceX *RenderTargetSurface = nullptr;
 	m_IDirectDrawSurfaceX *DepthStencilSurface = nullptr;
 
-	// Store a list of surfaces
-	std::vector<m_IDirectDrawSurfaceX*> SurfaceVector;
-	std::vector<m_IDirectDrawSurfaceX*> ReleasedSurfaceVector;
-
-	// Store a list of clippers
-	std::vector<m_IDirectDrawClipper*> ClipperVector;
-
-	// Store a list of palettes
-	std::vector<m_IDirectDrawPalette*> PaletteVector;
-
-	// Store a list of vertex buffers
-	std::vector<m_IDirect3DVertexBufferX*> VertexBufferVector;
-
 	// Store color control interface
-	m_IDirectDrawColorControl *ColorControlInterface = nullptr;
+	m_IDirectDrawColorControl* ColorControlInterface = nullptr;
 
 	// Store gamma control interface
-	m_IDirectDrawGammaControl *GammaControlInterface = nullptr;
+	m_IDirectDrawGammaControl* GammaControlInterface = nullptr;
+
+	// Store a list of clippers
+	struct CLIPPERLIST {
+		m_IDirectDrawClipper* Interface = nullptr;
+		DWORD DxVersion = 0;
+		DWORD RefCount = 0;
+	};
+	std::vector<CLIPPERLIST> ClipperList;
+
+	// Store a list of palettes
+	struct PALETTELIST {
+		m_IDirectDrawPalette* Interface = nullptr;
+		DWORD DxVersion = 0;
+		DWORD RefCount = 0;
+	};
+	std::vector<PALETTELIST> PaletteList;
+
+	// Store a list of surfaces
+	struct SURFACELIST {
+		m_IDirectDrawSurfaceX* Interface = nullptr;
+		DWORD DxVersion = 0;
+		DWORD RefCount = 0;
+	};
+	std::vector<SURFACELIST> SurfaceList;
+	std::vector<m_IDirectDrawSurfaceX*> ReleasedSurfaceList;
+
+	// Store a list of vertex buffers
+	std::vector<m_IDirect3DVertexBufferX*> VertexBufferList;
 
 	// Store d3d interface
 	m_IDirect3DX *D3DInterface = nullptr;
@@ -78,6 +94,7 @@ private:
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD9Object();
+	void RestoreD3DDeviceState();
 	void Clear3DFlagForAllSurfaces();
 	void ResetAllSurfaceDisplay();
 	void ReleaseD3D9IndexBuffer();
@@ -106,10 +123,14 @@ public:
 		{
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
+		if (Config.Dd7to9)
+		{
+			Logging::Log() << __FUNCTION__ << " (" << this << ") Warning: created from non-dd7to9 interface!";
+		}
 
 		InitInterface(DirectXVersion);
 	}
-	m_IDirectDrawX(DWORD DirectXVersion)
+	m_IDirectDrawX(DWORD DirectXVersion, bool IsEx) : IsUsingEx(IsEx)
 	{
 		ProxyDirectXVersion = 9;
 
@@ -131,8 +152,8 @@ public:
 
 	/*** IDirectDraw methods ***/
 	STDMETHOD(Compact)(THIS);
-	STDMETHOD(CreateClipper)(THIS_ DWORD, LPDIRECTDRAWCLIPPER FAR *, IUnknown FAR *);
-	STDMETHOD(CreatePalette)(THIS_ DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE FAR *, IUnknown FAR *);
+	STDMETHOD(CreateClipper)(THIS_ DWORD, LPDIRECTDRAWCLIPPER FAR *, IUnknown FAR *, DWORD);
+	STDMETHOD(CreatePalette)(THIS_ DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE FAR *, IUnknown FAR *, DWORD);
 	HRESULT CreateSurface(LPDDSURFACEDESC, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *, DWORD);
 	HRESULT CreateSurface2(LPDDSURFACEDESC2, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *, DWORD);
 	STDMETHOD(DuplicateSurface)(THIS_ LPDIRECTDRAWSURFACE7, LPDIRECTDRAWSURFACE7 FAR *, DWORD);
@@ -177,12 +198,11 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Direct3D interfaces
-	void SetD3D(m_IDirect3DX* D3D);
 	inline m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
-	inline void ClearD3D() { D3DInterface = nullptr; }
-	void SetD3DDevice(m_IDirect3DDeviceX* D3DDevice);
+	void SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
-	void ClearD3DDevice();
+	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
+	inline bool IsCreatedEx() const { return IsUsingEx; }
 	inline void Enable3D() { Using3D = true; }
 	inline bool IsUsing3D() const { return Using3D; }
 	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
@@ -212,38 +232,42 @@ public:
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
 
 	// Surface vector functions
-	void AddSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
-	void AddReleasedSurfaceToVector(m_IDirectDrawSurfaceX* lpSurfaceX);
-	void RemoveSurfaceFromVector(m_IDirectDrawSurfaceX* lpSurfaceX);
+	void AddReleasedSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
+	void AddSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
+	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
 	m_IDirectDrawSurfaceX *GetRenderTargetSurface() { return RenderTargetSurface; }
+	void ClearRenderTarget();
+	void ReSetRenderTarget();
+	void SetCurrentRenderTarget();
 	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface);
-	void ReSetRenderTarget() { if (RenderTargetSurface) { SetRenderTargetSurface(RenderTargetSurface); } }
 	m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
 	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface);
-	void EvictManagedTextures();
 
 	// Clipper vector functions
-	void AddClipperToVector(m_IDirectDrawClipper* lpClipper);
-	void RemoveClipperFromVector(m_IDirectDrawClipper* lpClipper);
+	void AddClipper(m_IDirectDrawClipper* lpClipper);
+	void ClearClipper(m_IDirectDrawClipper* lpClipper);
 	bool DoesClipperExist(m_IDirectDrawClipper* lpClipper);
 
 	// Palette vector functions
-	void AddPaletteToVector(m_IDirectDrawPalette* lpPalette);
-	void RemovePaletteFromVector(m_IDirectDrawPalette* lpPalette);
+	void AddPalette(m_IDirectDrawPalette* lpPalette);
+	void ClearPalette(m_IDirectDrawPalette* lpPalette);
 	bool DoesPaletteExist(m_IDirectDrawPalette* lpPalette);
 
 	// Vertex buffer vector functions
-	void AddVertexBufferToVector(m_IDirect3DVertexBufferX* lpVertexBuffer);
-	void RemoveVertexBufferFromVector(m_IDirect3DVertexBufferX* lpVertexBuffer);
-	bool DoesVertexBufferExist(m_IDirect3DVertexBufferX* lpVertexBuffer);
+	void AddVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer);
+	void ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer);
 
 	// Color and gamma control
-	HRESULT CreateColorInterface(LPVOID *ppvObj);
-	HRESULT CreateGammaInterface(LPVOID *ppvObj);
-	inline void ClearColorInterface() { ColorControlInterface = nullptr;  };
-	inline void ClearGammaInterface() { GammaControlInterface = nullptr; };
+	inline m_IDirectDrawColorControl* GetColorControlInterface() { return ColorControlInterface; }
+	HRESULT CreateColorControl(m_IDirectDrawColorControl** lplpColorControl);
+	void SetColorControl(m_IDirectDrawColorControl* lpColorControl);
+	void ClearColorControl(m_IDirectDrawColorControl* lpColorControl);
+	inline m_IDirectDrawGammaControl* GetGammaControlInterface() { return GammaControlInterface; }
+	HRESULT CreateGammaControl(m_IDirectDrawGammaControl** lplpGammaControl);
+	void SetGammaControl(m_IDirectDrawGammaControl* lpGammaControl);
+	void ClearGammaControl(m_IDirectDrawGammaControl* lpGammaControl);
 
 	// Begin & end scene
 	void SetVsync();

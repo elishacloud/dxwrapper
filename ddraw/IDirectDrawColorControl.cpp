@@ -25,7 +25,6 @@ inline static void SaveInterfaceAddress(m_IDirectDrawColorControl* Interface, m_
 {
 	if (Interface)
 	{
-		SetCriticalSection();
 		Interface->SetProxy(nullptr, nullptr);
 		if (InterfaceBackup)
 		{
@@ -33,13 +32,11 @@ inline static void SaveInterfaceAddress(m_IDirectDrawColorControl* Interface, m_
 			InterfaceBackup = nullptr;
 		}
 		InterfaceBackup = Interface;
-		ReleaseCriticalSection();
 	}
 }
 
 m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent)
 {
-	SetCriticalSection();
 	m_IDirectDrawColorControl* Interface = nullptr;
 	if (WrapperInterfaceBackup)
 	{
@@ -58,7 +55,6 @@ m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl*
 			Interface = new m_IDirectDrawColorControl(NewParent);
 		}
 	}
-	ReleaseCriticalSection();
 	return Interface;
 }
 
@@ -219,6 +215,11 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 
 void m_IDirectDrawColorControl::InitInterface()
 {
+	if (ddrawParent)
+	{
+		ddrawParent->SetColorControl(this);
+	}
+
 	ColorControl.dwSize = sizeof(DDCOLORCONTROL);
 	ColorControl.dwFlags = DDCOLOR_BRIGHTNESS | DDCOLOR_CONTRAST | DDCOLOR_HUE | DDCOLOR_SATURATION | DDCOLOR_SHARPNESS | DDCOLOR_GAMMA | DDCOLOR_COLORENABLE;
 	ColorControl.lBrightness = 750;
@@ -233,8 +234,13 @@ void m_IDirectDrawColorControl::InitInterface()
 
 void m_IDirectDrawColorControl::ReleaseInterface()
 {
-	if (ddrawParent && !Config.Exiting)
+	if (Config.Exiting)
 	{
-		ddrawParent->ClearColorInterface();
+		return;
+	}
+
+	if (ddrawParent)
+	{
+		ddrawParent->ClearColorControl(this);
 	}
 }

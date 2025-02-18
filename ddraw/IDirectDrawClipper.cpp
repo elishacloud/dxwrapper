@@ -27,7 +27,6 @@ inline static void SaveInterfaceAddress(m_IDirectDrawClipper* Interface, m_IDire
 {
 	if (Interface)
 	{
-		SetCriticalSection();
 		Interface->SetProxy(nullptr, nullptr, 0);
 		if (InterfaceBackup)
 		{
@@ -35,13 +34,11 @@ inline static void SaveInterfaceAddress(m_IDirectDrawClipper* Interface, m_IDire
 			InterfaceBackup = nullptr;
 		}
 		InterfaceBackup = Interface;
-		ReleaseCriticalSection();
 	}
 }
 
 m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags)
 {
-	SetCriticalSection();
 	m_IDirectDrawClipper* Interface = nullptr;
 	if (WrapperInterfaceBackup)
 	{
@@ -60,7 +57,6 @@ m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_I
 			Interface = new m_IDirectDrawClipper(NewParent, dwFlags);
 		}
 	}
-	ReleaseCriticalSection();
 	return Interface;
 }
 
@@ -360,22 +356,29 @@ HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 
 void m_IDirectDrawClipper::InitInterface(DWORD dwFlags)
 {
+	if (ddrawParent)
+	{
+		ddrawParent->AddClipper(this);
+	}
+
 	clipperCaps = dwFlags;
 	cliphWnd = nullptr;
 	ClipList.clear();
 	IsClipListSet = false;
 	IsClipListChangedFlag = false;
-
-	if (ddrawParent)
-	{
-		ddrawParent->AddClipperToVector(this);
-	}
 }
 
 void m_IDirectDrawClipper::ReleaseInterface()
 {
-	if (ddrawParent && !Config.Exiting)
+	if (Config.Exiting)
 	{
-		ddrawParent->RemoveClipperFromVector(this);
+		return;
+	}
+
+	ClearBaseClipper(this);
+
+	if (ddrawParent)
+	{
+		ddrawParent->ClearClipper(this);
 	}
 }

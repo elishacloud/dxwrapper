@@ -26,3 +26,6 @@
 [submodule "External/DirectXMath"]
 	path = External/DirectXMath
 	url = https://github.com/microsoft/DirectXMath
+[submodule "DirectX"]
+	path = DirectX
+	url = https://github.com/elishacloud/Legacy-DirectX-Documentation

@@ -11,6 +11,17 @@ private:
 	LPDIRECT3D9EX ProxyInterfaceEx = nullptr;
 	REFIID WrapperID;
 
+	struct ENUM_ADAPTERS_CACHE {
+		UINT Adapter = 0;
+		bool IsEx = false;
+		D3DDISPLAYMODEFILTER Filter = {};
+		std::vector<D3DDISPLAYMODEEX_CONVERT> DisplayModeList;
+	};
+
+	// Adapter Modes cache
+	std::vector<ENUM_ADAPTERS_CACHE> AdapterModesCache;
+	UINT GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, bool IsEx, CONST D3DDISPLAYMODEFILTER* pFilter);
+
 	// For Create & CreateEx
 	template <typename T>
 	HRESULT CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface);

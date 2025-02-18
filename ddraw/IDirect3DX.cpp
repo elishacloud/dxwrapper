@@ -74,16 +74,24 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD Dir
 
 	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirect3D7)) ? GetGUIDVersion(riid) : DirectXVersion;
 
-	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
+	if ((ddrawParent && ((riid == IID_IDirect3D7 && ddrawParent->IsCreatedEx()) || (riid == GetWrapperType(DxVersion) && riid != IID_IDirect3D7 && !ddrawParent->IsCreatedEx()))) ||
+		(!ddrawParent && (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)))
 	{
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 
-		AddRef(DxVersion);
+		if (ddrawParent)
+		{
+			ddrawParent->AddRef(DDrawVersion);	// Direct3D shares reference count with DirectDraw
+		}
+		else
+		{
+			AddRef(DxVersion);
+		}
 
 		return D3D_OK;
 	}
 
-	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DxVersion));
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
 void *m_IDirect3DX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -113,6 +121,12 @@ ULONG m_IDirect3DX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	// Direct3D shares reference count with DirectDraw
+	if (ddrawParent)
+	{
+		return ddrawParent->AddRef(DDrawVersion);
+	}
+
 	if (Config.Dd7to9)
 	{
 		switch (DirectXVersion)
@@ -137,6 +151,12 @@ ULONG m_IDirect3DX::AddRef(DWORD DirectXVersion)
 ULONG m_IDirect3DX::Release(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	// Direct3D shares reference count with DirectDraw
+	if (ddrawParent)
+	{
+		return ddrawParent->Release(DDrawVersion);
+	}
 
 	ULONG ref;
 
@@ -216,6 +236,7 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 		{
 			LPVOID lpContext;
 			LPD3DENUMDEVICESCALLBACK lpCallback;
+			DWORD DirectXVersion;
 
 			static HRESULT CALLBACK ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc, LPVOID lpContext)
 			{
@@ -227,11 +248,17 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 				ConvertDeviceDesc(D3DDRVDevDesc, *lpDeviceDesc);
 				ConvertDeviceDesc(D3DSWDevDesc, *lpDeviceDesc);
 
+				D3DDRVDevDesc.dwSize = (self->DirectXVersion == 1) ? D3DDEVICEDESC1_SIZE :
+					(self->DirectXVersion == 2) ? D3DDEVICEDESC5_SIZE :
+					(self->DirectXVersion == 3) ? D3DDEVICEDESC6_SIZE : sizeof(D3DDEVICEDESC);
+				D3DSWDevDesc.dwSize = D3DDRVDevDesc.dwSize;
+
 				return self->lpCallback(&lpDeviceDesc->deviceGUID, lpDeviceDescription, lpDeviceName, &D3DDRVDevDesc, &D3DSWDevDesc, self->lpContext);
 			}
 		} CallbackContext7 = {};
 		CallbackContext7.lpContext = lpUserArg;
 		CallbackContext7.lpCallback = lpEnumDevicesCallback;
+		CallbackContext7.DirectXVersion = DirectXVersion;
 
 		return EnumDevices7(EnumDevicesStruct7::ConvertCallback, &CallbackContext7, 7);
 	}
@@ -295,6 +322,10 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 			return DDERR_INVALIDOBJECT;
 		}
 
+		DWORD DevSize = (DirectXVersion == 1) ? D3DDEVICEDESC1_SIZE :
+			(DirectXVersion == 2) ? D3DDEVICEDESC5_SIZE :
+			(DirectXVersion == 3) ? D3DDEVICEDESC6_SIZE : sizeof(D3DDEVICEDESC);
+
 		// Loop through all adapters
 		for (auto& entry : Cap9Cache)
 		{
@@ -314,53 +345,21 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 
 				// For conversion
 				D3DDEVICEDESC D3DDRVDevDesc = {}, D3DSWDevDesc = {};
-				DWORD DevSize = (DirectXVersion == 1) ? D3DDEVICEDESC1_SIZE :
-					(DirectXVersion == 2) ? D3DDEVICEDESC5_SIZE :
-					(DirectXVersion == 3) ? D3DDEVICEDESC6_SIZE : sizeof(D3DDEVICEDESC);
-				D3DDRVDevDesc.dwSize = DevSize;
-				D3DSWDevDesc.dwSize = DevSize;
+				D3DDRVDevDesc.dwSize = sizeof(D3DDEVICEDESC);
+				D3DSWDevDesc.dwSize = sizeof(D3DDEVICEDESC);
+
+				char Desc[MAX_PATH] = {};
+				char Name[MAX_PATH] = {};
 
 				switch ((DWORD)Type)
 				{
 				case D3DDEVTYPE_REF:
 					lpName = "RGB Emulation";
 					lpDescription = "Microsoft Direct3D RGB Software Emulation";
-					if (DirectXVersion < 7)
-					{
-						// Get D3DSWDevDesc data (D3DDEVTYPE_REF)
-						ConvertDeviceDesc(D3DSWDevDesc, DeviceDesc7);
-
-						// Get D3DDRVDevDesc data (D3DDEVTYPE_HAL)
-						Caps9 = entry.HAL;
-						Caps9.DeviceType = D3DDEVTYPE_HAL;
-						ConvertDeviceDesc(DeviceDesc7, Caps9);
-						ConvertDeviceDesc(D3DDRVDevDesc, DeviceDesc7);
-
-						if (lpEnumDevicesCallback(&deviceGUID, lpDescription, lpName, &D3DDRVDevDesc, &D3DSWDevDesc, lpUserArg) == DDENUMRET_CANCEL)
-						{
-							return D3D_OK;
-						}
-					}
 					break;
 				case D3DDEVTYPE_HAL:
 					lpName = "Direct3D HAL";
 					lpDescription = "Microsoft Direct3D Hardware acceleration through Direct3D HAL";
-					if (DirectXVersion < 7)
-					{
-						// Get D3DDRVDevDesc data (D3DDEVTYPE_HAL)
-						ConvertDeviceDesc(D3DDRVDevDesc, DeviceDesc7);
-
-						// Get D3DSWDevDesc data (D3DDEVTYPE_REF)
-						Caps9 = entry.REF;
-						Caps9.DeviceType = D3DDEVTYPE_REF;
-						ConvertDeviceDesc(DeviceDesc7, Caps9);
-						ConvertDeviceDesc(D3DSWDevDesc, DeviceDesc7);
-
-						if (lpEnumDevicesCallback(&deviceGUID, lpDescription, lpName, &D3DDRVDevDesc, &D3DSWDevDesc, lpUserArg) == DDENUMRET_CANCEL)
-						{
-							return D3D_OK;
-						}
-					}
 					break;
 				default:
 				case D3DDEVTYPE_HAL + 0x10:
@@ -369,9 +368,31 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 					break;
 				}
 
-				if (DirectXVersion == 7)
+				strcpy_s(Desc, lpDescription);
+				strcpy_s(Name, lpName);
+
+				if (DirectXVersion < 7)
 				{
-					if (lpEnumDevicesCallback7(lpDescription, lpName, &DeviceDesc7, lpUserArg) == DDENUMRET_CANCEL)
+					// Get D3DSWDevDesc data (D3DDEVTYPE_REF)
+					ConvertDeviceDesc(D3DSWDevDesc, DeviceDesc7);
+
+					// Get D3DDRVDevDesc data (D3DDEVTYPE_HAL)
+					Caps9 = entry.HAL;
+					Caps9.DeviceType = D3DDEVTYPE_HAL;
+					ConvertDeviceDesc(DeviceDesc7, Caps9);
+					ConvertDeviceDesc(D3DDRVDevDesc, DeviceDesc7);
+
+					D3DDRVDevDesc.dwSize = DevSize;
+					D3DSWDevDesc.dwSize = DevSize;
+
+					if (lpEnumDevicesCallback(&deviceGUID, Desc, Name, &D3DDRVDevDesc, &D3DSWDevDesc, lpUserArg) == DDENUMRET_CANCEL)
+					{
+						return D3D_OK;
+					}
+				}
+				else if (DirectXVersion == 7)
+				{
+					if (lpEnumDevicesCallback7(Desc, Name, &DeviceDesc7, lpUserArg) == DDENUMRET_CANCEL)
 					{
 						return D3D_OK;
 					}
@@ -418,7 +439,9 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 			return DDERR_INVALIDOBJECT;
 		}
 
-		*lplpDirect3DLight = (LPDIRECT3DLIGHT)CreateDirect3DLight(nullptr, ddrawParent->GetCurrentD3DDevice());
+		m_IDirect3DLight* Interface = CreateDirect3DLight(nullptr, this);
+
+		*lplpDirect3DLight = (LPDIRECT3DLIGHT)Interface;
 
 		return D3D_OK;
 	}
@@ -432,6 +455,26 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT * lplpDirect3DLight, LPUNKNOWN
 	}
 
 	return hr;
+}
+
+void m_IDirect3DX::AddLight(m_IDirect3DLight* lpLight)
+{
+	if (!lpLight)
+	{
+		return;
+	}
+
+	LightList.push_back(lpLight);
+}
+
+void m_IDirect3DX::ClearLight(m_IDirect3DLight* lpLight)
+{
+	// Find and remove the light from the list
+	auto it = std::find(LightList.begin(), LightList.end(), lpLight);
+	if (it != LightList.end())
+	{
+		LightList.erase(it);
+	}
 }
 
 HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
@@ -469,7 +512,7 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 			return DDERR_INVALIDOBJECT;
 		}
 
-		m_IDirect3DMaterialX *Interface = new m_IDirect3DMaterialX(ddrawParent->GetCurrentD3DDevice(), DirectXVersion);
+		m_IDirect3DMaterialX *Interface = new m_IDirect3DMaterialX(this, DirectXVersion);
 
 		*lplpDirect3DMaterial = (LPDIRECT3DMATERIAL3)Interface->GetWrapperInterfaceX(DirectXVersion);
 
@@ -487,6 +530,26 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3 * lplpDirect3DMaterial,
 	}
 
 	return hr;
+}
+
+void m_IDirect3DX::AddMaterial(m_IDirect3DMaterialX* lpMaterialX)
+{
+	if (!lpMaterialX)
+	{
+		return;
+	}
+
+	MaterialList.push_back(lpMaterialX);
+}
+
+void m_IDirect3DX::ClearMaterial(m_IDirect3DMaterialX* lpMaterialX)
+{
+	// Find and remove the material from the list
+	auto it = std::find(MaterialList.begin(), MaterialList.end(), lpMaterialX);
+	if (it != MaterialList.end())
+	{
+		MaterialList.erase(it);
+	}
 }
 
 HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
@@ -524,7 +587,7 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 			return DDERR_INVALIDOBJECT;
 		}
 
-		m_IDirect3DViewportX *Interface = new m_IDirect3DViewportX(ddrawParent->GetCurrentD3DDevice(), DirectXVersion);
+		m_IDirect3DViewportX *Interface = new m_IDirect3DViewportX(this, DirectXVersion);
 
 		*lplpD3DViewport = (LPDIRECT3DVIEWPORT3)Interface->GetWrapperInterfaceX(DirectXVersion);
 
@@ -542,6 +605,26 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3 * lplpD3DViewport, LPUN
 	}
 
 	return hr;
+}
+
+void m_IDirect3DX::AddViewport(m_IDirect3DViewportX* lpViewportX)
+{
+	if (!lpViewportX)
+	{
+		return;
+	}
+
+	ViewportList.push_back(lpViewportX);
+}
+
+void m_IDirect3DX::ClearViewport(m_IDirect3DViewportX* lpViewportX)
+{
+	// Find and remove the viewport from the list
+	auto it = std::find(ViewportList.begin(), ViewportList.end(), lpViewportX);
+	if (it != ViewportList.end())
+	{
+		ViewportList.erase(it);
+	}
 }
 
 HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICERESULT lpD3DFDR)
@@ -655,9 +738,27 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 			return DDERR_INVALIDPARAMS;
 		}
 
-		m_IDirect3DDeviceX *p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, lpDDS, riid, DirectXVersion);
+		// Check for existing device
+		if (D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Direct3DDevice is already setup. Multiple Direct3DDevice's are not implemented!");
+			return DDERR_GENERIC;
+		}
+
+		m_IDirect3DDeviceX* p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, this, lpDDS, riid, DirectXVersion);
 
 		*lplpD3DDevice = (LPDIRECT3DDEVICE7)p_IDirect3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
+
+		if (ddrawParent && ddrawParent->IsCreatedEx())
+		{
+			Direct3DDeviceEx.RefCount = 7;
+			Direct3DDeviceEx.DxVersion = DirectXVersion;
+
+			for (UINT x = 0; x < Direct3DDeviceEx.RefCount; x++)
+			{
+				AddRef(DirectXVersion);
+			}
+		}
 
 		return D3D_OK;
 	}
@@ -698,6 +799,41 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 	}
 
 	return hr;
+}
+
+void m_IDirect3DX::SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
+{
+	if (!lpD3DDevice)
+	{
+		return;
+	}
+
+	if (D3DDeviceInterface && D3DDeviceInterface != lpD3DDevice)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device has already been created!");
+	}
+
+	D3DDeviceInterface = lpD3DDevice;
+}
+
+void m_IDirect3DX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
+{
+	if (lpD3DDevice != D3DDeviceInterface)
+	{
+		Logging::Log() << __FUNCTION__ << " Warning: released Direct3DDevice interface does not match cached one!";
+	}
+
+	if (D3DDeviceInterface && Direct3DDeviceEx.RefCount)
+	{
+		for (UINT x = 0; x < Direct3DDeviceEx.RefCount; x++)
+		{
+			if (!Release(Direct3DDeviceEx.DxVersion)) break;
+		}
+	}
+
+	Direct3DDeviceEx = {};
+
+	D3DDeviceInterface = nullptr;
 }
 
 HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIRECT3DVERTEXBUFFER7* lplpD3DVertexBuffer, DWORD dwFlags, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
@@ -748,7 +884,23 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 			return DDERR_INVALIDOBJECT;
 		}
 
-		m_IDirect3DVertexBufferX *Interface = new m_IDirect3DVertexBufferX(ddrawParent, lpVBDesc, DirectXVersion);
+		m_IDirect3DVertexBufferX *Interface = new m_IDirect3DVertexBufferX(ddrawParent, this, lpVBDesc, DirectXVersion);
+
+		if (DirectXVersion > 3)
+		{
+			for (auto& entry : VertexBufferList)
+			{
+				if (entry.Interface == Interface)
+				{
+					entry.DxVersion = DirectXVersion;
+					entry.RefCount = 1;
+
+					AddRef(entry.DxVersion);
+
+					break;
+				}
+			}
+		}
 
 		*lplpD3DVertexBuffer = (LPDIRECT3DVERTEXBUFFER7)Interface->GetWrapperInterfaceX(DirectXVersion);
 
@@ -764,6 +916,33 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 	}
 
 	return hr;
+}
+
+void m_IDirect3DX::AddVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX)
+{
+	if (!lpVertexBufferX)
+	{
+		return;
+	}
+
+	VertexBufferList.push_back({ lpVertexBufferX, 0, 0 });
+}
+
+void m_IDirect3DX::ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX)
+{
+	// Find and remove the buffer from the list
+	auto it = std::find_if(VertexBufferList.begin(), VertexBufferList.end(),
+		[lpVertexBufferX](auto entry) {
+			return entry.Interface == lpVertexBufferX;
+		});
+	if (it != VertexBufferList.end())
+	{
+		if (it->RefCount == 1)
+		{
+			Release(it->DxVersion);
+		}
+		VertexBufferList.erase(it);
+	}
 }
 
 HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORMATSCALLBACK lpEnumCallback, LPVOID lpContext)
@@ -880,15 +1059,7 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 	case 7:
 		return GetProxyInterfaceV7()->EvictManagedTextures();
 	case 9:
-		// Check for device
-		if (!ddrawParent)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no ddraw parent!");
-			return DDERR_INVALIDOBJECT;
-		}
-
-		// Evict managed texture surfaces
-		ddrawParent->EvictManagedTextures();
+		// Textures are loaded as managed in Direct3D9, so there is no need to manualy evict the texture
 		return D3D_OK;
 	}
 }
@@ -897,8 +1068,13 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DX::InitInterface(DWORD DirectXVersion)
+void m_IDirect3DX::InitInterface()
 {
+	if (D3DDeviceInterface)
+	{
+		D3DDeviceInterface->SetD3D(this);
+	}
+
 	if (!Config.Dd7to9)
 	{
 		ResolutionHack();
@@ -906,28 +1082,50 @@ void m_IDirect3DX::InitInterface(DWORD DirectXVersion)
 		return;
 	}
 
-	if (ddrawParent)
-	{
-		ddrawParent->SetD3D(this);
-	}
-
 	// Get Cap9 cache
 	GetCap9Cache();
-
-	AddRef(DirectXVersion);
 }
 
 void m_IDirect3DX::ReleaseInterface()
 {
+	if (Config.Exiting)
+	{
+		return;
+	}
+
+	if (D3DDeviceInterface)
+	{
+		D3DDeviceInterface->ClearD3D(this);
+	}
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
 	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
 	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
 
-	if (ddrawParent && !Config.Exiting)
+	// Release Light
+	for (auto& entry : LightList)
 	{
-		ddrawParent->ClearD3D();
+		entry->ClearD3D();
+	}
+
+	// Release Material
+	for (auto& entry : MaterialList)
+	{
+		entry->ClearD3D();
+	}
+
+	// Release Vertex Buffer
+	for (auto& entry : VertexBufferList)
+	{
+		entry.Interface->ClearD3D();
+	}
+
+	// Release Viewport
+	for (auto& entry : ViewportList)
+	{
+		entry->ClearD3D();
 	}
 }
 

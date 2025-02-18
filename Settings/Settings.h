@@ -36,6 +36,7 @@
 	visit(DdrawRemoveScanlines) \
 	visit(DdrawRemoveInterlacing) \
 	visit(DdrawFixByteAlignment) \
+	visit(DdrawIntroVideoFix) \
 	visit(DdrawEmulateSurface) \
 	visit(DdrawReadFromGDI) \
 	visit(DdrawWriteToGDI) \
@@ -71,6 +72,7 @@
 	visit(DisableLogging) \
 	visit(DirectShowEmulation) \
 	visit(CacheClipPlane) \
+	visit(EnvironmentMapCubeFix) \
 	visit(ConvertToDirectDraw7) \
 	visit(ConvertToDirect3D7) \
 	visit(EnableDdrawWrapper) \
@@ -125,6 +127,7 @@
 	visit(RealDllPath) \
 	visit(ResetMemoryAfter) \
 	visit(ResetScreenRes) \
+	visit(LimitStateBlocks) \
 	visit(RunProcess) \
 	visit(SendAltEnter) \
 	visit(SetFullScreenLayer) \
@@ -225,6 +228,7 @@ struct CONFIG
 	bool DdrawAutoFrameSkip = false;			// Automatically skips frames to reduce input lag
 	DWORD DdrawFixByteAlignment = false;		// Fixes lock with surfaces that have unaligned byte sizes, 1) just byte align, 2) byte align + D3DTEXF_NONE, 3) byte align + D3DTEXF_LINEAR
 	bool DdrawEnableByteAlignment = false;		// Disables 32bit / 64bit byte alignment
+	bool DdrawIntroVideoFix = false;			// Enables some fixes that may help with showing intro videos
 	DWORD DdrawResolutionHack = 0;				// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DdrawRemoveScanlines = false;			// Experimental feature to removing interlaced black lines in a single frame
 	bool DdrawRemoveInterlacing = false;		// Experimental feature to removing interlacing between frames
@@ -272,6 +276,7 @@ struct CONFIG
 	bool DisableLogging = false;				// Disables the logging file
 	DWORD SetSwapEffectShim = 0;				// Disables the call to d3d9.dll 'Direct3D9SetSwapEffectUpgradeShim' to switch present mode
 	DWORD CacheClipPlane = 0;					// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
+	DWORD EnvironmentMapCubeFix = 0;			// Fixes environment cube maps when no texture is applied, issue exists in d3d8
 	bool ConvertToDirectDraw7 = false;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool ConvertToDirect3D7 = false;			// Converts Direct3D 1-6 to Direct3D 7
 	bool EnableDdrawWrapper = false;			// Enables the ddraw wrapper
@@ -302,6 +307,7 @@ struct CONFIG
 	bool LoadFromScriptsOnly = false;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
 	bool ProcessExcluded = false;				// Set if this process is excluded from dxwrapper functions
 	bool ResetScreenRes = false;				// Reset the screen resolution on close
+	DWORD LimitStateBlocks = 0;					// Reuses state block interfaces to prevent memory leaks
 	bool SendAltEnter = false;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen, requires FullScreen
 	bool WaitForProcess = false;				// Waits for process to end before continuing, requires FullScreen
 	bool WaitForWindowChanges = false;			// Waits for window handle to stabilize before setting fullsreen, requires FullScreen

@@ -25,7 +25,6 @@ inline static void SaveInterfaceAddress(m_IDirect3DLight* Interface, m_IDirect3D
 {
 	if (Interface)
 	{
-		SetCriticalSection();
 		Interface->SetProxy(nullptr, nullptr);
 		if (InterfaceBackup)
 		{
@@ -33,19 +32,17 @@ inline static void SaveInterfaceAddress(m_IDirect3DLight* Interface, m_IDirect3D
 			InterfaceBackup = nullptr;
 		}
 		InterfaceBackup = Interface;
-		ReleaseCriticalSection();
 	}
 }
 
-m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DDeviceX** NewD3DDInterface)
+m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface)
 {
-	SetCriticalSection();
 	m_IDirect3DLight* Interface = nullptr;
 	if (WrapperInterfaceBackup)
 	{
 		Interface = WrapperInterfaceBackup;
 		WrapperInterfaceBackup = nullptr;
-		Interface->SetProxy(aOriginal, NewD3DDInterface);
+		Interface->SetProxy(aOriginal, NewD3DInterface);
 	}
 	else
 	{
@@ -55,10 +52,9 @@ m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DDevi
 		}
 		else
 		{
-			Interface = new m_IDirect3DLight(NewD3DDInterface);
+			Interface = new m_IDirect3DLight(NewD3DInterface);
 		}
 	}
-	ReleaseCriticalSection();
 	return Interface;
 }
 
@@ -66,7 +62,7 @@ HRESULT m_IDirect3DLight::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (!ProxyInterface && !D3DInterface)
 	{
 		if (ppvObj)
 		{
@@ -108,7 +104,7 @@ ULONG m_IDirect3DLight::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (!ProxyInterface && !D3DInterface)
 	{
 		return 0;
 	}
@@ -125,7 +121,7 @@ ULONG m_IDirect3DLight::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (!ProxyInterface && !D3DInterface)
 	{
 		return 0;
 	}
@@ -153,7 +149,7 @@ HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (!ProxyInterface && !D3DInterface)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -176,7 +172,7 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (!ProxyInterface && !D3DInterface)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -192,9 +188,9 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -229,7 +225,7 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (!ProxyInterface && !D3DInterface)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -245,9 +241,9 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3DirectDevice interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -293,17 +289,55 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 /*** Helper functions ***/
 /************************/
 
+HRESULT m_IDirect3DLight::CheckInterface(char* FunctionName)
+{
+	// Check D3DInterface device
+	if (!D3DInterface)
+	{
+		LOG_LIMIT(100, FunctionName << " Error: no D3D parent!");
+		return DDERR_INVALIDOBJECT;
+	}
+
+	// Check d3d9 device
+	if (!D3DDeviceInterface || !*D3DDeviceInterface)
+	{
+		D3DDeviceInterface = D3DInterface->GetD3DDevice();
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			LOG_LIMIT(100, FunctionName << " Error: could not get the D3DDevice!");
+			return DDERR_INVALIDOBJECT;
+		}
+	}
+
+	return D3D_OK;
+}
+
 void m_IDirect3DLight::InitInterface()
 {
+	if (D3DInterface)
+	{
+		D3DInterface->AddLight(this);
+	}
+
 	LightSet = false;
 }
 
 void m_IDirect3DLight::ReleaseInterface()
 {
-	if (D3DDeviceInterface && *D3DDeviceInterface)
+	if (Config.Exiting)
 	{
-		(*D3DDeviceInterface)->ReleaseLightInterface(this);
+		return;
 	}
 
-	// ToDo: remove from AttachedLights vector
+	if (D3DInterface)
+	{
+		D3DInterface->ClearLight(this);
+	}
+
+	if (D3DDeviceInterface && *D3DDeviceInterface)
+	{
+		(*D3DDeviceInterface)->ClearLight(this);
+	}
+
+	ClearD3D();
 }

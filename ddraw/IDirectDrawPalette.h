@@ -26,6 +26,11 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
+		if (Config.Dd7to9)
+		{
+			Logging::Log() << __FUNCTION__ << " (" << this << ") Warning: created from non-dd7to9 interface!";
+		}
+
 		InitInterface(0, nullptr);
 
 		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
@@ -49,11 +54,11 @@ public:
 
 	void SetProxy(IDirectDrawPalette* NewProxyInterface, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
 	{
-		ProxyInterface = NewProxyInterface;
-		ddrawParent = NewParent;
 		if (NewProxyInterface || NewParent)
 		{
 			RefCount = 1;
+			ProxyInterface = NewProxyInterface;
+			ddrawParent = NewParent;
 			InitInterface(dwFlags, lpDDColorArray);
 			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
@@ -61,6 +66,8 @@ public:
 		{
 			ReleaseInterface();
 			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyInterface = nullptr;
+			ddrawParent = nullptr;
 		}
 	}
 

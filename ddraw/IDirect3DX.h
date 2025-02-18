@@ -10,6 +10,7 @@ private:
 	ULONG RefCount3 = 0;
 	ULONG RefCount7 = 0;
 	m_IDirectDrawX *ddrawParent = nullptr;
+	DWORD DDrawVersion = 0;
 
 	// Store d3d version wrappers
 	m_IDirect3D *WrapperInterface = nullptr;
@@ -17,12 +18,37 @@ private:
 	m_IDirect3D3 *WrapperInterface3 = nullptr;
 	m_IDirect3D7 *WrapperInterface7 = nullptr;
 
+	// Device interface pointers
+	struct {
+		m_IDirect3DDeviceX* Interface = nullptr;
+		DWORD DxVersion = 0;
+		DWORD RefCount = 0;
+	} Direct3DDeviceEx;
+	m_IDirect3DDeviceX*& D3DDeviceInterface = Direct3DDeviceEx.Interface;
+
 	// Cache Cap9
 	struct DUALCAP9 {
 		D3DCAPS9 REF = {};
 		D3DCAPS9 HAL = {};
 	};
 	std::vector<DUALCAP9> Cap9Cache;
+
+	// Light array
+	std::vector<m_IDirect3DLight*> LightList;
+
+	// Material array
+	std::vector<m_IDirect3DMaterialX*> MaterialList;
+
+	// VertexBuffer array
+	struct VERTEXBUFFERLIST {
+		m_IDirect3DVertexBufferX* Interface = nullptr;
+		DWORD DxVersion = 0;
+		DWORD RefCount = 0;
+	};
+	std::vector<VERTEXBUFFERLIST> VertexBufferList;
+
+	// Viewport array
+	std::vector<m_IDirect3DViewportX*> ViewportList;
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
@@ -49,7 +75,7 @@ private:
 	void ResolutionHack();
 
 	// Interface initialization functions
-	void InitInterface(DWORD DirectXVersion);
+	void InitInterface();
 	void ReleaseInterface();
 
 public:
@@ -65,16 +91,20 @@ public:
 		{
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") v" << DirectXVersion);
 		}
+		if (Config.Dd7to9)
+		{
+			Logging::Log() << __FUNCTION__ << " (" << this << ") Warning: created from non-dd7to9 interface!";
+		}
 
-		InitInterface(DirectXVersion);
+		InitInterface();
 	}
-	m_IDirect3DX(m_IDirectDrawX *lpDdraw, DWORD DirectXVersion) : ddrawParent(lpDdraw)
+	m_IDirect3DX(m_IDirectDrawX *lpDdraw, DWORD DirectXVersion, DWORD DXDrawVersion) : ddrawParent(lpDdraw), DDrawVersion(DXDrawVersion)
 	{
 		ProxyDirectXVersion = 9;
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		InitInterface(DirectXVersion);
+		InitInterface();
 	}
 	~m_IDirect3DX()
 	{
@@ -103,11 +133,22 @@ public:
 
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
-	void *GetWrapperInterfaceX(DWORD DirectXVersion);
+	void* GetWrapperInterfaceX(DWORD DirectXVersion);
+	inline m_IDirect3DDeviceX** GetD3DDevice() { return &D3DDeviceInterface; }
+	void SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
+	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
+	void AddLight(m_IDirect3DLight* lpLight);
+	void ClearLight(m_IDirect3DLight* lpLight);
+	void AddMaterial(m_IDirect3DMaterialX* lpMaterialX);
+	void ClearMaterial(m_IDirect3DMaterialX* lpMaterialX);
+	void AddVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX);
+	void ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX);
+	void AddViewport(m_IDirect3DViewportX* lpViewportX);
+	void ClearViewport(m_IDirect3DViewportX* lpViewportX);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
-	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; GetCap9Cache(); ddrawParent->SetD3D(this); }
-	void ClearDdraw() { ddrawParent = nullptr; }
+	inline void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; GetCap9Cache(); }
+	inline void ClearDdraw() { ddrawParent = nullptr; }
 };
