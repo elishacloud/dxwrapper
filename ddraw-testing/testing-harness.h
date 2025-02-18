@@ -69,6 +69,11 @@ constexpr TESTMATRIX TestResults[] = {
 	{ 225, { (DWORD)DDERR_CANTDUPLICATE, (DWORD)DDERR_CANTDUPLICATE, (DWORD)DDERR_CANTDUPLICATE, (DWORD)DDERR_CANTDUPLICATE, (DWORD)DDERR_CANTDUPLICATE, (DWORD)DDERR_CANTDUPLICATE } },
 	{ 226, { 1, 1, 1, 1, 1, 1 } },
 	{ 227, { 1, 1, 1, 3, 3, 4 } },
+	{ 228, { 1, 1, 1, 2, 2, 2 } },
+	{ 229, { 1, 1, 1, 1, 1, 1 } },
+	{ 230, { 1, 1, 1, 2, 2, 2 } },
+	{ 231, { 1, 1, 1, 2, 2, 2 } },
+	{ 232, { 1, 1, 1, 1, 1, 1 } },
 
 	// IDirect3DTexture
 	{ 300, { 2, 2, 2, 2, 2, (DWORD)E_NOINTERFACE } },

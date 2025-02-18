@@ -6,6 +6,7 @@ private:
 	m_IDirectDrawSurfaceX *ProxyInterface;
 	REFIID WrapperID = IID_IDirectDrawSurface4;
 	const DWORD DirectXVersion = 4;
+	ULONG RefCount = 1;
 	const DWORD MipMapLevel;
 
 public:

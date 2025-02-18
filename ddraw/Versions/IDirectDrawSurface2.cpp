@@ -31,6 +31,14 @@ HRESULT m_IDirectDrawSurface2::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 		*ppvObj = (void*)MipMapLevel;
 		return DD_OK;
 	}
+	if (ppvObj && MipMapLevel && (riid == WrapperID || riid == IID_IUnknown))
+	{
+		*ppvObj = this;
+
+		AddRef();
+
+		return DD_OK;
+	}
 	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 
@@ -40,6 +48,10 @@ ULONG m_IDirectDrawSurface2::AddRef()
 	{
 		return 0;
 	}
+	if (MipMapLevel)
+	{
+		return InterlockedIncrement(&RefCount);
+	}
 	return ProxyInterface->AddRef(DirectXVersion);
 }
 
@@ -48,6 +60,10 @@ ULONG m_IDirectDrawSurface2::Release()
 	if (!ProxyInterface)
 	{
 		return 0;
+	}
+	if (MipMapLevel)
+	{
+		return (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
 	}
 	return ProxyInterface->Release(DirectXVersion);
 }

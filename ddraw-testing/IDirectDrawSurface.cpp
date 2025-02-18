@@ -356,7 +356,7 @@ void TestCreateSurfaceT(DDType* pDDraw)
     ddsd.ddpfPixelFormat.dwGBitMask = 0xff00;
     ddsd.ddpfPixelFormat.dwBBitMask = 0xff;
     ddsd.ddpfPixelFormat.dwRGBAlphaBitMask = 0x0;
-    if constexpr (std::is_same_v<DSType, DDSURFACEDESC2>)
+    if constexpr (std::is_same_v<DSDesc, DDSURFACEDESC2>)
     {
         ddsd.ddsCaps.dwCaps2 = DDSCAPS2_TEXTUREMANAGE;
     }
@@ -373,6 +373,56 @@ void TestCreateSurfaceT(DDType* pDDraw)
         // ****  227  ****
         TestID = 227;
         LOG_TEST_RESULT(TestID, "DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+        if constexpr (std::is_same_v<DSDesc, DDSURFACEDESC2>)
+        {
+            DDSCAPS2 DDSCaps2 = {};
+            DDSCaps2.dwCaps = DDSCAPS_MIPMAP | DDSCAPS_TEXTURE;
+
+            DSType* pMipMap1Surface = nullptr;
+            hr = pSurface->GetAttachedSurface(&DDSCaps2, &pMipMap1Surface);
+
+            // ****  228  ****
+            TestID = 228;
+            if (SUCCEEDED(hr))
+            {
+                LOG_TEST_RESULT(TestID, "MipMap1 query success created. Ref count: ", GetRefCount(pMipMap1Surface), GetResults<DDType>(TestID));
+
+                // ****  229  ****
+                TestID = 229;
+                LOG_TEST_RESULT(TestID, "Complex surface Ref count: ", GetRefCount(pSurface), GetResults<DDType>(TestID));
+
+                DSType* pMipMap2Surface = nullptr;
+                hr = pMipMap1Surface->GetAttachedSurface(&DDSCaps2, &pMipMap2Surface);
+
+                // ****  230  ****
+                TestID = 230;
+                if (SUCCEEDED(hr))
+                {
+                    LOG_TEST_RESULT(TestID, "MipMap2 query success created. Ref count: ", GetRefCount(pMipMap2Surface), GetResults<DDType>(TestID));
+
+                    // ****  231  ****
+                    TestID = 231;
+                    LOG_TEST_RESULT(TestID, "MipMap1 Ref count: ", GetRefCount(pMipMap1Surface), GetResults<DDType>(TestID));
+
+                    // ****  232  ****
+                    TestID = 232;
+                    LOG_TEST_RESULT(TestID, "Complex surface Ref count: ", GetRefCount(pSurface), GetResults<DDType>(TestID));
+
+                    pMipMap2Surface->Release();
+                }
+                else
+                {
+                    LOG_TEST_RESULT(TestID, "Failed to query for MipMap. Error: ", (DDERR)hr, TEST_FAILED);
+                }
+
+                pMipMap1Surface->Release();
+            }
+            else
+            {
+                LOG_TEST_RESULT(TestID, "Failed to query for MipMap. Error: ", (DDERR)hr, TEST_FAILED);
+            }
+        }
 
         pSurface->Release();
     }
