@@ -325,6 +325,11 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 	{
 		LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' to --> 'Direct3DCreate9'");
 
+		if (Config.SetSwapEffectShim < 2)
+		{
+			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
+		}
+
 		SetCriticalSection();
 
 		m_IDirectDrawX* p_IDirectDrawX = new m_IDirectDrawX(1, false);
@@ -442,6 +447,11 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 		}
 
 		LOG_LIMIT(3, "Redirecting 'DirectDrawCreateEx' to --> 'Direct3DCreate9'");
+
+		if (Config.SetSwapEffectShim < 2)
+		{
+			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
+		}
 
 		SetCriticalSection();
 
