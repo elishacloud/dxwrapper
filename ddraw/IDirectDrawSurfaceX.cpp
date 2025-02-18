@@ -4319,10 +4319,11 @@ inline void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 		ddrawParent->ClearSurface(this);
 	}
 
-	for (const auto& entry : AttachedSurfaceMap)
+	for (auto& entry : AttachedSurfaceMap)
 	{
 		if (entry.second.RefCount == 1)
 		{
+			entry.second.RefCount = 0;		// Clear ref count before release
 			entry.second.pSurface->Release(entry.second.DxVersion);
 		}
 	}
@@ -6387,6 +6388,7 @@ void m_IDirectDrawSurfaceX::RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* 
 	{
 		if (it->second.RefCount == 1)
 		{
+			it->second.RefCount = 0;		// Clear ref count before release
 			it->second.pSurface->Release(it->second.DxVersion);
 		}
 		AttachedSurfaceMap.erase(it);

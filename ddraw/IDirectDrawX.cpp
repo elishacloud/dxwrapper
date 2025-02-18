@@ -946,9 +946,8 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 		{
 			for (UINT x = 0; x < it->RefCount; x++)
 			{
-				if (!Release(it->DxVersion)) break;
+				Release(it->DxVersion);
 			}
-
 			pDDraw->SurfaceList.erase(it);
 		}
 
