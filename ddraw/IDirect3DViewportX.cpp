@@ -184,12 +184,6 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
-		{
-			return DDERR_GENERIC;
-		}
-
 		HRESULT hr = D3D_OK;
 
 		if (IsViewPortSet)
@@ -202,6 +196,12 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 		}
 		else
 		{
+			// Check for device interface
+			if (FAILED(CheckInterface(__FUNCTION__)))
+			{
+				return DDERR_GENERIC;
+			}
+
 			D3DVIEWPORT7 Viewport7 = {};
 
 			(*D3DDeviceInterface)->GetDefaultViewport(*(D3DVIEWPORT9*)&Viewport7);
@@ -227,12 +227,6 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
-		{
-			return DDERR_GENERIC;
-		}
-
 		if (lpData->dvScaleX != 0 || lpData->dvScaleY != 0 || lpData->dvMaxX != 0 || lpData->dvMaxY != 0)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'Scale homogeneous' Not Implemented: " <<
@@ -244,7 +238,7 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 		vData = *lpData;
 
 		// If current viewport is set then use new viewport
-		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
+		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && (*D3DDeviceInterface)->CheckIfViewportSet(this))
 		{
 			SetCurrentViewportActive(true, false, false);
 		}
@@ -611,12 +605,6 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
-		{
-			return DDERR_GENERIC;
-		}
-
 		if (lpData->dvClipWidth != 0 || lpData->dvClipHeight != 0 || lpData->dvClipX != 0 || lpData->dvClipY != 0)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'clip volume' Not Implemented: " <<
@@ -628,7 +616,7 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 		vData2 = *lpData;
 
 		// If current viewport is set then use new viewport
-		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
+		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && (*D3DDeviceInterface)->CheckIfViewportSet(this))
 		{
 			SetCurrentViewportActive(true, false, false);
 		}
