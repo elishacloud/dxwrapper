@@ -199,6 +199,7 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 			// Check for device interface
 			if (FAILED(CheckInterface(__FUNCTION__)))
 			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get the D3DDevice!");
 				return DDERR_GENERIC;
 			}
 
@@ -289,17 +290,11 @@ HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 
 	if (!ProxyInterface)
 	{
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
-		{
-			return DDERR_GENERIC;
-		}
-
 		MaterialBackground.IsSet = TRUE;
 		MaterialBackground.hMat = hMat;
 
 		// If current viewport is set then use new viewport
-		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
+		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && (*D3DDeviceInterface)->CheckIfViewportSet(this))
 		{
 			SetCurrentViewportActive(false, true, false);
 		}
@@ -395,14 +390,8 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
-		{
-			return DDERR_GENERIC;
-		}
-
 		// If current viewport is set then use new light
-		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
+		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && (*D3DDeviceInterface)->CheckIfViewportSet(this))
 		{
 			D3DLIGHT2 Light2 = {};
 			Light2.dwSize = sizeof(D3DLIGHT2);
@@ -445,12 +434,6 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
-		{
-			return DDERR_GENERIC;
-		}
-
 		bool ret = DeleteAttachedLight(lpDirect3DLight);
 
 		if (!ret)
@@ -461,7 +444,7 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 		lpDirect3DLight->Release();
 
 		// If current viewport is then deactivate the light
-		if ((*D3DDeviceInterface)->CheckIfViewportSet(this))
+		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && (*D3DDeviceInterface)->CheckIfViewportSet(this))
 		{
 			D3DLIGHT2 Light2 = {};
 			Light2.dwSize = sizeof(D3DLIGHT2);
@@ -577,6 +560,7 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 			// Check for device interface
 			if (FAILED(CheckInterface(__FUNCTION__)))
 			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get the D3DDevice!");
 				return DDERR_GENERIC;
 			}
 
@@ -737,6 +721,7 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get the D3DDevice!");
 			return DDERR_GENERIC;
 		}
 
@@ -765,7 +750,6 @@ HRESULT m_IDirect3DViewportX::CheckInterface(char* FunctionName)
 		D3DDeviceInterface = D3DInterface->GetD3DDevice();
 		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			LOG_LIMIT(100, FunctionName << " Error: could not get the D3DDevice!");
 			return DDERR_INVALIDOBJECT;
 		}
 	}
