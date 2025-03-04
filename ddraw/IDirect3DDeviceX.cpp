@@ -2877,6 +2877,15 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 				m_IDirect3DMaterialX* pMaterialX = GetMaterial(dwLightState);
 				if (pMaterialX)
 				{
+					// Check if material associated with this device
+					{
+						m_IDirect3DDeviceX* pMaterial3DDevice = pMaterialX->GetD3DDevice();
+						if (pMaterial3DDevice != this)
+						{
+							LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: Material's Direct3D device doesn't match current one: " << pMaterial3DDevice);
+						}
+					}
+
 					if (FAILED(pMaterialX->GetMaterial(&Material)))
 					{
 						return DDERR_INVALIDPARAMS;

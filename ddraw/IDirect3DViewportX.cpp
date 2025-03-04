@@ -196,16 +196,12 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 		}
 		else
 		{
-			// Check for device interface
-			if (FAILED(CheckInterface(__FUNCTION__)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get the D3DDevice!");
-				return DDERR_GENERIC;
-			}
-
 			D3DVIEWPORT7 Viewport7 = {};
 
-			(*D3DDeviceInterface)->GetDefaultViewport(*(D3DVIEWPORT9*)&Viewport7);
+			if (SUCCEEDED(CheckInterface(__FUNCTION__)))
+			{
+				(*D3DDeviceInterface)->GetDefaultViewport(*(D3DVIEWPORT9*)&Viewport7);
+			}
 
 			ConvertViewport(*lpData, Viewport7);
 		}
@@ -575,16 +571,12 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 		}
 		else
 		{
-			// Check for device interface
-			if (FAILED(CheckInterface(__FUNCTION__)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get the D3DDevice!");
-				return DDERR_GENERIC;
-			}
-
 			D3DVIEWPORT7 Viewport7 = {};
 
-			(*D3DDeviceInterface)->GetDefaultViewport(*(D3DVIEWPORT9*)&Viewport7);
+			if (SUCCEEDED(CheckInterface(__FUNCTION__)))
+			{
+				(*D3DDeviceInterface)->GetDefaultViewport(*(D3DVIEWPORT9*)&Viewport7);
+			}
 
 			ConvertViewport(*lpData, Viewport7);
 		}

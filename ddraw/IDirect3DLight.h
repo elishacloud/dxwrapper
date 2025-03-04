@@ -83,6 +83,6 @@ public:
 	STDMETHOD(GetLight)(THIS_ LPD3DLIGHT);
 
 	// Helper function
-	inline void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
 	m_IDirect3DDeviceX* GetD3DDevice();
+	inline void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
 };

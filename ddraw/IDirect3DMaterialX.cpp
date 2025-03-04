@@ -180,14 +180,8 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
-		{
-			return DDERR_GENERIC;
-		}
-
 		// If current material is set then use new material
-		if (mHandle && (*D3DDeviceInterface)->CheckIfMaterialSet(mHandle))
+		if (mHandle && SUCCEEDED(CheckInterface(__FUNCTION__)) && (*D3DDeviceInterface)->CheckIfMaterialSet(mHandle))
 		{
 			if (FAILED((*D3DDeviceInterface)->SetMaterial(lpMat)))
 			{
@@ -255,12 +249,6 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
-		{
-			return DDERR_GENERIC;
-		}
-
 		m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
 		lpDirect3DDevice->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
 		if (!pDirect3DDeviceX)
@@ -269,7 +257,7 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (*D3DDeviceInterface != pDirect3DDeviceX)
+		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && *D3DDeviceInterface != pDirect3DDeviceX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device wrapper does not match! " << *D3DDeviceInterface << "->" << pDirect3DDeviceX);
 		}
@@ -280,7 +268,14 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 		}
 
 		// Makes mHandle unique and then stores it
-		(*D3DDeviceInterface)->SetMaterialHandle(mHandle, this);
+		if (D3DDeviceInterface && *D3DDeviceInterface)
+		{
+			(*D3DDeviceInterface)->SetMaterialHandle(mHandle, this);
+		}
+		else
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: getting handle before Direct3D Device exists!");
+		}
 
 		// Set lpHandle after setting material handle in D3D device
 		*lpHandle = mHandle;
@@ -354,9 +349,26 @@ HRESULT m_IDirect3DMaterialX::CheckInterface(char* FunctionName)
 			LOG_LIMIT(100, FunctionName << " Error: could not get the D3DDevice!");
 			return DDERR_INVALIDOBJECT;
 		}
+
+		// Store mHandle in device
+		if (mHandle)
+		{
+			(*D3DDeviceInterface)->SetMaterialHandle(mHandle, this);
+		}
 	}
 
 	return D3D_OK;
+}
+
+m_IDirect3DDeviceX* m_IDirect3DMaterialX::GetD3DDevice()
+{
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__)))
+	{
+		return nullptr;
+	}
+
+	return *D3DDeviceInterface;
 }
 
 void m_IDirect3DMaterialX::InitInterface(DWORD DirectXVersion)
