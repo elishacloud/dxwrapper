@@ -356,11 +356,14 @@ HANDLE WINAPI Utils::kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttribute
 	// Call the original CreateThread with modified parameters
 	if (Config.SingleProcAffinity)
 	{
+		DWORD ThreadID = 0;
+		if (!lpThreadId) lpThreadId = &ThreadID;
+
 		HANDLE thread = CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags | CREATE_SUSPENDED, lpThreadId);
 
 		if (thread)
 		{
-			SetThreadAffinity(GetThreadId(thread));
+			SetThreadAffinity(*lpThreadId);
 			if (!(dwCreationFlags & CREATE_SUSPENDED))
 			{
 				ResumeThread(thread);
