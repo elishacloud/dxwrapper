@@ -35,7 +35,7 @@ private:
 	inline IDirect3DTexture2 *GetProxyInterfaceV2() { return ProxyInterface; }
 
 	// Interface initialization functions
-	void InitInterface();
+	void InitInterface(DWORD DirectXVersion);
 	void ReleaseInterface();
 
 public:
@@ -56,7 +56,7 @@ public:
 			Logging::Log() << __FUNCTION__ << " (" << this << ") Warning: created from non-dd7to9 interface!";
 		}
 
-		InitInterface();
+		InitInterface(DirectXVersion);
 	}
 	m_IDirect3DTextureX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion, m_IDirectDrawSurfaceX *lpSurface, DWORD DXSurfaceVersion) : D3DDeviceInterface(D3DDInterface)
 	{
@@ -67,7 +67,7 @@ public:
 		parent3DSurface.Interface = lpSurface;
 		parent3DSurface.DxVersion = DXSurfaceVersion;
 
-		InitInterface();
+		InitInterface(DirectXVersion);
 	}
 	~m_IDirect3DTextureX()
 	{

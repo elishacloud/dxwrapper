@@ -75,7 +75,7 @@ private:
 	void ResolutionHack();
 
 	// Interface initialization functions
-	void InitInterface();
+	void InitInterface(DWORD DirectXVersion);
 	void ReleaseInterface();
 
 public:
@@ -96,7 +96,7 @@ public:
 			Logging::Log() << __FUNCTION__ << " (" << this << ") Warning: created from non-dd7to9 interface!";
 		}
 
-		InitInterface();
+		InitInterface(DirectXVersion);
 	}
 	m_IDirect3DX(m_IDirectDrawX *lpDdraw, DWORD DirectXVersion, DWORD DXDrawVersion) : ddrawParent(lpDdraw), DDrawVersion(DXDrawVersion)
 	{
@@ -104,7 +104,7 @@ public:
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
-		InitInterface();
+		InitInterface(DirectXVersion);
 	}
 	~m_IDirect3DX()
 	{

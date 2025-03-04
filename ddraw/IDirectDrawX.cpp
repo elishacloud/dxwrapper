@@ -208,8 +208,10 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 			{
 				D3DInterface = new m_IDirect3DX(this, DxVersion, DirectXVersion);
 			}
-
-			AddRef(DirectXVersion);
+			else
+			{
+				D3DInterface->AddRef(DxVersion);	// No need to add a ref when creating a device because it is already added when creating the device
+			}
 
 			*ppvObj = D3DInterface->GetWrapperInterfaceX(DxVersion);
 

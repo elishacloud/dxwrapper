@@ -55,14 +55,7 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 	{
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 
-		if (parent3DSurface.Interface)
-		{
-			parent3DSurface.Interface->AddRef(parent3DSurface.DxVersion);	// 3DTextures share reference count with surface
-		}
-		else
-		{
-			AddRef(DxVersion);
-		}
+		AddRef(DxVersion);
 
 		return D3D_OK;
 	}
@@ -368,9 +361,12 @@ HRESULT m_IDirect3DTextureX::Unload()
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DTextureX::InitInterface()
+void m_IDirect3DTextureX::InitInterface(DWORD DirectXVersion)
 {
-	// Blank for now
+	if (Config.Dd7to9)
+	{
+		AddRef(DirectXVersion);
+	}
 }
 
 void m_IDirect3DTextureX::ReleaseInterface()

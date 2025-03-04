@@ -79,14 +79,7 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD Dir
 	{
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 
-		if (ddrawParent)
-		{
-			ddrawParent->AddRef(DDrawVersion);	// Direct3D shares reference count with DirectDraw
-		}
-		else
-		{
-			AddRef(DxVersion);
-		}
+		AddRef(DxVersion);
 
 		return D3D_OK;
 	}
@@ -1068,7 +1061,7 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DX::InitInterface()
+void m_IDirect3DX::InitInterface(DWORD DirectXVersion)
 {
 	if (D3DDeviceInterface)
 	{
@@ -1081,6 +1074,8 @@ void m_IDirect3DX::InitInterface()
 
 		return;
 	}
+
+	AddRef(DirectXVersion);
 
 	// Get Cap9 cache
 	GetCap9Cache();

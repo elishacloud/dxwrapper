@@ -137,6 +137,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D not setup when creating Direct3DDevice.");
 			}
 
+			DxVersion = (DxVersion == 4) ? 3 : DxVersion;
+
 			if (!attached3DDevice)
 			{
 				attached3DDevice = new m_IDirect3DDeviceX(ddrawParent, D3DX, (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(DirectXVersion), riid, DirectXVersion);
@@ -145,10 +147,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 			}
 			else
 			{
-				AddRef(DirectXVersion);		// No need to add a ref when creating a device because it is already added by setting it as a render target
+				attached3DDevice->AddRef(DxVersion);	// No need to add a ref when creating a device because it is already added when creating the device
 			}
-
-			DxVersion = (DxVersion == 4) ? 3 : DxVersion;
 
 			*ppvObj = (LPDIRECT3DDEVICE7)attached3DDevice->GetWrapperInterfaceX(DxVersion);
 
@@ -207,10 +207,12 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		{
 			attached3DTexture = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), DxVersion, this, DirectXVersion);
 		}
+		else
+		{
+			attached3DTexture->AddRef(DxVersion);	// No need to add a ref when creating a texture because it is already added when creating the texture
+		}
 
 		InterfaceX = attached3DTexture;
-
-		AddRef(DirectXVersion);	// 3DTextures share reference count with surface
 
 		*ppvObj = InterfaceX->GetWrapperInterfaceX(DxVersion);
 

@@ -60,14 +60,7 @@ HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWO
 	{
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 
-		if (parent3DSurface.Interface)
-		{
-			parent3DSurface.Interface->AddRef(parent3DSurface.DxVersion);	// Some Direct3DDevices share reference count with parent surfaces
-		}
-		else
-		{
-			AddRef(DxVersion);
-		}
+		AddRef(DxVersion);
 
 		return D3D_OK;
 	}
