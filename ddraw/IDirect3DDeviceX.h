@@ -175,18 +175,6 @@ private:
 	// Viewport array
 	std::vector<LPDIRECT3DVIEWPORT3> AttachedViewports;
 
-	inline bool IsViewportAttached(LPDIRECT3DVIEWPORT3 ViewportX)
-	{
-		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
-			[=](auto pViewport) -> bool { return pViewport == ViewportX; });
-
-		if (it != std::end(AttachedViewports))
-		{
-			return true;
-		}
-		return false;
-	}
-
 	inline bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
 	{
 		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
@@ -376,6 +364,20 @@ public:
 	inline void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
 	inline bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
 	void ClearViewport(m_IDirect3DViewportX* lpViewportX);
+
+	inline bool IsViewportAttached(LPDIRECT3DVIEWPORT3 ViewportX)
+	{
+		if (!ViewportX) return false;
+
+		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
+			[=](auto pViewport) -> bool { return pViewport == ViewportX; });
+
+		if (it != std::end(AttachedViewports))
+		{
+			return true;
+		}
+		return false;
+	}
 
 	// Texture handle function
 	void ClearTextureHandle(D3DTEXTUREHANDLE tHandle);

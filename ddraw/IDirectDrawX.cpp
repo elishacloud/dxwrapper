@@ -2994,6 +2994,14 @@ void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device has already been created!");
 	}
 
+	for (const auto& entry : DDrawVector)
+	{
+		if (entry != this && entry->D3DDeviceInterface != nullptr)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: a Direct3D Device exists in another DirectDraw instance!");
+		}
+	}
+
 	D3DDeviceInterface = lpD3DDevice;
 }
 

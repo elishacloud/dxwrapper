@@ -76,6 +76,13 @@ private:
 	inline IDirect3DViewport2 *GetProxyInterfaceV2() { return (IDirect3DViewport2 *)ProxyInterface; }
 	inline IDirect3DViewport3 *GetProxyInterfaceV3() { return ProxyInterface; }
 
+	inline bool IsViewportAssiciated() {
+		return SUCCEEDED(CheckInterface(__FUNCTION__)) && ((*D3DDeviceInterface)->CheckIfViewportSet(this) ||
+			(*D3DDeviceInterface)->IsViewportAttached((LPDIRECT3DVIEWPORT3)WrapperInterface) ||
+			(*D3DDeviceInterface)->IsViewportAttached((LPDIRECT3DVIEWPORT3)WrapperInterface2) ||
+			(*D3DDeviceInterface)->IsViewportAttached(WrapperInterface3));
+	}
+
 	// Interface initialization functions
 	void InitInterface(DWORD DirectXVersion);
 	void ReleaseInterface();
@@ -155,6 +162,7 @@ public:
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	void SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
+	m_IDirect3DDeviceX* GetD3DDevice();
 	inline void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);

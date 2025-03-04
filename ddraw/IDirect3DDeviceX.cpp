@@ -2150,6 +2150,19 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Check if assigning a viewport associated with this device
+		{
+			m_IDirect3DViewportX* lpViewportX = nullptr;
+			if (SUCCEEDED(lpDirect3DViewport->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpViewportX)))
+			{
+				m_IDirect3DDeviceX* pViewPort3DDevice = lpViewportX->GetD3DDevice();
+				if (pViewPort3DDevice != this)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: Viewport's Direct3D device doesn't match current one: " << pViewPort3DDevice);
+				}
+			}
+		}
+
 		AttachedViewports.push_back(lpDirect3DViewport);
 
 		lpDirect3DViewport->AddRef();
@@ -2326,6 +2339,15 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get ViewportX interface!");
 			return DDERR_GENERIC;
+		}
+
+		// Check if assigning a viewport associated with this device
+		{
+			m_IDirect3DDeviceX* pViewPort3DDevice = lpViewportX->GetD3DDevice();
+			if (pViewPort3DDevice != this)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: Viewport's Direct3D device doesn't match current one: " << pViewPort3DDevice);
+			}
 		}
 
 		D3DVIEWPORT Viewport = {};

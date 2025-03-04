@@ -372,7 +372,15 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 
 	if (!ProxyInterface)
 	{
-		return Clear2(dwCount, lpRects, dwFlags, 0x00000000, 1.0f, 0);
+		// The requested operation could not be completed because the viewport has not yet been associated with a device.
+		if (!IsViewportAssiciated())
+		{
+			return D3DERR_VIEWPORTHASNODEVICE;
+		}
+
+		// ToDo: check on zbuffer and return error if does not exist:  D3DERR_ZBUFFER_NOTPRESENT
+
+		return (*D3DDeviceInterface)->Clear(dwCount, lpRects, dwFlags, 0x00000000, 1.0f, 0);
 	}
 
 	return ProxyInterface->Clear(dwCount, lpRects, dwFlags);
@@ -718,12 +726,13 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 
 	if (!ProxyInterface)
 	{
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
+		// The requested operation could not be completed because the viewport has not yet been associated with a device.
+		if (!IsViewportAssiciated())
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get the D3DDevice!");
-			return DDERR_GENERIC;
+			return D3DERR_VIEWPORTHASNODEVICE;
 		}
+
+		// ToDo: check on zbuffer and stencil buffer and return error if does not exist:  D3DERR_ZBUFFER_NOTPRESENT and D3DERR_STENCILBUFFER_NOTPRESENT
 
 		return (*D3DDeviceInterface)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 	}
@@ -755,6 +764,17 @@ HRESULT m_IDirect3DViewportX::CheckInterface(char* FunctionName)
 	}
 
 	return D3D_OK;
+}
+
+m_IDirect3DDeviceX* m_IDirect3DViewportX::GetD3DDevice()
+{
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__)))
+	{
+		return nullptr;
+	}
+
+	return *D3DDeviceInterface;
 }
 
 void m_IDirect3DViewportX::InitInterface(DWORD DirectXVersion)
