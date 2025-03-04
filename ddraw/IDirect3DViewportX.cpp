@@ -416,6 +416,16 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 			}
 		}
 
+		// Check if assigning a light associated with current device used by the viewport
+		{
+			m_IDirect3DDeviceX* pLight3DDevice = ((m_IDirect3DLight*)lpDirect3DLight)->GetD3DDevice();
+			m_IDirect3DDeviceX* pViewPort3DDevice = (D3DDeviceInterface ? *D3DDeviceInterface : nullptr);
+			if (pLight3DDevice != pViewPort3DDevice)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " (" << pViewPort3DDevice << ") Warning: Light's Direct3D device doesn't match Viewport's device: " << pLight3DDevice);
+			}
+		}
+
 		AttachedLights.push_back(lpDirect3DLight);
 
 		lpDirect3DLight->AddRef();

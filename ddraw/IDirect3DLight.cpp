@@ -188,15 +188,9 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
-		{
-			return DDERR_GENERIC;
-		}
-
-		// If current viewport is inuse then deactivate the light
+		// If current light is in use then update device
 		BOOL Enable = FALSE;
-		if (SUCCEEDED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)) && Enable)
+		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && SUCCEEDED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)) && Enable)
 		{
 			D3DLIGHT2 Light2 = {};
 			memcpy(&Light2, lpLight, lpLight->dwSize);
@@ -241,12 +235,6 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
-		{
-			return DDERR_GENERIC;
-		}
-
 		if (!LightSet)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: light has not yet been set.");
@@ -269,7 +257,7 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 
 			// Check for active
 			BOOL Enable = FALSE;
-			if (SUCCEEDED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)) && Enable)
+			if (SUCCEEDED(CheckInterface(__FUNCTION__)) && SUCCEEDED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)) && Enable)
 			{
 				((LPD3DLIGHT2)lpLight)->dwFlags |= D3DLIGHT_ACTIVE;
 			}
@@ -304,12 +292,22 @@ HRESULT m_IDirect3DLight::CheckInterface(char* FunctionName)
 		D3DDeviceInterface = D3DInterface->GetD3DDevice();
 		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			LOG_LIMIT(100, FunctionName << " Error: could not get the D3DDevice!");
 			return DDERR_INVALIDOBJECT;
 		}
 	}
 
 	return D3D_OK;
+}
+
+m_IDirect3DDeviceX* m_IDirect3DLight::GetD3DDevice()
+{
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__)))
+	{
+		return nullptr;
+	}
+
+	return *D3DDeviceInterface;
 }
 
 void m_IDirect3DLight::InitInterface()
