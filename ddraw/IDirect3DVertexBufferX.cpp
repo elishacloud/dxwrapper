@@ -262,7 +262,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 	if (Config.Dd7to9)
 	{
 		// Always include the D3DVOP_TRANSFORM flag in the dwVertexOp parameter. If you do not, the method fails, returning DDERR_INVALIDPARAMS.
-		if (!lpSrcBuffer || !(dwVertexOp & D3DVOP_TRANSFORM))
+		if (!lpSrcBuffer || !lpD3DDevice || !(dwVertexOp & D3DVOP_TRANSFORM))
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -271,6 +271,20 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
 			return DDERR_GENERIC;
+		}
+
+		if (lpD3DDevice)
+		{
+			m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
+			lpD3DDevice->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
+			if (pDirect3DDeviceX)
+			{
+				m_IDirect3DDeviceX** D3DDeviceInterface = D3DInterface->GetD3DDevice();
+				if (D3DDeviceInterface && *D3DDeviceInterface != pDirect3DDeviceX)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device wrapper does not match! " << *D3DDeviceInterface << "->" << pDirect3DDeviceX);
+				}
+			}
 		}
 
 		// Handle dwVertexOp

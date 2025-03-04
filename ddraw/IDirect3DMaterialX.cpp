@@ -249,6 +249,13 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDevice does not exist!");
+			return DDERR_GENERIC;
+		}
+
 		m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
 		lpDirect3DDevice->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
 		if (!pDirect3DDeviceX)
@@ -257,7 +264,7 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && *D3DDeviceInterface != pDirect3DDeviceX)
+		if (*D3DDeviceInterface != pDirect3DDeviceX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device wrapper does not match! " << *D3DDeviceInterface << "->" << pDirect3DDeviceX);
 		}
@@ -268,14 +275,7 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 		}
 
 		// Makes mHandle unique and then stores it
-		if (D3DDeviceInterface && *D3DDeviceInterface)
-		{
-			(*D3DDeviceInterface)->SetMaterialHandle(mHandle, this);
-		}
-		else
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: getting handle before Direct3D Device exists!");
-		}
+		(*D3DDeviceInterface)->SetMaterialHandle(mHandle, this);
 
 		// Set lpHandle after setting material handle in D3D device
 		*lpHandle = mHandle;
@@ -348,12 +348,6 @@ HRESULT m_IDirect3DMaterialX::CheckInterface(char* FunctionName)
 		{
 			LOG_LIMIT(100, FunctionName << " Error: could not get the D3DDevice!");
 			return DDERR_INVALIDOBJECT;
-		}
-
-		// Store mHandle in device
-		if (mHandle)
-		{
-			(*D3DDeviceInterface)->SetMaterialHandle(mHandle, this);
 		}
 	}
 

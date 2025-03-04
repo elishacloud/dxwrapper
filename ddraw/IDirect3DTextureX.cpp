@@ -288,12 +288,6 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDevice does not exist!");
-			return DDERR_GENERIC;
-		}
-
 		if (!parent3DSurface.Interface)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not attached!");
@@ -338,7 +332,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 		}
 
 		POINT Point = {};
-		return (*D3DDeviceInterface)->Load(pDestSurface7, &Point, pSrcSurface7, nullptr, 0);
+		return parent3DSurface.Interface->Load(pDestSurface7, &Point, pSrcSurface7, nullptr, 0);
 	}
 
 	if (lpD3DTexture2)
