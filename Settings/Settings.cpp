@@ -470,6 +470,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.CacheClipPlane = NOT_EXIST;
 	Config.EnvironmentMapCubeFix = NOT_EXIST;
 	Config.LimitStateBlocks = NOT_EXIST;
+	Config.ForceSingleBeginEndScene = NOT_EXIST;
 
 	// Other values that may not exist in ini file
 	Config.DisableMaxWindowedModeNotSet = true;
@@ -775,4 +776,5 @@ void CONFIG::SetConfig()
 	CacheClipPlane = (CacheClipPlane != 0);
 	EnvironmentMapCubeFix = (EnvironmentMapCubeFix != 0);
 	LimitStateBlocks = (LimitStateBlocks != 0);
+	ForceSingleBeginEndScene = (ForceSingleBeginEndScene != 0);
 }

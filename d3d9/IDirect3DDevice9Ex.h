@@ -8,6 +8,7 @@ const std::chrono::seconds FPS_CALCULATION_WINDOW(1);	// Define a constant for t
 struct DEVICEDETAILS
 {
 	// Window handle and size
+	bool IsWindowMode = false;
 	HWND DeviceWindow = nullptr;
 	LONG BufferWidth = 0, BufferHeight = 0;
 	LONG screenWidth = 0, screenHeight = 0;
@@ -19,6 +20,10 @@ struct DEVICEDETAILS
 	StateBlockCache StateBlockTable;
 
 	D3DCAPS9 Caps = {};
+
+	// Begin/End Scene
+	bool IsInScene = false;
+	bool BeginSceneCalled = false;
 
 	// Limit frame rate
 	struct {
@@ -82,6 +87,8 @@ private:
 
 	UINT DDKey;
 
+	HRESULT CallEndScene();
+
 	void ApplyDrawFixes();
 
 	// Limit frame rate
@@ -98,6 +105,7 @@ private:
 	HRESULT SetBrightnessLevel(D3DGAMMARAMP& Ramp);
 	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader() const;
 	void ApplyBrightnessLevel();
+	void CallApplyBrightnessLevel();
 	void ReleaseResources(bool isReset);
 
 	// For environment map cube

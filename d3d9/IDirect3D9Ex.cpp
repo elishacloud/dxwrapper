@@ -403,6 +403,8 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 			DeviceDetails.DeviceMultiSampleQuality = d3dpp.MultiSampleQuality;
 		}
 
+		DeviceDetails.IsWindowMode = pPresentationParameters->Windowed;
+
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 	}
 

@@ -240,6 +240,8 @@ inline HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPres
 			d3dpp.Windowed = false;
 		}
 
+		SHARED.IsWindowMode = d3dpp.Windowed;
+
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 
 		ClearVars(pPresentationParameters);
@@ -262,9 +264,11 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 	return ResetT<fReset>(nullptr, pPresentationParameters);
 }
 
-HRESULT m_IDirect3DDevice9Ex::EndScene()
+HRESULT m_IDirect3DDevice9Ex::CallEndScene()
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	// clear Begin/End Scene flags
+	SHARED.IsInScene = false;
+	SHARED.BeginSceneCalled = false;
 
 #ifdef ENABLE_DEBUGOVERLAY
 	if (Config.EnableImgui && DOverlay.Getd3d9Device() == ProxyInterface)
@@ -274,6 +278,25 @@ HRESULT m_IDirect3DDevice9Ex::EndScene()
 #endif
 
 	return ProxyInterface->EndScene();
+}
+
+HRESULT m_IDirect3DDevice9Ex::EndScene()
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.ForceSingleBeginEndScene)
+	{
+		if (SHARED.IsInScene)
+		{
+			SHARED.IsInScene = false;
+
+			return D3D_OK;
+		}
+
+		return D3DERR_INVALIDCALL;
+	}
+
+	return CallEndScene();
 }
 
 void m_IDirect3DDevice9Ex::SetCursorPosition(int X, int Y, DWORD Flags)
@@ -785,6 +808,20 @@ inline LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
 	return SHARED.gammaPixelShader;
 }
 
+inline void m_IDirect3DDevice9Ex::CallApplyBrightnessLevel()
+{
+	if (Config.ForceSingleBeginEndScene)
+	{
+		ApplyBrightnessLevel();
+	}
+	else
+	{
+		ProxyInterface->BeginScene();
+		ApplyBrightnessLevel();
+		ProxyInterface->EndScene();
+	}
+}
+
 inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 {
 	if (!SHARED.GammaLUTTexture)
@@ -830,7 +867,7 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	pCopySurface->Release();
 
 	// Render states
-	DWORD rsLighting, rsAlphaTestEnable, rsAlphaBlendEnable, rsFogEnable, rsZEnable, rsZWriteEnable, reStencilEnable;
+	DWORD rsLighting, rsAlphaTestEnable, rsAlphaBlendEnable, rsFogEnable, rsZEnable, rsZWriteEnable, reStencilEnable, rsCullMode, rsClipping;
 	ProxyInterface->GetRenderState(D3DRS_LIGHTING, &rsLighting);
 	ProxyInterface->GetRenderState(D3DRS_ALPHATESTENABLE, &rsAlphaTestEnable);
 	ProxyInterface->GetRenderState(D3DRS_ALPHABLENDENABLE, &rsAlphaBlendEnable);
@@ -838,6 +875,8 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->GetRenderState(D3DRS_ZENABLE, &rsZEnable);
 	ProxyInterface->GetRenderState(D3DRS_ZWRITEENABLE, &rsZWriteEnable);
 	ProxyInterface->GetRenderState(D3DRS_STENCILENABLE, &reStencilEnable);
+	ProxyInterface->GetRenderState(D3DRS_CULLMODE, &rsCullMode);
+	ProxyInterface->GetRenderState(D3DRS_CLIPPING, &rsClipping);
 	ProxyInterface->SetRenderState(D3DRS_LIGHTING, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
@@ -845,6 +884,8 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->SetRenderState(D3DRS_ZENABLE, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+	ProxyInterface->SetRenderState(D3DRS_CLIPPING, FALSE);
 
 	// Texture states
 	DWORD tsColorOP, tsColorArg1, tsColorArg2, tsAlphaOP;
@@ -858,11 +899,16 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
 
 	// Sampler states
-	DWORD ss1addressU, ss1addressV;
-	ProxyInterface->GetSamplerState(1, D3DSAMP_ADDRESSU, &ss1addressU);
-	ProxyInterface->GetSamplerState(1, D3DSAMP_ADDRESSV, &ss1addressV);
-	ProxyInterface->SetSamplerState(1, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-	ProxyInterface->SetSamplerState(1, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+	DWORD ssaddressU[2] = {}, ssaddressV[2] = {}, ssaddressW[2] = {};
+	for (UINT x = 0; x < 2; x++)
+	{
+		ProxyInterface->GetSamplerState(x, D3DSAMP_ADDRESSU, &ssaddressU[x]);
+		ProxyInterface->GetSamplerState(x, D3DSAMP_ADDRESSV, &ssaddressV[x]);
+		ProxyInterface->GetSamplerState(x, D3DSAMP_ADDRESSW, &ssaddressW[x]);
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSW, D3DTADDRESS_WRAP);
+	}
 
 	// Set texture
 	ProxyInterface->SetTexture(0, SHARED.ScreenCopyTexture);
@@ -873,7 +919,12 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	}
 
 	// Set shader
+	IDirect3DPixelShader9* pPixelShader = nullptr;
+	IDirect3DVertexShader9* pVertexShader = nullptr;
+	ProxyInterface->GetPixelShader(&pPixelShader);
+	ProxyInterface->GetVertexShader(&pVertexShader);
 	ProxyInterface->SetPixelShader(pShader);
+	ProxyInterface->SetVertexShader(nullptr);
 
 	const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);
 	struct TLVERTEX
@@ -901,15 +952,29 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->SetTexture(0, nullptr);
 	ProxyInterface->SetTexture(1, nullptr);
 
-	// Reset pixel shader
+	// Reset shaders
 	ProxyInterface->SetPixelShader(nullptr);
+	if (pPixelShader)
+	{
+		ProxyInterface->SetPixelShader(pPixelShader);
+		pPixelShader->Release();
+	}
+	if (pVertexShader)
+	{
+		ProxyInterface->SetVertexShader(pVertexShader);
+		pVertexShader->Release();
+	}
 
 	// Cleanup
 	pBackBuffer->Release();
 
 	// Restore sampler states
-	ProxyInterface->SetSamplerState(1, D3DSAMP_ADDRESSU, ss1addressU);
-	ProxyInterface->SetSamplerState(1, D3DSAMP_ADDRESSV, ss1addressV);
+	for (UINT x = 0; x < 2; x++)
+	{
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSU, ssaddressU[x]);
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSV, ssaddressV[x]);
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSW, ssaddressW[x]);
+	}
 
 	// Restore render states
 	ProxyInterface->SetRenderState(D3DRS_LIGHTING, rsLighting);
@@ -919,6 +984,8 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->SetRenderState(D3DRS_ZENABLE, rsZEnable);
 	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, rsZWriteEnable);
 	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, reStencilEnable);
+	ProxyInterface->SetRenderState(D3DRS_CULLMODE, rsCullMode);
+	ProxyInterface->SetRenderState(D3DRS_CLIPPING, rsClipping);
 
 	// Restore texture states
 	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, tsColorOP);
@@ -983,6 +1050,10 @@ inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 		SHARED.isAnisotropySet = false;
 		SHARED.AnisotropyDisabledFlag = false;
 
+		// clear Begin/End Scene flags
+		SHARED.IsInScene = false;
+		SHARED.BeginSceneCalled = false;
+
 		// For environment map cube
 		std::fill(std::begin(SHARED.isTextureMapCube), std::end(SHARED.isTextureMapCube), false);
 		std::fill(std::begin(SHARED.isTransformMapCube), std::end(SHARED.isTransformMapCube), false);
@@ -1009,8 +1080,13 @@ void m_IDirect3DDevice9Ex::GetGammaRamp(THIS_ UINT iSwapChain, D3DGAMMARAMP* pRa
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (pRamp)
+	if (pRamp && SHARED.IsWindowMode)
 	{
+		if (iSwapChain)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: Gamma support for swapchains not implemented: " << iSwapChain);
+		}
+
 		memcpy(pRamp, &SHARED.RampData, sizeof(D3DGAMMARAMP));
 		return;
 	}
@@ -1022,8 +1098,13 @@ void m_IDirect3DDevice9Ex::SetGammaRamp(THIS_ UINT iSwapChain, DWORD Flags, CONS
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (pRamp)
+	if (pRamp && SHARED.IsWindowMode)
 	{
+		if (iSwapChain)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: Gamma support for swapchains not implemented: " << iSwapChain);
+		}
+
 		SHARED.IsGammaSet = false;
 		memcpy(&SHARED.RampData, pRamp, sizeof(D3DGAMMARAMP));
 
@@ -1283,9 +1364,12 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 
 	if (SHARED.IsGammaSet)
 	{
-		ProxyInterface->BeginScene();
-		ApplyBrightnessLevel();
-		ProxyInterface->EndScene();
+		CallApplyBrightnessLevel();
+	}
+
+	if (Config.ForceSingleBeginEndScene && SHARED.BeginSceneCalled)
+	{
+		CallEndScene();
 	}
 
 	if (Config.LimitPerFrameFPS)
@@ -1378,7 +1462,31 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 	}
 #endif
 
-	HRESULT hr = ProxyInterface->BeginScene();
+	HRESULT hr;
+	
+	if (Config.ForceSingleBeginEndScene && (SHARED.IsInScene || SHARED.BeginSceneCalled))
+	{
+		if (SHARED.IsInScene)
+		{
+			hr = D3DERR_INVALIDCALL;
+		}
+		else
+		{
+			SHARED.IsInScene = true;
+
+			hr = D3D_OK;
+		}
+	}
+	else
+	{
+		hr = ProxyInterface->BeginScene();
+
+		if (SUCCEEDED(hr))
+		{
+			SHARED.IsInScene = true;
+			SHARED.BeginSceneCalled = true;
+		}
+	}
 
 #ifdef ENABLE_DEBUGOVERLAY
 	if (Config.EnableImgui)
@@ -2592,9 +2700,12 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 
 	if (SHARED.IsGammaSet)
 	{
-		ProxyInterface->BeginScene();
-		ApplyBrightnessLevel();
-		ProxyInterface->EndScene();
+		CallApplyBrightnessLevel();
+	}
+
+	if (Config.ForceSingleBeginEndScene && SHARED.BeginSceneCalled)
+	{
+		CallEndScene();
 	}
 
 	if (Config.LimitPerFrameFPS)

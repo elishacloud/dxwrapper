@@ -80,6 +80,7 @@
 	visit(ForceExclusiveFullscreen) \
 	visit(ForceMixedVertexProcessing) \
 	visit(ForceSystemMemVertexCache) \
+	visit(ForceSingleBeginEndScene) \
 	visit(FilterNonActiveInput) \
 	visit(FixHighFrequencyMouse) \
 	visit(FixSpeakerConfigType) \
@@ -278,6 +279,7 @@ struct CONFIG
 	bool ForceExclusiveFullscreen = false;		// Forces exclusive fullscreen mode in d3d9
 	bool ForceMixedVertexProcessing = false;	// Forces Mixed mode for vertex processing in d3d9
 	bool ForceSystemMemVertexCache = false;		// Forces System Memory caching for vertexes in d3d9
+	DWORD ForceSingleBeginEndScene = 0;			// Ensures that only a single EndScene/BeginScene pair are called per frame
 	bool FullScreen = false;					// Sets the main window to fullscreen
 	bool FullscreenWindowMode = false;			// Enables fullscreen windowed mode, requires EnableWindowMode
 	bool ForceTermination = false;				// Terminates application when main window closes
