@@ -471,6 +471,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.EnvironmentMapCubeFix = NOT_EXIST;
 	Config.LimitStateBlocks = NOT_EXIST;
 	Config.ForceSingleBeginEndScene = NOT_EXIST;
+	Config.WindowModeGammaShader = NOT_EXIST;
 
 	// Other values that may not exist in ini file
 	Config.DisableMaxWindowedModeNotSet = true;
@@ -777,4 +778,5 @@ void CONFIG::SetConfig()
 	EnvironmentMapCubeFix = (EnvironmentMapCubeFix != 0);
 	LimitStateBlocks = (LimitStateBlocks != 0);
 	ForceSingleBeginEndScene = (ForceSingleBeginEndScene != 0);
+	WindowModeGammaShader = (WindowModeGammaShader != 0);
 }

@@ -134,6 +134,7 @@
 	visit(WindowModeBorder) \
 	visit(WinVersionLie) \
 	visit(WinVersionLieSP) \
+	visit(WindowModeGammaShader) \
 	visit(WrapperMode)
 
 #define VISIT_APPCOMPATDATA_SETTINGS(visit) \
@@ -298,6 +299,7 @@ struct CONFIG
 	bool WaitForProcess = false;				// Waits for process to end before continuing, requires FullScreen
 	bool WaitForWindowChanges = false;			// Waits for window handle to stabilize before setting fullsreen, requires FullScreen
 	bool WindowModeBorder = false;				// Enables the window border when EnableWindowMode is set, requires EnableWindowMode
+	DWORD WindowModeGammaShader = 0;			// Use shader for gamma when in window mode
 	bool SetInitialWindowPosition = false;		// Enable Initial window position
 	DWORD InitialWindowPositionLeft;			// Initial left window position for application
 	DWORD InitialWindowPositionTop;				// Initial top window position for application

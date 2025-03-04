@@ -190,6 +190,8 @@ inline HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPres
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 	UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, true);
 
+	bool IsWindowMode = d3dpp.Windowed != FALSE;
+
 	// Test for Multisample
 	if (SHARED.DeviceMultiSampleFlag)
 	{
@@ -237,10 +239,10 @@ inline HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPres
 
 		if (WndDataStruct && WndDataStruct->IsExclusiveMode)
 		{
-			d3dpp.Windowed = false;
+			d3dpp.Windowed = FALSE;
 		}
 
-		SHARED.IsWindowMode = d3dpp.Windowed;
+		SHARED.IsWindowMode = IsWindowMode;
 
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 
@@ -911,6 +913,11 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	}
 
 	// Set texture
+	IDirect3DBaseTexture9* pTexture[8] = {};
+	for (int x = 0; x < 8; x++)
+	{
+		ProxyInterface->GetTexture(x, &pTexture[x]);
+	}
 	ProxyInterface->SetTexture(0, SHARED.ScreenCopyTexture);
 	ProxyInterface->SetTexture(1, SHARED.GammaLUTTexture);
 	for (int x = 2; x < 8; x++)
@@ -951,19 +958,18 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	// Reset textures
 	ProxyInterface->SetTexture(0, nullptr);
 	ProxyInterface->SetTexture(1, nullptr);
+	for (int x = 0; x < 8; x++)
+	{
+		if (pTexture[x])
+		{
+			ProxyInterface->SetTexture(x, pTexture[x]);
+			pTexture[x]->Release();
+		}
+	}
 
 	// Reset shaders
-	ProxyInterface->SetPixelShader(nullptr);
-	if (pPixelShader)
-	{
-		ProxyInterface->SetPixelShader(pPixelShader);
-		pPixelShader->Release();
-	}
-	if (pVertexShader)
-	{
-		ProxyInterface->SetVertexShader(pVertexShader);
-		pVertexShader->Release();
-	}
+	ProxyInterface->SetPixelShader(pPixelShader);
+	ProxyInterface->SetVertexShader(pVertexShader);
 
 	// Cleanup
 	pBackBuffer->Release();
@@ -1080,7 +1086,7 @@ void m_IDirect3DDevice9Ex::GetGammaRamp(THIS_ UINT iSwapChain, D3DGAMMARAMP* pRa
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (pRamp && SHARED.IsWindowMode)
+	if (pRamp && Config.WindowModeGammaShader && SHARED.IsWindowMode)
 	{
 		if (iSwapChain)
 		{
@@ -1098,7 +1104,7 @@ void m_IDirect3DDevice9Ex::SetGammaRamp(THIS_ UINT iSwapChain, DWORD Flags, CONS
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (pRamp && SHARED.IsWindowMode)
+	if (pRamp && Config.WindowModeGammaShader && SHARED.IsWindowMode)
 	{
 		if (iSwapChain)
 		{
