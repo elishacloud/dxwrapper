@@ -22,8 +22,6 @@ namespace Utils
 
 	void Shell(const char*);
 	void DisableHighDPIScaling();
-	DWORD GetCoresUsedByProcess();
-	void SetProcessAffinity();
 	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);
 	FARPROC WINAPI GetProcAddressHandler(HMODULE hModule, LPSTR lpProcName);
 	DWORD WINAPI GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename, DWORD nSize);
@@ -70,6 +68,11 @@ namespace Utils
 	void GetScreenSize(HWND hwnd, int &screenWidth, int &screenHeight);
 	void GetDesktopRect(HWND hWnd, RECT& screenRect);
 	HRESULT GetVideoRam(UINT AdapterNo, DWORD& TotalMemory);	// Adapters start numbering from '1', based on "Win32_VideoController" WMI class and "DeviceID" property.
+
+	// CPU Affinity
+	void SetProcessAffinity();
+	void SetThreadAffinity(DWORD threadId);
+	void ApplyThreadAffinity();
 
 	inline void BusyWaitYield(DWORD RemainingMS)
 	{

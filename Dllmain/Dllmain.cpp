@@ -326,7 +326,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 		if (Config.SingleProcAffinity)
 		{
-			Utils::SetProcessAffinity();
+			if (!Utils::CreateThread_out)
+			{
+				Utils::CreateThread_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "CreateThread"), "CreateThread", Utils::kernel_CreateThread);
+			}
+
+			Utils::ApplyThreadAffinity();
 		}
 		if (Config.DisableGameUX)
 		{
@@ -645,6 +650,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	}
 	break;
 	case DLL_THREAD_ATTACH:
+
+		// Apply affinity to new threads
+		if (Config.SingleProcAffinity)
+		{
+			Utils::SetThreadAffinity(GetCurrentThreadId());
+		}
+
 #ifdef DDRAWCOMPAT
 		// Unload and Unhook DDrawCompat
 		if (DDrawCompat::IsEnabled())
