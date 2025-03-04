@@ -1192,7 +1192,7 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 			}
 		}
 
-		HRESULT hr = (*d3d9Device)->SetTransform(dtstTransformStateType, lpD3DMatrix);
+		HRESULT hr = SetD9Transform(dtstTransformStateType, lpD3DMatrix);
 
 #ifdef ENABLE_DEBUGOVERLAY
 		if (SUCCEEDED(hr) && !Config.DdrawConvertHomogeneousW)
