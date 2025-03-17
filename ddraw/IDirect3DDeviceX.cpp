@@ -1382,9 +1382,6 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 			D3DFMT_V8U8,
 			D3DFMT_X8L8V8U8,
 			D3DFMT_L6V5U5,
-			D3DFMT_YUY2,
-			D3DFMT_UYVY,
-			D3DFMT_AYUV,
 			D3DFMT_DXT1,
 			D3DFMT_DXT2,
 			D3DFMT_DXT3,
@@ -1396,10 +1393,38 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 			D3DFMT_A4L4,
 			D3DFMT_A8L8 };
 
-		// Add FourCCs to texture list
-		for (D3DFORMAT format : FourCCTypes)
+		// If textures are being trimmed
+		if (Config.DdrawLimitTextureFormats)
 		{
-			TextureList.push_back(format);
+			// Trim texture list
+			std::vector<D3DFORMAT> TrimTextureList = {
+				D3DFMT_V8U8,       // May be trimmed if normal maps are unused
+				D3DFMT_X8L8V8U8,   // Rare normal map format
+				D3DFMT_L6V5U5,     // Uncommon format
+				D3DFMT_DXT5,       // Newer texture format
+				D3DFMT_P8,         // 8-bit palettized (Direct3D9 deprecated this)
+				D3DFMT_A4L4 };     // Rare grayscale+alpha format
+
+			// Remove trimmed texture from list
+			for (auto it = TextureList.begin(); it != TextureList.end(); )
+			{
+				if (std::find(TrimTextureList.begin(), TrimTextureList.end(), *it) != TrimTextureList.end())
+				{
+					it = TextureList.erase(it); // Remove and update iterator
+				}
+				else
+				{
+					++it; // Move to next element
+				}
+			}
+		}
+		// Add FourCCs to texture list
+		else
+		{
+			for (D3DFORMAT format : FourCCTypes)
+			{
+				TextureList.push_back(format);
+			}
 		}
 
 		// Check for supported textures

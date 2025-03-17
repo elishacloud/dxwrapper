@@ -62,7 +62,10 @@ static constexpr D3DFORMAT FourCCTypes[] =
 	(D3DFORMAT)MAKEFOURCC('A', 'T', 'I', '1'),
 	(D3DFORMAT)MAKEFOURCC('A', 'T', 'I', '2'),
 	(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '1'),
-	(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '6')
+	(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '6'),
+	D3DFMT_YUY2,
+	D3DFMT_UYVY,
+	D3DFMT_AYUV,
 };
 
 typedef struct {

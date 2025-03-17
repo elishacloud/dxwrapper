@@ -42,6 +42,7 @@
 	visit(DdrawWriteToGDI) \
 	visit(DdrawIntegerScalingClamp) \
 	visit(DdrawLimitDisplayModeCount) \
+	visit(DdrawLimitTextureFormats) \
 	visit(DdrawMaintainAspectRatio) \
 	visit(DdrawOverrideBitMode) \
 	visit(DdrawOverrideWidth) \
@@ -240,6 +241,7 @@ struct CONFIG
 	DWORD DdrawCustomWidth = 0;					// Custom resolution width for Dd7to9 when using DdrawLimitDisplayModeCount, resolution must be supported by video card and monitor
 	DWORD DdrawCustomHeight = 0;				// Custom resolution height for Dd7to9 when using DdrawLimitDisplayModeCount, resolution must be supported by video card and monitor
 	bool DdrawDisableDirect3DCaps = false;		// Disable caps for Direct3D to try and force the game to use DirectDraw instaed of Direct3D
+	bool DdrawLimitTextureFormats = false;		// Limits the number of texture formats sent to the program, some games crash when you feed them with too many textures
 	bool DdrawLimitDisplayModeCount = false;	// Limits the number of display modes sent to program, some games crash when you feed them with too many resolutions
 	DWORD DdrawOverrideBitMode = 0;				// Forces DirectX to use specified bit mode: 8, 16, 24, 32
 	DWORD DdrawOverrideWidth = 0;				// Force Direct3d9 to use this width when using Dd7to9
