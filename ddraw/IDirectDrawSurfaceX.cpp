@@ -3971,6 +3971,8 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 
 		// Check flags
 		DWORD SurfaceFlags = lpDDSurfaceDesc2->dwFlags;
+
+		// Handle lpSurface flag
 		if ((SurfaceFlags & DDSD_LPSURFACE) && lpDDSurfaceDesc2->lpSurface)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: lpSurface not fully Implemented.");
@@ -3984,11 +3986,45 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 				CreateD9Surface();
 			}
 		}
+
+		// Handle width, height and pitch flags
+		if (SurfaceFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: surfaceDesc flags being updated: " << Logging::hex(SurfaceFlags));
+			bool Flag = false;
+			if ((SurfaceFlags & DDSD_WIDTH) && lpDDSurfaceDesc2->dwWidth)
+			{
+				Flag = Flag || (surfaceDesc2.dwWidth != lpDDSurfaceDesc2->dwWidth);
+				SurfaceFlags &= ~DDSD_WIDTH;
+				ResetDisplayFlags &= ~DDSD_WIDTH;
+				surfaceDesc2.dwFlags |= DDSD_WIDTH;
+				surfaceDesc2.dwWidth = lpDDSurfaceDesc2->dwWidth;
+			}
+			if ((SurfaceFlags & DDSD_HEIGHT) && lpDDSurfaceDesc2->dwHeight)
+			{
+				Flag = Flag || (surfaceDesc2.dwHeight != lpDDSurfaceDesc2->dwHeight);
+				SurfaceFlags &= ~DDSD_HEIGHT;
+				ResetDisplayFlags &= ~DDSD_HEIGHT;
+				surfaceDesc2.dwFlags |= DDSD_HEIGHT;
+				surfaceDesc2.dwHeight = lpDDSurfaceDesc2->dwHeight;
+			}
+			if (SurfaceFlags & DDSD_PITCH)
+			{
+				SurfaceFlags &= ~DDSD_PITCH;
+			}
+			if (Flag && (surface.Surface || surface.Texture))
+			{
+				CreateD9Surface();
+			}
+		}
+
+		// Check for unhandled flags
 		if (SurfaceFlags)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: flags not implemented " << Logging::hex(SurfaceFlags));
 			return DDERR_UNSUPPORTED;
 		}
+
 		return DD_OK;
 	}
 
@@ -5411,7 +5447,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		if (Width && Height &&
 			(surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) != (DDSD_WIDTH | DDSD_HEIGHT))
 		{
-			ResetDisplayFlags |= DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH;
+			ResetDisplayFlags |= DDSD_WIDTH | DDSD_HEIGHT;
 			surfaceDesc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
 			surfaceDesc2.dwWidth = Width;
 			surfaceDesc2.dwHeight = Height;
@@ -5427,7 +5463,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		// Set PixelFormat
 		if (BPP && !(surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
 		{
-			ResetDisplayFlags |= DDSD_PIXELFORMAT | DDSD_PITCH;
+			ResetDisplayFlags |= DDSD_PIXELFORMAT;
 			surfaceDesc2.dwFlags |= DDSD_PIXELFORMAT;
 			ddrawParent->GetDisplayPixelFormat(surfaceDesc2.ddpfPixelFormat, BPP);
 			surfaceDesc2.lPitch = 0;
@@ -5761,6 +5797,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	if (ResetDisplayFlags && !ResetSurface)
 	{
 		surfaceDesc2.dwFlags &= ~ResetDisplayFlags;
+		ClearUnusedValues(surfaceDesc2);
 	}
 	if (surfaceDesc2.dwFlags & DDSD_REFRESHRATE)
 	{
