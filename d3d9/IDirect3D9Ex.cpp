@@ -17,6 +17,12 @@
 #include "d3d9.h"
 #include "GDI\WndProc.h"
 
+namespace {
+	// Initial screen resolution
+	DWORD InitWidth = 0;
+	DWORD InitHeight = 0;
+};
+
 AddressLookupTableD3d9 ProxyAddressLookupTable9;		// Just used for m_IDirect3D9Ex interfaces only
 
 void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed);
@@ -24,6 +30,12 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 void m_IDirect3D9Ex::InitInterface()
 {
 	ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
+
+	// Get default display resolution
+	if ((Config.LimitDisplayModeCount || Config.OverrideRefreshRate) && (!InitWidth || !InitHeight))
+	{
+		Utils::GetScreenSize(nullptr, (LONG&)InitWidth, (LONG&)InitHeight);
+	}
 }
 void m_IDirect3D9Ex::ReleaseInterface()
 {
@@ -109,7 +121,7 @@ HRESULT m_IDirect3D9Ex::EnumAdapterModes(THIS_ UINT Adapter, D3DFORMAT Format, U
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.OverrideRefreshRate)
+	if (Config.LimitDisplayModeCount || Config.OverrideRefreshRate)
 	{
 		if (!pMode)
 		{
@@ -170,6 +182,23 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 		return 0;
 	}
 
+	// For games that require limited resolution return
+	const SIZE LimitedResolutionList[] = {
+		{ 512, 384 },
+		{ 640, 400 },
+		{ 640, 480 },
+		{ 720, 480 },
+		{ 800, 600 },
+		{ 1024, 768 },
+		{ 1152, 864 },
+		{ 1280, 720 },
+		{ 1280, 1024 },
+		{ 1366, 768 },
+		{ 1440, 900 },
+		{ 1600, 1200 },
+		{ (LONG)InitWidth, (LONG)InitHeight },
+		{ (LONG)Config.CustomResolutionWidth, (LONG)Config.CustomResolutionHeight } };
+
 	for (auto& entry : AdapterModesCache)
 	{
 		if (entry.Adapter == Adapter && entry.IsEx == IsEx &&
@@ -202,13 +231,15 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 	UINT RefreshRate = 0;
 	std::vector<D3DDISPLAYMODEEX_CONVERT> NewDisplayModeList;
 
+	// Cache all adapter modes
 	for (UINT x = 0; x < Count; x++)
 	{
 		D3DDISPLAYMODEEX_CONVERT DisplayMode;
 		if (SUCCEEDED(!IsEx ? ProxyInterface->EnumAdapterModes(Adapter, Format, x, DisplayMode.Ptr()) :
 			ProxyInterfaceEx->EnumAdapterModesEx(Adapter, pFilter, x, DisplayMode.PtrEx())))
 		{
-			if (RefreshRate == 0 || std::abs((INT)Config.OverrideRefreshRate - (INT)DisplayMode.RefreshRate) < std::abs((INT)Config.OverrideRefreshRate - (INT)RefreshRate))
+			if (Config.OverrideRefreshRate &&
+				(RefreshRate == 0 || std::abs((INT)Config.OverrideRefreshRate - (INT)DisplayMode.RefreshRate) < std::abs((INT)Config.OverrideRefreshRate - (INT)RefreshRate)))
 			{
 				RefreshRate = DisplayMode.RefreshRate;
 			}
@@ -216,9 +247,27 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 		}
 	}
 
+	// Filter cached adapter modes
 	for (auto& entry : NewDisplayModeList)
 	{
-		if (entry.RefreshRate == RefreshRate)
+		// Check if resolution has already been sent
+		bool IsResolutionAlreadySent = std::any_of(NewCacheEntry.DisplayModeList.begin(), NewCacheEntry.DisplayModeList.end(),
+			[&](const auto& res) {
+				return (res.Width == entry.Width && res.Height == entry.Height && res.RefreshRate == entry.RefreshRate);
+			});
+
+		// Check if the resolution is on the LimitedResolutionList
+		bool IsResolutionSupported = (!Config.LimitDisplayModeCount ||
+			std::any_of(std::begin(LimitedResolutionList), std::end(LimitedResolutionList),
+				[&](const auto& res) {
+					return ((DWORD)res.cx == entry.Width && (DWORD)res.cy == entry.Height);
+				}));
+
+		// Check if refresh rate is suported
+		bool IsRefreshSupported = (!Config.OverrideRefreshRate || entry.RefreshRate == RefreshRate);
+
+		// Store entry
+		if (!IsResolutionAlreadySent && IsResolutionSupported && IsRefreshSupported)
 		{
 			NewCacheEntry.DisplayModeList.push_back(entry);
 		}
@@ -233,7 +282,7 @@ UINT m_IDirect3D9Ex::GetAdapterModeCount(THIS_ UINT Adapter, D3DFORMAT Format)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.OverrideRefreshRate)
+	if (Config.LimitDisplayModeCount || Config.OverrideRefreshRate)
 	{
 		return GetAdapterModeCache(Adapter, Format, false, nullptr);
 	}
@@ -456,7 +505,7 @@ UINT m_IDirect3D9Ex::GetAdapterModeCountEx(THIS_ UINT Adapter, CONST D3DDISPLAYM
 		return 0;
 	}
 
-	if (Config.OverrideRefreshRate)
+	if (Config.LimitDisplayModeCount || Config.OverrideRefreshRate)
 	{
 		return GetAdapterModeCache(Adapter, D3DFMT_UNKNOWN, true, pFilter);
 	}
@@ -474,7 +523,7 @@ HRESULT m_IDirect3D9Ex::EnumAdapterModesEx(THIS_ UINT Adapter, CONST D3DDISPLAYM
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (Config.OverrideRefreshRate)
+	if (Config.LimitDisplayModeCount || Config.OverrideRefreshRate)
 	{
 		if (!pMode)
 		{

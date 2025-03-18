@@ -13,6 +13,8 @@
 	visit(AntiAliasing) \
 	visit(AudioClipDetection) \
 	visit(AudioFadeOutDelayMS) \
+	visit(CustomResolutionWidth) \
+	visit(CustomResolutionHeight) \
 	visit(Dd7to9) \
 	visit(D3d8to9) \
 	visit(Dinputto8) \
@@ -104,6 +106,7 @@
 	visit(InitialWindowPositionLeft) \
 	visit(InitialWindowPositionTop) \
 	visit(isAppCompatDataSet) \
+	visit(LimitDisplayModeCount) \
 	visit(LimitPerFrameFPS) \
 	visit(LoadCustomDllPath) \
 	visit(LoadFromScriptsOnly) \
@@ -267,6 +270,8 @@ struct CONFIG
 	DWORD EnvironmentMapCubeFix = 0;			// Fixes environment cube maps when no texture is applied, issue exists in d3d8
 	bool ConvertToDirectDraw7 = false;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool ConvertToDirect3D7 = false;			// Converts Direct3D 1-6 to Direct3D 7
+	DWORD CustomResolutionWidth = 0;			// Custom resolution width when using LimitDisplayModeCount, resolution must be supported by video card and monitor
+	DWORD CustomResolutionHeight = 0;			// Custom resolution height when using LimitDisplayModeCount, resolution must be supported by video card and monitor
 	bool EnableDdrawWrapper = false;			// Enables the ddraw wrapper
 	DWORD EnableD3d9Wrapper = 0;				// Enables the d3d9 wrapper
 	bool EnableDinput8Wrapper = false;			// Enables the dinput8 wrapper
@@ -291,6 +296,7 @@ struct CONFIG
 	DWORD GraphicsHybridAdapter = 0;			// Sets the Direct3D9 Hybrid Enumeration Mode to allow using a secondary display adapter
 	bool HandleExceptions = false;				// Handles unhandled exceptions in the application
 	bool isAppCompatDataSet = false;			// Flag that holds tells whether any of the AppCompatData flags are set
+	bool LimitDisplayModeCount = false;			// Limits the number of display modes sent to program, some games crash when you feed them with too many resolutions
 	float LimitPerFrameFPS = 0;					// Limits each frame by adding a delay if the frame is to fast
 	bool LoadPlugins = false;					// Loads ASI plugins
 	bool LoadFromScriptsOnly = false;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
