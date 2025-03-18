@@ -451,19 +451,32 @@ SIZE_T WINAPI Utils::kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem)
 }
 
 // Your existing exception handler function
-LONG WINAPI Utils::Vectored_Exception_Handler(EXCEPTION_POINTERS* exception)
+LONG WINAPI Utils::Vectored_Exception_Handler(EXCEPTION_POINTERS* ExceptionInfo)
 {
-	if (exception &&
-		exception->ContextRecord &&
-		exception->ExceptionRecord &&
-		exception->ExceptionRecord->ExceptionAddress &&
-		exception->ExceptionRecord->ExceptionCode == STATUS_PRIVILEGED_INSTRUCTION)
+	if (ExceptionInfo &&
+		ExceptionInfo->ContextRecord &&
+		ExceptionInfo->ExceptionRecord &&
+		ExceptionInfo->ExceptionRecord->ExceptionAddress &&
+		ExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_PRIVILEGED_INSTRUCTION)
 	{
-		size_t size = Disasm::getInstructionLength(exception->ExceptionRecord->ExceptionAddress);
+		size_t size = Disasm::getInstructionLength(ExceptionInfo->ExceptionRecord->ExceptionAddress);
 
 		if (size)
 		{
-			exception->ContextRecord->Eip += size;
+			static DWORD count = 0;
+			if (count++ < 10)
+			{
+				char moduleName[MAX_PATH];
+				GetModuleFromAddress(ExceptionInfo->ExceptionRecord->ExceptionAddress, moduleName, MAX_PATH);
+
+				Logging::Log() << "Skipping exception:" <<
+					" code=" << Logging::hex(ExceptionInfo->ExceptionRecord->ExceptionCode) <<
+					" flags=" << Logging::hex(ExceptionInfo->ExceptionRecord->ExceptionFlags) <<
+					" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress <<
+					" module=" << moduleName;
+			}
+
+			ExceptionInfo->ContextRecord->Eip += size;
 			return EXCEPTION_CONTINUE_EXECUTION;
 		}
 	}
@@ -1287,6 +1300,34 @@ void Utils::WaitForWindowActions(HWND hWnd, DWORD Loops)
 		if (++x > Loops)
 		{
 			break;
+		}
+	}
+}
+
+void Utils::GetModuleFromAddress(void* address, char* module, const size_t size)
+{
+	if (!module || size == 0)
+	{
+		return;
+	}
+
+	module[0] = '\0'; // Ensure null-termination in case of failure
+
+	HMODULE hModule = NULL;
+	HANDLE hProcess = GetCurrentProcess();
+	MEMORY_BASIC_INFORMATION mbi;
+
+	// Query the memory region of the given address
+	if (VirtualQueryEx(hProcess, address, &mbi, sizeof(mbi)))
+	{
+		hModule = (HMODULE)mbi.AllocationBase;
+
+		if (hModule)
+		{
+			if (GetModuleFileNameA(hModule, module, static_cast<DWORD>(size)) == 0)
+			{
+				module[0] = '\0'; // Ensure null-termination if GetModuleFileNameA() fails
+			}
 		}
 	}
 }

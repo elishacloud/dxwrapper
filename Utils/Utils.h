@@ -33,7 +33,7 @@ namespace Utils
 	SIZE_T WINAPI kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem);
 	void HookExceptionHandler();
 	void UnHookExceptionHandler();
-	LONG WINAPI Vectored_Exception_Handler(EXCEPTION_POINTERS* exception);
+	LONG WINAPI Vectored_Exception_Handler(EXCEPTION_POINTERS* ExceptionInfo);
 	void AddHandleToVector(HMODULE dll, const char *name);
 	HMODULE LoadLibrary(const char *dllname, bool EnableLogging = false);
 	void LoadCustomDll();
@@ -62,6 +62,7 @@ namespace Utils
 	DWORD GetThreadIDByHandle(HANDLE hThread);
 	void DisableGameUX();
 	void WaitForWindowActions(HWND hWnd, DWORD Loops);
+	void GetModuleFromAddress(void* address, char* module, const size_t size);
 	bool SetWndProcFilter(HWND hWnd);
 	bool RestoreWndProcFilter(HWND hWnd);
 	void GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight);

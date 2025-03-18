@@ -42,10 +42,15 @@ namespace Utils
 // Add filter for UnhandledExceptionFilter used by the exception handler to catch exceptions
 LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 {
+	char moduleName[MAX_PATH];
+	GetModuleFromAddress(ExceptionInfo->ExceptionRecord->ExceptionAddress, moduleName, MAX_PATH);
+
 	Logging::Log() << "UnhandledExceptionFilter: exception" << std::showbase << std::hex <<
 		" code=" << ExceptionInfo->ExceptionRecord->ExceptionCode <<
 		" flags=" << ExceptionInfo->ExceptionRecord->ExceptionFlags <<
-		" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress << std::dec << std::noshowbase;
+		" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress << std::dec << std::noshowbase <<
+		" module=" << moduleName;
+
 	DWORD oldprot;
 	PVOID target = ExceptionInfo->ExceptionRecord->ExceptionAddress;
 	switch (ExceptionInfo->ExceptionRecord->ExceptionCode)
