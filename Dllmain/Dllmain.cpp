@@ -583,6 +583,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 			// Prepare wrapper
 			VISIT_PROCS_D3D9(SHIM_WRAPPED_PROC);
+
+			// Get default display resolution
+			Utils::GetScreenSize(nullptr, InitWidth, InitHeight);
 		}
 
 		// Load custom dlls

@@ -255,7 +255,7 @@ void Fullscreen::GetScreenSize(HWND hwnd, screen_res& Res, MONITORINFO& mi)
 	Res.Height = mi.rcMonitor.bottom - mi.rcMonitor.top;
 }
 
-void Utils::GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight)
+void Utils::GetScreenSize(HWND hwnd, volatile LONG &screenWidth, volatile LONG &screenHeight)
 {
 	MONITORINFO info = {};
 	info.cbSize = sizeof(MONITORINFO);
@@ -266,7 +266,7 @@ void Utils::GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight)
 
 void Utils::GetScreenSize(HWND hwnd, int &screenWidth, int &screenHeight)
 {
-	LONG Width, Height;
+	LONG Width = 0, Height = 0;
 	GetScreenSize(hwnd, Width, Height);
 	screenWidth = Width;
 	screenHeight = Height;

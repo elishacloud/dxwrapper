@@ -17,11 +17,9 @@
 #include "d3d9.h"
 #include "GDI\WndProc.h"
 
-namespace {
-	// Initial screen resolution
-	DWORD InitWidth = 0;
-	DWORD InitHeight = 0;
-};
+// Initial screen resolution
+volatile LONG InitWidth = 0;
+volatile LONG InitHeight = 0;
 
 AddressLookupTableD3d9 ProxyAddressLookupTable9;		// Just used for m_IDirect3D9Ex interfaces only
 
@@ -30,12 +28,6 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 void m_IDirect3D9Ex::InitInterface()
 {
 	ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
-
-	// Get default display resolution
-	if ((Config.LimitDisplayModeCount || Config.OverrideRefreshRate) && (!InitWidth || !InitHeight))
-	{
-		Utils::GetScreenSize(nullptr, (LONG&)InitWidth, (LONG&)InitHeight);
-	}
 }
 void m_IDirect3D9Ex::ReleaseInterface()
 {
@@ -196,7 +188,7 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 		{ 1366, 768 },
 		{ 1440, 900 },
 		{ 1600, 1200 },
-		{ (LONG)InitWidth, (LONG)InitHeight },
+		{ InitWidth, InitHeight },
 		{ (LONG)Config.CustomResolutionWidth, (LONG)Config.CustomResolutionHeight } };
 
 	for (auto& entry : AdapterModesCache)

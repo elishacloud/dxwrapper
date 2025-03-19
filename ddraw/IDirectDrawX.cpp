@@ -86,10 +86,6 @@ DWORD LastSetWidth = 0;
 DWORD LastSetHeight = 0;
 DWORD LastSetBPP = 0;
 
-// Initial screen resolution
-DWORD InitWidth = 0;
-DWORD InitHeight = 0;
-
 // Cached FourCC list
 std::vector<D3DFORMAT> FourCCsList;
 
@@ -1056,7 +1052,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 			{ 1280, 720 },
 			{ 1280, 1024 },
 			{ 1600, 1200 },
-			{ (LONG)InitWidth, (LONG)InitHeight },
+			{ InitWidth, InitHeight },
 			{ (LONG)Config.DdrawCustomWidth, (LONG)Config.DdrawCustomHeight } };
 
 		// Enumerate modes for format XRGB
@@ -2582,11 +2578,10 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		FocusWindowThreadID = 0;
 
 		// Display resolution
-		Utils::GetScreenSize(GetHwnd(), (LONG&)InitWidth, (LONG&)InitHeight);
 		if (Config.DdrawUseNativeResolution)
 		{
-			Device.Width = InitWidth;
-			Device.Height = InitHeight;
+			Device.Width = static_cast<DWORD>(InitWidth);
+			Device.Height = static_cast<DWORD>(InitHeight);
 		}
 		else
 		{

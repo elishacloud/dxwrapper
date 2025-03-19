@@ -20,6 +20,10 @@ struct __declspec(uuid("02177241-69FC-400C-8FF1-93A44DF6861D")) IDirect3D9Ex;
 
 #define MAX_D3D9ON12_QUEUES        2
 
+// Initial screen resolution
+extern volatile LONG InitWidth;
+extern volatile LONG InitHeight;
+
 typedef struct _D3D9ON12_ARGS
 {
 	BOOL Enable9On12;
