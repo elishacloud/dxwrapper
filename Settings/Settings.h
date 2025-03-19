@@ -130,6 +130,7 @@
 	visit(SetFullScreenLayer) \
 	visit(SetInitialWindowPosition) \
 	visit(SetNamedLayer) \
+	visit(ShowFPSCounter) \
 	visit(SingleProcAffinity) \
 	visit(StoppedDriverWorkaround) \
 	visit(WaitForProcess) \
@@ -314,6 +315,7 @@ struct CONFIG
 	DWORD LoopSleepTime = 0;					// Time to sleep between each window handle check loop, requires FullScreen
 	DWORD ResetMemoryAfter = 0;					// Undo hot patch after this amount of time
 	DWORD WindowSleepTime = 0;					// Time to wait (sleep) for window handle and screen updates to finish, requires FullScreen
+	DWORD ShowFPSCounter = 0;					// Shows the FPS counter. 1 = top left; 2 = top right; 3 = bottom right; 4 = bottom left
 	DWORD SingleProcAffinity = 0;				// Sets the CPU affinity for this process
 	DWORD SetFullScreenLayer = 0;				// The layer to be selected for fullscreen, requires FullScreen
 	DWORD AnisotropicFiltering = 0;				// Enable Anisotropic Filtering for d3d9

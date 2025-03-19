@@ -15,7 +15,6 @@
 */
 
 #include "d3d9.h"
-#include "d3dx9.h"
 #include "d3d9\d3d9External.h"
 #include "ddraw\Shaders\GammaPixelShader.h"
 #include "GDI\WndProc.h"
@@ -810,20 +809,6 @@ inline LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
 	return SHARED.gammaPixelShader;
 }
 
-inline void m_IDirect3DDevice9Ex::CallApplyBrightnessLevel()
-{
-	if (Config.ForceSingleBeginEndScene)
-	{
-		ApplyBrightnessLevel();
-	}
-	else
-	{
-		ProxyInterface->BeginScene();
-		ApplyBrightnessLevel();
-		ProxyInterface->EndScene();
-	}
-}
-
 inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 {
 	if (!SHARED.GammaLUTTexture)
@@ -868,70 +853,12 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	}
 	pCopySurface->Release();
 
-	// Render states
-	DWORD rsLighting, rsAlphaTestEnable, rsAlphaBlendEnable, rsFogEnable, rsZEnable, rsZWriteEnable, reStencilEnable, rsCullMode, rsClipping;
-	ProxyInterface->GetRenderState(D3DRS_LIGHTING, &rsLighting);
-	ProxyInterface->GetRenderState(D3DRS_ALPHATESTENABLE, &rsAlphaTestEnable);
-	ProxyInterface->GetRenderState(D3DRS_ALPHABLENDENABLE, &rsAlphaBlendEnable);
-	ProxyInterface->GetRenderState(D3DRS_FOGENABLE, &rsFogEnable);
-	ProxyInterface->GetRenderState(D3DRS_ZENABLE, &rsZEnable);
-	ProxyInterface->GetRenderState(D3DRS_ZWRITEENABLE, &rsZWriteEnable);
-	ProxyInterface->GetRenderState(D3DRS_STENCILENABLE, &reStencilEnable);
-	ProxyInterface->GetRenderState(D3DRS_CULLMODE, &rsCullMode);
-	ProxyInterface->GetRenderState(D3DRS_CLIPPING, &rsClipping);
-	ProxyInterface->SetRenderState(D3DRS_LIGHTING, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_FOGENABLE, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_ZENABLE, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-	ProxyInterface->SetRenderState(D3DRS_CLIPPING, FALSE);
-
-	// Texture states
-	DWORD tsColorOP, tsColorArg1, tsColorArg2, tsAlphaOP;
-	ProxyInterface->GetTextureStageState(0, D3DTSS_COLOROP, &tsColorOP);
-	ProxyInterface->GetTextureStageState(0, D3DTSS_COLORARG1, &tsColorArg1);
-	ProxyInterface->GetTextureStageState(0, D3DTSS_COLORARG2, &tsColorArg2);
-	ProxyInterface->GetTextureStageState(0, D3DTSS_ALPHAOP, &tsAlphaOP);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-
-	// Sampler states
-	DWORD ssaddressU[2] = {}, ssaddressV[2] = {}, ssaddressW[2] = {};
-	for (UINT x = 0; x < 2; x++)
-	{
-		ProxyInterface->GetSamplerState(x, D3DSAMP_ADDRESSU, &ssaddressU[x]);
-		ProxyInterface->GetSamplerState(x, D3DSAMP_ADDRESSV, &ssaddressV[x]);
-		ProxyInterface->GetSamplerState(x, D3DSAMP_ADDRESSW, &ssaddressW[x]);
-		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
-		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSW, D3DTADDRESS_WRAP);
-	}
-
 	// Set texture
-	IDirect3DBaseTexture9* pTexture[8] = {};
-	for (int x = 0; x < 8; x++)
-	{
-		ProxyInterface->GetTexture(x, &pTexture[x]);
-	}
 	ProxyInterface->SetTexture(0, SHARED.ScreenCopyTexture);
 	ProxyInterface->SetTexture(1, SHARED.GammaLUTTexture);
-	for (int x = 2; x < 8; x++)
-	{
-		ProxyInterface->SetTexture(x, nullptr);
-	}
 
 	// Set shader
-	IDirect3DPixelShader9* pPixelShader = nullptr;
-	IDirect3DVertexShader9* pVertexShader = nullptr;
-	ProxyInterface->GetPixelShader(&pPixelShader);
-	ProxyInterface->GetVertexShader(&pVertexShader);
 	ProxyInterface->SetPixelShader(pShader);
-	ProxyInterface->SetVertexShader(nullptr);
 
 	const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);
 	struct TLVERTEX
@@ -955,49 +882,8 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to draw primitive!");
 	}
 
-	// Reset textures
-	ProxyInterface->SetTexture(0, nullptr);
-	ProxyInterface->SetTexture(1, nullptr);
-	for (int x = 0; x < 8; x++)
-	{
-		if (pTexture[x])
-		{
-			ProxyInterface->SetTexture(x, pTexture[x]);
-			pTexture[x]->Release();
-		}
-	}
-
-	// Reset shaders
-	ProxyInterface->SetPixelShader(pPixelShader);
-	ProxyInterface->SetVertexShader(pVertexShader);
-
 	// Cleanup
 	pBackBuffer->Release();
-
-	// Restore sampler states
-	for (UINT x = 0; x < 2; x++)
-	{
-		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSU, ssaddressU[x]);
-		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSV, ssaddressV[x]);
-		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSW, ssaddressW[x]);
-	}
-
-	// Restore render states
-	ProxyInterface->SetRenderState(D3DRS_LIGHTING, rsLighting);
-	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, rsAlphaTestEnable);
-	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, rsAlphaBlendEnable);
-	ProxyInterface->SetRenderState(D3DRS_FOGENABLE, rsFogEnable);
-	ProxyInterface->SetRenderState(D3DRS_ZENABLE, rsZEnable);
-	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, rsZWriteEnable);
-	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, reStencilEnable);
-	ProxyInterface->SetRenderState(D3DRS_CULLMODE, rsCullMode);
-	ProxyInterface->SetRenderState(D3DRS_CLIPPING, rsClipping);
-
-	// Restore texture states
-	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, tsColorOP);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, tsColorArg1);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, tsColorArg2);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, tsAlphaOP);
 }
 
 inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
@@ -1045,6 +931,16 @@ inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'BlankTexture' " << ref;
 		}
 		SHARED.BlankTexture = nullptr;
+	}
+
+	if (SHARED.pFont)
+	{
+		ULONG ref = SHARED.pFont->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'gammaPixelShader' " << ref;
+		}
+		SHARED.pFont = nullptr;
 	}
 
 	if (isReset)
@@ -1362,18 +1258,174 @@ HRESULT m_IDirect3DDevice9Ex::SetPixelShader(THIS_ IDirect3DPixelShader9* pShade
 	return ProxyInterface->SetPixelShader(pShader);
 }
 
-HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
+void m_IDirect3DDevice9Ex::BackupDeviceState()
 {
-	Utils::ResetInvalidFPUState();	// Check FPU state before presenting
+	// Set render states
+	ProxyInterface->GetRenderState(D3DRS_LIGHTING, &ds.rsLighting);
+	ProxyInterface->GetRenderState(D3DRS_ALPHATESTENABLE, &ds.rsAlphaTestEnable);
+	ProxyInterface->GetRenderState(D3DRS_ALPHABLENDENABLE, &ds.rsAlphaBlendEnable);
+	ProxyInterface->GetRenderState(D3DRS_FOGENABLE, &ds.rsFogEnable);
+	ProxyInterface->GetRenderState(D3DRS_ZENABLE, &ds.rsZEnable);
+	ProxyInterface->GetRenderState(D3DRS_ZWRITEENABLE, &ds.rsZWriteEnable);
+	ProxyInterface->GetRenderState(D3DRS_STENCILENABLE, &ds.rsStencilEnable);
+	ProxyInterface->GetRenderState(D3DRS_CULLMODE, &ds.rsCullMode);
+	ProxyInterface->GetRenderState(D3DRS_CLIPPING, &ds.rsClipping);
+	ProxyInterface->SetRenderState(D3DRS_LIGHTING, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_FOGENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ZENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+	ProxyInterface->SetRenderState(D3DRS_CLIPPING, FALSE);
 
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	// Set texture states
+	ProxyInterface->GetTextureStageState(0, D3DTSS_COLOROP, &ds.tsColorOP);
+	ProxyInterface->GetTextureStageState(0, D3DTSS_COLORARG1, &ds.tsColorArg1);
+	ProxyInterface->GetTextureStageState(0, D3DTSS_COLORARG2, &ds.tsColorArg2);
+	ProxyInterface->GetTextureStageState(0, D3DTSS_ALPHAOP, &ds.tsAlphaOP);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
 
-	if (SHARED.IsGammaSet)
+	// Set sampler states
+	for (UINT x = 0; x < 2; x++)
 	{
-		CallApplyBrightnessLevel();
+		ProxyInterface->GetSamplerState(x, D3DSAMP_ADDRESSU, &ds.ssaddressU[x]);
+		ProxyInterface->GetSamplerState(x, D3DSAMP_ADDRESSV, &ds.ssaddressV[x]);
+		ProxyInterface->GetSamplerState(x, D3DSAMP_ADDRESSW, &ds.ssaddressW[x]);
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSW, D3DTADDRESS_WRAP);
 	}
 
-	if (Config.ForceSingleBeginEndScene && SHARED.BeginSceneCalled)
+	// Set viewport
+	ProxyInterface->GetViewport(&ds.oldViewport);
+
+	ds.newViewport.X = 0;
+	ds.newViewport.Y = 0;
+	ds.newViewport.Width = SHARED.BufferWidth;
+	ds.newViewport.Height = SHARED.BufferHeight;
+	ds.newViewport.MinZ = 0.0f;
+	ds.newViewport.MaxZ = 1.0f;
+
+	ProxyInterface->SetViewport(&ds.newViewport);
+
+	// Set texture
+	for (int x = 0; x < 8; x++)
+	{
+		ProxyInterface->GetTexture(x, &ds.pTexture[x]);
+	}
+	for (int x = 0; x < 8; x++)
+	{
+		ProxyInterface->SetTexture(x, nullptr);
+	}
+
+	// Set shader
+	ProxyInterface->GetPixelShader(&ds.pPixelShader);
+	ProxyInterface->GetVertexShader(&ds.pVertexShader);
+	ProxyInterface->SetPixelShader(nullptr);
+	ProxyInterface->SetVertexShader(nullptr);
+
+	// Get current render target
+	ProxyInterface->GetRenderTarget(0, &ds.pRenderTarget);
+
+	// Set backbuffer as render target
+	IDirect3DSurface9* pBackBuffer = nullptr;
+	if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+	{
+		ProxyInterface->SetRenderTarget(0, pBackBuffer);
+		pBackBuffer->Release();
+	}
+}
+
+void m_IDirect3DDevice9Ex::RestoreDeviceState()
+{
+	// Ensure we are rendering to the backbuffer
+	if (ds.pRenderTarget)
+	{
+		ProxyInterface->SetRenderTarget(0, ds.pRenderTarget);
+		ds.pRenderTarget->Release();
+		ds.pRenderTarget = nullptr;
+	}
+
+	// Reset textures
+	for (int x = 0; x < 8; x++)
+	{
+		ProxyInterface->SetTexture(x, ds.pTexture[x]);
+		if (ds.pTexture[x])
+		{
+			ds.pTexture[x]->Release();
+			ds.pTexture[x] = nullptr;
+		}
+	}
+
+	// Reset shaders
+	ProxyInterface->SetPixelShader(ds.pPixelShader);
+	ds.pPixelShader = nullptr;
+	ProxyInterface->SetVertexShader(ds.pVertexShader);
+	ds.pVertexShader = nullptr;
+
+	// Restore game viewport
+	ProxyInterface->SetViewport(&ds.oldViewport);
+
+	// Restore sampler states
+	for (UINT x = 0; x < 2; x++)
+	{
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSU, ds.ssaddressU[x]);
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSV, ds.ssaddressV[x]);
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSW, ds.ssaddressW[x]);
+	}
+
+	// Restore texture states
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, ds.tsColorOP);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, ds.tsColorArg1);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, ds.tsColorArg2);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, ds.tsAlphaOP);
+
+	// Restore render states
+	ProxyInterface->SetRenderState(D3DRS_LIGHTING, ds.rsLighting);
+	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, ds.rsAlphaTestEnable);
+	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, ds.rsAlphaBlendEnable);
+	ProxyInterface->SetRenderState(D3DRS_FOGENABLE, ds.rsFogEnable);
+	ProxyInterface->SetRenderState(D3DRS_ZENABLE, ds.rsZEnable);
+	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, ds.rsZWriteEnable);
+	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, ds.rsStencilEnable);
+	ProxyInterface->SetRenderState(D3DRS_CULLMODE, ds.rsCullMode);
+	ProxyInterface->SetRenderState(D3DRS_CLIPPING, ds.rsClipping);
+}
+
+inline void m_IDirect3DDevice9Ex::ApplyPresentFixes()
+{
+	bool CalledBeginScene = false;
+	if (!Config.ForceSingleBeginEndScene || !SHARED.BeginSceneCalled)
+	{
+		CalledBeginScene = true;
+		BeginScene();
+	}
+
+	if (SHARED.IsGammaSet || Config.ShowFPSCounter)
+	{
+		BackupDeviceState();
+
+		if (SHARED.IsGammaSet)
+		{
+			ApplyBrightnessLevel();
+		}
+
+		if (Config.ShowFPSCounter)
+		{
+			// ToDo: fix rect when using windowed mode with dd7to9
+			RECT rect = { 0, 0, SHARED.BufferWidth, SHARED.BufferHeight };
+			DrawFPS(static_cast<float>(SHARED.AverageFPSCounter), rect, Config.ShowFPSCounter);
+		}
+
+		RestoreDeviceState();
+	}
+
+	if (CalledBeginScene || (Config.ForceSingleBeginEndScene && SHARED.BeginSceneCalled))
 	{
 		CallEndScene();
 	}
@@ -1383,17 +1435,24 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 		LimitFrameRate();
 	}
 
+	// Check FPU state before presenting
+	Utils::ResetInvalidFPUState();
+}
+
+HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	ApplyPresentFixes();
+
 	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 
 	if (SUCCEEDED(hr))
 	{
-#ifdef ENABLE_DEBUGOVERLAY
-		if (Config.EnableImgui)
+		if (Config.ShowFPSCounter || Config.EnableImgui)
 		{
 			CalculateFPS();
-			DOverlay.SetFPSCount(SHARED.AverageFPSCounter);
 		}
-#endif
 	}
 
 	return hr;
@@ -2694,42 +2753,18 @@ HRESULT m_IDirect3DDevice9Ex::ComposeRects(THIS_ IDirect3DSurface9* pSrc, IDirec
 
 HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion, DWORD dwFlags)
 {
-	Utils::ResetInvalidFPUState();	// Check FPU state before presenting
-
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterfaceEx)
-	{
-		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
-		return D3DERR_INVALIDCALL;
-	}
-
-	if (SHARED.IsGammaSet)
-	{
-		CallApplyBrightnessLevel();
-	}
-
-	if (Config.ForceSingleBeginEndScene && SHARED.BeginSceneCalled)
-	{
-		CallEndScene();
-	}
-
-	if (Config.LimitPerFrameFPS)
-	{
-		LimitFrameRate();
-	}
+	ApplyPresentFixes();
 
 	HRESULT hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
 
 	if (SUCCEEDED(hr))
 	{
-#ifdef ENABLE_DEBUGOVERLAY
-		if (Config.EnableImgui)
+		if (Config.ShowFPSCounter || Config.EnableImgui)
 		{
 			CalculateFPS();
-			DOverlay.SetFPSCount(SHARED.AverageFPSCounter);
 		}
-#endif
 	}
 
 	return hr;
@@ -3018,6 +3053,90 @@ inline void m_IDirect3DDevice9Ex::ReInitInterface() const
 	}
 }
 
+inline void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD position) const
+{
+	// Scale the font size based on the rect height (adjustable factor)
+	int fontSize = (presentRect.bottom - presentRect.top) / 40;
+	if (fontSize < 4) fontSize = 4;		// Minimum font size
+	if (fontSize > 128) fontSize = 128;	// Maximum font size
+
+	// Recreate the font if size changes
+	if (!SHARED.pFont || SHARED.lastFontSize != fontSize)
+	{
+		if (SHARED.pFont)
+		{
+			ULONG ref = SHARED.pFont->Release();
+			if (ref)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'gammaPixelShader' " << ref;
+			}
+			SHARED.pFont = nullptr;
+		}
+
+		D3DXCreateFontW(ProxyInterface, fontSize, 0, FW_BOLD, 1, FALSE, DEFAULT_CHARSET,
+			OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+			L"Arial", &SHARED.pFont);
+		SHARED.lastFontSize = fontSize;
+	}
+
+	if (!SHARED.pFont)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create font!");
+		return;
+	}
+
+	// Format FPS text
+	wchar_t fpsText[16];
+	swprintf(fpsText, 16, L"%.1f", fps);
+
+	// Determine text position based on 'position'
+	int padding = fontSize / 2;
+	RECT textRect = presentRect;
+
+	switch (position)
+	{
+	case 1: // Top-left
+		textRect.left = presentRect.left + padding;
+		textRect.top = presentRect.top + padding;
+		break;
+	case 2: // Top-right
+		textRect.right = presentRect.right - padding;
+		textRect.top = presentRect.top + padding;
+		break;
+	case 3: // Bottom-right
+		textRect.right = presentRect.right - padding;
+		textRect.bottom = presentRect.bottom - padding;
+		break;
+	case 4: // Bottom-left
+		textRect.left = presentRect.left + padding;
+		textRect.bottom = presentRect.bottom - padding;
+		break;
+	default: // Default to top-left if an invalid position is given
+		textRect.left = presentRect.left + padding;
+		textRect.top = presentRect.top + padding;
+		break;
+	}
+
+	// Set alignment flags based on position
+	DWORD alignment = 0;
+	if (position == 2 || position == 3)
+		alignment |= DT_RIGHT;
+	else
+		alignment |= DT_LEFT;
+
+	if (position == 3 || position == 4)
+		alignment |= DT_BOTTOM;
+	else
+		alignment |= DT_TOP;
+
+	// Draw the text
+	INT ret = SHARED.pFont->DrawTextW(nullptr, fpsText, -1, &textRect, alignment, D3DCOLOR_XRGB(247, 247, 0));
+	if (ret == 0)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not DrawText!");
+	}
+}
+
 inline void m_IDirect3DDevice9Ex::LimitFrameRate() const
 {
 	// Count the number of frames
@@ -3107,6 +3226,10 @@ inline void m_IDirect3DDevice9Ex::CalculateFPS() const
 	{
 		SHARED.AverageFPSCounter = 1.0 / averageFrameTime;
 	}
+
+#ifdef ENABLE_DEBUGOVERLAY
+	DOverlay.SetFPSCount(SHARED.AverageFPSCounter);
+#endif
 
 	// Output FPS
 	Logging::LogDebug() << "Frames: " << SHARED.frameTimes.size() << " Average time: " << averageFrameTime << " FPS: " << SHARED.AverageFPSCounter;

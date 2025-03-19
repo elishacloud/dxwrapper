@@ -45,6 +45,9 @@ typedef HRESULT(WINAPI* PFN_D3DDisassemble)(LPCVOID pSrcData, SIZE_T SrcDataSize
 
 typedef HRESULT(WINAPI* PFN_D3DXFillTexture)(LPVOID pTexture, LPD3DXFILL3D pFunction, LPVOID pData);
 
+typedef HRESULT(WINAPI* PFN_D3DXCreateFontA)(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight, UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision, DWORD Quality, DWORD PitchAndFamily, LPCSTR pFaceName, LPD3DXFONT* ppFont);
+typedef HRESULT(WINAPI* PFN_D3DXCreateFontW)(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight, UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision, DWORD Quality, DWORD PitchAndFamily, LPCWSTR pFaceName, LPD3DXFONT* ppFont);
+
 HMEMORYMODULE d3dx9Module = nullptr;
 HMEMORYMODULE d3dCompileModule = nullptr;
 
@@ -66,6 +69,9 @@ PFN_D3DCompile p_D3DCompile = nullptr;
 PFN_D3DDisassemble p_D3DDisassemble = nullptr;
 
 PFN_D3DXFillTexture p_D3DXFillTexture = nullptr;
+
+PFN_D3DXCreateFontA p_D3DXCreateFontA = nullptr;
+PFN_D3DXCreateFontW p_D3DXCreateFontW = nullptr;
 
 FARPROC f_D3DXAssembleShader = (FARPROC)*D3DXAssembleShader;
 FARPROC f_D3DXDisassembleShader = (FARPROC)*D3DXDisassembleShader;
@@ -102,6 +108,8 @@ void LoadD3dx9()
 		p_D3DXAssembleShader = reinterpret_cast<PFN_D3DXAssembleShader>(MemoryGetProcAddress(d3dx9Module, "D3DXAssembleShader"));
 		p_D3DXDisassembleShader = reinterpret_cast<PFN_D3DXDisassembleShader>(MemoryGetProcAddress(d3dx9Module, "D3DXDisassembleShader"));
 		p_D3DXFillTexture = reinterpret_cast<PFN_D3DXFillTexture>(MemoryGetProcAddress(d3dx9Module, "D3DXFillTexture"));
+		p_D3DXCreateFontA = reinterpret_cast<PFN_D3DXCreateFontA>(MemoryGetProcAddress(d3dx9Module, "D3DXCreateFontA"));
+		p_D3DXCreateFontW = reinterpret_cast<PFN_D3DXCreateFontW>(MemoryGetProcAddress(d3dx9Module, "D3DXCreateFontW"));
 	}
 	if (d3dCompileModule)
 	{
@@ -495,6 +503,50 @@ HRESULT WINAPI D3DXFillTexture(LPVOID pTexture, LPD3DXFILL3D pFunction, LPVOID p
 	if (FAILED(hr))
 	{
 		Logging::Log() << __FUNCTION__ << " Error: Failed to fill texture!";
+	}
+
+	return hr;
+}
+
+HRESULT WINAPI D3DXCreateFontA(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight, UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision, DWORD Quality, DWORD PitchAndFamily, LPCSTR pFaceName, LPD3DXFONT* ppFont)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	LoadD3dx9();
+
+	if (!p_D3DXCreateFontA)
+	{
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return D3DERR_INVALIDCALL;
+	}
+
+	HRESULT hr = p_D3DXCreateFontA(pDevice, Height, Width, Weight, MipLevels, Italic, CharSet, OutputPrecision, Quality, PitchAndFamily, pFaceName, ppFont);
+
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to create font!";
+	}
+
+	return hr;
+}
+
+HRESULT WINAPI D3DXCreateFontW(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight, UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision, DWORD Quality, DWORD PitchAndFamily, LPCWSTR pFaceName, LPD3DXFONT* ppFont)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	LoadD3dx9();
+
+	if (!p_D3DXCreateFontW)
+	{
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return D3DERR_INVALIDCALL;
+	}
+
+	HRESULT hr = p_D3DXCreateFontW(pDevice, Height, Width, Weight, MipLevels, Italic, CharSet, OutputPrecision, Quality, PitchAndFamily, pFaceName, ppFont);
+
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to create font!";
 	}
 
 	return hr;

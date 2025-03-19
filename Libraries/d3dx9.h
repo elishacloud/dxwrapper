@@ -71,6 +71,100 @@ typedef ID3DInclude* LPD3DINCLUDE;
 #define D3D_DISASM_ENABLE_INSTRUCTION_CYCLE     0x00000008
 #define D3D_DISASM_DISABLE_DEBUG_INFO           0x00000010
 
+typedef interface ID3DXSprite ID3DXSprite;
+typedef interface ID3DXSprite* LPD3DXSPRITE;
+
+// {BA0B762D-7D28-43ec-B9DC-2F84443B0614}
+DEFINE_GUID(IID_ID3DXSprite,
+	0xba0b762d, 0x7d28, 0x43ec, 0xb9, 0xdc, 0x2f, 0x84, 0x44, 0x3b, 0x6, 0x14);
+
+typedef struct _D3DXFONT_DESCA
+{
+	INT Height;
+	UINT Width;
+	UINT Weight;
+	UINT MipLevels;
+	BOOL Italic;
+	BYTE CharSet;
+	BYTE OutputPrecision;
+	BYTE Quality;
+	BYTE PitchAndFamily;
+	CHAR FaceName[LF_FACESIZE];
+
+} D3DXFONT_DESCA, * LPD3DXFONT_DESCA;
+
+typedef struct _D3DXFONT_DESCW
+{
+	INT Height;
+	UINT Width;
+	UINT Weight;
+	UINT MipLevels;
+	BOOL Italic;
+	BYTE CharSet;
+	BYTE OutputPrecision;
+	BYTE Quality;
+	BYTE PitchAndFamily;
+	WCHAR FaceName[LF_FACESIZE];
+
+} D3DXFONT_DESCW, * LPD3DXFONT_DESCW;
+
+#ifdef UNICODE
+typedef D3DXFONT_DESCW D3DXFONT_DESC;
+typedef LPD3DXFONT_DESCW LPD3DXFONT_DESC;
+#else
+typedef D3DXFONT_DESCA D3DXFONT_DESC;
+typedef LPD3DXFONT_DESCA LPD3DXFONT_DESC;
+#endif
+
+typedef interface ID3DXFont ID3DXFont;
+typedef interface ID3DXFont* LPD3DXFONT;
+
+// {D79DBB70-5F21-4d36-BBC2-FF525C213CDC}
+DEFINE_GUID(IID_ID3DXFont,
+	0xd79dbb70, 0x5f21, 0x4d36, 0xbb, 0xc2, 0xff, 0x52, 0x5c, 0x21, 0x3c, 0xdc);
+
+#undef INTERFACE
+#define INTERFACE ID3DXFont
+
+DECLARE_INTERFACE_(ID3DXFont, IUnknown)
+{
+	// IUnknown
+	STDMETHOD(QueryInterface)(THIS_ REFIID iid, LPVOID * ppv) PURE;
+	STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+	STDMETHOD_(ULONG, Release)(THIS) PURE;
+
+	// ID3DXFont
+	STDMETHOD(GetDevice)(THIS_ LPDIRECT3DDEVICE9 * ppDevice) PURE;
+	STDMETHOD(GetDescA)(THIS_ D3DXFONT_DESCA * pDesc) PURE;
+	STDMETHOD(GetDescW)(THIS_ D3DXFONT_DESCW * pDesc) PURE;
+	STDMETHOD_(BOOL, GetTextMetricsA)(THIS_ TEXTMETRICA * pTextMetrics) PURE;
+	STDMETHOD_(BOOL, GetTextMetricsW)(THIS_ TEXTMETRICW * pTextMetrics) PURE;
+
+	STDMETHOD_(HDC, GetDC)(THIS) PURE;
+	STDMETHOD(GetGlyphData)(THIS_ UINT Glyph, LPDIRECT3DTEXTURE9 * ppTexture, RECT * pBlackBox, POINT * pCellInc) PURE;
+
+	STDMETHOD(PreloadCharacters)(THIS_ UINT First, UINT Last) PURE;
+	STDMETHOD(PreloadGlyphs)(THIS_ UINT First, UINT Last) PURE;
+	STDMETHOD(PreloadTextA)(THIS_ LPCSTR pString, INT Count) PURE;
+	STDMETHOD(PreloadTextW)(THIS_ LPCWSTR pString, INT Count) PURE;
+
+	STDMETHOD_(INT, DrawTextA)(THIS_ LPD3DXSPRITE pSprite, LPCSTR pString, INT Count, LPRECT pRect, DWORD Format, D3DCOLOR Color) PURE;
+	STDMETHOD_(INT, DrawTextW)(THIS_ LPD3DXSPRITE pSprite, LPCWSTR pString, INT Count, LPRECT pRect, DWORD Format, D3DCOLOR Color) PURE;
+
+	STDMETHOD(OnLostDevice)(THIS) PURE;
+	STDMETHOD(OnResetDevice)(THIS) PURE;
+
+#ifdef __cplusplus
+#ifdef UNICODE
+	HRESULT GetDesc(D3DXFONT_DESCW * pDesc) { return GetDescW(pDesc); }
+	HRESULT PreloadText(LPCWSTR pString, INT Count) { return PreloadTextW(pString, Count); }
+#else
+	HRESULT GetDesc(D3DXFONT_DESCA * pDesc) { return GetDescA(pDesc); }
+	HRESULT PreloadText(LPCSTR pString, INT Count) { return PreloadTextA(pString, Count); }
+#endif
+#endif //__cplusplus
+};
+
 typedef struct D3DXVECTOR3 {
 	FLOAT x;
 	FLOAT y;
@@ -153,3 +247,6 @@ HRESULT WINAPI D3DCompile(LPCVOID pSrcData, SIZE_T SrcDataSize, LPCSTR pSourceNa
 HRESULT WINAPI D3DDisassemble(LPCVOID pSrcData, SIZE_T SrcDataSize, UINT Flags, LPCSTR szComments, ID3DBlob** ppDisassembly);
 
 HRESULT WINAPI D3DXFillTexture(LPVOID pTexture, LPD3DXFILL3D pFunction, LPVOID pData);
+
+HRESULT WINAPI D3DXCreateFontA(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight, UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision, DWORD Quality, DWORD PitchAndFamily, LPCSTR pFaceName, LPD3DXFONT* ppFont);
+HRESULT WINAPI D3DXCreateFontW(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight, UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision, DWORD Quality, DWORD PitchAndFamily, LPCWSTR pFaceName, LPD3DXFONT* ppFont);

@@ -36,6 +36,10 @@ struct DEVICEDETAILS
 	std::deque<std::pair<std::chrono::steady_clock::time_point, std::chrono::duration<double>>> frameTimes;	// Store frame times in a deque
 	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();	// Store start time for PFS counter
 
+	// FPS display
+	ID3DXFont* pFont = nullptr;
+	int lastFontSize = 0;
+
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;
 	bool SetSSAA = false;
@@ -77,6 +81,17 @@ extern std::unordered_map<UINT, DEVICEDETAILS> DeviceDetailsMap;
 
 #define SHARED DeviceDetailsMap[DDKey]
 
+struct DEVICESTATEBACKUP {
+	DWORD rsLighting, rsAlphaTestEnable, rsAlphaBlendEnable, rsFogEnable, rsZEnable, rsZWriteEnable, rsStencilEnable, rsCullMode, rsClipping;
+	DWORD tsColorOP, tsColorArg1, tsColorArg2, tsAlphaOP;
+	DWORD ssaddressU[2], ssaddressV[2], ssaddressW[2];
+	D3DVIEWPORT9 oldViewport, newViewport;
+	IDirect3DBaseTexture9* pTexture[8];
+	IDirect3DPixelShader9* pPixelShader;
+	IDirect3DVertexShader9* pVertexShader;
+	IDirect3DSurface9* pRenderTarget;
+};
+
 class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex, public AddressLookupTableD3d9Object
 {
 private:
@@ -87,14 +102,21 @@ private:
 
 	UINT DDKey;
 
-	HRESULT CallEndScene();
+	DEVICESTATEBACKUP ds = {};
 
 	void ApplyDrawFixes();
+	void ApplyPresentFixes();
+
+	void BackupDeviceState();
+	void RestoreDeviceState();
+
+	HRESULT CallEndScene();
 
 	// Limit frame rate
 	void LimitFrameRate() const;
 
 	// Frame counter
+	void DrawFPS(float fps, const RECT& presentRect, DWORD position) const;
 	void CalculateFPS() const;
 
 	// Anisotropic Filtering
@@ -105,7 +127,6 @@ private:
 	HRESULT SetBrightnessLevel(D3DGAMMARAMP& Ramp);
 	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader() const;
 	void ApplyBrightnessLevel();
-	void CallApplyBrightnessLevel();
 	void ReleaseResources(bool isReset);
 
 	// For environment map cube
