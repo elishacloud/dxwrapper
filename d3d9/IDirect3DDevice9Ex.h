@@ -9,6 +9,7 @@ struct DEVICEDETAILS
 {
 	// Window handle and size
 	bool IsWindowMode = false;
+	bool IsDirectDrawDevice = false;
 	HWND DeviceWindow = nullptr;
 	LONG BufferWidth = 0, BufferHeight = 0;
 	LONG screenWidth = 0, screenHeight = 0;

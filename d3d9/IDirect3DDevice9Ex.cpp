@@ -1417,8 +1417,11 @@ inline void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 
 		if (Config.ShowFPSCounter)
 		{
-			// ToDo: fix rect when using windowed mode with dd7to9
 			RECT rect = { 0, 0, SHARED.BufferWidth, SHARED.BufferHeight };
+			if (SHARED.IsDirectDrawDevice && SHARED.IsWindowMode)
+			{
+				GetClientRect(SHARED.DeviceWindow, &rect);
+			}
 			DrawFPS(static_cast<float>(SHARED.AverageFPSCounter), rect, Config.ShowFPSCounter);
 		}
 
@@ -3056,7 +3059,7 @@ inline void m_IDirect3DDevice9Ex::ReInitInterface() const
 inline void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD position) const
 {
 	// Scale the font size based on the rect height (adjustable factor)
-	int fontSize = (presentRect.bottom - presentRect.top) / 40;
+	int fontSize = SHARED.BufferHeight / 40;
 	if (fontSize < 4) fontSize = 4;		// Minimum font size
 	if (fontSize > 128) fontSize = 128;	// Maximum font size
 

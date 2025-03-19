@@ -371,6 +371,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		WndDataStruct->IsDirect3D9 = true;
 		WndDataStruct->IsCreatingDevice = true;
 		WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
+		DeviceDetails.IsDirectDrawDevice = WndDataStruct->IsDirectDraw;
 	}
 
 	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
