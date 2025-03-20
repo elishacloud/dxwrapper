@@ -3090,7 +3090,7 @@ inline void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DW
 
 	// Format FPS text
 	wchar_t fpsText[16];
-	swprintf(fpsText, 16, L"%.1f", fps);
+	swprintf(fpsText, 16, L"FPS: %.1f", fps);
 
 	// Determine text position based on 'position'
 	int padding = fontSize / 2;
