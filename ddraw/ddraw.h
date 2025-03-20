@@ -9,6 +9,9 @@
 #include <d3dhal.h>
 #include <memory>
 
+// Enable for testing
+//#define ENABLE_PROFILING
+
 class m_IDirect3D;
 class m_IDirect3D2;
 class m_IDirect3D3;
