@@ -2134,7 +2134,13 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			return DDERR_GENERIC;
 		}
 
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
 		D3DRASTER_STATUS RasterStatus = {};
+
+		HRESULT hr = DD_OK;
 
 		// Check flags
 		switch (dwFlags)
@@ -2144,7 +2150,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			if (OpenD3DDDI(GetDC()) && D3DDDIWaitForVsync())
 			{
 				// Success using D3DKMTWaitForVerticalBlankEvent
-				return DD_OK;
+				break;
 			}
 
 			// Fallback: Wait for vertical blank begin using raster status
@@ -2152,7 +2158,7 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			{
 				Utils::BusyWaitYield(0);
 			}
-			return DD_OK;
+			break;
 
 		case DDWAITVB_BLOCKEND:
 			// First, wait for the vertical blank to begin
@@ -2174,17 +2180,25 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 			{
 				Utils::BusyWaitYield(0);
 			}
-			return DD_OK;
+			break;
 
 		case DDWAITVB_BLOCKBEGINEVENT:
 			// This value is unsupported
 			Logging::Log() << __FUNCTION__ << " Error: DDWAITVB_BLOCKBEGINEVENT is not supported!";
-			return DDERR_UNSUPPORTED;
+			hr = DDERR_UNSUPPORTED;
+			break;
 
 		default:
 			// Invalid parameter
-			return DDERR_INVALIDPARAMS;
+			hr = DDERR_INVALIDPARAMS;
+			break;
 		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
+
+		return hr;
 	}
 
 	// Call the original interface if not using D3D9
