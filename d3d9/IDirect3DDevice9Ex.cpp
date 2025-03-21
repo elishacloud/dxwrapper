@@ -938,9 +938,19 @@ inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 		ULONG ref = SHARED.pFont->Release();
 		if (ref)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'gammaPixelShader' " << ref;
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'pFont' " << ref;
 		}
 		SHARED.pFont = nullptr;
+	}
+
+	if (SHARED.pStateBlock)
+	{
+		ULONG ref = SHARED.pStateBlock->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'pStateBlock' " << ref;
+		}
+		SHARED.pStateBlock = nullptr;
 	}
 
 	if (isReset)
@@ -1258,174 +1268,131 @@ HRESULT m_IDirect3DDevice9Ex::SetPixelShader(THIS_ IDirect3DPixelShader9* pShade
 	return ProxyInterface->SetPixelShader(pShader);
 }
 
-void m_IDirect3DDevice9Ex::BackupDeviceState()
-{
-	// Set render states
-	ProxyInterface->GetRenderState(D3DRS_LIGHTING, &ds.rsLighting);
-	ProxyInterface->GetRenderState(D3DRS_ALPHATESTENABLE, &ds.rsAlphaTestEnable);
-	ProxyInterface->GetRenderState(D3DRS_ALPHABLENDENABLE, &ds.rsAlphaBlendEnable);
-	ProxyInterface->GetRenderState(D3DRS_FOGENABLE, &ds.rsFogEnable);
-	ProxyInterface->GetRenderState(D3DRS_ZENABLE, &ds.rsZEnable);
-	ProxyInterface->GetRenderState(D3DRS_ZWRITEENABLE, &ds.rsZWriteEnable);
-	ProxyInterface->GetRenderState(D3DRS_STENCILENABLE, &ds.rsStencilEnable);
-	ProxyInterface->GetRenderState(D3DRS_CULLMODE, &ds.rsCullMode);
-	ProxyInterface->GetRenderState(D3DRS_CLIPPING, &ds.rsClipping);
-	ProxyInterface->SetRenderState(D3DRS_LIGHTING, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_FOGENABLE, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_ZENABLE, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-	ProxyInterface->SetRenderState(D3DRS_CLIPPING, FALSE);
-
-	// Set texture states
-	ProxyInterface->GetTextureStageState(0, D3DTSS_COLOROP, &ds.tsColorOP);
-	ProxyInterface->GetTextureStageState(0, D3DTSS_COLORARG1, &ds.tsColorArg1);
-	ProxyInterface->GetTextureStageState(0, D3DTSS_COLORARG2, &ds.tsColorArg2);
-	ProxyInterface->GetTextureStageState(0, D3DTSS_ALPHAOP, &ds.tsAlphaOP);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-
-	// Set sampler states
-	for (UINT x = 0; x < 2; x++)
-	{
-		ProxyInterface->GetSamplerState(x, D3DSAMP_ADDRESSU, &ds.ssaddressU[x]);
-		ProxyInterface->GetSamplerState(x, D3DSAMP_ADDRESSV, &ds.ssaddressV[x]);
-		ProxyInterface->GetSamplerState(x, D3DSAMP_ADDRESSW, &ds.ssaddressW[x]);
-		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
-		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSW, D3DTADDRESS_WRAP);
-	}
-
-	// Set viewport
-	ProxyInterface->GetViewport(&ds.oldViewport);
-
-	ds.newViewport.X = 0;
-	ds.newViewport.Y = 0;
-	ds.newViewport.Width = SHARED.BufferWidth;
-	ds.newViewport.Height = SHARED.BufferHeight;
-	ds.newViewport.MinZ = 0.0f;
-	ds.newViewport.MaxZ = 1.0f;
-
-	ProxyInterface->SetViewport(&ds.newViewport);
-
-	// Set texture
-	for (int x = 0; x < 8; x++)
-	{
-		ProxyInterface->GetTexture(x, &ds.pTexture[x]);
-	}
-	for (int x = 0; x < 8; x++)
-	{
-		ProxyInterface->SetTexture(x, nullptr);
-	}
-
-	// Set shader
-	ProxyInterface->GetPixelShader(&ds.pPixelShader);
-	ProxyInterface->GetVertexShader(&ds.pVertexShader);
-	ProxyInterface->SetPixelShader(nullptr);
-	ProxyInterface->SetVertexShader(nullptr);
-
-	// Get current render target
-	ProxyInterface->GetRenderTarget(0, &ds.pRenderTarget);
-
-	// Set backbuffer as render target
-	IDirect3DSurface9* pBackBuffer = nullptr;
-	if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
-	{
-		ProxyInterface->SetRenderTarget(0, pBackBuffer);
-		pBackBuffer->Release();
-	}
-}
-
-void m_IDirect3DDevice9Ex::RestoreDeviceState()
-{
-	// Ensure we are rendering to the backbuffer
-	if (ds.pRenderTarget)
-	{
-		ProxyInterface->SetRenderTarget(0, ds.pRenderTarget);
-		ds.pRenderTarget->Release();
-		ds.pRenderTarget = nullptr;
-	}
-
-	// Reset textures
-	for (int x = 0; x < 8; x++)
-	{
-		ProxyInterface->SetTexture(x, ds.pTexture[x]);
-		if (ds.pTexture[x])
-		{
-			ds.pTexture[x]->Release();
-			ds.pTexture[x] = nullptr;
-		}
-	}
-
-	// Reset shaders
-	ProxyInterface->SetPixelShader(ds.pPixelShader);
-	ds.pPixelShader = nullptr;
-	ProxyInterface->SetVertexShader(ds.pVertexShader);
-	ds.pVertexShader = nullptr;
-
-	// Restore game viewport
-	ProxyInterface->SetViewport(&ds.oldViewport);
-
-	// Restore sampler states
-	for (UINT x = 0; x < 2; x++)
-	{
-		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSU, ds.ssaddressU[x]);
-		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSV, ds.ssaddressV[x]);
-		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSW, ds.ssaddressW[x]);
-	}
-
-	// Restore texture states
-	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, ds.tsColorOP);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, ds.tsColorArg1);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, ds.tsColorArg2);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, ds.tsAlphaOP);
-
-	// Restore render states
-	ProxyInterface->SetRenderState(D3DRS_LIGHTING, ds.rsLighting);
-	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, ds.rsAlphaTestEnable);
-	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, ds.rsAlphaBlendEnable);
-	ProxyInterface->SetRenderState(D3DRS_FOGENABLE, ds.rsFogEnable);
-	ProxyInterface->SetRenderState(D3DRS_ZENABLE, ds.rsZEnable);
-	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, ds.rsZWriteEnable);
-	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, ds.rsStencilEnable);
-	ProxyInterface->SetRenderState(D3DRS_CULLMODE, ds.rsCullMode);
-	ProxyInterface->SetRenderState(D3DRS_CLIPPING, ds.rsClipping);
-}
-
-inline void m_IDirect3DDevice9Ex::ApplyPresentFixes()
+void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 {
 	bool CalledBeginScene = false;
 	if (!Config.ForceSingleBeginEndScene || !SHARED.BeginSceneCalled)
 	{
 		CalledBeginScene = true;
-		BeginScene();
+		ProxyInterface->BeginScene();
 	}
 
-	if (SHARED.IsGammaSet || Config.ShowFPSCounter)
+	if (SHARED.BeginSceneCalled && (SHARED.IsGammaSet || Config.ShowFPSCounter))
 	{
-		BackupDeviceState();
-
-		if (SHARED.IsGammaSet)
+		// Create state block
+		if (SHARED.pStateBlock || SUCCEEDED(ProxyInterface->CreateStateBlock(D3DSBT_ALL, &SHARED.pStateBlock)))
 		{
-			ApplyBrightnessLevel();
-		}
+			// Capture modified state
+			SHARED.pStateBlock->Capture();
 
-		if (Config.ShowFPSCounter)
-		{
-			RECT rect = { 0, 0, SHARED.BufferWidth, SHARED.BufferHeight };
-			if (SHARED.IsDirectDrawDevice && SHARED.IsWindowMode)
+			// Set render states
+			ProxyInterface->SetRenderState(D3DRS_LIGHTING, FALSE);
+			ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+			ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+			ProxyInterface->SetRenderState(D3DRS_FOGENABLE, FALSE);
+			ProxyInterface->SetRenderState(D3DRS_ZENABLE, FALSE);
+			ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+			ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+			ProxyInterface->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+			ProxyInterface->SetRenderState(D3DRS_CLIPPING, FALSE);
+
+			// Set texture states
+			ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+			ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+			ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
+			ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+
+			// Set sampler states
+			for (UINT x = 0; x < 2; x++)
 			{
-				GetClientRect(SHARED.DeviceWindow, &rect);
+				ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+				ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 			}
-			DrawFPS(static_cast<float>(SHARED.AverageFPSCounter), rect, Config.ShowFPSCounter);
-		}
 
-		RestoreDeviceState();
+			// Set viewport
+			D3DVIEWPORT9 Viewport = { 0, 0, static_cast<DWORD>(SHARED.BufferWidth), static_cast<DWORD>(SHARED.BufferHeight), 0.0f, 1.0f };
+			ProxyInterface->SetViewport(&Viewport);
+
+			// Set trasform
+			D3DMATRIX identityMatrix = {
+				1.0f, 0.0f, 0.0f, 0.0f,
+				0.0f, 1.0f, 0.0f, 0.0f,
+				0.0f, 0.0f, 1.0f, 0.0f,
+				0.0f, 0.0f, 0.0f, 1.0f
+			};
+			ProxyInterface->SetTransform(D3DTS_WORLD, &identityMatrix);
+			ProxyInterface->SetTransform(D3DTS_VIEW, &identityMatrix);
+			ProxyInterface->SetTransform(D3DTS_PROJECTION, &identityMatrix);
+
+			// Set shaders
+			ProxyInterface->SetPixelShader(nullptr);
+			ProxyInterface->SetVertexShader(nullptr);
+
+			// Set textures
+			for (int x = 0; x < 8; x++)
+			{
+				ProxyInterface->SetTexture(x, nullptr);
+			}
+
+			// Backup the current depth-stencil surface
+			IDirect3DSurface9* pOldDepthStencil = nullptr;
+			if (SUCCEEDED(ProxyInterface->GetDepthStencilSurface(&pOldDepthStencil)))
+			{
+				ProxyInterface->SetDepthStencilSurface(nullptr); // Optional, as you're saving the state
+			}
+
+			// Backup the current render target
+			IDirect3DSurface9* pOldRenderTarget = nullptr;
+			if (SUCCEEDED(ProxyInterface->GetRenderTarget(0, &pOldRenderTarget)))
+			{
+				IDirect3DSurface9* pBackBuffer = nullptr;
+				if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+				{
+					// Don't need to release pOldRenderTarget if it's the back buffer
+					if (pOldRenderTarget != pBackBuffer)
+					{
+						ProxyInterface->SetRenderTarget(0, pBackBuffer);
+					}
+					pBackBuffer->Release();
+				}
+			}
+
+			// Apply brightness level
+			if (SHARED.IsGammaSet)
+			{
+				ApplyBrightnessLevel();
+			}
+
+			// Draw FPS counter to screen
+			if (Config.ShowFPSCounter)
+			{
+				RECT rect = { 0, 0, SHARED.BufferWidth, SHARED.BufferHeight };
+				if (SHARED.IsDirectDrawDevice && SHARED.IsWindowMode)
+				{
+					GetClientRect(SHARED.DeviceWindow, &rect);
+				}
+				DrawFPS(static_cast<float>(SHARED.AverageFPSCounter), rect, Config.ShowFPSCounter);
+			}
+
+			// Restore render target
+			if (pOldRenderTarget)
+			{
+				ProxyInterface->SetRenderTarget(0, pOldRenderTarget);
+				pOldRenderTarget->Release();
+				pOldRenderTarget = nullptr;
+			}
+
+			// Restore depth-stencil surface
+			if (pOldDepthStencil)
+			{
+				ProxyInterface->SetDepthStencilSurface(pOldDepthStencil);
+				pOldDepthStencil->Release();
+				pOldDepthStencil = nullptr;
+			}
+
+			// Apply state block
+			SHARED.pStateBlock->Apply();
+		}
 	}
 
 	if (CalledBeginScene || (Config.ForceSingleBeginEndScene && SHARED.BeginSceneCalled))
@@ -1461,7 +1428,7 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 	return hr;
 }
 
-inline void m_IDirect3DDevice9Ex::ApplyDrawFixes()
+void m_IDirect3DDevice9Ex::ApplyDrawFixes()
 {
 	// CacheClipPlane
 	if (Config.CacheClipPlane && SHARED.isClipPlaneSet)
@@ -3056,6 +3023,104 @@ inline void m_IDirect3DDevice9Ex::ReInitInterface() const
 	}
 }
 
+inline void m_IDirect3DDevice9Ex::LimitFrameRate() const
+{
+	// Count the number of frames
+	SHARED.Counter.FrameCounter++;
+
+	// Get performance frequency if not already cached
+	static LARGE_INTEGER Frequency = {};
+	if (!Frequency.QuadPart)
+	{
+		QueryPerformanceFrequency(&Frequency);
+	}
+	static LONGLONG TicksPerMS = Frequency.QuadPart / 1000;
+
+	// Calculate the delay time in ticks
+	static long double PerFrameFPS = Config.LimitPerFrameFPS;
+	static LONGLONG PreFrameTicks = static_cast<LONGLONG>(static_cast<long double>(Frequency.QuadPart) / PerFrameFPS);
+
+	// Get next tick time
+	LARGE_INTEGER ClickTime = {};
+	QueryPerformanceCounter(&ClickTime);
+	LONGLONG TargetEndTicks = SHARED.Counter.LastPresentTime.QuadPart;
+	LONGLONG FramesSinceLastCall = ((ClickTime.QuadPart - SHARED.Counter.LastPresentTime.QuadPart - 1) / PreFrameTicks) + 1;
+	if (SHARED.Counter.LastPresentTime.QuadPart == 0 || FramesSinceLastCall > 2)
+	{
+		QueryPerformanceCounter(&SHARED.Counter.LastPresentTime);
+		TargetEndTicks = SHARED.Counter.LastPresentTime.QuadPart;
+	}
+	else
+	{
+		TargetEndTicks += FramesSinceLastCall * PreFrameTicks;
+	}
+
+	// Wait for time to expire
+	bool DoLoop;
+	do {
+		QueryPerformanceCounter(&ClickTime);
+		LONGLONG RemainingTicks = TargetEndTicks - ClickTime.QuadPart;
+
+		// Check if we still need to wait
+		DoLoop = RemainingTicks > 0;
+
+		if (DoLoop)
+		{
+			// Busy wait until we reach the target time
+			Utils::BusyWaitYield(static_cast<DWORD>(RemainingTicks / TicksPerMS));
+		}
+	} while (DoLoop);
+
+	// Update the last present time
+	SHARED.Counter.LastPresentTime.QuadPart = TargetEndTicks;
+}
+
+void m_IDirect3DDevice9Ex::CalculateFPS() const
+{
+	// Calculate frame time
+	auto endTime = std::chrono::steady_clock::now();
+	auto newstart = std::chrono::steady_clock::now();
+	std::chrono::duration<double> frameTime = endTime - SHARED.startTime;
+	SHARED.startTime = newstart;
+
+	// Store the frame time along with the time it occurred
+	SHARED.frameTimes.emplace_back(endTime, frameTime);
+
+	// Remove frame times older than FPS_CALCULATION_WINDOW
+	while (!SHARED.frameTimes.empty() && (endTime - SHARED.frameTimes.front().first) > FPS_CALCULATION_WINDOW)
+	{
+		SHARED.frameTimes.pop_front();
+	}
+
+	if (SHARED.frameTimes.empty())
+	{
+		// No frame times available
+		return;
+	}
+
+	double totalTime = 0.0;
+	for (const auto& entry : SHARED.frameTimes)
+	{
+		totalTime += entry.second.count();
+	}
+
+	// Calculate average frame time
+	double averageFrameTime = totalTime / SHARED.frameTimes.size();
+
+	// Calculate FPS
+	if (averageFrameTime > 0.0)
+	{
+		SHARED.AverageFPSCounter = 1.0 / averageFrameTime;
+	}
+
+#ifdef ENABLE_DEBUGOVERLAY
+	DOverlay.SetFPSCount(SHARED.AverageFPSCounter);
+#endif
+
+	// Output FPS
+	Logging::LogDebug() << "Frames: " << SHARED.frameTimes.size() << " Average time: " << averageFrameTime << " FPS: " << SHARED.AverageFPSCounter;
+}
+
 inline void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD position) const
 {
 	// Scale the font size based on the rect height (adjustable factor)
@@ -3063,26 +3128,11 @@ inline void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DW
 	if (fontSize < 4) fontSize = 4;		// Minimum font size
 	if (fontSize > 128) fontSize = 128;	// Maximum font size
 
-	// Recreate the font if size changes
-	if (!SHARED.pFont || SHARED.lastFontSize != fontSize)
-	{
-		if (SHARED.pFont)
-		{
-			ULONG ref = SHARED.pFont->Release();
-			if (ref)
-			{
-				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'gammaPixelShader' " << ref;
-			}
-			SHARED.pFont = nullptr;
-		}
-
-		D3DXCreateFontW(ProxyInterface, fontSize, 0, FW_BOLD, 1, FALSE, DEFAULT_CHARSET,
-			OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
-			L"Arial", &SHARED.pFont);
-		SHARED.lastFontSize = fontSize;
-	}
-
-	if (!SHARED.pFont)
+	// Create the font if not created
+	if (!SHARED.pFont &&
+		FAILED(D3DXCreateFontW(ProxyInterface, fontSize, 0, FW_BOLD, 1, FALSE, DEFAULT_CHARSET,
+		OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+		L"Arial", &SHARED.pFont)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create font!");
 		return;
@@ -3138,102 +3188,4 @@ inline void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DW
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not DrawText!");
 	}
-}
-
-inline void m_IDirect3DDevice9Ex::LimitFrameRate() const
-{
-	// Count the number of frames
-	SHARED.Counter.FrameCounter++;
-
-	// Get performance frequency if not already cached
-	static LARGE_INTEGER Frequency = {};
-	if (!Frequency.QuadPart)
-	{
-		QueryPerformanceFrequency(&Frequency);
-	}
-	static LONGLONG TicksPerMS = Frequency.QuadPart / 1000;
-
-	// Calculate the delay time in ticks
-	static long double PerFrameFPS = Config.LimitPerFrameFPS;
-	static LONGLONG PreFrameTicks = static_cast<LONGLONG>(static_cast<long double>(Frequency.QuadPart) / PerFrameFPS);
-
-	// Get next tick time
-	LARGE_INTEGER ClickTime = {};
-	QueryPerformanceCounter(&ClickTime);
-	LONGLONG TargetEndTicks = SHARED.Counter.LastPresentTime.QuadPart;
-	LONGLONG FramesSinceLastCall = ((ClickTime.QuadPart - SHARED.Counter.LastPresentTime.QuadPart - 1) / PreFrameTicks) + 1;
-	if (SHARED.Counter.LastPresentTime.QuadPart == 0 || FramesSinceLastCall > 2)
-	{
-		QueryPerformanceCounter(&SHARED.Counter.LastPresentTime);
-		TargetEndTicks = SHARED.Counter.LastPresentTime.QuadPart;
-	}
-	else
-	{
-		TargetEndTicks += FramesSinceLastCall * PreFrameTicks;
-	}
-
-	// Wait for time to expire
-	bool DoLoop;
-	do {
-		QueryPerformanceCounter(&ClickTime);
-		LONGLONG RemainingTicks = TargetEndTicks - ClickTime.QuadPart;
-
-		// Check if we still need to wait
-		DoLoop = RemainingTicks > 0;
-
-		if (DoLoop)
-		{
-			// Busy wait until we reach the target time
-			Utils::BusyWaitYield(static_cast<DWORD>(RemainingTicks / TicksPerMS));
-		}
-	} while (DoLoop);
-
-	// Update the last present time
-	SHARED.Counter.LastPresentTime.QuadPart = TargetEndTicks;
-}
-
-inline void m_IDirect3DDevice9Ex::CalculateFPS() const
-{
-	// Calculate frame time
-	auto endTime = std::chrono::steady_clock::now();
-	auto newstart = std::chrono::steady_clock::now();
-	std::chrono::duration<double> frameTime = endTime - SHARED.startTime;
-	SHARED.startTime = newstart;
-
-	// Store the frame time along with the time it occurred
-	SHARED.frameTimes.emplace_back(endTime, frameTime);
-
-	// Remove frame times older than FPS_CALCULATION_WINDOW
-	while (!SHARED.frameTimes.empty() && (endTime - SHARED.frameTimes.front().first) > FPS_CALCULATION_WINDOW)
-	{
-		SHARED.frameTimes.pop_front();
-	}
-
-	if (SHARED.frameTimes.empty())
-	{
-		// No frame times available
-		return;
-	}
-
-	double totalTime = 0.0;
-	for (const auto& entry : SHARED.frameTimes)
-	{
-		totalTime += entry.second.count();
-	}
-
-	// Calculate average frame time
-	double averageFrameTime = totalTime / SHARED.frameTimes.size();
-
-	// Calculate FPS
-	if (averageFrameTime > 0.0)
-	{
-		SHARED.AverageFPSCounter = 1.0 / averageFrameTime;
-	}
-
-#ifdef ENABLE_DEBUGOVERLAY
-	DOverlay.SetFPSCount(SHARED.AverageFPSCounter);
-#endif
-
-	// Output FPS
-	Logging::LogDebug() << "Frames: " << SHARED.frameTimes.size() << " Average time: " << averageFrameTime << " FPS: " << SHARED.AverageFPSCounter;
 }

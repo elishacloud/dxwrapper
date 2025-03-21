@@ -39,7 +39,6 @@ struct DEVICEDETAILS
 
 	// FPS display
 	ID3DXFont* pFont = nullptr;
-	int lastFontSize = 0;
 
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;
@@ -51,6 +50,9 @@ struct DEVICEDETAILS
 	DWORD MaxAnisotropy = 0;
 	bool isAnisotropySet = false;
 	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
+
+	// State block
+	IDirect3DStateBlock9* pStateBlock = nullptr;
 
 	// For environment map cube
 	bool isTextureMapCube[MAX_TEXTURE_STAGES] = {};
@@ -82,17 +84,6 @@ extern std::unordered_map<UINT, DEVICEDETAILS> DeviceDetailsMap;
 
 #define SHARED DeviceDetailsMap[DDKey]
 
-struct DEVICESTATEBACKUP {
-	DWORD rsLighting, rsAlphaTestEnable, rsAlphaBlendEnable, rsFogEnable, rsZEnable, rsZWriteEnable, rsStencilEnable, rsCullMode, rsClipping;
-	DWORD tsColorOP, tsColorArg1, tsColorArg2, tsAlphaOP;
-	DWORD ssaddressU[2], ssaddressV[2], ssaddressW[2];
-	D3DVIEWPORT9 oldViewport, newViewport;
-	IDirect3DBaseTexture9* pTexture[8];
-	IDirect3DPixelShader9* pPixelShader;
-	IDirect3DVertexShader9* pVertexShader;
-	IDirect3DSurface9* pRenderTarget;
-};
-
 class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex, public AddressLookupTableD3d9Object
 {
 private:
@@ -103,13 +94,8 @@ private:
 
 	UINT DDKey;
 
-	DEVICESTATEBACKUP ds = {};
-
 	void ApplyDrawFixes();
 	void ApplyPresentFixes();
-
-	void BackupDeviceState();
-	void RestoreDeviceState();
 
 	HRESULT CallEndScene();
 
@@ -117,8 +103,8 @@ private:
 	void LimitFrameRate() const;
 
 	// Frame counter
-	void DrawFPS(float fps, const RECT& presentRect, DWORD position) const;
 	void CalculateFPS() const;
+	void DrawFPS(float fps, const RECT& presentRect, DWORD position) const;
 
 	// Anisotropic Filtering
 	void DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag);
