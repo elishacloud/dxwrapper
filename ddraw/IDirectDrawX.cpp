@@ -3116,7 +3116,8 @@ LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetValidateDeviceVertexBuffer(DWORD& FVF
 
 	if (!validateDeviceVertexBuffer)
 	{
-		HRESULT hr = d3d9Device->CreateVertexBuffer(sizeof(vertices), 0, D3DFVF_XYZ | D3DFVF_DIFFUSE, D3DPOOL_MANAGED, &validateDeviceVertexBuffer, NULL);
+		// Create in video memory and then use discard when locking to improve system performance
+		HRESULT hr = d3d9Device->CreateVertexBuffer(sizeof(vertices), D3DUSAGE_DYNAMIC, D3DFVF_XYZ | D3DFVF_DIFFUSE, D3DPOOL_DEFAULT, &validateDeviceVertexBuffer, NULL);
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create vertex buffer: " << (DDERR)hr);
@@ -3125,13 +3126,15 @@ LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetValidateDeviceVertexBuffer(DWORD& FVF
 
 		// Fill the vertex buffer with data
 		void* pVertices = nullptr;
-		hr = validateDeviceVertexBuffer->Lock(0, sizeof(vertices), &pVertices, 0);
+		hr = validateDeviceVertexBuffer->Lock(0, sizeof(vertices), &pVertices, D3DLOCK_DISCARD);
+
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to Lock vertex buffer: " << (DDERR)hr);
 			validateDeviceVertexBuffer->Release();
 			return nullptr;
 		}
+
 		memcpy(pVertices, vertices, sizeof(vertices));
 		validateDeviceVertexBuffer->Unlock();
 	}
@@ -3161,7 +3164,8 @@ LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBuffer(LPWORD lpwIndices, DWORD d
 	if (!d3d9IndexBuffer || NewIndexSize > IndexBufferSize)
 	{
 		ReleaseD3D9IndexBuffer();
-		hr = d3d9Device->CreateIndexBuffer(NewIndexSize, D3DUSAGE_DYNAMIC, D3DFMT_INDEX16, D3DPOOL_SYSTEMMEM, &d3d9IndexBuffer, nullptr);
+		// Create in video memory and then use discard when locking to improve system performance
+		hr = d3d9Device->CreateIndexBuffer(NewIndexSize, D3DUSAGE_DYNAMIC, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &d3d9IndexBuffer, nullptr);
 	}
 
 	if (FAILED(hr))
@@ -3176,11 +3180,7 @@ LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBuffer(LPWORD lpwIndices, DWORD d
 	}
 
 	void* pData = nullptr;
-	hr = d3d9IndexBuffer->Lock(0, NewIndexSize, &pData, D3DLOCK_NOSYSLOCK);
-	if (FAILED(hr))
-	{
-		hr = d3d9IndexBuffer->Lock(0, NewIndexSize, &pData, 0);
-	}
+	hr = d3d9IndexBuffer->Lock(0, NewIndexSize, &pData, D3DLOCK_DISCARD);
 
 	if (FAILED(hr))
 	{
