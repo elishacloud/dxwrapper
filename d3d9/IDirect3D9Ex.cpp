@@ -189,7 +189,7 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 		{ 1440, 900 },
 		{ 1600, 1200 },
 		{ InitWidth, InitHeight },
-		{ (LONG)Config.CustomResolutionWidth, (LONG)Config.CustomResolutionHeight } };
+		{ (LONG)Config.CustomDisplayWidth, (LONG)Config.CustomDisplayHeight } };
 
 	for (auto& entry : AdapterModesCache)
 	{

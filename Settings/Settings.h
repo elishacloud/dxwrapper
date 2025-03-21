@@ -13,8 +13,8 @@
 	visit(AntiAliasing) \
 	visit(AudioClipDetection) \
 	visit(AudioFadeOutDelayMS) \
-	visit(CustomResolutionWidth) \
-	visit(CustomResolutionHeight) \
+	visit(CustomDisplayWidth) \
+	visit(CustomDisplayHeight) \
 	visit(Dd7to9) \
 	visit(D3d8to9) \
 	visit(Dinputto8) \
@@ -271,8 +271,8 @@ struct CONFIG
 	DWORD EnvironmentMapCubeFix = 0;			// Fixes environment cube maps when no texture is applied, issue exists in d3d8
 	bool ConvertToDirectDraw7 = false;			// Converts DirectDraw 1-6 to DirectDraw 7
 	bool ConvertToDirect3D7 = false;			// Converts Direct3D 1-6 to Direct3D 7
-	DWORD CustomResolutionWidth = 0;			// Custom resolution width when using LimitDisplayModeCount, resolution must be supported by video card and monitor
-	DWORD CustomResolutionHeight = 0;			// Custom resolution height when using LimitDisplayModeCount, resolution must be supported by video card and monitor
+	DWORD CustomDisplayWidth = 0;				// Custom resolution width when using LimitDisplayModeCount, resolution must be supported by video card and monitor
+	DWORD CustomDisplayHeight = 0;				// Custom resolution height when using LimitDisplayModeCount, resolution must be supported by video card and monitor
 	bool EnableDdrawWrapper = false;			// Enables the ddraw wrapper
 	DWORD EnableD3d9Wrapper = 0;				// Enables the d3d9 wrapper
 	bool EnableDinput8Wrapper = false;			// Enables the dinput8 wrapper
