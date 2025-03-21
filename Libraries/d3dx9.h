@@ -71,12 +71,101 @@ typedef ID3DInclude* LPD3DINCLUDE;
 #define D3D_DISASM_ENABLE_INSTRUCTION_CYCLE     0x00000008
 #define D3D_DISASM_DISABLE_DEBUG_INFO           0x00000010
 
+using D3DXMACRO = D3D_SHADER_MACRO;
+
+using D3DXMATRIX = D3DMATRIX;
+
+using ID3DXBuffer = ID3DBlob;
+using LPD3DXBUFFER = ID3DXBuffer*;
+
+using ID3DXInclude = ID3DInclude;
+using LPD3DXINCLUDE = ID3DXInclude*;
+
+typedef struct D3DXVECTOR3 {
+	FLOAT x;
+	FLOAT y;
+	FLOAT z;
+} D3DXVECTOR3, * LPD3DXVECTOR3;
+
+//////////////////////////////////////////////////////////////////////////////
+// D3DXSPRITE flags:
+// -----------------
+// D3DXSPRITE_DONOTSAVESTATE
+//   Specifies device state is not to be saved and restored in Begin/End.
+// D3DXSPRITE_DONOTMODIFY_RENDERSTATE
+//   Specifies device render state is not to be changed in Begin.  The device
+//   is assumed to be in a valid state to draw vertices containing POSITION0, 
+//   TEXCOORD0, and COLOR0 data.
+// D3DXSPRITE_OBJECTSPACE
+//   The WORLD, VIEW, and PROJECTION transforms are NOT modified.  The 
+//   transforms currently set to the device are used to transform the sprites 
+//   when the batch is drawn (at Flush or End).  If this is not specified, 
+//   WORLD, VIEW, and PROJECTION transforms are modified so that sprites are 
+//   drawn in screenspace coordinates.
+// D3DXSPRITE_BILLBOARD
+//   Rotates each sprite about its center so that it is facing the viewer.
+// D3DXSPRITE_ALPHABLEND
+//   Enables ALPHABLEND(SRCALPHA, INVSRCALPHA) and ALPHATEST(alpha > 0).
+//   ID3DXFont expects this to be set when drawing text.
+// D3DXSPRITE_SORT_TEXTURE
+//   Sprites are sorted by texture prior to drawing.  This is recommended when
+//   drawing non-overlapping sprites of uniform depth.  For example, drawing
+//   screen-aligned text with ID3DXFont.
+// D3DXSPRITE_SORT_DEPTH_FRONTTOBACK
+//   Sprites are sorted by depth front-to-back prior to drawing.  This is 
+//   recommended when drawing opaque sprites of varying depths.
+// D3DXSPRITE_SORT_DEPTH_BACKTOFRONT
+//   Sprites are sorted by depth back-to-front prior to drawing.  This is 
+//   recommended when drawing transparent sprites of varying depths.
+// D3DXSPRITE_DO_NOT_ADDREF_TEXTURE
+//   Disables calling AddRef() on every draw, and Release() on Flush() for
+//   better performance.
+//////////////////////////////////////////////////////////////////////////////
+
+#define D3DXSPRITE_DONOTSAVESTATE               (1 << 0)
+#define D3DXSPRITE_DONOTMODIFY_RENDERSTATE      (1 << 1)
+#define D3DXSPRITE_OBJECTSPACE                  (1 << 2)
+#define D3DXSPRITE_BILLBOARD                    (1 << 3)
+#define D3DXSPRITE_ALPHABLEND                   (1 << 4)
+#define D3DXSPRITE_SORT_TEXTURE                 (1 << 5)
+#define D3DXSPRITE_SORT_DEPTH_FRONTTOBACK       (1 << 6)
+#define D3DXSPRITE_SORT_DEPTH_BACKTOFRONT       (1 << 7)
+#define D3DXSPRITE_DO_NOT_ADDREF_TEXTURE        (1 << 8)
+
 typedef interface ID3DXSprite ID3DXSprite;
 typedef interface ID3DXSprite* LPD3DXSPRITE;
 
 // {BA0B762D-7D28-43ec-B9DC-2F84443B0614}
 DEFINE_GUID(IID_ID3DXSprite,
 	0xba0b762d, 0x7d28, 0x43ec, 0xb9, 0xdc, 0x2f, 0x84, 0x44, 0x3b, 0x6, 0x14);
+
+#undef INTERFACE
+#define INTERFACE ID3DXSprite
+
+DECLARE_INTERFACE_(ID3DXSprite, IUnknown)
+{
+	// IUnknown
+	STDMETHOD(QueryInterface)(THIS_ REFIID iid, LPVOID * ppv) PURE;
+	STDMETHOD_(ULONG, AddRef)(THIS) PURE;
+	STDMETHOD_(ULONG, Release)(THIS) PURE;
+
+	// ID3DXSprite
+	STDMETHOD(GetDevice)(THIS_ LPDIRECT3DDEVICE9 * ppDevice) PURE;
+
+	STDMETHOD(GetTransform)(THIS_ D3DXMATRIX * pTransform) PURE;
+	STDMETHOD(SetTransform)(THIS_ CONST D3DXMATRIX * pTransform) PURE;
+
+	STDMETHOD(SetWorldViewRH)(THIS_ CONST D3DXMATRIX * pWorld, CONST D3DXMATRIX * pView) PURE;
+	STDMETHOD(SetWorldViewLH)(THIS_ CONST D3DXMATRIX * pWorld, CONST D3DXMATRIX * pView) PURE;
+
+	STDMETHOD(Begin)(THIS_ DWORD Flags) PURE;
+	STDMETHOD(Draw)(THIS_ LPDIRECT3DTEXTURE9 pTexture, CONST RECT * pSrcRect, CONST D3DXVECTOR3 * pCenter, CONST D3DXVECTOR3 * pPosition, D3DCOLOR Color) PURE;
+	STDMETHOD(Flush)(THIS) PURE;
+	STDMETHOD(End)(THIS) PURE;
+
+	STDMETHOD(OnLostDevice)(THIS) PURE;
+	STDMETHOD(OnResetDevice)(THIS) PURE;
+};
 
 typedef struct _D3DXFONT_DESCA
 {
@@ -165,12 +254,6 @@ DECLARE_INTERFACE_(ID3DXFont, IUnknown)
 #endif //__cplusplus
 };
 
-typedef struct D3DXVECTOR3 {
-	FLOAT x;
-	FLOAT y;
-	FLOAT z;
-} D3DXVECTOR3, * LPD3DXVECTOR3;
-
 typedef enum D3DXIMAGE_FILEFORMAT {
 	D3DXIFF_BMP = 0,
 	D3DXIFF_JPG = 1,
@@ -217,16 +300,6 @@ typedef HRESULT(WINAPI* LPD3DXFILL3D)(D3DXVECTOR4* pOut, const D3DXVECTOR2* pTex
 #define D3DXASM_FLAGS D3DXASM_DEBUG
 #endif // NDEBUG
 
-using D3DXMACRO = D3D_SHADER_MACRO;
-
-using D3DXMATRIX = D3DMATRIX;
-
-using ID3DXBuffer = ID3DBlob;
-using LPD3DXBUFFER = ID3DXBuffer*;
-
-using ID3DXInclude = ID3DInclude;
-using LPD3DXINCLUDE = ID3DXInclude*;
-
 HRESULT WINAPI D3DXCreateTexture(LPDIRECT3DDEVICE9 pDevice, UINT Width, UINT Height, UINT MipLevels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, LPDIRECT3DTEXTURE9* ppTexture);
 HRESULT WINAPI D3DXLoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSurface, const PALETTEENTRY* pDestPalette, const RECT* pDestRect, LPCVOID pSrcMemory, D3DFORMAT SrcFormat, UINT SrcPitch, const PALETTEENTRY* pSrcPalette, const RECT* pSrcRect, DWORD Filter, D3DCOLOR ColorKey);
 HRESULT WINAPI D3DXLoadSurfaceFromSurface(LPDIRECT3DSURFACE9 pDestSurface, const PALETTEENTRY* pDestPalette, const RECT* pDestRect, LPDIRECT3DSURFACE9 pSrcSurface, const PALETTEENTRY* pSrcPalette, const RECT* pSrcRect, DWORD Filter, D3DCOLOR ColorKey);
@@ -250,3 +323,5 @@ HRESULT WINAPI D3DXFillTexture(LPVOID pTexture, LPD3DXFILL3D pFunction, LPVOID p
 
 HRESULT WINAPI D3DXCreateFontA(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight, UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision, DWORD Quality, DWORD PitchAndFamily, LPCSTR pFaceName, LPD3DXFONT* ppFont);
 HRESULT WINAPI D3DXCreateFontW(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight, UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision, DWORD Quality, DWORD PitchAndFamily, LPCWSTR pFaceName, LPD3DXFONT* ppFont);
+
+HRESULT WINAPI D3DXCreateSprite(LPDIRECT3DDEVICE9 pDevice, LPD3DXSPRITE* ppSprite);

@@ -39,6 +39,7 @@ struct DEVICEDETAILS
 
 	// FPS display
 	ID3DXFont* pFont = nullptr;
+	ID3DXSprite* pSprite = nullptr;
 
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;

@@ -762,8 +762,13 @@ inline HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
 		}
 		else
 		{
-			ProxyInterface->CreateTexture(256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &SHARED.GammaLUTTexture, nullptr);
 			SHARED.UsingShader32f = false;
+			HRESULT hr = ProxyInterface->CreateTexture(256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &SHARED.GammaLUTTexture, nullptr);
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create gamma LUD texture!");
+				return hr;
+			}
 		}
 	}
 
@@ -813,7 +818,10 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 {
 	if (!SHARED.GammaLUTTexture)
 	{
-		SetBrightnessLevel(SHARED.RampData);
+		if (FAILED(SetBrightnessLevel(SHARED.RampData)))
+		{
+			return;
+		}
 	}
 
 	// Set shader
@@ -846,7 +854,12 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	}
 
 	IDirect3DSurface9* pCopySurface = nullptr;
-	SHARED.ScreenCopyTexture->GetSurfaceLevel(0, &pCopySurface);
+	if (FAILED(SHARED.ScreenCopyTexture->GetSurfaceLevel(0, &pCopySurface)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get surface level from screen copy texture!");
+		pBackBuffer->Release();
+		return;
+	}
 	if (FAILED(ProxyInterface->StretchRect(pBackBuffer, nullptr, pCopySurface, nullptr, D3DTEXF_NONE)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to copy render target!");
@@ -884,6 +897,13 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 
 	// Cleanup
 	pBackBuffer->Release();
+
+	// Clear shader
+	ProxyInterface->SetPixelShader(nullptr);
+
+	// Clear texture
+	ProxyInterface->SetTexture(0, nullptr);
+	ProxyInterface->SetTexture(1, nullptr);
 }
 
 inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
@@ -941,6 +961,16 @@ inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'pFont' " << ref;
 		}
 		SHARED.pFont = nullptr;
+	}
+
+	if (SHARED.pSprite)
+	{
+		ULONG ref = SHARED.pSprite->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'pSprite' " << ref;
+		}
+		SHARED.pSprite = nullptr;
 	}
 
 	if (SHARED.pStateBlock)
@@ -1271,17 +1301,18 @@ HRESULT m_IDirect3DDevice9Ex::SetPixelShader(THIS_ IDirect3DPixelShader9* pShade
 void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 {
 	bool CalledBeginScene = false;
-	if (!Config.ForceSingleBeginEndScene || !SHARED.BeginSceneCalled)
-	{
-		CalledBeginScene = true;
-		ProxyInterface->BeginScene();
-	}
 
-	if (SHARED.BeginSceneCalled && (SHARED.IsGammaSet || Config.ShowFPSCounter))
+	if (SHARED.IsGammaSet || Config.ShowFPSCounter)
 	{
 		// Create state block
 		if (SHARED.pStateBlock || SUCCEEDED(ProxyInterface->CreateStateBlock(D3DSBT_ALL, &SHARED.pStateBlock)))
 		{
+			if (!Config.ForceSingleBeginEndScene || !SHARED.BeginSceneCalled)
+			{
+				CalledBeginScene = true;
+				ProxyInterface->BeginScene();
+			}
+
 			// Capture modified state
 			SHARED.pStateBlock->Capture();
 
@@ -1334,13 +1365,6 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 				ProxyInterface->SetTexture(x, nullptr);
 			}
 
-			// Backup the current depth-stencil surface
-			IDirect3DSurface9* pOldDepthStencil = nullptr;
-			if (SUCCEEDED(ProxyInterface->GetDepthStencilSurface(&pOldDepthStencil)))
-			{
-				ProxyInterface->SetDepthStencilSurface(nullptr); // Optional, as you're saving the state
-			}
-
 			// Backup the current render target
 			IDirect3DSurface9* pOldRenderTarget = nullptr;
 			if (SUCCEEDED(ProxyInterface->GetRenderTarget(0, &pOldRenderTarget)))
@@ -1380,14 +1404,6 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 				ProxyInterface->SetRenderTarget(0, pOldRenderTarget);
 				pOldRenderTarget->Release();
 				pOldRenderTarget = nullptr;
-			}
-
-			// Restore depth-stencil surface
-			if (pOldDepthStencil)
-			{
-				ProxyInterface->SetDepthStencilSurface(pOldDepthStencil);
-				pOldDepthStencil->Release();
-				pOldDepthStencil = nullptr;
 			}
 
 			// Apply state block
@@ -3131,10 +3147,17 @@ inline void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DW
 	// Create the font if not created
 	if (!SHARED.pFont &&
 		FAILED(D3DXCreateFontW(ProxyInterface, fontSize, 0, FW_BOLD, 1, FALSE, DEFAULT_CHARSET,
-		OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
-		L"Arial", &SHARED.pFont)))
+			OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+			L"Arial", &SHARED.pFont)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create font!");
+		return;
+	}
+
+	// Create the sprite if not created
+	if (!SHARED.pSprite && FAILED(D3DXCreateSprite(ProxyInterface, &SHARED.pSprite)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create sprite!");
 		return;
 	}
 
@@ -3182,8 +3205,15 @@ inline void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DW
 	else
 		alignment |= DT_TOP;
 
+	// Start drawing
+	SHARED.pSprite->Begin(D3DXSPRITE_ALPHABLEND | D3DXSPRITE_SORT_TEXTURE | D3DXSPRITE_DO_NOT_ADDREF_TEXTURE | D3DXSPRITE_DONOTSAVESTATE);
+
 	// Draw the text
-	INT ret = SHARED.pFont->DrawTextW(nullptr, fpsText, -1, &textRect, alignment, D3DCOLOR_XRGB(247, 247, 0));
+	INT ret = SHARED.pFont->DrawTextW(SHARED.pSprite, fpsText, -1, &textRect, alignment, D3DCOLOR_XRGB(247, 247, 0));
+
+	// End drawing
+	SHARED.pSprite->End();
+
 	if (ret == 0)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not DrawText!");

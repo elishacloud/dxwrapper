@@ -48,6 +48,8 @@ typedef HRESULT(WINAPI* PFN_D3DXFillTexture)(LPVOID pTexture, LPD3DXFILL3D pFunc
 typedef HRESULT(WINAPI* PFN_D3DXCreateFontA)(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight, UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision, DWORD Quality, DWORD PitchAndFamily, LPCSTR pFaceName, LPD3DXFONT* ppFont);
 typedef HRESULT(WINAPI* PFN_D3DXCreateFontW)(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight, UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision, DWORD Quality, DWORD PitchAndFamily, LPCWSTR pFaceName, LPD3DXFONT* ppFont);
 
+typedef HRESULT(WINAPI* PFN_D3DXCreateSprite)(LPDIRECT3DDEVICE9 pDevice, LPD3DXSPRITE* ppSprite);
+
 HMEMORYMODULE d3dx9Module = nullptr;
 HMEMORYMODULE d3dCompileModule = nullptr;
 
@@ -72,6 +74,8 @@ PFN_D3DXFillTexture p_D3DXFillTexture = nullptr;
 
 PFN_D3DXCreateFontA p_D3DXCreateFontA = nullptr;
 PFN_D3DXCreateFontW p_D3DXCreateFontW = nullptr;
+
+PFN_D3DXCreateSprite p_D3DXCreateSprite = nullptr;
 
 FARPROC f_D3DXAssembleShader = (FARPROC)*D3DXAssembleShader;
 FARPROC f_D3DXDisassembleShader = (FARPROC)*D3DXDisassembleShader;
@@ -110,6 +114,7 @@ void LoadD3dx9()
 		p_D3DXFillTexture = reinterpret_cast<PFN_D3DXFillTexture>(MemoryGetProcAddress(d3dx9Module, "D3DXFillTexture"));
 		p_D3DXCreateFontA = reinterpret_cast<PFN_D3DXCreateFontA>(MemoryGetProcAddress(d3dx9Module, "D3DXCreateFontA"));
 		p_D3DXCreateFontW = reinterpret_cast<PFN_D3DXCreateFontW>(MemoryGetProcAddress(d3dx9Module, "D3DXCreateFontW"));
+		p_D3DXCreateSprite = reinterpret_cast<PFN_D3DXCreateSprite>(MemoryGetProcAddress(d3dx9Module, "D3DXCreateSprite"));
 	}
 	if (d3dCompileModule)
 	{
@@ -543,6 +548,28 @@ HRESULT WINAPI D3DXCreateFontW(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width
 	}
 
 	HRESULT hr = p_D3DXCreateFontW(pDevice, Height, Width, Weight, MipLevels, Italic, CharSet, OutputPrecision, Quality, PitchAndFamily, pFaceName, ppFont);
+
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to create font!";
+	}
+
+	return hr;
+}
+
+HRESULT WINAPI D3DXCreateSprite(LPDIRECT3DDEVICE9 pDevice, LPD3DXSPRITE* ppSprite)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	LoadD3dx9();
+
+	if (!p_D3DXCreateSprite)
+	{
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return D3DERR_INVALIDCALL;
+	}
+
+	HRESULT hr = p_D3DXCreateSprite(pDevice, ppSprite);
 
 	if (FAILED(hr))
 	{
