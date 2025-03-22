@@ -544,10 +544,10 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 		return DDERR_UNSUPPORTED;
 	}
 
-	// Create Direct3D9 device
-	LPDIRECT3D9 d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
+	// Create Direct3D9 object
+	ComPtr<IDirect3D9> d3d9Object(Direct3DCreate9(D3D_SDK_VERSION));
 
-	// Error creating Direct3D9
+	// Error handling
 	if (!d3d9Object)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 object");
@@ -625,11 +625,6 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 		}
 	}
 
-	ULONG ref = d3d9Object->Release();
-	if (ref)
-	{
-		Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'd3d9Object' " << ref;
-	}
 	return hr;
 }
 

@@ -1475,16 +1475,13 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2* lplpTe
 		*lplpTexture = nullptr;
 
 		// Get surface stage
-		LPDIRECTDRAWSURFACE7 pSurface = nullptr;
-		HRESULT hr = GetTexture(dwStage, &pSurface);
+		ComPtr<IDirectDrawSurface7> pSurface;
+		HRESULT hr = GetTexture(dwStage, pSurface.GetAddressOf());
 
 		if (FAILED(hr))
 		{
 			return hr;
 		}
-
-		// First relese ref for surface
-		pSurface->Release();
 
 		// Get surface wrapper
 		m_IDirectDrawSurfaceX* pSurfaceX = nullptr;

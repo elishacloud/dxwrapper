@@ -135,6 +135,8 @@ extern DWORD ScaleDDCurrentHeight;
 extern DWORD ScaleDDPadX;
 extern DWORD ScaleDDPadY;
 
+#include <ComPtr.h>
+
 using namespace DdrawWrapper;
 
 // Direct3D Version Wrappers

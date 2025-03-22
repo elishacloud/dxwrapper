@@ -5038,9 +5038,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			}
 			else
 			{
-				LPDIRECT3DSURFACE9 SrcSurface = nullptr;
+				ComPtr<IDirect3DSurface9> SrcSurface;
 				DWORD t_Width = 128, t_Height = 128;
-				if (SUCCEEDED((*d3d9Device)->CreateOffscreenPlainSurface(t_Width, t_Height, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &SrcSurface, nullptr)))
+				if (SUCCEEDED((*d3d9Device)->CreateOffscreenPlainSurface(t_Width, t_Height, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, SrcSurface.GetAddressOf(), nullptr)))
 				{
 					D3DCOLOR NewColor =
 						(Colors[Count].a & 0xFF000000) +
@@ -5064,10 +5064,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 						LPDIRECT3DSURFACE9 DstSurface = Get3DSurface();
 						if (DstSurface)
 						{
-							D3DXLoadSurfaceFromSurface(DstSurface, nullptr, nullptr, SrcSurface, nullptr, nullptr, D3DX_FILTER_POINT, 0);
+							D3DXLoadSurfaceFromSurface(DstSurface, nullptr, nullptr, SrcSurface.Get(), nullptr, nullptr, D3DX_FILTER_POINT, 0);
 						}
 					}
-					SrcSurface->Release();
 				}
 			}
 			if (++Count >= 24)
@@ -5164,11 +5163,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			IDirect3DSurface9* pSrcSurfaceD9 = Get3DSurface();
 			if (pSrcSurfaceD9)
 			{
-				IDirect3DSurface9* pPrimaryDisplaySurfaceD9 = nullptr;
-				if (SUCCEEDED(PrimaryDisplayTexture->GetSurfaceLevel(0, &pPrimaryDisplaySurfaceD9)))
+				ComPtr<IDirect3DSurface9> pPrimaryDisplaySurfaceD9;
+				if (SUCCEEDED(PrimaryDisplayTexture->GetSurfaceLevel(0, pPrimaryDisplaySurfaceD9.GetAddressOf())))
 				{
-					D3DXLoadSurfaceFromSurface(pPrimaryDisplaySurfaceD9, nullptr, nullptr, pSrcSurfaceD9, nullptr, nullptr, D3DX_FILTER_NONE, 0);
-					pPrimaryDisplaySurfaceD9->Release();
+					D3DXLoadSurfaceFromSurface(pPrimaryDisplaySurfaceD9.Get(), nullptr, nullptr, pSrcSurfaceD9, nullptr, nullptr, D3DX_FILTER_NONE, 0);
 				}
 			}
 		}
@@ -6772,8 +6770,8 @@ HRESULT m_IDirectDrawSurfaceX::SaveDXTDataToDDS(const void *data, size_t dataSiz
 // Save a surface for debugging
 HRESULT m_IDirectDrawSurfaceX::SaveSurfaceToFile(const char *filename, D3DXIMAGE_FILEFORMAT format)
 {
-	LPD3DXBUFFER pDestBuf = nullptr;
-	HRESULT hr = D3DXSaveSurfaceToFileInMemory(&pDestBuf, format, Get3DSurface(), nullptr, nullptr);
+	ComPtr<ID3DXBuffer> pDestBuf;
+	HRESULT hr = D3DXSaveSurfaceToFileInMemory(pDestBuf.GetAddressOf(), format, Get3DSurface(), nullptr, nullptr);
 
 	if (SUCCEEDED(hr))
 	{
@@ -6784,9 +6782,6 @@ HRESULT m_IDirectDrawSurfaceX::SaveSurfaceToFile(const char *filename, D3DXIMAGE
 			outFile.write((const char*)pDestBuf->GetBufferPointer(), pDestBuf->GetBufferSize());
 			outFile.close();
 		}
-
-		// Release the buffer
-		pDestBuf->Release();
 	}
 
 	return hr;
@@ -7400,8 +7395,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect)
 	}
 
 	IDirect3DSurface9* SrcSurface = Get3DMipMapSurface(0);
-	IDirect3DSurface9* DestSurface = nullptr;
-	if (!SrcSurface || FAILED(surface.DrawTexture->GetSurfaceLevel(0, &DestSurface)))
+	ComPtr<IDirect3DSurface9> DestSurface;
+	if (!SrcSurface || FAILED(surface.DrawTexture->GetSurfaceLevel(0, DestSurface.GetAddressOf())))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface texture!");
 		return DDERR_GENERIC;
@@ -7426,18 +7421,14 @@ HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect)
 		}
 	}
 
-	if (FAILED(D3DXLoadSurfaceFromSurface(DestSurface, nullptr, lpDestRect, SrcSurface, surface.PaletteEntryArray, lpDestRect, D3DX_FILTER_NONE, ColorKey)))
+	if (FAILED(D3DXLoadSurfaceFromSurface(DestSurface.Get(), nullptr, lpDestRect, SrcSurface, surface.PaletteEntryArray, lpDestRect, D3DX_FILTER_NONE, ColorKey)))
 	{
 		Logging::Log() << __FUNCTION__ " Error: failed to copy data from surface: " << surface.Format << " " << (void*)ColorKey << " " << lpDestRect;
-
-		DestSurface->Release();
 
 		return DDERR_GENERIC;
 	}
 
 	surface.IsDrawTextureDirty = false;
-
-	DestSurface->Release();
 
 	return DD_OK;
 }
@@ -8021,8 +8012,8 @@ HRESULT m_IDirectDrawSurfaceX::GetPresentWindowRect(LPRECT pRect, RECT& DestRect
 	}
 
 	// Get destination surface
-	IDirect3DSurface9* pDestSurfaceD9 = nullptr;
-	if (FAILED(PrimaryDisplayTexture->GetSurfaceLevel(0, &pDestSurfaceD9)))
+	ComPtr<IDirect3DSurface9> pDestSurfaceD9;
+	if (FAILED(PrimaryDisplayTexture->GetSurfaceLevel(0, pDestSurfaceD9.GetAddressOf())))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get destination surface!");
 		return DDERR_GENERIC;
@@ -8032,13 +8023,13 @@ HRESULT m_IDirectDrawSurfaceX::GetPresentWindowRect(LPRECT pRect, RECT& DestRect
 	HRESULT hr = DDERR_GENERIC;
 	if (IsD9UsingVideoMemory())
 	{
-		hr = (*d3d9Device)->StretchRect(pSourceSurfaceD9, &Rect, pDestSurfaceD9, &MapClient, D3DTEXF_NONE);
+		hr = (*d3d9Device)->StretchRect(pSourceSurfaceD9, &Rect, pDestSurfaceD9.Get(), &MapClient, D3DTEXF_NONE);
 	}
 	else
 	{
-		hr = (*d3d9Device)->UpdateSurface(pSourceSurfaceD9, &Rect, pDestSurfaceD9, (LPPOINT)&MapClient);
+		hr = (*d3d9Device)->UpdateSurface(pSourceSurfaceD9, &Rect, pDestSurfaceD9.Get(), (LPPOINT)&MapClient);
 	}
-	pDestSurfaceD9->Release();
+
 	if (FAILED(hr))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to copy surface: " << Rect << " -> " << MapClient);
@@ -8107,16 +8098,15 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	if (primary.PaletteTexture && NewPaletteEntry && primary.LastPaletteUSN != NewPaletteUSN)
 	{
 		// Get palette display context surface
-		LPDIRECT3DSURFACE9 paletteSurface = nullptr;
-		if (SUCCEEDED(primary.PaletteTexture->GetSurfaceLevel(0, &paletteSurface)))
+		ComPtr<IDirect3DSurface9> paletteSurface;
+		if (SUCCEEDED(primary.PaletteTexture->GetSurfaceLevel(0, paletteSurface.GetAddressOf())))
 		{
 			// Use LoadSurfaceFromMemory to copy to the surface
 			RECT Rect = { 0, 0, MaxPaletteSize, 1 };
-			if (FAILED(LoadSurfaceFromMemory(paletteSurface, Rect, NewRGBPalette, D3DFMT_X8R8G8B8, MaxPaletteSize * sizeof(D3DCOLOR))))
+			if (FAILED(LoadSurfaceFromMemory(paletteSurface.Get(), Rect, NewRGBPalette, D3DFMT_X8R8G8B8, MaxPaletteSize * sizeof(D3DCOLOR))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not full palette textur!");
 			}
-			paletteSurface->Release();
 			primary.LastPaletteUSN = NewPaletteUSN;
 		}
 	}

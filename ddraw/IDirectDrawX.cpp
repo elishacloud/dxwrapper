@@ -3782,16 +3782,14 @@ void m_IDirectDrawX::ClearRenderTarget()
 {
 	if (d3d9Device && UsingCustomRenderTarget)
 	{
-		IDirect3DSurface9* pBackBuffer = nullptr;
-		if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+		ComPtr<IDirect3DSurface9> pBackBuffer;
+		if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))
 		{
 			UsingCustomRenderTarget = false;
 
 			d3d9Device->SetRenderState(D3DRS_ZENABLE, FALSE);
 			d3d9Device->SetDepthStencilSurface(nullptr);
-			d3d9Device->SetRenderTarget(0, pBackBuffer);
-
-			pBackBuffer->Release();
+			d3d9Device->SetRenderTarget(0, pBackBuffer.Get());
 		}
 	}
 }
@@ -4702,12 +4700,12 @@ HRESULT m_IDirectDrawX::CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer)
 	}
 
 	// Copy render target to backbuffer
-	IDirect3DSurface9* pBackBuffer = nullptr;
+	ComPtr<IDirect3DSurface9> pBackBuffer;
 	if (!pDestBuffer)
 	{
-		if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+		if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))
 		{
-			pDestBuffer = pBackBuffer;
+			pDestBuffer = pBackBuffer.Get();
 		}
 	}
 
@@ -4755,8 +4753,6 @@ HRESULT m_IDirectDrawX::CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer)
 	// If copying to back buffer
 	if (pBackBuffer)
 	{
-		pBackBuffer->Release();
-
 		if (SUCCEEDED(hr))
 		{
 			PrimarySurface->ClearDirtyFlags();
@@ -4810,8 +4806,8 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 	{
 		if (IsGammaSet && GammaControlInterface)
 		{
-			IDirect3DSurface9* pBackBuffer = nullptr;
-			if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+			ComPtr<IDirect3DSurface9> pBackBuffer;
+			if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))
 			{
 				// Create intermediate texture for shader input
 				if (!ScreenCopyTexture)
@@ -4821,22 +4817,17 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 					if (FAILED(d3d9Device->CreateTexture(Desc.Width, Desc.Height, 1, D3DUSAGE_RENDERTARGET, Desc.Format, D3DPOOL_DEFAULT, &ScreenCopyTexture, nullptr)))
 					{
 						Logging::Log() << __FUNCTION__ << " Error: Failed to create screen copy texture!";
-						pBackBuffer->Release();
 					}
 				}
 
 				// Copy back buffer to texture surface and draw surface to screen
 				if (ScreenCopyTexture)
 				{
-					IDirect3DSurface9* pCopySurface = nullptr;
-					if (SUCCEEDED(ScreenCopyTexture->GetSurfaceLevel(0, &pCopySurface)))
+					ComPtr<IDirect3DSurface9> pCopySurface;
+					if (SUCCEEDED(ScreenCopyTexture->GetSurfaceLevel(0, pCopySurface.GetAddressOf())))
 					{
-						hr = CopyPrimarySurface(pCopySurface);
-						pCopySurface->Release();
+						hr = CopyPrimarySurface(pCopySurface.Get());
 					}
-
-					// Release back buffer
-					pBackBuffer->Release();
 
 					// Draw surface
 					hr = DrawPrimarySurface(ScreenCopyTexture);
