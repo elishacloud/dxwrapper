@@ -1901,6 +1901,9 @@
     <ClInclude Include="Libraries\ComPtr.h">
       <Filter>Libraries</Filter>
     </ClInclude>
+    <ClInclude Include="Libraries\AutoGuard.h">
+      <Filter>Libraries</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">

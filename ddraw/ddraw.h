@@ -112,6 +112,11 @@ namespace DdrawWrapper
 	HRESULT ReleaseCriticalSection();
 	HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID);
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj);
+
+	struct AutoDDCriticalSection {
+		AutoDDCriticalSection() { SetCriticalSection(); }
+		~AutoDDCriticalSection() { ReleaseCriticalSection(); }
+	};
 }
 
 extern const D3DFORMAT D9DisplayFormat;
@@ -135,7 +140,8 @@ extern DWORD ScaleDDCurrentHeight;
 extern DWORD ScaleDDPadX;
 extern DWORD ScaleDDPadY;
 
-#include <ComPtr.h>
+#include "ComPtr.h"
+#include "AutoGuard.h"
 
 using namespace DdrawWrapper;
 

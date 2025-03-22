@@ -110,9 +110,6 @@ private:
 	void ApplyDrawFixes();
 	void ApplyPresentFixes();
 
-	void SetCriticalSection() const { EnterCriticalSection(&SHARED.d9cs); }
-	void ReleaseCriticalSection() const { LeaveCriticalSection(&SHARED.d9cs); }
-
 	HRESULT CallEndScene();
 
 	// Limit frame rate

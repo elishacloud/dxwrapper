@@ -105,21 +105,22 @@ std::chrono::steady_clock::time_point presentTime;
 // Preset from another thread
 PRESENTTHREAD PresentThread = {};
 
-inline static void SetPTCriticalSection()
-{
-	if (PresentThread.IsInitialized)
+struct AutoPTCriticalSection {
+	AutoPTCriticalSection()
 	{
-		EnterCriticalSection(&PresentThread.ddpt);
+		if (PresentThread.IsInitialized)
+		{
+			EnterCriticalSection(&PresentThread.ddpt);
+		}
 	}
-}
-
-inline static void ReleasePTCriticalSection()
-{
-	if (PresentThread.IsInitialized)
+	~AutoPTCriticalSection()
 	{
-		LeaveCriticalSection(&PresentThread.ddpt);
+		if (PresentThread.IsInitialized)
+		{
+			LeaveCriticalSection(&PresentThread.ddpt);
+		}
 	}
-}
+};
 
 // Direct3D9 flags
 bool EnableWaitVsync = false;
@@ -2511,7 +2512,7 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 
 	AddRef(DirectXVersion);
 
-	SetCriticalSection();
+	AutoDDCriticalSection ThreadLockDD;
 
 	DDrawVector.push_back(this);
 
@@ -2702,8 +2703,6 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		m_IDirectDrawSurfaceX::StartSharedEmulatedMemory();
 	}
 
-	ReleaseCriticalSection();
-
 	// Check interface to create d3d9 object
 	CheckInterface(__FUNCTION__, false);
 }
@@ -2715,8 +2714,8 @@ void m_IDirectDrawX::ReleaseInterface()
 		return;
 	}
 
-	SetCriticalSection();
-	SetPTCriticalSection();
+	AutoDDCriticalSection ThreadLockDD;
+	AutoPTCriticalSection ThreadLockPT;
 
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
@@ -2821,8 +2820,6 @@ void m_IDirectDrawX::ReleaseInterface()
 	}
 	VertexBufferList.clear();
 
-	ReleasePTCriticalSection();
-
 	if (DDrawVector.empty())
 	{
 		// Close present thread first
@@ -2866,17 +2863,17 @@ void m_IDirectDrawX::ReleaseInterface()
 		// Clean up shared memory
 		m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory();
 
+		// Clean up dummy memory
+		dummySurface.clear();
+
 		// Delete critical section
 		if (PresentThread.IsInitialized)
 		{
+			LeaveCriticalSection(&PresentThread.ddpt);
 			DeleteCriticalSection(&PresentThread.ddpt);
+			PresentThread.IsInitialized = false;
 		}
-
-		// Clean up dummy memory
-		dummySurface.clear();
 	}
-
-	ReleaseCriticalSection();
 }
 
 HWND m_IDirectDrawX::GetHwnd()
@@ -3257,8 +3254,8 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 		return DDERR_WRONGMODE;
 	}
 
-	SetCriticalSection();
-	SetPTCriticalSection();
+	AutoDDCriticalSection ThreadLockDD;
+	AutoPTCriticalSection ThreadLockPT;
 
 	// Reset device if current thread matches creation thread
 	if (IsWindow(hFocusWindow) && FocusWindowThreadID == GetCurrentThreadId())
@@ -3303,9 +3300,6 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 		WndProc::SwitchingResolution = false;
 	}
 
-	ReleasePTCriticalSection();
-	ReleaseCriticalSection();
-
 	// Return
 	return hr;
 }
@@ -3339,8 +3333,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		return d3d9Device ? DD_OK : DDERR_GENERIC;
 	}
 
-	SetCriticalSection();
-	SetPTCriticalSection();
+	AutoDDCriticalSection ThreadLockDD;
+	AutoPTCriticalSection ThreadLockPT;
 
 	HRESULT hr = DD_OK;
 	do {
@@ -3623,9 +3617,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 	} while (false);
 
-	ReleasePTCriticalSection();
-	ReleaseCriticalSection();
-
 	// Return result
 	return hr;
 }
@@ -3812,8 +3803,8 @@ void m_IDirectDrawX::SetCurrentRenderTarget()
 
 HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 {
-	SetCriticalSection();
-	SetPTCriticalSection();
+	AutoDDCriticalSection ThreadLockDD;
+	AutoPTCriticalSection ThreadLockPT;
 
 	HRESULT hr = D3D_OK;
 
@@ -3871,9 +3862,6 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 			break;
 		}
 	} while (false);
-
-	ReleasePTCriticalSection();
-	ReleaseCriticalSection();
 
 	return hr;
 }
@@ -3964,8 +3952,8 @@ inline void m_IDirectDrawX::ReleaseD3D9IndexBuffer()
 // Release all dd9 resources
 inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 {
-	SetCriticalSection();
-	SetPTCriticalSection();
+	AutoDDCriticalSection ThreadLockDD;
+	AutoPTCriticalSection ThreadLockPT;
 
 	// Remove render target and depth stencil surfaces
 	if (d3d9Device && ResetInterface && (RenderTargetSurface || DepthStencilSurface))
@@ -4095,9 +4083,6 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 		}
 		gammaPixelShader = nullptr;
 	}
-
-	ReleasePTCriticalSection();
-	ReleaseCriticalSection();
 }
 
 // Release d3d9 device
@@ -4105,8 +4090,8 @@ void m_IDirectDrawX::ReleaseD9Device()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	SetCriticalSection();
-	SetPTCriticalSection();
+	AutoDDCriticalSection ThreadLockDD;
+	AutoPTCriticalSection ThreadLockPT;
 
 	if (d3d9Device)
 	{
@@ -4118,9 +4103,6 @@ void m_IDirectDrawX::ReleaseD9Device()
 		}
 		d3d9Device = nullptr;
 	}
-
-	ReleasePTCriticalSection();
-	ReleaseCriticalSection();
 }
 
 // Release d3d9 object
@@ -4888,7 +4870,7 @@ DWORD WINAPI PresentThreadFunction(LPVOID)
 			break;
 		}
 
-		SetPTCriticalSection();
+		AutoPTCriticalSection ThreadLockPT;
 
 		if (d3d9Device)
 		{
@@ -4927,8 +4909,6 @@ DWORD WINAPI PresentThreadFunction(LPVOID)
 				pPrimarySurface->ReleaseLockCriticalSection();
 			}
 		}
-
-		ReleasePTCriticalSection();
 	}
 
 	LOG_LIMIT(100, __FUNCTION__ << " Closing thread!");

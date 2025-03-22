@@ -906,7 +906,7 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 
 inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 {
-	SetCriticalSection();
+	AutoCriticalSection ThreadLock(&SHARED.d9cs);
 
 	if (SHARED.DontReleaseResources)
 	{
@@ -1021,8 +1021,6 @@ inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 		SHARED.IsGammaSet = false;
 		SHARED.UsingShader32f = true;
 	}
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirect3DDevice9Ex::GetGammaRamp(THIS_ UINT iSwapChain, D3DGAMMARAMP* pRamp)
@@ -1307,8 +1305,8 @@ HRESULT m_IDirect3DDevice9Ex::SetPixelShader(THIS_ IDirect3DPixelShader9* pShade
 
 void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 {
-	SetCriticalSection();
-	SHARED.DontReleaseResources = true;
+	AutoCriticalSection ThreadLock(&SHARED.d9cs);
+	AutoSetFlag AutoSet(SHARED.DontReleaseResources);
 
 	bool CalledBeginScene = false;
 
@@ -1429,9 +1427,6 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 
 	// Check FPU state before presenting
 	Utils::ResetInvalidFPUState();
-
-	SHARED.DontReleaseResources = false;
-	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)

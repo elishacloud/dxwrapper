@@ -1278,6 +1278,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClInclude Include="GDI\User32.h" />
     <ClInclude Include="GDI\WndProc.h" />
     <ClInclude Include="IClassFactory\IClassFactory.h" />
+    <ClInclude Include="Libraries\AutoGuard.h" />
     <ClInclude Include="Libraries\ComPtr.h" />
     <ClInclude Include="Libraries\d3dx9.h" />
     <ClInclude Include="libraries\dwmapi.h" />

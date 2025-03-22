@@ -267,7 +267,7 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 			return DD_OK;	// No new data found
 		}
 
-		SetCriticalSection();
+		AutoDDCriticalSection ThreadLockDD;
 
 		// Translate new raw pallete entries to RGB
 		for (UINT i = Start; i < End; i++, x++)
@@ -305,8 +305,6 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 				}
 			}
 		}
-
-		ReleaseCriticalSection();
 
 		return DD_OK;
 	}

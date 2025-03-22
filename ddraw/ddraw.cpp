@@ -333,13 +333,11 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
 
-		SetCriticalSection();
+		AutoDDCriticalSection ThreadLockDD;
 
 		m_IDirectDrawX* p_IDirectDrawX = new m_IDirectDrawX(1, false);
 
 		*lplpDD = reinterpret_cast<LPDIRECTDRAW>(p_IDirectDrawX->GetWrapperInterfaceX(1));
-
-		ReleaseCriticalSection();
 
 		// Success
 		return DD_OK;
@@ -402,15 +400,13 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 			return DDERR_INVALIDPARAMS;
 		}
 
-		SetCriticalSection();
+		AutoDDCriticalSection ThreadLockDD;
 
 		m_IDirectDrawClipper* ClipperX = CreateDirectDrawClipper(nullptr, nullptr, dwFlags);
 
 		AddBaseClipper(ClipperX);
 
 		*lplpDDClipper = ClipperX;
-
-		ReleaseCriticalSection();
 
 		return DD_OK;
 	}
@@ -456,13 +452,11 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
 
-		SetCriticalSection();
+		AutoDDCriticalSection ThreadLockDD;
 
 		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(7, true);
 
 		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(7);
-
-		ReleaseCriticalSection();
 
 		// Success
 		return DD_OK;
@@ -911,11 +905,9 @@ void AddBaseClipper(m_IDirectDrawClipper* lpClipper)
 		return;
 	}
 
-	SetCriticalSection();
+	AutoDDCriticalSection ThreadLockDD;
 
 	BaseClipperVector.push_back(lpClipper);
-
-	ReleaseCriticalSection();
 }
 
 void ClearBaseClipper(m_IDirectDrawClipper* lpClipper)
@@ -925,11 +917,9 @@ void ClearBaseClipper(m_IDirectDrawClipper* lpClipper)
 		return;
 	}
 
-	SetCriticalSection();
+	AutoDDCriticalSection ThreadLockDD;
 
 	BaseClipperVector.erase(std::remove(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper), BaseClipperVector.end());
-
-	ReleaseCriticalSection();
 }
 
 bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper)
@@ -939,11 +929,9 @@ bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper)
 		return false;
 	}
 
-	SetCriticalSection();
+	AutoDDCriticalSection ThreadLockDD;
 
 	const bool found = (std::find(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper) != std::end(BaseClipperVector));
-
-	ReleaseCriticalSection();
 
 	return found;
 }

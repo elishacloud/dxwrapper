@@ -1564,6 +1564,8 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			}
 		}
 
+		AutoDDCriticalSection ThreadLockDD;
+
 		// Create flip list
 		std::vector<m_IDirectDrawSurfaceX*> FlipList;
 		FlipList.push_back(this);
@@ -3383,6 +3385,8 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 			return DD_OK;
 		}
 
+		AutoDDCriticalSection ThreadLockDD;
+
 		// If palette exists increament ref
 		if (lpDDPalette)
 		{
@@ -3416,16 +3420,12 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 		// Set palette address
 		attachedPalette = (m_IDirectDrawPalette*)lpDDPalette;
 
-		SetCriticalSection();
-
 		// Reset data for new palette
 		surface.LastPaletteUSN = 0;
 		surface.PaletteEntryArray = nullptr;
 
 		// Set new palette data
 		UpdatePaletteData();
-
-		ReleaseCriticalSection();
 
 		return DD_OK;
 	}
@@ -5258,6 +5258,8 @@ inline void m_IDirectDrawSurfaceX::UnsetEmulationGameDC()
 
 HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 {
+	AutoDDCriticalSection ThreadLockDD;
+
 	// Check if color masks are needed
 	bool ColorMaskReq = ((surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32) &&									// Only valid when used with 16 bit, 24 bit and 32 bit surfaces
 		(surfaceDesc2.ddpfPixelFormat.dwRBitMask || surfaceDesc2.ddpfPixelFormat.dwGBitMask || surfaceDesc2.ddpfPixelFormat.dwBBitMask));	// Check to make sure the masks actually exist
@@ -5289,10 +5291,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 			// Save current emulated surface and prepare for creating a new one.
 			if (ShareEmulatedMemory)
 			{
-				SetCriticalSection();
 				memorySurfaces.push_back(surface.emu);
 				surface.emu = nullptr;
-				ReleaseCriticalSection();
 			}
 			else
 			{
@@ -5304,7 +5304,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	// If sharing memory than check the shared memory vector for a surface that matches
 	if (ShareEmulatedMemory)
 	{
-		SetCriticalSection();
 		for (auto it = memorySurfaces.begin(); it != memorySurfaces.end(); it++)
 		{
 			EMUSURFACE* pEmuSurface = *it;
@@ -5318,7 +5317,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 				break;
 			}
 		}
-		ReleaseCriticalSection();
 
 		if (surface.emu && surface.emu->pBits)
 		{
@@ -5810,16 +5808,16 @@ inline void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 {
 	if (surface.emu)
 	{
+		AutoDDCriticalSection ThreadLockDD;
+
 		if (!ShareEmulatedMemory || !IsUsingEmulation())
 		{
 			DeleteEmulatedMemory(&surface.emu);
 		}
 		else
 		{
-			SetCriticalSection();
 			memorySurfaces.push_back(surface.emu);
 			surface.emu = nullptr;
-			ReleaseCriticalSection();
 		}
 	}
 }
@@ -7720,7 +7718,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRe
 		return DDERR_GENERIC;
 	}
 
-	SetCriticalSection();
+	AutoDDCriticalSection ThreadLockDD;
 
 	HRESULT hr = DD_OK;
 
@@ -7788,8 +7786,6 @@ inline HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRe
 		surface.IsPaletteDirty = false;
 
 	} while (false);
-
-	ReleaseCriticalSection();
 
 	return hr;
 }
@@ -8069,7 +8065,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	const PALETTEENTRY* NewPaletteEntry = nullptr;
 	const RGBQUAD* NewRGBPalette = nullptr;
 
-	SetCriticalSection();
+	AutoDDCriticalSection ThreadLockDD;
 
 	// Get palette data
 	if (attachedPalette)
@@ -8126,8 +8122,6 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 		surface.LastPaletteUSN = NewPaletteUSN;
 		surface.PaletteEntryArray = NewPaletteEntry;
 	}
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawSurfaceX::StartSharedEmulatedMemory()
@@ -8144,7 +8138,7 @@ void m_IDirectDrawSurfaceX::DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface)
 
 	LOG_LIMIT(100, __FUNCTION__ << " Deleting emulated surface (" << *ppEmuSurface << ")");
 
-	SetCriticalSection();
+	AutoDDCriticalSection ThreadLockDD;
 
 	// Release device context memory
 	if ((*ppEmuSurface)->DC)
@@ -8172,8 +8166,6 @@ void m_IDirectDrawSurfaceX::DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface)
 	}
 	delete (*ppEmuSurface);
 	*ppEmuSurface = nullptr;
-
-	ReleaseCriticalSection();
 }
 
 void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
@@ -8181,7 +8173,7 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 	// Disable shared memory
 	ShareEmulatedMemory = false;
 	
-	SetCriticalSection();
+	AutoDDCriticalSection ThreadLockDD;
 
 	LOG_LIMIT(100, __FUNCTION__ << " Deleting " << memorySurfaces.size() << " emulated surface" << ((memorySurfaces.size() != 1) ? "s" : "") << "!");
 
@@ -8191,6 +8183,4 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 		DeleteEmulatedMemory(&pEmuSurface);
 	}
 	memorySurfaces.clear();
-
-	ReleaseCriticalSection();
 }

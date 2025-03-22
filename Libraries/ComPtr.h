@@ -91,6 +91,12 @@ public:
     // Get address of pointer for functions like GetAddressOf()
     T** GetAddressOf()
     {
+        return &ptr;
+    }
+
+    // Get address of pointer for functions like ReleaseAndGetAddressOf()
+    T** ReleaseAndGetAddressOf()
+    {
         Reset();
         return &ptr;
     }
