@@ -4887,8 +4887,8 @@ DWORD WINAPI PresentThreadFunction(LPVOID)
 			}
 			if (pDDraw && pDDraw->IsUsingThreadPresent() && pPrimarySurface && pPrimarySurface->GetD3d9Texture())
 			{
-				pPrimarySurface->SetLockCriticalSection();
-				pPrimarySurface->SetSurfaceCriticalSection();
+				AutoCriticalSection ThreadLock(pPrimarySurface->GetLockCriticalSection());
+				AutoCriticalSection ThreadLockSurface(pPrimarySurface->GetSurfaceCriticalSection());
 
 				// Begin scene
 				d3d9Device->BeginScene();
@@ -4904,9 +4904,6 @@ DWORD WINAPI PresentThreadFunction(LPVOID)
 
 				// Store last successful present time
 				QueryPerformanceCounter(&PresentThread.LastPresentTime);
-
-				pPrimarySurface->ReleaseSurfaceCriticalSection();
-				pPrimarySurface->ReleaseLockCriticalSection();
 			}
 		}
 	}

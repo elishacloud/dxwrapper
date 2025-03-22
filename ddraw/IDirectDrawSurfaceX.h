@@ -456,10 +456,8 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
-	void SetSurfaceCriticalSection() { EnterCriticalSection(&ddscs); }
-	void ReleaseSurfaceCriticalSection() { LeaveCriticalSection(&ddscs); }
-	void SetLockCriticalSection() { EnterCriticalSection(&ddlcs); }
-	void ReleaseLockCriticalSection() { LeaveCriticalSection(&ddlcs); }
+	CRITICAL_SECTION* GetSurfaceCriticalSection() { return &ddscs; }
+	CRITICAL_SECTION* GetLockCriticalSection() { return &ddlcs; }
 
 	// Fix byte alignment issue
 	void LockEmuLock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc);
