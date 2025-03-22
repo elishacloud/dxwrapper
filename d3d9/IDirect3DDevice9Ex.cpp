@@ -863,8 +863,15 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	if (FAILED(ProxyInterface->StretchRect(pBackBuffer, nullptr, pCopySurface, nullptr, D3DTEXF_NONE)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to copy render target!");
+		pCopySurface->Release();
+		pBackBuffer->Release();
+		return;
 	}
+	pBackBuffer->Release();
 	pCopySurface->Release();
+
+	// Clear render target
+	ProxyInterface->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
 
 	// Set texture
 	ProxyInterface->SetTexture(0, SHARED.ScreenCopyTexture);
@@ -895,9 +902,6 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to draw primitive!");
 	}
 
-	// Cleanup
-	pBackBuffer->Release();
-
 	// Clear shader
 	ProxyInterface->SetPixelShader(nullptr);
 
@@ -908,6 +912,13 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 
 inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 {
+	SetCriticalSection();
+
+	if (SHARED.DontReleaseResources)
+	{
+		return;
+	}
+
 	if (SHARED.GammaLUTTexture)
 	{
 		ULONG ref = SHARED.GammaLUTTexture->Release();
@@ -1016,6 +1027,8 @@ inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 		SHARED.IsGammaSet = false;
 		SHARED.UsingShader32f = true;
 	}
+
+	ReleaseCriticalSection();
 }
 
 void m_IDirect3DDevice9Ex::GetGammaRamp(THIS_ UINT iSwapChain, D3DGAMMARAMP* pRamp)
@@ -1300,6 +1313,9 @@ HRESULT m_IDirect3DDevice9Ex::SetPixelShader(THIS_ IDirect3DPixelShader9* pShade
 
 void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 {
+	SetCriticalSection();
+	SHARED.DontReleaseResources = true;
+
 	bool CalledBeginScene = false;
 
 	if (SHARED.IsGammaSet || Config.ShowFPSCounter)
@@ -1372,10 +1388,14 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 				IDirect3DSurface9* pBackBuffer = nullptr;
 				if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
 				{
-					// Don't need to release pOldRenderTarget if it's the back buffer
 					if (pOldRenderTarget != pBackBuffer)
 					{
 						ProxyInterface->SetRenderTarget(0, pBackBuffer);
+					}
+					else
+					{
+						pOldRenderTarget->Release();
+						pOldRenderTarget = nullptr;
 					}
 					pBackBuffer->Release();
 				}
@@ -1423,6 +1443,9 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 
 	// Check FPU state before presenting
 	Utils::ResetInvalidFPUState();
+
+	SHARED.DontReleaseResources = false;
+	ReleaseCriticalSection();
 }
 
 HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
@@ -3206,7 +3229,7 @@ inline void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DW
 		alignment |= DT_TOP;
 
 	// Start drawing
-	SHARED.pSprite->Begin(D3DXSPRITE_ALPHABLEND | D3DXSPRITE_SORT_TEXTURE | D3DXSPRITE_DO_NOT_ADDREF_TEXTURE | D3DXSPRITE_DONOTSAVESTATE);
+	SHARED.pSprite->Begin(D3DXSPRITE_ALPHABLEND | D3DXSPRITE_SORT_TEXTURE | D3DXSPRITE_DONOTSAVESTATE);
 
 	// Draw the text
 	INT ret = SHARED.pFont->DrawTextW(SHARED.pSprite, fpsText, -1, &textRect, alignment, D3DCOLOR_XRGB(247, 247, 0));

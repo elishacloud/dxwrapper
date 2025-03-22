@@ -7,12 +7,23 @@ const std::chrono::seconds FPS_CALCULATION_WINDOW(1);	// Define a constant for t
 
 struct DEVICEDETAILS
 {
+	DEVICEDETAILS()
+	{
+		InitializeCriticalSection(&d9cs);
+	}
+	~DEVICEDETAILS()
+	{
+		DeleteCriticalSection(&d9cs);
+	}
+
 	// Window handle and size
 	bool IsWindowMode = false;
 	bool IsDirectDrawDevice = false;
 	HWND DeviceWindow = nullptr;
 	LONG BufferWidth = 0, BufferHeight = 0;
 	LONG screenWidth = 0, screenHeight = 0;
+
+	CRITICAL_SECTION d9cs = {};
 
 	std::unordered_map<m_IDirect3DDevice9Ex*, BOOL> DeviceMap;
 
@@ -53,6 +64,7 @@ struct DEVICEDETAILS
 	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
 
 	// State block
+	bool DontReleaseResources = false;
 	IDirect3DStateBlock9* pStateBlock = nullptr;
 
 	// For environment map cube
@@ -97,6 +109,9 @@ private:
 
 	void ApplyDrawFixes();
 	void ApplyPresentFixes();
+
+	void SetCriticalSection() const { EnterCriticalSection(&SHARED.d9cs); }
+	void ReleaseCriticalSection() const { LeaveCriticalSection(&SHARED.d9cs); }
 
 	HRESULT CallEndScene();
 
