@@ -833,8 +833,8 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	}
 
 	// Get current backbuffer
-	IDirect3DSurface9* pBackBuffer = nullptr;
-	if (FAILED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+	ComPtr<IDirect3DSurface9> pBackBuffer;
+	if (FAILED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get back buffer!");
 		return;
@@ -848,27 +848,21 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		if (FAILED(ProxyInterface->CreateTexture(desc.Width, desc.Height, 1, D3DUSAGE_RENDERTARGET, desc.Format, D3DPOOL_DEFAULT, &SHARED.ScreenCopyTexture, nullptr)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create screen copy texture!");
-			pBackBuffer->Release();
 			return;
 		}
 	}
 
-	IDirect3DSurface9* pCopySurface = nullptr;
-	if (FAILED(SHARED.ScreenCopyTexture->GetSurfaceLevel(0, &pCopySurface)))
+	ComPtr<IDirect3DSurface9> pCopySurface;
+	if (FAILED(SHARED.ScreenCopyTexture->GetSurfaceLevel(0, pCopySurface.GetAddressOf())))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get surface level from screen copy texture!");
-		pBackBuffer->Release();
 		return;
 	}
-	if (FAILED(ProxyInterface->StretchRect(pBackBuffer, nullptr, pCopySurface, nullptr, D3DTEXF_NONE)))
+	if (FAILED(ProxyInterface->StretchRect(pBackBuffer.Get(), nullptr, pCopySurface.Get(), nullptr, D3DTEXF_NONE)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to copy render target!");
-		pCopySurface->Release();
-		pBackBuffer->Release();
 		return;
 	}
-	pBackBuffer->Release();
-	pCopySurface->Release();
 
 	// Clear render target
 	ProxyInterface->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
@@ -1382,22 +1376,16 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 			}
 
 			// Backup the current render target
-			IDirect3DSurface9* pOldRenderTarget = nullptr;
-			if (SUCCEEDED(ProxyInterface->GetRenderTarget(0, &pOldRenderTarget)))
+			ComPtr<IDirect3DSurface9> pOldRenderTarget;
+			if (SUCCEEDED(ProxyInterface->GetRenderTarget(0, pOldRenderTarget.GetAddressOf())))
 			{
-				IDirect3DSurface9* pBackBuffer = nullptr;
-				if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer)))
+				ComPtr<IDirect3DSurface9> pBackBuffer;
+				if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))
 				{
-					if (pOldRenderTarget != pBackBuffer)
+					if (pOldRenderTarget.Get() != pBackBuffer.Get())
 					{
-						ProxyInterface->SetRenderTarget(0, pBackBuffer);
+						ProxyInterface->SetRenderTarget(0, pBackBuffer.Get());
 					}
-					else
-					{
-						pOldRenderTarget->Release();
-						pOldRenderTarget = nullptr;
-					}
-					pBackBuffer->Release();
 				}
 			}
 
@@ -1421,9 +1409,7 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 			// Restore render target
 			if (pOldRenderTarget)
 			{
-				ProxyInterface->SetRenderTarget(0, pOldRenderTarget);
-				pOldRenderTarget->Release();
-				pOldRenderTarget = nullptr;
+				ProxyInterface->SetRenderTarget(0, pOldRenderTarget.Get());
 			}
 
 			// Apply state block
@@ -2572,17 +2558,16 @@ HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDir
 	RectSrc.bottom = RectSrc.top + rcClient.bottom;
 
 	// Create new surface to hold data
-	IDirect3DSurface9 *pSrcSurface = nullptr;
-	if (FAILED(ProxyInterface->CreateOffscreenPlainSurface(max(SHARED.screenWidth, RectSrc.right), max(SHARED.screenHeight, RectSrc.bottom), Desc.Format, Desc.Pool, &pSrcSurface, nullptr)))
+	ComPtr<IDirect3DSurface9> pSrcSurface;
+	if (FAILED(ProxyInterface->CreateOffscreenPlainSurface(max(SHARED.screenWidth, RectSrc.right), max(SHARED.screenHeight, RectSrc.bottom), Desc.Format, Desc.Pool, pSrcSurface.GetAddressOf(), nullptr)))
 	{
 		return D3DERR_INVALIDCALL;
 	}
 
 	// Get FrontBuffer data to new surface
-	HRESULT hr = ProxyInterface->GetFrontBufferData(iSwapChain, pSrcSurface);
+	HRESULT hr = ProxyInterface->GetFrontBufferData(iSwapChain, pSrcSurface.Get());
 	if (FAILED(hr))
 	{
-		pSrcSurface->Release();
 		return hr;
 	}
 
@@ -2591,27 +2576,25 @@ HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDir
 	if (rcClient.left == 0 && rcClient.top == 0 && (LONG)Desc.Width == rcClient.right && (LONG)Desc.Height == rcClient.bottom)
 	{
 		POINT PointDest = { 0, 0 };
-		hr = CopyRects(pSrcSurface, &RectSrc, 1, pDestSurface, &PointDest);
+		hr = CopyRects(pSrcSurface.Get(), &RectSrc, 1, pDestSurface, &PointDest);
 	}
 
 	// Try using StretchRect
 	if (FAILED(hr))
 	{
-		IDirect3DSurface9 *pTmpSurface = nullptr;
-		if (SUCCEEDED(ProxyInterface->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, Desc.Pool, &pTmpSurface, nullptr)))
+		ComPtr<IDirect3DSurface9> pTmpSurface;
+		if (SUCCEEDED(ProxyInterface->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, Desc.Pool, pTmpSurface.GetAddressOf(), nullptr)))
 		{
-			if (SUCCEEDED(ProxyInterface->StretchRect(pSrcSurface, &RectSrc, pTmpSurface, nullptr, D3DTEXF_NONE)))
+			if (SUCCEEDED(ProxyInterface->StretchRect(pSrcSurface.Get(), &RectSrc, pTmpSurface.Get(), nullptr, D3DTEXF_NONE)))
 			{
 				POINT PointDest = { 0, 0 };
 				RECT Rect = { 0, 0, (LONG)Desc.Width, (LONG)Desc.Height };
-				hr = CopyRects(pTmpSurface, &Rect, 1, pDestSurface, &PointDest);
+				hr = CopyRects(pTmpSurface.Get(), &Rect, 1, pDestSurface, &PointDest);
 			}
-			pTmpSurface->Release();
 		}
 	}
 
 	// Release surface
-	pSrcSurface->Release();
 	return hr;
 }
 

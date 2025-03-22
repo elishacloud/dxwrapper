@@ -106,6 +106,8 @@ namespace D3d9Wrapper
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
 }
 
+#include <ComPtr.h>
+
 #include "IDirect3DDevice9Ex.h"
 #include "IDirect3DCubeTexture9.h"
 #include "IDirect3DIndexBuffer9.h"

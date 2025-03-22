@@ -26,18 +26,15 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 
 	if (riid == IID_IDirect3D9 || riid == IID_IDirect3D9Ex)
 	{
-		IDirect3D9 *pD3D9 = nullptr;
-		if (SUCCEEDED(m_pDeviceEx->GetDirect3D(&pD3D9)))
+		ComPtr<IDirect3D9> pD3D9;
+		if (SUCCEEDED(m_pDeviceEx->GetDirect3D(pD3D9.GetAddressOf())))
 		{
-			IDirect3D9* pD3D9Ex = nullptr;
-			if (SUCCEEDED(pD3D9->QueryInterface(riid, (LPVOID*)&pD3D9Ex)))
+			ComPtr<IDirect3D9> pD3D9Ex;
+			if (SUCCEEDED(pD3D9->QueryInterface(riid, (LPVOID*)pD3D9Ex.GetAddressOf())))
 			{
-				*ppvObj = pD3D9Ex;
-				pD3D9Ex->Release();
-				pD3D9->Release();
+				*ppvObj = pD3D9Ex.Get();
 				return;
 			}
-			pD3D9->Release();
 		}
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
 		return;
@@ -45,11 +42,10 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 
 	if (riid == IID_IDirect3DDevice9 || riid == IID_IDirect3DDevice9Ex)
 	{
-		IDirect3DDevice9 *pD3DDevice9 = nullptr;
-		if (SUCCEEDED(m_pDeviceEx->QueryInterface(riid, (LPVOID*)&pD3DDevice9)))
+		ComPtr<IDirect3DDevice9> pD3DDevice9;
+		if (SUCCEEDED(m_pDeviceEx->QueryInterface(riid, (LPVOID*)pD3DDevice9.GetAddressOf())))
 		{
-			*ppvObj = pD3DDevice9;
-			pD3DDevice9->Release();
+			*ppvObj = pD3DDevice9.Get();
 			return;
 		}
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
