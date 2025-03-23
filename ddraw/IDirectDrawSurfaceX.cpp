@@ -694,8 +694,8 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		// Set critical section
-		AutoCriticalSection ThreadLock(GetLockCriticalSection());
-		AutoCriticalSection ThreadLockSrc(lpDDSrcSurfaceX->GetLockCriticalSection());
+		AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
+		AutoCriticalSection ThreadLockSrc(lpDDSrcSurfaceX->GetSurfaceCriticalSection());
 
 		// Present before write if needed
 		if (PresentBlt)
@@ -952,7 +952,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 
 	bool IsSkipScene = false;
 
-	AutoCriticalSection ThreadLock(GetLockCriticalSection());
+	AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
 
 	// Present before write if needed
 	BeginWritePresent(IsSkipScene);
@@ -1559,6 +1559,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		}
 
 		AutoDDCriticalSection ThreadLockDD;
+		AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
 
 		// Create flip list
 		std::vector<m_IDirectDrawSurfaceX*> FlipList;
@@ -1638,7 +1639,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		for (auto& pSurfaceX : FlipList)
 		{
 			// Constructs AUTOCRITICALLOCK and locks the section
-			ThreadLocks.emplace_back(pSurfaceX->GetLockCriticalSection());
+			ThreadLocks.emplace_back(pSurfaceX->GetSurfaceCriticalSection());
 		}
 
 		// Present before write if needed
@@ -2191,7 +2192,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: does not support device context with bit alignment!");
 		}
 
-		AutoCriticalSection ThreadLock(GetLockCriticalSection());
+		AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
 
 		// Present before write if needed
 		BeginWritePresent(false);
@@ -2833,7 +2834,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Check if the scene needs to be presented
 		const bool IsSkipScene = (CheckRectforSkipScene(DestRect) || (Flags & D3DLOCK_READONLY));
 
-		AutoCriticalSection ThreadLock(GetLockCriticalSection());
+		AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
 
 		// Present before write if needed
 		BeginWritePresent(IsSkipScene);
@@ -3105,7 +3106,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 		HRESULT hr = DD_OK;
 
 		do {
-			AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
+			AutoCriticalSection ThreadLock(GetLockCriticalSection());
 
 			if (IsUsingEmulation() || DCRequiresEmulation)
 			{
@@ -3443,7 +3444,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
+		AutoCriticalSection ThreadLock(GetLockCriticalSection());
 
 		HRESULT hr = DD_OK;
 
@@ -4785,7 +4786,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 		return DDERR_GENERIC;
 	}
 
-	AutoCriticalSection ThreadLock(GetLockCriticalSection());
+	AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
 
 	// Release existing surface
 	ReleaseD9Surface(true, false);
@@ -5645,7 +5646,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9AuxiliarySurfaces()
 // Release surface and vertext buffer
 void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 {
-	AutoCriticalSection ThreadLock(GetLockCriticalSection());
+	AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
 
 	// Check if surface is busy
 	if (IsSurfaceBusy())
