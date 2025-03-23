@@ -457,7 +457,6 @@ public:
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 	CRITICAL_SECTION* GetSurfaceCriticalSection() { return &ddscs; }
-	CRITICAL_SECTION* GetLockCriticalSection() { return &ddlcs; }
 
 	// Fix byte alignment issue
 	void LockEmuLock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc);

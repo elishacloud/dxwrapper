@@ -4888,7 +4888,6 @@ DWORD WINAPI PresentThreadFunction(LPVOID)
 			if (pDDraw && pDDraw->IsUsingThreadPresent() && pPrimarySurface && pPrimarySurface->GetD3d9Texture())
 			{
 				AutoCriticalSection ThreadLock(pPrimarySurface->GetSurfaceCriticalSection());
-				AutoCriticalSection ThreadLockSurface(pPrimarySurface->GetLockCriticalSection());
 
 				// Begin scene
 				d3d9Device->BeginScene();

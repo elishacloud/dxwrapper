@@ -3106,8 +3106,6 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 		HRESULT hr = DD_OK;
 
 		do {
-			AutoCriticalSection ThreadLock(GetLockCriticalSection());
-
 			if (IsUsingEmulation() || DCRequiresEmulation)
 			{
 				if (!IsUsingEmulation())
@@ -3443,8 +3441,6 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
-
-		AutoCriticalSection ThreadLock(GetLockCriticalSection());
 
 		HRESULT hr = DD_OK;
 
