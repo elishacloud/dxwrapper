@@ -30,18 +30,6 @@
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 
-// Store a list of clipper
-std::vector<m_IDirectDrawClipper*> BaseClipperVector;
-
-CRITICAL_SECTION ddcs;
-bool IsInitialized = false;
-
-struct ENUMMONITORS
-{
-	LPSTR lpName;
-	HMONITOR hm;
-};
-
 namespace DdrawWrapper
 {
 	VISIT_PROCS_DDRAW(INITIALIZE_OUT_WRAPPED_PROC);
@@ -51,98 +39,25 @@ namespace DdrawWrapper
 
 using namespace DdrawWrapper;
 
-void InitDDraw()
-{
-	if (!IsInitialized)
-	{
-		InitializeCriticalSection(&ddcs);
-		IsInitialized = true;
-	}
+namespace {
+	CRITICAL_SECTION ddcs;
+	bool IsInitialized = false;
 
-	// Hook other gdi32 and user32 APIs
-	static bool RunOnce = true;
-	if (RunOnce)
+	struct ENUMMONITORS
 	{
-		Logging::Log() << "Installing GDI & User32 hooks";
-		using namespace GdiWrapper;
-		if (!GetModuleHandleA("gdi32.dll")) LoadLibrary("gdi32.dll");
-		if (!GetModuleHandleA("user32.dll")) LoadLibrary("user32.dll");
-		HMODULE gdi32 = GetModuleHandleA("gdi32.dll");
-		HMODULE user32 = GetModuleHandleA("user32.dll");
-		HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
-		if (gdi32)
-		{
-			GetDeviceCaps_out = (FARPROC)Hook::HotPatch(GetProcAddress(gdi32, "GetDeviceCaps"), "GetDeviceCaps", gdi_GetDeviceCaps);
-		}
-		if (user32)
-		{
-			CreateWindowExA_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
-			CreateWindowExW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
-			DestroyWindow_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "DestroyWindow"), "DestroyWindow", user_DestroyWindow);
-			GetSystemMetrics_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "GetSystemMetrics"), "GetSystemMetrics", user_GetSystemMetrics);
-			//GetWindowLongA_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "GetWindowLongA"), "GetWindowLongA", user_GetWindowLongA);
-			//GetWindowLongW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "GetWindowLongW"), "GetWindowLongW", user_GetWindowLongW);
-			//SetWindowLongA_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "SetWindowLongA"), "SetWindowLongA", user_SetWindowLongA);
-			//SetWindowLongW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "SetWindowLongW"), "SetWindowLongW", user_SetWindowLongW);
-		}
-		if (kernel32)
-		{
-			Logging::Log() << "Installing Kernel32 hooks";
-			Utils::GetDiskFreeSpaceA_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetDiskFreeSpaceA"), "GetDiskFreeSpaceA", Utils::kernel_GetDiskFreeSpaceA);
-			if (!Utils::CreateThread_out)
-			{
-				Utils::CreateThread_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "CreateThread"), "CreateThread", Utils::kernel_CreateThread);
-			}
-			Utils::VirtualAlloc_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "VirtualAlloc"), "VirtualAlloc", Utils::kernel_VirtualAlloc);
-			//Utils::HeapAlloc_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "HeapAlloc"), "HeapAlloc", Utils::kernel_HeapAlloc);
-			Utils::HeapSize_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "HeapSize"), "HeapSize", Utils::kernel_HeapSize);
-		}
-		RunOnce = false;
-	}
+		LPSTR lpName;
+		HMONITOR hm;
+	};
+
+	std::vector<m_IDirectDrawClipper*> BaseClipperVector;
 }
 
-void ExitDDraw()
-{
-	if (IsInitialized)
-	{
-		IsInitialized = false;
-		DeleteCriticalSection(&ddcs);
-	}
-}
+static void SetAllAppCompatData();
+static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType);
 
-// Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
-// http://web.archive.org/web/20170418171908/http://www.blitzbasic.com/Community/posts.php?topic=99477
-static void SetAllAppCompatData()
-{
-	DEFINE_STATIC_PROC_ADDRESS(SetAppCompatDataProc, SetAppCompatData, SetAppCompatData_out);
-
-	if (!SetAppCompatData)
-	{
-		Logging::Log() << __FUNCTION__ << " Error: Failed to get `SetAppCompatData` address!";
-		return;
-	}
-
-	// Set AppCompatData
-	for (DWORD x = 1; x <= 12; x++)
-	{
-		if (Config.DXPrimaryEmulation[x])
-		{
-			Logging::Log() << __FUNCTION__ << " SetAppCompatData: " << x << " " << (DWORD)((x == AppCompatDataType.LockColorkey) ? AppCompatDataType.LockColorkey : 0);
-
-			// For LockColorkey, this one uses the second parameter
-			if (x == AppCompatDataType.LockColorkey)
-			{
-				SetAppCompatData(x, Config.LockColorkey);
-			}
-			// For all the other items
-			else
-			{
-				SetAppCompatData(x, 0);
-			}
-		}
-	}
-	return;
-}
+// ******************************
+// ddraw.dll export functions
+// ******************************
 
 HRESULT WINAPI dd_AcquireDDThreadLock()
 {
@@ -476,137 +391,6 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 	return hr;
 }
 
-static BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
-{
-	UNREFERENCED_PARAMETER(hdcMonitor);
-	UNREFERENCED_PARAMETER(lprcMonitor);
-
-	ENUMMONITORS *lpMonitors = (ENUMMONITORS *)dwData;
-	if (!dwData || !lpMonitors->lpName)
-	{
-		return DDENUMRET_CANCEL;
-	}
-
-	MONITORINFOEX monitorInfo;
-	ZeroMemory(&monitorInfo, sizeof(monitorInfo));
-	monitorInfo.cbSize = sizeof(monitorInfo);
-
-	if (!GetMonitorInfo(hMonitor, &monitorInfo))
-	{
-		return DDENUMRET_OK;
-	}
-
-	if (strcmp(monitorInfo.szDevice, lpMonitors->lpName) == 0)
-	{
-		lpMonitors->hm = hMonitor;
-		return DDENUMRET_CANCEL;
-	}
-
-	return DDENUMRET_OK;
-}
-
-static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
-{
-	UNREFERENCED_PARAMETER(dwFlags);
-
-	if (!lpCallback)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
-	// Declare Direct3DCreate9
-	DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9Proc, Direct3DCreate9, Direct3DCreate9_out);
-
-	if (!Direct3DCreate9)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
-		return DDERR_UNSUPPORTED;
-	}
-
-	// Create Direct3D9 object
-	ComPtr<IDirect3D9> d3d9Object(Direct3DCreate9(D3D_SDK_VERSION));
-
-	// Error handling
-	if (!d3d9Object)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 object");
-		return DDERR_UNSUPPORTED;
-	}
-	D3DADAPTER_IDENTIFIER9 Identifier = {};
-	int AdapterCount = (!dwFlags) ? 0 : (int)d3d9Object->GetAdapterCount();
-
-	GUID* lpGUID;
-	LPSTR lpDesc, lpName;
-	wchar_t lpwName[32] = { '\0' };
-	wchar_t lpwDesc[128] = { '\0' };
-	HMONITOR hm = nullptr;
-	HRESULT hr = DD_OK;
-	for (int x = -1; x < AdapterCount; x++)
-	{
-		if (x == -1)
-		{
-			lpGUID = nullptr;
-			lpDesc = "Primary Display Driver";
-			lpName = "display";
-			hm = nullptr;
-		}
-		else
-		{
-			if (FAILED(d3d9Object->GetAdapterIdentifier(x, 0, &Identifier)))
-			{
-				hr = DDERR_UNSUPPORTED;
-				break;
-			}
-			lpGUID = &Identifier.DeviceIdentifier;
-			lpDesc = Identifier.Description;
-			lpName = Identifier.DeviceName;
-
-			if (DDETType == DDET_ENUMCALLBACKEXA || DDETType == DDET_ENUMCALLBACKEXW)
-			{
-				ENUMMONITORS Monitors = {};
-				Monitors.lpName = lpName;
-				Monitors.hm = nullptr;
-				EnumDisplayMonitors(nullptr, nullptr, DispayEnumeratorProc, (LPARAM)&Monitors);
-				hm = Monitors.hm;
-			}
-		}
-
-		if (DDETType == DDET_ENUMCALLBACKEXW || DDETType == DDET_ENUMCALLBACKW)
-		{
-			size_t nReturn;
-			mbstowcs_s(&nReturn, lpwName, lpName, 32);
-			mbstowcs_s(&nReturn, lpwDesc, lpDesc, 128);
-		}
-
-		BOOL hr_Callback = DDENUMRET_OK;
-		switch (DDETType)
-		{
-		case DDET_ENUMCALLBACKA:
-			hr_Callback = LPDDENUMCALLBACKA(lpCallback)(lpGUID, lpDesc, lpName, lpContext);
-			break;
-		case DDET_ENUMCALLBACKEXA:
-			hr_Callback = LPDDENUMCALLBACKEXA(lpCallback)(lpGUID, lpDesc, lpName, lpContext, hm);
-			break;
-		case DDET_ENUMCALLBACKEXW:
-			hr_Callback = LPDDENUMCALLBACKEXW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext, hm);
-			break;
-		case DDET_ENUMCALLBACKW:
-			hr_Callback = LPDDENUMCALLBACKW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext);
-			break;
-		default:
-			hr_Callback = DDENUMRET_CANCEL;
-			hr = DDERR_UNSUPPORTED;
-		}
-
-		if (hr_Callback == DDENUMRET_CANCEL)
-		{
-			break;
-		}
-	}
-
-	return hr;
-}
-
 HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext)
 {
 	LOG_LIMIT(1, __FUNCTION__);
@@ -780,19 +564,19 @@ DWORD WINAPI dd_GetOLEThunkData(DWORD index)
 
 	if (Config.Dd7to9)
 	{
+		//	switch(index) 
+		//	{
+		//		case 1: return _dwLastFrameRate;
+		//		case 2: return _lpDriverObjectList;
+		//		case 3: return _lpAttachedProcesses;
+		//		case 4: return 0; // does nothing?
+		//		case 5: return _CheckExclusiveMode;
+		//		case 6: return 0; // ReleaseExclusiveModeMutex
+		//	}
+
 		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return NULL;
 	}
-
-	//	switch(index) 
-	//	{
-	//		case 1: return _dwLastFrameRate;
-	//		case 2: return _lpDriverObjectList;
-	//		case 3: return _lpAttachedProcesses;
-	//		case 4: return 0; // does nothing?
-	//		case 5: return _CheckExclusiveMode;
-	//		case 6: return 0; // ReleaseExclusiveModeMutex
-	//	}
 
 	DEFINE_STATIC_PROC_ADDRESS(GetOLEThunkDataProc, GetOLEThunkData, GetOLEThunkData_out);
 
@@ -886,6 +670,234 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 	}
 
 	return SetAppCompatData(Type, Value);
+}
+
+// ******************************
+// Helper functions
+// ******************************
+
+void InitDDraw()
+{
+	if (!IsInitialized)
+	{
+		InitializeCriticalSection(&ddcs);
+		IsInitialized = true;
+	}
+
+	// Hook other gdi32 and user32 APIs
+	static bool RunOnce = true;
+	if (RunOnce)
+	{
+		Logging::Log() << "Installing GDI & User32 hooks";
+		using namespace GdiWrapper;
+		if (!GetModuleHandleA("gdi32.dll")) LoadLibrary("gdi32.dll");
+		if (!GetModuleHandleA("user32.dll")) LoadLibrary("user32.dll");
+		HMODULE gdi32 = GetModuleHandleA("gdi32.dll");
+		HMODULE user32 = GetModuleHandleA("user32.dll");
+		HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
+		if (gdi32)
+		{
+			GetDeviceCaps_out = (FARPROC)Hook::HotPatch(GetProcAddress(gdi32, "GetDeviceCaps"), "GetDeviceCaps", gdi_GetDeviceCaps);
+		}
+		if (user32)
+		{
+			CreateWindowExA_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
+			CreateWindowExW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
+			DestroyWindow_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "DestroyWindow"), "DestroyWindow", user_DestroyWindow);
+			GetSystemMetrics_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "GetSystemMetrics"), "GetSystemMetrics", user_GetSystemMetrics);
+			//GetWindowLongA_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "GetWindowLongA"), "GetWindowLongA", user_GetWindowLongA);
+			//GetWindowLongW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "GetWindowLongW"), "GetWindowLongW", user_GetWindowLongW);
+			//SetWindowLongA_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "SetWindowLongA"), "SetWindowLongA", user_SetWindowLongA);
+			//SetWindowLongW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "SetWindowLongW"), "SetWindowLongW", user_SetWindowLongW);
+		}
+		if (kernel32)
+		{
+			Logging::Log() << "Installing Kernel32 hooks";
+			Utils::GetDiskFreeSpaceA_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetDiskFreeSpaceA"), "GetDiskFreeSpaceA", Utils::kernel_GetDiskFreeSpaceA);
+			if (!Utils::CreateThread_out)
+			{
+				Utils::CreateThread_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "CreateThread"), "CreateThread", Utils::kernel_CreateThread);
+			}
+			Utils::VirtualAlloc_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "VirtualAlloc"), "VirtualAlloc", Utils::kernel_VirtualAlloc);
+			//Utils::HeapAlloc_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "HeapAlloc"), "HeapAlloc", Utils::kernel_HeapAlloc);
+			Utils::HeapSize_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "HeapSize"), "HeapSize", Utils::kernel_HeapSize);
+		}
+		RunOnce = false;
+	}
+}
+
+void ExitDDraw()
+{
+	if (IsInitialized)
+	{
+		IsInitialized = false;
+		DeleteCriticalSection(&ddcs);
+	}
+}
+
+// Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
+// http://web.archive.org/web/20170418171908/http://www.blitzbasic.com/Community/posts.php?topic=99477
+static void SetAllAppCompatData()
+{
+	DEFINE_STATIC_PROC_ADDRESS(SetAppCompatDataProc, SetAppCompatData, SetAppCompatData_out);
+
+	if (!SetAppCompatData)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to get `SetAppCompatData` address!";
+		return;
+	}
+
+	// Set AppCompatData
+	for (DWORD x = 1; x <= 12; x++)
+	{
+		if (Config.DXPrimaryEmulation[x])
+		{
+			Logging::Log() << __FUNCTION__ << " SetAppCompatData: " << x << " " << (DWORD)((x == AppCompatDataType.LockColorkey) ? AppCompatDataType.LockColorkey : 0);
+
+			// For LockColorkey, this one uses the second parameter
+			if (x == AppCompatDataType.LockColorkey)
+			{
+				SetAppCompatData(x, Config.LockColorkey);
+			}
+			// For all the other items
+			else
+			{
+				SetAppCompatData(x, 0);
+			}
+		}
+	}
+	return;
+}
+
+static BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+{
+	UNREFERENCED_PARAMETER(hdcMonitor);
+	UNREFERENCED_PARAMETER(lprcMonitor);
+
+	ENUMMONITORS* lpMonitors = (ENUMMONITORS*)dwData;
+	if (!dwData || !lpMonitors->lpName)
+	{
+		return DDENUMRET_CANCEL;
+	}
+
+	MONITORINFOEX monitorInfo;
+	ZeroMemory(&monitorInfo, sizeof(monitorInfo));
+	monitorInfo.cbSize = sizeof(monitorInfo);
+
+	if (!GetMonitorInfo(hMonitor, &monitorInfo))
+	{
+		return DDENUMRET_OK;
+	}
+
+	if (strcmp(monitorInfo.szDevice, lpMonitors->lpName) == 0)
+	{
+		lpMonitors->hm = hMonitor;
+		return DDENUMRET_CANCEL;
+	}
+
+	return DDENUMRET_OK;
+}
+
+static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
+{
+	UNREFERENCED_PARAMETER(dwFlags);
+
+	if (!lpCallback)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	// Declare Direct3DCreate9
+	DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9Proc, Direct3DCreate9, Direct3DCreate9_out);
+
+	if (!Direct3DCreate9)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
+		return DDERR_UNSUPPORTED;
+	}
+
+	// Create Direct3D9 object
+	ComPtr<IDirect3D9> d3d9Object(Direct3DCreate9(D3D_SDK_VERSION));
+
+	// Error handling
+	if (!d3d9Object)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 object");
+		return DDERR_UNSUPPORTED;
+	}
+	D3DADAPTER_IDENTIFIER9 Identifier = {};
+	int AdapterCount = (!dwFlags) ? 0 : (int)d3d9Object->GetAdapterCount();
+
+	GUID* lpGUID;
+	LPSTR lpDesc, lpName;
+	wchar_t lpwName[32] = { '\0' };
+	wchar_t lpwDesc[128] = { '\0' };
+	HMONITOR hm = nullptr;
+	HRESULT hr = DD_OK;
+	for (int x = -1; x < AdapterCount; x++)
+	{
+		if (x == -1)
+		{
+			lpGUID = nullptr;
+			lpDesc = "Primary Display Driver";
+			lpName = "display";
+			hm = nullptr;
+		}
+		else
+		{
+			if (FAILED(d3d9Object->GetAdapterIdentifier(x, 0, &Identifier)))
+			{
+				hr = DDERR_UNSUPPORTED;
+				break;
+			}
+			lpGUID = &Identifier.DeviceIdentifier;
+			lpDesc = Identifier.Description;
+			lpName = Identifier.DeviceName;
+
+			if (DDETType == DDET_ENUMCALLBACKEXA || DDETType == DDET_ENUMCALLBACKEXW)
+			{
+				ENUMMONITORS Monitors = {};
+				Monitors.lpName = lpName;
+				Monitors.hm = nullptr;
+				EnumDisplayMonitors(nullptr, nullptr, DispayEnumeratorProc, (LPARAM)&Monitors);
+				hm = Monitors.hm;
+			}
+		}
+
+		if (DDETType == DDET_ENUMCALLBACKEXW || DDETType == DDET_ENUMCALLBACKW)
+		{
+			size_t nReturn;
+			mbstowcs_s(&nReturn, lpwName, lpName, 32);
+			mbstowcs_s(&nReturn, lpwDesc, lpDesc, 128);
+		}
+
+		BOOL hr_Callback = DDENUMRET_OK;
+		switch (DDETType)
+		{
+		case DDET_ENUMCALLBACKA:
+			hr_Callback = LPDDENUMCALLBACKA(lpCallback)(lpGUID, lpDesc, lpName, lpContext);
+			break;
+		case DDET_ENUMCALLBACKEXA:
+			hr_Callback = LPDDENUMCALLBACKEXA(lpCallback)(lpGUID, lpDesc, lpName, lpContext, hm);
+			break;
+		case DDET_ENUMCALLBACKEXW:
+			hr_Callback = LPDDENUMCALLBACKEXW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext, hm);
+			break;
+		case DDET_ENUMCALLBACKW:
+			hr_Callback = LPDDENUMCALLBACKW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext);
+			break;
+		default:
+			hr_Callback = DDENUMRET_CANCEL;
+			hr = DDERR_UNSUPPORTED;
+		}
+
+		if (hr_Callback == DDENUMRET_CANCEL)
+		{
+			break;
+		}
+	}
+
+	return hr;
 }
 
 void AddBaseClipper(m_IDirectDrawClipper* lpClipper)
