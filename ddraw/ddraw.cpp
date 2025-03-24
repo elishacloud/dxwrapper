@@ -324,7 +324,7 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	if (Config.Dd7to9 || (Config.ConvertToDirect3D7 && Config.ConvertToDirectDraw7))
+	if (Config.Dd7to9)
 	{
 		LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' to --> 'Direct3DCreate9'");
 
@@ -362,28 +362,9 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 
 	if (SUCCEEDED(hr) && lplpDD && *lplpDD)
 	{
-		// Convert to new DirectDraw version
-		if (Config.ConvertToDirectDraw7)
-		{
-			LPDIRECTDRAW lpDD = (LPDIRECTDRAW)*lplpDD;
+		m_IDirectDrawX* Interface = new m_IDirectDrawX((IDirectDraw7*)*lplpDD, 1);
 
-			hr = lpDD->QueryInterface(ConvertREFIID(IID_IDirectDraw7), (LPVOID*)lplpDD);
-
-			if (SUCCEEDED(hr))
-			{
-				m_IDirectDrawX *Interface = new m_IDirectDrawX((IDirectDraw7*)*lplpDD, 7);
-
-				*lplpDD = (LPDIRECTDRAW)Interface->GetWrapperInterfaceX(1);
-
-				lpDD->Release();
-			}
-		}
-		else
-		{
-			m_IDirectDrawX *Interface = new m_IDirectDrawX((IDirectDraw7*)*lplpDD, 1);
-
-			*lplpDD = (LPDIRECTDRAW)Interface->GetWrapperInterfaceX(1);
-		}
+		*lplpDD = (LPDIRECTDRAW)Interface->GetWrapperInterfaceX(1);
 	}
 
 	return hr;
@@ -750,7 +731,7 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
 		return DDERR_UNSUPPORTED;
 	}
 
-	HRESULT hr = DllGetClassObject(ConvertREFCLSID(rclsid), ConvertREFIID(riid), ppv);
+	HRESULT hr = DllGetClassObject(rclsid, riid, ppv);
 
 	if (SUCCEEDED(hr) && ppv)
 	{

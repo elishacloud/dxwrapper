@@ -38,60 +38,6 @@ REFIID DdrawWrapper::ReplaceIIDUnknown(REFIID riid, REFIID guid)
 	return (riid == IID_IUnknown) ? guid : riid;
 }
 
-REFCLSID DdrawWrapper::ConvertREFCLSID(REFCLSID rclsid)
-{
-	if (Config.ConvertToDirectDraw7 && rclsid == CLSID_DirectDraw)
-	{
-		return CLSID_DirectDraw7;
-	}
-
-	return rclsid;
-}
-
-REFIID DdrawWrapper::ConvertREFIID(REFIID riid)
-{
-	if (Config.ConvertToDirectDraw7)
-	{
-		if (riid == IID_IDirectDraw || riid == IID_IDirectDraw2 || riid == IID_IDirectDraw3 || riid == IID_IDirectDraw4)
-		{
-			return IID_IDirectDraw7;
-		}
-		else if (riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4)
-		{
-			return IID_IDirectDrawSurface7;
-		}
-	}
-	if (Config.ConvertToDirect3D7)
-	{
-		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3)
-		{
-			return IID_IDirect3D7;
-		}
-		else if (riid == IID_IDirect3DDevice || riid == IID_IDirect3DDevice2 || riid == IID_IDirect3DDevice3)
-		{
-			return IID_IDirect3DDevice7;
-		}
-		else if (riid == IID_IDirect3DMaterial || riid == IID_IDirect3DMaterial2)
-		{
-			return IID_IDirect3DMaterial3;
-		}
-		else if (riid == IID_IDirect3DTexture)
-		{
-			return IID_IDirect3DTexture2;
-		}
-		else if (riid == IID_IDirect3DViewport || riid == IID_IDirect3DViewport2)
-		{
-			return IID_IDirect3DViewport3;
-		}
-		else if (riid == IID_IDirect3DVertexBuffer)
-		{
-			return IID_IDirect3DVertexBuffer7;
-		}
-	}
-
-	return riid;
-}
-
 HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LPVOID * ppvObj, REFIID WrapperID)
 {
 	Logging::LogDebug() << __FUNCTION__ << " Query for " << riid << " from " << WrapperID;
@@ -116,7 +62,7 @@ HRESULT DdrawWrapper::ProxyQueryInterface(LPVOID ProxyInterface, REFIID riid, LP
 		return E_NOINTERFACE;
 	}
 
-	HRESULT hr = ((IUnknown*)ProxyInterface)->QueryInterface(ConvertREFIID(riid), ppvObj);
+	HRESULT hr = ((IUnknown*)ProxyInterface)->QueryInterface(riid, ppvObj);
 
 	if (SUCCEEDED(hr))
 	{

@@ -68,8 +68,6 @@
 	visit(DirectShowEmulation) \
 	visit(CacheClipPlane) \
 	visit(EnvironmentMapCubeFix) \
-	visit(ConvertToDirectDraw7) \
-	visit(ConvertToDirect3D7) \
 	visit(EnableDdrawWrapper) \
 	visit(EnableD3d9Wrapper) \
 	visit(EnableDinput8Wrapper) \
@@ -269,8 +267,6 @@ struct CONFIG
 	DWORD SetSwapEffectShim = 0;				// Disables the call to d3d9.dll 'Direct3D9SetSwapEffectUpgradeShim' to switch present mode
 	DWORD CacheClipPlane = 0;					// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
 	DWORD EnvironmentMapCubeFix = 0;			// Fixes environment cube maps when no texture is applied, issue exists in d3d8
-	bool ConvertToDirectDraw7 = false;			// Converts DirectDraw 1-6 to DirectDraw 7
-	bool ConvertToDirect3D7 = false;			// Converts Direct3D 1-6 to Direct3D 7
 	DWORD CustomDisplayWidth = 0;				// Custom resolution width when using LimitDisplayModeCount, resolution must be supported by video card and monitor
 	DWORD CustomDisplayHeight = 0;				// Custom resolution height when using LimitDisplayModeCount, resolution must be supported by video card and monitor
 	bool EnableDdrawWrapper = false;			// Enables the ddraw wrapper

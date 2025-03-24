@@ -179,7 +179,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		return E_NOINTERFACE;
 	}
 
-	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirectDraw7)) ? GetGUIDVersion(riid) : DirectXVersion;
+	DWORD DxVersion = (CheckWrapperType(riid) && Config.Dd7to9) ? GetGUIDVersion(riid) : DirectXVersion;
 
 	if ((riid == GetWrapperType(DxVersion) && riid != IID_IDirectDraw3) || riid == IID_IUnknown)
 	{
@@ -216,26 +216,7 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		}
 	}
 
-	HRESULT hr = ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
-
-	if (SUCCEEDED(hr) && Config.ConvertToDirect3D7)
-	{
-		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7)
-		{
-			m_IDirect3DX *lpD3DirectX = nullptr;
-
-			((IDirect3D7*)*ppvObj)->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpD3DirectX);
-
-			if (lpD3DirectX)
-			{
-				lpD3DirectX->SetDdrawParent(this);
-
-				D3DInterface = lpD3DirectX;
-			}
-		}
-	}
-
-	return hr;
+	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
 void *m_IDirectDrawX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -836,11 +817,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		m_IDirectDrawSurfaceX *D3DSurfaceDevice = new m_IDirectDrawSurfaceX((IDirectDrawSurface7*)*lplpDDSurface, DirectXVersion);
 
 		*lplpDDSurface = (LPDIRECTDRAWSURFACE7)D3DSurfaceDevice->GetWrapperInterfaceX(DirectXVersion);
-
-		if (Config.ConvertToDirectDraw7)
-		{
-			D3DSurfaceDevice->SetDdrawParent(this);
-		}
 	}
 
 	return hr;
@@ -892,11 +868,6 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 		m_IDirectDrawSurfaceX *D3DSurfaceDevice = new m_IDirectDrawSurfaceX((IDirectDrawSurface7*)*lplpDupDDSurface, DirectXVersion);
 
 		*lplpDupDDSurface = (LPDIRECTDRAWSURFACE7)D3DSurfaceDevice->GetWrapperInterfaceX(DirectXVersion);
-
-		if (Config.ConvertToDirectDraw7)
-		{
-			D3DSurfaceDevice->SetDdrawParent(this);
-		}
 	}
 
 	return hr;

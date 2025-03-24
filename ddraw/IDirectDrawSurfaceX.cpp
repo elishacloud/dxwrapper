@@ -82,7 +82,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		return E_NOINTERFACE;
 	}
 
-	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirectDraw7)) ? GetGUIDVersion(riid) : DirectXVersion;
+	DWORD DxVersion = (CheckWrapperType(riid) && Config.Dd7to9) ? GetGUIDVersion(riid) : DirectXVersion;
 
 	bool IsD3DDevice = (riid == IID_IDirect3DHALDevice || riid == IID_IDirect3DTnLHalDevice ||
 		riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DRampDevice || riid == IID_IDirect3DMMXDevice ||
@@ -195,69 +195,32 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 
 			return DD_OK;
 		}
-	}
-
-	if (Config.ConvertToDirect3D7 && (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2) && ddrawParent && !ddrawParent->IsCreatedEx())
-	{
-		DxVersion = GetGUIDVersion(riid);
-
-		m_IDirect3DTextureX* InterfaceX = nullptr;
-
-		if (!attached3DTexture)
+		if (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2)
 		{
-			attached3DTexture = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), DxVersion, this, DirectXVersion);
-		}
-		else
-		{
-			attached3DTexture->AddRef(DxVersion);	// No need to add a ref when creating a texture because it is already added when creating the texture
-		}
-
-		InterfaceX = attached3DTexture;
-
-		*ppvObj = InterfaceX->GetWrapperInterfaceX(DxVersion);
-
-		return DD_OK;
-	}
-
-	if (Config.ConvertToDirect3D7 && IsD3DDevice && ddrawParent)
-	{
-		HRESULT hr = E_NOINTERFACE;
-
-		m_IDirect3DDeviceX** lplpD3DDevice = ddrawParent->GetCurrentD3DDevice();
-		if (lplpD3DDevice && *lplpD3DDevice)
-		{
-			hr = DD_OK;
-		}
-
-		if (FAILED(hr))
-		{
-			m_IDirect3DX** lplpD3D = ddrawParent->GetCurrentD3D();
-			if (lplpD3D && *lplpD3D)
+			if (ddrawParent->IsCreatedEx())
 			{
-
-				hr = (*lplpD3D)->CreateDevice(IID_IDirect3DHALDevice,
-					(LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(DirectXVersion),
-					(LPDIRECT3DDEVICE7*)ppvObj,
-					nullptr,
-					(DirectXVersion != 4) ? DirectXVersion : 3);
+				return E_NOINTERFACE;
 			}
-		}
 
-		if (SUCCEEDED(hr))
-		{
-			m_IDirect3DDeviceX* lpD3DDeviceX = nullptr;
+			DxVersion = GetGUIDVersion(riid);
 
-			((IDirect3DDevice7*)*ppvObj)->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpD3DDeviceX);
+			m_IDirect3DTextureX* InterfaceX = nullptr;
 
-			if (lpD3DDeviceX)
+			if (!attached3DTexture)
 			{
-				lpD3DDeviceX->SetDdrawParent(ddrawParent);
-
-				ddrawParent->SetD3DDevice(lpD3DDeviceX);
+				attached3DTexture = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), DxVersion, this, DirectXVersion);
 			}
-		}
+			else
+			{
+				attached3DTexture->AddRef(DxVersion);	// No need to add a ref when creating a texture because it is already added when creating the texture
+			}
 
-		return SUCCEEDED(hr) ? DD_OK : E_NOINTERFACE;
+			InterfaceX = attached3DTexture;
+
+			*ppvObj = InterfaceX->GetWrapperInterfaceX(DxVersion);
+
+			return DD_OK;
+		}
 	}
 
 	HRESULT hr = ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
@@ -1879,18 +1842,6 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 	if (SUCCEEDED(hr) && lplpDDAttachedSurface)
 	{
 		*lplpDDAttachedSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDDAttachedSurface, DirectXVersion);
-
-		if (Config.ConvertToDirectDraw7 && *lplpDDAttachedSurface)
-		{
-			m_IDirectDrawSurfaceX *lpDDSurfaceX = nullptr;
-
-			(*lplpDDAttachedSurface)->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSurfaceX);
-
-			if (lpDDSurfaceX)
-			{
-				lpDDSurfaceX->SetDdrawParent(ddrawParent);
-			}
-		}
 	}
 
 	return hr;

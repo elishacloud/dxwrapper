@@ -72,7 +72,7 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD Dir
 		return E_NOINTERFACE;
 	}
 
-	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirect3D7)) ? GetGUIDVersion(riid) : DirectXVersion;
+	DWORD DxVersion = (CheckWrapperType(riid) && Config.Dd7to9) ? GetGUIDVersion(riid) : DirectXVersion;
 
 	if ((ddrawParent && ((riid == IID_IDirect3D7 && ddrawParent->IsCreatedEx()) || (riid == GetWrapperType(DxVersion) && riid != IID_IDirect3D7 && !ddrawParent->IsCreatedEx()))) ||
 		(!ddrawParent && (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)))
@@ -784,11 +784,6 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		m_IDirect3DDeviceX *Interface = new m_IDirect3DDeviceX((m_IDirect3DDevice7*)*lplpD3DDevice, DirectXVersion);
 
 		*lplpD3DDevice = (LPDIRECT3DDEVICE7)Interface->GetWrapperInterfaceX(DirectXVersion);
-
-		if (Config.ConvertToDirect3D7 && ddrawParent)
-		{
-			Interface->SetDdrawParent(ddrawParent);
-		}
 	}
 
 	return hr;

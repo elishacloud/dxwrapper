@@ -106,8 +106,6 @@ namespace DdrawWrapper
 {
 	DWORD GetGUIDVersion(REFIID CalledID);
 	REFIID ReplaceIIDUnknown(REFIID riid, REFIID guid);
-	REFCLSID ConvertREFCLSID(REFCLSID rclsid);
-	REFIID ConvertREFIID(REFIID riid);
 	HRESULT SetCriticalSection();
 	HRESULT ReleaseCriticalSection();
 	HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID);

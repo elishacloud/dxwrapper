@@ -31,13 +31,6 @@
 
 INITIALIZE_OUT_WRAPPED_PROC(CoCreateInstance, unused);
 
-#ifdef DDRAW
-namespace DdrawWrapper
-{
-	REFIID ConvertREFIID(REFIID riid);
-}
-#endif
-
 #ifdef DINPUT8
 namespace dinputto8
 {
@@ -48,23 +41,9 @@ namespace dinputto8
 REFIID ConvertAllREFIID(REFIID riid)
 {
 #ifdef DINPUT8
-#ifdef DDRAW
-	if (Config.Dinputto8)
-	{
-		return DdrawWrapper::ConvertREFIID(dinputto8::ConvertREFIID(riid));
-	}
-#endif
-#endif
-#ifdef DINPUT8
 	if (Config.Dinputto8)
 	{
 		return dinputto8::ConvertREFIID(riid);
-	}
-#endif
-#ifdef DDRAW
-	if (Config.Dd7to9)
-	{
-		return DdrawWrapper::ConvertREFIID(riid);
 	}
 #endif
 	return riid;
