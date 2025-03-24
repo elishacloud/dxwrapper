@@ -1901,7 +1901,7 @@
     <ClInclude Include="Libraries\ComPtr.h">
       <Filter>Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="Libraries\AutoGuard.h">
+    <ClInclude Include="Libraries\ScopeGuard.h">
       <Filter>Libraries</Filter>
     </ClInclude>
   </ItemGroup>

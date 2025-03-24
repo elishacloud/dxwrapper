@@ -190,7 +190,7 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 		// Present new color setting
 		if (ddrawParent)
 		{
-			AutoDDCriticalSection ThreadLockDD;
+			ScopedDDCriticalSection ThreadLockDD;
 
 			ddrawParent->SetVsync();
 

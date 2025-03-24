@@ -17,7 +17,6 @@
 */
 
 #include "d3d9.h"
-#include "d3d9External.h"
 #include "External\Hooking\Hook.h"
 
 namespace D3d9Wrapper

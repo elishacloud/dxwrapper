@@ -107,7 +107,7 @@ namespace D3d9Wrapper
 }
 
 #include "ComPtr.h"
-#include "AutoGuard.h"
+#include "ScopeGuard.h"
 
 #include "IDirect3DDevice9Ex.h"
 #include "IDirect3DCubeTexture9.h"

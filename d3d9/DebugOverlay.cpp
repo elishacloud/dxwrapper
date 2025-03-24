@@ -18,7 +18,7 @@
 
 #include "DebugOverlay.h"
 #include <sstream>
-#include "d3d9\d3d9External.h"
+#include "d3d9.h"
 #include "GDI\WndProc.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS

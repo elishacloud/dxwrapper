@@ -17,7 +17,6 @@
 */
 
 #include "ddraw.h"
-#include "ddrawExternal.h"
 #include "Utils\Utils.h"
 #include "GDI\GDI.h"
 #include "GDI\WndProc.h"
@@ -2483,7 +2482,7 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 
 	AddRef(DirectXVersion);
 
-	AutoDDCriticalSection ThreadLockDD;
+	ScopedDDCriticalSection ThreadLockDD;
 
 	DDrawVector.push_back(this);
 
@@ -2685,7 +2684,7 @@ void m_IDirectDrawX::ReleaseInterface()
 		return;
 	}
 
-	AutoDDCriticalSection ThreadLockDD;
+	ScopedDDCriticalSection ThreadLockDD;
 	AutoPTCriticalSection ThreadLockPT;
 
 	// Don't delete wrapper interface
@@ -3225,7 +3224,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 		return DDERR_WRONGMODE;
 	}
 
-	AutoDDCriticalSection ThreadLockDD;
+	ScopedDDCriticalSection ThreadLockDD;
 	AutoPTCriticalSection ThreadLockPT;
 
 	// Reset device if current thread matches creation thread
@@ -3304,7 +3303,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		return d3d9Device ? DD_OK : DDERR_GENERIC;
 	}
 
-	AutoDDCriticalSection ThreadLockDD;
+	ScopedDDCriticalSection ThreadLockDD;
 	AutoPTCriticalSection ThreadLockPT;
 
 	HRESULT hr = DD_OK;
@@ -3774,7 +3773,7 @@ void m_IDirectDrawX::SetCurrentRenderTarget()
 
 HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 {
-	AutoDDCriticalSection ThreadLockDD;
+	ScopedDDCriticalSection ThreadLockDD;
 	AutoPTCriticalSection ThreadLockPT;
 
 	HRESULT hr = D3D_OK;
@@ -3923,7 +3922,7 @@ inline void m_IDirectDrawX::ReleaseD3D9IndexBuffer()
 // Release all dd9 resources
 inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 {
-	AutoDDCriticalSection ThreadLockDD;
+	ScopedDDCriticalSection ThreadLockDD;
 	AutoPTCriticalSection ThreadLockPT;
 
 	// Remove render target and depth stencil surfaces
@@ -4061,7 +4060,7 @@ void m_IDirectDrawX::ReleaseD9Device()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	AutoDDCriticalSection ThreadLockDD;
+	ScopedDDCriticalSection ThreadLockDD;
 	AutoPTCriticalSection ThreadLockPT;
 
 	if (d3d9Device)
@@ -4858,7 +4857,7 @@ DWORD WINAPI PresentThreadFunction(LPVOID)
 			}
 			if (pDDraw && pDDraw->IsUsingThreadPresent() && pPrimarySurface && pPrimarySurface->GetD3d9Texture())
 			{
-				AutoCriticalSection ThreadLock(pPrimarySurface->GetSurfaceCriticalSection());
+				ScopedCriticalSection ThreadLock(pPrimarySurface->GetSurfaceCriticalSection());
 
 				// Begin scene
 				d3d9Device->BeginScene();

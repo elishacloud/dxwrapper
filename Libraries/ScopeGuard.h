@@ -1,29 +1,29 @@
 #pragma once
 
-struct AutoSetFlag {
+struct ScopedFlagSet {
     bool& flag;
 
     // Constructor sets the flag to true
-    AutoSetFlag(bool& setflag) : flag(setflag) {
+    ScopedFlagSet(bool& setflag) : flag(setflag) {
         flag = true;
     }
 
     // Destructor sets the flag back to false
-    ~AutoSetFlag() {
+    ~ScopedFlagSet() {
         flag = false;
     }
 };
 
-struct AutoCriticalSection {
+struct ScopedCriticalSection {
     CRITICAL_SECTION* cs;
 
     // Constructor enters critical section
-    AutoCriticalSection(CRITICAL_SECTION* cs) : cs(cs) {
+    ScopedCriticalSection(CRITICAL_SECTION* cs) : cs(cs) {
         EnterCriticalSection(cs);
     }
 
     // Destructor leaves critical section
-    ~AutoCriticalSection() {
+    ~ScopedCriticalSection() {
         LeaveCriticalSection(cs);
     }
 };

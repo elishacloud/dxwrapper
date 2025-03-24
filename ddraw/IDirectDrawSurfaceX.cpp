@@ -657,8 +657,8 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		// Set critical section
-		AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
-		AutoCriticalSection ThreadLockSrc(lpDDSrcSurfaceX->GetSurfaceCriticalSection());
+		ScopedCriticalSection ThreadLock(GetSurfaceCriticalSection());
+		ScopedCriticalSection ThreadLockSrc(lpDDSrcSurfaceX->GetSurfaceCriticalSection());
 
 		// Present before write if needed
 		if (PresentBlt)
@@ -915,7 +915,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 
 	bool IsSkipScene = false;
 
-	AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
+	ScopedCriticalSection ThreadLock(GetSurfaceCriticalSection());
 
 	// Present before write if needed
 	BeginWritePresent(IsSkipScene);
@@ -1521,8 +1521,8 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			}
 		}
 
-		AutoDDCriticalSection ThreadLockDD;
-		AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
+		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLock(GetSurfaceCriticalSection());
 
 		// Create flip list
 		std::vector<m_IDirectDrawSurfaceX*> FlipList;
@@ -1595,7 +1595,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			return false; };
 
 		// Prepare critical sections
-		std::vector<AutoCriticalSection> ThreadLocks;
+		std::vector<ScopedCriticalSection> ThreadLocks;
 		ThreadLocks.reserve(FlipList.size());
 
 		// Set critical section for each surface
@@ -2143,7 +2143,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: does not support device context with bit alignment!");
 		}
 
-		AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
+		ScopedCriticalSection ThreadLock(GetSurfaceCriticalSection());
 
 		// Present before write if needed
 		BeginWritePresent(false);
@@ -2785,7 +2785,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Check if the scene needs to be presented
 		const bool IsSkipScene = (CheckRectforSkipScene(DestRect) || (Flags & D3DLOCK_READONLY));
 
-		AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
+		ScopedCriticalSection ThreadLock(GetSurfaceCriticalSection());
 
 		// Present before write if needed
 		BeginWritePresent(IsSkipScene);
@@ -3321,7 +3321,7 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 			return DD_OK;
 		}
 
-		AutoDDCriticalSection ThreadLockDD;
+		ScopedDDCriticalSection ThreadLockDD;
 
 		// If palette exists increament ref
 		if (lpDDPalette)
@@ -4733,7 +4733,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 		return DDERR_GENERIC;
 	}
 
-	AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
+	ScopedCriticalSection ThreadLock(GetSurfaceCriticalSection());
 
 	// Release existing surface
 	ReleaseD9Surface(true, false);
@@ -5188,7 +5188,7 @@ inline void m_IDirectDrawSurfaceX::UnsetEmulationGameDC()
 
 HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 {
-	AutoDDCriticalSection ThreadLockDD;
+	ScopedDDCriticalSection ThreadLockDD;
 
 	// Check if color masks are needed
 	bool ColorMaskReq = ((surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32) &&									// Only valid when used with 16 bit, 24 bit and 32 bit surfaces
@@ -5593,7 +5593,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9AuxiliarySurfaces()
 // Release surface and vertext buffer
 void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 {
-	AutoCriticalSection ThreadLock(GetSurfaceCriticalSection());
+	ScopedCriticalSection ThreadLock(GetSurfaceCriticalSection());
 
 	// Check if surface is busy
 	if (IsSurfaceBusy())
@@ -5736,7 +5736,7 @@ inline void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 {
 	if (surface.emu)
 	{
-		AutoDDCriticalSection ThreadLockDD;
+		ScopedDDCriticalSection ThreadLockDD;
 
 		if (!ShareEmulatedMemory || !IsUsingEmulation())
 		{
@@ -7646,7 +7646,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRe
 		return DDERR_GENERIC;
 	}
 
-	AutoDDCriticalSection ThreadLockDD;
+	ScopedDDCriticalSection ThreadLockDD;
 
 	HRESULT hr = DD_OK;
 
@@ -7993,7 +7993,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	const PALETTEENTRY* NewPaletteEntry = nullptr;
 	const RGBQUAD* NewRGBPalette = nullptr;
 
-	AutoDDCriticalSection ThreadLockDD;
+	ScopedDDCriticalSection ThreadLockDD;
 
 	// Get palette data
 	if (attachedPalette)
@@ -8066,7 +8066,7 @@ void m_IDirectDrawSurfaceX::DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface)
 
 	LOG_LIMIT(100, __FUNCTION__ << " Deleting emulated surface (" << *ppEmuSurface << ")");
 
-	AutoDDCriticalSection ThreadLockDD;
+	ScopedDDCriticalSection ThreadLockDD;
 
 	// Release device context memory
 	if ((*ppEmuSurface)->DC)
@@ -8101,7 +8101,7 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 	// Disable shared memory
 	ShareEmulatedMemory = false;
 	
-	AutoDDCriticalSection ThreadLockDD;
+	ScopedDDCriticalSection ThreadLockDD;
 
 	LOG_LIMIT(100, __FUNCTION__ << " Deleting " << memorySurfaces.size() << " emulated surface" << ((memorySurfaces.size() != 1) ? "s" : "") << "!");
 

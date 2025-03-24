@@ -15,7 +15,6 @@
 */
 
 #include "d3d9.h"
-#include "d3d9\d3d9External.h"
 #include "ddraw\Shaders\GammaPixelShader.h"
 #include "GDI\WndProc.h"
 #include "Utils\Utils.h"
@@ -906,7 +905,7 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 
 inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 {
-	AutoCriticalSection ThreadLock(&SHARED.d9cs);
+	ScopedCriticalSection ThreadLock(&SHARED.d9cs);
 
 	if (SHARED.DontReleaseResources)
 	{
@@ -1305,8 +1304,8 @@ HRESULT m_IDirect3DDevice9Ex::SetPixelShader(THIS_ IDirect3DPixelShader9* pShade
 
 void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 {
-	AutoCriticalSection ThreadLock(&SHARED.d9cs);
-	AutoSetFlag AutoSet(SHARED.DontReleaseResources);
+	ScopedCriticalSection ThreadLock(&SHARED.d9cs);
+	ScopedFlagSet AutoSet(SHARED.DontReleaseResources);
 
 	bool CalledBeginScene = false;
 

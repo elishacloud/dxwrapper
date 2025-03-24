@@ -55,6 +55,7 @@ class m_IDirectDrawPalette;
 class m_IDirectDrawColorControl;
 class m_IDirectDrawGammaControl;
 
+#include "ddraw\ddrawExternal.h"
 #include "AddressLookupTable.h"
 #include "IClassFactory\IClassFactory.h"
 #include "Settings\Settings.h"
@@ -106,14 +107,12 @@ namespace DdrawWrapper
 {
 	DWORD GetGUIDVersion(REFIID CalledID);
 	REFIID ReplaceIIDUnknown(REFIID riid, REFIID guid);
-	HRESULT SetCriticalSection();
-	HRESULT ReleaseCriticalSection();
 	HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID);
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj);
 
-	struct AutoDDCriticalSection {
-		AutoDDCriticalSection() { SetCriticalSection(); }
-		~AutoDDCriticalSection() { ReleaseCriticalSection(); }
+	struct ScopedDDCriticalSection {
+		ScopedDDCriticalSection() { dd_AcquireDDThreadLock(); }
+		~ScopedDDCriticalSection() { dd_ReleaseDDThreadLock(); }
 	};
 }
 
@@ -139,7 +138,7 @@ extern DWORD ScaleDDPadX;
 extern DWORD ScaleDDPadY;
 
 #include "ComPtr.h"
-#include "AutoGuard.h"
+#include "ScopeGuard.h"
 
 using namespace DdrawWrapper;
 
