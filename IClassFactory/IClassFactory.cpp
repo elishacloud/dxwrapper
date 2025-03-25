@@ -251,11 +251,19 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 			}
 
 			IDirectDraw *pDirectDraw = nullptr;
-			HRESULT hr = ((DirectDrawCreateProc)ddraw::DirectDrawCreate_var)(nullptr, &pDirectDraw, pUnkOuter);
+			HRESULT hr;
+			if (riid == IID_IDirectDraw7)
+			{
+				hr = ((DirectDrawCreateExProc)ddraw::DirectDrawCreateEx_var)(nullptr, (LPVOID*)&pDirectDraw, riid, pUnkOuter);
+			}
+			else
+			{
+				hr = ((DirectDrawCreateProc)ddraw::DirectDrawCreate_var)(nullptr, &pDirectDraw, pUnkOuter);
+			}
 
 			if (SUCCEEDED(hr) && pDirectDraw)
 			{
-				if (riid == IID_IUnknown || riid == IID_IDirectDraw)
+				if (riid == IID_IUnknown || riid == IID_IDirectDraw || riid == IID_IDirectDraw7)
 				{
 					*ppv = pDirectDraw;
 				}
