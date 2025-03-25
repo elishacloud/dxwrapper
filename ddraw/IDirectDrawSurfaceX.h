@@ -1,8 +1,5 @@
 #pragma once
 
-#include <map>
-#include "d3dx9.h"
-
 // Emulated surface
 struct EMUSURFACE
 {

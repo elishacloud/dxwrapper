@@ -20,7 +20,6 @@
 
 #include <sstream>
 #include "ddraw.h"
-#include "d3dx9.h"
 #include "Utils\Utils.h"
 
 constexpr DWORD ExtraDataBufferSize = 200;

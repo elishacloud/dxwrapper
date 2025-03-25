@@ -8,6 +8,9 @@
 #include <d3d.h>
 #include <d3dhal.h>
 #include <memory>
+#include <map>
+#include <unordered_map>
+#include <unordered_set>
 
 // Enable for testing
 //#define ENABLE_PROFILING
@@ -55,6 +58,8 @@ class m_IDirectDrawPalette;
 class m_IDirectDrawColorControl;
 class m_IDirectDrawGammaControl;
 
+#include "d3dx9.h"
+#include "External\DirectXMath\Inc\DirectXMath.h"
 #include "ddraw\ddrawExternal.h"
 #include "AddressLookupTable.h"
 #include "IClassFactory\IClassFactory.h"

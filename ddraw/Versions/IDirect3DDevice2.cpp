@@ -71,7 +71,7 @@ HRESULT m_IDirect3DDevice2::GetStats(LPD3DSTATS a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetStats(a, DirectXVersion);
+	return ProxyInterface->GetStats(a);
 }
 
 HRESULT m_IDirect3DDevice2::AddViewport(LPDIRECT3DVIEWPORT2 a)

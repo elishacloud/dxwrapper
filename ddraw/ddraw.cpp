@@ -736,7 +736,6 @@ void ExitDDraw()
 }
 
 // Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
-// http://web.archive.org/web/20170418171908/http://www.blitzbasic.com/Community/posts.php?topic=99477
 static void SetAllAppCompatData()
 {
 	DEFINE_STATIC_PROC_ADDRESS(SetAppCompatDataProc, SetAppCompatData, SetAppCompatData_out);

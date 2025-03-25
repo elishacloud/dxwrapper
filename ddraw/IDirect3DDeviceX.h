@@ -1,9 +1,5 @@
 #pragma once
 
-#include <unordered_map>
-#include <unordered_set>
-#include "External\DirectXMath\Inc\DirectXMath.h"
-
 class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
@@ -298,7 +294,7 @@ public:
 	STDMETHOD(SetTextureStageState)(THIS_ DWORD, D3DTEXTURESTAGESTATETYPE, DWORD);
 	STDMETHOD(GetCaps)(THIS_ LPD3DDEVICEDESC, LPD3DDEVICEDESC);
 	STDMETHOD(GetCaps)(THIS_ LPD3DDEVICEDESC7);
-	STDMETHOD(GetStats)(THIS_ LPD3DSTATS, DWORD);
+	STDMETHOD(GetStats)(THIS_ LPD3DSTATS);
 	STDMETHOD(AddViewport)(THIS_ LPDIRECT3DVIEWPORT3);
 	STDMETHOD(DeleteViewport)(THIS_ LPDIRECT3DVIEWPORT3);
 	STDMETHOD(NextViewport)(THIS_ LPDIRECT3DVIEWPORT3, LPDIRECT3DVIEWPORT3*, DWORD, DWORD);
