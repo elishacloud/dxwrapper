@@ -20,7 +20,6 @@ private:
 	// Convert Device
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirect3DX* D3DInterface = nullptr;
-	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 	LPDIRECT3DPIXELSHADER9* colorkeyPixelShader = nullptr;
 	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
@@ -114,8 +113,11 @@ private:
 	// Default settings
 	D3DVIEWPORT9 DefaultViewport = {};
 
-	// SetTexture array
+	// Render target
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
+	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
+
+	// SetTexture array
 	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[MaxTextureStages] = {};
 	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureStages] = {};
 

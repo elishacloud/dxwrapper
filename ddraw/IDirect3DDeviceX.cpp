@@ -1506,11 +1506,11 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 				CurrentRenderTarget->Release();
 			}
 
-			lpNewRenderTarget = CurrentRenderTarget;
-
-			CurrentRenderTarget->AddRef();
+			CurrentRenderTarget = lpNewRenderTarget;
 
 			lpCurrentRenderTargetX = lpDDSrcSurfaceX;
+
+			CurrentRenderTarget->AddRef();
 		}
 
 		return D3D_OK;
@@ -4525,6 +4525,14 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 		return;
 	}
 
+	if (CurrentRenderTarget)
+	{
+		lpCurrentRenderTargetX = nullptr;
+
+		CurrentRenderTarget->Release();
+		CurrentRenderTarget = nullptr;
+	}
+
 	if (ddrawParent)
 	{
 		ddrawParent->ClearD3DDevice(this);
@@ -4533,11 +4541,6 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 	if (D3DInterface)
 	{
 		D3DInterface->ClearD3DDevice(this);
-	}
-
-	if (CurrentRenderTarget)
-	{
-		CurrentRenderTarget->Release();
 	}
 
 	// Don't delete wrapper interface
