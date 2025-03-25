@@ -3447,19 +3447,62 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				break;
 			}
 
-			Logging::Log() << __FUNCTION__ << " Recreate device! Last create: " << LasthWnd << "->" << hWnd << " " <<
-				" Windowed: " << presParamsBackup.Windowed << "->" << presParams.Windowed << " " <<
-				presParamsBackup.BackBufferWidth << "x" << presParamsBackup.BackBufferHeight << "->" <<
-				presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " <<
-				Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
-
-			ReleaseAllD9Resources(true, false);
-			ReleaseD9Device();
-
-			// Reset display mode after release when display mode is already setup and there is a primary surface
-			if (presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)))
+			// Check if device needs to be reset
+			hr = TestD3D9CooperativeLevel();
+			if ((hr == D3D_OK || hr == DDERR_NOEXCLUSIVEMODE || hr == D3DERR_DEVICENOTRESET) &&
+				presParamsBackup.hDeviceWindow == presParams.hDeviceWindow && LastBehaviorFlags == BehaviorFlags)
 			{
-				Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
+				Logging::Log() << __FUNCTION__ << " Resetting device! Last create: " << LasthWnd << "->" << hWnd << " " <<
+					" Windowed: " << presParamsBackup.Windowed << "->" << presParams.Windowed << " " <<
+					presParamsBackup.BackBufferWidth << "x" << presParamsBackup.BackBufferHeight << "->" <<
+					presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " <<
+					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
+
+				ReleaseAllD9Resources(true, false);
+
+				// Prepare window and display size
+				if ((!presParams.Windowed || FullScreenWindowed) && !Config.EnableWindowMode)
+				{
+					Utils::SetDisplaySettings(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
+
+					SetWindowPos(hWnd, ((GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP),
+						0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_NOZORDER | SWP_NOMOVE);
+				}
+
+				hr = d3d9Device->Reset(&presParams);
+
+				if (FAILED(hr))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device! " << (DDERR)hr << " " <<
+						presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
+						" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags));
+
+					ReleaseD9Device();
+
+					// Reset display mode after release when display mode is already setup and there is a primary surface
+					if (presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)))
+					{
+						Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
+					}
+				}
+			}
+			// Just release device and recreate it
+			else
+			{
+				Logging::Log() << __FUNCTION__ << " Recreate device! Last create: " << LasthWnd << "->" << hWnd << " " <<
+					" Windowed: " << presParamsBackup.Windowed << "->" << presParams.Windowed << " " <<
+					presParamsBackup.BackBufferWidth << "x" << presParamsBackup.BackBufferHeight << "->" <<
+					presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " <<
+					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
+
+				ReleaseAllD9Resources(true, false);
+				ReleaseD9Device();
+
+				// Reset display mode after release when display mode is already setup and there is a primary surface
+				if (presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)))
+				{
+					Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
+				}
 			}
 		}
 
