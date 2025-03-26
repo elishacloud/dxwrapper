@@ -53,8 +53,6 @@ namespace {
 }
 
 // Default resolution
-DWORD DefaultWidth = 0;
-DWORD DefaultHeight = 0;
 RECT LastWindowRect = {};
 
 // Exclusive mode settings
@@ -104,15 +102,15 @@ std::chrono::steady_clock::time_point presentTime;
 // Preset from another thread
 PRESENTTHREAD PresentThread = {};
 
-struct AutoPTCriticalSection {
-	AutoPTCriticalSection()
+struct ScopedPTCriticalSection {
+	ScopedPTCriticalSection()
 	{
 		if (PresentThread.IsInitialized)
 		{
 			EnterCriticalSection(&PresentThread.ddpt);
 		}
 	}
-	~AutoPTCriticalSection()
+	~ScopedPTCriticalSection()
 	{
 		if (PresentThread.IsInitialized)
 		{
@@ -1708,22 +1706,33 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 			return DDERR_NOEXCLUSIVEMODE;
 		}
 
-		// Reset mode
-		Exclusive.Width = DefaultWidth;
-		Exclusive.Height = DefaultHeight;
-		Exclusive.BPP = Utils::GetBitCount(GetHwnd());
-		DisplayMode.Width = DefaultWidth;
-		DisplayMode.Height = DefaultHeight;
-		DisplayMode.BPP = Exclusive.BPP;
-		Device.Width = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? Device.Width : DefaultWidth;
-		Device.Height = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? Device.Height : DefaultHeight;
+		ScopedDDCriticalSection ThreadLockDD;
+		ScopedPTCriticalSection ThreadLockPT;
 
 		// Release d3d9 device
 		if (d3d9Device)
 		{
 			ReleaseAllD9Resources(true, false);
 			ReleaseD9Device();
+
+			// Reset display
+			if (Config.EnableWindowMode)
+			{
+				ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
+			}
 		}
+
+		// Reset mode
+		DisplayMode.Width = 0;
+		DisplayMode.Height = 0;
+		DisplayMode.BPP = 0;
+		DisplayMode.RefreshRate = 0;
+		Exclusive.Width = 0;
+		Exclusive.Height = 0;
+		Exclusive.BPP = 0;
+		Exclusive.RefreshRate = 0;
+		Device.Width = (Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth) ? Device.Width : 0;
+		Device.Height = (Config.DdrawUseNativeResolution || Config.DdrawOverrideHeight) ? Device.Height : 0;
 
 		return DD_OK;
 	}
@@ -2033,12 +2042,6 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			Exclusive.Height = dwHeight;
 			Exclusive.BPP = NewBPP;
 			Exclusive.RefreshRate = dwRefreshRate;
-		}
-
-		// Get screensize
-		if (!d3d9Device || presParams.Windowed)
-		{
-			Utils::GetScreenSize(DisplayMode.hWnd, (LONG&)DefaultWidth, (LONG&)DefaultHeight);
 		}
 
 		// Update the d3d9 device to use new display mode
@@ -2489,9 +2492,6 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 	if (DDrawVector.size() == 1)
 	{
 		// Get screensize
-		DefaultWidth = 0;
-		DefaultHeight = 0;
-		Utils::GetScreenSize(nullptr, (LONG&)DefaultWidth, (LONG&)DefaultHeight);
 		LastWindowRect = {};
 
 		// Release DC
@@ -2685,7 +2685,7 @@ void m_IDirectDrawX::ReleaseInterface()
 	}
 
 	ScopedDDCriticalSection ThreadLockDD;
-	AutoPTCriticalSection ThreadLockPT;
+	ScopedPTCriticalSection ThreadLockPT;
 
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
@@ -3225,7 +3225,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 	}
 
 	ScopedDDCriticalSection ThreadLockDD;
-	AutoPTCriticalSection ThreadLockPT;
+	ScopedPTCriticalSection ThreadLockPT;
 
 	// Reset device if current thread matches creation thread
 	if (IsWindow(hFocusWindow) && FocusWindowThreadID == GetCurrentThreadId())
@@ -3304,7 +3304,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	}
 
 	ScopedDDCriticalSection ThreadLockDD;
-	AutoPTCriticalSection ThreadLockPT;
+	ScopedPTCriticalSection ThreadLockPT;
 
 	HRESULT hr = DD_OK;
 	do {
@@ -3343,8 +3343,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			// Use default desktop resolution
 			if (ExclusiveMode || Config.FullscreenWindowMode || Config.ForceExclusiveFullscreen)
 			{
-				BackBufferWidth = DefaultWidth;
-				BackBufferHeight = DefaultHeight;
+				BackBufferWidth = InitWidth;
+				BackBufferHeight = InitHeight;
 			}
 			else
 			{
@@ -3817,7 +3817,7 @@ void m_IDirectDrawX::SetCurrentRenderTarget()
 HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 {
 	ScopedDDCriticalSection ThreadLockDD;
-	AutoPTCriticalSection ThreadLockPT;
+	ScopedPTCriticalSection ThreadLockPT;
 
 	HRESULT hr = D3D_OK;
 
@@ -3966,7 +3966,7 @@ inline void m_IDirectDrawX::ReleaseD3D9IndexBuffer()
 inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 {
 	ScopedDDCriticalSection ThreadLockDD;
-	AutoPTCriticalSection ThreadLockPT;
+	ScopedPTCriticalSection ThreadLockPT;
 
 	// Remove render target and depth stencil surfaces
 	if (d3d9Device && ResetInterface && (RenderTargetSurface || DepthStencilSurface))
@@ -4104,7 +4104,7 @@ void m_IDirectDrawX::ReleaseD9Device()
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	ScopedDDCriticalSection ThreadLockDD;
-	AutoPTCriticalSection ThreadLockPT;
+	ScopedPTCriticalSection ThreadLockPT;
 
 	if (d3d9Device)
 	{
@@ -4883,7 +4883,7 @@ DWORD WINAPI PresentThreadFunction(LPVOID)
 			break;
 		}
 
-		AutoPTCriticalSection ThreadLockPT;
+		ScopedPTCriticalSection ThreadLockPT;
 
 		if (d3d9Device)
 		{
