@@ -6293,7 +6293,7 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		}
 
 		// Create complex surfaces
-		if (Desc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX)
+		if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX)
 		{
 			if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_CREATESURFACE)
 			{
