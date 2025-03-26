@@ -2717,7 +2717,7 @@ void m_IDirectDrawX::ReleaseInterface()
 	DDrawVector.erase(std::remove(DDrawVector.begin(), DDrawVector.end(), this), DDrawVector.end());
 
 	// Re-enable exclusive mode once non-exclusive device is released
-	if (ExclusiveMode &&
+	if (!DDrawVector.empty() && ExclusiveMode &&
 		Device.IsWindowed && FullScreenWindowed &&
 		DisplayMode.SetBy == this && DisplayMode.SetBy != Exclusive.SetBy &&
 		std::find(DDrawVector.begin(), DDrawVector.end(), Exclusive.SetBy) != DDrawVector.end())
@@ -2726,7 +2726,10 @@ void m_IDirectDrawX::ReleaseInterface()
 		Device.IsWindowed = false;
 		FullScreenWindowed = false;
 
-		CreateD9Device(__FUNCTION__);
+		if (d3d9Device)
+		{
+			CreateD9Device(__FUNCTION__);
+		}
 	}
 
 	// Clear SetBy handles
