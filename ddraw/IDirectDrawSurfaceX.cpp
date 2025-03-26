@@ -6303,15 +6303,23 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		AddAttachedSurfaceToMap(attachedSurface, false, DirectXVersion, 1);
 	}
 
-	// Add first surface as attached surface to the last surface in a surface chain
-	else if (surfaceDesc2.dwReserved)
+	// Set flags for complex child surface
+	if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_COMPLEXCHILD)
 	{
-		m_IDirectDrawSurfaceX* attachedSurface = (m_IDirectDrawSurfaceX*)surfaceDesc2.dwReserved;
+		ComplexChild = true;
+		surfaceDesc2.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
+		surfaceDesc2.dwBackBufferCount = 0;
 
-		// Check if source Surface exists add to surface map
-		if (ddrawParent && ddrawParent->DoesSurfaceExist(attachedSurface))
+		// Add first surface as attached surface to the last surface in a surface chain
+		if (surfaceDesc2.dwReserved)
 		{
-			AddAttachedSurfaceToMap(attachedSurface, false, DirectXVersion, 0);
+			m_IDirectDrawSurfaceX* attachedSurface = (m_IDirectDrawSurfaceX*)surfaceDesc2.dwReserved;
+
+			// Check if source Surface exists add to surface map
+			if (ddrawParent && ddrawParent->DoesSurfaceExist(attachedSurface))
+			{
+				AddAttachedSurfaceToMap(attachedSurface, false, DirectXVersion, 0);
+			}
 		}
 	}
 
@@ -6362,12 +6370,6 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	surface.UsingSurfaceMemory = ((surfaceDesc2.dwFlags & DDSD_LPSURFACE) && surfaceDesc2.lpSurface);
 
 	// Clear flags used in creating a surface structure
-	if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_COMPLEXCHILD)
-	{
-		ComplexChild = true;
-		surfaceDesc2.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
-		surfaceDesc2.dwBackBufferCount = 0;
-	}
 	surfaceDesc2.ddsCaps.dwCaps4 = 0;
 	surfaceDesc2.dwReserved = 0;
 
