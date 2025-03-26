@@ -6278,10 +6278,6 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		surfaceDesc2.ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM | DDSCAPS_VIDEOMEMORY;
 		surfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_NONLOCALVIDMEM;
 	}
-	if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) && (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_CREATESURFACE))
-	{
-		ComplexRoot = true;
-	}
 
 	// Create backbuffers
 	if (surfaceDesc2.dwBackBufferCount)
@@ -6299,6 +6295,11 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		// Create complex surfaces
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX)
 		{
+			if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_CREATESURFACE)
+			{
+				ComplexRoot = true;
+			}
+
 			BackBufferInterface = std::make_unique<m_IDirectDrawSurfaceX>(ddrawParent, DirectXVersion, &Desc2);
 
 			m_IDirectDrawSurfaceX *attachedSurface = BackBufferInterface.get();
