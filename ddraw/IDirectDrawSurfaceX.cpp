@@ -2628,7 +2628,7 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 				return DDERR_SURFACELOST;
 			case D3D_OK:
 			case DDERR_NOEXCLUSIVEMODE:
-				if (IsSurfaceLost && (ComplexRoot || !(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX)))
+				if (IsSurfaceLost && !ComplexChild)	// Complex children don't get surface lost notice
 				{
 					return DDERR_SURFACELOST;
 				}
@@ -6298,6 +6298,10 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 			if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_CREATESURFACE)
 			{
 				ComplexRoot = true;
+			}
+			else
+			{
+				ComplexChild = true;
 			}
 
 			BackBufferInterface = std::make_unique<m_IDirectDrawSurfaceX>(ddrawParent, DirectXVersion, &Desc2);

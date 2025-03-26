@@ -185,6 +185,7 @@ private:
 	bool DCRequiresEmulation = false;
 	bool SurfaceRequiresEmulation = false;
 	bool ComplexRoot = false;
+	bool ComplexChild = false;
 	bool IsSurfaceLost = false;
 	bool IsInFlip = false;
 	bool PresentOnUnlock = false;
@@ -486,7 +487,7 @@ public:
 	inline bool IsPalette() const { return (surface.Format == D3DFMT_P8); }
 	inline bool IsDepthStencil() const { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	inline bool IsSurfaceManaged() const { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
-	inline bool CanSurfaceBeDeleted() const { return (ComplexRoot || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX) == 0); }
+	inline bool CanSurfaceBeDeleted() const { return !ComplexChild; }
 	inline bool CanSurfaceUseEmulation() const
 	{ return ((IsPixelFormatRGB(surfaceDesc2.ddpfPixelFormat) || IsPixelFormatPalette(surfaceDesc2.ddpfPixelFormat)) && (!IsSurface3D() || !Using3D) && !surface.UsingSurfaceMemory); }
 	inline bool IsUsingEmulation() const { return (surface.emu && surface.emu->DC && surface.emu->GameDC && surface.emu->pBits); }
