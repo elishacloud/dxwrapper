@@ -6278,52 +6278,41 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		surfaceDesc2.ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM | DDSCAPS_VIDEOMEMORY;
 		surfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_NONLOCALVIDMEM;
 	}
+	if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_COMPLEXCHILD)
+	{
+		ComplexChild = true;
+	}
 
 	// Create backbuffers
-	if (surfaceDesc2.dwBackBufferCount)
+	if ((surfaceDesc2.dwFlags & DDSD_BACKBUFFERCOUNT) && surfaceDesc2.dwBackBufferCount)
 	{
 		DDSURFACEDESC2 Desc2 = surfaceDesc2;
 		Desc2.ddsCaps.dwCaps4 &= ~(DDSCAPS4_CREATESURFACE);	// Clear surface creation flag
 		Desc2.dwBackBufferCount--;
-		if (Desc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER)
+		Desc2.ddsCaps.dwCaps |= DDSCAPS_BACKBUFFER;
+		Desc2.ddsCaps.dwCaps &= ~(DDSCAPS_VISIBLE | DDSCAPS_PRIMARYSURFACE | DDSCAPS_FRONTBUFFER);
+		Desc2.ddsCaps.dwCaps4 |= DDSCAPS4_COMPLEXCHILD;
+
+		if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_CREATESURFACE)
 		{
-			Desc2.ddsCaps.dwCaps &= ~(DDSCAPS_VISIBLE | DDSCAPS_PRIMARYSURFACE | DDSCAPS_FRONTBUFFER);
-			Desc2.ddsCaps.dwCaps |= DDSCAPS_BACKBUFFER;
+			ComplexRoot = true;
 			Desc2.dwReserved = (DWORD)this;
 		}
 
 		// Create complex surfaces
-		if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_COMPLEX)
-		{
-			if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_CREATESURFACE)
-			{
-				ComplexRoot = true;
-			}
-			else
-			{
-				ComplexChild = true;
-			}
+		BackBufferInterface = std::make_unique<m_IDirectDrawSurfaceX>(ddrawParent, DirectXVersion, &Desc2);
 
-			BackBufferInterface = std::make_unique<m_IDirectDrawSurfaceX>(ddrawParent, DirectXVersion, &Desc2);
+		m_IDirectDrawSurfaceX* attachedSurface = BackBufferInterface.get();
 
-			m_IDirectDrawSurfaceX *attachedSurface = BackBufferInterface.get();
-
-			AddAttachedSurfaceToMap(attachedSurface, false, DirectXVersion, 1);
-		}
-		else
-		{
-			m_IDirectDrawSurfaceX *attachedSurface = new m_IDirectDrawSurfaceX(ddrawParent, DirectXVersion, &Desc2);
-
-			AddAttachedSurfaceToMap(attachedSurface, false, DirectXVersion, 0);
-		}
+		AddAttachedSurfaceToMap(attachedSurface, false, DirectXVersion, 1);
 	}
 
 	// Add first surface as attached surface to the last surface in a surface chain
 	else if (surfaceDesc2.dwReserved)
 	{
-		m_IDirectDrawSurfaceX *attachedSurface = (m_IDirectDrawSurfaceX *)surfaceDesc2.dwReserved;
+		m_IDirectDrawSurfaceX* attachedSurface = (m_IDirectDrawSurfaceX*)surfaceDesc2.dwReserved;
 
-		// Check if source Surface exists and add to surface map
+		// Check if source Surface exists add to surface map
 		if (ddrawParent && ddrawParent->DoesSurfaceExist(attachedSurface))
 		{
 			AddAttachedSurfaceToMap(attachedSurface, false, DirectXVersion, 0);
@@ -6377,12 +6366,12 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	surface.UsingSurfaceMemory = ((surfaceDesc2.dwFlags & DDSD_LPSURFACE) && surfaceDesc2.lpSurface);
 
 	// Clear flags used in creating a surface structure
-	if (!(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER))
+	if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_COMPLEXCHILD)
 	{
 		surfaceDesc2.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
 		surfaceDesc2.dwBackBufferCount = 0;
 	}
-	surfaceDesc2.ddsCaps.dwCaps4 = 0x00;
+	surfaceDesc2.ddsCaps.dwCaps4 = 0;
 	surfaceDesc2.dwReserved = 0;
 
 	// Clear unused values

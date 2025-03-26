@@ -546,6 +546,15 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			return DDERR_PRIMARYSURFACEALREADYEXISTS;
 		}
 
+		// Validate backbuffer
+		if (((lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) && lpDDSurfaceDesc2->dwBackBufferCount) &&
+			(!(lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_COMPLEX) || lpDDSurfaceDesc2->dwBackBufferCount > 3))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid backbuffer requested. Count: " << lpDDSurfaceDesc2->dwBackBufferCount <<
+				" dwFlags: " << Logging::hex(lpDDSurfaceDesc2->dwFlags));
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for invalid surface flip flags
 		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_FLIP) &&
 			(!(lpDDSurfaceDesc2->dwFlags & DDSD_BACKBUFFERCOUNT) || !(lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_COMPLEX)))
@@ -672,13 +681,18 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 		// Updates for surface description
 		Desc2.dwFlags |= DDSD_CAPS;
-		Desc2.ddsCaps.dwCaps4 = DDSCAPS4_CREATESURFACE |											// Indicates surface was created using CreateSurface()
-			((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) ? DDSCAPS4_PRIMARYSURFACE : NULL);		// Indicates surface is a primary surface or a backbuffer of a primary surface
+		Desc2.ddsCaps.dwCaps4 = DDSCAPS4_CREATESURFACE;		// Indicates surface was created using CreateSurface()
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_FLIP)
 		{
 			Desc2.ddsCaps.dwCaps |= DDSCAPS_FRONTBUFFER;
 		}
 		Desc2.dwReserved = 0;
+
+		// Check BackBufferCount flag
+		if ((Desc2.dwFlags & DDSD_BACKBUFFERCOUNT) && !(lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_COMPLEX))
+		{
+			Desc2.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
+		}
 
 		// BackBufferCount must be at least 1
 		if (Desc2.dwFlags & DDSD_BACKBUFFERCOUNT)

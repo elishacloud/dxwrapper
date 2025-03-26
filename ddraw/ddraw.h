@@ -70,8 +70,8 @@ class m_IDirectDrawGammaControl;
 
 // Indicates surface was created using CreateSurface()
 #define DDSCAPS4_CREATESURFACE  0x0001
-// Indicates surface is a primary surface or a backbuffer of a primary surface
-#define DDSCAPS4_PRIMARYSURFACE 0x0200
+// Indicates surface is a child of a complex surface
+#define DDSCAPS4_COMPLEXCHILD   0x0002
 
 // ddraw proc typedefs
 typedef HRESULT(WINAPI *AcquireDDThreadLockProc)();
