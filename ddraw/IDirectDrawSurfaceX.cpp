@@ -6278,10 +6278,6 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		surfaceDesc2.ddsCaps.dwCaps |= DDSCAPS_LOCALVIDMEM | DDSCAPS_VIDEOMEMORY;
 		surfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_NONLOCALVIDMEM;
 	}
-	if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_COMPLEXCHILD)
-	{
-		ComplexChild = true;
-	}
 
 	// Create backbuffers
 	if ((surfaceDesc2.dwFlags & DDSD_BACKBUFFERCOUNT) && surfaceDesc2.dwBackBufferCount)
@@ -6368,6 +6364,7 @@ inline void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	// Clear flags used in creating a surface structure
 	if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_COMPLEXCHILD)
 	{
+		ComplexChild = true;
 		surfaceDesc2.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
 		surfaceDesc2.dwBackBufferCount = 0;
 	}
