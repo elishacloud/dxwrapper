@@ -115,7 +115,7 @@ ULONG m_IDirect3DLight::Release()
 }
 
 // ******************************
-// IDirect3DExecuteBuffer functions
+// IDirect3DLight functions
 // ******************************
 
 HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
