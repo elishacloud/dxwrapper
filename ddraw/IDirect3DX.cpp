@@ -815,17 +815,20 @@ void m_IDirect3DX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 		Logging::Log() << __FUNCTION__ << " Warning: released Direct3DDevice interface does not match cached one!";
 	}
 
-	if (D3DDeviceInterface && Direct3DDeviceEx.RefCount)
+	m_IDirect3DDeviceX* pD3DDevice = D3DDeviceInterface;
+	D3DDeviceInterface = nullptr;
+
+	DWORD RefCount = Direct3DDeviceEx.RefCount;
+	DWORD DxVersion = Direct3DDeviceEx.DxVersion;
+	Direct3DDeviceEx = {};	// Clear before releasing
+
+	if (pD3DDevice && RefCount)
 	{
-		for (UINT x = 0; x < Direct3DDeviceEx.RefCount; x++)
+		for (UINT x = 0; x < RefCount; x++)
 		{
-			Release(Direct3DDeviceEx.DxVersion);
+			Release(DxVersion);
 		}
 	}
-
-	Direct3DDeviceEx = {};
-
-	D3DDeviceInterface = nullptr;
 }
 
 HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIRECT3DVERTEXBUFFER7* lplpD3DVertexBuffer, DWORD dwFlags, LPUNKNOWN pUnkOuter, DWORD DirectXVersion)
@@ -929,11 +932,13 @@ void m_IDirect3DX::ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX)
 		});
 	if (it != VertexBufferList.end())
 	{
-		if (it->RefCount == 1)
+		DWORD RefCount = it->RefCount;
+		DWORD DxVersion = it->DxVersion;
+		VertexBufferList.erase(it);	// Erase from list before releasing
+		if (RefCount == 1)
 		{
-			Release(it->DxVersion);
+			Release(DxVersion);
 		}
-		VertexBufferList.erase(it);
 	}
 }
 

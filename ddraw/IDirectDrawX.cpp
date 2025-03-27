@@ -399,11 +399,13 @@ void m_IDirectDrawX::ClearClipper(m_IDirectDrawClipper* lpClipper)
 		});
 	if (it != ClipperList.end())
 	{
-		if (it->RefCount == 1)
+		DWORD RefCount = it->RefCount;
+		DWORD DxVersion = it->DxVersion;
+		ClipperList.erase(it);	// Erase from list before releasing
+		if (RefCount == 1)
 		{
-			Release(it->DxVersion);
+			Release(DxVersion);
 		}
-		ClipperList.erase(it);
 	}
 }
 
@@ -470,11 +472,13 @@ void m_IDirectDrawX::ClearPalette(m_IDirectDrawPalette* lpPalette)
 		});
 	if (it != PaletteList.end())
 	{
-		if (it->RefCount == 1)
+		DWORD RefCount = it->RefCount;
+		DWORD DxVersion = it->DxVersion;
+		PaletteList.erase(it);	// Erase from list before releasing
+		if (RefCount == 1)
 		{
-			Release(it->DxVersion);
+			Release(DxVersion);
 		}
-		PaletteList.erase(it);
 	}
 }
 
@@ -889,11 +893,13 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 			});
 		if (it != std::end(pDDraw->SurfaceList))
 		{
-			for (UINT x = 0; x < it->RefCount; x++)
+			DWORD RefCount = it->RefCount;
+			DWORD DxVersion = it->DxVersion;
+			pDDraw->SurfaceList.erase(it);	// Erase from list before releasing
+			for (UINT x = 0; x < RefCount; x++)
 			{
-				Release(it->DxVersion);
+				Release(DxVersion);
 			}
-			pDDraw->SurfaceList.erase(it);
 		}
 
 		for (const auto& pSurface : pDDraw->SurfaceList)
