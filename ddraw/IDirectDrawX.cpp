@@ -2716,6 +2716,7 @@ void m_IDirectDrawX::ReleaseInterface()
 	// Release Direct3D interfaces
 	if (D3DInterface)
 	{
+		D3DInterface->ClearDdraw();
 		D3DInterface->DeleteMe();
 		D3DInterface = nullptr;
 	}
@@ -2759,6 +2760,7 @@ void m_IDirectDrawX::ReleaseInterface()
 	// Delete released surfaces
 	for (const auto& pSurface : ReleasedSurfaceList)
 	{
+		pSurface->ClearDdraw();
 		pSurface->DeleteMe();
 	}
 	ReleasedSurfaceList.clear();
@@ -3968,6 +3970,7 @@ inline void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInt
 		}
 		for (const auto& pSurface : pDDraw->ReleasedSurfaceList)
 		{
+			pSurface->ClearDdraw();
 			pSurface->DeleteMe();
 		}
 		pDDraw->ReleasedSurfaceList.clear();
