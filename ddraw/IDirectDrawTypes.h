@@ -175,8 +175,8 @@ struct PRESENTTHREAD
 {
 	bool IsInitialized = false;
 	CRITICAL_SECTION ddpt = {};
-	HANDLE workerEvent = {};
 	HANDLE workerThread = {};
+	HANDLE exitEvent = {};
 	LARGE_INTEGER LastPresentTime = {};
 	bool EnableThreadFlag = false;
 };

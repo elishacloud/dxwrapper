@@ -2594,7 +2594,7 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		{
 			PresentThread.IsInitialized = true;
 			InitializeCriticalSection(&PresentThread.ddpt);
-			PresentThread.workerEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+			PresentThread.exitEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 			PresentThread.workerThread = CreateThread(NULL, 0, PresentThreadFunction, NULL, 0, NULL);
 		}
 
@@ -2812,14 +2812,24 @@ void m_IDirectDrawX::ReleaseInterface()
 		// Close present thread first
 		if (PresentThread.IsInitialized)
 		{
-			PresentThread.EnableThreadFlag = false;						// Tell thread to exit
-			EnterCriticalSection(&PresentThread.ddpt);					// Ensure thread is not running present
-			SetEvent(PresentThread.workerEvent);						// Trigger thread
-			LeaveCriticalSection(&PresentThread.ddpt);
-			WaitForSingleObject(PresentThread.workerThread, INFINITE);	// Wait for thread to finish
-			CloseHandle(PresentThread.workerThread);					// Close thread handle
-			CloseHandle(PresentThread.workerEvent);						// Close event handle
 			PresentThread.IsInitialized = false;
+			PresentThread.EnableThreadFlag = false;
+			LeaveCriticalSection(&PresentThread.ddpt);
+
+			// Trigger thread and terminate the thread
+			DWORD exitCode = 0;
+			while (GetExitCodeThread(PresentThread.workerThread, &exitCode) && exitCode == STILL_ACTIVE)
+			{
+				SetEvent(PresentThread.exitEvent);
+				Sleep(0);
+			}
+
+			// Close handles
+			CloseHandle(PresentThread.workerThread);
+			CloseHandle(PresentThread.exitEvent);
+
+			// Delete critical section only
+			DeleteCriticalSection(&PresentThread.ddpt);
 		}
 
 		// Release all resources
@@ -2852,14 +2862,6 @@ void m_IDirectDrawX::ReleaseInterface()
 
 		// Clean up dummy memory
 		dummySurface.clear();
-
-		// Delete critical section
-		if (PresentThread.IsInitialized)
-		{
-			LeaveCriticalSection(&PresentThread.ddpt);
-			DeleteCriticalSection(&PresentThread.ddpt);
-			PresentThread.IsInitialized = false;
-		}
 	}
 }
 
@@ -4892,10 +4894,8 @@ DWORD WINAPI PresentThreadFunction(LPVOID)
 
 		DWORD timeout = (DWORD)(Counter.PerFrameMS - DeltaPresentMS < 0.0 ? 0.0 : Counter.PerFrameMS - DeltaPresentMS);
 
-		WaitForSingleObject(PresentThread.workerEvent, timeout);
-		ResetEvent(PresentThread.workerEvent);
-
-		if (!PresentThread.EnableThreadFlag)
+		// Wait for timeout or for event trigger
+		if (WaitForSingleObject(PresentThread.exitEvent, timeout) == WAIT_OBJECT_0 || !PresentThread.EnableThreadFlag)
 		{
 			break;
 		}
