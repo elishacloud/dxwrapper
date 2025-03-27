@@ -643,12 +643,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 		DDSURFACEDESC2 Desc2 = *lpDDSurfaceDesc2;
 
-		// Add 3D device flag
-		if (DirectXVersion <= 2 && (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
-		{
-			Desc2.ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
-		}
-
 		// Check pixel format flag
 		if ((Desc2.dwFlags & DDSD_PIXELFORMAT) && !Desc2.ddpfPixelFormat.dwFlags)
 		{
@@ -750,12 +744,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			Logging::Log() << __FUNCTION__ << " Found depth stencil surface: " << GetDisplayFormat(Desc2.ddpfPixelFormat);
 		}
 
-		// Add flag for 3D device
-		if (DirectXVersion == 1 && (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
-		{
-			Desc2.ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
-		}
-
 		// Log primary surface
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
@@ -797,31 +785,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		return DD_OK;
 	}
 
-	DDSURFACEDESC2 Desc2 = *lpDDSurfaceDesc2;
-
-	if (ProxyDirectXVersion != DirectXVersion)
-	{
-		// BackBufferCount must be at least 1
-		if (Desc2.dwFlags & DDSD_BACKBUFFERCOUNT)
-		{
-			if (!Desc2.dwBackBufferCount)
-			{
-				Desc2.dwBackBufferCount = 1;
-			}
-		}
-		else
-		{
-			Desc2.dwBackBufferCount = 0;
-		}
-
-		// Add 3D device flag
-		if (DirectXVersion <= 2 && (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE))
-		{
-			Desc2.ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
-		}
-	}
-
-	HRESULT hr = ProxyInterface->CreateSurface(&Desc2, lplpDDSurface, pUnkOuter);
+	HRESULT hr = ProxyInterface->CreateSurface(lpDDSurfaceDesc2, lplpDDSurface, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDDSurface)
 	{
