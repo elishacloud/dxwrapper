@@ -21,20 +21,6 @@ namespace {
 	m_IDirectDrawColorControl* WrapperInterfaceBackup = nullptr;
 }
 
-inline static void SaveInterfaceAddress(m_IDirectDrawColorControl* Interface, m_IDirectDrawColorControl*& InterfaceBackup)
-{
-	if (Interface)
-	{
-		Interface->SetProxy(nullptr, nullptr);
-		if (InterfaceBackup)
-		{
-			InterfaceBackup->DeleteMe();
-			InterfaceBackup = nullptr;
-		}
-		InterfaceBackup = Interface;
-	}
-}
-
 m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent)
 {
 	m_IDirectDrawColorControl* Interface = nullptr;

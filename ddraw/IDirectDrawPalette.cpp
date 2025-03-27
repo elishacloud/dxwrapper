@@ -23,20 +23,6 @@ namespace {
 	m_IDirectDrawPalette* WrapperInterfaceBackup = nullptr;
 }
 
-inline static void SaveInterfaceAddress(m_IDirectDrawPalette* Interface, m_IDirectDrawPalette*& InterfaceBackup)
-{
-	if (Interface)
-	{
-		Interface->SetProxy(nullptr, nullptr, 0, nullptr);
-		if (InterfaceBackup)
-		{
-			InterfaceBackup->DeleteMe();
-			InterfaceBackup = nullptr;
-		}
-		InterfaceBackup = Interface;
-	}
-}
-
 m_IDirectDrawPalette* CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
 {
 	m_IDirectDrawPalette* Interface = nullptr;

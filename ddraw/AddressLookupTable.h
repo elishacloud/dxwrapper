@@ -6,11 +6,30 @@
 constexpr UINT MaxIndex = 43;
 
 template <typename T>
-inline void SaveInterfaceAddress(T*& Interface, T*& InterfaceBackup)
+inline void SaveInterfaceAddress(T* Interface, T*& InterfaceBackup)
 {
 	if (Interface)
 	{
-		Interface->SetProxy(nullptr);
+		if constexpr (std::is_same_v<T, m_IDirectDrawPalette>)
+		{
+			Interface->SetProxy(nullptr, nullptr, 0, nullptr);
+		}
+		else if constexpr (std::is_same_v<T, m_IDirect3DExecuteBuffer>)
+		{
+			Interface->SetProxy(nullptr, nullptr, nullptr);
+		}
+		else if constexpr (std::is_same_v<T, m_IDirectDrawClipper>)
+		{
+			Interface->SetProxy(nullptr, nullptr, 0);
+		}
+		else if constexpr (std::is_same_v<T, m_IDirect3DLight> || std::is_same_v<T, m_IDirectDrawColorControl> || std::is_same_v<T, m_IDirectDrawGammaControl>)
+		{
+			Interface->SetProxy(nullptr, nullptr);
+		}
+		else
+		{
+			Interface->SetProxy(nullptr);
+		}
 		if (InterfaceBackup)
 		{
 			InterfaceBackup->DeleteMe();

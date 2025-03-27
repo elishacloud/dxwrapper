@@ -21,20 +21,6 @@ namespace {
 	m_IDirect3DLight* WrapperInterfaceBackup = nullptr;
 }
 
-inline static void SaveInterfaceAddress(m_IDirect3DLight* Interface, m_IDirect3DLight*& InterfaceBackup)
-{
-	if (Interface)
-	{
-		Interface->SetProxy(nullptr, nullptr);
-		if (InterfaceBackup)
-		{
-			InterfaceBackup->DeleteMe();
-			InterfaceBackup = nullptr;
-		}
-		InterfaceBackup = Interface;
-	}
-}
-
 m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface)
 {
 	m_IDirect3DLight* Interface = nullptr;
