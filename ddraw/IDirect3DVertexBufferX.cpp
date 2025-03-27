@@ -16,11 +16,14 @@
 
 #include "ddraw.h"
 
-// Cached wrapper interface
 namespace {
 	m_IDirect3DVertexBuffer* WrapperInterfaceBackup = nullptr;
 	m_IDirect3DVertexBuffer7* WrapperInterfaceBackup7 = nullptr;
 }
+
+// ******************************
+// IUnknown functions
+// ******************************
 
 HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
@@ -63,23 +66,6 @@ HRESULT m_IDirect3DVertexBufferX::QueryInterface(REFIID riid, LPVOID FAR * ppvOb
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
-void *m_IDirect3DVertexBufferX::GetWrapperInterfaceX(DWORD DirectXVersion)
-{
-	switch (DirectXVersion)
-	{
-	case 0:
-		if (WrapperInterface7) return WrapperInterface7;
-		if (WrapperInterface) return WrapperInterface;
-		break;
-	case 1:
-		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
-	case 7:
-		return GetInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7, (LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
-	}
-	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-	return nullptr;
-}
-
 ULONG m_IDirect3DVertexBufferX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
@@ -105,10 +91,10 @@ ULONG m_IDirect3DVertexBufferX::Release(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
-	ULONG ref;
-
 	if (Config.Dd7to9)
 	{
+		ULONG ref;
+
 		switch (DirectXVersion)
 		{
 		case 1:
@@ -126,19 +112,23 @@ ULONG m_IDirect3DVertexBufferX::Release(DWORD DirectXVersion)
 		{
 			delete this;
 		}
-	}
-	else
-	{
-		ref = ProxyInterface->Release();
 
-		if (ref == 0)
-		{
-			delete this;
-		}
+		return ref;
+	}
+
+	LONG ref = ProxyInterface->Release();
+
+	if (ref == 0)
+	{
+		delete this;
 	}
 
 	return ref;
 }
+
+// ******************************
+// IDirect3DVertexBuffer v1 functions
+// ******************************
 
 HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD lpdwSize)
 {
@@ -528,6 +518,10 @@ HRESULT m_IDirect3DVertexBufferX::Optimize(LPDIRECT3DDEVICE7 lpD3DDevice, DWORD 
 	return ProxyInterface->Optimize(lpD3DDevice, dwFlags);
 }
 
+// ******************************
+// IDirect3DVertexBuffer v7 functions
+// ******************************
+
 HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPD3DDRAWPRIMITIVESTRIDEDDATA lpVertexArray, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -636,6 +630,23 @@ HRESULT m_IDirect3DVertexBufferX::CheckInterface(char* FunctionName, bool CheckD
 	}
 
 	return D3D_OK;
+}
+
+void* m_IDirect3DVertexBufferX::GetWrapperInterfaceX(DWORD DirectXVersion)
+{
+	switch (DirectXVersion)
+	{
+	case 0:
+		if (WrapperInterface7) return WrapperInterface7;
+		if (WrapperInterface) return WrapperInterface;
+		break;
+	case 1:
+		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DVERTEXBUFFER)ProxyInterface, this);
+	case 7:
+		return GetInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7, (LPDIRECT3DVERTEXBUFFER7)ProxyInterface, this);
+	}
+	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+	return nullptr;
 }
 
 HRESULT m_IDirect3DVertexBufferX::CreateD3D9VertexBuffer()

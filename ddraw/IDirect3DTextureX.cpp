@@ -139,7 +139,7 @@ ULONG m_IDirect3DTextureX::Release(DWORD DirectXVersion)
 }
 
 // ******************************
-// IDirect3DTexture v1 functions
+// IDirect3DTexture functions
 // ******************************
 
 HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIRECTDRAWSURFACE lplpDDSurface)
