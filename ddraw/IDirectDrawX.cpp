@@ -2706,20 +2706,13 @@ void m_IDirectDrawX::ReleaseInterface()
 		Exclusive.SetBy = nullptr;
 	}
 
-	// Release Direct3DDevice interfaces
-	if (D3DDeviceInterface)
+	// Delete released surfaces
+	for (const auto& pSurface : ReleasedSurfaceList)
 	{
-		D3DDeviceInterface->ClearDdraw();
-		D3DDeviceInterface = nullptr;
+		pSurface->ClearDdraw();
+		pSurface->DeleteMe();
 	}
-
-	// Release Direct3D interfaces
-	if (D3DInterface)
-	{
-		D3DInterface->ClearDdraw();
-		D3DInterface->DeleteMe();
-		D3DInterface = nullptr;
-	}
+	ReleasedSurfaceList.clear();
 
 	// Release color control
 	if (ColorControlInterface)
@@ -2757,14 +2750,6 @@ void m_IDirectDrawX::ReleaseInterface()
 	}
 	SurfaceList.clear();
 
-	// Delete released surfaces
-	for (const auto& pSurface : ReleasedSurfaceList)
-	{
-		pSurface->ClearDdraw();
-		pSurface->DeleteMe();
-	}
-	ReleasedSurfaceList.clear();
-
 	// Release vertex buffers
 	for (const auto& pVertexBuffer : VertexBufferList)
 	{
@@ -2772,6 +2757,21 @@ void m_IDirectDrawX::ReleaseInterface()
 		pVertexBuffer->ClearDdraw();
 	}
 	VertexBufferList.clear();
+
+	// Release Direct3DDevice interfaces
+	if (D3DDeviceInterface)
+	{
+		D3DDeviceInterface->ClearDdraw();
+		D3DDeviceInterface = nullptr;
+	}
+
+	// Release Direct3D interfaces
+	if (D3DInterface)
+	{
+		D3DInterface->ClearDdraw();
+		D3DInterface->DeleteMe();
+		D3DInterface = nullptr;
+	}
 
 	if (DDrawVector.empty())
 	{
@@ -2821,6 +2821,7 @@ void m_IDirectDrawX::ReleaseInterface()
 		{
 			ReleaseDC(DisplayMode.hWnd, DisplayMode.DC);
 			DisplayMode.DC = nullptr;
+			DisplayMode.hWnd = nullptr;
 		}
 
 		// Clean up shared memory
