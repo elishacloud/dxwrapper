@@ -3433,7 +3433,9 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			// Check if device needs to be reset
 			hr = TestD3D9CooperativeLevel();
 			if ((hr == D3D_OK || hr == DDERR_NOEXCLUSIVEMODE || hr == D3DERR_DEVICENOTRESET) &&
-				presParamsBackup.hDeviceWindow == presParams.hDeviceWindow && LastBehaviorFlags == BehaviorFlags)
+				presParamsBackup.Windowed == presParams.Windowed &&
+				presParamsBackup.hDeviceWindow == presParams.hDeviceWindow &&
+				LastBehaviorFlags == BehaviorFlags)
 			{
 				Logging::Log() << __FUNCTION__ << " Resetting device! Last create: " << LasthWnd << "->" << hWnd << " " <<
 					" Windowed: " << presParamsBackup.Windowed << "->" << presParams.Windowed << " " <<
@@ -3461,12 +3463,12 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 						" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags));
 
 					ReleaseD9Device();
+				}
 
-					// Reset display mode after release when display mode is already setup and there is a primary surface
-					if (presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)))
-					{
-						Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
-					}
+				// Reset display mode after release when display mode is already setup and there is a primary surface
+				if (presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)))
+				{
+					Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
 				}
 			}
 			// Just release device and recreate it
