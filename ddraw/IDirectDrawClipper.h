@@ -1,7 +1,5 @@
 #pragma once
 
-m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags);
-
 class m_IDirectDrawClipper : public IDirectDrawClipper, public AddressLookupTableDdrawObject
 {
 private:
@@ -87,4 +85,5 @@ public:
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw() { ddrawParent = nullptr; }
+	static m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags);
 };

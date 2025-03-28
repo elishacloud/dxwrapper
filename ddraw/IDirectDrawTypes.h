@@ -181,6 +181,24 @@ struct PRESENTTHREAD
 	bool EnableThreadFlag = false;
 };
 
+// Emulated surface
+struct EMUSURFACE
+{
+	HDC DC = nullptr;
+	HDC GameDC = nullptr;
+	bool UsingGameDC = false;
+	DWORD Size = 0;
+	D3DFORMAT Format = D3DFMT_UNKNOWN;
+	void* pBits = nullptr;
+	DWORD Pitch = 0;
+	HBITMAP bitmap = nullptr;
+	BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)] = {};
+	PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
+	HGDIOBJ OldDCObject = nullptr;
+	HGDIOBJ OldGameDCObject = nullptr;
+	DWORD LastPaletteUSN = 0;
+};
+
 // Used for 24-bit surfaces
 struct TRIBYTE
 {

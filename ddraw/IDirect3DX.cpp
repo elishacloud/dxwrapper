@@ -230,7 +230,7 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT* lplpDirect3DLight, LPUNKNOWN 
 			return DDERR_INVALIDOBJECT;
 		}
 
-		m_IDirect3DLight* Interface = CreateDirect3DLight(nullptr, this);
+		m_IDirect3DLight* Interface = m_IDirect3DLight::CreateDirect3DLight(nullptr, this);
 
 		*lplpDirect3DLight = (LPDIRECT3DLIGHT)Interface;
 
@@ -261,7 +261,7 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT* lplpDirect3DLight, LPUNKNOWN 
 
 	if (SUCCEEDED(hr) && lplpDirect3DLight)
 	{
-		*lplpDirect3DLight = CreateDirect3DLight(*lplpDirect3DLight, nullptr);
+		*lplpDirect3DLight = m_IDirect3DLight::CreateDirect3DLight(*lplpDirect3DLight, nullptr);
 	}
 
 	return hr;

@@ -18,19 +18,25 @@
 * Code to create emulated surface taken from: https://github.com/CnCNet/cnc-ddraw
 */
 
-#include <sstream>
 #include "ddraw.h"
+#include <sstream>
 #include "Utils\Utils.h"
 
-constexpr DWORD ExtraDataBufferSize = 200;
-
-// Used to allow presenting non-primary surfaces in case the primary surface present fails
-bool dirtyFlag = false;
-bool SceneReady = false;
-bool IsPresentRunning = false;
-
-// Cached wrapper interface
 namespace {
+	constexpr DWORD ExtraDataBufferSize = 200;
+
+	// Used for dummy mipmaps
+	std::vector<BYTE> dummySurface;
+
+	// Used to allow presenting non-primary surfaces in case the primary surface present fails
+	bool dirtyFlag = false;
+	bool SceneReady = false;
+	bool IsPresentRunning = false;
+
+	// Used for sharing emulated memory
+	bool ShareEmulatedMemory = false;
+	std::vector<EMUSURFACE*> memorySurfaces;
+
 	m_IDirectDrawSurface* WrapperInterfaceBackup = nullptr;
 	m_IDirectDrawSurface2* WrapperInterfaceBackup2 = nullptr;
 	m_IDirectDrawSurface3* WrapperInterfaceBackup3 = nullptr;
@@ -38,16 +44,9 @@ namespace {
 	m_IDirectDrawSurface7* WrapperInterfaceBackup7 = nullptr;
 }
 
-// Used for sharing emulated memory
-bool ShareEmulatedMemory = false;
-std::vector<EMUSURFACE*> memorySurfaces;
-
-// Used for dummy mipmaps
-std::vector<BYTE> dummySurface;
-
-/************************/
-/*** IUnknown methods ***/
-/************************/
+// ******************************
+// IUnknown functions
+// ******************************
 
 HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, DWORD DirectXVersion)
 {
@@ -8103,4 +8102,15 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 		DeleteEmulatedMemory(&pEmuSurface);
 	}
 	memorySurfaces.clear();
+}
+
+void m_IDirectDrawSurfaceX::SizeDummySurface(size_t size)
+{
+	dummySurface.resize(size);
+}
+
+// Clean up dummy memory
+void m_IDirectDrawSurfaceX::CleanupDummySurface()
+{
+	dummySurface.clear();
 }

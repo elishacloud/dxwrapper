@@ -381,7 +381,7 @@ void m_IDirectDrawPalette::ReleaseInterface()
 	}
 }
 
-m_IDirectDrawPalette* CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
+m_IDirectDrawPalette* m_IDirectDrawPalette::CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
 {
 	m_IDirectDrawPalette* Interface = nullptr;
 	if (WrapperInterfaceBackup)

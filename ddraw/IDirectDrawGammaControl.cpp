@@ -197,7 +197,7 @@ void m_IDirectDrawGammaControl::ReleaseInterface()
 	}
 }
 
-m_IDirectDrawGammaControl* CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent)
+m_IDirectDrawGammaControl* m_IDirectDrawGammaControl::CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent)
 {
 	m_IDirectDrawGammaControl* Interface = nullptr;
 	if (WrapperInterfaceBackup)

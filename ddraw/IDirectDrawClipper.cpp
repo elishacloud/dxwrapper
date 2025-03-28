@@ -356,7 +356,7 @@ void m_IDirectDrawClipper::ReleaseInterface()
 	}
 }
 
-m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags)
+m_IDirectDrawClipper* m_IDirectDrawClipper::CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags)
 {
 	m_IDirectDrawClipper* Interface = nullptr;
 	if (WrapperInterfaceBackup)

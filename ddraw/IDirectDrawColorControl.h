@@ -1,7 +1,5 @@
 #pragma once
 
-m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent);
-
 class m_IDirectDrawColorControl : public IDirectDrawColorControl, public AddressLookupTableDdrawObject
 {
 private:
@@ -78,4 +76,6 @@ public:
 
 	// Functions handling the ddraw parent interface
 	void ClearDdraw() { ddrawParent = nullptr; }
+	static m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent);
+
 };

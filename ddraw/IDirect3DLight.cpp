@@ -313,7 +313,7 @@ m_IDirect3DDeviceX* m_IDirect3DLight::GetD3DDevice()
 	return *D3DDeviceInterface;
 }
 
-m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface)
+m_IDirect3DLight* m_IDirect3DLight::CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface)
 {
 	m_IDirect3DLight* Interface = nullptr;
 	if (WrapperInterfaceBackup)

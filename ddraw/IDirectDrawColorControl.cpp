@@ -216,7 +216,7 @@ void m_IDirectDrawColorControl::ReleaseInterface()
 	}
 }
 
-m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent)
+m_IDirectDrawColorControl* m_IDirectDrawColorControl::CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent)
 {
 	m_IDirectDrawColorControl* Interface = nullptr;
 	if (WrapperInterfaceBackup)

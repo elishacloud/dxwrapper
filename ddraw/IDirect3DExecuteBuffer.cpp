@@ -407,7 +407,7 @@ void m_IDirect3DExecuteBuffer::ReleaseInterface()
 	}
 }
 
-m_IDirect3DExecuteBuffer* CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc)
+m_IDirect3DExecuteBuffer* m_IDirect3DExecuteBuffer::CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc)
 {
 	m_IDirect3DExecuteBuffer* Interface = nullptr;
 	if (WrapperInterfaceBackup)

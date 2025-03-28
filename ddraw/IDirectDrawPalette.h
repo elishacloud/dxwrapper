@@ -1,7 +1,5 @@
 #pragma once
 
-m_IDirectDrawPalette* CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray);
-
 class m_IDirectDrawPalette : public IDirectDrawPalette, public AddressLookupTableDdrawObject
 {
 private:
@@ -93,4 +91,5 @@ public:
 	inline DWORD GetEntryCount() const { return entryCount; }
 	inline void SetPrimary() { paletteCaps |= DDPCAPS_PRIMARYSURFACE; }
 	inline void RemovePrimary() { paletteCaps &= ~DDPCAPS_PRIMARYSURFACE; }
+	static m_IDirectDrawPalette* CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray);
 };

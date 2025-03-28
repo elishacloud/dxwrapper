@@ -302,7 +302,7 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 
 		ScopedDDCriticalSection ThreadLockDD;
 
-		m_IDirectDrawClipper* ClipperX = CreateDirectDrawClipper(nullptr, nullptr, dwFlags);
+		m_IDirectDrawClipper* ClipperX = m_IDirectDrawClipper::CreateDirectDrawClipper(nullptr, nullptr, dwFlags);
 
 		AddBaseClipper(ClipperX);
 
@@ -322,7 +322,7 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 
 	if (SUCCEEDED(hr) && lplpDDClipper)
 	{
-		*lplpDDClipper = CreateDirectDrawClipper(*lplpDDClipper, nullptr, dwFlags);
+		*lplpDDClipper = m_IDirectDrawClipper::CreateDirectDrawClipper(*lplpDDClipper, nullptr, dwFlags);
 	}
 
 	return hr;

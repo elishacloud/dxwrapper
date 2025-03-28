@@ -86,9 +86,6 @@ DWORD LastSetBPP = 0;
 // Cached FourCC list
 std::vector<D3DFORMAT> FourCCsList;
 
-// Used for dummy mipmaps
-extern std::vector<BYTE> dummySurface;
-
 // Mouse hook
 MOUSEHOOK MouseHook = {};
 
@@ -347,7 +344,7 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 			return DDERR_INVALIDPARAMS;
 		}
 
-		m_IDirectDrawClipper* Interface = CreateDirectDrawClipper(nullptr, this, dwFlags);
+		m_IDirectDrawClipper* Interface = m_IDirectDrawClipper::CreateDirectDrawClipper(nullptr, this, dwFlags);
 
 		if (DirectXVersion > 3)
 		{
@@ -374,7 +371,7 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 
 	if (SUCCEEDED(hr) && lplpDDClipper)
 	{
-		*lplpDDClipper = CreateDirectDrawClipper(*lplpDDClipper, nullptr, dwFlags);
+		*lplpDDClipper = m_IDirectDrawClipper::CreateDirectDrawClipper(*lplpDDClipper, nullptr, dwFlags);
 	}
 
 	return hr;
@@ -420,7 +417,7 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 			return DDERR_INVALIDPARAMS;
 		}
 
-		m_IDirectDrawPalette* Interface = CreateDirectDrawPalette(nullptr, this, dwFlags, lpDDColorArray);
+		m_IDirectDrawPalette* Interface = m_IDirectDrawPalette::CreateDirectDrawPalette(nullptr, this, dwFlags, lpDDColorArray);
 
 		if (DirectXVersion > 3)
 		{
@@ -447,7 +444,7 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 
 	if (SUCCEEDED(hr) && lplpDDPalette)
 	{
-		*lplpDDPalette = CreateDirectDrawPalette(*lplpDDPalette, nullptr, 0, nullptr);
+		*lplpDDPalette = m_IDirectDrawPalette::CreateDirectDrawPalette(*lplpDDPalette, nullptr, 0, nullptr);
 	}
 
 	return hr;
@@ -2834,7 +2831,7 @@ void m_IDirectDrawX::ReleaseInterface()
 		m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory();
 
 		// Clean up dummy memory
-		dummySurface.clear();
+		m_IDirectDrawSurfaceX::CleanupDummySurface();
 	}
 }
 
@@ -3543,7 +3540,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		FourCCsList.clear();
 
 		// Create dummy memory (2x larger)
-		dummySurface.resize(presParams.BackBufferWidth * presParams.BackBufferHeight * 4 * 2);
+		m_IDirectDrawSurfaceX::SizeDummySurface(presParams.BackBufferWidth * presParams.BackBufferHeight * 4 * 2);
 
 		// Set render target
 		ReSetRenderTarget();
@@ -4131,7 +4128,7 @@ HRESULT m_IDirectDrawX::CreateColorControl(m_IDirectDrawColorControl** lplpColor
 {
 	if (lplpColorControl)
 	{
-		*lplpColorControl = CreateDirectDrawColorControl(nullptr, this);
+		*lplpColorControl = m_IDirectDrawColorControl::CreateDirectDrawColorControl(nullptr, this);
 
 		return DD_OK;
 	}
@@ -4167,7 +4164,7 @@ HRESULT m_IDirectDrawX::CreateGammaControl(m_IDirectDrawGammaControl** lplpGamma
 {
 	if (lplpGammaControl)
 	{
-		*lplpGammaControl = CreateDirectDrawGammaControl(nullptr, this);
+		*lplpGammaControl = m_IDirectDrawGammaControl::CreateDirectDrawGammaControl(nullptr, this);
 
 		return DD_OK;
 	}

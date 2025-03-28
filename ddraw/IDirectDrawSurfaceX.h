@@ -1,23 +1,5 @@
 #pragma once
 
-// Emulated surface
-struct EMUSURFACE
-{
-	HDC DC = nullptr;
-	HDC GameDC = nullptr;
-	bool UsingGameDC = false;
-	DWORD Size = 0;
-	D3DFORMAT Format = D3DFMT_UNKNOWN;
-	void *pBits = nullptr;
-	DWORD Pitch = 0;
-	HBITMAP bitmap = nullptr;
-	BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)] = {};
-	PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
-	HGDIOBJ OldDCObject = nullptr;
-	HGDIOBJ OldGameDCObject = nullptr;
-	DWORD LastPaletteUSN = 0;
-};
-
 class m_IDirectDrawSurfaceX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
@@ -555,4 +537,6 @@ public:
 	static void StartSharedEmulatedMemory();
 	static void DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface);
 	static void CleanupSharedEmulatedMemory();
+	static void SizeDummySurface(size_t size);
+	static void CleanupDummySurface();
 };
