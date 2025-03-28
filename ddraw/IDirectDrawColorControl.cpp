@@ -16,7 +16,6 @@
 
 #include "ddraw.h"
 
-// Cached wrapper interface
 namespace {
 	m_IDirectDrawColorControl* WrapperInterfaceBackup = nullptr;
 }
@@ -116,7 +115,7 @@ ULONG m_IDirectDrawColorControl::Release()
 }
 
 // ******************************
-// IDirectDrawClipper functions
+// IDirectDrawGammaControl functions
 // ******************************
 
 HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorControl)

@@ -16,33 +16,13 @@
 
 #include "ddraw.h"
 
-// Cached wrapper interface
 namespace {
 	m_IDirectDrawGammaControl* WrapperInterfaceBackup = nullptr;
 }
 
-m_IDirectDrawGammaControl* CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent)
-{
-	m_IDirectDrawGammaControl* Interface = nullptr;
-	if (WrapperInterfaceBackup)
-	{
-		Interface = WrapperInterfaceBackup;
-		WrapperInterfaceBackup = nullptr;
-		Interface->SetProxy(aOriginal, NewParent);
-	}
-	else
-	{
-		if (aOriginal)
-		{
-			Interface = new m_IDirectDrawGammaControl(aOriginal);
-		}
-		else
-		{
-			Interface = new m_IDirectDrawGammaControl(NewParent);
-		}
-	}
-	return Interface;
-}
+// ******************************
+// IUnknown functions
+// ******************************
 
 HRESULT m_IDirectDrawGammaControl::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
@@ -95,7 +75,7 @@ ULONG m_IDirectDrawGammaControl::AddRef()
 		return 0;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		return InterlockedIncrement(&RefCount);
 	}
@@ -112,16 +92,19 @@ ULONG m_IDirectDrawGammaControl::Release()
 		return 0;
 	}
 
-	ULONG ref;
+	if (Config.Dd7to9)
+	{
+		LONG ref = (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
 
-	if (!ProxyInterface)
-	{
-		ref = InterlockedDecrement(&RefCount);
+		if (ref == 0)
+		{
+			SaveInterfaceAddress(this, WrapperInterfaceBackup);
+		}
+
+		return ref;
 	}
-	else
-	{
-		ref = ProxyInterface->Release();
-	}
+
+	LONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
 	{
@@ -130,6 +113,10 @@ ULONG m_IDirectDrawGammaControl::Release()
 
 	return ref;
 }
+
+// ******************************
+// IDirectDrawGammaControl functions
+// ******************************
 
 HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 {
@@ -140,7 +127,7 @@ HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 		return DDERR_INVALIDOBJECT;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!(dwFlags == D3DSGR_NO_CALIBRATION || dwFlags == DDSGR_CALIBRATE) || !lpRampData)
 		{
@@ -167,7 +154,7 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 		return DDERR_INVALIDOBJECT;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!(dwFlags == D3DSGR_NO_CALIBRATION || dwFlags == DDSGR_CALIBRATE) || !lpRampData)
 		{
@@ -185,9 +172,9 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 	return ProxyInterface->SetGammaRamp(dwFlags, lpRampData);
 }
 
-/************************/
-/*** Helper functions ***/
-/************************/
+// ******************************
+// Helper functions
+// ******************************
 
 void m_IDirectDrawGammaControl::InitInterface()
 {
@@ -208,4 +195,27 @@ void m_IDirectDrawGammaControl::ReleaseInterface()
 	{
 		ddrawParent->ClearGammaControl(this);
 	}
+}
+
+m_IDirectDrawGammaControl* CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent)
+{
+	m_IDirectDrawGammaControl* Interface = nullptr;
+	if (WrapperInterfaceBackup)
+	{
+		Interface = WrapperInterfaceBackup;
+		WrapperInterfaceBackup = nullptr;
+		Interface->SetProxy(aOriginal, NewParent);
+	}
+	else
+	{
+		if (aOriginal)
+		{
+			Interface = new m_IDirectDrawGammaControl(aOriginal);
+		}
+		else
+		{
+			Interface = new m_IDirectDrawGammaControl(NewParent);
+		}
+	}
+	return Interface;
 }
