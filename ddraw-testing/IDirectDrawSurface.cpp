@@ -212,8 +212,24 @@ void TestCreateSurfaceT(DDType* pDDraw)
         hr = pPrimarySurface->GetAttachedSurface(&ddscaps, &pBackBuffer);
     }
 
-    // Get the first back buffer
+    // Get the surface description of primary surface
     DWORD dwCaps = 0;
+    {
+        DSDesc ddsd = {};
+        ddsd.dwSize = sizeof(ddsd);
+
+        if (SUCCEEDED(pPrimarySurface->GetSurfaceDesc(&ddsd)))
+        {
+            dwCaps = ddsd.ddsCaps.dwCaps;
+        }
+    }
+
+    // ****  233  ****
+    TestID = 233;
+    LOG_TEST_RESULT(TestID, "Primary DDS Caps: ", dwCaps, GetResults<DDType>(TestID));
+
+    // Get the first back buffer
+    dwCaps = 0;
     if (SUCCEEDED(hr) && pBackBuffer)
     {
         DSDesc ddsd = {};
@@ -229,8 +245,8 @@ void TestCreateSurfaceT(DDType* pDDraw)
         pBackBuffer->Release();
     }
 
-    // ****  233  ****
-    TestID = 233;
+    // ****  234  ****
+    TestID = 234;
     LOG_TEST_RESULT(TestID, "Backbuffer DDS Caps: ", dwCaps, GetResults<DDType>(TestID));
 
     // Test GammaControl
