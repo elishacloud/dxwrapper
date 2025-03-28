@@ -9,7 +9,12 @@ private:
 	ULONG RefCount2 = 0;
 	ULONG RefCount3 = 0;
 
-	// Convert Material
+	// Store version wrappers
+	m_IDirect3DMaterial* WrapperInterface = nullptr;
+	m_IDirect3DMaterial2* WrapperInterface2 = nullptr;
+	m_IDirect3DMaterial3* WrapperInterface3 = nullptr;
+
+	// Convert to Direct3D9
 	m_IDirect3DX* D3DInterface = nullptr;
 	m_IDirect3DDeviceX** D3DDeviceInterface = nullptr;
 	D3DMATERIAL Material = {};		// Defaults to all null
@@ -17,11 +22,6 @@ private:
 
 	// Helper functions
 	HRESULT CheckInterface(char* FunctionName);
-
-	// Store d3d material version wrappers
-	m_IDirect3DMaterial *WrapperInterface = nullptr;
-	m_IDirect3DMaterial2 *WrapperInterface2 = nullptr;
-	m_IDirect3DMaterial3 *WrapperInterface3 = nullptr;
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)

@@ -9,14 +9,16 @@ private:
 	ULONG RefCount2 = 0;
 	ULONG RefCount3 = 0;
 	ULONG RefCount7 = 0;
-	m_IDirectDrawX *ddrawParent = nullptr;
-	DWORD DDrawVersion = 0;
 
-	// Store d3d version wrappers
+	// Store version wrappers
 	m_IDirect3D *WrapperInterface = nullptr;
 	m_IDirect3D2 *WrapperInterface2 = nullptr;
 	m_IDirect3D3 *WrapperInterface3 = nullptr;
 	m_IDirect3D7 *WrapperInterface7 = nullptr;
+
+	// Convert to Direct3D9
+	m_IDirectDrawX* ddrawParent = nullptr;
+	DWORD DDrawVersion = 0;
 
 	// Device interface pointers
 	struct {

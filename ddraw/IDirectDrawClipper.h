@@ -4,16 +4,16 @@ class m_IDirectDrawClipper : public IDirectDrawClipper, public AddressLookupTabl
 {
 private:
 	IDirectDrawClipper *ProxyInterface = nullptr;
-	REFIID WrapperID = IID_IDirectDrawClipper;
 	ULONG RefCount = 1;
+	REFIID WrapperID = IID_IDirectDrawClipper;
+
+	// Convert to Direct3D9
+	m_IDirectDrawX* ddrawParent = nullptr;
 	DWORD clipperCaps = 0;						// Clipper flags
 	HWND cliphWnd = nullptr;
 	std::vector<BYTE> ClipList;
 	bool IsClipListSet = false;
 	bool IsClipListChangedFlag = false;
-
-	// Convert to Direct3D9
-	m_IDirectDrawX* ddrawParent = nullptr;
 
 	// Interface initialization functions
 	void InitInterface(DWORD dwFlags);

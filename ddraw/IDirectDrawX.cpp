@@ -4990,6 +4990,10 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	return DD_OK;
 }
 
+// ******************************
+// External static functions
+// ******************************
+
 bool m_IDirectDrawX::CheckDirectDrawXInterface(void* pInterface)
 {
 	for (auto& entry : DDrawVector)

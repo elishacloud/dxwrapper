@@ -11,19 +11,20 @@ private:
 	ULONG RefCount4 = 0;
 	ULONG RefCount7 = 0;
 
+	// Store version wrappers
+	m_IDirectDraw* WrapperInterface = nullptr;
+	m_IDirectDraw2* WrapperInterface2 = nullptr;
+	m_IDirectDraw3* WrapperInterface3 = nullptr;
+	m_IDirectDraw4* WrapperInterface4 = nullptr;
+	m_IDirectDraw7* WrapperInterface7 = nullptr;
+
+	// Cached DirectDraw flags
 	const bool IsUsingEx = false;
 	bool Using3D = false;
 
 	// Fix exclusive mode issue
 	HHOOK g_hook = nullptr;
 	HWND chWnd = nullptr;
-
-	// Store ddraw version wrappers
-	m_IDirectDraw *WrapperInterface = nullptr;
-	m_IDirectDraw2 *WrapperInterface2 = nullptr;
-	m_IDirectDraw3 *WrapperInterface3 = nullptr;
-	m_IDirectDraw4 *WrapperInterface4 = nullptr;
-	m_IDirectDraw7 *WrapperInterface7 = nullptr;
 
 	// Store primary surface
 	m_IDirectDrawSurfaceX *PrimarySurface = nullptr;
@@ -285,7 +286,7 @@ public:
 	bool IsUsingThreadPresent();
 	HRESULT PresentScene(RECT* pRect);
 
-	// External functions
+	// External static functions
 	static bool CheckDirectDrawXInterface(void* pInterface);
 	static DWORD GetDDrawBitsPixel(HWND hWnd);
 	static DWORD GetDDrawWidth();

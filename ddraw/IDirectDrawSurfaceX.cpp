@@ -7959,6 +7959,10 @@ HRESULT m_IDirectDrawSurfaceX::PresentOverlay(LPRECT lpSrcRect)
 	return DD_OK;
 }
 
+// ******************************
+// External static functions
+// ******************************
+
 void m_IDirectDrawSurfaceX::StartSharedEmulatedMemory()
 {
 	ShareEmulatedMemory = true;

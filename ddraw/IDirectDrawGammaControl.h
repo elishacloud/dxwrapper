@@ -4,8 +4,8 @@ class m_IDirectDrawGammaControl : public IDirectDrawGammaControl, public Address
 {
 private:
 	IDirectDrawGammaControl *ProxyInterface = nullptr;
-	REFIID WrapperID = IID_IDirectDrawGammaControl;
 	ULONG RefCount = 1;
+	REFIID WrapperID = IID_IDirectDrawGammaControl;
 
 	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;

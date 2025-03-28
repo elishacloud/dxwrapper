@@ -9,6 +9,14 @@ private:
 	ULONG RefCount2 = 0;
 	ULONG RefCount3 = 0;
 
+	// Store version wrappers
+	m_IDirect3DViewport* WrapperInterface = nullptr;
+	m_IDirect3DViewport2* WrapperInterface2 = nullptr;
+	m_IDirect3DViewport3* WrapperInterface3 = nullptr;
+
+	// Convert to Direct3D9
+	m_IDirect3DX* D3DInterface = nullptr;
+	m_IDirect3DDeviceX** D3DDeviceInterface = nullptr;
 	bool IsViewPortSet = false;
 	D3DVIEWPORT vData = {};
 	bool IsViewPort2Set = false;
@@ -46,15 +54,6 @@ private:
 		BOOL IsSet = FALSE;
 		D3DMATERIALHANDLE hMat = NULL;
 	} MaterialBackground;
-
-	// Device interface pointers
-	m_IDirect3DX* D3DInterface = nullptr;
-	m_IDirect3DDeviceX** D3DDeviceInterface = nullptr;
-
-	// Store version wrappers
-	m_IDirect3DViewport *WrapperInterface = nullptr;
-	m_IDirect3DViewport2 *WrapperInterface2 = nullptr;
-	m_IDirect3DViewport3 *WrapperInterface3 = nullptr;
 
 	// Helper functions
 	HRESULT CheckInterface(char* FunctionName);

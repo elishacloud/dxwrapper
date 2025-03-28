@@ -11,13 +11,13 @@ private:
 	ULONG RefCount7 = 0;
 	REFCLSID ClassID = IID_IUnknown;
 
-	// Store d3d device version wrappers
+	// Store version wrappers
 	m_IDirect3DDevice* WrapperInterface = nullptr;
 	m_IDirect3DDevice2* WrapperInterface2 = nullptr;
 	m_IDirect3DDevice3* WrapperInterface3 = nullptr;
 	m_IDirect3DDevice7* WrapperInterface7 = nullptr;
 
-	// Convert Device
+	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;
 	m_IDirect3DX* D3DInterface = nullptr;
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;

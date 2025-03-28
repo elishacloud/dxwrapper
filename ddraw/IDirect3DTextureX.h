@@ -8,17 +8,17 @@ private:
 	ULONG RefCount1 = 0;
 	ULONG RefCount2 = 0;
 
-	// Convert Texture
+	// Store version wrappers
+	m_IDirect3DTexture* WrapperInterface = nullptr;
+	m_IDirect3DTexture2* WrapperInterface2 = nullptr;
+
+	// Convert to Direct3D9
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
 	DWORD tHandle = 0;
 	struct {
 		m_IDirectDrawSurfaceX* Interface = nullptr;
 		DWORD DxVersion = 0;
 	} parent3DSurface;
-
-	// Store d3d texture version wrappers
-	m_IDirect3DTexture *WrapperInterface = nullptr;
-	m_IDirect3DTexture2 *WrapperInterface2 = nullptr;
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)

@@ -11,6 +11,13 @@ private:
 	ULONG RefCount4 = 0;
 	ULONG RefCount7 = 0;
 
+	// Store version wrappers
+	m_IDirectDrawSurface* WrapperInterface = nullptr;
+	m_IDirectDrawSurface2* WrapperInterface2 = nullptr;
+	m_IDirectDrawSurface3* WrapperInterface3 = nullptr;
+	m_IDirectDrawSurface4* WrapperInterface4 = nullptr;
+	m_IDirectDrawSurface7* WrapperInterface7 = nullptr;
+
 	// Remember the last lock info
 	struct LASTLOCK
 	{
@@ -196,13 +203,6 @@ private:
 
 	// Direct3D9 device address
 	LPDIRECT3DDEVICE9* d3d9Device = nullptr;
-
-	// Store ddraw surface version wrappers
-	m_IDirectDrawSurface *WrapperInterface = nullptr;
-	m_IDirectDrawSurface2 *WrapperInterface2 = nullptr;
-	m_IDirectDrawSurface3 *WrapperInterface3 = nullptr;
-	m_IDirectDrawSurface4 *WrapperInterface4 = nullptr;
-	m_IDirectDrawSurface7 *WrapperInterface7 = nullptr;
 
 	// Store a list of attached surfaces
 	std::unique_ptr<m_IDirectDrawSurfaceX> BackBufferInterface;
@@ -533,7 +533,7 @@ public:
 	void RemovePalette(m_IDirectDrawPalette* PaletteToRemove);
 	void UpdatePaletteData();
 
-	// For emulated surfaces
+	// External static functions
 	static void StartSharedEmulatedMemory();
 	static void DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface);
 	static void CleanupSharedEmulatedMemory();

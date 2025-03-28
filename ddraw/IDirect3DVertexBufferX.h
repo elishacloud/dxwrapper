@@ -7,6 +7,12 @@ private:
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount1 = 0;
 	ULONG RefCount7 = 0;
+
+	// Store version wrappers
+	m_IDirect3DVertexBuffer* WrapperInterface = nullptr;
+	m_IDirect3DVertexBuffer7* WrapperInterface7 = nullptr;
+
+	// Convert to Direct3D9
 	m_IDirectDrawX* ddrawParent = nullptr;
 	m_IDirect3DX* D3DInterface = nullptr;
 	LPDIRECT3DDEVICE9* d3d9Device = nullptr;
@@ -22,10 +28,6 @@ private:
 
 	// Store d3d interface
 	LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = nullptr;
-
-	// Store version wrappers
-	m_IDirect3DVertexBuffer *WrapperInterface = nullptr;
-	m_IDirect3DVertexBuffer7 *WrapperInterface7 = nullptr;
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
