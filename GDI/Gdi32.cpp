@@ -16,7 +16,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include "ddraw\ddrawExternal.h"
+#include "ddraw\ddraw.h"
 #include "GDI.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
@@ -36,7 +36,7 @@ int WINAPI gdi_GetDeviceCaps(HDC hdc, int index)
 
 	if (index == BITSPIXEL)
 	{
-		switch (GetDDrawBitsPixel(WindowFromDC(hdc)))
+		switch (m_IDirectDrawX::GetDDrawBitsPixel(WindowFromDC(hdc)))
 		{
 		case 8:
 			return 8;

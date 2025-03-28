@@ -121,11 +121,7 @@ namespace DdrawWrapper
 	};
 }
 
-extern const D3DFORMAT D9DisplayFormat;
-
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
-
-extern std::vector<m_IDirectDrawX*> DDrawVector;
 
 enum DirectDrawEnumerateTypes
 {
@@ -134,13 +130,6 @@ enum DirectDrawEnumerateTypes
 	DDET_ENUMCALLBACKEXW,
 	DDET_ENUMCALLBACKW,
 };
-
-extern float ScaleDDWidthRatio;
-extern float ScaleDDHeightRatio;
-extern DWORD ScaleDDCurrentWidth;
-extern DWORD ScaleDDCurrentHeight;
-extern DWORD ScaleDDPadX;
-extern DWORD ScaleDDPadY;
 
 #include "ComPtr.h"
 #include "ScopeGuard.h"

@@ -4,8 +4,12 @@
 
 class m_IDirectDrawX;
 
-constexpr DWORD MaxVidMemory     = 512 * 1024 * 1024;	// 512 MBs
-constexpr DWORD MinUsedVidMemory = 8 * 1024;			// 8 KBs
+static constexpr DWORD MaxVidMemory     = 512 * 1024 * 1024;	// 512 MBs
+static constexpr DWORD MinUsedVidMemory = 8 * 1024;			// 8 KBs
+
+static constexpr D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
+
+static constexpr DWORD MaxPaletteSize = 256;
 
 #define BLT_MIRRORLEFTRIGHT		0x00000002l
 #define BLT_MIRRORUPDOWN		0x00000004l
@@ -227,7 +231,14 @@ static constexpr DWORD DDS_HEADER_SIZE			= sizeof(DWORD) + sizeof(DDS_HEADER);
 static constexpr DWORD DDS_HEADER_FLAGS_TEXTURE	= 0x00001007; // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT 
 static constexpr DWORD DDS_HEADER_FLAGS_PITCH	= 0x00000008;
 
-static constexpr DWORD MaxPaletteSize = 256;
+extern float ScaleDDWidthRatio;
+extern float ScaleDDHeightRatio;
+extern DWORD ScaleDDLastWidth;
+extern DWORD ScaleDDLastHeight;
+extern DWORD ScaleDDCurrentWidth;
+extern DWORD ScaleDDCurrentHeight;
+extern DWORD ScaleDDPadX;
+extern DWORD ScaleDDPadY;
 
 void AddDisplayResolution(DWORD Width, DWORD Height);
 bool IsDisplayResolution(DWORD Width, DWORD Height);

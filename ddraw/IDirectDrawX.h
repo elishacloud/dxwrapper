@@ -94,6 +94,10 @@ private:
 	// Direct3D9 interface functions
 	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
 	HRESULT CreateD9Object();
+	void BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height);
+	void RestoreState(DRAWSTATEBACKUP& DrawStates);
+	static DWORD WINAPI PresentThreadFunction(LPVOID);
+	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
 	void RestoreD3DDeviceState();
 	void Clear3DFlagForAllSurfaces();
 	void ResetAllSurfaceDisplay();
@@ -223,6 +227,7 @@ public:
 	HRESULT TestD3D9CooperativeLevel();
 
 	// Device information functions
+	static m_IDirectDrawX* GetDirectDrawInterface();
 	HWND GetHwnd();
 	DWORD GetHwndThreadID();
 	HDC GetDC();
@@ -279,5 +284,10 @@ public:
 	HRESULT DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture);
 	bool IsUsingThreadPresent();
 	HRESULT PresentScene(RECT* pRect);
-	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
+
+	// External functions
+	static bool CheckDirectDrawXInterface(void* pInterface);
+	static DWORD GetDDrawBitsPixel(HWND hWnd);
+	static DWORD GetDDrawWidth();
+	static DWORD GetDDrawHeight();
 };

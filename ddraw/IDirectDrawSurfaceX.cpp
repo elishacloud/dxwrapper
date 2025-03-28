@@ -3917,13 +3917,14 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char* FunctionName, bool CheckD3DD
 	// Check ddrawParent device
 	if (!ddrawParent)
 	{
-		if (DDrawVector.empty())
+		m_IDirectDrawX* pInterface = m_IDirectDrawX::GetDirectDrawInterface();
+		if (pInterface)
 		{
 			LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
 			return DDERR_INVALIDOBJECT;
 		}
 
-		SetDdrawParent(DDrawVector[0]);
+		SetDdrawParent(pInterface);
 		ddrawParent->AddSurface(this);
 	}
 

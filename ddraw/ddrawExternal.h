@@ -30,13 +30,7 @@ HRESULT WINAPI dd_RegisterSpecialCase(DWORD arg1, DWORD arg2, DWORD arg3, DWORD 
 HRESULT WINAPI dd_ReleaseDDThreadLock();
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value);
 
-bool CheckDirectDrawXInterface(void* pInterface);
-
 class m_IDirectDrawClipper;
-
-DWORD GetDDrawBitsPixel(HWND hWnd);
-DWORD GetDDrawWidth();
-DWORD GetDDrawHeight();
 
 void InitDDraw();
 void ExitDDraw();
