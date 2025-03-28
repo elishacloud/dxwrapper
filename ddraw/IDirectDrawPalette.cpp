@@ -18,33 +18,13 @@
 
 #include "ddraw.h"
 
-// Cached wrapper interface
 namespace {
 	m_IDirectDrawPalette* WrapperInterfaceBackup = nullptr;
 }
 
-m_IDirectDrawPalette* CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
-{
-	m_IDirectDrawPalette* Interface = nullptr;
-	if (WrapperInterfaceBackup)
-	{
-		Interface = WrapperInterfaceBackup;
-		WrapperInterfaceBackup = nullptr;
-		Interface->SetProxy(aOriginal, NewParent, dwFlags, lpDDColorArray);
-	}
-	else
-	{
-		if (aOriginal)
-		{
-			Interface = new m_IDirectDrawPalette(aOriginal);
-		}
-		else
-		{
-			Interface = new m_IDirectDrawPalette(NewParent, dwFlags, lpDDColorArray);
-		}
-	}
-	return Interface;
-}
+// ******************************
+// IUnknown functions
+// ******************************
 
 HRESULT m_IDirectDrawPalette::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
@@ -97,7 +77,7 @@ ULONG m_IDirectDrawPalette::AddRef()
 		return 0;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		return InterlockedIncrement(&RefCount);
 	}
@@ -114,16 +94,19 @@ ULONG m_IDirectDrawPalette::Release()
 		return 0;
 	}
 
-	ULONG ref;
+	if (Config.Dd7to9)
+	{
+		LONG ref = (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
 
-	if (!ProxyInterface)
-	{
-		ref = InterlockedDecrement(&RefCount);
+		if (ref == 0)
+		{
+			SaveInterfaceAddress(this, WrapperInterfaceBackup);
+		}
+
+		return ref;
 	}
-	else
-	{
-		ref = ProxyInterface->Release();
-	}
+
+	LONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
 	{
@@ -132,6 +115,10 @@ ULONG m_IDirectDrawPalette::Release()
 
 	return ref;
 }
+
+// ******************************
+// IDirectDrawPalette functions
+// ******************************
 
 HRESULT m_IDirectDrawPalette::GetCaps(LPDWORD lpdwCaps)
 {
@@ -142,7 +129,7 @@ HRESULT m_IDirectDrawPalette::GetCaps(LPDWORD lpdwCaps)
 		return DDERR_INVALIDOBJECT;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpdwCaps)
 		{
@@ -167,7 +154,7 @@ HRESULT m_IDirectDrawPalette::GetEntries(DWORD dwFlags, DWORD dwBase, DWORD dwNu
 		return DDERR_INVALIDOBJECT;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		// Do some error checking
 		if (!lpEntries || dwBase > entryCount)
@@ -199,7 +186,7 @@ HRESULT m_IDirectDrawPalette::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags, LPPAL
 		return DDERR_INVALIDOBJECT;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		// Because the DirectDrawPalette object is initialized when it is created, this method always returns DDERR_ALREADYINITIALIZED.
 		return DDERR_ALREADYINITIALIZED;
@@ -222,7 +209,7 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 		return DDERR_INVALIDOBJECT;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		// Do some error checking
 		if (!lpEntries || dwStartingEntry > entryCount)
@@ -298,6 +285,10 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 	return ProxyInterface->SetEntries(dwFlags, dwStartingEntry, dwCount, lpEntries);
 }
 
+// ******************************
+// Helper functions
+// ******************************
+
 void m_IDirectDrawPalette::InitInterface(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
 {
 	if (ddrawParent)
@@ -305,7 +296,7 @@ void m_IDirectDrawPalette::InitInterface(DWORD dwFlags, LPPALETTEENTRY lpDDColor
 		ddrawParent->AddPalette(this);
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		paletteCaps = (dwFlags & ~DDPCAPS_INITIALIZE);
 
@@ -388,4 +379,27 @@ void m_IDirectDrawPalette::ReleaseInterface()
 	{
 		ddrawParent->ClearPalette(this);
 	}
+}
+
+m_IDirectDrawPalette* CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
+{
+	m_IDirectDrawPalette* Interface = nullptr;
+	if (WrapperInterfaceBackup)
+	{
+		Interface = WrapperInterfaceBackup;
+		WrapperInterfaceBackup = nullptr;
+		Interface->SetProxy(aOriginal, NewParent, dwFlags, lpDDColorArray);
+	}
+	else
+	{
+		if (aOriginal)
+		{
+			Interface = new m_IDirectDrawPalette(aOriginal);
+		}
+		else
+		{
+			Interface = new m_IDirectDrawPalette(NewParent, dwFlags, lpDDColorArray);
+		}
+	}
+	return Interface;
 }

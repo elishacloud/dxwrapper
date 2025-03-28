@@ -115,7 +115,7 @@ ULONG m_IDirectDrawColorControl::Release()
 }
 
 // ******************************
-// IDirectDrawGammaControl functions
+// IDirectDrawColorControl functions
 // ******************************
 
 HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorControl)
