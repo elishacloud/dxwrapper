@@ -110,6 +110,7 @@ private:
 	void ApplyDrawFixes();
 	void ApplyPresentFixes();
 
+	HRESULT CallBeginScene();
 	HRESULT CallEndScene();
 
 	// Limit frame rate

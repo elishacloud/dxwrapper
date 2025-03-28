@@ -1317,7 +1317,7 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 			if (!Config.ForceSingleBeginEndScene || !SHARED.BeginSceneCalled)
 			{
 				CalledBeginScene = true;
-				ProxyInterface->BeginScene();
+				CallBeginScene();
 			}
 
 			// Capture modified state
@@ -1504,6 +1504,26 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UI
 	return ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
 }
 
+HRESULT m_IDirect3DDevice9Ex::CallBeginScene()
+{
+	HRESULT hr = ProxyInterface->BeginScene();
+
+	if (SUCCEEDED(hr))
+	{
+		SHARED.IsInScene = true;
+		SHARED.BeginSceneCalled = true;
+
+#ifdef ENABLE_DEBUGOVERLAY
+		if (Config.EnableImgui)
+		{
+			DOverlay.BeginScene();
+		}
+#endif
+	}
+
+	return hr;
+}
+
 HRESULT m_IDirect3DDevice9Ex::BeginScene()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -1516,61 +1536,45 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 	}
 #endif
 
-	HRESULT hr;
-	
 	if (Config.ForceSingleBeginEndScene && (SHARED.IsInScene || SHARED.BeginSceneCalled))
 	{
 		if (SHARED.IsInScene)
 		{
-			hr = D3DERR_INVALIDCALL;
+			return D3DERR_INVALIDCALL;
 		}
-		else
-		{
-			SHARED.IsInScene = true;
 
-			hr = D3D_OK;
-		}
-	}
-	else
-	{
-		hr = ProxyInterface->BeginScene();
+		SHARED.IsInScene = true;
 
-		if (SUCCEEDED(hr))
-		{
-			SHARED.IsInScene = true;
-			SHARED.BeginSceneCalled = true;
-		}
+		return D3D_OK;
 	}
 
-#ifdef ENABLE_DEBUGOVERLAY
-	if (Config.EnableImgui)
-	{
-		DOverlay.BeginScene();
-	}
-#endif
+	HRESULT hr = CallBeginScene();
 
-	// Get DeviceCaps
-	if (SHARED.Caps.DeviceType == NULL)
+	if (SUCCEEDED(hr))
 	{
-		if (SUCCEEDED(ProxyInterface->GetDeviceCaps(&SHARED.Caps)))
+		// Get DeviceCaps
+		if (SHARED.Caps.DeviceType == NULL)
 		{
-			// Set for Anisotropic Filtering
-			SHARED.MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? SHARED.Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, SHARED.Caps.MaxAnisotropy);
+			if (SUCCEEDED(ProxyInterface->GetDeviceCaps(&SHARED.Caps)))
+			{
+				// Set for Anisotropic Filtering
+				SHARED.MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? SHARED.Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, SHARED.Caps.MaxAnisotropy);
+			}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Falied to get DeviceCaps (" << this << ")");
+				ZeroMemory(&SHARED.Caps, sizeof(D3DCAPS9));
+			}
 		}
-		else
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Falied to get DeviceCaps (" << this << ")");
-			ZeroMemory(&SHARED.Caps, sizeof(D3DCAPS9));
-		}
-	}
 
-	// Set for Multisample
-	if (SHARED.DeviceMultiSampleFlag)
-	{
-		ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-		if (SHARED.SetSSAA)
+		// Set for Multisample
+		if (SHARED.DeviceMultiSampleFlag)
 		{
-			ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('S', 'S', 'A', 'A'));
+			ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+			if (SHARED.SetSSAA)
+			{
+				ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('S', 'S', 'A', 'A'));
+			}
 		}
 	}
 
