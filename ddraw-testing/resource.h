@@ -10,7 +10,7 @@
 #define APP_REVISION			0
 #define APP_COMPANYNAME			"Sadrate Presents"
 #define APP_DESCRPTION			"Tests specific funtions of DirectDraw and Direct3D."
-#define APP_COPYRIGHT			"Copyright (C) 2024 Elisha Riedlinger"
+#define APP_COPYRIGHT			"Copyright (C) 2025 Elisha Riedlinger"
 #define APP_ORIGINALVERSION		"ddraw-testing.exe"
 #define APP_INTERNALNAME		"ddraw-testing"
 
