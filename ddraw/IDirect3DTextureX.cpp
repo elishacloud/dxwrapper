@@ -46,12 +46,6 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 		return D3D_OK;
 	}
 
-	if (DirectXVersion != 1 && DirectXVersion != 2)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-		return E_NOINTERFACE;
-	}
-
 	DWORD DxVersion = (CheckWrapperType(riid) && Config.Dd7to9) ? GetGUIDVersion(riid) : DirectXVersion;
 
 	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)

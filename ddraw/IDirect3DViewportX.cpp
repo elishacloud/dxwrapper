@@ -16,12 +16,15 @@
 
 #include "ddraw.h"
 
-// Cached wrapper interface
 namespace {
 	m_IDirect3DViewport* WrapperInterfaceBackup = nullptr;
 	m_IDirect3DViewport2* WrapperInterfaceBackup2 = nullptr;
 	m_IDirect3DViewport3* WrapperInterfaceBackup3 = nullptr;
 }
+
+// ******************************
+// IUnknown functions
+// ******************************
 
 HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
@@ -44,12 +47,6 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, D
 		return D3D_OK;
 	}
 
-	if (DirectXVersion != 1 && DirectXVersion != 2 && DirectXVersion != 3)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-		return E_NOINTERFACE;
-	}
-
 	DWORD DxVersion = (CheckWrapperType(riid) && Config.Dd7to9) ? GetGUIDVersion(riid) : DirectXVersion;
 
 	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
@@ -64,31 +61,11 @@ HRESULT m_IDirect3DViewportX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, D
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
-void *m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
-{
-	switch (DirectXVersion)
-	{
-	case 0:
-		if (WrapperInterface3) return WrapperInterface3;
-		if (WrapperInterface2) return WrapperInterface2;
-		if (WrapperInterface) return WrapperInterface;
-		break;
-	case 1:
-		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DVIEWPORT)ProxyInterface, this);
-	case 2:
-		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3DVIEWPORT2)ProxyInterface, this);
-	case 3:
-		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECT3DVIEWPORT3)ProxyInterface, this);
-	}
-	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-	return nullptr;
-}
-
 ULONG m_IDirect3DViewportX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		switch (DirectXVersion)
 		{
@@ -111,10 +88,10 @@ ULONG m_IDirect3DViewportX::Release(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
-	ULONG ref;
-
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
+		ULONG ref;
+
 		switch (DirectXVersion)
 		{
 		case 1:
@@ -140,25 +117,29 @@ ULONG m_IDirect3DViewportX::Release(DWORD DirectXVersion)
 			}
 			delete this;
 		}
-	}
-	else
-	{
-		ref = ProxyInterface->Release();
 
-		if (ref == 0)
-		{
-			delete this;
-		}
+		return ref;
+	}
+
+	LONG ref = ProxyInterface->Release();
+
+	if (ref == 0)
+	{
+		delete this;
 	}
 
 	return ref;
 }
 
+// ******************************
+// IDirect3DViewport v1 functions
+// ******************************
+
 HRESULT m_IDirect3DViewportX::Initialize(LPDIRECT3D lpDirect3D)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		// The method returns DDERR_ALREADYINITIALIZED because the IDirect3DViewport object is initialized when it is created.
 		return DDERR_ALREADYINITIALIZED;
@@ -176,7 +157,7 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpData || lpData->dwSize != sizeof(D3DVIEWPORT))
 		{
@@ -216,7 +197,7 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpData || lpData->dwSize != sizeof(D3DVIEWPORT))
 		{
@@ -258,7 +239,7 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -271,7 +252,7 @@ HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -284,7 +265,7 @@ HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		MaterialBackground.IsSet = TRUE;
 		MaterialBackground.hMat = hMat;
@@ -305,7 +286,7 @@ HRESULT m_IDirect3DViewportX::GetBackground(LPD3DMATERIALHANDLE lphMat, LPBOOL l
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lphMat || !lpValid)
 		{
@@ -325,7 +306,7 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth(LPDIRECTDRAWSURFACE lpDDSurface
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		// Sets the background-depth field for the viewport.
 		// The depth-buffer is filled with the specified depth field when the IDirect3DViewport3::Clear method is called
@@ -346,7 +327,7 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth(LPDIRECTDRAWSURFACE * lplpDDSur
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
@@ -366,7 +347,7 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		// The requested operation could not be completed because the viewport has not yet been associated with a device.
 		if (!IsViewportAssiciated())
@@ -386,7 +367,7 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		// This method will fail, returning DDERR_INVALIDPARAMS, if you attempt to add a light that has already been assigned to the viewport.
 		if (!lpDirect3DLight || IsLightAttached(lpDirect3DLight))
@@ -441,7 +422,7 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpDirect3DLight)
 		{
@@ -488,7 +469,7 @@ HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIREC
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lplpDirect3DLight || (dwFlags == D3DNEXT_NEXT && !lpDirect3DLight))
 		{
@@ -547,11 +528,15 @@ HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIREC
 	return hr;
 }
 
+// ******************************
+// IDirect3DViewport v2 functions
+// ******************************
+
 HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpData || lpData->dwSize != sizeof(D3DVIEWPORT2))
 		{
@@ -591,7 +576,7 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpData || lpData->dwSize != sizeof(D3DVIEWPORT2))
 		{
@@ -627,6 +612,164 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 	}
 
 	return ProxyInterface->SetViewport2(lpData);
+}
+
+// ******************************
+// IDirect3DViewport v3 functions
+// ******************************
+
+HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.Dd7to9)
+	{
+		// Sets the background-depth field for the viewport.
+		// The depth-buffer is filled with the specified depth field when the IDirect3DViewport3::Clear or
+		// IDirect3DViewport3::Clear2 methods are called with the D3DCLEAR_ZBUFFER flag is specified.
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
+		return DDERR_UNSUPPORTED;
+	}
+
+	if (lpDDS)
+	{
+		lpDDS->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDS);
+	}
+
+	return ProxyInterface->SetBackgroundDepth2(lpDDS);
+}
+
+HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4* lplpDDS, LPBOOL lpValid)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.Dd7to9)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
+		return DDERR_UNSUPPORTED;
+	}
+
+	HRESULT hr = ProxyInterface->GetBackgroundDepth2(lplpDDS, lpValid);
+
+	if (SUCCEEDED(hr) && lplpDDS)
+	{
+		*lplpDDS = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface4>(*lplpDDS);
+	}
+
+	return hr;
+}
+
+HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags, D3DCOLOR dwColor, D3DVALUE dvZ, DWORD dwStencil)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.Dd7to9)
+	{
+		// The requested operation could not be completed because the viewport has not yet been associated with a device.
+		if (!IsViewportAssiciated())
+		{
+			return D3DERR_VIEWPORTHASNODEVICE;
+		}
+
+		// ToDo: check on zbuffer and stencil buffer and return error if does not exist:  D3DERR_ZBUFFER_NOTPRESENT and D3DERR_STENCILBUFFER_NOTPRESENT
+
+		return (*D3DDeviceInterface)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
+	}
+
+	return ProxyInterface->Clear2(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
+}
+
+// ******************************
+// Helper functions
+// ******************************
+
+void m_IDirect3DViewportX::InitInterface(DWORD DirectXVersion)
+{
+	if (D3DInterface)
+	{
+		D3DInterface->AddViewport(this);
+	}
+
+	if (Config.Dd7to9)
+	{
+		AddRef(DirectXVersion);
+	}
+}
+
+void m_IDirect3DViewportX::ReleaseInterface()
+{
+	if (Config.Exiting)
+	{
+		return;
+	}
+
+	if (D3DInterface)
+	{
+		D3DInterface->ClearViewport(this);
+	}
+
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
+	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
+	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
+
+	if (D3DDeviceInterface && *D3DDeviceInterface)
+	{
+		(*D3DDeviceInterface)->ClearViewport(this);
+	}
+}
+
+HRESULT m_IDirect3DViewportX::CheckInterface(char* FunctionName)
+{
+	// Check D3DInterface device
+	if (!D3DInterface)
+	{
+		LOG_LIMIT(100, FunctionName << " Error: no D3D parent!");
+		return DDERR_INVALIDOBJECT;
+	}
+
+	// Check d3d9 device
+	if (!D3DDeviceInterface || !*D3DDeviceInterface)
+	{
+		D3DDeviceInterface = D3DInterface->GetD3DDevice();
+		if (!D3DDeviceInterface || !*D3DDeviceInterface)
+		{
+			return DDERR_INVALIDOBJECT;
+		}
+	}
+
+	return D3D_OK;
+}
+
+void* m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
+{
+	switch (DirectXVersion)
+	{
+	case 0:
+		if (WrapperInterface3) return WrapperInterface3;
+		if (WrapperInterface2) return WrapperInterface2;
+		if (WrapperInterface) return WrapperInterface;
+		break;
+	case 1:
+		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DVIEWPORT)ProxyInterface, this);
+	case 2:
+		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3DVIEWPORT2)ProxyInterface, this);
+	case 3:
+		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECT3DVIEWPORT3)ProxyInterface, this);
+	}
+	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+	return nullptr;
+}
+
+m_IDirect3DDeviceX* m_IDirect3DViewportX::GetD3DDevice()
+{
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__)))
+	{
+		return nullptr;
+	}
+
+	return *D3DDeviceInterface;
 }
 
 void m_IDirect3DViewportX::SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData)
@@ -678,139 +821,5 @@ void m_IDirect3DViewportX::SetCurrentViewportActive(bool SetViewPortData, bool S
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not set light!");
 			}
 		}
-	}
-}
-
-HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!ProxyInterface)
-	{
-		// Sets the background-depth field for the viewport.
-		// The depth-buffer is filled with the specified depth field when the IDirect3DViewport3::Clear or
-		// IDirect3DViewport3::Clear2 methods are called with the D3DCLEAR_ZBUFFER flag is specified.
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
-	}
-
-	if (lpDDS)
-	{
-		lpDDS->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDS);
-	}
-
-	return ProxyInterface->SetBackgroundDepth2(lpDDS);
-}
-
-HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4* lplpDDS, LPBOOL lpValid)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!ProxyInterface)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
-	}
-
-	HRESULT hr = ProxyInterface->GetBackgroundDepth2(lplpDDS, lpValid);
-
-	if (SUCCEEDED(hr) && lplpDDS)
-	{
-		*lplpDDS = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface4>(*lplpDDS);
-	}
-
-	return hr;
-}
-
-HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags, D3DCOLOR dwColor, D3DVALUE dvZ, DWORD dwStencil)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!ProxyInterface)
-	{
-		// The requested operation could not be completed because the viewport has not yet been associated with a device.
-		if (!IsViewportAssiciated())
-		{
-			return D3DERR_VIEWPORTHASNODEVICE;
-		}
-
-		// ToDo: check on zbuffer and stencil buffer and return error if does not exist:  D3DERR_ZBUFFER_NOTPRESENT and D3DERR_STENCILBUFFER_NOTPRESENT
-
-		return (*D3DDeviceInterface)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
-	}
-
-	return ProxyInterface->Clear2(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
-}
-
-/************************/
-/*** Helper functions ***/
-/************************/
-
-HRESULT m_IDirect3DViewportX::CheckInterface(char* FunctionName)
-{
-	// Check D3DInterface device
-	if (!D3DInterface)
-	{
-		LOG_LIMIT(100, FunctionName << " Error: no D3D parent!");
-		return DDERR_INVALIDOBJECT;
-	}
-
-	// Check d3d9 device
-	if (!D3DDeviceInterface || !*D3DDeviceInterface)
-	{
-		D3DDeviceInterface = D3DInterface->GetD3DDevice();
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
-		{
-			return DDERR_INVALIDOBJECT;
-		}
-	}
-
-	return D3D_OK;
-}
-
-m_IDirect3DDeviceX* m_IDirect3DViewportX::GetD3DDevice()
-{
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__)))
-	{
-		return nullptr;
-	}
-
-	return *D3DDeviceInterface;
-}
-
-void m_IDirect3DViewportX::InitInterface(DWORD DirectXVersion)
-{
-	if (D3DInterface)
-	{
-		D3DInterface->AddViewport(this);
-	}
-
-	if (!ProxyInterface)
-	{
-		AddRef(DirectXVersion);
-	}
-}
-
-void m_IDirect3DViewportX::ReleaseInterface()
-{
-	if (Config.Exiting)
-	{
-		return;
-	}
-
-	if (D3DInterface)
-	{
-		D3DInterface->ClearViewport(this);
-	}
-
-	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
-	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
-	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
-
-	if (D3DDeviceInterface && *D3DDeviceInterface)
-	{
-		(*D3DDeviceInterface)->ClearViewport(this);
 	}
 }
