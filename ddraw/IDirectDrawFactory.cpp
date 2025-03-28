@@ -16,9 +16,9 @@
 
 #include "ddraw.h"
 
-/************************/
-/*** IUnknown methods ***/
-/************************/
+// ******************************
+// IUnknown functions
+// ******************************
 
 HRESULT m_IDirectDrawFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
@@ -52,16 +52,19 @@ ULONG m_IDirectDrawFactory::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ULONG ref;
+	if (Config.Dd7to9)
+	{
+		LONG ref = (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
 
-	if (!ProxyInterface)
-	{
-		ref = InterlockedDecrement(&RefCount);
+		if (ref == 0)
+		{
+			delete this;
+		}
+
+		return ref;
 	}
-	else
-	{
-		ref = ProxyInterface->Release();
-	}
+
+	LONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
 	{
@@ -71,15 +74,15 @@ ULONG m_IDirectDrawFactory::Release()
 	return ref;
 }
 
-/**********************************/
-/*** IDirectDrawFactory methods ***/
-/**********************************/
+// ******************************
+// IDirectDrawFactory functions
+// ******************************
 
 HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dwCoopLevelFlags, DWORD dwReserved, IUnknown * pUnkOuter, IDirectDraw * * ppDirectDraw)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		HRESULT hr = dd_DirectDrawCreate(pGUID, ppDirectDraw, pUnkOuter);
 
@@ -116,7 +119,7 @@ HRESULT m_IDirectDrawFactory::DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback,
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		return dd_DirectDrawEnumerateA(lpCallback, lpContext);
 	}
@@ -128,7 +131,7 @@ HRESULT m_IDirectDrawFactory::DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback,
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		return dd_DirectDrawEnumerateW(lpCallback, lpContext);
 	}
