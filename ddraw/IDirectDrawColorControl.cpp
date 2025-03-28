@@ -21,28 +21,9 @@ namespace {
 	m_IDirectDrawColorControl* WrapperInterfaceBackup = nullptr;
 }
 
-m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent)
-{
-	m_IDirectDrawColorControl* Interface = nullptr;
-	if (WrapperInterfaceBackup)
-	{
-		Interface = WrapperInterfaceBackup;
-		WrapperInterfaceBackup = nullptr;
-		Interface->SetProxy(aOriginal, NewParent);
-	}
-	else
-	{
-		if (aOriginal)
-		{
-			Interface = new m_IDirectDrawColorControl(aOriginal);
-		}
-		else
-		{
-			Interface = new m_IDirectDrawColorControl(NewParent);
-		}
-	}
-	return Interface;
-}
+// ******************************
+// IUnknown functions
+// ******************************
 
 HRESULT m_IDirectDrawColorControl::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
@@ -95,7 +76,7 @@ ULONG m_IDirectDrawColorControl::AddRef()
 		return 0;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		return InterlockedIncrement(&RefCount);
 	}
@@ -112,16 +93,19 @@ ULONG m_IDirectDrawColorControl::Release()
 		return 0;
 	}
 
-	ULONG ref;
+	if (Config.Dd7to9)
+	{
+		LONG ref = (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
 
-	if (!ProxyInterface)
-	{
-		ref = InterlockedDecrement(&RefCount);
+		if (ref == 0)
+		{
+			SaveInterfaceAddress(this, WrapperInterfaceBackup);
+		}
+
+		return ref;
 	}
-	else
-	{
-		ref = ProxyInterface->Release();
-	}
+
+	LONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
 	{
@@ -130,6 +114,10 @@ ULONG m_IDirectDrawColorControl::Release()
 
 	return ref;
 }
+
+// ******************************
+// IDirectDrawClipper functions
+// ******************************
 
 HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorControl)
 {
@@ -140,7 +128,7 @@ HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorCont
 		return DDERR_INVALIDOBJECT;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpColorControl)
 		{
@@ -164,7 +152,7 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 		return DDERR_INVALIDOBJECT;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpColorControl)
 		{
@@ -193,9 +181,9 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 	return ProxyInterface->SetColorControls(lpColorControl);
 }
 
-/************************/
-/*** Helper functions ***/
-/************************/
+// ******************************
+// Helper functions
+// ******************************
 
 void m_IDirectDrawColorControl::InitInterface()
 {
@@ -227,4 +215,27 @@ void m_IDirectDrawColorControl::ReleaseInterface()
 	{
 		ddrawParent->ClearColorControl(this);
 	}
+}
+
+m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent)
+{
+	m_IDirectDrawColorControl* Interface = nullptr;
+	if (WrapperInterfaceBackup)
+	{
+		Interface = WrapperInterfaceBackup;
+		WrapperInterfaceBackup = nullptr;
+		Interface->SetProxy(aOriginal, NewParent);
+	}
+	else
+	{
+		if (aOriginal)
+		{
+			Interface = new m_IDirectDrawColorControl(aOriginal);
+		}
+		else
+		{
+			Interface = new m_IDirectDrawColorControl(NewParent);
+		}
+	}
+	return Interface;
 }
