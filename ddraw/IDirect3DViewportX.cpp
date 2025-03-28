@@ -121,7 +121,7 @@ ULONG m_IDirect3DViewportX::Release(DWORD DirectXVersion)
 		return ref;
 	}
 
-	LONG ref = ProxyInterface->Release();
+	ULONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
 	{

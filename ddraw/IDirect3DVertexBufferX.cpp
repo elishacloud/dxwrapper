@@ -110,7 +110,7 @@ ULONG m_IDirect3DVertexBufferX::Release(DWORD DirectXVersion)
 		return ref;
 	}
 
-	LONG ref = ProxyInterface->Release();
+	ULONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
 	{

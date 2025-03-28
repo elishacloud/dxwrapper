@@ -54,7 +54,7 @@ ULONG m_IDirectDrawFactory::Release()
 
 	if (Config.Dd7to9)
 	{
-		LONG ref = (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
+		ULONG ref = (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
 
 		if (ref == 0)
 		{
@@ -64,7 +64,7 @@ ULONG m_IDirectDrawFactory::Release()
 		return ref;
 	}
 
-	LONG ref = ProxyInterface->Release();
+	ULONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
 	{
