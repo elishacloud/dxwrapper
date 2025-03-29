@@ -4277,15 +4277,8 @@ HRESULT m_IDirect3DDeviceX::Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDestP
 			return  DDERR_INVALIDPARAMS;
 		}
 
-		m_IDirect3DTextureX* pDestTextureX = nullptr;
-		lpDestTex->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDestTextureX);
-		if (!pDestTextureX)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture wrapper!");
-			return DDERR_GENERIC;
-		}
-
-		m_IDirectDrawSurfaceX* pDestSurfaceX = pDestTextureX->GetSurface();
+		m_IDirectDrawSurfaceX* pDestSurfaceX = nullptr;
+		lpDestTex->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDestSurfaceX);
 		if (!pDestSurfaceX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface!");
