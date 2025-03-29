@@ -69,6 +69,25 @@ private:
 	m_IDirect3DX *D3DInterface = nullptr;
 	m_IDirect3DDeviceX *D3DDeviceInterface = nullptr;
 
+	// Helper functions
+	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice);
+	HRESULT CreateD9Object();
+	void BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height);
+	void RestoreState(DRAWSTATEBACKUP& DrawStates);
+	static DWORD WINAPI PresentThreadFunction(LPVOID);
+	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
+	void RestoreD3DDeviceState();
+	void Clear3DFlagForAllSurfaces();
+	void ResetAllSurfaceDisplay();
+	void ReleaseD3D9IndexBuffer();
+	void ReleaseAllD9Resources(bool BackupData, bool ResetInterface);
+	void ReleaseD9Device();
+	void ReleaseD9Object();
+
+	// Gamma functions
+	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader();
+	HRESULT SetBrightnessLevel(D3DGAMMARAMP& RampData);
+
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
 	{
@@ -91,25 +110,6 @@ private:
 	inline IDirectDraw3 *GetProxyInterfaceV3() { return (IDirectDraw3 *)ProxyInterface; }
 	inline IDirectDraw4 *GetProxyInterfaceV4() { return (IDirectDraw4 *)ProxyInterface; }
 	inline IDirectDraw7 *GetProxyInterfaceV7() { return ProxyInterface; }
-
-	// Direct3D9 interface functions
-	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
-	HRESULT CreateD9Object();
-	void BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height);
-	void RestoreState(DRAWSTATEBACKUP& DrawStates);
-	static DWORD WINAPI PresentThreadFunction(LPVOID);
-	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
-	void RestoreD3DDeviceState();
-	void Clear3DFlagForAllSurfaces();
-	void ResetAllSurfaceDisplay();
-	void ReleaseD3D9IndexBuffer();
-	void ReleaseAllD9Resources(bool BackupData, bool ResetInterface);
-	void ReleaseD9Device();
-	void ReleaseD9Object();
-
-	// Gamma functions
-	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader();
-	HRESULT SetBrightnessLevel(D3DGAMMARAMP& RampData);
 
 	// Interface initialization functions
 	void InitInterface(DWORD DirectXVersion);
@@ -203,14 +203,14 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Direct3D interfaces
-	inline m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
+	m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
 	void SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
-	inline m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
+	m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
-	inline bool IsCreatedEx() const { return IsUsingEx; }
-	inline void Enable3D() { Using3D = true; }
-	inline bool IsUsing3D() const { return Using3D; }
-	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
+	bool IsCreatedEx() const { return IsUsingEx; }
+	void Enable3D() { Using3D = true; }
+	bool IsUsing3D() const { return Using3D; }
+	bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
 	bool IsInScene();
 
 	// Direct3D9 interfaces
@@ -266,11 +266,11 @@ public:
 	void ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer);
 
 	// Color and gamma control
-	inline m_IDirectDrawColorControl* GetColorControlInterface() { return ColorControlInterface; }
+	m_IDirectDrawColorControl* GetColorControlInterface() { return ColorControlInterface; }
 	HRESULT CreateColorControl(m_IDirectDrawColorControl** lplpColorControl);
 	void SetColorControl(m_IDirectDrawColorControl* lpColorControl);
 	void ClearColorControl(m_IDirectDrawColorControl* lpColorControl);
-	inline m_IDirectDrawGammaControl* GetGammaControlInterface() { return GammaControlInterface; }
+	m_IDirectDrawGammaControl* GetGammaControlInterface() { return GammaControlInterface; }
 	HRESULT CreateGammaControl(m_IDirectDrawGammaControl** lplpGammaControl);
 	void SetGammaControl(m_IDirectDrawGammaControl* lpGammaControl);
 	void ClearGammaControl(m_IDirectDrawGammaControl* lpGammaControl);

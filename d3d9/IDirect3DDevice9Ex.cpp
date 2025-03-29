@@ -134,7 +134,7 @@ ULONG m_IDirect3DDevice9Ex::Release()
 	return ref;
 }
 
-inline void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters) const
+void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters) const
 {
 	UNREFERENCED_PARAMETER(pPresentationParameters);
 
@@ -148,7 +148,7 @@ inline void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentation
 }
 
 template <typename T>
-inline HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
+HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
 {
 	if (!pPresentationParameters)
 	{
@@ -748,7 +748,7 @@ HRESULT m_IDirect3DDevice9Ex::SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3
 	return hr;
 }
 
-inline HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
+HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -803,7 +803,7 @@ inline HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
 	return D3D_OK;
 }
 
-inline LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
+LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
 {
 	// Create pixel shaders
 	if (!SHARED.gammaPixelShader)
@@ -813,7 +813,7 @@ inline LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
 	return SHARED.gammaPixelShader;
 }
 
-inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
+void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 {
 	if (!SHARED.GammaLUTTexture)
 	{
@@ -903,7 +903,7 @@ inline void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->SetTexture(1, nullptr);
 }
 
-inline void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
+void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 {
 	ScopedCriticalSection ThreadLock(&SHARED.d9cs);
 
@@ -1670,7 +1670,7 @@ HRESULT m_IDirect3DDevice9Ex::GetTextureStageState(DWORD Stage, D3DTEXTURESTAGES
 }
 
 // Check if this is a texture stage transform for cube mapping
-inline void m_IDirect3DDevice9Ex::CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix) const
+void m_IDirect3DDevice9Ex::CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix) const
 {
 	if (State >= D3DTS_TEXTURE0 && State <= D3DTS_TEXTURE7)
 	{
@@ -1715,7 +1715,7 @@ inline void m_IDirect3DDevice9Ex::CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE
 }
 
 // Check if an environment cube map is being used
-inline bool m_IDirect3DDevice9Ex::CheckTextureStageForCubeMap() const
+bool m_IDirect3DDevice9Ex::CheckTextureStageForCubeMap() const
 {
 	for (DWORD i = 0; i < MAX_TEXTURE_STAGES; i++)
 	{
@@ -1728,7 +1728,7 @@ inline bool m_IDirect3DDevice9Ex::CheckTextureStageForCubeMap() const
 	return false;
 }
 
-inline void m_IDirect3DDevice9Ex::SetEnvironmentMapCubeTexture()
+void m_IDirect3DDevice9Ex::SetEnvironmentMapCubeTexture()
 {
 	const bool isCubeMap = CheckTextureStageForCubeMap() ||
 		[&]() {
@@ -1952,7 +1952,7 @@ HRESULT m_IDirect3DDevice9Ex::SetClipPlane(DWORD Index, CONST float *pPlane)
 }
 
 // CacheClipPlane
-inline void m_IDirect3DDevice9Ex::ApplyClipPlanes()
+void m_IDirect3DDevice9Ex::ApplyClipPlanes()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -2326,7 +2326,7 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	return ProxyInterface->SetSamplerState(Sampler, Type, Value);
 }
 
-inline void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag)
+void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag)
 {
 	DWORD Value = 0;
 	for (int x = 0; x < 4; x++)
@@ -2350,7 +2350,7 @@ inline void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool Anisotropy
 	}
 }
 
-inline void m_IDirect3DDevice9Ex::ReeableAnisotropicSamplerState()
+void m_IDirect3DDevice9Ex::ReeableAnisotropicSamplerState()
 {
 	if (SHARED.AnisotropyDisabledFlag)
 	{
@@ -3026,7 +3026,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 }
 
 // Runs when device is created and on every successful Reset()
-inline void m_IDirect3DDevice9Ex::ReInitInterface() const
+void m_IDirect3DDevice9Ex::ReInitInterface() const
 {
 	Utils::GetScreenSize(SHARED.DeviceWindow, SHARED.screenWidth, SHARED.screenHeight);
 
@@ -3043,7 +3043,7 @@ inline void m_IDirect3DDevice9Ex::ReInitInterface() const
 	}
 }
 
-inline void m_IDirect3DDevice9Ex::LimitFrameRate() const
+void m_IDirect3DDevice9Ex::LimitFrameRate() const
 {
 	// Count the number of frames
 	SHARED.Counter.FrameCounter++;
@@ -3141,7 +3141,7 @@ void m_IDirect3DDevice9Ex::CalculateFPS() const
 	Logging::LogDebug() << "Frames: " << SHARED.frameTimes.size() << " Average time: " << averageFrameTime << " FPS: " << SHARED.AverageFPSCounter;
 }
 
-inline void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD position) const
+void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD position) const
 {
 	// Scale the font size based on the rect height (adjustable factor)
 	int fontSize = SHARED.BufferHeight / 40;

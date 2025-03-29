@@ -319,8 +319,8 @@ public:
 	STDMETHOD(GetDisplayModeEx)(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
 
 	// Helper functions
-	inline LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
-	inline AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
+	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
+	AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
 	REFIID GetIID() { return WrapperID; }
 };
 #undef SHARED

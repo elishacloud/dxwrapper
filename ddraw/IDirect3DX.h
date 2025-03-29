@@ -52,6 +52,10 @@ private:
 	// Viewport array
 	std::vector<m_IDirect3DViewportX*> ViewportList;
 
+	// Helper functions
+	void GetCap9Cache();
+	void ResolutionHack();
+
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
 	{
@@ -71,10 +75,6 @@ private:
 	inline IDirect3D2 *GetProxyInterfaceV2() { return (IDirect3D2 *)ProxyInterface; }
 	inline IDirect3D3 *GetProxyInterfaceV3() { return (IDirect3D3 *)ProxyInterface; }
 	inline IDirect3D7 *GetProxyInterfaceV7() { return ProxyInterface; }
-
-	// Helper functions
-	void GetCap9Cache();
-	void ResolutionHack();
 
 	// Interface initialization functions
 	void InitInterface(DWORD DirectXVersion);
@@ -136,7 +136,7 @@ public:
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void* GetWrapperInterfaceX(DWORD DirectXVersion);
-	inline m_IDirect3DDeviceX** GetD3DDevice() { return &D3DDeviceInterface; }
+	m_IDirect3DDeviceX** GetD3DDevice() { return &D3DDeviceInterface; }
 	void SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void AddLight(m_IDirect3DLight* lpLight);
@@ -151,6 +151,6 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
-	inline void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; GetCap9Cache(); }
-	inline void ClearDdraw() { ddrawParent = nullptr; }
+	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; GetCap9Cache(); }
+	void ClearDdraw() { ddrawParent = nullptr; }
 };

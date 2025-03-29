@@ -81,15 +81,15 @@ public:
 	STDMETHOD(SetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY);
 
 	// Functions handling the ddraw parent interface
-	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	inline void ClearDdraw() { ddrawParent = nullptr; }
+	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
+	void ClearDdraw() { ddrawParent = nullptr; }
 
 	// Helper functions
-	inline const PALETTEENTRY* GetPaletteEntries() const { return rawPalette; }
-	inline const RGBQUAD* GetRGBPalette() const { return rgbPalette; }
-	inline DWORD GetPaletteUSN() const { return PaletteUSN; }
-	inline DWORD GetEntryCount() const { return entryCount; }
-	inline void SetPrimary() { paletteCaps |= DDPCAPS_PRIMARYSURFACE; }
-	inline void RemovePrimary() { paletteCaps &= ~DDPCAPS_PRIMARYSURFACE; }
+	const PALETTEENTRY* GetPaletteEntries() const { return rawPalette; }
+	const RGBQUAD* GetRGBPalette() const { return rgbPalette; }
+	DWORD GetPaletteUSN() const { return PaletteUSN; }
+	DWORD GetEntryCount() const { return entryCount; }
+	void SetPrimary() { paletteCaps |= DDPCAPS_PRIMARYSURFACE; }
+	void RemovePrimary() { paletteCaps &= ~DDPCAPS_PRIMARYSURFACE; }
 	static m_IDirectDrawPalette* CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray);
 };

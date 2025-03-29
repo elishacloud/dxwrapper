@@ -103,7 +103,7 @@ public:
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	m_IDirect3DDeviceX* GetD3DDevice();
-	inline void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
+	void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 };

@@ -57,15 +57,6 @@ private:
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
 	} DeviceStates;
 
-	inline HRESULT SetD9RenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState);
-	inline HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
-	inline HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
-	inline HRESULT SetD9Light(DWORD Index, CONST D3DLIGHT9* pLight);
-	inline HRESULT LightD9Enable(DWORD Index, BOOL bEnable);
-	inline HRESULT SetD9Viewport(CONST D3DVIEWPORT9* pViewport);
-	inline HRESULT SetD9Material(CONST D3DMATERIAL9* pMaterial);
-	inline HRESULT SetD9Transform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix);
-
 	struct {
 		DWORD rsClipping = 0;
 		DWORD rsLighting = 0;
@@ -123,27 +114,9 @@ private:
 
 	// Texture handle map
 	std::unordered_map<D3DTEXTUREHANDLE, m_IDirect3DTextureX*> TextureHandleMap;
-	inline m_IDirect3DTextureX* GetTexture(D3DTEXTUREHANDLE TextureHandle)
-	{
-		m_IDirect3DTextureX* pTextureX = TextureHandleMap[TextureHandle];
-		if (!pTextureX)
-		{
-			TextureHandleMap.erase(TextureHandle);
-		}
-		return pTextureX;
-	}
 
 	// Material handle map
 	std::unordered_map<D3DMATERIALHANDLE, m_IDirect3DMaterialX*> MaterialHandleMap;
-	inline m_IDirect3DMaterialX* GetMaterial(D3DMATERIALHANDLE MaterialHandle)
-	{
-		m_IDirect3DMaterialX* pMaterialX = MaterialHandleMap[MaterialHandle];
-		if (!pMaterialX)
-		{
-			MaterialHandleMap.erase(MaterialHandle);
-		}
-		return pMaterialX;
-	}
 
 	// Matrix map
 	struct D3DMATRIXSTRUCT {
@@ -151,15 +124,6 @@ private:
 		D3DMATRIX m = {};
 	};
 	std::unordered_map<D3DMATRIXHANDLE, D3DMATRIXSTRUCT> MatrixMap;
-	inline D3DMATRIX* GetMatrix(D3DMATRIXHANDLE MatrixHandle)
-	{
-		if (!MatrixMap[MatrixHandle].IsValidMatrix)
-		{
-			MatrixMap.erase(MatrixHandle);
-			return nullptr;
-		}
-		return &MatrixMap[MatrixHandle].m;
-	}
 
 	// Light index map
 	std::unordered_map<DWORD, m_IDirect3DLight*> LightIndexMap;
@@ -173,7 +137,42 @@ private:
 	// Viewport array
 	std::vector<LPDIRECT3DVIEWPORT3> AttachedViewports;
 
-	inline bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
+	// Helper functions
+	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice);
+
+	// Execute buffer function
+	void CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& DestVertexCount, BYTE* SrcVertex, DWORD SrcIndex, DWORD VertexTypeDesc);
+	HRESULT DrawExecutePoint(D3DPOINT* point, WORD pointCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
+	HRESULT DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
+	HRESULT DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD triangleCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
+
+	HRESULT SetD9RenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState);
+	HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
+	HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
+	HRESULT SetD9Light(DWORD Index, CONST D3DLIGHT9* pLight);
+	HRESULT LightD9Enable(DWORD Index, BOOL bEnable);
+	HRESULT SetD9Viewport(CONST D3DVIEWPORT9* pViewport);
+	HRESULT SetD9Material(CONST D3DMATERIAL9* pMaterial);
+	HRESULT SetD9Transform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix);
+
+	HRESULT RestoreStates();
+	void SetDefaults();
+	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
+	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
+	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
+	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
+
+	D3DMATRIX* GetMatrix(D3DMATRIXHANDLE MatrixHandle)
+	{
+		if (!MatrixMap[MatrixHandle].IsValidMatrix)
+		{
+			MatrixMap.erase(MatrixHandle);
+			return nullptr;
+		}
+		return &MatrixMap[MatrixHandle].m;
+	}
+
+	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
 	{
 		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
 			[=](auto pViewport) -> bool { return pViewport == ViewportX; });
@@ -184,6 +183,26 @@ private:
 			return true;
 		}
 		return false;
+	}
+
+	m_IDirect3DTextureX* GetTexture(D3DTEXTUREHANDLE TextureHandle)
+	{
+		m_IDirect3DTextureX* pTextureX = TextureHandleMap[TextureHandle];
+		if (!pTextureX)
+		{
+			TextureHandleMap.erase(TextureHandle);
+		}
+		return pTextureX;
+	}
+
+	m_IDirect3DMaterialX* GetMaterial(D3DMATERIALHANDLE MaterialHandle)
+	{
+		m_IDirect3DMaterialX* pMaterialX = MaterialHandleMap[MaterialHandle];
+		if (!pMaterialX)
+		{
+			MaterialHandleMap.erase(MaterialHandle);
+		}
+		return pMaterialX;
 	}
 
 	// Wrapper interface functions
@@ -205,23 +224,6 @@ private:
 	inline IDirect3DDevice2 *GetProxyInterfaceV2() { return (IDirect3DDevice2 *)ProxyInterface; }
 	inline IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
 	inline IDirect3DDevice7 *GetProxyInterfaceV7() { return ProxyInterface; }
-
-	// Check interfaces
-	HRESULT CheckInterface(char *FunctionName, bool CheckD3DDevice);
-
-	// Execute buffer function
-	inline void CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& DestVertexCount, BYTE* SrcVertex, DWORD SrcIndex, DWORD VertexTypeDesc);
-	HRESULT DrawExecutePoint(D3DPOINT* point, WORD pointCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
-	HRESULT DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
-	HRESULT DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD triangleCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
-
-	// Helper functions
-	HRESULT RestoreStates();
-	void SetDefaults();
-	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
-	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
-	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
-	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
 
 	// Interface initialization functions
 	void InitInterface(DWORD DirectXVersion);
@@ -352,18 +354,18 @@ public:
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 	bool IsDeviceInScene() const { return IsInScene; }
-	inline void SetParent3DSurface(m_IDirectDrawSurfaceX* lpSurfaceX, DWORD DxVersion) { parent3DSurface = { lpSurfaceX, DxVersion }; }
+	void SetParent3DSurface(m_IDirectDrawSurfaceX* lpSurfaceX, DWORD DxVersion) { parent3DSurface = { lpSurfaceX, DxVersion }; }
 
 	// ExecuteBuffer
 	void AddExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer);
 	void ClearExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer);
 
 	// Viewport functions
-	inline void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
-	inline bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
+	void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
+	bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
 	void ClearViewport(m_IDirect3DViewportX* lpViewportX);
 
-	inline bool IsViewportAttached(LPDIRECT3DVIEWPORT3 ViewportX)
+	bool IsViewportAttached(LPDIRECT3DVIEWPORT3 ViewportX)
 	{
 		if (!ViewportX) return false;
 
@@ -384,7 +386,7 @@ public:
 	// Material handle function
 	void ClearMaterialHandle(D3DMATERIALHANDLE mHandle);
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial);
-	inline bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == lsMaterialHandle); }
+	bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == lsMaterialHandle); }
 
 	// Light index function
 	void ClearLight(m_IDirect3DLight* lpLight);

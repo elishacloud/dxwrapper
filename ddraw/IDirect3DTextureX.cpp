@@ -64,14 +64,14 @@ ULONG m_IDirect3DTextureX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
-	// 3DTextures share reference count with surface
-	if (parent3DSurface.Interface)
-	{
-		return parent3DSurface.Interface->AddRef(parent3DSurface.DxVersion);
-	}
-
 	if (Config.Dd7to9)
 	{
+		// 3DTextures share reference count with surface
+		if (parent3DSurface.Interface)
+		{
+			return parent3DSurface.Interface->AddRef(parent3DSurface.DxVersion);
+		}
+
 		switch (DirectXVersion)
 		{
 		case 1:

@@ -850,7 +850,7 @@ DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch)
 }
 
 // Count leading zeros and total number of bits
-inline static void CountBits(DWORD value, DWORD& LeadingZeros, DWORD& TotalBits)
+static void CountBits(DWORD value, DWORD& LeadingZeros, DWORD& TotalBits)
 {
 	LeadingZeros = 0;
 	while (value && !(value & 1))

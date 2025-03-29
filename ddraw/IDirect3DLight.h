@@ -82,6 +82,6 @@ public:
 
 	// Helper function
 	m_IDirect3DDeviceX* GetD3DDevice();
-	inline void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
+	void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
 	static m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface);
 };

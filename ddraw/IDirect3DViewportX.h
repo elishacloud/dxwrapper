@@ -22,10 +22,18 @@ private:
 	bool IsViewPort2Set = false;
 	D3DVIEWPORT2 vData2 = {};
 
+	struct MATERIALBACKGROUND {
+		BOOL IsSet = FALSE;
+		D3DMATERIALHANDLE hMat = NULL;
+	} MaterialBackground;
+
 	// Light array
 	std::vector<LPDIRECT3DLIGHT> AttachedLights;
 
-	inline bool IsLightAttached(LPDIRECT3DLIGHT LightX)
+	// Helper functions
+	HRESULT CheckInterface(char* FunctionName);
+
+	bool IsLightAttached(LPDIRECT3DLIGHT LightX)
 	{
 		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
 			[=](auto pLight) -> bool { return pLight == LightX; });
@@ -37,7 +45,7 @@ private:
 		return false;
 	}
 
-	inline bool DeleteAttachedLight(LPDIRECT3DLIGHT LightX)
+	bool DeleteAttachedLight(LPDIRECT3DLIGHT LightX)
 	{
 		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
 			[=](auto pLight) -> bool { return pLight == LightX; });
@@ -50,13 +58,12 @@ private:
 		return false;
 	}
 
-	struct MATERIALBACKGROUND {
-		BOOL IsSet = FALSE;
-		D3DMATERIALHANDLE hMat = NULL;
-	} MaterialBackground;
-
-	// Helper functions
-	HRESULT CheckInterface(char* FunctionName);
+	bool IsViewportAssiciated() {
+		return SUCCEEDED(CheckInterface(__FUNCTION__)) && ((*D3DDeviceInterface)->CheckIfViewportSet(this) ||
+			(*D3DDeviceInterface)->IsViewportAttached((LPDIRECT3DVIEWPORT3)WrapperInterface) ||
+			(*D3DDeviceInterface)->IsViewportAttached((LPDIRECT3DVIEWPORT3)WrapperInterface2) ||
+			(*D3DDeviceInterface)->IsViewportAttached((LPDIRECT3DVIEWPORT3)WrapperInterface3));
+	}
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
@@ -74,13 +81,6 @@ private:
 	inline IDirect3DViewport *GetProxyInterfaceV1() { return (IDirect3DViewport *)ProxyInterface; }
 	inline IDirect3DViewport2 *GetProxyInterfaceV2() { return (IDirect3DViewport2 *)ProxyInterface; }
 	inline IDirect3DViewport3 *GetProxyInterfaceV3() { return ProxyInterface; }
-
-	inline bool IsViewportAssiciated() {
-		return SUCCEEDED(CheckInterface(__FUNCTION__)) && ((*D3DDeviceInterface)->CheckIfViewportSet(this) ||
-			(*D3DDeviceInterface)->IsViewportAttached((LPDIRECT3DVIEWPORT3)WrapperInterface) ||
-			(*D3DDeviceInterface)->IsViewportAttached((LPDIRECT3DVIEWPORT3)WrapperInterface2) ||
-			(*D3DDeviceInterface)->IsViewportAttached(WrapperInterface3));
-	}
 
 	// Interface initialization functions
 	void InitInterface(DWORD DirectXVersion);
@@ -162,7 +162,7 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	void SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
 	m_IDirect3DDeviceX* GetD3DDevice();
-	inline void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
+	void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 };
