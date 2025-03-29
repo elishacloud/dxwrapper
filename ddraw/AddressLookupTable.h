@@ -6,7 +6,7 @@
 constexpr UINT MaxIndex = 43;
 
 template <typename T>
-inline void SaveInterfaceAddress(T* Interface, T*& InterfaceBackup)
+inline void SaveInterfaceAddress(T*& Interface, T*& InterfaceBackup)
 {
 	if (Interface)
 	{
@@ -36,7 +36,15 @@ inline void SaveInterfaceAddress(T* Interface, T*& InterfaceBackup)
 			InterfaceBackup = nullptr;
 		}
 		InterfaceBackup = Interface;
+		Interface = nullptr;
 	}
+}
+
+template <typename T>
+inline void SaveInterfaceAddress(const T* Interface, T*& InterfaceBackup)
+{
+	T* NewInterface = const_cast<T*>(Interface);
+	SaveInterfaceAddress(NewInterface, InterfaceBackup);
 }
 
 template <typename T, typename S, typename X>
