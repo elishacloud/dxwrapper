@@ -5113,6 +5113,7 @@ void m_IDirect3DDeviceX::CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& Dest
 		DestVertex += sizeof(D3DTLVERTEX);
 		return;
 	}
+}
 
 HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD pointCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
 {
