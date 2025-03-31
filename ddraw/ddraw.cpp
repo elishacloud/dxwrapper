@@ -40,16 +40,14 @@ namespace DdrawWrapper
 using namespace DdrawWrapper;
 
 namespace {
-	CRITICAL_SECTION ddcs;
 	bool IsInitialized = false;
+	CRITICAL_SECTION ddcs;
 
 	struct ENUMMONITORS
 	{
 		LPSTR lpName;
 		HMONITOR hm;
 	};
-
-	std::vector<m_IDirectDrawClipper*> BaseClipperVector;
 }
 
 static void SetAllAppCompatData();
@@ -252,8 +250,6 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
 
-		ScopedDDCriticalSection ThreadLockDD;
-
 		m_IDirectDrawX* p_IDirectDrawX = new m_IDirectDrawX(1, false);
 
 		*lplpDD = reinterpret_cast<LPDIRECTDRAW>(p_IDirectDrawX->GetWrapperInterfaceX(1));
@@ -304,7 +300,7 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 
 		m_IDirectDrawClipper* ClipperX = m_IDirectDrawClipper::CreateDirectDrawClipper(nullptr, nullptr, dwFlags);
 
-		AddBaseClipper(ClipperX);
+		m_IDirectDrawX::AddBaseClipper(ClipperX);
 
 		*lplpDDClipper = ClipperX;
 
@@ -351,8 +347,6 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 		{
 			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
-
-		ScopedDDCriticalSection ThreadLockDD;
 
 		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(7, true);
 
@@ -735,6 +729,15 @@ void ExitDDraw()
 	}
 }
 
+bool TryDDThreadLock()
+{
+	if (IsInitialized)
+	{
+		return TryEnterCriticalSection(&ddcs) != FALSE;
+	}
+	return true;
+}
+
 // Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
 static void SetAllAppCompatData()
 {
@@ -897,42 +900,4 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 	}
 
 	return hr;
-}
-
-void AddBaseClipper(m_IDirectDrawClipper* lpClipper)
-{
-	if (!lpClipper || DoesBaseClipperExist(lpClipper))
-	{
-		return;
-	}
-
-	ScopedDDCriticalSection ThreadLockDD;
-
-	BaseClipperVector.push_back(lpClipper);
-}
-
-void ClearBaseClipper(m_IDirectDrawClipper* lpClipper)
-{
-	if (!lpClipper)
-	{
-		return;
-	}
-
-	ScopedDDCriticalSection ThreadLockDD;
-
-	BaseClipperVector.erase(std::remove(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper), BaseClipperVector.end());
-}
-
-bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper)
-{
-	if (!lpClipper)
-	{
-		return false;
-	}
-
-	ScopedDDCriticalSection ThreadLockDD;
-
-	const bool found = (std::find(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper) != std::end(BaseClipperVector));
-
-	return found;
 }

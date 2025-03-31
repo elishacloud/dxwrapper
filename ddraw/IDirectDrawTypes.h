@@ -177,12 +177,11 @@ struct HIGHRESCOUNTER
 
 struct PRESENTTHREAD
 {
+	const bool& ExitFlag = Config.Exiting;
 	bool IsInitialized = false;
-	CRITICAL_SECTION ddpt = {};
 	HANDLE workerThread = {};
 	HANDLE exitEvent = {};
 	LARGE_INTEGER LastPresentTime = {};
-	bool EnableThreadFlag = false;
 };
 
 // Emulated surface

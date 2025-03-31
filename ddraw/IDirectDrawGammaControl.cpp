@@ -178,6 +178,8 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 
 void m_IDirectDrawGammaControl::InitInterface()
 {
+	ScopedDDCriticalSection ThreadLockDD;
+
 	if (ddrawParent)
 	{
 		ddrawParent->SetGammaControl(this);
@@ -190,6 +192,8 @@ void m_IDirectDrawGammaControl::ReleaseInterface()
 	{
 		return;
 	}
+
+	ScopedDDCriticalSection ThreadLockDD;
 
 	if (ddrawParent)
 	{

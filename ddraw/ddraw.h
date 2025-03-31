@@ -103,9 +103,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext);
 HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext);
 
-void AddBaseClipper(m_IDirectDrawClipper* lpClipper);
-void ClearBaseClipper(m_IDirectDrawClipper* lpClipper);
-bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper);
+bool TryDDThreadLock();
 
 // Function and variable forward declarations
 namespace DdrawWrapper

@@ -74,6 +74,8 @@ private:
 	HRESULT CreateD9Object();
 	void BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height);
 	void RestoreState(DRAWSTATEBACKUP& DrawStates);
+	HRESULT CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer);
+	HRESULT DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture);
 	static DWORD WINAPI PresentThreadFunction(LPVOID);
 	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
 	void RestoreD3DDeviceState();
@@ -247,14 +249,19 @@ public:
 	void ClearRenderTarget();
 	void ReSetRenderTarget();
 	void SetCurrentRenderTarget();
-	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface);
+	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface, bool ShouldCheckInterface = true);
 	m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
-	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface);
+	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface, bool ShouldCheckInterface = true);
 
-	// Clipper vector functions
+	// Clipper functions
+	static void AddBaseClipper(m_IDirectDrawClipper* lpClipper);
+	static void ClearBaseClipper(m_IDirectDrawClipper* lpClipper);
+	static bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper);
 	void AddClipper(m_IDirectDrawClipper* lpClipper);
 	void ClearClipper(m_IDirectDrawClipper* lpClipper);
 	bool DoesClipperExist(m_IDirectDrawClipper* lpClipper);
+	HWND GetClipperHWnd();
+	HRESULT SetClipperHWnd(HWND hWnd);
 
 	// Palette vector functions
 	void AddPalette(m_IDirectDrawPalette* lpPalette);
@@ -277,12 +284,8 @@ public:
 
 	// Begin & end scene
 	void SetVsync();
-	HWND GetClipperHWnd();
-	HRESULT SetClipperHWnd(HWND hWnd);
 	HRESULT GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
 	HRESULT SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
-	HRESULT CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer);
-	HRESULT DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture);
 	bool IsUsingThreadPresent();
 	HRESULT PresentScene(RECT* pRect);
 

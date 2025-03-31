@@ -186,6 +186,8 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 
 void m_IDirectDrawColorControl::InitInterface()
 {
+	ScopedDDCriticalSection ThreadLockDD;
+
 	if (ddrawParent)
 	{
 		ddrawParent->SetColorControl(this);
@@ -209,6 +211,8 @@ void m_IDirectDrawColorControl::ReleaseInterface()
 	{
 		return;
 	}
+
+	ScopedDDCriticalSection ThreadLockDD;
 
 	if (ddrawParent)
 	{

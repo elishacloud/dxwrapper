@@ -117,7 +117,7 @@ namespace Fullscreen
 	};
 
 	// Declare variables
-	bool m_StopThreadFlag = false;
+	const bool& m_StopThreadFlag = Config.Exiting;
 	bool m_ThreadRunningFlag = false;
 	HANDLE m_hThread = nullptr;
 	DWORD m_dwThreadID = 0;
@@ -782,9 +782,6 @@ bool Fullscreen::IsThreadRunning()
 // Stop thread
 void Fullscreen::StopThread()
 {
-	// Set flag to stop thread
-	m_StopThreadFlag = true;
-
 	// Wait for thread to exit
 	if (IsThreadRunning())
 	{

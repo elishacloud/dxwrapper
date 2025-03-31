@@ -252,6 +252,8 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 
 void m_IDirect3DLight::InitInterface()
 {
+	ScopedDDCriticalSection ThreadLockDD;
+
 	if (D3DInterface)
 	{
 		D3DInterface->AddLight(this);
@@ -266,6 +268,8 @@ void m_IDirect3DLight::ReleaseInterface()
 	{
 		return;
 	}
+
+	ScopedDDCriticalSection ThreadLockDD;
 
 	if (D3DInterface)
 	{

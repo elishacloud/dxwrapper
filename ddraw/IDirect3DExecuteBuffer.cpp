@@ -362,6 +362,8 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 
 void m_IDirect3DExecuteBuffer::InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc)
 {
+	ScopedDDCriticalSection ThreadLockDD;
+
 	if (D3DDeviceInterface)
 	{
 		D3DDeviceInterface->AddExecuteBuffer(this);
@@ -400,6 +402,8 @@ void m_IDirect3DExecuteBuffer::ReleaseInterface()
 	{
 		return;
 	}
+
+	ScopedDDCriticalSection ThreadLockDD;
 
 	if (D3DDeviceInterface)
 	{

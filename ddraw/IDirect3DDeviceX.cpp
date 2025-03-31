@@ -4469,6 +4469,8 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 
 void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 {
+	ScopedDDCriticalSection ThreadLockDD;
+
 	if (ddrawParent)
 	{
 		ddrawParent->SetD3DDevice(this);
@@ -4511,6 +4513,8 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 	{
 		return;
 	}
+
+	ScopedDDCriticalSection ThreadLockDD;
 
 	if (CurrentRenderTarget)
 	{

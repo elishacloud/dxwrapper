@@ -334,6 +334,8 @@ HRESULT m_IDirect3DTextureX::Unload()
 
 void m_IDirect3DTextureX::InitInterface(DWORD DirectXVersion)
 {
+	ScopedDDCriticalSection ThreadLockDD;
+
 	if (Config.Dd7to9)
 	{
 		AddRef(DirectXVersion);
@@ -346,6 +348,8 @@ void m_IDirect3DTextureX::ReleaseInterface()
 	{
 		return;
 	}
+
+	ScopedDDCriticalSection ThreadLockDD;
 
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);

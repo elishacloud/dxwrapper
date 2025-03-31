@@ -1304,13 +1304,13 @@ HRESULT m_IDirect3DDevice9Ex::SetPixelShader(THIS_ IDirect3DPixelShader9* pShade
 
 void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 {
-	ScopedCriticalSection ThreadLock(&SHARED.d9cs);
-	ScopedFlagSet AutoSet(SHARED.DontReleaseResources);
-
 	bool CalledBeginScene = false;
 
 	if (SHARED.IsGammaSet || Config.ShowFPSCounter)
 	{
+		ScopedCriticalSection ThreadLock(&SHARED.d9cs);
+		ScopedFlagSet AutoSet(SHARED.DontReleaseResources);
+
 		// Create state block
 		if (SHARED.pStateBlock || SUCCEEDED(ProxyInterface->CreateStateBlock(D3DSBT_ALL, &SHARED.pStateBlock)))
 		{

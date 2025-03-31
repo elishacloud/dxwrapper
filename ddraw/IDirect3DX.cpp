@@ -893,6 +893,8 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 
 void m_IDirect3DX::InitInterface(DWORD DirectXVersion)
 {
+	ScopedDDCriticalSection ThreadLockDD;
+
 	if (D3DDeviceInterface)
 	{
 		D3DDeviceInterface->SetD3D(this);
@@ -917,6 +919,8 @@ void m_IDirect3DX::ReleaseInterface()
 	{
 		return;
 	}
+
+	ScopedDDCriticalSection ThreadLockDD;
 
 	if (D3DDeviceInterface)
 	{

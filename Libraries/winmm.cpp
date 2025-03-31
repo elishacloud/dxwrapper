@@ -20,8 +20,10 @@
 
 typedef MMRESULT(WINAPI *PFN_timeBeginPeriod)(UINT uPeriod);
 typedef MMRESULT(WINAPI *PFN_timeEndPeriod)(UINT uPeriod);
+typedef DWORD(WINAPI* PFN_timeGetTime)();
 PFN_timeBeginPeriod timeBeginPeriodPtr = nullptr;
 PFN_timeEndPeriod timeEndPeriodPtr = nullptr;
+PFN_timeGetTime timeGetTimePtr = nullptr;
 HMODULE winmmModule = nullptr;
 
 void Loadwinmm()
@@ -37,8 +39,10 @@ void Loadwinmm()
 	{
 		timeBeginPeriodPtr = reinterpret_cast<PFN_timeBeginPeriod>(GetProcAddress(winmmModule, "timeBeginPeriod"));
 		timeEndPeriodPtr = reinterpret_cast<PFN_timeEndPeriod>(GetProcAddress(winmmModule, "timeEndPeriod"));
+		timeGetTimePtr = reinterpret_cast<PFN_timeGetTime>(GetProcAddress(winmmModule, "timeGetTime"));
 		if (!timeBeginPeriodPtr) Logging::Log() << "Failed to get 'timeBeginPeriod' ProcAddress of winmm.dll!";
 		if (!timeEndPeriodPtr) Logging::Log() << "Failed to get 'timeEndPeriod' ProcAddress of winmm.dll!";
+		if (!timeGetTimePtr) Logging::Log() << "Failed to get 'timeGetTime' ProcAddress of winmm.dll!";
 	}
 	else
 	{
@@ -70,4 +74,17 @@ MMRESULT timeEndPeriod(UINT uPeriod)
 		return timeEndPeriodPtr(uPeriod);
 	}
 	return S_FALSE;
+}
+
+DWORD timeGetTime()
+{
+	// Load module
+	Loadwinmm();
+
+	// Call function
+	if (timeGetTimePtr)
+	{
+		return timeGetTimePtr();
+	}
+	return 0;
 }

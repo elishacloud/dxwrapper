@@ -314,6 +314,8 @@ HRESULT m_IDirect3DMaterialX::Unreserve()
 
 void m_IDirect3DMaterialX::InitInterface(DWORD DirectXVersion)
 {
+	ScopedDDCriticalSection ThreadLockDD;
+
 	if (D3DInterface)
 	{
 		D3DInterface->AddMaterial(this);
@@ -333,6 +335,8 @@ void m_IDirect3DMaterialX::ReleaseInterface()
 	{
 		return;
 	}
+
+	ScopedDDCriticalSection ThreadLockDD;
 
 	if (D3DInterface)
 	{

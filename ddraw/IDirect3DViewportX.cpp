@@ -685,6 +685,8 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 
 void m_IDirect3DViewportX::InitInterface(DWORD DirectXVersion)
 {
+	ScopedDDCriticalSection ThreadLockDD;
+
 	if (D3DInterface)
 	{
 		D3DInterface->AddViewport(this);
@@ -702,6 +704,8 @@ void m_IDirect3DViewportX::ReleaseInterface()
 	{
 		return;
 	}
+
+	ScopedDDCriticalSection ThreadLockDD;
 
 	if (D3DInterface)
 	{

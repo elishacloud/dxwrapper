@@ -31,6 +31,9 @@ namespace {
 	// Store a list of ddraw devices
 	std::vector<m_IDirectDrawX*> DDrawVector;
 
+	// Store a list of base clipper interfaces
+	std::vector<m_IDirectDrawClipper*> BaseClipperVector;
+
 	// Default resolution
 	RECT LastWindowRect = {};
 
@@ -76,24 +79,7 @@ namespace {
 #endif
 
 	// Preset from another thread
-	PRESENTTHREAD PresentThread = {};
-
-	struct ScopedPTCriticalSection {
-		ScopedPTCriticalSection()
-		{
-			if (PresentThread.IsInitialized)
-			{
-				EnterCriticalSection(&PresentThread.ddpt);
-			}
-		}
-		~ScopedPTCriticalSection()
-		{
-			if (PresentThread.IsInitialized)
-			{
-				LeaveCriticalSection(&PresentThread.ddpt);
-			}
-		}
-	};
+	PRESENTTHREAD PresentThread;
 
 	// Direct3D9 flags
 	bool EnableWaitVsync = false;
@@ -1519,7 +1505,6 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		// Resets the mode of the display device hardware for the primary surface to what it was before the IDirectDraw7::SetDisplayMode method was called.
 
 		ScopedDDCriticalSection ThreadLockDD;
-		ScopedPTCriticalSection ThreadLockPT;
 
 		// Release d3d9 device
 		if (d3d9Device)
@@ -1581,6 +1566,8 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		HWND LasthWnd = DisplayMode.hWnd;
 		bool LastFPUPreserve = Device.FPUPreserve;
 		bool LastWindowed = Device.IsWindowed;
+
+		ScopedDDCriticalSection ThreadLockDD;
 
 		// Set windowed mode
 		if (dwFlags & DDSCL_NORMAL)
@@ -1777,6 +1764,8 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		DWORD LastRefreshRate = DisplayMode.RefreshRate;
 
 		DWORD NewBPP = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : dwBPP;
+
+		ScopedDDCriticalSection ThreadLockDD;
 
 		if (DisplayMode.Width != dwWidth || DisplayMode.Height != dwHeight || DisplayMode.BPP != NewBPP || (dwRefreshRate && DisplayMode.RefreshRate != dwRefreshRate))
 		{
@@ -2130,6 +2119,8 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 
 	if (Config.Dd7to9)
 	{
+		ScopedDDCriticalSection ThreadLockDD;
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
@@ -2393,8 +2384,6 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		// Prepare for present from another thread
 		if (Config.DdrawAutoFrameSkip)
 		{
-			PresentThread.IsInitialized = true;
-			InitializeCriticalSection(&PresentThread.ddpt);
 			PresentThread.exitEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 			PresentThread.workerThread = CreateThread(NULL, 0, PresentThreadFunction, NULL, 0, NULL);
 		}
@@ -2500,7 +2489,6 @@ void m_IDirectDrawX::ReleaseInterface()
 	}
 
 	ScopedDDCriticalSection ThreadLockDD;
-	ScopedPTCriticalSection ThreadLockPT;
 
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
@@ -2615,10 +2603,6 @@ void m_IDirectDrawX::ReleaseInterface()
 		// Close present thread first
 		if (PresentThread.IsInitialized)
 		{
-			PresentThread.IsInitialized = false;
-			PresentThread.EnableThreadFlag = false;
-			LeaveCriticalSection(&PresentThread.ddpt);
-
 			// Trigger thread and terminate the thread
 			DWORD exitCode = 0;
 			while (GetExitCodeThread(PresentThread.workerThread, &exitCode) && exitCode == STILL_ACTIVE)
@@ -2631,8 +2615,9 @@ void m_IDirectDrawX::ReleaseInterface()
 			CloseHandle(PresentThread.workerThread);
 			CloseHandle(PresentThread.exitEvent);
 
-			// Delete critical section only
-			DeleteCriticalSection(&PresentThread.ddpt);
+			// Clean up variables
+			PresentThread.workerThread = nullptr;
+			PresentThread.exitEvent = nullptr;
 		}
 
 		// Release all resources
@@ -2720,8 +2705,6 @@ void* m_IDirectDrawX::GetWrapperInterfaceX(DWORD DirectXVersion)
 
 m_IDirectDrawX* m_IDirectDrawX::GetDirectDrawInterface()
 {
-	ScopedDDCriticalSection ThreadLockDD;
-
 	if (DDrawVector.empty())
 	{
 		return nullptr;
@@ -2866,9 +2849,13 @@ bool m_IDirectDrawX::IsInScene()
 bool m_IDirectDrawX::CheckD9Device(char* FunctionName)
 {
 	// Check for device, if not then create it
-	if (!d3d9Device && FAILED(CreateD9Device(FunctionName)))
+	if (!d3d9Device)
 	{
-		return false;
+		ScopedDDCriticalSection ThreadLockDD;
+		if (FAILED(CreateD9Device(FunctionName)))
+		{
+			return false;
+		}
 	}
 
 	// Check for delay while resolution switching
@@ -3084,7 +3071,6 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 	}
 
 	ScopedDDCriticalSection ThreadLockDD;
-	ScopedPTCriticalSection ThreadLockPT;
 
 	// Reset device if current thread matches creation thread
 	if (IsWindow(hFocusWindow) && FocusWindowThreadID == GetCurrentThreadId())
@@ -3135,6 +3121,8 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 
 HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 {
+	// To avoid threadlock, cannot have any critical sections in this function or any sub-functions
+
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Check for device interface
@@ -3160,9 +3148,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 		return d3d9Device ? DD_OK : DDERR_GENERIC;
 	}
-
-	ScopedDDCriticalSection ThreadLockDD;
-	ScopedPTCriticalSection ThreadLockPT;
 
 	HRESULT hr = DD_OK;
 	do {
@@ -3658,9 +3643,12 @@ void m_IDirectDrawX::ClearRenderTarget()
 
 void m_IDirectDrawX::ReSetRenderTarget()
 {
+	// To avoid threadlock, cannot have any critical sections in this function or any sub-functions
+
 	if (RenderTargetSurface && !UsingCustomRenderTarget)
 	{
-		SetRenderTargetSurface(RenderTargetSurface);
+		// Don't check interface to prevent threads from getting thread locked (CreateD9Device can be called from a different thread)
+		SetRenderTargetSurface(RenderTargetSurface, false);
 	}
 }
 
@@ -3672,11 +3660,8 @@ void m_IDirectDrawX::SetCurrentRenderTarget()
 	}
 }
 
-HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
+HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface, bool ShouldCheckInterface)
 {
-	ScopedDDCriticalSection ThreadLockDD;
-	ScopedPTCriticalSection ThreadLockPT;
-
 	HRESULT hr = D3D_OK;
 
 	do {
@@ -3709,7 +3694,7 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 		// Set new render target
 		if (d3d9Device)
 		{
-			LPDIRECT3DSURFACE9 pSurfaceD9 = RenderTargetSurface->GetD3d9Surface();
+			LPDIRECT3DSURFACE9 pSurfaceD9 = RenderTargetSurface->GetD3d9Surface(ShouldCheckInterface);
 			if (pSurfaceD9)
 			{
 				UsingCustomRenderTarget = true;
@@ -3725,7 +3710,7 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 		}
 
 		m_IDirectDrawSurfaceX* pSurfaceZBuffer = RenderTargetSurface->GetAttachedDepthStencil();
-		hr = SetDepthStencilSurface(pSurfaceZBuffer);
+		hr = SetDepthStencilSurface(pSurfaceZBuffer, ShouldCheckInterface);
 
 		if (FAILED(hr))
 		{
@@ -3737,7 +3722,7 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
+HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface, bool ShouldCheckInterface)
 {
 	HRESULT hr = D3D_OK;
 
@@ -3759,7 +3744,7 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 
 		if (d3d9Device)
 		{
-			LPDIRECT3DSURFACE9 pSurfaceD9 = DepthStencilSurface->GetD3d9Surface();
+			LPDIRECT3DSURFACE9 pSurfaceD9 = DepthStencilSurface->GetD3d9Surface(ShouldCheckInterface);
 			if (pSurfaceD9)
 			{
 				d3d9Device->SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE);
@@ -3822,8 +3807,7 @@ void m_IDirectDrawX::ReleaseD3D9IndexBuffer()
 
 void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 {
-	ScopedDDCriticalSection ThreadLockDD;
-	ScopedPTCriticalSection ThreadLockPT;
+	// To avoid threadlock, cannot have any critical sections in this function or any sub-functions
 
 	// Remove render target and depth stencil surfaces
 	if (d3d9Device && ResetInterface && (RenderTargetSurface || DepthStencilSurface))
@@ -3958,10 +3942,9 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 
 void m_IDirectDrawX::ReleaseD9Device()
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	// To avoid threadlock, cannot have any critical sections in this function or any sub-functions
 
-	ScopedDDCriticalSection ThreadLockDD;
-	ScopedPTCriticalSection ThreadLockPT;
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (d3d9Device)
 	{
@@ -4142,6 +4125,44 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 	return found;
 }
 
+void m_IDirectDrawX::AddBaseClipper(m_IDirectDrawClipper* lpClipper)
+{
+	if (!lpClipper || DoesBaseClipperExist(lpClipper))
+	{
+		return;
+	}
+
+	ScopedDDCriticalSection ThreadLockDD;
+
+	BaseClipperVector.push_back(lpClipper);
+}
+
+void m_IDirectDrawX::ClearBaseClipper(m_IDirectDrawClipper* lpClipper)
+{
+	if (!lpClipper)
+	{
+		return;
+	}
+
+	ScopedDDCriticalSection ThreadLockDD;
+
+	BaseClipperVector.erase(std::remove(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper), BaseClipperVector.end());
+}
+
+bool m_IDirectDrawX::DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper)
+{
+	if (!lpClipper)
+	{
+		return false;
+	}
+
+	ScopedDDCriticalSection ThreadLockDD;
+
+	const bool found = (std::find(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper) != std::end(BaseClipperVector));
+
+	return found;
+}
+
 void m_IDirectDrawX::AddClipper(m_IDirectDrawClipper* lpClipper)
 {
 	if (!lpClipper)
@@ -4190,6 +4211,30 @@ bool m_IDirectDrawX::DoesClipperExist(m_IDirectDrawClipper* lpClipper)
 		}) != std::end(ClipperList);
 
 	return found;
+}
+
+HWND m_IDirectDrawX::GetClipperHWnd()
+{
+	return ClipperHWnd;
+}
+
+HRESULT m_IDirectDrawX::SetClipperHWnd(HWND hWnd)
+{
+	if (Device.IsWindowed)
+	{
+		HWND OldClipperHWnd = ClipperHWnd;
+		if (!hWnd || IsWindow(hWnd))
+		{
+			ClipperHWnd = hWnd;
+		}
+		if (!DisplayMode.hWnd && ClipperHWnd && ClipperHWnd != OldClipperHWnd)
+		{
+			ScopedDDCriticalSection ThreadLockDD;
+
+			return CreateD9Device(__FUNCTION__);
+		}
+	}
+	return DD_OK;
 }
 
 void m_IDirectDrawX::AddPalette(m_IDirectDrawPalette* lpPalette)
@@ -4268,28 +4313,6 @@ void m_IDirectDrawX::SetVsync()
 	{
 		EnableWaitVsync = true;
 	}
-}
-
-HWND m_IDirectDrawX::GetClipperHWnd()
-{
-	return ClipperHWnd;
-}
-
-HRESULT m_IDirectDrawX::SetClipperHWnd(HWND hWnd)
-{
-	if (Device.IsWindowed)
-	{
-		HWND OldClipperHWnd = ClipperHWnd;
-		if (!hWnd || IsWindow(hWnd))
-		{
-			ClipperHWnd = hWnd;
-		}
-		if (!DisplayMode.hWnd && ClipperHWnd && ClipperHWnd != OldClipperHWnd)
-		{
-			return CreateD9Device(__FUNCTION__);
-		}
-	}
-	return DD_OK;
 }
 
 HRESULT m_IDirectDrawX::GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
@@ -4726,6 +4749,8 @@ HRESULT m_IDirectDrawX::CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer)
 
 HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 {
+	ScopedDDCriticalSection ThreadLockDD;
+
 	HRESULT hr = DDERR_GENERIC;
 
 	if (IsUsingThreadPresent())
@@ -4831,8 +4856,9 @@ DWORD WINAPI m_IDirectDrawX::PresentThreadFunction(LPVOID)
 {
 	LOG_LIMIT(100, __FUNCTION__ << " Creating thread!");
 
-	PresentThread.EnableThreadFlag = true;
-	while (PresentThread.EnableThreadFlag)
+	ScopedFlagSet AutoSet(PresentThread.IsInitialized);
+
+	while (!PresentThread.ExitFlag)
 	{
 		// Check how long since the last successful present
 		LARGE_INTEGER ClickTime = {};
@@ -4841,13 +4867,21 @@ DWORD WINAPI m_IDirectDrawX::PresentThreadFunction(LPVOID)
 
 		DWORD timeout = (DWORD)(Counter.PerFrameMS - DeltaPresentMS < 0.0 ? 0.0 : Counter.PerFrameMS - DeltaPresentMS);
 
-		// Wait for timeout or for event trigger
-		if (WaitForSingleObject(PresentThread.exitEvent, timeout) == WAIT_OBJECT_0 || !PresentThread.EnableThreadFlag)
+		// Wait for timeout or for event trigger (check exit flag before and after wait)
+		if (PresentThread.ExitFlag || WaitForSingleObject(PresentThread.exitEvent, timeout) == WAIT_OBJECT_0 || PresentThread.ExitFlag)
 		{
 			break;
 		}
 
-		ScopedPTCriticalSection ThreadLockPT;
+		// Attempt to get thread lock
+		while (!TryDDThreadLock())
+		{
+			if (WaitForSingleObject(PresentThread.exitEvent, 0) == WAIT_OBJECT_0)
+			{
+				break;
+			}
+			Utils::BusyWaitYield((DWORD)-1);
+		}
 
 		if (d3d9Device)
 		{
@@ -4864,8 +4898,6 @@ DWORD WINAPI m_IDirectDrawX::PresentThreadFunction(LPVOID)
 			}
 			if (pDDraw && pDDraw->IsUsingThreadPresent() && pPrimarySurface && pPrimarySurface->GetD3d9Texture())
 			{
-				ScopedCriticalSection ThreadLock(pPrimarySurface->GetSurfaceCriticalSection());
-
 				// Begin scene
 				d3d9Device->BeginScene();
 
@@ -4882,6 +4914,9 @@ DWORD WINAPI m_IDirectDrawX::PresentThreadFunction(LPVOID)
 				QueryPerformanceCounter(&PresentThread.LastPresentTime);
 			}
 		}
+
+		// Make sure to release the thread lock at the end
+		dd_ReleaseDDThreadLock();
 	}
 
 	LOG_LIMIT(100, __FUNCTION__ << " Closing thread!");
@@ -4915,12 +4950,6 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 			Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaPresentMS << "ms screen frequancy " << Counter.PerFrameMS;
 			return D3D_OK;
 		}
-	}
-
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true)))
-	{
-		return DDERR_GENERIC;
 	}
 
 	// Use WaitForVerticalBlank for wait timer

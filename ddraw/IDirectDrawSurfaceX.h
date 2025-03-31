@@ -151,7 +151,6 @@ private:
 	// Convert to Direct3D9
 	const DWORD CreatedVersion;
 	CRITICAL_SECTION ddscs = {};
-	CRITICAL_SECTION ddlcs = {};
 	m_IDirectDrawX *ddrawParent = nullptr;				// DirectDraw parent device
 	SURFACEOVERLAY SurfaceOverlay;						// The overlays for this surface
 	std::vector<MIPMAP> MipMaps;						// MipMaps structure with addresses
@@ -435,7 +434,6 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
-	CRITICAL_SECTION* GetSurfaceCriticalSection() { return &ddscs; }
 
 	// Fix byte alignment issue
 	void LockEmuLock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc);
@@ -495,7 +493,7 @@ public:
 		return false;
 	}
 	m_IDirectDrawSurfaceX* GetAttachedDepthStencil();
-	LPDIRECT3DSURFACE9 GetD3d9Surface();
+	LPDIRECT3DSURFACE9 GetD3d9Surface(bool ShouldCheckInterface = true);
 	LPDIRECT3DTEXTURE9 GetD3d9DrawTexture();
 	LPDIRECT3DTEXTURE9 GetD3d9Texture();
 	HRESULT GenerateMipMapLevels();

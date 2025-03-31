@@ -23,8 +23,7 @@
 #include <ddrawex.h>
 #include <d3d.h>
 #include <d3dhal.h>
-#include "ddraw\IDirectDrawTypes.h"
-#include "ddraw\IDirect3DTypes.h"
+#include "ddraw\ddraw.h"
 #include <dinput.h>
 #include <dsound.h>
 #include <MMSystem.h>
