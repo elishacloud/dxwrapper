@@ -2605,6 +2605,7 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 		return GetProxyInterfaceV7()->SetTransform(dtstTransformStateType, lpD3DMatrix);
 	}
 }
+
 HRESULT m_IDirect3DDeviceX::GetTransform(D3DTRANSFORMSTATETYPE dtstTransformStateType, LPD3DMATRIX lpD3DMatrix)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -4715,18 +4716,6 @@ void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 			}
 		}
 
-		if (Config.DdrawConvertHomogeneousW)
-		{
-			ZeroMemory(&ConvertHomogeneous.ToWorld_ViewMatrix, sizeof(D3DMATRIX));
-			ConvertHomogeneous.ToWorld_ViewMatrix._11 = 1.0f;
-			ConvertHomogeneous.ToWorld_ViewMatrix._22 = 1.0f;
-			ConvertHomogeneous.ToWorld_ViewMatrix._33 = 1.0f;
-			ConvertHomogeneous.ToWorld_ViewMatrix._44 = 1.0f;
-
-			ConvertHomogeneous.ToWorld_ProjectionMatrix = ConvertHomogeneous.ToWorld_ViewMatrix;
-			ConvertHomogeneous.ToWorld_ViewMatrixOriginal = ConvertHomogeneous.ToWorld_ViewMatrix;
-		}
-
 		AddRef(DirectXVersion);
 	}
 }
@@ -5124,7 +5113,6 @@ void m_IDirect3DDeviceX::CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& Dest
 		DestVertex += sizeof(D3DTLVERTEX);
 		return;
 	}
-}
 
 HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD pointCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
 {
