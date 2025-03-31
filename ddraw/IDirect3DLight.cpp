@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -16,47 +16,13 @@
 
 #include "ddraw.h"
 
-// Cached wrapper interface
 namespace {
 	m_IDirect3DLight* WrapperInterfaceBackup = nullptr;
 }
 
-inline static void SaveInterfaceAddress(m_IDirect3DLight* Interface, m_IDirect3DLight*& InterfaceBackup)
-{
-	if (Interface)
-	{
-		Interface->SetProxy(nullptr, nullptr);
-		if (InterfaceBackup)
-		{
-			InterfaceBackup->DeleteMe();
-			InterfaceBackup = nullptr;
-		}
-		InterfaceBackup = Interface;
-	}
-}
-
-m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface)
-{
-	m_IDirect3DLight* Interface = nullptr;
-	if (WrapperInterfaceBackup)
-	{
-		Interface = WrapperInterfaceBackup;
-		WrapperInterfaceBackup = nullptr;
-		Interface->SetProxy(aOriginal, NewD3DInterface);
-	}
-	else
-	{
-		if (aOriginal)
-		{
-			Interface = new m_IDirect3DLight(aOriginal);
-		}
-		else
-		{
-			Interface = new m_IDirect3DLight(NewD3DInterface);
-		}
-	}
-	return Interface;
-}
+// ******************************
+// IUnknown functions
+// ******************************
 
 HRESULT m_IDirect3DLight::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
@@ -109,7 +75,7 @@ ULONG m_IDirect3DLight::AddRef()
 		return 0;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		return InterlockedIncrement(&RefCount);
 	}
@@ -126,16 +92,19 @@ ULONG m_IDirect3DLight::Release()
 		return 0;
 	}
 
-	LONG ref;
+	if (Config.Dd7to9)
+	{
+		ULONG ref = (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
 
-	if (!ProxyInterface)
-	{
-		ref = InterlockedDecrement(&RefCount);
+		if (ref == 0)
+		{
+			SaveInterfaceAddress(this, WrapperInterfaceBackup);
+		}
+
+		return ref;
 	}
-	else
-	{
-		ref = ProxyInterface->Release();
-	}
+
+	ULONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
 	{
@@ -144,6 +113,10 @@ ULONG m_IDirect3DLight::Release()
 
 	return ref;
 }
+
+// ******************************
+// IDirect3DLight functions
+// ******************************
 
 HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 {
@@ -154,7 +127,7 @@ HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 		return DDERR_INVALIDOBJECT;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		// The method returns DDERR_ALREADYINITIALIZED because the Direct3DLight object is initialized when it is created.
 		return DDERR_ALREADYINITIALIZED;
@@ -177,7 +150,7 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 		return DDERR_INVALIDOBJECT;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		// Although this method's declaration specifies the lpLight parameter as being the address of a D3DLIGHT structure, that structure is not normally used.
 		// Rather, the D3DLIGHT2 structure is recommended to achieve the best lighting effects.
@@ -188,15 +161,9 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
-		{
-			return DDERR_GENERIC;
-		}
-
-		// If current viewport is inuse then deactivate the light
+		// If current light is in use then update device
 		BOOL Enable = FALSE;
-		if (SUCCEEDED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)) && Enable)
+		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && SUCCEEDED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)) && Enable)
 		{
 			D3DLIGHT2 Light2 = {};
 			memcpy(&Light2, lpLight, lpLight->dwSize);
@@ -230,7 +197,7 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 		return DDERR_INVALIDOBJECT;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		// Although this method's declaration specifies the lpLight parameter as being the address of a D3DLIGHT structure, that structure is not normally used.
 		// Rather, the D3DLIGHT2 structure is recommended to achieve the best lighting effects.
@@ -239,12 +206,6 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpLight) ? lpLight->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
-		}
-
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
-		{
-			return DDERR_GENERIC;
 		}
 
 		if (!LightSet)
@@ -269,7 +230,7 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 
 			// Check for active
 			BOOL Enable = FALSE;
-			if (SUCCEEDED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)) && Enable)
+			if (SUCCEEDED(CheckInterface(__FUNCTION__)) && SUCCEEDED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)) && Enable)
 			{
 				((LPD3DLIGHT2)lpLight)->dwFlags |= D3DLIGHT_ACTIVE;
 			}
@@ -285,9 +246,43 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 	return ProxyInterface->GetLight(lpLight);
 }
 
-/************************/
-/*** Helper functions ***/
-/************************/
+// ******************************
+// Helper functions
+// ******************************
+
+void m_IDirect3DLight::InitInterface()
+{
+	ScopedDDCriticalSection ThreadLockDD;
+
+	if (D3DInterface)
+	{
+		D3DInterface->AddLight(this);
+	}
+
+	LightSet = false;
+}
+
+void m_IDirect3DLight::ReleaseInterface()
+{
+	if (Config.Exiting)
+	{
+		return;
+	}
+
+	ScopedDDCriticalSection ThreadLockDD;
+
+	if (D3DInterface)
+	{
+		D3DInterface->ClearLight(this);
+	}
+
+	if (D3DDeviceInterface && *D3DDeviceInterface)
+	{
+		(*D3DDeviceInterface)->ClearLight(this);
+	}
+
+	ClearD3D();
+}
 
 HRESULT m_IDirect3DLight::CheckInterface(char* FunctionName)
 {
@@ -304,7 +299,6 @@ HRESULT m_IDirect3DLight::CheckInterface(char* FunctionName)
 		D3DDeviceInterface = D3DInterface->GetD3DDevice();
 		if (!D3DDeviceInterface || !*D3DDeviceInterface)
 		{
-			LOG_LIMIT(100, FunctionName << " Error: could not get the D3DDevice!");
 			return DDERR_INVALIDOBJECT;
 		}
 	}
@@ -312,32 +306,36 @@ HRESULT m_IDirect3DLight::CheckInterface(char* FunctionName)
 	return D3D_OK;
 }
 
-void m_IDirect3DLight::InitInterface()
+m_IDirect3DDeviceX* m_IDirect3DLight::GetD3DDevice()
 {
-	if (D3DInterface)
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__)))
 	{
-		D3DInterface->AddLight(this);
+		return nullptr;
 	}
 
-	LightSet = false;
+	return *D3DDeviceInterface;
 }
 
-void m_IDirect3DLight::ReleaseInterface()
+m_IDirect3DLight* m_IDirect3DLight::CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface)
 {
-	if (Config.Exiting)
+	m_IDirect3DLight* Interface = nullptr;
+	if (WrapperInterfaceBackup)
 	{
-		return;
+		Interface = WrapperInterfaceBackup;
+		WrapperInterfaceBackup = nullptr;
+		Interface->SetProxy(aOriginal, NewD3DInterface);
 	}
-
-	if (D3DInterface)
+	else
 	{
-		D3DInterface->ClearLight(this);
+		if (aOriginal)
+		{
+			Interface = new m_IDirect3DLight(aOriginal);
+		}
+		else
+		{
+			Interface = new m_IDirect3DLight(NewD3DInterface);
+		}
 	}
-
-	if (D3DDeviceInterface && *D3DDeviceInterface)
-	{
-		(*D3DDeviceInterface)->ClearLight(this);
-	}
-
-	ClearD3D();
+	return Interface;
 }

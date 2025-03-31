@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -17,7 +17,6 @@
 */
 
 #include "d3d9.h"
-#include "d3d9External.h"
 #include "External\Hooking\Hook.h"
 
 namespace D3d9Wrapper

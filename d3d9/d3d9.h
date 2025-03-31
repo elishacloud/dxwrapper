@@ -1,6 +1,8 @@
 #pragma once
 
-#include "d3d9External.h"
+#include <d3d9.h>
+#include "d3dx9.h"
+#include "d3d9\d3d9External.h"
 #include "GDI\GDI.h"
 
 class m_IDirect3D9Ex;
@@ -104,6 +106,9 @@ namespace D3d9Wrapper
 {
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
 }
+
+#include "ComPtr.h"
+#include "ScopeGuard.h"
 
 #include "IDirect3DDevice9Ex.h"
 #include "IDirect3DCubeTexture9.h"

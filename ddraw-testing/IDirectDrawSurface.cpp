@@ -177,8 +177,9 @@ void TestCreateSurfaceT(DDType* pDDraw)
     // Create primary surface
     DSDesc primaryDesc = {};
     primaryDesc.dwSize = sizeof(primaryDesc);
-    primaryDesc.dwFlags = DDSD_CAPS;
-    primaryDesc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_3DDEVICE;
+    primaryDesc.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
+    primaryDesc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_COMPLEX | DDSCAPS_FLIP;
+    primaryDesc.dwBackBufferCount = 1;  // One back buffer
 
     DSType* pPrimarySurface = nullptr;
     HRESULT hr = pDDraw->CreateSurface(&primaryDesc, &pPrimarySurface, nullptr);
@@ -195,6 +196,58 @@ void TestCreateSurfaceT(DDType* pDDraw)
     // ****  201  ****
     TestID = 201;
     LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+    // Assume pPrimarySurface was created with back buffers
+    DSType* pBackBuffer = nullptr;
+    if constexpr (std::is_same_v<DSDesc, DDSURFACEDESC>)
+    {
+        DDSCAPS ddscaps = {};
+        ddscaps.dwCaps = DDSCAPS_BACKBUFFER;  // Request the attached back buffer
+        hr = pPrimarySurface->GetAttachedSurface(&ddscaps, &pBackBuffer);
+    }
+    else
+    {
+        DDSCAPS2 ddscaps = {};
+        ddscaps.dwCaps = DDSCAPS_BACKBUFFER;  // Request the attached back buffer
+        hr = pPrimarySurface->GetAttachedSurface(&ddscaps, &pBackBuffer);
+    }
+
+    // Get the surface description of primary surface
+    DWORD dwCaps = 0;
+    {
+        DSDesc ddsd = {};
+        ddsd.dwSize = sizeof(ddsd);
+
+        if (SUCCEEDED(pPrimarySurface->GetSurfaceDesc(&ddsd)))
+        {
+            dwCaps = ddsd.ddsCaps.dwCaps;
+        }
+    }
+
+    // ****  233  ****
+    TestID = 233;
+    LOG_TEST_RESULT(TestID, "Primary DDS Caps: ", dwCaps, GetResults<DDType>(TestID));
+
+    // Get the first back buffer
+    dwCaps = 0;
+    if (SUCCEEDED(hr) && pBackBuffer)
+    {
+        DSDesc ddsd = {};
+        ddsd.dwSize = sizeof(ddsd);
+
+        // Get the surface description of the back buffer
+        if (SUCCEEDED(pBackBuffer->GetSurfaceDesc(&ddsd)))
+        {
+            dwCaps = ddsd.ddsCaps.dwCaps;
+        }
+
+        // Release the back buffer when done
+        pBackBuffer->Release();
+    }
+
+    // ****  234  ****
+    TestID = 234;
+    LOG_TEST_RESULT(TestID, "Backbuffer DDS Caps: ", dwCaps, GetResults<DDType>(TestID));
 
     // Test GammaControl
     TestCreateGammaControl<DDType, DSType>(pDDraw, pPrimarySurface, "Primary Surface", 400);

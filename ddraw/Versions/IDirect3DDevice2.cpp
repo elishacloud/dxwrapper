@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -71,7 +71,7 @@ HRESULT m_IDirect3DDevice2::GetStats(LPD3DSTATS a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetStats(a, DirectXVersion);
+	return ProxyInterface->GetStats(a);
 }
 
 HRESULT m_IDirect3DDevice2::AddViewport(LPDIRECT3DVIEWPORT2 a)

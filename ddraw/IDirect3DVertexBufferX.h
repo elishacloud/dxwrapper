@@ -7,9 +7,16 @@ private:
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount1 = 0;
 	ULONG RefCount7 = 0;
+
+	// Store version wrappers
+	m_IDirect3DVertexBuffer* WrapperInterface = nullptr;
+	m_IDirect3DVertexBuffer7* WrapperInterface7 = nullptr;
+
+	// Convert to Direct3D9
 	m_IDirectDrawX* ddrawParent = nullptr;
 	m_IDirect3DX* D3DInterface = nullptr;
 	LPDIRECT3DDEVICE9* d3d9Device = nullptr;
+	LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = nullptr;
 
 	// Vertex buffer desc
 	D3DVERTEXBUFFERDESC VBDesc = {};
@@ -20,12 +27,12 @@ private:
 	void* LastLockAddr = nullptr;
 	DWORD LastLockFlags = 0;
 
-	// Store d3d interface
-	LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = nullptr;
+	// Direct3D9 interface functions
+	HRESULT CreateD3D9VertexBuffer();
+	void ReleaseD3D9VertexBuffer();
 
-	// Store version wrappers
-	m_IDirect3DVertexBuffer *WrapperInterface = nullptr;
-	m_IDirect3DVertexBuffer7 *WrapperInterface7 = nullptr;
+	// Check interfaces
+	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DVertexBuffer);
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
@@ -41,13 +48,6 @@ private:
 	inline IDirect3DVertexBuffer *GetProxyInterfaceV1() { return (IDirect3DVertexBuffer *)ProxyInterface; }
 	inline IDirect3DVertexBuffer7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
-	// Check interfaces
-	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DVertexBuffer);
-
-	// Direct3D9 interface functions
-	HRESULT CreateD3D9VertexBuffer();
-	void ReleaseD3D9VertexBuffer();
-
 	// Interface initialization functions
 	void InitInterface(DWORD DirectXVersion);
 	void ReleaseInterface();
@@ -55,7 +55,7 @@ private:
 public:
 	m_IDirect3DVertexBufferX(IDirect3DVertexBuffer7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
-		ProxyDirectXVersion = GetGUIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
+		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
@@ -122,8 +122,8 @@ public:
 	void ClearDdraw() { ddrawParent = nullptr; d3d9Device = nullptr; }
 
 	// Direct3D9 interfaces
-	inline const LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() const { return d3d9VertexBuffer; };
-	inline void ClearD3D() { D3DInterface = nullptr; }
+	const LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() const { return d3d9VertexBuffer; };
+	void ClearD3D() { D3DInterface = nullptr; }
 	void ReleaseD9Buffer(bool BackupData, bool ResetBuffer);
 
 	DWORD GetFVF9() const { return d3d9VBDesc.FVF; };

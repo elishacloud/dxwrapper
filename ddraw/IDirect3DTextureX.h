@@ -8,17 +8,17 @@ private:
 	ULONG RefCount1 = 0;
 	ULONG RefCount2 = 0;
 
-	// Convert Texture
+	// Store version wrappers
+	m_IDirect3DTexture* WrapperInterface = nullptr;
+	m_IDirect3DTexture2* WrapperInterface2 = nullptr;
+
+	// Convert to Direct3D9
 	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
 	DWORD tHandle = 0;
 	struct {
 		m_IDirectDrawSurfaceX* Interface = nullptr;
 		DWORD DxVersion = 0;
 	} parent3DSurface;
-
-	// Store d3d texture version wrappers
-	m_IDirect3DTexture *WrapperInterface = nullptr;
-	m_IDirect3DTexture2 *WrapperInterface2 = nullptr;
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
@@ -35,13 +35,13 @@ private:
 	inline IDirect3DTexture2 *GetProxyInterfaceV2() { return ProxyInterface; }
 
 	// Interface initialization functions
-	void InitInterface();
+	void InitInterface(DWORD DirectXVersion);
 	void ReleaseInterface();
 
 public:
 	m_IDirect3DTextureX(IDirect3DTexture2 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
-		ProxyDirectXVersion = GetGUIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
+		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
@@ -56,7 +56,7 @@ public:
 			Logging::Log() << __FUNCTION__ << " (" << this << ") Warning: created from non-dd7to9 interface!";
 		}
 
-		InitInterface();
+		InitInterface(DirectXVersion);
 	}
 	m_IDirect3DTextureX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion, m_IDirectDrawSurfaceX *lpSurface, DWORD DXSurfaceVersion) : D3DDeviceInterface(D3DDInterface)
 	{
@@ -67,7 +67,7 @@ public:
 		parent3DSurface.Interface = lpSurface;
 		parent3DSurface.DxVersion = DXSurfaceVersion;
 
-		InitInterface();
+		InitInterface(DirectXVersion);
 	}
 	~m_IDirect3DTextureX()
 	{
@@ -96,9 +96,9 @@ public:
 
 	// Handle functions
 	HRESULT m_IDirect3DTextureX::SetHandle(DWORD dwHandle);
-	inline void SetD3DDevice(m_IDirect3DDeviceX** D3DDevice) { D3DDeviceInterface = D3DDevice; }
-	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
+	void SetD3DDevice(m_IDirect3DDeviceX** D3DDevice) { D3DDeviceInterface = D3DDevice; }
+	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 
 	// Surface functions
-	m_IDirectDrawSurfaceX *GetSurface() { return parent3DSurface.Interface; }
+	m_IDirectDrawSurfaceX *GetSurface() const { return parent3DSurface.Interface; }
 };

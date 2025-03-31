@@ -9,6 +9,8 @@ constexpr UINT MaxSamplerStates = 14;	// Devices can have up to 14 sampler state
 constexpr UINT MaxTextureStages = 8;	// Devices can have up to eight set textures.
 constexpr UINT MAX_LIGHTS = 8;          // Devices can have up to eight lights.
 
+#define D3DSTATE D3DSTATE7
+
 #define D3DDP_FORCE_DWORD               0x0000001Fl
 #define D3DDP_DXW_COLORKEYENABLE        0x00000020l
 #define D3DDP_DXW_ALPHACOLORKEY         0x00000040l
@@ -106,6 +108,18 @@ typedef enum _D3DSURFACETYPE {
     D3DTYPE_RENDERTARGET = 3,
     D3DTYPE_DEPTHSTENCIL = 4
 } D3DSURFACETYPE;
+
+struct CONVERTHOMOGENEOUS
+{
+    bool IsTransformViewSet = false;					// Remembers if game sets the view matrix
+    D3DMATRIX ToWorld_ProjectionMatrix;					// Store the projection matrix used to transform the geometry on the gpu
+    D3DMATRIX ToWorld_ViewMatrix;						// Store the view matrix used to transform the geometry on the gpu
+    D3DMATRIX ToWorld_ViewMatrixOriginal;				// Store the original view matrix, so we can restore it
+    DirectX::XMMATRIX ToWorld_ViewMatrixInverse;		// Store the inverse view matrix to transform the geometry on the cpu
+    std::vector<uint8_t> ToWorld_IntermediateGeometry;	// Intermediate buffer for the geometry conversion
+    float ToWorld_GameCameraYaw = 0.0f;
+    float ToWorld_GameCameraPitch = 0.0f;
+};
 
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light);
 void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7);

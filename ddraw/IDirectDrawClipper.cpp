@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -18,47 +18,13 @@
 
 #include "ddraw.h"
 
-// Cached wrapper interface
 namespace {
 	m_IDirectDrawClipper* WrapperInterfaceBackup = nullptr;
 }
 
-inline static void SaveInterfaceAddress(m_IDirectDrawClipper* Interface, m_IDirectDrawClipper*& InterfaceBackup)
-{
-	if (Interface)
-	{
-		Interface->SetProxy(nullptr, nullptr, 0);
-		if (InterfaceBackup)
-		{
-			InterfaceBackup->DeleteMe();
-			InterfaceBackup = nullptr;
-		}
-		InterfaceBackup = Interface;
-	}
-}
-
-m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags)
-{
-	m_IDirectDrawClipper* Interface = nullptr;
-	if (WrapperInterfaceBackup)
-	{
-		Interface = WrapperInterfaceBackup;
-		WrapperInterfaceBackup = nullptr;
-		Interface->SetProxy(aOriginal, NewParent, dwFlags);
-	}
-	else
-	{
-		if (aOriginal)
-		{
-			Interface = new m_IDirectDrawClipper(aOriginal);
-		}
-		else
-		{
-			Interface = new m_IDirectDrawClipper(NewParent, dwFlags);
-		}
-	}
-	return Interface;
-}
+// ******************************
+// IUnknown functions
+// ******************************
 
 HRESULT m_IDirectDrawClipper::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
@@ -97,7 +63,7 @@ ULONG m_IDirectDrawClipper::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		return InterlockedIncrement(&RefCount);
 	}
@@ -109,16 +75,19 @@ ULONG m_IDirectDrawClipper::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ULONG ref;
+	if (Config.Dd7to9)
+	{
+		ULONG ref = (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
 
-	if (!ProxyInterface)
-	{
-		ref = InterlockedDecrement(&RefCount);
+		if (ref == 0)
+		{
+			SaveInterfaceAddress(this, WrapperInterfaceBackup);
+		}
+
+		return ref;
 	}
-	else
-	{
-		ref = ProxyInterface->Release();
-	}
+
+	ULONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
 	{
@@ -128,11 +97,15 @@ ULONG m_IDirectDrawClipper::Release()
 	return ref;
 }
 
+// ******************************
+// IDirectDrawClipper functions
+// ******************************
+
 HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, LPDWORD lpdwSize)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpdwSize)
 		{
@@ -232,7 +205,7 @@ HRESULT m_IDirectDrawClipper::GetHWnd(HWND FAR * lphWnd)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lphWnd)
 		{
@@ -256,7 +229,7 @@ HRESULT m_IDirectDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		// Returns D3D_OK if successful, otherwise it returns an error.
 		return D3D_OK;
@@ -274,7 +247,7 @@ HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * lpbChanged)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpbChanged)
 		{
@@ -302,7 +275,7 @@ HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		// You cannot set the clip list if a window handle is already associated with the DirectDrawClipper object.
 		if (cliphWnd)
@@ -338,7 +311,7 @@ HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		cliphWnd = hWnd;
 
@@ -350,12 +323,14 @@ HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 	return ProxyInterface->SetHWnd(dwFlags, hWnd);
 }
 
-/************************/
-/*** Helper functions ***/
-/************************/
+// ******************************
+// Helper functions
+// ******************************
 
 void m_IDirectDrawClipper::InitInterface(DWORD dwFlags)
 {
+	ScopedDDCriticalSection ThreadLockDD;
+
 	if (ddrawParent)
 	{
 		ddrawParent->AddClipper(this);
@@ -375,10 +350,35 @@ void m_IDirectDrawClipper::ReleaseInterface()
 		return;
 	}
 
-	ClearBaseClipper(this);
+	ScopedDDCriticalSection ThreadLockDD;
+
+	m_IDirectDrawX::ClearBaseClipper(this);
 
 	if (ddrawParent)
 	{
 		ddrawParent->ClearClipper(this);
 	}
+}
+
+m_IDirectDrawClipper* m_IDirectDrawClipper::CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags)
+{
+	m_IDirectDrawClipper* Interface = nullptr;
+	if (WrapperInterfaceBackup)
+	{
+		Interface = WrapperInterfaceBackup;
+		WrapperInterfaceBackup = nullptr;
+		Interface->SetProxy(aOriginal, NewParent, dwFlags);
+	}
+	else
+	{
+		if (aOriginal)
+		{
+			Interface = new m_IDirectDrawClipper(aOriginal);
+		}
+		else
+		{
+			Interface = new m_IDirectDrawClipper(NewParent, dwFlags);
+		}
+	}
+	return Interface;
 }

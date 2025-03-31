@@ -9,15 +9,31 @@ private:
 	ULONG RefCount2 = 0;
 	ULONG RefCount3 = 0;
 
+	// Store version wrappers
+	m_IDirect3DViewport* WrapperInterface = nullptr;
+	m_IDirect3DViewport2* WrapperInterface2 = nullptr;
+	m_IDirect3DViewport3* WrapperInterface3 = nullptr;
+
+	// Convert to Direct3D9
+	m_IDirect3DX* D3DInterface = nullptr;
+	m_IDirect3DDeviceX** D3DDeviceInterface = nullptr;
 	bool IsViewPortSet = false;
 	D3DVIEWPORT vData = {};
 	bool IsViewPort2Set = false;
 	D3DVIEWPORT2 vData2 = {};
 
+	struct MATERIALBACKGROUND {
+		BOOL IsSet = FALSE;
+		D3DMATERIALHANDLE hMat = NULL;
+	} MaterialBackground;
+
 	// Light array
 	std::vector<LPDIRECT3DLIGHT> AttachedLights;
 
-	inline bool IsLightAttached(LPDIRECT3DLIGHT LightX)
+	// Helper functions
+	HRESULT CheckInterface(char* FunctionName);
+
+	bool IsLightAttached(LPDIRECT3DLIGHT LightX)
 	{
 		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
 			[=](auto pLight) -> bool { return pLight == LightX; });
@@ -29,7 +45,7 @@ private:
 		return false;
 	}
 
-	inline bool DeleteAttachedLight(LPDIRECT3DLIGHT LightX)
+	bool DeleteAttachedLight(LPDIRECT3DLIGHT LightX)
 	{
 		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
 			[=](auto pLight) -> bool { return pLight == LightX; });
@@ -42,22 +58,12 @@ private:
 		return false;
 	}
 
-	struct MATERIALBACKGROUND {
-		BOOL IsSet = FALSE;
-		D3DMATERIALHANDLE hMat = NULL;
-	} MaterialBackground;
-
-	// Device interface pointers
-	m_IDirect3DX* D3DInterface = nullptr;
-	m_IDirect3DDeviceX** D3DDeviceInterface = nullptr;
-
-	// Store version wrappers
-	m_IDirect3DViewport *WrapperInterface = nullptr;
-	m_IDirect3DViewport2 *WrapperInterface2 = nullptr;
-	m_IDirect3DViewport3 *WrapperInterface3 = nullptr;
-
-	// Helper functions
-	HRESULT CheckInterface(char* FunctionName);
+	bool IsViewportAssiciated() {
+		return SUCCEEDED(CheckInterface(__FUNCTION__)) && ((*D3DDeviceInterface)->CheckIfViewportSet(this) ||
+			(*D3DDeviceInterface)->IsViewportAttached((LPDIRECT3DVIEWPORT3)WrapperInterface) ||
+			(*D3DDeviceInterface)->IsViewportAttached((LPDIRECT3DVIEWPORT3)WrapperInterface2) ||
+			(*D3DDeviceInterface)->IsViewportAttached((LPDIRECT3DVIEWPORT3)WrapperInterface3));
+	}
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
@@ -83,7 +89,7 @@ private:
 public:
 	m_IDirect3DViewportX(IDirect3DViewport3 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
-		ProxyDirectXVersion = GetGUIDVersion(ConvertREFIID(GetWrapperType(DirectXVersion)));
+		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
@@ -155,7 +161,8 @@ public:
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	void SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
-	inline void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
+	m_IDirect3DDeviceX* GetD3DDevice();
+	void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 };

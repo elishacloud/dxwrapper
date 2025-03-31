@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -16,12 +16,15 @@
 
 #include "ddraw.h"
 
-// Cached wrapper interface
 namespace {
 	m_IDirect3DMaterial* WrapperInterfaceBackup = nullptr;
 	m_IDirect3DMaterial2* WrapperInterfaceBackup2 = nullptr;
 	m_IDirect3DMaterial3* WrapperInterfaceBackup3 = nullptr;
 }
+
+// ******************************
+// IUnknown functions
+// ******************************
 
 HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
@@ -44,13 +47,7 @@ HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, D
 		return D3D_OK;
 	}
 
-	if (DirectXVersion != 1 && DirectXVersion != 2 && DirectXVersion != 3)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-		return E_NOINTERFACE;
-	}
-
-	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirect3D7)) ? GetGUIDVersion(riid) : DirectXVersion;
+	DWORD DxVersion = (CheckWrapperType(riid) && Config.Dd7to9) ? GetGUIDVersion(riid) : DirectXVersion;
 
 	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
 	{
@@ -64,31 +61,11 @@ HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, D
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
-void *m_IDirect3DMaterialX::GetWrapperInterfaceX(DWORD DirectXVersion)
-{
-	switch (DirectXVersion)
-	{
-	case 0:
-		if (WrapperInterface3) return WrapperInterface3;
-		if (WrapperInterface2) return WrapperInterface2;
-		if (WrapperInterface) return WrapperInterface;
-		break;
-	case 1:
-		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DMATERIAL)ProxyInterface, this);
-	case 2:
-		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3DMATERIAL2)ProxyInterface, this);
-	case 3:
-		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECT3DMATERIAL3)ProxyInterface, this);
-	}
-	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-	return nullptr;
-}
-
 ULONG m_IDirect3DMaterialX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		switch (DirectXVersion)
 		{
@@ -111,10 +88,10 @@ ULONG m_IDirect3DMaterialX::Release(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
-	ULONG ref;
-
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
+		ULONG ref;
+
 		switch (DirectXVersion)
 		{
 		case 1:
@@ -136,25 +113,29 @@ ULONG m_IDirect3DMaterialX::Release(DWORD DirectXVersion)
 		{
 			delete this;
 		}
-	}
-	else
-	{
-		ref = ProxyInterface->Release();
 
-		if (ref == 0)
-		{
-			delete this;
-		}
+		return ref;
+	}
+
+	ULONG ref = ProxyInterface->Release();
+
+	if (ref == 0)
+	{
+		delete this;
 	}
 
 	return ref;
 }
 
+// ******************************
+// IDirect3DMaterial functions
+// ******************************
+
 HRESULT m_IDirect3DMaterialX::Initialize(LPDIRECT3D lplpD3D)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion != 1)
+	if (Config.Dd7to9)
 	{
 		// The method returns DDERR_ALREADYINITIALIZED because the IDirect3DMaterial object is initialized when it is created.
 		return DDERR_ALREADYINITIALIZED;
@@ -172,7 +153,7 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpMat || lpMat->dwSize != sizeof(D3DMATERIAL))
 		{
@@ -180,14 +161,8 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
-		{
-			return DDERR_GENERIC;
-		}
-
 		// If current material is set then use new material
-		if (mHandle && (*D3DDeviceInterface)->CheckIfMaterialSet(mHandle))
+		if (mHandle && SUCCEEDED(CheckInterface(__FUNCTION__)) && (*D3DDeviceInterface)->CheckIfMaterialSet(mHandle))
 		{
 			if (FAILED((*D3DDeviceInterface)->SetMaterial(lpMat)))
 			{
@@ -217,7 +192,7 @@ HRESULT m_IDirect3DMaterialX::GetMaterial(LPD3DMATERIAL lpMat)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpMat || lpMat->dwSize != sizeof(D3DMATERIAL))
 		{
@@ -247,7 +222,7 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpDirect3DDevice || !lpHandle)
 		{
@@ -258,6 +233,7 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDevice does not exist!");
 			return DDERR_GENERIC;
 		}
 
@@ -310,7 +286,7 @@ HRESULT m_IDirect3DMaterialX::Reserve()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion != 1)
+	if (Config.Dd7to9)
 	{
 		// Former stub method. This method was never implemented and is not supported in any interface.
 		return D3D_OK;
@@ -323,7 +299,7 @@ HRESULT m_IDirect3DMaterialX::Unreserve()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion != 1)
+	if (Config.Dd7to9)
 	{
 		// Former stub method. This method was never implemented and is not supported in any interface.
 		return D3D_OK;
@@ -332,9 +308,51 @@ HRESULT m_IDirect3DMaterialX::Unreserve()
 	return GetProxyInterfaceV1()->Unreserve();
 }
 
-/************************/
-/*** Helper functions ***/
-/************************/
+// ******************************
+// Helper functions
+// ******************************
+
+void m_IDirect3DMaterialX::InitInterface(DWORD DirectXVersion)
+{
+	ScopedDDCriticalSection ThreadLockDD;
+
+	if (D3DInterface)
+	{
+		D3DInterface->AddMaterial(this);
+	}
+
+	if (Config.Dd7to9)
+	{
+		Material.dwSize = sizeof(D3DMATERIAL);
+
+		AddRef(DirectXVersion);
+	}
+}
+
+void m_IDirect3DMaterialX::ReleaseInterface()
+{
+	if (Config.Exiting)
+	{
+		return;
+	}
+
+	ScopedDDCriticalSection ThreadLockDD;
+
+	if (D3DInterface)
+	{
+		D3DInterface->ClearMaterial(this);
+	}
+
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
+	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
+	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
+
+	if (mHandle && D3DDeviceInterface && *D3DDeviceInterface)
+	{
+		(*D3DDeviceInterface)->ClearMaterialHandle(mHandle);
+	}
+}
 
 HRESULT m_IDirect3DMaterialX::CheckInterface(char* FunctionName)
 {
@@ -359,40 +377,33 @@ HRESULT m_IDirect3DMaterialX::CheckInterface(char* FunctionName)
 	return D3D_OK;
 }
 
-void m_IDirect3DMaterialX::InitInterface(DWORD DirectXVersion)
+void* m_IDirect3DMaterialX::GetWrapperInterfaceX(DWORD DirectXVersion)
 {
-	if (D3DInterface)
+	switch (DirectXVersion)
 	{
-		D3DInterface->AddMaterial(this);
+	case 0:
+		if (WrapperInterface3) return WrapperInterface3;
+		if (WrapperInterface2) return WrapperInterface2;
+		if (WrapperInterface) return WrapperInterface;
+		break;
+	case 1:
+		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DMATERIAL)ProxyInterface, this);
+	case 2:
+		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3DMATERIAL2)ProxyInterface, this);
+	case 3:
+		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECT3DMATERIAL3)ProxyInterface, this);
 	}
-
-	if (!ProxyInterface)
-	{
-		Material.dwSize = sizeof(D3DMATERIAL);
-
-		AddRef(DirectXVersion);
-	}
+	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+	return nullptr;
 }
 
-void m_IDirect3DMaterialX::ReleaseInterface()
+m_IDirect3DDeviceX* m_IDirect3DMaterialX::GetD3DDevice()
 {
-	if (Config.Exiting)
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__)))
 	{
-		return;
+		return nullptr;
 	}
 
-	if (D3DInterface)
-	{
-		D3DInterface->ClearMaterial(this);
-	}
-
-	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
-	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
-	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
-
-	if (mHandle && D3DDeviceInterface && *D3DDeviceInterface)
-	{
-		(*D3DDeviceInterface)->ClearMaterialHandle(mHandle);
-	}
+	return *D3DDeviceInterface;
 }

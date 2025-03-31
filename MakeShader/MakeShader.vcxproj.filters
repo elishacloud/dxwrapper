@@ -20,6 +20,9 @@
     <ClCompile Include="..\External\Hooking\HotPatch.cpp">
       <Filter>Hooking</Filter>
     </ClCompile>
+    <ClCompile Include="..\Utils\CPUAffinity.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Libraries">

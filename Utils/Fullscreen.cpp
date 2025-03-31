@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -117,7 +117,7 @@ namespace Fullscreen
 	};
 
 	// Declare variables
-	bool m_StopThreadFlag = false;
+	const bool& m_StopThreadFlag = Config.Exiting;
 	bool m_ThreadRunningFlag = false;
 	HANDLE m_hThread = nullptr;
 	DWORD m_dwThreadID = 0;
@@ -255,7 +255,7 @@ void Fullscreen::GetScreenSize(HWND hwnd, screen_res& Res, MONITORINFO& mi)
 	Res.Height = mi.rcMonitor.bottom - mi.rcMonitor.top;
 }
 
-void Utils::GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight)
+void Utils::GetScreenSize(HWND hwnd, volatile LONG &screenWidth, volatile LONG &screenHeight)
 {
 	MONITORINFO info = {};
 	info.cbSize = sizeof(MONITORINFO);
@@ -266,7 +266,7 @@ void Utils::GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight)
 
 void Utils::GetScreenSize(HWND hwnd, int &screenWidth, int &screenHeight)
 {
-	LONG Width, Height;
+	LONG Width = 0, Height = 0;
 	GetScreenSize(hwnd, Width, Height);
 	screenWidth = Width;
 	screenHeight = Height;
@@ -782,9 +782,6 @@ bool Fullscreen::IsThreadRunning()
 // Stop thread
 void Fullscreen::StopThread()
 {
-	// Set flag to stop thread
-	m_StopThreadFlag = true;
-
 	// Wait for thread to exit
 	if (IsThreadRunning())
 	{

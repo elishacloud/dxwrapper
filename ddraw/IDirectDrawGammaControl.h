@@ -1,13 +1,11 @@
 #pragma once
 
-m_IDirectDrawGammaControl* CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent);
-
 class m_IDirectDrawGammaControl : public IDirectDrawGammaControl, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDrawGammaControl *ProxyInterface = nullptr;
-	REFIID WrapperID = IID_IDirectDrawGammaControl;
 	ULONG RefCount = 1;
+	REFIID WrapperID = IID_IDirectDrawGammaControl;
 
 	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;
@@ -78,4 +76,5 @@ public:
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw() { ddrawParent = nullptr; }
+	static m_IDirectDrawGammaControl* CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent);
 };

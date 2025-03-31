@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -326,7 +326,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 		if (Config.SingleProcAffinity)
 		{
-			Utils::SetProcessAffinity();
+			if (!Utils::CreateThread_out)
+			{
+				Utils::CreateThread_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "CreateThread"), "CreateThread", Utils::kernel_CreateThread);
+			}
+
+			Utils::ApplyThreadAffinity();
 		}
 		if (Config.DisableGameUX)
 		{
@@ -578,6 +583,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 			// Prepare wrapper
 			VISIT_PROCS_D3D9(SHIM_WRAPPED_PROC);
+
+			// Get default display resolution
+			Utils::GetScreenSize(nullptr, InitWidth, InitHeight);
 		}
 
 		// Load custom dlls
@@ -645,6 +653,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	}
 	break;
 	case DLL_THREAD_ATTACH:
+
+		// Apply affinity to new threads
+		if (Config.SingleProcAffinity)
+		{
+			Utils::SetThreadAffinity(GetCurrentThreadId());
+		}
+
 #ifdef DDRAWCOMPAT
 		// Unload and Unhook DDrawCompat
 		if (DDrawCompat::IsEnabled())

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -16,47 +16,13 @@
 
 #include "ddraw.h"
 
-// Cached wrapper interface
 namespace {
 	m_IDirectDrawGammaControl* WrapperInterfaceBackup = nullptr;
 }
 
-inline static void SaveInterfaceAddress(m_IDirectDrawGammaControl* Interface, m_IDirectDrawGammaControl*& InterfaceBackup)
-{
-	if (Interface)
-	{
-		Interface->SetProxy(nullptr, nullptr);
-		if (InterfaceBackup)
-		{
-			InterfaceBackup->DeleteMe();
-			InterfaceBackup = nullptr;
-		}
-		InterfaceBackup = Interface;
-	}
-}
-
-m_IDirectDrawGammaControl* CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent)
-{
-	m_IDirectDrawGammaControl* Interface = nullptr;
-	if (WrapperInterfaceBackup)
-	{
-		Interface = WrapperInterfaceBackup;
-		WrapperInterfaceBackup = nullptr;
-		Interface->SetProxy(aOriginal, NewParent);
-	}
-	else
-	{
-		if (aOriginal)
-		{
-			Interface = new m_IDirectDrawGammaControl(aOriginal);
-		}
-		else
-		{
-			Interface = new m_IDirectDrawGammaControl(NewParent);
-		}
-	}
-	return Interface;
-}
+// ******************************
+// IUnknown functions
+// ******************************
 
 HRESULT m_IDirectDrawGammaControl::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
@@ -109,7 +75,7 @@ ULONG m_IDirectDrawGammaControl::AddRef()
 		return 0;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		return InterlockedIncrement(&RefCount);
 	}
@@ -126,16 +92,19 @@ ULONG m_IDirectDrawGammaControl::Release()
 		return 0;
 	}
 
-	ULONG ref;
+	if (Config.Dd7to9)
+	{
+		ULONG ref = (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
 
-	if (!ProxyInterface)
-	{
-		ref = InterlockedDecrement(&RefCount);
+		if (ref == 0)
+		{
+			SaveInterfaceAddress(this, WrapperInterfaceBackup);
+		}
+
+		return ref;
 	}
-	else
-	{
-		ref = ProxyInterface->Release();
-	}
+
+	ULONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
 	{
@@ -144,6 +113,10 @@ ULONG m_IDirectDrawGammaControl::Release()
 
 	return ref;
 }
+
+// ******************************
+// IDirectDrawGammaControl functions
+// ******************************
 
 HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 {
@@ -154,7 +127,7 @@ HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 		return DDERR_INVALIDOBJECT;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!(dwFlags == D3DSGR_NO_CALIBRATION || dwFlags == DDSGR_CALIBRATE) || !lpRampData)
 		{
@@ -181,7 +154,7 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 		return DDERR_INVALIDOBJECT;
 	}
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!(dwFlags == D3DSGR_NO_CALIBRATION || dwFlags == DDSGR_CALIBRATE) || !lpRampData)
 		{
@@ -199,12 +172,14 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 	return ProxyInterface->SetGammaRamp(dwFlags, lpRampData);
 }
 
-/************************/
-/*** Helper functions ***/
-/************************/
+// ******************************
+// Helper functions
+// ******************************
 
 void m_IDirectDrawGammaControl::InitInterface()
 {
+	ScopedDDCriticalSection ThreadLockDD;
+
 	if (ddrawParent)
 	{
 		ddrawParent->SetGammaControl(this);
@@ -218,8 +193,33 @@ void m_IDirectDrawGammaControl::ReleaseInterface()
 		return;
 	}
 
+	ScopedDDCriticalSection ThreadLockDD;
+
 	if (ddrawParent)
 	{
 		ddrawParent->ClearGammaControl(this);
 	}
+}
+
+m_IDirectDrawGammaControl* m_IDirectDrawGammaControl::CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent)
+{
+	m_IDirectDrawGammaControl* Interface = nullptr;
+	if (WrapperInterfaceBackup)
+	{
+		Interface = WrapperInterfaceBackup;
+		WrapperInterfaceBackup = nullptr;
+		Interface->SetProxy(aOriginal, NewParent);
+	}
+	else
+	{
+		if (aOriginal)
+		{
+			Interface = new m_IDirectDrawGammaControl(aOriginal);
+		}
+		else
+		{
+			Interface = new m_IDirectDrawGammaControl(NewParent);
+		}
+	}
+	return Interface;
 }

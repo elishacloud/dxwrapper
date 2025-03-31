@@ -10,14 +10,41 @@ inline void SaveInterfaceAddress(T*& Interface, T*& InterfaceBackup)
 {
 	if (Interface)
 	{
-		Interface->SetProxy(nullptr);
+		if constexpr (std::is_same_v<T, m_IDirectDrawPalette>)
+		{
+			Interface->SetProxy(nullptr, nullptr, 0, nullptr);
+		}
+		else if constexpr (std::is_same_v<T, m_IDirect3DExecuteBuffer>)
+		{
+			Interface->SetProxy(nullptr, nullptr, nullptr);
+		}
+		else if constexpr (std::is_same_v<T, m_IDirectDrawClipper>)
+		{
+			Interface->SetProxy(nullptr, nullptr, 0);
+		}
+		else if constexpr (std::is_same_v<T, m_IDirect3DLight> || std::is_same_v<T, m_IDirectDrawColorControl> || std::is_same_v<T, m_IDirectDrawGammaControl>)
+		{
+			Interface->SetProxy(nullptr, nullptr);
+		}
+		else
+		{
+			Interface->SetProxy(nullptr);
+		}
 		if (InterfaceBackup)
 		{
 			InterfaceBackup->DeleteMe();
 			InterfaceBackup = nullptr;
 		}
 		InterfaceBackup = Interface;
+		Interface = nullptr;
 	}
+}
+
+template <typename T>
+inline void SaveInterfaceAddress(const T* Interface, T*& InterfaceBackup)
+{
+	T* NewInterface = const_cast<T*>(Interface);
+	SaveInterfaceAddress(NewInterface, InterfaceBackup);
 }
 
 template <typename T, typename S, typename X>

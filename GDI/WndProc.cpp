@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -20,7 +20,6 @@
 #include "WndProc.h"
 #include "GDI.h"
 #include "ddraw\ddraw.h"
-#include "ddraw\ddrawExternal.h"
 #include "d3d9\d3d9External.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
@@ -289,7 +288,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	// Handle Direct3D9 device creation
 	if (Msg == WM_APP_CREATE_D3D9_DEVICE && WM_MAKE_KEY(hWnd, wParam) == lParam)
 	{
-		if (CheckDirectDrawXInterface((void*)wParam))
+		if (m_IDirectDrawX::CheckDirectDrawXInterface((void*)wParam))
 		{
 			((m_IDirectDrawX*)wParam)->CreateD9Device(__FUNCTION__);
 		}

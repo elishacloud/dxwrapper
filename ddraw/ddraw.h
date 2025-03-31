@@ -8,6 +8,12 @@
 #include <d3d.h>
 #include <d3dhal.h>
 #include <memory>
+#include <map>
+#include <unordered_map>
+#include <unordered_set>
+
+// Enable for testing
+//#define ENABLE_PROFILING
 
 class m_IDirect3D;
 class m_IDirect3D2;
@@ -52,6 +58,9 @@ class m_IDirectDrawPalette;
 class m_IDirectDrawColorControl;
 class m_IDirectDrawGammaControl;
 
+#include "d3dx9.h"
+#include "External\DirectXMath\Inc\DirectXMath.h"
+#include "ddraw\ddrawExternal.h"
 #include "AddressLookupTable.h"
 #include "IClassFactory\IClassFactory.h"
 #include "Settings\Settings.h"
@@ -61,8 +70,8 @@ class m_IDirectDrawGammaControl;
 
 // Indicates surface was created using CreateSurface()
 #define DDSCAPS4_CREATESURFACE  0x0001
-// Indicates surface is a primary surface or a backbuffer of a primary surface
-#define DDSCAPS4_PRIMARYSURFACE 0x0200
+// Indicates surface is a child of a complex surface
+#define DDSCAPS4_COMPLEXCHILD   0x0002
 
 // ddraw proc typedefs
 typedef HRESULT(WINAPI *AcquireDDThreadLockProc)();
@@ -94,28 +103,23 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext);
 HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext);
 
-void AddBaseClipper(m_IDirectDrawClipper* lpClipper);
-void ClearBaseClipper(m_IDirectDrawClipper* lpClipper);
-bool DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper);
+bool TryDDThreadLock();
 
 // Function and variable forward declarations
 namespace DdrawWrapper
 {
 	DWORD GetGUIDVersion(REFIID CalledID);
 	REFIID ReplaceIIDUnknown(REFIID riid, REFIID guid);
-	REFCLSID ConvertREFCLSID(REFCLSID rclsid);
-	REFIID ConvertREFIID(REFIID riid);
-	HRESULT SetCriticalSection();
-	HRESULT ReleaseCriticalSection();
 	HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID);
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj);
+
+	struct ScopedDDCriticalSection {
+		ScopedDDCriticalSection() { dd_AcquireDDThreadLock(); }
+		~ScopedDDCriticalSection() { dd_ReleaseDDThreadLock(); }
+	};
 }
 
-extern const D3DFORMAT D9DisplayFormat;
-
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
-
-extern std::vector<m_IDirectDrawX*> DDrawVector;
 
 enum DirectDrawEnumerateTypes
 {
@@ -125,12 +129,8 @@ enum DirectDrawEnumerateTypes
 	DDET_ENUMCALLBACKW,
 };
 
-extern float ScaleDDWidthRatio;
-extern float ScaleDDHeightRatio;
-extern DWORD ScaleDDCurrentWidth;
-extern DWORD ScaleDDCurrentHeight;
-extern DWORD ScaleDDPadX;
-extern DWORD ScaleDDPadY;
+#include "ComPtr.h"
+#include "ScopeGuard.h"
 
 using namespace DdrawWrapper;
 

@@ -1,13 +1,11 @@
 #pragma once
 
-m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent);
-
 class m_IDirectDrawColorControl : public IDirectDrawColorControl, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDrawColorControl *ProxyInterface = nullptr;
-	REFIID WrapperID = IID_IDirectDrawColorControl;
 	ULONG RefCount = 1;
+	REFIID WrapperID = IID_IDirectDrawColorControl;
 
 	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;
@@ -78,4 +76,6 @@ public:
 
 	// Functions handling the ddraw parent interface
 	void ClearDdraw() { ddrawParent = nullptr; }
+	static m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent);
+
 };

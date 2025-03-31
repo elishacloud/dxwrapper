@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -121,7 +121,6 @@ namespace Utils
 	std::vector<type_dll> custom_dll;		// Used for custom dll's and asi plugins
 
 	// Function declarations
-	DWORD_PTR GetProcessMask();
 	void InitializeASI(HMODULE hModule);
 	void FindFiles(WIN32_FIND_DATA*);
 	void *memmem(const void *l, size_t l_len, const void *s, size_t s_len);
@@ -160,59 +159,6 @@ void Utils::Shell(const char* fileName)
 	}
 	// Quit function
 	return;
-}
-
-// Check the number CPU cores is being used by the process
-DWORD Utils::GetCoresUsedByProcess()
-{
-	int numCores = 0;
-	DWORD_PTR ProcessAffinityMask, SystemAffinityMask;
-	if (GetProcessAffinityMask(GetCurrentProcess(), &ProcessAffinityMask, &SystemAffinityMask))
-	{
-		while (ProcessAffinityMask)
-		{
-			if (ProcessAffinityMask & 1)
-			{
-				++numCores;
-			}
-			ProcessAffinityMask >>= 1;
-		}
-	}
-	return numCores;
-}
-
-// Get processor mask
-DWORD_PTR Utils::GetProcessMask()
-{
-	static DWORD_PTR nMask = 0;
-	if (nMask)
-	{
-		return nMask;
-	}
-
-	DWORD_PTR ProcessAffinityMask, SystemAffinityMask;
-	if (GetProcessAffinityMask(GetCurrentProcess(), &ProcessAffinityMask, &SystemAffinityMask))
-	{
-		DWORD_PTR AffinityLow = 1;
-		while (AffinityLow && (AffinityLow & SystemAffinityMask) == 0)
-		{
-			AffinityLow <<= 1;
-		}
-		if (AffinityLow)
-		{
-			nMask = ((AffinityLow << (Config.SingleProcAffinity - 1)) & SystemAffinityMask) ? (AffinityLow << (Config.SingleProcAffinity - 1)) : AffinityLow;
-		}
-	}
-
-	Logging::Log() << __FUNCTION__ << " Setting CPU mask: " << Logging::hex(nMask);
-	return nMask;
-}
-
-// Set Single Core Affinity
-void Utils::SetProcessAffinity()
-{
-	Logging::Log() << "Setting SingleCoreAffinity...";
-	SetProcessAffinityMask(GetCurrentProcess(), GetProcessMask());
 }
 
 // Sets application DPI aware which disables DPI virtulization/High DPI scaling for this process
@@ -398,7 +344,7 @@ HANDLE WINAPI Utils::kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttribute
 
 	if (!CreateThread)
 	{
-		return FALSE;
+		return nullptr;
 	}
 
 	// Check the current stack size, and if it's too small, increase it
@@ -408,6 +354,25 @@ HANDLE WINAPI Utils::kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttribute
 	}
 
 	// Call the original CreateThread with modified parameters
+	if (Config.SingleProcAffinity)
+	{
+		DWORD ThreadID = 0;
+		if (!lpThreadId) lpThreadId = &ThreadID;
+
+		HANDLE thread = CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags | CREATE_SUSPENDED, lpThreadId);
+
+		if (thread)
+		{
+			SetThreadAffinity(*lpThreadId);
+			if (!(dwCreationFlags & CREATE_SUSPENDED))
+			{
+				ResumeThread(thread);
+			}
+		}
+
+		return thread;
+	}
+
 	return CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
 }
 
@@ -486,19 +451,32 @@ SIZE_T WINAPI Utils::kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem)
 }
 
 // Your existing exception handler function
-LONG WINAPI Utils::Vectored_Exception_Handler(EXCEPTION_POINTERS* exception)
+LONG WINAPI Utils::Vectored_Exception_Handler(EXCEPTION_POINTERS* ExceptionInfo)
 {
-	if (exception &&
-		exception->ContextRecord &&
-		exception->ExceptionRecord &&
-		exception->ExceptionRecord->ExceptionAddress &&
-		exception->ExceptionRecord->ExceptionCode == STATUS_PRIVILEGED_INSTRUCTION)
+	if (ExceptionInfo &&
+		ExceptionInfo->ContextRecord &&
+		ExceptionInfo->ExceptionRecord &&
+		ExceptionInfo->ExceptionRecord->ExceptionAddress &&
+		ExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_PRIVILEGED_INSTRUCTION)
 	{
-		size_t size = Disasm::getInstructionLength(exception->ExceptionRecord->ExceptionAddress);
+		size_t size = Disasm::getInstructionLength(ExceptionInfo->ExceptionRecord->ExceptionAddress);
 
 		if (size)
 		{
-			exception->ContextRecord->Eip += size;
+			static DWORD count = 0;
+			if (count++ < 10)
+			{
+				char moduleName[MAX_PATH];
+				GetModuleFromAddress(ExceptionInfo->ExceptionRecord->ExceptionAddress, moduleName, MAX_PATH);
+
+				Logging::Log() << "Skipping exception:" <<
+					" code=" << Logging::hex(ExceptionInfo->ExceptionRecord->ExceptionCode) <<
+					" flags=" << Logging::hex(ExceptionInfo->ExceptionRecord->ExceptionFlags) <<
+					" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress <<
+					" module=" << moduleName;
+			}
+
+			ExceptionInfo->ContextRecord->Eip += size;
 			return EXCEPTION_CONTINUE_EXECUTION;
 		}
 	}
@@ -1322,6 +1300,34 @@ void Utils::WaitForWindowActions(HWND hWnd, DWORD Loops)
 		if (++x > Loops)
 		{
 			break;
+		}
+	}
+}
+
+void Utils::GetModuleFromAddress(void* address, char* module, const size_t size)
+{
+	if (!module || size == 0)
+	{
+		return;
+	}
+
+	module[0] = '\0'; // Ensure null-termination in case of failure
+
+	HMODULE hModule = NULL;
+	HANDLE hProcess = GetCurrentProcess();
+	MEMORY_BASIC_INFORMATION mbi;
+
+	// Query the memory region of the given address
+	if (VirtualQueryEx(hProcess, address, &mbi, sizeof(mbi)))
+	{
+		hModule = (HMODULE)mbi.AllocationBase;
+
+		if (hModule)
+		{
+			if (GetModuleFileNameA(hModule, module, static_cast<DWORD>(size)) == 0)
+			{
+				module[0] = '\0'; // Ensure null-termination if GetModuleFileNameA() fails
+			}
 		}
 	}
 }

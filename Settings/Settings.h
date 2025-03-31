@@ -13,6 +13,8 @@
 	visit(AntiAliasing) \
 	visit(AudioClipDetection) \
 	visit(AudioFadeOutDelayMS) \
+	visit(CustomDisplayWidth) \
+	visit(CustomDisplayHeight) \
 	visit(Dd7to9) \
 	visit(D3d8to9) \
 	visit(Dinputto8) \
@@ -42,6 +44,7 @@
 	visit(DdrawWriteToGDI) \
 	visit(DdrawIntegerScalingClamp) \
 	visit(DdrawLimitDisplayModeCount) \
+	visit(DdrawLimitTextureFormats) \
 	visit(DdrawMaintainAspectRatio) \
 	visit(DdrawOverrideBitMode) \
 	visit(DdrawOverrideWidth) \
@@ -73,8 +76,6 @@
 	visit(DirectShowEmulation) \
 	visit(CacheClipPlane) \
 	visit(EnvironmentMapCubeFix) \
-	visit(ConvertToDirectDraw7) \
-	visit(ConvertToDirect3D7) \
 	visit(EnableDdrawWrapper) \
 	visit(EnableD3d9Wrapper) \
 	visit(EnableDinput8Wrapper) \
@@ -88,6 +89,7 @@
 	visit(ForceExclusiveFullscreen) \
 	visit(ForceMixedVertexProcessing) \
 	visit(ForceSystemMemVertexCache) \
+	visit(ForceSingleBeginEndScene) \
 	visit(FilterNonActiveInput) \
 	visit(FixHighFrequencyMouse) \
 	visit(FixSpeakerConfigType) \
@@ -110,6 +112,7 @@
 	visit(InitialWindowPositionLeft) \
 	visit(InitialWindowPositionTop) \
 	visit(isAppCompatDataSet) \
+	visit(LimitDisplayModeCount) \
 	visit(LimitPerFrameFPS) \
 	visit(LoadCustomDllPath) \
 	visit(LoadFromScriptsOnly) \
@@ -133,6 +136,7 @@
 	visit(SetFullScreenLayer) \
 	visit(SetInitialWindowPosition) \
 	visit(SetNamedLayer) \
+	visit(ShowFPSCounter) \
 	visit(SingleProcAffinity) \
 	visit(StoppedDriverWorkaround) \
 	visit(WaitForProcess) \
@@ -141,6 +145,7 @@
 	visit(WindowModeBorder) \
 	visit(WinVersionLie) \
 	visit(WinVersionLieSP) \
+	visit(WindowModeGammaShader) \
 	visit(WrapperMode)
 
 #define VISIT_APPCOMPATDATA_SETTINGS(visit) \
@@ -253,6 +258,7 @@ struct CONFIG
 	DWORD DdrawCustomWidth = 0;					// Custom resolution width for Dd7to9 when using DdrawLimitDisplayModeCount, resolution must be supported by video card and monitor
 	DWORD DdrawCustomHeight = 0;				// Custom resolution height for Dd7to9 when using DdrawLimitDisplayModeCount, resolution must be supported by video card and monitor
 	bool DdrawDisableDirect3DCaps = false;		// Disable caps for Direct3D to try and force the game to use DirectDraw instaed of Direct3D
+	bool DdrawLimitTextureFormats = false;		// Limits the number of texture formats sent to the program, some games crash when you feed them with too many textures
 	bool DdrawLimitDisplayModeCount = false;	// Limits the number of display modes sent to program, some games crash when you feed them with too many resolutions
 	DWORD DdrawOverrideBitMode = 0;				// Forces DirectX to use specified bit mode: 8, 16, 24, 32
 	DWORD DdrawOverrideWidth = 0;				// Force Direct3d9 to use this width when using Dd7to9
@@ -277,8 +283,8 @@ struct CONFIG
 	DWORD SetSwapEffectShim = 0;				// Disables the call to d3d9.dll 'Direct3D9SetSwapEffectUpgradeShim' to switch present mode
 	DWORD CacheClipPlane = 0;					// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
 	DWORD EnvironmentMapCubeFix = 0;			// Fixes environment cube maps when no texture is applied, issue exists in d3d8
-	bool ConvertToDirectDraw7 = false;			// Converts DirectDraw 1-6 to DirectDraw 7
-	bool ConvertToDirect3D7 = false;			// Converts Direct3D 1-6 to Direct3D 7
+	DWORD CustomDisplayWidth = 0;				// Custom resolution width when using LimitDisplayModeCount, resolution must be supported by video card and monitor
+	DWORD CustomDisplayHeight = 0;				// Custom resolution height when using LimitDisplayModeCount, resolution must be supported by video card and monitor
 	bool EnableDdrawWrapper = false;			// Enables the ddraw wrapper
 	DWORD EnableD3d9Wrapper = 0;				// Enables the d3d9 wrapper
 	bool EnableDinput8Wrapper = false;			// Enables the dinput8 wrapper
@@ -294,6 +300,7 @@ struct CONFIG
 	bool ForceExclusiveFullscreen = false;		// Forces exclusive fullscreen mode in d3d9
 	bool ForceMixedVertexProcessing = false;	// Forces Mixed mode for vertex processing in d3d9
 	bool ForceSystemMemVertexCache = false;		// Forces System Memory caching for vertexes in d3d9
+	DWORD ForceSingleBeginEndScene = 0;			// Ensures that only a single EndScene/BeginScene pair are called per frame
 	bool FullScreen = false;					// Sets the main window to fullscreen
 	bool FullscreenWindowMode = false;			// Enables fullscreen windowed mode, requires EnableWindowMode
 	bool ForceTermination = false;				// Terminates application when main window closes
@@ -302,6 +309,7 @@ struct CONFIG
 	DWORD GraphicsHybridAdapter = 0;			// Sets the Direct3D9 Hybrid Enumeration Mode to allow using a secondary display adapter
 	bool HandleExceptions = false;				// Handles unhandled exceptions in the application
 	bool isAppCompatDataSet = false;			// Flag that holds tells whether any of the AppCompatData flags are set
+	bool LimitDisplayModeCount = false;			// Limits the number of display modes sent to program, some games crash when you feed them with too many resolutions
 	float LimitPerFrameFPS = 0;					// Limits each frame by adding a delay if the frame is to fast
 	bool LoadPlugins = false;					// Loads ASI plugins
 	bool LoadFromScriptsOnly = false;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
@@ -312,12 +320,14 @@ struct CONFIG
 	bool WaitForProcess = false;				// Waits for process to end before continuing, requires FullScreen
 	bool WaitForWindowChanges = false;			// Waits for window handle to stabilize before setting fullsreen, requires FullScreen
 	bool WindowModeBorder = false;				// Enables the window border when EnableWindowMode is set, requires EnableWindowMode
+	DWORD WindowModeGammaShader = 0;			// Use shader for gamma when in window mode
 	bool SetInitialWindowPosition = false;		// Enable Initial window position
 	DWORD InitialWindowPositionLeft;			// Initial left window position for application
 	DWORD InitialWindowPositionTop;				// Initial top window position for application
 	DWORD LoopSleepTime = 0;					// Time to sleep between each window handle check loop, requires FullScreen
 	DWORD ResetMemoryAfter = 0;					// Undo hot patch after this amount of time
 	DWORD WindowSleepTime = 0;					// Time to wait (sleep) for window handle and screen updates to finish, requires FullScreen
+	DWORD ShowFPSCounter = 0;					// Shows the FPS counter. 1 = top left; 2 = top right; 3 = bottom right; 4 = bottom left
 	DWORD SingleProcAffinity = 0;				// Sets the CPU affinity for this process
 	DWORD SetFullScreenLayer = 0;				// The layer to be selected for fullscreen, requires FullScreen
 	DWORD AnisotropicFiltering = 0;				// Enable Anisotropic Filtering for d3d9

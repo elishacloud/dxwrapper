@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -470,6 +470,8 @@ void Settings::SetDefaultConfigSettings()
 	Config.CacheClipPlane = NOT_EXIST;
 	Config.EnvironmentMapCubeFix = NOT_EXIST;
 	Config.LimitStateBlocks = NOT_EXIST;
+	Config.ForceSingleBeginEndScene = NOT_EXIST;
+	Config.WindowModeGammaShader = NOT_EXIST;
 
 	// Other values that may not exist in ini file
 	Config.DisableMaxWindowedModeNotSet = true;
@@ -688,15 +690,9 @@ void CONFIG::SetConfig()
 	Dinputto8 = (Dinputto8 || IsSet(Dinput8HookSystem32));
 	EnableDinput8Wrapper = (EnableDinput8Wrapper || IsSet(Dinput8HookSystem32));
 
-	if (Dd7to9)
-	{
-		ConvertToDirectDraw7 = true;
-		ConvertToDirect3D7 = true;
-	}
-
 	DDrawCompat32 = (DDrawCompat30 || DDrawCompat31 || DDrawCompat32 || DDrawCompatExperimental);
 	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompat32);
-	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || ConvertToDirectDraw7 || ConvertToDirect3D7 || IsSet(DdrawResolutionHack) || Dd7to9);
+	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || IsSet(DdrawResolutionHack) || Dd7to9);
 	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
 	DdrawAutoFrameSkip = (AutoFrameSkip || DdrawAutoFrameSkip);																	// For legacy purposes
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
@@ -778,4 +774,6 @@ void CONFIG::SetConfig()
 	CacheClipPlane = (CacheClipPlane != 0);
 	EnvironmentMapCubeFix = (EnvironmentMapCubeFix != 0);
 	LimitStateBlocks = (LimitStateBlocks != 0);
+	ForceSingleBeginEndScene = (ForceSingleBeginEndScene != 0);
+	WindowModeGammaShader = (WindowModeGammaShader != 0);
 }

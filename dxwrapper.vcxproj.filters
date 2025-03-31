@@ -895,6 +895,9 @@
     <ClCompile Include="GDI\Comdlg32.cpp">
       <Filter>GDI</Filter>
     </ClCompile>
+    <ClCompile Include="Utils\CPUAffinity.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -1894,6 +1897,12 @@
     </ClInclude>
     <ClInclude Include="ddraw\Shaders\GammaPixelShader.h">
       <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="Libraries\ComPtr.h">
+      <Filter>Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="Libraries\ScopeGuard.h">
+      <Filter>Libraries</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

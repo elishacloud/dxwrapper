@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -16,11 +16,14 @@
 
 #include "ddraw.h"
 
-// Cached wrapper interface
 namespace {
 	m_IDirect3DTexture* WrapperInterfaceBackup = nullptr;
 	m_IDirect3DTexture2* WrapperInterfaceBackup2 = nullptr;
 }
+
+// ******************************
+// IUnknown functions
+// ******************************
 
 HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion)
 {
@@ -43,26 +46,13 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 		return D3D_OK;
 	}
 
-	if (DirectXVersion != 1 && DirectXVersion != 2)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-		return E_NOINTERFACE;
-	}
-
-	DWORD DxVersion = (CheckWrapperType(riid) && (Config.Dd7to9 || Config.ConvertToDirect3D7)) ? GetGUIDVersion(riid) : DirectXVersion;
+	DWORD DxVersion = (CheckWrapperType(riid) && Config.Dd7to9) ? GetGUIDVersion(riid) : DirectXVersion;
 
 	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
 	{
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 
-		if (parent3DSurface.Interface)
-		{
-			parent3DSurface.Interface->AddRef(parent3DSurface.DxVersion);	// 3DTextures share reference count with surface
-		}
-		else
-		{
-			AddRef(DxVersion);
-		}
+		AddRef(DxVersion);
 
 		return D3D_OK;
 	}
@@ -70,35 +60,18 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
-void *m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
-{
-	switch (DirectXVersion)
-	{
-	case 0:
-		if (WrapperInterface2) return WrapperInterface2;
-		if (WrapperInterface) return WrapperInterface;
-		break;
-	case 1:
-		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DTEXTURE)ProxyInterface, this);
-	case 2:
-		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3DTEXTURE2)ProxyInterface, this);
-	}
-	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-	return nullptr;
-}
-
 ULONG m_IDirect3DTextureX::AddRef(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
-	// 3DTextures share reference count with surface
-	if (parent3DSurface.Interface)
+	if (Config.Dd7to9)
 	{
-		return parent3DSurface.Interface->AddRef(parent3DSurface.DxVersion);
-	}
+		// 3DTextures share reference count with surface
+		if (parent3DSurface.Interface)
+		{
+			return parent3DSurface.Interface->AddRef(parent3DSurface.DxVersion);
+		}
 
-	if (!ProxyInterface)
-	{
 		switch (DirectXVersion)
 		{
 		case 1:
@@ -118,16 +91,16 @@ ULONG m_IDirect3DTextureX::Release(DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") v" << DirectXVersion;
 
-	// 3DTextures share reference count with surface
-	if (parent3DSurface.Interface)
+	if (Config.Dd7to9)
 	{
-		return parent3DSurface.Interface->Release(parent3DSurface.DxVersion);
-	}
+		// 3DTextures share reference count with surface
+		if (parent3DSurface.Interface)
+		{
+			return parent3DSurface.Interface->Release(parent3DSurface.DxVersion);
+		}
 
-	ULONG ref;
+		ULONG ref;
 
-	if (!ProxyInterface)
-	{
 		switch (DirectXVersion)
 		{
 		case 1:
@@ -145,25 +118,29 @@ ULONG m_IDirect3DTextureX::Release(DWORD DirectXVersion)
 		{
 			delete this;
 		}
-	}
-	else
-	{
-		ref = ProxyInterface->Release();
 
-		if (ref == 0)
-		{
-			delete this;
-		}
+		return ref;
+	}
+
+	ULONG ref = ProxyInterface->Release();
+
+	if (ref == 0)
+	{
+		delete this;
 	}
 
 	return ref;
 }
 
+// ******************************
+// IDirect3DTexture functions
+// ******************************
+
 HRESULT m_IDirect3DTextureX::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, LPDIRECTDRAWSURFACE lplpDDSurface)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion != 1)
+	if (Config.Dd7to9)
 	{
 		// The method returns DDERR_ALREADYINITIALIZED because the IDirect3DTexture object is initialized when it is created.
 		return DDERR_ALREADYINITIALIZED;
@@ -185,7 +162,7 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpDirect3DDevice2 || !lpHandle)
 		{
@@ -242,24 +219,11 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 	}
 }
 
-HRESULT m_IDirect3DTextureX::SetHandle(DWORD dwHandle)
-{
-	if (!dwHandle)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: NULL pointer found!");
-		return DDERR_GENERIC;
-	}
-
-	tHandle = dwHandle;
-
-	return D3D_OK;
-}
-
 HRESULT m_IDirect3DTextureX::PaletteChanged(DWORD dwStart, DWORD dwCount)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		// This method informs the driver that the palette has changed on a texture surface.
 		// Only affects the legacy ramp device. For all other devices, this method takes no action and returns D3D_OK.
@@ -281,17 +245,11 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
 		if (!lpD3DTexture2)
 		{
 			return DDERR_INVALIDPARAMS;
-		}
-
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDevice does not exist!");
-			return DDERR_GENERIC;
 		}
 
 		if (!parent3DSurface.Interface)
@@ -338,7 +296,7 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 		}
 
 		POINT Point = {};
-		return (*D3DDeviceInterface)->Load(pDestSurface7, &Point, pSrcSurface7, nullptr, 0);
+		return parent3DSurface.Interface->Load(pDestSurface7, &Point, pSrcSurface7, nullptr, 0);
 	}
 
 	if (lpD3DTexture2)
@@ -361,7 +319,7 @@ HRESULT m_IDirect3DTextureX::Unload()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (ProxyDirectXVersion != 1)
+	if (Config.Dd7to9)
 	{
 		// Textures are loaded as managed in Direct3D9, so there is no need to manualy unload the texture
 		return D3D_OK;
@@ -374,9 +332,14 @@ HRESULT m_IDirect3DTextureX::Unload()
 /*** Helper functions ***/
 /************************/
 
-void m_IDirect3DTextureX::InitInterface()
+void m_IDirect3DTextureX::InitInterface(DWORD DirectXVersion)
 {
-	// Blank for now
+	ScopedDDCriticalSection ThreadLockDD;
+
+	if (Config.Dd7to9)
+	{
+		AddRef(DirectXVersion);
+	}
 }
 
 void m_IDirect3DTextureX::ReleaseInterface()
@@ -386,6 +349,8 @@ void m_IDirect3DTextureX::ReleaseInterface()
 		return;
 	}
 
+	ScopedDDCriticalSection ThreadLockDD;
+
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
@@ -394,4 +359,34 @@ void m_IDirect3DTextureX::ReleaseInterface()
 	{
 		(*D3DDeviceInterface)->ClearTextureHandle(tHandle);
 	}
+}
+
+void* m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
+{
+	switch (DirectXVersion)
+	{
+	case 0:
+		if (WrapperInterface2) return WrapperInterface2;
+		if (WrapperInterface) return WrapperInterface;
+		break;
+	case 1:
+		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DTEXTURE)ProxyInterface, this);
+	case 2:
+		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3DTEXTURE2)ProxyInterface, this);
+	}
+	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+	return nullptr;
+}
+
+HRESULT m_IDirect3DTextureX::SetHandle(DWORD dwHandle)
+{
+	if (!dwHandle)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: NULL pointer found!");
+		return DDERR_GENERIC;
+	}
+
+	tHandle = dwHandle;
+
+	return D3D_OK;
 }

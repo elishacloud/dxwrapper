@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -31,13 +31,6 @@
 
 INITIALIZE_OUT_WRAPPED_PROC(CoCreateInstance, unused);
 
-#ifdef DDRAW
-namespace DdrawWrapper
-{
-	REFIID ConvertREFIID(REFIID riid);
-}
-#endif
-
 #ifdef DINPUT8
 namespace dinputto8
 {
@@ -48,23 +41,9 @@ namespace dinputto8
 REFIID ConvertAllREFIID(REFIID riid)
 {
 #ifdef DINPUT8
-#ifdef DDRAW
-	if (Config.Dinputto8)
-	{
-		return DdrawWrapper::ConvertREFIID(dinputto8::ConvertREFIID(riid));
-	}
-#endif
-#endif
-#ifdef DINPUT8
 	if (Config.Dinputto8)
 	{
 		return dinputto8::ConvertREFIID(riid);
-	}
-#endif
-#ifdef DDRAW
-	if (Config.Dd7to9)
-	{
-		return DdrawWrapper::ConvertREFIID(riid);
 	}
 #endif
 	return riid;
@@ -272,11 +251,19 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 			}
 
 			IDirectDraw *pDirectDraw = nullptr;
-			HRESULT hr = ((DirectDrawCreateProc)ddraw::DirectDrawCreate_var)(nullptr, &pDirectDraw, pUnkOuter);
+			HRESULT hr;
+			if (riid == IID_IDirectDraw7)
+			{
+				hr = ((DirectDrawCreateExProc)ddraw::DirectDrawCreateEx_var)(nullptr, (LPVOID*)&pDirectDraw, riid, pUnkOuter);
+			}
+			else
+			{
+				hr = ((DirectDrawCreateProc)ddraw::DirectDrawCreate_var)(nullptr, &pDirectDraw, pUnkOuter);
+			}
 
 			if (SUCCEEDED(hr) && pDirectDraw)
 			{
-				if (riid == IID_IUnknown || riid == IID_IDirectDraw)
+				if (riid == IID_IUnknown || riid == IID_IDirectDraw || riid == IID_IDirectDraw7)
 				{
 					*ppv = pDirectDraw;
 				}

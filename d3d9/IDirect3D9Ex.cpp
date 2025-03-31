@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -16,6 +16,10 @@
 
 #include "d3d9.h"
 #include "GDI\WndProc.h"
+
+// Initial screen resolution
+volatile LONG InitWidth = 0;
+volatile LONG InitHeight = 0;
 
 AddressLookupTableD3d9 ProxyAddressLookupTable9;		// Just used for m_IDirect3D9Ex interfaces only
 
@@ -109,7 +113,7 @@ HRESULT m_IDirect3D9Ex::EnumAdapterModes(THIS_ UINT Adapter, D3DFORMAT Format, U
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.OverrideRefreshRate)
+	if (Config.LimitDisplayModeCount || Config.OverrideRefreshRate)
 	{
 		if (!pMode)
 		{
@@ -170,6 +174,23 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 		return 0;
 	}
 
+	// For games that require limited resolution return
+	const SIZE LimitedResolutionList[] = {
+		{ 512, 384 },
+		{ 640, 400 },
+		{ 640, 480 },
+		{ 720, 480 },
+		{ 800, 600 },
+		{ 1024, 768 },
+		{ 1152, 864 },
+		{ 1280, 720 },
+		{ 1280, 1024 },
+		{ 1366, 768 },
+		{ 1440, 900 },
+		{ 1600, 1200 },
+		{ InitWidth, InitHeight },
+		{ (LONG)Config.CustomDisplayWidth, (LONG)Config.CustomDisplayHeight } };
+
 	for (auto& entry : AdapterModesCache)
 	{
 		if (entry.Adapter == Adapter && entry.IsEx == IsEx &&
@@ -202,13 +223,15 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 	UINT RefreshRate = 0;
 	std::vector<D3DDISPLAYMODEEX_CONVERT> NewDisplayModeList;
 
+	// Cache all adapter modes
 	for (UINT x = 0; x < Count; x++)
 	{
 		D3DDISPLAYMODEEX_CONVERT DisplayMode;
 		if (SUCCEEDED(!IsEx ? ProxyInterface->EnumAdapterModes(Adapter, Format, x, DisplayMode.Ptr()) :
 			ProxyInterfaceEx->EnumAdapterModesEx(Adapter, pFilter, x, DisplayMode.PtrEx())))
 		{
-			if (RefreshRate == 0 || std::abs((INT)Config.OverrideRefreshRate - (INT)DisplayMode.RefreshRate) < std::abs((INT)Config.OverrideRefreshRate - (INT)RefreshRate))
+			if (Config.OverrideRefreshRate &&
+				(RefreshRate == 0 || std::abs((INT)Config.OverrideRefreshRate - (INT)DisplayMode.RefreshRate) < std::abs((INT)Config.OverrideRefreshRate - (INT)RefreshRate)))
 			{
 				RefreshRate = DisplayMode.RefreshRate;
 			}
@@ -216,9 +239,27 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 		}
 	}
 
+	// Filter cached adapter modes
 	for (auto& entry : NewDisplayModeList)
 	{
-		if (entry.RefreshRate == RefreshRate)
+		// Check if resolution has already been sent
+		bool IsResolutionAlreadySent = std::any_of(NewCacheEntry.DisplayModeList.begin(), NewCacheEntry.DisplayModeList.end(),
+			[&](const auto& res) {
+				return (res.Width == entry.Width && res.Height == entry.Height && res.RefreshRate == entry.RefreshRate);
+			});
+
+		// Check if the resolution is on the LimitedResolutionList
+		bool IsResolutionSupported = (!Config.LimitDisplayModeCount ||
+			std::any_of(std::begin(LimitedResolutionList), std::end(LimitedResolutionList),
+				[&](const auto& res) {
+					return ((DWORD)res.cx == entry.Width && (DWORD)res.cy == entry.Height);
+				}));
+
+		// Check if refresh rate is suported
+		bool IsRefreshSupported = (!Config.OverrideRefreshRate || entry.RefreshRate == RefreshRate);
+
+		// Store entry
+		if (!IsResolutionAlreadySent && IsResolutionSupported && IsRefreshSupported)
 		{
 			NewCacheEntry.DisplayModeList.push_back(entry);
 		}
@@ -233,7 +274,7 @@ UINT m_IDirect3D9Ex::GetAdapterModeCount(THIS_ UINT Adapter, D3DFORMAT Format)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.OverrideRefreshRate)
+	if (Config.LimitDisplayModeCount || Config.OverrideRefreshRate)
 	{
 		return GetAdapterModeCache(Adapter, Format, false, nullptr);
 	}
@@ -282,7 +323,7 @@ HRESULT m_IDirect3D9Ex::CheckDeviceMultiSampleType(THIS_ UINT Adapter, D3DDEVTYP
 
 	if (Config.EnableWindowMode)
 	{
-		Windowed = true;
+		Windowed = TRUE;
 	}
 
 	return ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, SurfaceFormat, Windowed, MultiSampleType, pQualityLevels);
@@ -294,7 +335,7 @@ HRESULT m_IDirect3D9Ex::CheckDeviceType(UINT Adapter, D3DDEVTYPE CheckType, D3DF
 
 	if (Config.EnableWindowMode)
 	{
-		Windowed = true;
+		Windowed = TRUE;
 	}
 
 	return ProxyInterface->CheckDeviceType(Adapter, CheckType, DisplayFormat, BackBufferFormat, Windowed);
@@ -322,6 +363,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		WndDataStruct->IsDirect3D9 = true;
 		WndDataStruct->IsCreatingDevice = true;
 		WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
+		DeviceDetails.IsDirectDrawDevice = WndDataStruct->IsDirectDraw;
 	}
 
 	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
@@ -338,6 +380,8 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 	UpdatePresentParameter(&d3dpp, hFocusWindow, DeviceDetails, ForceFullscreen, true);
+
+	bool IsWindowMode = d3dpp.Windowed != FALSE;
 
 	// Check for AntiAliasing
 	if (Config.AntiAliasing != 0)
@@ -358,7 +402,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 				UpdatePresentParameterForMultisample(&d3dpp, Samples, (QualityLevels > 0) ? QualityLevels - 1 : 0);
 
 				// Create Device
-				hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed) ? nullptr : pFullscreenDisplayMode, ppReturnedDeviceInterface);
+				hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed ? nullptr : pFullscreenDisplayMode), ppReturnedDeviceInterface);
 
 				// Check if device was created successfully
 				if (SUCCEEDED(hr))
@@ -384,7 +428,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		UpdatePresentParameter(&d3dpp, hFocusWindow, DeviceDetails, ForceFullscreen, false);
 
 		// Create Device
-		hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed) ? nullptr : pFullscreenDisplayMode, ppReturnedDeviceInterface);
+		hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed ? nullptr : pFullscreenDisplayMode), ppReturnedDeviceInterface);
 	}
 
 	if (SUCCEEDED(hr))
@@ -393,7 +437,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 
 		if (WndDataStruct && WndDataStruct->IsExclusiveMode)
 		{
-			d3dpp.Windowed = false;
+			d3dpp.Windowed = FALSE;
 		}
 
 		if (MultiSampleFlag)
@@ -402,6 +446,8 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 			DeviceDetails.DeviceMultiSampleType = d3dpp.MultiSampleType;
 			DeviceDetails.DeviceMultiSampleQuality = d3dpp.MultiSampleQuality;
 		}
+
+		DeviceDetails.IsWindowMode = IsWindowMode;
 
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 	}
@@ -452,7 +498,7 @@ UINT m_IDirect3D9Ex::GetAdapterModeCountEx(THIS_ UINT Adapter, CONST D3DDISPLAYM
 		return 0;
 	}
 
-	if (Config.OverrideRefreshRate)
+	if (Config.LimitDisplayModeCount || Config.OverrideRefreshRate)
 	{
 		return GetAdapterModeCache(Adapter, D3DFMT_UNKNOWN, true, pFilter);
 	}
@@ -470,7 +516,7 @@ HRESULT m_IDirect3D9Ex::EnumAdapterModesEx(THIS_ UINT Adapter, CONST D3DDISPLAYM
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (Config.OverrideRefreshRate)
+	if (Config.LimitDisplayModeCount || Config.OverrideRefreshRate)
 	{
 		if (!pMode)
 		{
@@ -627,7 +673,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	// Set windowed mode if enabled
 	if (ForceExclusiveFullscreen)
 	{
-		pPresentationParameters->Windowed = false;
+		pPresentationParameters->Windowed = FALSE;
 		if (!pPresentationParameters->FullScreen_RefreshRateInHz)
 		{
 			pPresentationParameters->FullScreen_RefreshRateInHz = Utils::GetRefreshRate(DeviceDetails.DeviceWindow);
@@ -639,7 +685,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	}
 	else if (Config.EnableWindowMode)
 	{
-		pPresentationParameters->Windowed = true;
+		pPresentationParameters->Windowed = TRUE;
 		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
 	}
 

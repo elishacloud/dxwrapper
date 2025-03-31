@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -42,10 +42,15 @@ namespace Utils
 // Add filter for UnhandledExceptionFilter used by the exception handler to catch exceptions
 LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
 {
+	char moduleName[MAX_PATH];
+	GetModuleFromAddress(ExceptionInfo->ExceptionRecord->ExceptionAddress, moduleName, MAX_PATH);
+
 	Logging::Log() << "UnhandledExceptionFilter: exception" << std::showbase << std::hex <<
 		" code=" << ExceptionInfo->ExceptionRecord->ExceptionCode <<
 		" flags=" << ExceptionInfo->ExceptionRecord->ExceptionFlags <<
-		" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress << std::dec << std::noshowbase;
+		" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress << std::dec << std::noshowbase <<
+		" module=" << moduleName;
+
 	DWORD oldprot;
 	PVOID target = ExceptionInfo->ExceptionRecord->ExceptionAddress;
 	switch (ExceptionInfo->ExceptionRecord->ExceptionCode)

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -23,8 +23,7 @@
 #include <ddrawex.h>
 #include <d3d.h>
 #include <d3dhal.h>
-#include "ddraw\IDirectDrawTypes.h"
-#include "ddraw\IDirect3DTypes.h"
+#include "ddraw\ddraw.h"
 #include <dinput.h>
 #include <dsound.h>
 #include <MMSystem.h>

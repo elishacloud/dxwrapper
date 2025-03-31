@@ -7,10 +7,23 @@ const std::chrono::seconds FPS_CALCULATION_WINDOW(1);	// Define a constant for t
 
 struct DEVICEDETAILS
 {
+	DEVICEDETAILS()
+	{
+		InitializeCriticalSection(&d9cs);
+	}
+	~DEVICEDETAILS()
+	{
+		DeleteCriticalSection(&d9cs);
+	}
+
 	// Window handle and size
+	bool IsWindowMode = false;
+	bool IsDirectDrawDevice = false;
 	HWND DeviceWindow = nullptr;
 	LONG BufferWidth = 0, BufferHeight = 0;
 	LONG screenWidth = 0, screenHeight = 0;
+
+	CRITICAL_SECTION d9cs = {};
 
 	std::unordered_map<m_IDirect3DDevice9Ex*, BOOL> DeviceMap;
 
@@ -19,6 +32,10 @@ struct DEVICEDETAILS
 	StateBlockCache StateBlockTable;
 
 	D3DCAPS9 Caps = {};
+
+	// Begin/End Scene
+	bool IsInScene = false;
+	bool BeginSceneCalled = false;
 
 	// Limit frame rate
 	struct {
@@ -31,6 +48,10 @@ struct DEVICEDETAILS
 	std::deque<std::pair<std::chrono::steady_clock::time_point, std::chrono::duration<double>>> frameTimes;	// Store frame times in a deque
 	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();	// Store start time for PFS counter
 
+	// FPS display
+	ID3DXFont* pFont = nullptr;
+	ID3DXSprite* pSprite = nullptr;
+
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;
 	bool SetSSAA = false;
@@ -41,6 +62,10 @@ struct DEVICEDETAILS
 	DWORD MaxAnisotropy = 0;
 	bool isAnisotropySet = false;
 	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
+
+	// State block
+	bool DontReleaseResources = false;
+	IDirect3DStateBlock9* pStateBlock = nullptr;
 
 	// For environment map cube
 	bool isTextureMapCube[MAX_TEXTURE_STAGES] = {};
@@ -83,12 +108,17 @@ private:
 	UINT DDKey;
 
 	void ApplyDrawFixes();
+	void ApplyPresentFixes();
+
+	HRESULT CallBeginScene();
+	HRESULT CallEndScene();
 
 	// Limit frame rate
 	void LimitFrameRate() const;
 
 	// Frame counter
 	void CalculateFPS() const;
+	void DrawFPS(float fps, const RECT& presentRect, DWORD position) const;
 
 	// Anisotropic Filtering
 	void DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag);
@@ -289,8 +319,8 @@ public:
 	STDMETHOD(GetDisplayModeEx)(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
 
 	// Helper functions
-	inline LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
-	inline AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
+	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
+	AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
 	REFIID GetIID() { return WrapperID; }
 };
 #undef SHARED

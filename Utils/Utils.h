@@ -22,8 +22,6 @@ namespace Utils
 
 	void Shell(const char*);
 	void DisableHighDPIScaling();
-	DWORD GetCoresUsedByProcess();
-	void SetProcessAffinity();
 	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);
 	FARPROC WINAPI GetProcAddressHandler(HMODULE hModule, LPSTR lpProcName);
 	DWORD WINAPI GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename, DWORD nSize);
@@ -35,7 +33,7 @@ namespace Utils
 	SIZE_T WINAPI kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem);
 	void HookExceptionHandler();
 	void UnHookExceptionHandler();
-	LONG WINAPI Vectored_Exception_Handler(EXCEPTION_POINTERS* exception);
+	LONG WINAPI Vectored_Exception_Handler(EXCEPTION_POINTERS* ExceptionInfo);
 	void AddHandleToVector(HMODULE dll, const char *name);
 	HMODULE LoadLibrary(const char *dllname, bool EnableLogging = false);
 	void LoadCustomDll();
@@ -64,12 +62,18 @@ namespace Utils
 	DWORD GetThreadIDByHandle(HANDLE hThread);
 	void DisableGameUX();
 	void WaitForWindowActions(HWND hWnd, DWORD Loops);
+	void GetModuleFromAddress(void* address, char* module, const size_t size);
 	bool SetWndProcFilter(HWND hWnd);
 	bool RestoreWndProcFilter(HWND hWnd);
-	void GetScreenSize(HWND hwnd, LONG &screenWidth, LONG &screenHeight);
+	void GetScreenSize(HWND hwnd, volatile LONG &screenWidth, volatile LONG &screenHeight);
 	void GetScreenSize(HWND hwnd, int &screenWidth, int &screenHeight);
 	void GetDesktopRect(HWND hWnd, RECT& screenRect);
 	HRESULT GetVideoRam(UINT AdapterNo, DWORD& TotalMemory);	// Adapters start numbering from '1', based on "Win32_VideoController" WMI class and "DeviceID" property.
+
+	// CPU Affinity
+	void SetProcessAffinity();
+	void SetThreadAffinity(DWORD threadId);
+	void ApplyThreadAffinity();
 
 	inline void BusyWaitYield(DWORD RemainingMS)
 	{

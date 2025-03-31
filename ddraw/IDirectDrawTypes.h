@@ -4,8 +4,12 @@
 
 class m_IDirectDrawX;
 
-constexpr DWORD MaxVidMemory     = 512 * 1024 * 1024;	// 512 MBs
-constexpr DWORD MinUsedVidMemory = 8 * 1024;			// 8 KBs
+static constexpr DWORD MaxVidMemory     = 512 * 1024 * 1024;	// 512 MBs
+static constexpr DWORD MinUsedVidMemory = 8 * 1024;			// 8 KBs
+
+static constexpr D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
+
+static constexpr DWORD MaxPaletteSize = 256;
 
 #define BLT_MIRRORLEFTRIGHT		0x00000002l
 #define BLT_MIRRORUPDOWN		0x00000004l
@@ -62,7 +66,10 @@ static constexpr D3DFORMAT FourCCTypes[] =
 	(D3DFORMAT)MAKEFOURCC('A', 'T', 'I', '1'),
 	(D3DFORMAT)MAKEFOURCC('A', 'T', 'I', '2'),
 	(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '1'),
-	(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '6')
+	(D3DFORMAT)MAKEFOURCC('3', 'x', '1', '6'),
+	D3DFMT_YUY2,
+	D3DFMT_UYVY,
+	D3DFMT_AYUV,
 };
 
 typedef struct {
@@ -170,12 +177,29 @@ struct HIGHRESCOUNTER
 
 struct PRESENTTHREAD
 {
+	const bool& ExitFlag = Config.Exiting;
 	bool IsInitialized = false;
-	CRITICAL_SECTION ddpt = {};
-	HANDLE workerEvent = {};
 	HANDLE workerThread = {};
+	HANDLE exitEvent = {};
 	LARGE_INTEGER LastPresentTime = {};
-	bool EnableThreadFlag = false;
+};
+
+// Emulated surface
+struct EMUSURFACE
+{
+	HDC DC = nullptr;
+	HDC GameDC = nullptr;
+	bool UsingGameDC = false;
+	DWORD Size = 0;
+	D3DFORMAT Format = D3DFMT_UNKNOWN;
+	void* pBits = nullptr;
+	DWORD Pitch = 0;
+	HBITMAP bitmap = nullptr;
+	BYTE bmiMemory[(sizeof(BITMAPINFOHEADER) + sizeof(RGBQUAD) * 256)] = {};
+	PBITMAPINFO bmi = (PBITMAPINFO)bmiMemory;
+	HGDIOBJ OldDCObject = nullptr;
+	HGDIOBJ OldGameDCObject = nullptr;
+	DWORD LastPaletteUSN = 0;
 };
 
 // Used for 24-bit surfaces
@@ -206,10 +230,21 @@ static constexpr DWORD DDS_HEADER_SIZE			= sizeof(DWORD) + sizeof(DDS_HEADER);
 static constexpr DWORD DDS_HEADER_FLAGS_TEXTURE	= 0x00001007; // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT 
 static constexpr DWORD DDS_HEADER_FLAGS_PITCH	= 0x00000008;
 
-static constexpr DWORD MaxPaletteSize = 256;
+extern float ScaleDDWidthRatio;
+extern float ScaleDDHeightRatio;
+extern DWORD ScaleDDLastWidth;
+extern DWORD ScaleDDLastHeight;
+extern DWORD ScaleDDCurrentWidth;
+extern DWORD ScaleDDCurrentHeight;
+extern DWORD ScaleDDPadX;
+extern DWORD ScaleDDPadY;
 
 void AddDisplayResolution(DWORD Width, DWORD Height);
 bool IsDisplayResolution(DWORD Width, DWORD Height);
+template <typename T>
+void SimpleColorKeyCopy(T ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
+template <typename T>
+void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
 DWORD ComputeRND(DWORD Seed, DWORD Num);
 bool DoRectsMatch(const RECT& lhs, const RECT& rhs);
 bool GetOverlappingRect(const RECT& rect1, const RECT& rect2, RECT& outOverlapRect);

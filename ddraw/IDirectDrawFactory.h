@@ -4,8 +4,8 @@ class m_IDirectDrawFactory : public IDirectDrawFactory
 {
 private:
 	IDirectDrawFactory *ProxyInterface = nullptr;
-	REFIID WrapperID = IID_IDirectDrawFactory;
 	ULONG RefCount = 1;
+	REFIID WrapperID = IID_IDirectDrawFactory;
 
 public:
 	m_IDirectDrawFactory(IDirectDrawFactory *aOriginal) : ProxyInterface(aOriginal)

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -18,7 +18,7 @@
 
 #include "DebugOverlay.h"
 #include <sstream>
-#include "d3d9\d3d9External.h"
+#include "d3d9.h"
 #include "GDI\WndProc.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS

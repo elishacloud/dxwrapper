@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -19,7 +19,7 @@
 #include "GDI.h"
 #include "GDI\WndProc.h"
 #include "Utils\Utils.h"
-#include "ddraw\ddrawExternal.h"
+#include "ddraw\ddraw.h"
 #include "d3d9\d3d9External.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
@@ -125,7 +125,7 @@ int WINAPI user_GetSystemMetrics(int nIndex)
 	{
 	case SM_CXSCREEN:
 	{
-		int Width = GetDDrawWidth();
+		int Width = m_IDirectDrawX::GetDDrawWidth();
 		if (Width)
 		{
 			return Width;
@@ -134,7 +134,7 @@ int WINAPI user_GetSystemMetrics(int nIndex)
 	}
 	case SM_CYSCREEN:
 	{
-		int Height = GetDDrawHeight();
+		int Height = m_IDirectDrawX::GetDDrawHeight();
 		if (Height)
 		{
 			return Height;

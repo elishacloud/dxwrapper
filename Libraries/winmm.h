@@ -11,3 +11,4 @@ typedef _Return_type_success_(return == 0) UINT MMRESULT;   /* error return code
 
 MMRESULT timeBeginPeriod(UINT);
 MMRESULT timeEndPeriod(UINT);
+DWORD timeGetTime();

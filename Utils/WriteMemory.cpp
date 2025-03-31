@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2024 Elisha Riedlinger
+* Copyright (C) 2025 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -21,7 +21,7 @@
 namespace WriteMemory
 {
 	// Declare variables
-	bool m_StopThreadFlag = false;
+	const bool& m_StopThreadFlag = Config.Exiting;
 	bool m_ThreadRunningFlag = false;
 	HANDLE m_hThread = nullptr;
 	DWORD m_dwThreadID = 0;
@@ -218,9 +218,6 @@ bool WriteMemory::IsThreadRunning()
 // Stop thread
 void WriteMemory::StopThread()
 {
-	// Set flag to stop thread
-	m_StopThreadFlag = true;
-
 	// Wait for thread to exit
 	if (IsThreadRunning())
 	{
