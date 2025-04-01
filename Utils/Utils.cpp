@@ -1304,6 +1304,15 @@ void Utils::WaitForWindowActions(HWND hWnd, DWORD Loops)
 	}
 }
 
+// Reduce precision (single-precision, round-to-nearest)
+void Utils::ApplyFPUSetup()
+{
+	unsigned int currentControl = 0;
+	unsigned int newControl = _PC_24 | _RC_NEAR | _EM_ZERODIVIDE | _EM_INVALID | _EM_OVERFLOW;
+
+	_controlfp_s(&currentControl, newControl, _MCW_PC | _MCW_RC | _MCW_EM);
+}
+
 void Utils::GetModuleFromAddress(void* address, char* module, const size_t size)
 {
 	if (!module || size == 0)

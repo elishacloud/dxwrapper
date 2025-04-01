@@ -1645,16 +1645,19 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			if (!MarkingUnexclusive)
 			{
 				// Set device flags
-				Device.AllowModeX = !hWnd ? Device.AllowModeX :
-					(((dwFlags & DDSCL_ALLOWMODEX) != 0) || (hWnd == LasthWnd ? Device.AllowModeX : 0));
-				Device.MultiThreaded = !hWnd ? Device.MultiThreaded :
-					(((dwFlags & DDSCL_MULTITHREADED) != 0) || (hWnd == LasthWnd ? Device.MultiThreaded : 0));
+				Device.AllowModeX = Device.AllowModeX || (dwFlags & DDSCL_ALLOWMODEX);
+				Device.MultiThreaded = Device.MultiThreaded || (dwFlags & DDSCL_MULTITHREADED);
 				// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
-				Device.FPUPreserve = !hWnd ? Device.FPUPreserve :
-					((((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion <= 6) && (dwFlags & DDSCL_FPUSETUP) == 0) || (hWnd == LasthWnd ? Device.FPUPreserve : 0));
+				Device.FPUPreserve = Device.FPUPreserve || (dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion < 7;
+				/// The flag (DDSCL_FPUSETUP) is assumed by default in DirectX 6 and earlier.
+				if (!Device.FPUSetup && !d3d9Device && ((dwFlags & DDSCL_FPUSETUP) || DirectXVersion < 7))
+				{
+					Logging::Log() << __FUNCTION__ << " Setting single precision FPU and disabling FPU exceptions!";
+					Utils::ApplyFPUSetup();
+					Device.FPUSetup = true;
+				}
 				// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
-				Device.NoWindowChanges = !hWnd ? Device.NoWindowChanges :
-					(((dwFlags & DDSCL_NOWINDOWCHANGES) != 0) || (hWnd == LasthWnd ? Device.NoWindowChanges : 0));
+				Device.NoWindowChanges = (DisplayMode.hWnd == LasthWnd && Device.NoWindowChanges) || (dwFlags & DDSCL_NOWINDOWCHANGES);
 
 				// Reset if mode was changed
 				if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) &&
@@ -3135,7 +3138,12 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 	// Hook WndProc before creating device
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
-	if (WndDataStruct) WndDataStruct->IsDirectDraw = true;
+	if (WndDataStruct)
+	{
+		WndDataStruct->IsDirectDraw = true;
+		Device.NoWindowChanges = Device.NoWindowChanges || WndDataStruct->NoWindowChanges;
+		WndDataStruct->NoWindowChanges = Device.NoWindowChanges;
+	}
 
 	// Check if creating from another thread
 	FocusWindowThreadID = GetWindowThreadProcessId(hWnd, nullptr);

@@ -159,6 +159,7 @@ struct DEVICESETTINGS
 	bool AllowModeX;
 	bool MultiThreaded;
 	bool FPUPreserve;
+	bool FPUSetup;
 	bool NoWindowChanges;
 	DWORD Width;
 	DWORD Height;

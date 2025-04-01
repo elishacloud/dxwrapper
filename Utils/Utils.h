@@ -62,6 +62,7 @@ namespace Utils
 	DWORD GetThreadIDByHandle(HANDLE hThread);
 	void DisableGameUX();
 	void WaitForWindowActions(HWND hWnd, DWORD Loops);
+	void ApplyFPUSetup();
 	void GetModuleFromAddress(void* address, char* module, const size_t size);
 	bool SetWndProcFilter(HWND hWnd);
 	bool RestoreWndProcFilter(HWND hWnd);
