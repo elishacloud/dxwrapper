@@ -493,7 +493,7 @@ public:
 		return false;
 	}
 	m_IDirectDrawSurfaceX* GetAttachedDepthStencil();
-	LPDIRECT3DSURFACE9 GetD3d9Surface(bool ShouldCheckInterface = true);
+	LPDIRECT3DSURFACE9 GetD3d9Surface();
 	LPDIRECT3DTEXTURE9 GetD3d9DrawTexture();
 	LPDIRECT3DTEXTURE9 GetD3d9Texture();
 	HRESULT GenerateMipMapLevels();

@@ -42,6 +42,7 @@ using namespace DdrawWrapper;
 namespace {
 	bool IsInitialized = false;
 	CRITICAL_SECTION ddcs;
+	CRITICAL_SECTION pecs;
 
 	struct ENUMMONITORS
 	{
@@ -675,6 +676,7 @@ void InitDDraw()
 	if (!IsInitialized)
 	{
 		InitializeCriticalSection(&ddcs);
+		InitializeCriticalSection(&pecs);
 		IsInitialized = true;
 	}
 
@@ -726,6 +728,7 @@ void ExitDDraw()
 	{
 		IsInitialized = false;
 		DeleteCriticalSection(&ddcs);
+		DeleteCriticalSection(&pecs);
 	}
 }
 
@@ -736,6 +739,22 @@ bool TryDDThreadLock()
 		return TryEnterCriticalSection(&ddcs) != FALSE;
 	}
 	return true;
+}
+
+void AcquirePEThreadLock()
+{
+	if (IsInitialized)
+	{
+		EnterCriticalSection(&pecs);
+	}
+}
+
+void ReleasePEThreadLock()
+{
+	if (IsInitialized)
+	{
+		LeaveCriticalSection(&pecs);
+	}
 }
 
 // Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API

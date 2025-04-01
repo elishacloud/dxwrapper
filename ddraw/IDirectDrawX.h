@@ -249,9 +249,9 @@ public:
 	void ClearRenderTarget();
 	void ReSetRenderTarget();
 	void SetCurrentRenderTarget();
-	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface, bool ShouldCheckInterface = true);
+	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface);
 	m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
-	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface, bool ShouldCheckInterface = true);
+	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface);
 
 	// Clipper functions
 	static void AddBaseClipper(m_IDirectDrawClipper* lpClipper);

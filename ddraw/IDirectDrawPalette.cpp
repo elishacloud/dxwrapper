@@ -240,30 +240,35 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 			return DD_OK;	// No new data found
 		}
 
-		ScopedDDCriticalSection ThreadLockDD;
-
-		// Translate new raw pallete entries to RGB
-		for (UINT i = Start; i < End; i++, x++)
+		// Update palette data
 		{
-			BYTE alpha = (paletteCaps & DDPCAPS_ALPHA) ? lpEntries[x].peFlags : 0xFF;
-			// Palette entry
-			rawPalette[i].peFlags = alpha;
-			rawPalette[i].peRed = lpEntries[x].peRed;
-			rawPalette[i].peGreen = lpEntries[x].peGreen;
-			rawPalette[i].peBlue = lpEntries[x].peBlue;
-			// RGB palette
-			rgbPalette[i].rgbBlue = lpEntries[x].peBlue;
-			rgbPalette[i].rgbGreen = lpEntries[x].peGreen;
-			rgbPalette[i].rgbRed = lpEntries[x].peRed;
-			rgbPalette[i].rgbReserved = alpha;
-		}
+			ScopedPECriticalSection ThreadLockPE;
 
-		// Note that there is new palette data
-		PaletteUSN++;
+			// Translate new raw pallete entries to RGB
+			for (UINT i = Start; i < End; i++, x++)
+			{
+				BYTE alpha = (paletteCaps & DDPCAPS_ALPHA) ? lpEntries[x].peFlags : 0xFF;
+				// Palette entry
+				rawPalette[i].peFlags = alpha;
+				rawPalette[i].peRed = lpEntries[x].peRed;
+				rawPalette[i].peGreen = lpEntries[x].peGreen;
+				rawPalette[i].peBlue = lpEntries[x].peBlue;
+				// RGB palette
+				rgbPalette[i].rgbBlue = lpEntries[x].peBlue;
+				rgbPalette[i].rgbGreen = lpEntries[x].peGreen;
+				rgbPalette[i].rgbRed = lpEntries[x].peRed;
+				rgbPalette[i].rgbReserved = alpha;
+			}
+
+			// Note that there is new palette data
+			PaletteUSN++;
+		}
 
 		// Present new palette
 		if (ddrawParent)
 		{
+			ScopedDDCriticalSection ThreadLockDD;
+
 			if (paletteCaps & DDPCAPS_PRIMARYSURFACE)
 			{
 				if (paletteCaps & DDPCAPS_VSYNC)

@@ -2124,8 +2124,6 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 
 	if (Config.Dd7to9)
 	{
-		ScopedDDCriticalSection ThreadLockDD;
-
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
@@ -3126,7 +3124,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 
 HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 {
-	// To avoid threadlock, cannot have any critical sections in this function or any sub-functions
+	// To avoid threadlock check all critical sections in this function and sub-functions
 
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -3648,12 +3646,9 @@ void m_IDirectDrawX::ClearRenderTarget()
 
 void m_IDirectDrawX::ReSetRenderTarget()
 {
-	// To avoid threadlock, cannot have any critical sections in this function or any sub-functions
-
 	if (RenderTargetSurface && !UsingCustomRenderTarget)
 	{
-		// Don't check interface to prevent threads from getting thread locked (CreateD9Device can be called from a different thread)
-		SetRenderTargetSurface(RenderTargetSurface, false);
+		SetRenderTargetSurface(RenderTargetSurface);
 	}
 }
 
@@ -3665,7 +3660,7 @@ void m_IDirectDrawX::SetCurrentRenderTarget()
 	}
 }
 
-HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface, bool ShouldCheckInterface)
+HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 {
 	HRESULT hr = D3D_OK;
 
@@ -3699,7 +3694,7 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface,
 		// Set new render target
 		if (d3d9Device)
 		{
-			LPDIRECT3DSURFACE9 pSurfaceD9 = RenderTargetSurface->GetD3d9Surface(ShouldCheckInterface);
+			LPDIRECT3DSURFACE9 pSurfaceD9 = RenderTargetSurface->GetD3d9Surface();
 			if (pSurfaceD9)
 			{
 				UsingCustomRenderTarget = true;
@@ -3715,7 +3710,7 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface,
 		}
 
 		m_IDirectDrawSurfaceX* pSurfaceZBuffer = RenderTargetSurface->GetAttachedDepthStencil();
-		hr = SetDepthStencilSurface(pSurfaceZBuffer, ShouldCheckInterface);
+		hr = SetDepthStencilSurface(pSurfaceZBuffer);
 
 		if (FAILED(hr))
 		{
@@ -3727,7 +3722,7 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface,
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface, bool ShouldCheckInterface)
+HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 {
 	HRESULT hr = D3D_OK;
 
@@ -3749,7 +3744,7 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface,
 
 		if (d3d9Device)
 		{
-			LPDIRECT3DSURFACE9 pSurfaceD9 = DepthStencilSurface->GetD3d9Surface(ShouldCheckInterface);
+			LPDIRECT3DSURFACE9 pSurfaceD9 = DepthStencilSurface->GetD3d9Surface();
 			if (pSurfaceD9)
 			{
 				d3d9Device->SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE);
@@ -3812,8 +3807,6 @@ void m_IDirectDrawX::ReleaseD3D9IndexBuffer()
 
 void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 {
-	// To avoid threadlock, cannot have any critical sections in this function or any sub-functions
-
 	// Remove render target and depth stencil surfaces
 	if (d3d9Device && ResetInterface && (RenderTargetSurface || DepthStencilSurface))
 	{
@@ -3947,8 +3940,6 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 
 void m_IDirectDrawX::ReleaseD9Device()
 {
-	// To avoid threadlock, cannot have any critical sections in this function or any sub-functions
-
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (d3d9Device)
@@ -4137,8 +4128,6 @@ void m_IDirectDrawX::AddBaseClipper(m_IDirectDrawClipper* lpClipper)
 		return;
 	}
 
-	ScopedDDCriticalSection ThreadLockDD;
-
 	BaseClipperVector.push_back(lpClipper);
 }
 
@@ -4149,8 +4138,6 @@ void m_IDirectDrawX::ClearBaseClipper(m_IDirectDrawClipper* lpClipper)
 		return;
 	}
 
-	ScopedDDCriticalSection ThreadLockDD;
-
 	BaseClipperVector.erase(std::remove(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper), BaseClipperVector.end());
 }
 
@@ -4160,8 +4147,6 @@ bool m_IDirectDrawX::DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper)
 	{
 		return false;
 	}
-
-	ScopedDDCriticalSection ThreadLockDD;
 
 	const bool found = (std::find(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper) != std::end(BaseClipperVector));
 
@@ -4859,6 +4844,8 @@ bool m_IDirectDrawX::IsUsingThreadPresent()
 
 DWORD WINAPI m_IDirectDrawX::PresentThreadFunction(LPVOID)
 {
+	// To avoid threadlock check all critical sections in this function and sub-functions
+
 	LOG_LIMIT(100, __FUNCTION__ << " Creating thread!");
 
 	ScopedFlagSet AutoSet(PresentThread.IsInitialized);
@@ -4955,6 +4942,12 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 			Logging::LogDebug() << __FUNCTION__ << " Skipping frame " << deltaPresentMS << "ms screen frequancy " << Counter.PerFrameMS;
 			return D3D_OK;
 		}
+	}
+
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true)))
+	{
+		return DDERR_GENERIC;
 	}
 
 	// Use WaitForVerticalBlank for wait timer

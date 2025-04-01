@@ -104,6 +104,8 @@ HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpCo
 HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext);
 
 bool TryDDThreadLock();
+void AcquirePEThreadLock();
+void ReleasePEThreadLock();
 
 // Function and variable forward declarations
 namespace DdrawWrapper
@@ -116,6 +118,11 @@ namespace DdrawWrapper
 	struct ScopedDDCriticalSection {
 		ScopedDDCriticalSection() { dd_AcquireDDThreadLock(); }
 		~ScopedDDCriticalSection() { dd_ReleaseDDThreadLock(); }
+	};
+
+	struct ScopedPECriticalSection {
+		ScopedPECriticalSection() { AcquirePEThreadLock(); }
+		~ScopedPECriticalSection() { ReleasePEThreadLock(); }
 	};
 }
 
