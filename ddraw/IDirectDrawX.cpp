@@ -792,11 +792,8 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 			return DDERR_GENERIC;
 		}
 
-		// Support Mode 0x13 (320 x 200 256-color graphics display mode)
-		bool UseMode13 = (dwFlags & DDEDM_STANDARDVGAMODES);
-
-		// Support ModeX (320 x 240 256-color graphics display mode)
-		bool UseModeX = Device.AllowModeX;
+		// Support ModeX (320 x 240 256-color) and Mode 0x13 (320 x 200 256-color graphics display mode)
+		bool UseModeX = (dwFlags & DDEDM_STANDARDVGAMODES) || (DirectXVersion < 3) || Device.AllowModeX;
 
 		// Save width and height
 		DWORD EnumWidth = (lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_WIDTH)) ? lpDDSurfaceDesc2->dwWidth : 0;
@@ -866,9 +863,8 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 			// Check mode
 			if (!IsResolutionAlreadySent && IsResolutionSupported &&
-				(!EnumWidth || d3ddispmode.Width == EnumWidth) &&
-				(!EnumHeight || d3ddispmode.Height == EnumHeight) &&
-				(UseMode13 || (d3ddispmode.Width != 320 && d3ddispmode.Height != 200)) &&
+				(!EnumWidth || d3ddispmode.Width == EnumWidth) && (!EnumHeight || d3ddispmode.Height == EnumHeight) &&
+				(UseModeX || (d3ddispmode.Width != 320 && d3ddispmode.Height != 200)) &&
 				(UseModeX || (d3ddispmode.Width != 320 && d3ddispmode.Height != 240)))
 			{
 				// Store resolution
