@@ -3537,6 +3537,8 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		// Check flags
 		DWORD SurfaceFlags = lpDDSurfaceDesc2->dwFlags;
 
+		bool RecreateDevice = false;
+
 		// Handle lpSurface flag
 		if ((SurfaceFlags & DDSD_LPSURFACE) && lpDDSurfaceDesc2->lpSurface)
 		{
@@ -3548,7 +3550,7 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			surface.UsingSurfaceMemory = true;
 			if (surface.Surface || surface.Texture)
 			{
-				CreateD9Surface();
+				RecreateDevice = true;
 			}
 		}
 
@@ -3579,8 +3581,14 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			}
 			if (Flag && (surface.Surface || surface.Texture))
 			{
-				CreateD9Surface();
+				RecreateDevice = true;
 			}
+		}
+
+		// Recreate device
+		if (RecreateDevice)
+		{
+			CreateD9Surface();
 		}
 
 		// Check for unhandled flags
