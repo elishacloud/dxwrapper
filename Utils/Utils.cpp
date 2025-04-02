@@ -1308,9 +1308,9 @@ void Utils::WaitForWindowActions(HWND hWnd, DWORD Loops)
 void Utils::ApplyFPUSetup()
 {
 	unsigned int currentControl = 0;
-	unsigned int newControl = _PC_24 | _EM_INEXACT | _EM_UNDERFLOW | _EM_OVERFLOW | _EM_ZERODIVIDE | _EM_INVALID;
+	unsigned int newControl = _EM_INEXACT | _EM_UNDERFLOW | _EM_OVERFLOW | _EM_ZERODIVIDE | _EM_INVALID | _EM_DENORMAL;
 
-	_controlfp_s(&currentControl, newControl, _MCW_PC | _MCW_EM);
+	_controlfp_s(&currentControl, newControl, _MCW_EM);
 }
 
 void Utils::GetModuleFromAddress(void* address, char* module, const size_t size)
