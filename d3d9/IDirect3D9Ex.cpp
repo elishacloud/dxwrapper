@@ -23,8 +23,6 @@ volatile LONG InitHeight = 0;
 
 AddressLookupTableD3d9 ProxyAddressLookupTable9;		// Just used for m_IDirect3D9Ex interfaces only
 
-void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed);
-
 void m_IDirect3D9Ex::InitInterface()
 {
 	ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
@@ -742,7 +740,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			GetClientRect(DeviceDetails.DeviceWindow, &Rect);
 			if (AnyChange || Rect.right - Rect.left != DeviceDetails.BufferWidth || Rect.bottom - Rect.top != DeviceDetails.BufferHeight)
 			{
-				AdjustWindow(DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, pPresentationParameters->Windowed);
+				AdjustWindow(DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, pPresentationParameters->Windowed, Config.EnableWindowMode, Config.FullscreenWindowMode);
 			}
 
 			// Set fullscreen resolution
@@ -788,7 +786,7 @@ void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationPa
 }
 
 // Adjusting the window position for WindowMode
-void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed)
+void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed, bool EnableWindowMode, bool FullscreenWindowMode)
 {
 	if (!IsWindow(MainhWnd) || !displayWidth || !displayHeight)
 	{
@@ -805,7 +803,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 	}
 
 	// Set window active and focus
-	if (Config.EnableWindowMode || isWindowed)
+	if (EnableWindowMode || isWindowed)
 	{
 		// Move window to top if not already topmost
 		LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
@@ -855,16 +853,16 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 
 	// Set window style
-	if (Config.EnableWindowMode)
+	if (EnableWindowMode)
 	{
 		// Get new style
 		RECT Rect = { 0, 0, displayWidth, displayHeight };
 		AdjustWindowRectEx(&Rect, lStyle | WS_OVERLAPPEDWINDOW, GetMenu(MainhWnd) != NULL, lExStyle);
-		if (Config.WindowModeBorder && !Config.FullscreenWindowMode && screenWidth > Rect.right - Rect.left && screenHeight > Rect.bottom - Rect.top)
+		if (Config.WindowModeBorder && !FullscreenWindowMode && screenWidth > Rect.right - Rect.left && screenHeight > Rect.bottom - Rect.top)
 		{
 			lStyle |= WS_OVERLAPPEDWINDOW;
 		}
-		else if (Config.EnableWindowMode)
+		else if (EnableWindowMode)
 		{
 			lStyle &= ~(WS_OVERLAPPEDWINDOW | WS_BORDER);
 		}
@@ -880,9 +878,9 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 	Rect = { 0, 0, Rect.right - Rect.left, Rect.bottom - Rect.top };
 
 	// Get upper left window position
-	bool SetWindowPositionFlag = Config.FullscreenWindowMode;
+	bool SetWindowPositionFlag = FullscreenWindowMode;
 	LONG xLoc = 0, yLoc = 0;
-	if (Config.SetInitialWindowPosition && !Config.FullscreenWindowMode &&
+	if (Config.SetInitialWindowPosition && !FullscreenWindowMode &&
 		(Config.InitialWindowPositionLeft == 0 || Rect.right + (LONG)Config.InitialWindowPositionLeft <= screenWidth) &&
 		(Config.InitialWindowPositionTop == 0 || Rect.bottom + (LONG)Config.InitialWindowPositionTop <= screenHeight))
 	{
@@ -890,7 +888,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 		xLoc = Config.InitialWindowPositionLeft;
 		yLoc = Config.InitialWindowPositionTop;
 	}
-	else if (Config.EnableWindowMode && !Config.FullscreenWindowMode && screenWidth >= Rect.right && screenHeight >= Rect.bottom)
+	else if (EnableWindowMode && !FullscreenWindowMode && screenWidth >= Rect.right && screenHeight >= Rect.bottom)
 	{
 		SetWindowPositionFlag = true;
 		xLoc = (screenWidth - Rect.right) / 2;

@@ -3371,6 +3371,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			}
 			// Attempt to create a device
 			hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+			// If using unsupported refresh rate
 			if (hr == D3DERR_INVALIDCALL && presParams.FullScreen_RefreshRateInHz)
 			{
 				presParams.FullScreen_RefreshRateInHz = 0;
@@ -3382,13 +3383,31 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 					Exclusive.RefreshRate = 0;
 				}
 			}
+			// If exclusive fullscreen mode doesn't work
+			if (hr == D3DERR_DEVICELOST && !presParams.Windowed)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: Creating exclusive Direct3D9 device in fullscreen window mode! " <<
+					presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz);
+				presParams.Windowed = TRUE;
+				presParams.BackBufferFormat = D3DFMT_UNKNOWN;
+				presParams.FullScreen_RefreshRateInHz = 0;
+				hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+				if (SUCCEEDED(hr))
+				{
+					Utils::SetDisplaySettings(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
+
+					AdjustWindow(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight, true, true, true);
+				}
+			}
 		}
 
 		if (FAILED(hr))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create Direct3D9 device! " << (DDERR)hr << " " <<
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create Direct3D9 device! " << (DDERR)hr << " " <<
 				presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
-				" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags));
+				" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags) <<
+				" Iconized: " << IsIconic(hWnd) << " IsActive: " << (hWnd == GetActiveWindow()) << " IsFocus: " << (hWnd == GetFocus()) <<
+				" IsForeground: " << (hWnd == GetForegroundWindow()) << " WindowID: " << GetWindowThreadProcessId(hWnd, nullptr));
 			break;
 		}
 
