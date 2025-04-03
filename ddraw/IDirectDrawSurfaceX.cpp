@@ -5263,7 +5263,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	// Backup d3d9 surface texture
 	if (BackupData)
 	{
-		if (surface.HasData && (surface.Surface || surface.Texture) && !(surface.Usage & D3DUSAGE_RENDERTARGET) && !IsDepthStencil() && (!ResetSurface || IsD9UsingVideoMemory()))
+		if (surface.HasData && (surface.Surface || surface.Texture) &&
+			!(surface.Usage & D3DUSAGE_RENDERTARGET) && !IsRenderTarget() &&
+			!(surface.Usage & D3DUSAGE_DEPTHSTENCIL) && !IsDepthStencil() &&
+			(!ResetSurface || IsD9UsingVideoMemory()))
 		{
 			IsSurfaceLost = true;
 
