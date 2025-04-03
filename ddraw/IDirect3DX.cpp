@@ -497,26 +497,33 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		}
 
 		// Check for existing device
-		if (D3DDeviceInterface)
+		if (!D3DDeviceList.empty())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Direct3DDevice is already setup. Multiple Direct3DDevice's are not implemented!");
-			return DDERR_GENERIC;
 		}
 
-		m_IDirect3DDeviceX* p_IDirect3DDeviceX = new m_IDirect3DDeviceX(ddrawParent, this, lpDDS, rclsid, DirectXVersion);
-
-		*lplpD3DDevice = (LPDIRECT3DDEVICE7)p_IDirect3DDeviceX->GetWrapperInterfaceX(DirectXVersion);
+		m_IDirect3DDeviceX* Interface = new m_IDirect3DDeviceX(ddrawParent, this, lpDDS, rclsid, DirectXVersion);
 
 		if (ddrawParent && ddrawParent->IsCreatedEx())
 		{
-			Direct3DDeviceEx.RefCount = 7;
-			Direct3DDeviceEx.DxVersion = DirectXVersion;
-
-			for (UINT x = 0; x < Direct3DDeviceEx.RefCount; x++)
+			for (auto& entry : D3DDeviceList)
 			{
-				AddRef(DirectXVersion);
+				if (entry.Interface == Interface)
+				{
+					entry.RefCount = 7;
+					entry.DxVersion = DirectXVersion;
+
+					for (UINT x = 0; x < entry.RefCount; x++)
+					{
+						AddRef(DirectXVersion);
+					}
+
+					break;
+				}
 			}
 		}
+
+		*lplpD3DDevice = (LPDIRECT3DDEVICE7)Interface->GetWrapperInterfaceX(DirectXVersion);
 
 		return D3D_OK;
 	}
@@ -895,11 +902,6 @@ void m_IDirect3DX::InitInterface(DWORD DirectXVersion)
 {
 	ScopedDDCriticalSection ThreadLockDD;
 
-	if (D3DDeviceInterface)
-	{
-		D3DDeviceInterface->SetD3D(this);
-	}
-
 	if (!Config.Dd7to9)
 	{
 		ResolutionHack();
@@ -922,9 +924,10 @@ void m_IDirect3DX::ReleaseInterface()
 
 	ScopedDDCriticalSection ThreadLockDD;
 
-	if (D3DDeviceInterface)
+	// Release device
+	for (auto& entry : D3DDeviceList)
 	{
-		D3DDeviceInterface->ClearD3D(this);
+		entry.Interface->ClearD3D(this);
 	}
 
 	// Don't delete wrapper interface
@@ -1028,6 +1031,11 @@ void m_IDirect3DX::ClearLight(m_IDirect3DLight* lpLight)
 	{
 		LightList.erase(it);
 	}
+	// Remove light for all D3D devices
+	for (auto& entry : D3DDeviceList)
+	{
+		entry.Interface->ClearLight(lpLight);
+	}
 }
 
 void m_IDirect3DX::AddMaterial(m_IDirect3DMaterialX* lpMaterialX)
@@ -1040,13 +1048,21 @@ void m_IDirect3DX::AddMaterial(m_IDirect3DMaterialX* lpMaterialX)
 	MaterialList.push_back(lpMaterialX);
 }
 
-void m_IDirect3DX::ClearMaterial(m_IDirect3DMaterialX* lpMaterialX)
+void m_IDirect3DX::ClearMaterial(m_IDirect3DMaterialX* lpMaterialX, D3DMATERIALHANDLE mHandle)
 {
 	// Find and remove the material from the list
 	auto it = std::find(MaterialList.begin(), MaterialList.end(), lpMaterialX);
 	if (it != MaterialList.end())
 	{
 		MaterialList.erase(it);
+	}
+	// Remove material handle for all D3D devices
+	if (mHandle)
+	{
+		for (auto& entry : D3DDeviceList)
+		{
+			entry.Interface->ClearMaterialHandle(mHandle);
+		}
 	}
 }
 
@@ -1070,40 +1086,46 @@ void m_IDirect3DX::ClearViewport(m_IDirect3DViewportX* lpViewportX)
 	}
 }
 
-void m_IDirect3DX::SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
+void m_IDirect3DX::GetViewportResolution(DWORD& Width, DWORD& Height)
+{
+	if (ddrawParent)
+	{
+		ddrawParent->GetViewportResolution(Width, Height);
+	}
+}
+
+void m_IDirect3DX::AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 {
 	if (!lpD3DDevice)
 	{
 		return;
 	}
 
-	if (D3DDeviceInterface && D3DDeviceInterface != lpD3DDevice)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device has already been created!");
-	}
-
-	D3DDeviceInterface = lpD3DDevice;
+	D3DDeviceList.push_back({ lpD3DDevice, 0, 0 });
 }
 
 void m_IDirect3DX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 {
-	if (lpD3DDevice != D3DDeviceInterface)
+	// Find and remove the device from the list
+	auto it = std::find_if(D3DDeviceList.begin(), D3DDeviceList.end(),
+		[lpD3DDevice](auto entry) {
+			return entry.Interface == lpD3DDevice;
+		});
+	if (it != D3DDeviceList.end())
 	{
-		Logging::Log() << __FUNCTION__ << " Warning: released Direct3DDevice interface does not match cached one!";
-	}
-
-	m_IDirect3DDeviceX* pD3DDevice = D3DDeviceInterface;
-	D3DDeviceInterface = nullptr;
-
-	DWORD RefCount = Direct3DDeviceEx.RefCount;
-	DWORD DxVersion = Direct3DDeviceEx.DxVersion;
-	Direct3DDeviceEx = {};	// Clear before releasing
-
-	if (pD3DDevice && RefCount)
-	{
-		for (UINT x = 0; x < RefCount; x++)
+		DWORD RefCount = it->RefCount;
+		DWORD DxVersion = it->DxVersion;
+		D3DDeviceList.erase(it);	// Erase from list before releasing
+		if (ddrawParent && D3DDeviceList.empty())
 		{
-			Release(DxVersion);
+			ddrawParent->ClearD3DDevice();
+		}
+		if (RefCount)
+		{
+			for (UINT x = 0; x < RefCount; x++)
+			{
+				Release(DxVersion);
+			}
 		}
 	}
 }
@@ -1169,5 +1191,15 @@ void m_IDirect3DX::ResolutionHack()
 				Utils::DDrawResolutionHack(hD3DIm700);
 			}
 		}
+	}
+}
+
+void m_IDirect3DX::ClearDdraw()
+{
+	ddrawParent = nullptr;
+
+	for (auto& entry : D3DDeviceList)
+	{
+		entry.Interface->ClearDdraw();
 	}
 }

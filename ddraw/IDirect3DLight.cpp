@@ -162,19 +162,27 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 		}
 
 		// If current light is in use then update device
-		BOOL Enable = FALSE;
-		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && SUCCEEDED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)) && Enable)
+		DWORD x = 0;
+		while (D3DInterface)
 		{
-			D3DLIGHT2 Light2 = {};
-			memcpy(&Light2, lpLight, lpLight->dwSize);
-			Light2.dwSize = sizeof(D3DLIGHT2);
-			Light2.dwFlags |= D3DLIGHT_ACTIVE;
-
-			HRESULT hr = (*D3DDeviceInterface)->SetLight(this, (LPD3DLIGHT)&Light2);
-
-			if (FAILED(hr))
+			m_IDirect3DDeviceX* D3DDeviceInterface = D3DInterface->GetNextD3DDevice(x++);
+			if (!D3DDeviceInterface)
 			{
-				return D3DERR_LIGHT_SET_FAILED;
+				break;
+			}
+			BOOL Enable = FALSE;
+			if (SUCCEEDED(D3DDeviceInterface->GetLightEnable(this, &Enable)) && Enable)
+			{
+				D3DLIGHT2 Light2 = {};
+				memcpy(&Light2, lpLight, lpLight->dwSize);
+				Light2.dwSize = sizeof(D3DLIGHT2);
+				Light2.dwFlags |= D3DLIGHT_ACTIVE;
+
+				if (FAILED(D3DDeviceInterface->SetLight(this, (LPD3DLIGHT)&Light2)))
+				{
+					return D3DERR_LIGHT_SET_FAILED;
+				}
+				Enable = FALSE;
 			}
 		}
 
@@ -228,15 +236,25 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 				((LPD3DLIGHT2)lpLight)->dwFlags = NULL;
 			}
 
+			// Set to non-active first
+			((LPD3DLIGHT2)lpLight)->dwFlags &= ~D3DLIGHT_ACTIVE;
+
 			// Check for active
-			BOOL Enable = FALSE;
-			if (SUCCEEDED(CheckInterface(__FUNCTION__)) && SUCCEEDED((*D3DDeviceInterface)->GetLightEnable(this, &Enable)) && Enable)
+			DWORD x = 0;
+			while (D3DInterface)
 			{
-				((LPD3DLIGHT2)lpLight)->dwFlags |= D3DLIGHT_ACTIVE;
-			}
-			else
-			{
-				((LPD3DLIGHT2)lpLight)->dwFlags &= ~D3DLIGHT_ACTIVE;
+				m_IDirect3DDeviceX* D3DDeviceInterface = D3DInterface->GetNextD3DDevice(x++);
+
+				if (!D3DDeviceInterface)
+				{
+					break;
+				}
+				BOOL Enable = FALSE;
+				if (SUCCEEDED(D3DDeviceInterface->GetLightEnable(this, &Enable)) && Enable)
+				{
+					((LPD3DLIGHT2)lpLight)->dwFlags |= D3DLIGHT_ACTIVE;
+					break;
+				}
 			}
 		}
 
@@ -276,45 +294,7 @@ void m_IDirect3DLight::ReleaseInterface()
 		D3DInterface->ClearLight(this);
 	}
 
-	if (D3DDeviceInterface && *D3DDeviceInterface)
-	{
-		(*D3DDeviceInterface)->ClearLight(this);
-	}
-
 	ClearD3D();
-}
-
-HRESULT m_IDirect3DLight::CheckInterface(char* FunctionName)
-{
-	// Check D3DInterface device
-	if (!D3DInterface)
-	{
-		LOG_LIMIT(100, FunctionName << " Error: no D3D parent!");
-		return DDERR_INVALIDOBJECT;
-	}
-
-	// Check d3d9 device
-	if (!D3DDeviceInterface || !*D3DDeviceInterface)
-	{
-		D3DDeviceInterface = D3DInterface->GetD3DDevice();
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
-		{
-			return DDERR_INVALIDOBJECT;
-		}
-	}
-
-	return D3D_OK;
-}
-
-m_IDirect3DDeviceX* m_IDirect3DLight::GetD3DDevice()
-{
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__)))
-	{
-		return nullptr;
-	}
-
-	return *D3DDeviceInterface;
 }
 
 m_IDirect3DLight* m_IDirect3DLight::CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface)

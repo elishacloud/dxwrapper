@@ -165,8 +165,6 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		HRESULT hr = D3D_OK;
-
 		if (IsViewPortSet)
 		{
 			*lpData = vData;
@@ -175,19 +173,42 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 		{
 			ConvertViewport(*lpData, vData2);
 		}
-		else
+		else if (!AttachedD3DDevices.empty())
 		{
 			D3DVIEWPORT7 Viewport7 = {};
 
-			if (SUCCEEDED(CheckInterface(__FUNCTION__)))
+			for (auto& entry : AttachedD3DDevices)
 			{
-				(*D3DDeviceInterface)->GetDefaultViewport(*(D3DVIEWPORT9*)&Viewport7);
+				entry->GetDefaultViewport(*(D3DVIEWPORT9*)&Viewport7);
+
+				ConvertViewport(*lpData, Viewport7);
+
+				break;
 			}
+		}
+		else if (D3DInterface)
+		{
+			DWORD Width = 0, Height = 0;
+
+			D3DInterface->GetViewportResolution(Width, Height);
+
+			D3DVIEWPORT7 Viewport7 = {
+				0,           // X (starting X coordinate)
+				0,           // Y (starting Y coordinate)
+				Width,       // Width (usually set to the backbuffer width)
+				Height,      // Height (usually set to the backbuffer height)
+				0.0f,        // MinZ (near clipping plane, typically 0.0f)
+				1.0f         // MaxZ (far clipping plane, typically 1.0f)
+			};
 
 			ConvertViewport(*lpData, Viewport7);
 		}
+		else
+		{
+			return D3DERR_VIEWPORTHASNODEVICE;
+		}
 
-		return hr;
+		return DD_OK;
 	}
 
 	return ProxyInterface->GetViewport(lpData);
@@ -216,10 +237,7 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 		vData = *lpData;
 
 		// If current viewport is set then use new viewport
-		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && (*D3DDeviceInterface)->CheckIfViewportSet(this))
-		{
-			SetCurrentViewportActive(true, false, false);
-		}
+		SetCurrentViewportActive(true, false, false);
 
 		return D3D_OK;
 	}
@@ -271,10 +289,7 @@ HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 		MaterialBackground.hMat = hMat;
 
 		// If current viewport is set then use new viewport
-		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && (*D3DDeviceInterface)->CheckIfViewportSet(this))
-		{
-			SetCurrentViewportActive(false, true, false);
-		}
+		SetCurrentViewportActive(false, true, false);
 
 		return D3D_OK;
 	}
@@ -350,14 +365,21 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 	if (Config.Dd7to9)
 	{
 		// The requested operation could not be completed because the viewport has not yet been associated with a device.
-		if (!IsViewportAssiciated())
-		{
-			return D3DERR_VIEWPORTHASNODEVICE;
-		}
+		HRESULT hr = D3DERR_VIEWPORTHASNODEVICE;
 
 		// ToDo: check on zbuffer and return error if does not exist:  D3DERR_ZBUFFER_NOTPRESENT
 
-		return (*D3DDeviceInterface)->Clear(dwCount, lpRects, dwFlags, 0x00000000, 1.0f, 0);
+		for (auto& entry : AttachedD3DDevices)
+		{
+			hr = entry->Clear(dwCount, lpRects, dwFlags, 0x00000000, 1.0f, 0);
+
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->Clear(dwCount, lpRects, dwFlags);
@@ -376,30 +398,23 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 		}
 
 		// If current viewport is set then use new light
-		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && (*D3DDeviceInterface)->CheckIfViewportSet(this))
+		for (auto& entry : AttachedD3DDevices)
 		{
-			D3DLIGHT2 Light2 = {};
-			Light2.dwSize = sizeof(D3DLIGHT2);
-			if (FAILED(lpDirect3DLight->GetLight((LPD3DLIGHT)&Light2)))
+			if (entry->CheckIfViewportSet(this))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get light!");
-				return DDERR_GENERIC;
-			}
-			Light2.dwFlags |= D3DLIGHT_ACTIVE;
-			if (FAILED((*D3DDeviceInterface)->SetLight((m_IDirect3DLight*)lpDirect3DLight, (LPD3DLIGHT)&Light2)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not set light!");
-				return DDERR_GENERIC;
-			}
-		}
-
-		// Check if assigning a light associated with current device used by the viewport
-		{
-			m_IDirect3DDeviceX* pLight3DDevice = ((m_IDirect3DLight*)lpDirect3DLight)->GetD3DDevice();
-			m_IDirect3DDeviceX* pViewPort3DDevice = (D3DDeviceInterface ? *D3DDeviceInterface : nullptr);
-			if (pLight3DDevice != pViewPort3DDevice)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " (" << pViewPort3DDevice << ") Warning: Light's Direct3D device doesn't match Viewport's device: " << pLight3DDevice);
+				D3DLIGHT2 Light2 = {};
+				Light2.dwSize = sizeof(D3DLIGHT2);
+				if (FAILED(lpDirect3DLight->GetLight((LPD3DLIGHT)&Light2)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get light!");
+					return DDERR_GENERIC;
+				}
+				Light2.dwFlags |= D3DLIGHT_ACTIVE;
+				if (FAILED(entry->SetLight((m_IDirect3DLight*)lpDirect3DLight, (LPD3DLIGHT)&Light2)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not set light!");
+					return DDERR_GENERIC;
+				}
 			}
 		}
 
@@ -439,18 +454,21 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 		lpDirect3DLight->Release();
 
 		// If current viewport is then deactivate the light
-		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && (*D3DDeviceInterface)->CheckIfViewportSet(this))
+		for (auto& entry : AttachedD3DDevices)
 		{
-			D3DLIGHT2 Light2 = {};
-			Light2.dwSize = sizeof(D3DLIGHT2);
-			if (FAILED(lpDirect3DLight->GetLight((LPD3DLIGHT)&Light2)))
+			if (entry->CheckIfViewportSet(this))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not get light!");
-			}
-			Light2.dwFlags &= ~D3DLIGHT_ACTIVE;
-			if (FAILED((*D3DDeviceInterface)->SetLight((m_IDirect3DLight*)lpDirect3DLight, (LPD3DLIGHT)&Light2)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not set light!");
+				D3DLIGHT2 Light2 = {};
+				Light2.dwSize = sizeof(D3DLIGHT2);
+				if (FAILED(lpDirect3DLight->GetLight((LPD3DLIGHT)&Light2)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: could not get light!");
+				}
+				Light2.dwFlags &= ~D3DLIGHT_ACTIVE;
+				if (FAILED(entry->SetLight((m_IDirect3DLight*)lpDirect3DLight, (LPD3DLIGHT)&Light2)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: could not set light!");
+				}
 			}
 		}
 
@@ -544,8 +562,6 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		HRESULT hr = D3D_OK;
-
 		if (IsViewPort2Set)
 		{
 			*lpData = vData2;
@@ -554,19 +570,42 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 		{
 			ConvertViewport(*lpData, vData);
 		}
-		else
+		else if (!AttachedD3DDevices.empty())
 		{
 			D3DVIEWPORT7 Viewport7 = {};
 
-			if (SUCCEEDED(CheckInterface(__FUNCTION__)))
+			for (auto& entry : AttachedD3DDevices)
 			{
-				(*D3DDeviceInterface)->GetDefaultViewport(*(D3DVIEWPORT9*)&Viewport7);
+				entry->GetDefaultViewport(*(D3DVIEWPORT9*)&Viewport7);
+
+				ConvertViewport(*lpData, Viewport7);
+
+				break;
 			}
+		}
+		else if (D3DInterface)
+		{
+			DWORD Width = 0, Height = 0;
+
+			D3DInterface->GetViewportResolution(Width, Height);
+
+			D3DVIEWPORT7 Viewport7 = {
+				0,           // X (starting X coordinate)
+				0,           // Y (starting Y coordinate)
+				Width,       // Width (usually set to the backbuffer width)
+				Height,      // Height (usually set to the backbuffer height)
+				0.0f,        // MinZ (near clipping plane, typically 0.0f)
+				1.0f         // MaxZ (far clipping plane, typically 1.0f)
+			};
 
 			ConvertViewport(*lpData, Viewport7);
 		}
+		else
+		{
+			return D3DERR_VIEWPORTHASNODEVICE;
+		}
 
-		return hr;
+		return DD_OK;
 	}
 
 	return ProxyInterface->GetViewport2(lpData);
@@ -595,10 +634,7 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 		vData2 = *lpData;
 
 		// If current viewport is set then use new viewport
-		if (SUCCEEDED(CheckInterface(__FUNCTION__)) && (*D3DDeviceInterface)->CheckIfViewportSet(this))
-		{
-			SetCurrentViewportActive(true, false, false);
-		}
+		SetCurrentViewportActive(true, false, false);
 
 		return D3D_OK;
 	}
@@ -666,14 +702,21 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 	if (Config.Dd7to9)
 	{
 		// The requested operation could not be completed because the viewport has not yet been associated with a device.
-		if (!IsViewportAssiciated())
-		{
-			return D3DERR_VIEWPORTHASNODEVICE;
-		}
+		HRESULT hr = D3DERR_VIEWPORTHASNODEVICE;
 
 		// ToDo: check on zbuffer and stencil buffer and return error if does not exist:  D3DERR_ZBUFFER_NOTPRESENT and D3DERR_STENCILBUFFER_NOTPRESENT
 
-		return (*D3DDeviceInterface)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
+		for (auto& entry : AttachedD3DDevices)
+		{
+			hr = entry->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
+
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->Clear2(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
@@ -717,32 +760,10 @@ void m_IDirect3DViewportX::ReleaseInterface()
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
 	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
 
-	if (D3DDeviceInterface && *D3DDeviceInterface)
+	for (auto& entry : AttachedD3DDevices)
 	{
-		(*D3DDeviceInterface)->ClearViewport(this);
+		entry->ClearViewport(this);
 	}
-}
-
-HRESULT m_IDirect3DViewportX::CheckInterface(char* FunctionName)
-{
-	// Check D3DInterface device
-	if (!D3DInterface)
-	{
-		LOG_LIMIT(100, FunctionName << " Error: no D3D parent!");
-		return DDERR_INVALIDOBJECT;
-	}
-
-	// Check d3d9 device
-	if (!D3DDeviceInterface || !*D3DDeviceInterface)
-	{
-		D3DDeviceInterface = D3DInterface->GetD3DDevice();
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
-		{
-			return DDERR_INVALIDOBJECT;
-		}
-	}
-
-	return D3D_OK;
 }
 
 void* m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -765,65 +786,79 @@ void* m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	return nullptr;
 }
 
-m_IDirect3DDeviceX* m_IDirect3DViewportX::GetD3DDevice()
-{
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__)))
-	{
-		return nullptr;
-	}
-
-	return *D3DDeviceInterface;
-}
-
 void m_IDirect3DViewportX::SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData)
 {
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__)))
+	for (auto& D3DDevice : AttachedD3DDevices)
+	{
+		if (D3DDevice->CheckIfViewportSet(this))
+		{
+			if (SetViewPortData && (IsViewPortSet || IsViewPort2Set))
+			{
+				D3DVIEWPORT7 Viewport7 = {};
+				if (IsViewPort2Set)
+				{
+					ConvertViewport(Viewport7, vData2);
+				}
+				else
+				{
+					ConvertViewport(Viewport7, vData);
+				}
+				if (FAILED(D3DDevice->SetViewport(&Viewport7)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set viewport data!");
+				}
+			}
+
+			if (SetBackgroundData && MaterialBackground.IsSet)
+			{
+				if (FAILED(D3DDevice->SetLightState(D3DLIGHTSTATE_MATERIAL, MaterialBackground.hMat)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set material background!");
+				}
+			}
+
+			if (SetLightData)
+			{
+				for (auto& entry : AttachedLights)
+				{
+					D3DLIGHT2 Light2 = {};
+					Light2.dwSize = sizeof(D3DLIGHT2);
+					if (FAILED(entry->GetLight((LPD3DLIGHT)&Light2)))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: could not get light!");
+					}
+					Light2.dwFlags |= D3DLIGHT_ACTIVE;
+					if (FAILED(D3DDevice->SetLight((m_IDirect3DLight*)entry, (LPD3DLIGHT)&Light2)))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: could not set light!");
+					}
+				}
+			}
+		}
+	}
+}
+
+void m_IDirect3DViewportX::AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
+{
+	if (!lpD3DDevice)
+	{
+		return;
+	}
+	auto it = std::find(AttachedD3DDevices.begin(), AttachedD3DDevices.end(), lpD3DDevice);
+	if (it != AttachedD3DDevices.end())
 	{
 		return;
 	}
 
-	if (SetViewPortData && (IsViewPortSet || IsViewPort2Set))
-	{
-		D3DVIEWPORT7 Viewport7 = {};
-		if (IsViewPort2Set)
-		{
-			ConvertViewport(Viewport7, vData2);
-		}
-		else
-		{
-			ConvertViewport(Viewport7, vData);
-		}
-		if (FAILED((*D3DDeviceInterface)->SetViewport(&Viewport7)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set viewport data!");
-		}
-	}
+	AttachedD3DDevices.push_back(lpD3DDevice);
+}
 
-	if (SetBackgroundData && MaterialBackground.IsSet)
+void m_IDirect3DViewportX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
+{
+	// Find and remove the D3D device from the list
+	auto it = std::find(AttachedD3DDevices.begin(), AttachedD3DDevices.end(), lpD3DDevice);
+	if (it != AttachedD3DDevices.end())
 	{
-		if (FAILED((*D3DDeviceInterface)->SetLightState(D3DLIGHTSTATE_MATERIAL, MaterialBackground.hMat)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set material background!");
-		}
-	}
-
-	if (SetLightData)
-	{
-		for (auto& entry : AttachedLights)
-		{
-			D3DLIGHT2 Light2 = {};
-			Light2.dwSize = sizeof(D3DLIGHT2);
-			if (FAILED(entry->GetLight((LPD3DLIGHT)&Light2)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not get light!");
-			}
-			Light2.dwFlags |= D3DLIGHT_ACTIVE;
-			if (FAILED((*D3DDeviceInterface)->SetLight((m_IDirect3DLight*)entry, (LPD3DLIGHT)&Light2)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not set light!");
-			}
-		}
+		AttachedD3DDevices.erase(it);
 	}
 }

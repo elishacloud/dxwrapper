@@ -67,7 +67,6 @@ private:
 
 	// Store d3d interface
 	m_IDirect3DX *D3DInterface = nullptr;
-	m_IDirect3DDeviceX *D3DDeviceInterface = nullptr;
 
 	// Helper functions
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice);
@@ -206,9 +205,7 @@ public:
 
 	// Direct3D interfaces
 	m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
-	void SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
-	m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
-	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
+	void ClearD3DDevice();
 	bool IsCreatedEx() const { return IsUsingEx; }
 	void Enable3D() { Using3D = true; }
 	bool IsUsing3D() const { return Using3D; }
@@ -237,6 +234,7 @@ public:
 	DWORD GetDisplayBPP(HWND hWnd);
 	bool IsExclusiveMode();
 	void GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, DWORD& RefreshRate);
+	void GetViewportResolution(DWORD& Width, DWORD& Height);
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
 
 	// Surface vector functions
@@ -252,6 +250,9 @@ public:
 	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface);
 	m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
 	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface);
+
+	// Texture functions
+	void ClearTextureHandle(D3DTEXTUREHANDLE tHandle);
 
 	// Clipper functions
 	static void AddBaseClipper(m_IDirectDrawClipper* lpClipper);

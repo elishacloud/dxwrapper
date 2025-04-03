@@ -170,12 +170,6 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDevice does not exist!");
-			return DDERR_GENERIC;
-		}
-
 		m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
 		lpDirect3DDevice2->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
 		if (!pDirect3DDeviceX)
@@ -184,18 +178,13 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (*D3DDeviceInterface != pDirect3DDeviceX)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device wrapper does not match! " << *D3DDeviceInterface << "->" << pDirect3DDeviceX);
-		}
-
 		if (!tHandle)
 		{
 			tHandle = (DWORD)this;
 		}
 
 		// Makes tHandle unique and then stores it
-		(*D3DDeviceInterface)->SetTextureHandle(tHandle, this);
+		pDirect3DDeviceX->SetTextureHandle(tHandle, this);
 
 		// Set lpHandle after setting texture handle in D3D device
 		*lpHandle = tHandle;
@@ -355,9 +344,13 @@ void m_IDirect3DTextureX::ReleaseInterface()
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
 
-	if (tHandle && D3DDeviceInterface && *D3DDeviceInterface)
+	if (tHandle && parent3DSurface.Interface)
 	{
-		(*D3DDeviceInterface)->ClearTextureHandle(tHandle);
+		m_IDirectDrawX* ddrawParent = parent3DSurface.Interface->GetDDrawParent();
+		if (ddrawParent)
+		{
+			ddrawParent->ClearTextureHandle(tHandle);
+		}
 	}
 }
 

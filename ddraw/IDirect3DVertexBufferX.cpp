@@ -261,14 +261,6 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		{
 			m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
 			lpD3DDevice->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
-			if (pDirect3DDeviceX)
-			{
-				m_IDirect3DDeviceX** D3DDeviceInterface = D3DInterface->GetD3DDevice();
-				if (D3DDeviceInterface && *D3DDeviceInterface != pDirect3DDeviceX)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device wrapper does not match! " << *D3DDeviceInterface << "->" << pDirect3DDeviceX);
-				}
-			}
 		}
 
 		// Handle dwVertexOp

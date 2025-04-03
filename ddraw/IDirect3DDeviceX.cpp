@@ -831,18 +831,15 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check if assigning a viewport associated with this device
+		m_IDirect3DViewportX* lpViewportX = nullptr;
+		if (FAILED(lpDirect3DViewport->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpViewportX)))
 		{
-			m_IDirect3DViewportX* lpViewportX = nullptr;
-			if (SUCCEEDED(lpDirect3DViewport->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpViewportX)))
-			{
-				m_IDirect3DDeviceX* pViewPort3DDevice = lpViewportX->GetD3DDevice();
-				if (pViewPort3DDevice != this)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: Viewport's Direct3D device doesn't match current one: " << pViewPort3DDevice);
-				}
-			}
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get ViewportX interface!");
+			return DDERR_GENERIC;
 		}
+
+		// Associate device with the viewport
+		lpViewportX->AddD3DDevice(this);
 
 		AttachedViewports.push_back(lpDirect3DViewport);
 
@@ -879,6 +876,15 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+
+		m_IDirect3DViewportX* lpViewportX = nullptr;
+		if (FAILED(lpDirect3DViewport->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpViewportX)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get ViewportX interface!");
+			return DDERR_GENERIC;
+		}
+
+		lpViewportX->ClearD3DDevice(this);
 
 		bool ret = DeleteAttachedViewport(lpDirect3DViewport);
 
@@ -1355,15 +1361,6 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get ViewportX interface!");
 			return DDERR_GENERIC;
-		}
-
-		// Check if assigning a viewport associated with this device
-		{
-			m_IDirect3DDeviceX* pViewPort3DDevice = lpViewportX->GetD3DDevice();
-			if (pViewPort3DDevice != this)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: Viewport's Direct3D device doesn't match current one: " << pViewPort3DDevice);
-			}
 		}
 
 		D3DVIEWPORT Viewport = {};
@@ -2345,15 +2342,6 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 				m_IDirect3DMaterialX* pMaterialX = GetMaterial(dwLightState);
 				if (pMaterialX)
 				{
-					// Check if material associated with this device
-					{
-						m_IDirect3DDeviceX* pMaterial3DDevice = pMaterialX->GetD3DDevice();
-						if (pMaterial3DDevice != this)
-						{
-							LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: Material's Direct3D device doesn't match current one: " << pMaterial3DDevice);
-						}
-					}
-
 					if (FAILED(pMaterialX->GetMaterial(&Material)))
 					{
 						return DDERR_INVALIDPARAMS;
@@ -3774,18 +3762,27 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 
 	if (Config.Dd7to9)
 	{
+		ScopedDDCriticalSection ThreadLockDD;
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
 			return DDERR_INVALIDOBJECT;
 		}
 
-		if ((dwFlags & D3DCLEAR_TARGET) && lpCurrentRenderTargetX)
+		if (lpCurrentRenderTargetX)
 		{
 			lpCurrentRenderTargetX->PrepareRenderTarget();
-		}
 
-		ddrawParent->ReSetRenderTarget();
+			if (ddrawParent->GetRenderTargetSurface() == lpCurrentRenderTargetX)
+			{
+				ddrawParent->ReSetRenderTarget();
+			}
+			else
+			{
+				ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+			}
+		}
 
 		return (*d3d9Device)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 	}
@@ -4471,14 +4468,9 @@ void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 {
 	ScopedDDCriticalSection ThreadLockDD;
 
-	if (ddrawParent)
-	{
-		ddrawParent->SetD3DDevice(this);
-	}
-
 	if (D3DInterface)
 	{
-		D3DInterface->SetD3DDevice(this);
+		D3DInterface->AddD3DDevice(this);
 	}
 
 	if (Config.Dd7to9)
@@ -4524,11 +4516,6 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 		CurrentRenderTarget = nullptr;
 	}
 
-	if (ddrawParent)
-	{
-		ddrawParent->ClearD3DDevice(this);
-	}
-
 	if (D3DInterface)
 	{
 		D3DInterface->ClearD3DDevice(this);
@@ -4544,6 +4531,16 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 	for (auto& entry : ExecuteBufferList)
 	{
 		entry->ClearD3DDevice();
+	}
+
+	// Clear device from veiwports
+	for (auto& entry : AttachedViewports)
+	{
+		m_IDirect3DViewportX* lpViewportX = nullptr;
+		if (SUCCEEDED(entry->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpViewportX)))
+		{
+			lpViewportX->ClearD3DDevice(this);
+		}
 	}
 
 	ReleaseAllStateBlocks();
@@ -4848,7 +4845,6 @@ void m_IDirect3DDeviceX::SetDdrawParent(m_IDirectDrawX* ddraw)
 	// Store D3DDevice
 	if (ddrawParent)
 	{
-		ddrawParent->SetD3DDevice(this);
 		if (lpCurrentRenderTargetX)
 		{
 			ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
@@ -5400,10 +5396,15 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	if (lpCurrentRenderTargetX)
 	{
 		lpCurrentRenderTargetX->PrepareRenderTarget();
-	}
-	if (ddrawParent)
-	{
-		ddrawParent->ReSetRenderTarget();
+
+		if (ddrawParent->GetRenderTargetSurface() == lpCurrentRenderTargetX)
+		{
+			ddrawParent->ReSetRenderTarget();
+		}
+		else
+		{
+			ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+		}
 	}
 
 	// Handle texture wrapping

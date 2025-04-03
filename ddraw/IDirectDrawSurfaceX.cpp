@@ -108,22 +108,6 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 				return E_NOINTERFACE;
 			}
 
-			m_IDirect3DDeviceX* D3DDeviceX = *ddrawParent->GetCurrentD3DDevice();
-
-			if (D3DDeviceX)
-			{
-				if (!attached3DDevice)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: Direct3DDevice is already setup. Multiple Direct3DDevice's are not implemented!");
-					return DDERR_GENERIC;
-				}
-				else if (attached3DDevice != D3DDeviceX)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: multiple Direct3DDevice's created!");
-					return DDERR_GENERIC;
-				}
-			}
-
 			m_IDirect3DX* D3DX = *ddrawParent->GetCurrentD3D();
 
 			if (!D3DX)
@@ -202,7 +186,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 
 			if (!attached3DTexture)
 			{
-				attached3DTexture = new m_IDirect3DTextureX(ddrawParent->GetCurrentD3DDevice(), DxVersion, this, DirectXVersion);
+				attached3DTexture = new m_IDirect3DTextureX(DxVersion, this, DirectXVersion);
 			}
 			else
 			{
@@ -1294,10 +1278,22 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		// Check if is in scene
 		if (Using3D)
 		{
-			m_IDirect3DDeviceX** pD3DDeviceInterface = ddrawParent->GetCurrentD3DDevice();
-			if (pD3DDeviceInterface && *pD3DDeviceInterface && (*pD3DDeviceInterface)->IsDeviceInScene())
+			m_IDirect3DX* D3DX = *ddrawParent->GetCurrentD3D();
+
+			DWORD x = 0;
+			while (D3DX)
 			{
-				return DDERR_GENERIC;
+				m_IDirect3DDeviceX* D3DDeviceX = D3DX->GetNextD3DDevice(x++);
+
+				if (!D3DDeviceX)
+				{
+					break;
+				}
+				if (D3DDeviceX->IsDeviceInScene())
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: Device is in scene when attempting to flip!");
+					return DDERR_GENERIC;
+				}
 			}
 		}
 
@@ -4079,11 +4075,6 @@ void m_IDirectDrawSurfaceX::SetDdrawParent(m_IDirectDrawX* ddraw)
 
 	ddrawParent = ddraw;
 
-	if (attached3DTexture)
-	{
-		attached3DTexture->SetD3DDevice(ddrawParent->GetCurrentD3DDevice());
-	}
-
 	d3d9Device = ddrawParent->GetDirectD9Device();
 }
 
@@ -4091,11 +4082,6 @@ void m_IDirectDrawSurfaceX::ClearDdraw()
 {
 	ddrawParent = nullptr;
 	d3d9Device = nullptr;
-
-	if (attached3DTexture)
-	{
-		attached3DTexture->ClearD3DDevice();
-	}
 }
 
 void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()

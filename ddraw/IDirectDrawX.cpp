@@ -2585,13 +2585,6 @@ void m_IDirectDrawX::ReleaseInterface()
 	}
 	VertexBufferList.clear();
 
-	// Release Direct3DDevice interfaces
-	if (D3DDeviceInterface)
-	{
-		D3DDeviceInterface->ClearDdraw();
-		D3DDeviceInterface = nullptr;
-	}
-
 	// Release Direct3D interfaces
 	if (D3DInterface)
 	{
@@ -2791,6 +2784,32 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 	LastSetBPP = BPP;
 }
 
+void m_IDirectDrawX::GetViewportResolution(DWORD& Width, DWORD& Height)
+{
+	Width = 0;
+	Height = 0;
+	if (d3d9Device)
+	{
+		Width = presParams.BackBufferWidth;
+		Height = presParams.BackBufferHeight;
+	}
+	else if (ExclusiveMode && Exclusive.Width && Exclusive.Height && Exclusive.BPP)
+	{
+		Width = Exclusive.Width;
+		Height = Exclusive.Height;
+	}
+	else if (DisplayMode.Width && DisplayMode.Height)
+	{
+		Width = DisplayMode.Width;
+		Height = DisplayMode.Height;
+	}
+	else
+	{
+		Width = InitWidth;
+		Height = InitHeight;
+	}
+}
+
 void m_IDirectDrawX::GetDisplayPixelFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD BPP)
 {
 	ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
@@ -2804,39 +2823,9 @@ void m_IDirectDrawX::GetDisplayPixelFormat(DDPIXELFORMAT &ddpfPixelFormat, DWORD
 	}
 }
 
-void m_IDirectDrawX::SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
+void m_IDirectDrawX::ClearD3DDevice()
 {
-	if (!lpD3DDevice)
-	{
-		return;
-	}
-
-	if (D3DDeviceInterface && D3DDeviceInterface != lpD3DDevice)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device has already been created!");
-	}
-
-	for (const auto& entry : DDrawVector)
-	{
-		if (entry != this && entry->D3DDeviceInterface != nullptr)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: a Direct3D Device exists in another DirectDraw instance!");
-		}
-	}
-
-	D3DDeviceInterface = lpD3DDevice;
-}
-
-void m_IDirectDrawX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
-{
-	if (D3DDeviceInterface != lpD3DDevice)
-	{
-		Logging::Log() << __FUNCTION__ << " Warning: released Direct3DDevice interface does not match cached one!";
-	}
-
 	Using3D = false;
-
-	D3DDeviceInterface = nullptr;
 
 	SetRenderTargetSurface(nullptr);
 
@@ -2845,7 +2834,22 @@ void m_IDirectDrawX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 
 bool m_IDirectDrawX::IsInScene()
 {
-	return (D3DDeviceInterface && D3DDeviceInterface->IsDeviceInScene());
+	DWORD x = 0;
+	while (D3DInterface)
+	{
+		m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x++);
+
+		if (!D3DDeviceX)
+		{
+			break;
+		}
+		if (D3DDeviceX->IsDeviceInScene())
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 bool m_IDirectDrawX::CheckD9Device(char* FunctionName)
@@ -3783,10 +3787,16 @@ void m_IDirectDrawX::RestoreD3DDeviceState()
 {
 	for (const auto& pDDraw : DDrawVector)
 	{
-		m_IDirect3DDeviceX* Interface = pDDraw->D3DDeviceInterface;
-		if (Interface)
+		DWORD x = 0;
+		while (pDDraw->D3DInterface)
 		{
-			Interface->AfterResetDevice();
+			m_IDirect3DDeviceX* D3DDeviceX = pDDraw->D3DInterface->GetNextD3DDevice(x++);
+
+			if (!D3DDeviceX)
+			{
+				break;
+			}
+			D3DDeviceX->AfterResetDevice();
 		}
 	}
 }
@@ -3854,13 +3864,19 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 	// Release all state blocks from all ddraw devices
 	for (const auto& pDDraw : DDrawVector)
 	{
-		m_IDirect3DDeviceX* Interface = pDDraw->D3DDeviceInterface;
-		if (Interface)
+		DWORD x = 0;
+		while (pDDraw->D3DInterface)
 		{
-			Interface->BeforeResetDevice();
+			m_IDirect3DDeviceX* D3DDeviceX = pDDraw->D3DInterface->GetNextD3DDevice(x++);
+
+			if (!D3DDeviceX)
+			{
+				break;
+			}
+			D3DDeviceX->BeforeResetDevice();
 			if (!ResetInterface)
 			{
-				Interface->ReleaseAllStateBlocks();
+				D3DDeviceX->ReleaseAllStateBlocks();
 			}
 		}
 	}
@@ -4077,10 +4093,18 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 	// Remove attached surface from map
 	for (const auto& pDDraw : DDrawVector)
 	{
-		m_IDirect3DDeviceX* D3DDevice = pDDraw->D3DDeviceInterface;
-		if (D3DDevice)
 		{
-			D3DDevice->ClearSurface(lpSurfaceX);
+			DWORD x = 0;
+			while (pDDraw->D3DInterface)
+			{
+				m_IDirect3DDeviceX* D3DDeviceX = pDDraw->D3DInterface->GetNextD3DDevice(x++);
+
+				if (!D3DDeviceX)
+				{
+					break;
+				}
+				D3DDeviceX->ClearSurface(lpSurfaceX);
+			}
 		}
 		if (lpSurfaceX == pDDraw->PrimarySurface)
 		{
@@ -4142,6 +4166,25 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 		}) != std::end(SurfaceList);
 
 	return found;
+}
+
+// Remove light for all D3D devices
+void m_IDirectDrawX::ClearTextureHandle(D3DTEXTUREHANDLE tHandle)
+{
+	if (tHandle)
+	{
+		DWORD x = 0;
+		while (D3DInterface)
+		{
+			m_IDirect3DDeviceX* D3DDeviceInterface = D3DInterface->GetNextD3DDevice(x++);
+
+			if (!D3DDeviceInterface)
+			{
+				break;
+			}
+			D3DDeviceInterface->ClearMaterialHandle(tHandle);
+		}
+	}
 }
 
 void m_IDirectDrawX::AddBaseClipper(m_IDirectDrawClipper* lpClipper)

@@ -162,11 +162,24 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 		}
 
 		// If current material is set then use new material
-		if (mHandle && SUCCEEDED(CheckInterface(__FUNCTION__)) && (*D3DDeviceInterface)->CheckIfMaterialSet(mHandle))
+		if (mHandle)
 		{
-			if (FAILED((*D3DDeviceInterface)->SetMaterial(lpMat)))
+			DWORD x = 0;
+			while (D3DInterface)
 			{
-				return DDERR_GENERIC;
+				m_IDirect3DDeviceX* D3DDeviceInterface = D3DInterface->GetNextD3DDevice(x++);
+
+				if (!D3DDeviceInterface)
+				{
+					break;
+				}
+				if (D3DDeviceInterface->CheckIfMaterialSet(mHandle))
+				{
+					if (FAILED(D3DDeviceInterface->SetMaterial(lpMat)))
+					{
+						return DDERR_GENERIC;
+					}
+				}
 			}
 		}
 
@@ -230,13 +243,6 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DDevice does not exist!");
-			return DDERR_GENERIC;
-		}
-
 		m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
 		lpDirect3DDevice->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
 		if (!pDirect3DDeviceX)
@@ -245,18 +251,13 @@ HRESULT m_IDirect3DMaterialX::GetHandle(LPDIRECT3DDEVICE3 lpDirect3DDevice, LPD3
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (*D3DDeviceInterface != pDirect3DDeviceX)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D Device wrapper does not match! " << *D3DDeviceInterface << "->" << pDirect3DDeviceX);
-		}
-
 		if (!mHandle)
 		{
 			mHandle = (DWORD)this;
 		}
 
 		// Makes mHandle unique and then stores it
-		(*D3DDeviceInterface)->SetMaterialHandle(mHandle, this);
+		pDirect3DDeviceX->SetMaterialHandle(mHandle, this);
 
 		// Set lpHandle after setting material handle in D3D device
 		*lpHandle = mHandle;
@@ -340,41 +341,13 @@ void m_IDirect3DMaterialX::ReleaseInterface()
 
 	if (D3DInterface)
 	{
-		D3DInterface->ClearMaterial(this);
+		D3DInterface->ClearMaterial(this, mHandle);
 	}
 
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
 	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
-
-	if (mHandle && D3DDeviceInterface && *D3DDeviceInterface)
-	{
-		(*D3DDeviceInterface)->ClearMaterialHandle(mHandle);
-	}
-}
-
-HRESULT m_IDirect3DMaterialX::CheckInterface(char* FunctionName)
-{
-	// Check D3DInterface device
-	if (!D3DInterface)
-	{
-		LOG_LIMIT(100, FunctionName << " Error: no D3D parent!");
-		return DDERR_INVALIDOBJECT;
-	}
-
-	// Check d3d9 device
-	if (!D3DDeviceInterface || !*D3DDeviceInterface)
-	{
-		D3DDeviceInterface = D3DInterface->GetD3DDevice();
-		if (!D3DDeviceInterface || !*D3DDeviceInterface)
-		{
-			LOG_LIMIT(100, FunctionName << " Error: could not get the D3DDevice!");
-			return DDERR_INVALIDOBJECT;
-		}
-	}
-
-	return D3D_OK;
 }
 
 void* m_IDirect3DMaterialX::GetWrapperInterfaceX(DWORD DirectXVersion)
@@ -395,15 +368,4 @@ void* m_IDirect3DMaterialX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;
-}
-
-m_IDirect3DDeviceX* m_IDirect3DMaterialX::GetD3DDevice()
-{
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__)))
-	{
-		return nullptr;
-	}
-
-	return *D3DDeviceInterface;
 }

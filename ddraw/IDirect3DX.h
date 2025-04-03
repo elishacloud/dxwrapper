@@ -20,13 +20,13 @@ private:
 	m_IDirectDrawX* ddrawParent = nullptr;
 	DWORD DDrawVersion = 0;
 
-	// Device interface pointers
-	struct {
+	// D3D Device array
+	struct D3DDEVICELIST {
 		m_IDirect3DDeviceX* Interface = nullptr;
 		DWORD DxVersion = 0;
 		DWORD RefCount = 0;
-	} Direct3DDeviceEx;
-	m_IDirect3DDeviceX*& D3DDeviceInterface = Direct3DDeviceEx.Interface;
+	};
+	std::vector<D3DDEVICELIST> D3DDeviceList;
 
 	// Cache Cap9
 	struct DUALCAP9 {
@@ -136,21 +136,22 @@ public:
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void* GetWrapperInterfaceX(DWORD DirectXVersion);
-	m_IDirect3DDeviceX** GetD3DDevice() { return &D3DDeviceInterface; }
-	void SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
+	m_IDirect3DDeviceX* GetNextD3DDevice(DWORD Index) { return D3DDeviceList.size() > Index ? D3DDeviceList[Index].Interface : nullptr; }
+	void AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void AddLight(m_IDirect3DLight* lpLight);
 	void ClearLight(m_IDirect3DLight* lpLight);
 	void AddMaterial(m_IDirect3DMaterialX* lpMaterialX);
-	void ClearMaterial(m_IDirect3DMaterialX* lpMaterialX);
+	void ClearMaterial(m_IDirect3DMaterialX* lpMaterialX, D3DMATERIALHANDLE mHandle);
 	void AddVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX);
 	void ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX);
 	void AddViewport(m_IDirect3DViewportX* lpViewportX);
 	void ClearViewport(m_IDirect3DViewportX* lpViewportX);
+	void GetViewportResolution(DWORD& Width, DWORD& Height);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; GetCap9Cache(); }
-	void ClearDdraw() { ddrawParent = nullptr; }
+	void ClearDdraw();
 };

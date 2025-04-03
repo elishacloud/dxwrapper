@@ -445,6 +445,7 @@ public:
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX* ddraw);
+	m_IDirectDrawX* GetDDrawParent() { return ddrawParent; };
 	void ClearDdraw();
 
 	// Direct3D9 interface functions
