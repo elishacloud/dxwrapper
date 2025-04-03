@@ -5264,11 +5264,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	if (BackupData)
 	{
 		if (surface.HasData && (surface.Surface || surface.Texture) &&
-			!(surface.Usage & D3DUSAGE_RENDERTARGET) && !IsRenderTarget() &&
 			!(surface.Usage & D3DUSAGE_DEPTHSTENCIL) && !IsDepthStencil() &&
 			(!ResetSurface || IsD9UsingVideoMemory()))
 		{
-			IsSurfaceLost = true;
+			IsSurfaceLost = ResetSurface;
 
 			if (!IsUsingEmulation() && LostDeviceBackup.empty())
 			{
@@ -5800,8 +5799,6 @@ void m_IDirectDrawSurfaceX::SetDirtyFlag(DWORD MipMapLevel)
 		surface.HasData = true;
 		surface.IsDrawTextureDirty = true;
 		IsMipMapReadyToUse = (IsMipMapAutogen() || MipMaps.empty());
-
-		LostDeviceBackup.clear();
 
 		// Update Uniqueness Value
 		ChangeUniquenessValue();
