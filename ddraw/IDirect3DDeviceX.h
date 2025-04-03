@@ -397,7 +397,7 @@ public:
 
 	// Functions handling the ddraw parent interface
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
-	void SetDdrawParent(m_IDirectDrawX* ddraw);
+	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw();
 	void BeforeResetDevice();
 	void AfterResetDevice();

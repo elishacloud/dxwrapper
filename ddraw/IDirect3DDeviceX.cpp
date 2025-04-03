@@ -3774,11 +3774,7 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 		{
 			lpCurrentRenderTargetX->PrepareRenderTarget();
 
-			if (ddrawParent->GetRenderTargetSurface() == lpCurrentRenderTargetX)
-			{
-				ddrawParent->ReSetRenderTarget();
-			}
-			else
+			if (ddrawParent->GetRenderTargetSurface() != lpCurrentRenderTargetX)
 			{
 				ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
 			}
@@ -4838,20 +4834,6 @@ void m_IDirect3DDeviceX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 	}
 }
 
-void m_IDirect3DDeviceX::SetDdrawParent(m_IDirectDrawX* ddraw)
-{
-	ddrawParent = ddraw;
-
-	// Store D3DDevice
-	if (ddrawParent)
-	{
-		if (lpCurrentRenderTargetX)
-		{
-			ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
-		}
-	}
-}
-
 void m_IDirect3DDeviceX::AddExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer)
 {
 	if (!lpExecuteBuffer)
@@ -5397,13 +5379,14 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	{
 		lpCurrentRenderTargetX->PrepareRenderTarget();
 
-		if (ddrawParent->GetRenderTargetSurface() == lpCurrentRenderTargetX)
-		{
-			ddrawParent->ReSetRenderTarget();
-		}
-		else
+		if (ddrawParent->GetRenderTargetSurface() != lpCurrentRenderTargetX)
 		{
 			ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+		}
+
+		if (DeviceStates.RenderState[D3DRS_ZENABLE].Set)
+		{
+			(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, DeviceStates.RenderState[D3DRS_ZENABLE].State);
 		}
 	}
 
@@ -5412,6 +5395,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	{
 		DWORD RenderState = (rsTextureWrappingU ? D3DWRAP_U : 0) | (rsTextureWrappingV ? D3DWRAP_V : 0);
 		SetD9RenderState(D3DRS_WRAP0, RenderState);
+		rsTextureWrappingChanged = false;
 	}
 
 	// Handle anti-aliasing
