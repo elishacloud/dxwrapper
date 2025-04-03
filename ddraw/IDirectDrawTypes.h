@@ -156,7 +156,6 @@ struct DEVICESETTINGS
 {
 	bool IsWindowed;
 	bool AntiAliasing;
-	bool AllowModeX;
 	bool MultiThreaded;
 	bool FPUPreserve;
 	bool FPUSetup;

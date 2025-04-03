@@ -55,6 +55,28 @@ void TestCreatePalette(DDType* pDDraw)
     LOG_TEST_RESULT(TestID, "After palette release. DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
 }
 
+static HRESULT CALLBACK ConvertCallback(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
+{
+
+    if (lpDDSurfaceDesc)
+    {
+        Logging::Log() << __FUNCTION__ " " << lpDDSurfaceDesc->dwWidth << "x" << lpDDSurfaceDesc->dwHeight <<
+            " " << lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount << " " << lpDDSurfaceDesc->dwRefreshRate;
+    }
+    return D3DENUMRET_OK;
+}
+
+static HRESULT CALLBACK ConvertCallback2(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext)
+{
+
+    if (lpDDSurfaceDesc)
+    {
+        Logging::Log() << __FUNCTION__ " " << lpDDSurfaceDesc->dwWidth << "x" << lpDDSurfaceDesc->dwHeight <<
+            " " << lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount << " " << lpDDSurfaceDesc->dwRefreshRate;
+    }
+    return D3DENUMRET_OK;
+}
+
 template <typename DDType>
 DDType* TestDirectDrawCreateT()
 {
@@ -173,6 +195,15 @@ void TestDirectDrawCreate()
     // ****  106  ****
     TestID = 106;
     LOG_TEST_RESULT(TestID, "SetDisplayMode result: ", (DDERR)hr, (DDERR)GetResults<DDType>(TestID));
+
+    if constexpr (std::is_same_v<DDType, IDirectDraw7Ex> || std::is_same_v<DDType, IDirectDraw7> || std::is_same_v<DDType, IDirectDraw4>)
+    {
+        //pDDraw->EnumDisplayModes(DDEDM_REFRESHRATES, nullptr, nullptr, ConvertCallback2);
+    }
+    else
+    {
+        //pDDraw->EnumDisplayModes(DDEDM_REFRESHRATES, nullptr, nullptr, ConvertCallback);
+    }
 
     // Test creating surfaces
     TestCreateSurface(pDDraw);
