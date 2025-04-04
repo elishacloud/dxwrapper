@@ -576,6 +576,8 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	DWORD DxVersion = DirectXVersion == 7 ? DirectXVersion : 1;
+
 	if (Config.Dd7to9)
 	{
 		if (!lplpD3DVertexBuffer || !lpVBDesc)
@@ -604,7 +606,7 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 			return DDERR_INVALIDOBJECT;
 		}
 
-		m_IDirect3DVertexBufferX* Interface = new m_IDirect3DVertexBufferX(ddrawParent, this, lpVBDesc, DirectXVersion);
+		m_IDirect3DVertexBufferX* Interface = new m_IDirect3DVertexBufferX(ddrawParent, this, lpVBDesc, DxVersion);
 
 		if (DirectXVersion > 3)
 		{
@@ -622,7 +624,7 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 			}
 		}
 
-		*lplpD3DVertexBuffer = (LPDIRECT3DVERTEXBUFFER7)Interface->GetWrapperInterfaceX(DirectXVersion);
+		*lplpD3DVertexBuffer = (LPDIRECT3DVERTEXBUFFER7)Interface->GetWrapperInterfaceX(DxVersion);
 
 		return D3D_OK;
 	}
@@ -649,9 +651,9 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 
 	if (SUCCEEDED(hr) && lplpD3DVertexBuffer)
 	{
-		m_IDirect3DVertexBufferX* Interface = new m_IDirect3DVertexBufferX((m_IDirect3DVertexBuffer7*)*lplpD3DVertexBuffer, DirectXVersion);
+		m_IDirect3DVertexBufferX* Interface = new m_IDirect3DVertexBufferX((m_IDirect3DVertexBuffer7*)*lplpD3DVertexBuffer, DxVersion);
 
-		*lplpD3DVertexBuffer = (LPDIRECT3DVERTEXBUFFER7)Interface->GetWrapperInterfaceX(DirectXVersion);
+		*lplpD3DVertexBuffer = (LPDIRECT3DVERTEXBUFFER7)Interface->GetWrapperInterfaceX(DxVersion);
 	}
 
 	return hr;
