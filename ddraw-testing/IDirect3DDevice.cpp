@@ -2,6 +2,42 @@
 #include "testing-harness.h"
 
 
+template <typename DDType, typename D3DDType>
+void TestExecuteBuffer(DDType* pDDraw, D3DDType* pDirect3DDevice)
+{
+    IDirect3DExecuteBuffer* pBuffer = nullptr;
+
+    D3DEXECUTEBUFFERDESC eDesc = {};
+    eDesc.dwSize = sizeof(D3DEXECUTEBUFFERDESC);
+    eDesc.dwFlags = D3DDEB_BUFSIZE;
+    eDesc.dwBufferSize = 15600;
+
+    // ****  900  ****
+    DWORD TestID = 900;
+    HRESULT hr = pDirect3DDevice->CreateExecuteBuffer(&eDesc, &pBuffer, nullptr);
+    if (FAILED(hr))
+    {
+        LOG_TEST_RESULT(TestID, "Failed to create ExecuteBuffer. Error: ", (DDERR)hr, TEST_FAILED);
+        return;
+    }
+
+    LOG_TEST_RESULT(TestID, "ExecuteBuffer created. Ref count: ", GetRefCount(pBuffer), GetResults<DDType>(TestID));
+
+    // ****  901  ****
+    TestID = 901;
+    LOG_TEST_RESULT(TestID, "DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+    // ****  902  ****
+    TestID = 902;
+    LOG_TEST_RESULT(TestID, "Direct3DDevice Ref count: ", GetRefCount(pDirect3DDevice), GetResults<DDType>(TestID));
+
+    pBuffer->Release();
+
+    // ****  903  ****
+    TestID = 903;
+    LOG_TEST_RESULT(TestID, "After ExecuteBuffer release. Direct3DDevice Ref count: ", GetRefCount(pDirect3DDevice), GetResults<DDType>(TestID));
+}
+
 template <typename DDType, typename DSType, typename DSDesc, typename D3DType, typename D3DDType>
 void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
 {
@@ -73,6 +109,12 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
         // ****  806  ****
         TestID = 806;
         LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+        // Test execute buffer
+        if constexpr (std::is_same_v<D3DDType, IDirect3DDevice>)
+        {
+            TestExecuteBuffer(pDDraw, pD3DDevice1);
+        }
 
         // Create surface2
         DSType* pSurface2 = nullptr;

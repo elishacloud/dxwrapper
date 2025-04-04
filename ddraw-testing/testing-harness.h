@@ -242,6 +242,12 @@ constexpr TESTMATRIX TestResults[] = {
 	{ 836, { 2, 2, 2, 3, 3, 10 } },
 	{ 837, { 2, 2, 2, 3, 3, 10 } },
 
+	// Execute Buffer
+	{ 900, { 1, 0, 0, 0, 0, 0 } },
+	{ 901, { 2, 0, 0, 0, 0, 0 } },
+	{ 902, { 2, 0, 0, 0, 0, 0 } },
+	{ 903, { 2, 0, 0, 0, 0, 0 } },
+
 	// All interfaces quried by IDirectDraw
 	{ 1000, { 2, 1, (DWORD)E_NOINTERFACE, 1, 1, 1 } },
 	{ 1001, { 2, 1, (DWORD)E_NOINTERFACE, 1, 1, 1 } },

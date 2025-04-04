@@ -76,11 +76,11 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		return DD_OK;
 	}
 
-	DWORD DxVersion = (CheckWrapperType(riid) && Config.Dd7to9) ? GetGUIDVersion(riid) : DirectXVersion;
-
 	bool IsD3DDevice = (riid == IID_IDirect3DHALDevice || riid == IID_IDirect3DTnLHalDevice ||
 		riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DRampDevice || riid == IID_IDirect3DMMXDevice ||
 		riid == IID_IDirect3DRefDevice || riid == IID_IDirect3DNullDevice);
+
+	DWORD DxVersion = (CheckWrapperType(riid) && Config.Dd7to9) ? GetGUIDVersion(riid) : DirectXVersion;
 
 	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
 	{

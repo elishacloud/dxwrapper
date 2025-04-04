@@ -57,6 +57,7 @@ void TestCreatePalette(DDType* pDDraw)
 
 static HRESULT CALLBACK ConvertCallback(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext)
 {
+    UNREFERENCED_PARAMETER(lpContext);
 
     if (lpDDSurfaceDesc)
     {
@@ -68,6 +69,7 @@ static HRESULT CALLBACK ConvertCallback(LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID 
 
 static HRESULT CALLBACK ConvertCallback2(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext)
 {
+    UNREFERENCED_PARAMETER(lpContext);
 
     if (lpDDSurfaceDesc)
     {
@@ -196,13 +198,17 @@ void TestDirectDrawCreate()
     TestID = 106;
     LOG_TEST_RESULT(TestID, "SetDisplayMode result: ", (DDERR)hr, (DDERR)GetResults<DDType>(TestID));
 
-    if constexpr (std::is_same_v<DDType, IDirectDraw7Ex> || std::is_same_v<DDType, IDirectDraw7> || std::is_same_v<DDType, IDirectDraw4>)
+    bool EnableDisplayLog = false;
+    if (EnableDisplayLog)
     {
-        //pDDraw->EnumDisplayModes(DDEDM_REFRESHRATES, nullptr, nullptr, ConvertCallback2);
-    }
-    else
-    {
-        //pDDraw->EnumDisplayModes(DDEDM_REFRESHRATES, nullptr, nullptr, ConvertCallback);
+        if constexpr (std::is_same_v<DDType, IDirectDraw7Ex> || std::is_same_v<DDType, IDirectDraw7> || std::is_same_v<DDType, IDirectDraw4>)
+        {
+            pDDraw->EnumDisplayModes(DDEDM_REFRESHRATES, nullptr, nullptr, ConvertCallback2);
+        }
+        else
+        {
+            pDDraw->EnumDisplayModes(DDEDM_REFRESHRATES, nullptr, nullptr, ConvertCallback);
+        }
     }
 
     // Test creating surfaces
