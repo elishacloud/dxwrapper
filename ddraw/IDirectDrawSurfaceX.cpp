@@ -3891,11 +3891,6 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 
 	ScopedDDCriticalSection ThreadLockDD;
 
-	if (ddrawParent)
-	{
-		ddrawParent->ClearSurface(this);
-	}
-
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
 	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
@@ -4130,15 +4125,19 @@ void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 		ddrawParent->ClearSurface(this);
 	}
 
-	for (auto& entry : AttachedSurfaceMap)
+	for (auto it = AttachedSurfaceMap.begin(); it != AttachedSurfaceMap.end(); )
 	{
-		if (entry.second.RefCount == 1)
+		DWORD RefCount = it->second.RefCount;
+		DWORD DxVersion = it->second.DxVersion;
+		m_IDirectDrawSurfaceX* lpSurfaceX = it->second.pSurface;
+
+		it = AttachedSurfaceMap.erase(it);	// Erase from list before releasing
+
+		if (RefCount == 1)
 		{
-			entry.second.RefCount = 0;		// Clear ref count before release
-			entry.second.pSurface->Release(entry.second.DxVersion);
+			lpSurfaceX->Release(DxVersion);
 		}
 	}
-	AttachedSurfaceMap.clear();
 }
 
 LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::GetD3d9Surface()
@@ -6056,12 +6055,13 @@ void m_IDirectDrawSurfaceX::RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* 
 
 	if (it != std::end(AttachedSurfaceMap))
 	{
-		if (it->second.RefCount == 1)
+		DWORD RefCount = it->second.RefCount;
+		DWORD DxVersion = it->second.DxVersion;
+		AttachedSurfaceMap.erase(it);	// Erase from list before releasing
+		if (RefCount == 1)
 		{
-			it->second.RefCount = 0;		// Clear ref count before release
-			it->second.pSurface->Release(it->second.DxVersion);
+			lpSurfaceX->Release(DxVersion);
 		}
-		AttachedSurfaceMap.erase(it);
 	}
 }
 
