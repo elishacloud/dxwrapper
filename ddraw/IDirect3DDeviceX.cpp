@@ -1481,6 +1481,8 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 			return DDERR_INVALIDOBJECT;
 		}
 
+		ScopedDDCriticalSection ThreadLockDD;
+
 		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
 		lpNewRenderTarget->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
 
@@ -3764,13 +3766,13 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 
 	if (Config.Dd7to9)
 	{
-		ScopedDDCriticalSection ThreadLockDD;
-
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
 			return DDERR_INVALIDOBJECT;
 		}
+
+		ScopedDDCriticalSection ThreadLockDD;
 
 		if (lpCurrentRenderTargetX)
 		{

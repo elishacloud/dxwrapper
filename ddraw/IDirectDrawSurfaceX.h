@@ -151,6 +151,7 @@ private:
 	// Convert to Direct3D9
 	const DWORD CreatedVersion;
 	CRITICAL_SECTION ddscs = {};
+	CRITICAL_SECTION ddsucs = {};
 	m_IDirectDrawX *ddrawParent = nullptr;				// DirectDraw parent device
 	SURFACEOVERLAY SurfaceOverlay;						// The overlays for this surface
 	std::vector<MIPMAP> MipMaps;						// MipMaps structure with addresses

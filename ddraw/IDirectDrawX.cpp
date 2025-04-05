@@ -2864,6 +2864,7 @@ bool m_IDirectDrawX::CheckD9Device(char* FunctionName)
 	if (!d3d9Device)
 	{
 		ScopedDDCriticalSection ThreadLockDD;
+
 		if (FAILED(CreateD9Device(FunctionName)))
 		{
 			return false;

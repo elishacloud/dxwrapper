@@ -543,10 +543,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return (*d3d9Device)->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, float(double(lpDDBltFx->dwFillDepth) / double(ConvertDepthValue(0xFFFFFFFF, surface.Format))), 0);
 		}
 
-		// Set critical section
-		ScopedCriticalSection ThreadLock(&ddscs);
-		ScopedCriticalSection ThreadLockSrc(&lpDDSrcSurfaceX->ddscs);
-
 		// Present before write if needed
 		if (PresentBlt)
 		{
@@ -557,6 +553,18 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		auto startTime = std::chrono::high_resolution_clock::now();
 		bool CopySurfaceFlag = false;
 #endif
+
+		// Lock if primary surface
+		std::vector<ScopedDDCriticalSection> ThreadLockDD;
+		ThreadLockDD.reserve(1);
+		if (IsPrimarySurface())
+		{
+			ThreadLockDD.emplace_back();
+		}
+
+		// Set critical section
+		ScopedCriticalSection ThreadLock(&ddscs);
+		ScopedCriticalSection ThreadLockSrc(&lpDDSrcSurfaceX->ddscs);
 
 		HRESULT hr = DD_OK;
 
@@ -656,16 +664,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			// Reset Blt flag
 			lpDDSrcSurfaceX->IsInBlt = false;
 			IsInBlt = false;
-
-			// Reset locked thread ID
-			if (!IsSurfaceBlitting() && !IsSurfaceLocked())
-			{
-				LockedWithID = 0;
-			}
-			if (!lpDDSrcSurfaceX->IsSurfaceBlitting() && !lpDDSrcSurfaceX->IsSurfaceLocked())
-			{
-				lpDDSrcSurfaceX->LockedWithID = 0;
-			}
 
 #ifdef ENABLE_PROFILING
 			Logging::Log() << __FUNCTION__ << " (" << lpDDSrcSurfaceX << ") -> (" << this << ")" <<
@@ -791,10 +789,10 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 
 	bool IsSkipScene = false;
 
-	ScopedCriticalSection ThreadLock(&ddscs);
-
 	// Present before write if needed
 	BeginWritePresent(IsSkipScene);
+
+	ScopedCriticalSection ThreadLock(&ddscs);
 
 	IsInBltBatch = true;
 
@@ -811,11 +809,6 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 	}
 
 	IsInBltBatch = false;
-
-	if (!IsSurfaceBlitting() && !IsSurfaceLocked())
-	{
-		LockedWithID = 0;
-	}
 
 	if (SUCCEEDED(hr))
 	{
@@ -1367,6 +1360,11 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			}
 			return false; };
 
+		// Present before write if needed
+		BeginWritePresent(false);
+
+		ScopedDDCriticalSection ThreadLockDD;
+
 		// Prepare critical sections
 		std::vector<ScopedCriticalSection> ThreadLocks;
 		ThreadLocks.reserve(FlipList.size() + 1);
@@ -1378,9 +1376,6 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			// Constructs AUTOCRITICALLOCK and locks the section
 			ThreadLocks.emplace_back(&pSurfaceX->ddscs);
 		}
-
-		// Present before write if needed
-		BeginWritePresent(false);
 
 		HRESULT hr = DD_OK;
 
@@ -1872,14 +1867,22 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: does not support device context with bit alignment!");
 		}
 
-		ScopedCriticalSection ThreadLock(&ddscs);
-
 		// Present before write if needed
 		BeginWritePresent(false);
 
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
+
+		// Lock if primary surface
+		std::vector<ScopedDDCriticalSection> ThreadLockDD;
+		ThreadLockDD.reserve(1);
+		if (IsPrimarySurface())
+		{
+			ThreadLockDD.emplace_back();
+		}
+
+		ScopedCriticalSection ThreadLock(&ddscs);
 
 		IsPreparingDC = true;
 
@@ -2424,6 +2427,16 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Check for device interface
 		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, false);
 
+		// Lock if primary surface
+		std::vector<ScopedDDCriticalSection> ThreadLockDD;
+		ThreadLockDD.reserve(1);
+		if (IsPrimarySurface())
+		{
+			ThreadLockDD.emplace_back();
+		}
+
+		ScopedCriticalSection ThreadLock(&ddscs);
+
 		// Prepare surfaceDesc
 		GetSurfaceDesc2(lpDDSurfaceDesc2, MipMapLevel, DirectXVersion);
 		if (!surface.UsingSurfaceMemory && !IsUsingEmulation())
@@ -2500,8 +2513,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		// Check if the scene needs to be presented
 		const bool IsSkipScene = (CheckRectforSkipScene(DestRect) || (Flags & D3DLOCK_READONLY));
-
-		ScopedCriticalSection ThreadLock(&ddscs);
 
 		// Present before write if needed
 		BeginWritePresent(IsSkipScene);
@@ -2724,6 +2735,8 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
+
+		ScopedCriticalSection ThreadLockU(&ddsucs);
 
 		HRESULT hr = DD_OK;
 
@@ -3063,6 +3076,8 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
+
+		ScopedCriticalSection ThreadLockU(&ddsucs);
 
 		HRESULT hr = DD_OK;
 
@@ -3852,6 +3867,7 @@ void m_IDirectDrawSurfaceX::InitInterface(DWORD DirectXVersion)
 		AddRef(DirectXVersion);
 
 		InitializeCriticalSection(&ddscs);
+		InitializeCriticalSection(&ddsucs);
 
 		if (ddrawParent)
 		{
@@ -3908,6 +3924,7 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 
 		// Delete critical section last
 		DeleteCriticalSection(&ddscs);
+		DeleteCriticalSection(&ddsucs);
 	}
 }
 
@@ -4375,6 +4392,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 
 	// Update surface description
 	UpdateSurfaceDesc();
+
+	ScopedCriticalSection ThreadLock(&ddscs);
+	ScopedCriticalSection ThreadLockU(&ddsucs);
 
 	// Get texture format
 	surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
@@ -5225,6 +5245,9 @@ void m_IDirectDrawSurfaceX::ReleaseD9AuxiliarySurfaces()
 
 void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 {
+	ScopedCriticalSection ThreadLock(&ddscs);
+	ScopedCriticalSection ThreadLockU(&ddsucs);
+
 	// Check if surface is busy
 	if (IsSurfaceBusy())
 	{
@@ -5383,6 +5406,14 @@ void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 
 HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 {
+	// Lock if primary surface
+	std::vector<ScopedDDCriticalSection> ThreadLockDD;
+	ThreadLockDD.reserve(1);
+	if (IsPrimarySurface())
+	{
+		ThreadLockDD.emplace_back();
+	}
+
 	// Check for device interface
 	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
 	if (FAILED(c_hr))
@@ -5426,8 +5457,6 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 
 	// Set present flag
 	IsPresentRunning = true;
-
-	ScopedDDCriticalSection ThreadLockDD;
 
 	// Present to d3d9
 	HRESULT hr = DD_OK;
