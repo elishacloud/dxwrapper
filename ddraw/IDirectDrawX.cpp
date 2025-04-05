@@ -3096,7 +3096,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 		else
 		{
 			// Reset render target
-			SetRenderTargetSurface(RenderTargetSurface);
+			SetCurrentRenderTarget();
 
 			// Reset D3D device settings
 			RestoreD3DDeviceState();
@@ -3420,7 +3420,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		m_IDirectDrawSurfaceX::SizeDummySurface(presParams.BackBufferWidth * presParams.BackBufferHeight * 4 * 2);
 
 		// Set render target
-		SetRenderTargetSurface(RenderTargetSurface);
+		SetCurrentRenderTarget();
 
 		// Reset D3D device settings
 		RestoreD3DDeviceState();
@@ -3660,14 +3660,11 @@ void m_IDirectDrawX::ClearRenderTarget()
 			d3d9Device->SetRenderTarget(0, pBackBuffer.Get());
 		}
 	}
-
-	RenderTargetSurface = nullptr;
-	DepthStencilSurface = nullptr;
 }
 
 void m_IDirectDrawX::SetCurrentRenderTarget()
 {
-	if (d3d9Device && RenderTargetSurface)
+	if (RenderTargetSurface)
 	{
 		SetRenderTargetSurface(RenderTargetSurface);
 	}
@@ -3682,6 +3679,9 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 		if (!lpSurface)
 		{
 			ClearRenderTarget();
+
+			RenderTargetSurface = nullptr;
+			DepthStencilSurface = nullptr;
 
 			hr = D3D_OK;
 			break;
