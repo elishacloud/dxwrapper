@@ -1664,6 +1664,13 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 					CreateD9Device(__FUNCTION__);
 				}
+				// Initialize the message queue when delaying device creation
+				else if (ExclusiveMode && !LasthWnd && Exclusive.hWnd != LasthWnd)
+				{
+					MSG msg;
+					PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE | PM_NOYIELD);
+					SendMessage(hWnd, WM_NULL, 0, 0);
+				}
 			}
 		}
 
