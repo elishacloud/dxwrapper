@@ -5928,12 +5928,8 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 	// Set flags for complex child surface
 	if (surfaceDesc2.ddsCaps.dwCaps4 & DDSCAPS4_COMPLEXCHILD)
 	{
-		ComplexChild = true;
-		surfaceDesc2.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
-		surfaceDesc2.dwBackBufferCount = 0;
-
 		// Add first surface as attached surface to the last surface in a surface chain
-		if (surfaceDesc2.dwReserved)
+		if (surfaceDesc2.dwReserved && surfaceDesc2.dwBackBufferCount == 0)
 		{
 			m_IDirectDrawSurfaceX* attachedSurface = (m_IDirectDrawSurfaceX*)surfaceDesc2.dwReserved;
 
@@ -5943,6 +5939,11 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 				AddAttachedSurfaceToMap(attachedSurface, false, DirectXVersion, 0);
 			}
 		}
+
+		// Set complex child flags
+		ComplexChild = true;
+		surfaceDesc2.dwFlags &= ~DDSD_BACKBUFFERCOUNT;
+		surfaceDesc2.dwBackBufferCount = 0;
 	}
 
 	// Handle mipmaps
