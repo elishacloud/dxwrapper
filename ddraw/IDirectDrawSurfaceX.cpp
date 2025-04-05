@@ -1297,8 +1297,6 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			}
 		}
 
-		ScopedCriticalSection ThreadLock(&ddscs);
-
 		// Create flip list
 		std::vector<m_IDirectDrawSurfaceX*> FlipList;
 		FlipList.push_back(this);
@@ -1371,7 +1369,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 		// Prepare critical sections
 		std::vector<ScopedCriticalSection> ThreadLocks;
-		ThreadLocks.reserve(FlipList.size() +1);
+		ThreadLocks.reserve(FlipList.size() + 1);
 		ThreadLocks.emplace_back(&ddscs);
 
 		// Set critical section for each surface
@@ -5428,6 +5426,8 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 
 	// Set present flag
 	IsPresentRunning = true;
+
+	ScopedDDCriticalSection ThreadLockDD;
 
 	// Present to d3d9
 	HRESULT hr = DD_OK;

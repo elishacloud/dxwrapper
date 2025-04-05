@@ -1502,11 +1502,11 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 
 		// Resets the mode of the display device hardware for the primary surface to what it was before the IDirectDraw7::SetDisplayMode method was called.
 
-		ScopedDDCriticalSection ThreadLockDD;
-
 		// Release d3d9 device
 		if (d3d9Device)
 		{
+			ScopedDDCriticalSection ThreadLockDD;
+
 			ReleaseAllD9Resources(true, false);
 			ReleaseD9Device();
 
@@ -1564,8 +1564,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		HWND LasthWnd = DisplayMode.hWnd;
 		bool LastFPUPreserve = Device.FPUPreserve;
 		bool LastWindowed = Device.IsWindowed;
-
-		ScopedDDCriticalSection ThreadLockDD;
 
 		// Set windowed mode
 		if (dwFlags & DDSCL_NORMAL)
@@ -1662,6 +1660,8 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 					(d3d9Device || !ExclusiveMode || (DisplayMode.Width && DisplayMode.Height)) &&	// Delay device creation when exclusive and no DisplayMode
 					(LastWindowed != Device.IsWindowed || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
 				{
+					ScopedDDCriticalSection ThreadLockDD;
+
 					CreateD9Device(__FUNCTION__);
 				}
 			}
@@ -1767,8 +1767,6 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 
 		DWORD NewBPP = (Config.DdrawOverrideBitMode) ? Config.DdrawOverrideBitMode : dwBPP;
 
-		ScopedDDCriticalSection ThreadLockDD;
-
 		if (DisplayMode.Width != dwWidth || DisplayMode.Height != dwHeight || DisplayMode.BPP != NewBPP || (dwRefreshRate && DisplayMode.RefreshRate != dwRefreshRate))
 		{
 			DWORD FoundWidth = dwWidth;
@@ -1850,11 +1848,15 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		// Update the d3d9 device to use new display mode
 		if (LastWidth != Device.Width || LastHeight != Device.Height || (!Device.IsWindowed && LastRefreshRate != DisplayMode.RefreshRate))
 		{
+			ScopedDDCriticalSection ThreadLockDD;
+
 			// Reset d3d9 device
 			CreateD9Device(__FUNCTION__);
 		}
 		else if (LastBPP != DisplayMode.BPP)
 		{
+			ScopedDDCriticalSection ThreadLockDD;
+
 			// Reset all surfaces
 			ResetAllSurfaceDisplay();
 		}
@@ -4786,8 +4788,6 @@ HRESULT m_IDirectDrawX::CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer)
 
 HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 {
-	ScopedDDCriticalSection ThreadLockDD;
-
 	HRESULT hr = DDERR_GENERIC;
 
 	if (IsUsingThreadPresent())
