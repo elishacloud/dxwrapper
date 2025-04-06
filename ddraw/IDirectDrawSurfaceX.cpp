@@ -4125,13 +4125,14 @@ void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 		ddrawParent->ClearSurface(this);
 	}
 
-	for (auto it = AttachedSurfaceMap.begin(); it != AttachedSurfaceMap.end(); )
+	while (!AttachedSurfaceMap.empty())
 	{
+		auto it = AttachedSurfaceMap.begin();
 		DWORD RefCount = it->second.RefCount;
 		DWORD DxVersion = it->second.DxVersion;
 		m_IDirectDrawSurfaceX* lpSurfaceX = it->second.pSurface;
 
-		it = AttachedSurfaceMap.erase(it);	// Erase from list before releasing
+		AttachedSurfaceMap.erase(it);	// Erase from list before releasing
 
 		if (RefCount == 1)
 		{
