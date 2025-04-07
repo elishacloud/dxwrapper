@@ -1,29 +1,41 @@
 #pragma once
 
-struct ScopedFlagSet {
+struct ScopedFlagSet
+{
+private:
     bool& flag;
-
+public:
     // Constructor sets the flag to true
-    ScopedFlagSet(bool& setflag) : flag(setflag) {
+    ScopedFlagSet(bool& setflag) : flag(setflag)
+    {
         flag = true;
     }
-
     // Destructor sets the flag back to false
-    ~ScopedFlagSet() {
+    ~ScopedFlagSet()
+    {
         flag = false;
     }
 };
 
-struct ScopedCriticalSection {
+struct ScopedCriticalSection
+{
+private:
     CRITICAL_SECTION* cs;
-
+public:
     // Constructor enters critical section
-    ScopedCriticalSection(CRITICAL_SECTION* cs) : cs(cs) {
-        EnterCriticalSection(cs);
+    ScopedCriticalSection(CRITICAL_SECTION* cs) : cs(cs)
+    {
+        if (cs)
+        {
+            EnterCriticalSection(cs);
+        }
     }
-
     // Destructor leaves critical section
-    ~ScopedCriticalSection() {
-        LeaveCriticalSection(cs);
+    ~ScopedCriticalSection()
+    {
+        if (cs)
+        {
+            LeaveCriticalSection(cs);
+        }
     }
 };

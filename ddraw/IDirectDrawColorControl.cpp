@@ -163,8 +163,6 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 		// Present new color setting
 		if (ddrawParent)
 		{
-			ScopedDDCriticalSection ThreadLockDD;
-
 			ddrawParent->SetVsync();
 
 			m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();

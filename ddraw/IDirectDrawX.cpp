@@ -4925,10 +4925,13 @@ DWORD WINAPI m_IDirectDrawX::PresentThreadFunction(LPVOID)
 		{
 			if (WaitForSingleObject(PresentThread.exitEvent, 0) == WAIT_OBJECT_0)
 			{
-				break;
+				LOG_LIMIT(100, __FUNCTION__ << " Closing thread!");
+
+				return S_OK;
 			}
-			Utils::BusyWaitYield((DWORD)-1);
+			Utils::BusyWaitYield(0);
 		}
+		ScopedDDLeaveCriticalSection ThreadLockLeave;
 
 		if (d3d9Device)
 		{
@@ -4961,9 +4964,6 @@ DWORD WINAPI m_IDirectDrawX::PresentThreadFunction(LPVOID)
 				QueryPerformanceCounter(&PresentThread.LastPresentTime);
 			}
 		}
-
-		// Make sure to release the thread lock at the end
-		dd_ReleaseDDThreadLock();
 	}
 
 	LOG_LIMIT(100, __FUNCTION__ << " Closing thread!");

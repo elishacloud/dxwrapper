@@ -30,11 +30,37 @@
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 
+void AcquirePEThreadLock();
+void ReleasePEThreadLock();
+
 namespace DdrawWrapper
 {
 	VISIT_PROCS_DDRAW(INITIALIZE_OUT_WRAPPED_PROC);
 	VISIT_PROCS_DDRAW_SHARED(INITIALIZE_OUT_WRAPPED_PROC);
 	INITIALIZE_OUT_WRAPPED_PROC(Direct3DCreate9, unused);
+
+	ScopedDDCriticalSection::ScopedDDCriticalSection()
+	{
+		dd_AcquireDDThreadLock();
+	}
+	ScopedDDCriticalSection::~ScopedDDCriticalSection()
+	{
+		dd_ReleaseDDThreadLock();
+	}
+
+	ScopedDDLeaveCriticalSection::~ScopedDDLeaveCriticalSection()
+	{
+		dd_ReleaseDDThreadLock();
+	}
+
+	ScopedPECriticalSection::ScopedPECriticalSection()
+	{
+		AcquirePEThreadLock();
+	}
+	ScopedPECriticalSection::~ScopedPECriticalSection()
+	{
+		ReleasePEThreadLock();
+	}
 }
 
 using namespace DdrawWrapper;

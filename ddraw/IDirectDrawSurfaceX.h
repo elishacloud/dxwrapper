@@ -506,6 +506,7 @@ public:
 	m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
 	void ClearUsing3DFlag();
 	HRESULT GetPresentWindowRect(LPRECT pRect, RECT& DestRect);
+	CRITICAL_SECTION* GetCriticalSection() { return &ddscs; }
 
 	// For texture loading
 	HRESULT Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDestPoint, LPDIRECTDRAWSURFACE7 lpSrcTex, LPRECT lprcSrcRect, DWORD dwFlags);

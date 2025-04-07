@@ -97,15 +97,7 @@ typedef HRESULT(WINAPI *RegisterSpecialCaseProc)(DWORD, DWORD, DWORD, DWORD);
 typedef HRESULT(WINAPI *ReleaseDDThreadLockProc)();
 typedef HRESULT(WINAPI *SetAppCompatDataProc)(DWORD Type, DWORD Value);
 
-// ddraw proc forward declaration
-HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, IUnknown FAR *pUnkOuter);
-HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID riid, IUnknown FAR *pUnkOuter);
-HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpContext);
-HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext);
-
 bool TryDDThreadLock();
-void AcquirePEThreadLock();
-void ReleasePEThreadLock();
 
 // Function and variable forward declarations
 namespace DdrawWrapper
@@ -116,13 +108,17 @@ namespace DdrawWrapper
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj);
 
 	struct ScopedDDCriticalSection {
-		ScopedDDCriticalSection() { dd_AcquireDDThreadLock(); }
-		~ScopedDDCriticalSection() { dd_ReleaseDDThreadLock(); }
+		ScopedDDCriticalSection();
+		~ScopedDDCriticalSection();
+	};
+
+	struct ScopedDDLeaveCriticalSection {
+		~ScopedDDLeaveCriticalSection();
 	};
 
 	struct ScopedPECriticalSection {
-		ScopedPECriticalSection() { AcquirePEThreadLock(); }
-		~ScopedPECriticalSection() { ReleasePEThreadLock(); }
+		ScopedPECriticalSection();
+		~ScopedPECriticalSection();
 	};
 }
 

@@ -1253,7 +1253,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
 			if (!PrimarySurface || FAILED(PrimarySurface->GetFlipStatus(DDGFS_CANFLIP, true)) || PrimarySurface == ddrawParent->GetRenderTargetSurface() || !PrimarySurface->IsRenderTarget())
 			{
-				ScopedDDCriticalSection ThreadLockDD;
+				ScopedCriticalSection ThreadLock(PrimarySurface ? PrimarySurface->GetCriticalSection() : nullptr);
 
 				ddrawParent->PresentScene(nullptr);
 			}
@@ -1480,8 +1480,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 		{
 			return DDERR_INVALIDOBJECT;
 		}
-
-		ScopedDDCriticalSection ThreadLockDD;
 
 		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
 		lpNewRenderTarget->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
@@ -2614,7 +2612,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLock(lpCurrentRenderTargetX ? lpCurrentRenderTargetX->GetCriticalSection() : nullptr);
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -2707,7 +2705,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLock(lpCurrentRenderTargetX ? lpCurrentRenderTargetX->GetCriticalSection() : nullptr);
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3038,7 +3036,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLock(lpCurrentRenderTargetX ? lpCurrentRenderTargetX->GetCriticalSection() : nullptr);
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3137,7 +3135,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLock(lpCurrentRenderTargetX ? lpCurrentRenderTargetX->GetCriticalSection() : nullptr);
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3772,7 +3770,7 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 			return DDERR_INVALIDOBJECT;
 		}
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLock(lpCurrentRenderTargetX ? lpCurrentRenderTargetX->GetCriticalSection() : nullptr);
 
 		if (lpCurrentRenderTargetX)
 		{
