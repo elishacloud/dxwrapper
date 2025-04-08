@@ -3170,6 +3170,9 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		HWND LasthWnd = hFocusWindow;
 		DWORD LastBehaviorFlags = BehaviorFlags;
 
+		// Device already exists
+		bool IsCurrentDevice = (d3d9Device != nullptr);
+
 		// Backup last present parameters
 		D3DPRESENT_PARAMETERS presParamsBackup = presParams;
 
@@ -3320,14 +3323,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 				ReleaseAllD9Resources(true, false);
 
-				// Prepare window and display size
-				if ((!presParams.Windowed || FullScreenWindowed) && !Config.EnableWindowMode)
-				{
-					Utils::SetDisplaySettings(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
-
-					AdjustWindow(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight, true, true, true);
-				}
-
 				hr = d3d9Device->Reset(&presParams);
 
 				if (FAILED(hr))
@@ -3337,12 +3332,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 						" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags));
 
 					ReleaseD9Device();
-				}
-
-				// Reset display mode after release when display mode is already setup and there is a primary surface
-				if (presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)))
-				{
-					Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
 				}
 			}
 			// Just release device and recreate it
@@ -3356,25 +3345,30 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 				ReleaseAllD9Resources(true, false);
 				ReleaseD9Device();
-
-				// Reset display mode after release when display mode is already setup and there is a primary surface
-				if (presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)))
-				{
-					Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
-				}
 			}
+		}
+		// Prepare window and display size
+		if ((!presParams.Windowed || FullScreenWindowed) && !Config.EnableWindowMode)
+		{
+			Utils::SetDisplaySettings(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
+
+			RECT rect = {};
+			GetClientRect(hWnd, &rect);
+			if ((DWORD)rect.right < presParams.BackBufferWidth || (DWORD)rect.bottom < presParams.BackBufferHeight)
+			{
+				AdjustWindow(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight, true, true, true);
+			}
+		}
+		// Reset display mode after release when display mode is already setup and there is a primary surface
+		else if (!d3d9Device && IsCurrentDevice && presParams.Windowed && (FullScreenWindowed ||
+			(PrimarySurface && presParams.BackBufferWidth == CurrentWidth && presParams.BackBufferHeight == CurrentHeight)))
+		{
+			Utils::SetDisplaySettings(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
 		}
 
 		// Create d3d9 Device
 		if (!d3d9Device)
 		{
-			// Prepare window and display size
-			if ((!presParams.Windowed || FullScreenWindowed) && !Config.EnableWindowMode)
-			{
-				Utils::SetDisplaySettings(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
-
-				AdjustWindow(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight, true, true, true);
-			}
 			// Attempt to create a device
 			hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 			// If using unsupported refresh rate
