@@ -6,7 +6,37 @@
 constexpr UINT MaxIndex = 43;
 
 template <typename T>
-inline void SaveInterfaceAddress(T*& Interface, T*& InterfaceBackup)
+T* InterfaceAddressCache(T* Interface)
+{
+	static std::vector<T*> InterfaceList;
+	if (Interface)
+	{
+		if (!Config.DdrawKeepAllInterfaceCache)
+		{
+			while (!InterfaceList.empty())
+			{
+				T* InterfaceCache = InterfaceList.back();
+				InterfaceCache->DeleteMe();
+				InterfaceList.pop_back();
+			}
+		}
+		InterfaceList.push_back(Interface);
+		return nullptr;
+	}
+	else
+	{
+		T* InterfaceCache = nullptr;
+		if (!InterfaceList.empty())
+		{
+			InterfaceCache = InterfaceList.back();
+			InterfaceList.pop_back();
+		}
+		return InterfaceCache;
+	}
+}
+
+template <typename T>
+inline void SaveInterfaceAddress(T*& Interface)
 {
 	if (Interface)
 	{
@@ -30,32 +60,27 @@ inline void SaveInterfaceAddress(T*& Interface, T*& InterfaceBackup)
 		{
 			Interface->SetProxy(nullptr);
 		}
-		if (InterfaceBackup)
-		{
-			InterfaceBackup->DeleteMe();
-			InterfaceBackup = nullptr;
-		}
-		InterfaceBackup = Interface;
+		InterfaceAddressCache(Interface);
 		Interface = nullptr;
 	}
 }
 
 template <typename T>
-inline void SaveInterfaceAddress(const T* Interface, T*& InterfaceBackup)
+inline void SaveInterfaceAddress(const T* Interface)
 {
 	T* NewInterface = const_cast<T*>(Interface);
-	SaveInterfaceAddress(NewInterface, InterfaceBackup);
+	SaveInterfaceAddress(NewInterface);
 }
 
 template <typename T, typename S, typename X>
-inline T* GetInterfaceAddress(T*& Interface, T*& InterfaceBackup, S* ProxyInterface, X* InterfaceX)
+inline T* GetInterfaceAddress(T*& Interface, S* ProxyInterface, X* InterfaceX)
 {
 	if (!Interface)
 	{
-		if (InterfaceBackup)
+		T* NewInterface = InterfaceAddressCache<T>(nullptr);
+		if (NewInterface)
 		{
-			Interface = InterfaceBackup;
-			InterfaceBackup = nullptr;
+			Interface = NewInterface;
 			Interface->SetProxy(InterfaceX);
 		}
 		else

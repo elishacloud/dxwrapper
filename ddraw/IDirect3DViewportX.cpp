@@ -16,12 +16,6 @@
 
 #include "ddraw.h"
 
-namespace {
-	m_IDirect3DViewport* WrapperInterfaceBackup = nullptr;
-	m_IDirect3DViewport2* WrapperInterfaceBackup2 = nullptr;
-	m_IDirect3DViewport3* WrapperInterfaceBackup3 = nullptr;
-}
-
 // ******************************
 // IUnknown functions
 // ******************************
@@ -756,9 +750,9 @@ void m_IDirect3DViewportX::ReleaseInterface()
 	}
 
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
-	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
-	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
+	SaveInterfaceAddress(WrapperInterface);
+	SaveInterfaceAddress(WrapperInterface2);
+	SaveInterfaceAddress(WrapperInterface3);
 
 	for (auto& entry : AttachedD3DDevices)
 	{
@@ -776,11 +770,11 @@ void* m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DVIEWPORT)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface, (LPDIRECT3DVIEWPORT)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3DVIEWPORT2)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface2, (LPDIRECT3DVIEWPORT2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECT3DVIEWPORT3)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface3, (LPDIRECT3DVIEWPORT3)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;

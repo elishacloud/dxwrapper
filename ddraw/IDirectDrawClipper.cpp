@@ -18,10 +18,6 @@
 
 #include "ddraw.h"
 
-namespace {
-	m_IDirectDrawClipper* WrapperInterfaceBackup = nullptr;
-}
-
 // ******************************
 // IUnknown functions
 // ******************************
@@ -81,7 +77,7 @@ ULONG m_IDirectDrawClipper::Release()
 
 		if (ref == 0)
 		{
-			SaveInterfaceAddress(this, WrapperInterfaceBackup);
+			SaveInterfaceAddress(this);
 		}
 
 		return ref;
@@ -91,7 +87,7 @@ ULONG m_IDirectDrawClipper::Release()
 
 	if (ref == 0)
 	{
-		SaveInterfaceAddress(this, WrapperInterfaceBackup);
+		SaveInterfaceAddress(this);
 	}
 
 	return ref;
@@ -362,11 +358,9 @@ void m_IDirectDrawClipper::ReleaseInterface()
 
 m_IDirectDrawClipper* m_IDirectDrawClipper::CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags)
 {
-	m_IDirectDrawClipper* Interface = nullptr;
-	if (WrapperInterfaceBackup)
+	m_IDirectDrawClipper* Interface = InterfaceAddressCache<m_IDirectDrawClipper>(nullptr);
+	if (Interface)
 	{
-		Interface = WrapperInterfaceBackup;
-		WrapperInterfaceBackup = nullptr;
 		Interface->SetProxy(aOriginal, NewParent, dwFlags);
 	}
 	else

@@ -18,10 +18,6 @@
 
 #include "ddraw.h"
 
-namespace {
-	m_IDirectDrawPalette* WrapperInterfaceBackup = nullptr;
-}
-
 // ******************************
 // IUnknown functions
 // ******************************
@@ -100,7 +96,7 @@ ULONG m_IDirectDrawPalette::Release()
 
 		if (ref == 0)
 		{
-			SaveInterfaceAddress(this, WrapperInterfaceBackup);
+			SaveInterfaceAddress(this);
 		}
 
 		return ref;
@@ -110,7 +106,7 @@ ULONG m_IDirectDrawPalette::Release()
 
 	if (ref == 0)
 	{
-		SaveInterfaceAddress(this, WrapperInterfaceBackup);
+		SaveInterfaceAddress(this);
 	}
 
 	return ref;
@@ -390,11 +386,9 @@ void m_IDirectDrawPalette::ReleaseInterface()
 
 m_IDirectDrawPalette* m_IDirectDrawPalette::CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
 {
-	m_IDirectDrawPalette* Interface = nullptr;
-	if (WrapperInterfaceBackup)
+	m_IDirectDrawPalette* Interface = InterfaceAddressCache<m_IDirectDrawPalette>(nullptr);
+	if (Interface)
 	{
-		Interface = WrapperInterfaceBackup;
-		WrapperInterfaceBackup = nullptr;
 		Interface->SetProxy(aOriginal, NewParent, dwFlags, lpDDColorArray);
 	}
 	else

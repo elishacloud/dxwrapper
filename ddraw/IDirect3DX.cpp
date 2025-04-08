@@ -23,11 +23,6 @@ namespace {
 	char D3DIm700Path[MAX_PATH] = { '\0' };
 	HMODULE hD3DIm = nullptr;
 	HMODULE hD3DIm700 = nullptr;
-
-	m_IDirect3D* WrapperInterfaceBackup = nullptr;
-	m_IDirect3D2* WrapperInterfaceBackup2 = nullptr;
-	m_IDirect3D3* WrapperInterfaceBackup3 = nullptr;
-	m_IDirect3D7* WrapperInterfaceBackup7 = nullptr;
 }
 
 // ******************************
@@ -933,10 +928,10 @@ void m_IDirect3DX::ReleaseInterface()
 	}
 
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
-	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
-	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
-	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
+	SaveInterfaceAddress(WrapperInterface);
+	SaveInterfaceAddress(WrapperInterface2);
+	SaveInterfaceAddress(WrapperInterface3);
+	SaveInterfaceAddress(WrapperInterface7);
 
 	// Release Light
 	for (auto& entry : LightList)
@@ -974,13 +969,13 @@ void* m_IDirect3DX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3D)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface, (LPDIRECT3D)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3D2)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface2, (LPDIRECT3D2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECT3D3)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface3, (LPDIRECT3D3)ProxyInterface, this);
 	case 7:
-		return GetInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7, (LPDIRECT3D7)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface7, (LPDIRECT3D7)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;

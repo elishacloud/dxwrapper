@@ -16,10 +16,6 @@
 
 #include "ddraw.h"
 
-namespace {
-	m_IDirectDrawGammaControl* WrapperInterfaceBackup = nullptr;
-}
-
 // ******************************
 // IUnknown functions
 // ******************************
@@ -98,7 +94,7 @@ ULONG m_IDirectDrawGammaControl::Release()
 
 		if (ref == 0)
 		{
-			SaveInterfaceAddress(this, WrapperInterfaceBackup);
+			SaveInterfaceAddress(this);
 		}
 
 		return ref;
@@ -108,7 +104,7 @@ ULONG m_IDirectDrawGammaControl::Release()
 
 	if (ref == 0)
 	{
-		SaveInterfaceAddress(this, WrapperInterfaceBackup);
+		SaveInterfaceAddress(this);
 	}
 
 	return ref;
@@ -203,11 +199,9 @@ void m_IDirectDrawGammaControl::ReleaseInterface()
 
 m_IDirectDrawGammaControl* m_IDirectDrawGammaControl::CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent)
 {
-	m_IDirectDrawGammaControl* Interface = nullptr;
-	if (WrapperInterfaceBackup)
+	m_IDirectDrawGammaControl* Interface = InterfaceAddressCache<m_IDirectDrawGammaControl>(nullptr);
+	if (Interface)
 	{
-		Interface = WrapperInterfaceBackup;
-		WrapperInterfaceBackup = nullptr;
 		Interface->SetProxy(aOriginal, NewParent);
 	}
 	else

@@ -17,13 +17,6 @@
 #include "ddraw.h"
 #include "d3d9\d3d9External.h"
 
-namespace {
-	m_IDirect3DDevice* WrapperInterfaceBackup = nullptr;
-	m_IDirect3DDevice2* WrapperInterfaceBackup2 = nullptr;
-	m_IDirect3DDevice3* WrapperInterfaceBackup3 = nullptr;
-	m_IDirect3DDevice7* WrapperInterfaceBackup7 = nullptr;
-}
-
 // ******************************
 // IUnknown functions
 // ******************************
@@ -4520,10 +4513,10 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 	}
 
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
-	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
-	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
-	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
+	SaveInterfaceAddress(WrapperInterface);
+	SaveInterfaceAddress(WrapperInterface2);
+	SaveInterfaceAddress(WrapperInterface3);
+	SaveInterfaceAddress(WrapperInterface7);
 
 	// Clear ExecuteBuffers
 	for (auto& entry : ExecuteBufferList)
@@ -4581,13 +4574,13 @@ void* m_IDirect3DDeviceX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DDEVICE)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface, (LPDIRECT3DDEVICE)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3DDEVICE2)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface2, (LPDIRECT3DDEVICE2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECT3DDEVICE3)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface3, (LPDIRECT3DDEVICE3)ProxyInterface, this);
 	case 7:
-		return GetInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7, (LPDIRECT3DDEVICE7)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface7, (LPDIRECT3DDEVICE7)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;

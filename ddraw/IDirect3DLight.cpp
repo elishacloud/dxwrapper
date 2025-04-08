@@ -16,10 +16,6 @@
 
 #include "ddraw.h"
 
-namespace {
-	m_IDirect3DLight* WrapperInterfaceBackup = nullptr;
-}
-
 // ******************************
 // IUnknown functions
 // ******************************
@@ -98,7 +94,7 @@ ULONG m_IDirect3DLight::Release()
 
 		if (ref == 0)
 		{
-			SaveInterfaceAddress(this, WrapperInterfaceBackup);
+			SaveInterfaceAddress(this);
 		}
 
 		return ref;
@@ -108,7 +104,7 @@ ULONG m_IDirect3DLight::Release()
 
 	if (ref == 0)
 	{
-		SaveInterfaceAddress(this, WrapperInterfaceBackup);
+		SaveInterfaceAddress(this);
 	}
 
 	return ref;
@@ -299,11 +295,9 @@ void m_IDirect3DLight::ReleaseInterface()
 
 m_IDirect3DLight* m_IDirect3DLight::CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface)
 {
-	m_IDirect3DLight* Interface = nullptr;
-	if (WrapperInterfaceBackup)
+	m_IDirect3DLight* Interface = InterfaceAddressCache<m_IDirect3DLight>(nullptr);
+	if (Interface)
 	{
-		Interface = WrapperInterfaceBackup;
-		WrapperInterfaceBackup = nullptr;
 		Interface->SetProxy(aOriginal, NewD3DInterface);
 	}
 	else

@@ -105,12 +105,6 @@ namespace {
 	DWORD FocusWindowThreadID = 0;
 
 	std::unordered_map<HWND, m_IDirectDrawX*> g_hookmap;
-
-	m_IDirectDraw* WrapperInterfaceBackup = nullptr;
-	m_IDirectDraw2* WrapperInterfaceBackup2 = nullptr;
-	m_IDirectDraw3* WrapperInterfaceBackup3 = nullptr;
-	m_IDirectDraw4* WrapperInterfaceBackup4 = nullptr;
-	m_IDirectDraw7* WrapperInterfaceBackup7 = nullptr;
 }
 
 // ******************************
@@ -2499,11 +2493,11 @@ void m_IDirectDrawX::ReleaseInterface()
 	ScopedDDCriticalSection ThreadLockDD;
 
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
-	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
-	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
-	SaveInterfaceAddress(WrapperInterface4, WrapperInterfaceBackup4);
-	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
+	SaveInterfaceAddress(WrapperInterface);
+	SaveInterfaceAddress(WrapperInterface2);
+	SaveInterfaceAddress(WrapperInterface3);
+	SaveInterfaceAddress(WrapperInterface4);
+	SaveInterfaceAddress(WrapperInterface7);
 
 	if (g_hook)
 	{
@@ -2690,15 +2684,15 @@ void* m_IDirectDrawX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECTDRAW)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface, (LPDIRECTDRAW)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECTDRAW2)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface2, (LPDIRECTDRAW2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECTDRAW3)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface3, (LPDIRECTDRAW3)ProxyInterface, this);
 	case 4:
-		return GetInterfaceAddress(WrapperInterface4, WrapperInterfaceBackup4, (LPDIRECTDRAW4)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface4, (LPDIRECTDRAW4)ProxyInterface, this);
 	case 7:
-		return GetInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7, (LPDIRECTDRAW7)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface7, (LPDIRECTDRAW7)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;

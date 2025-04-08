@@ -16,11 +16,6 @@
 
 #include "ddraw.h"
 
-namespace {
-	m_IDirect3DTexture* WrapperInterfaceBackup = nullptr;
-	m_IDirect3DTexture2* WrapperInterfaceBackup2 = nullptr;
-}
-
 // ******************************
 // IUnknown functions
 // ******************************
@@ -341,8 +336,8 @@ void m_IDirect3DTextureX::ReleaseInterface()
 	ScopedDDCriticalSection ThreadLockDD;
 
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
-	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
+	SaveInterfaceAddress(WrapperInterface);
+	SaveInterfaceAddress(WrapperInterface2);
 
 	if (tHandle && parent3DSurface.Interface)
 	{
@@ -363,9 +358,9 @@ void* m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DTEXTURE)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface, (LPDIRECT3DTEXTURE)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3DTEXTURE2)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface2, (LPDIRECT3DTEXTURE2)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;
