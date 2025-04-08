@@ -3325,8 +3325,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				{
 					Utils::SetDisplaySettings(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
 
-					SetWindowPos(hWnd, ((GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP),
-						0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_NOZORDER | SWP_NOMOVE);
+					AdjustWindow(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight, true, true, true);
 				}
 
 				hr = d3d9Device->Reset(&presParams);
@@ -3374,8 +3373,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			{
 				Utils::SetDisplaySettings(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
 
-				SetWindowPos(hWnd, ((GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP),
-					0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_NOZORDER | SWP_NOMOVE);
+				AdjustWindow(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight, true, true, true);
 			}
 			// Attempt to create a device
 			hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
