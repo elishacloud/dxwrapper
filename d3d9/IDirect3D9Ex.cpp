@@ -799,7 +799,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 	if ((lStyle & WS_POPUP) && (lStyle & WS_CLIPCHILDREN))
 	{
 		SetWindowLong(MainhWnd, GWL_STYLE, lStyle & ~WS_CLIPCHILDREN);
-		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 	}
 
 	// Set window active and focus
@@ -869,7 +869,7 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 
 		// Set new border
 		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-		SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP), 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 	}
 
 	// Get new window rect

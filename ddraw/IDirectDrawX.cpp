@@ -1509,9 +1509,13 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 			{
 				ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
 			}
+
+			// Force a redraw of the desktop
+			RedrawWindow(nullptr, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 		}
 
 		// Reset mode
+		FullScreenWindowed = false;
 		DisplayMode.Width = 0;
 		DisplayMode.Height = 0;
 		DisplayMode.BPP = 0;
@@ -1668,6 +1672,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			}
 		}
 
+		// Redraw display window
+		if (IsWindow(DisplayMode.hWnd))
+		{
+			RedrawWindow(DisplayMode.hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+		}
+
 		return DD_OK;
 	}
 
@@ -1742,7 +1752,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 			// Removing WS_CAPTION
 			SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_CAPTION);
-			SetWindowPos(hWnd, ((GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP), 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 		}
 	}
 
@@ -1860,6 +1870,12 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 
 			// Reset all surfaces
 			ResetAllSurfaceDisplay();
+		}
+
+		// Redraw display window
+		if (IsWindow(DisplayMode.hWnd))
+		{
+			RedrawWindow(DisplayMode.hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 		}
 
 		return DD_OK;
@@ -2641,6 +2657,12 @@ void m_IDirectDrawX::ReleaseInterface()
 			DisplayMode.hWnd = nullptr;
 		}
 
+		// Force a redraw of the desktop
+		if (ExclusiveMode || FullScreenWindowed || Config.FullscreenWindowMode)
+		{
+			RedrawWindow(nullptr, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+		}
+
 		// Clean up shared memory
 		m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory();
 
@@ -3210,6 +3232,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				}
 				BackBufferWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 				BackBufferHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+				FullScreenWindowed = false;
 			}
 		}
 
