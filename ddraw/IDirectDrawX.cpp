@@ -1559,6 +1559,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Flags not supported. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 		}
 
+		bool WasDeviceCreated = false;
 		HWND LasthWnd = DisplayMode.hWnd;
 		bool LastFPUPreserve = Device.FPUPreserve;
 		bool LastWindowed = Device.IsWindowed;
@@ -1660,6 +1661,8 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 				{
 					ScopedDDCriticalSection ThreadLockDD;
 
+					WasDeviceCreated = true;
+
 					CreateD9Device(__FUNCTION__);
 				}
 				// Initialize the message queue when delaying device creation
@@ -1673,7 +1676,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		}
 
 		// Redraw display window
-		if (IsWindow(DisplayMode.hWnd))
+		if (!WasDeviceCreated && IsWindow(DisplayMode.hWnd))
 		{
 			RedrawWindow(DisplayMode.hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 		}
@@ -1771,6 +1774,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			return DDERR_INVALIDPARAMS;
 		}
 
+		bool WasDeviceCreated = false;
 		DWORD LastWidth = Device.Width;
 		DWORD LastHeight = Device.Height;
 		DWORD LastBPP = DisplayMode.BPP;
@@ -1861,7 +1865,8 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		{
 			ScopedDDCriticalSection ThreadLockDD;
 
-			// Reset d3d9 device
+			WasDeviceCreated = true;
+
 			CreateD9Device(__FUNCTION__);
 		}
 		else if (LastBPP != DisplayMode.BPP)
@@ -1873,7 +1878,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		}
 
 		// Redraw display window
-		if (IsWindow(DisplayMode.hWnd))
+		if (!WasDeviceCreated && IsWindow(DisplayMode.hWnd))
 		{
 			RedrawWindow(DisplayMode.hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 		}
@@ -3372,12 +3377,24 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
 		}
 
+		struct SetWindowFullScreen {
+			static void FullScreen(HWND hWnd, DWORD Width, DWORD Height)
+			{
+				Utils::SetDisplaySettings(hWnd, Width, Height);
+
+				LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
+
+				AdjustWindow(hWnd, Width, Height, true, false, true);
+
+				SetWindowLong(hWnd, GWL_STYLE, lStyle & ~(WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | WS_THICKFRAME));
+				SetWindowPos(hWnd, HWND_TOP, 0, 0, Width, Height, SWP_FRAMECHANGED | SWP_NOZORDER);
+			}
+		};
+
 		// Prepare window and display size
 		if ((!presParams.Windowed || FullScreenWindowed) && !Config.EnableWindowMode)
 		{
-			Utils::SetDisplaySettings(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
-
-			AdjustWindow(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight, true, true, true);
+			SetWindowFullScreen::FullScreen(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
 		}
 
 		// Create d3d9 Device
@@ -3402,15 +3419,14 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: Creating exclusive Direct3D9 device in fullscreen window mode! " <<
 					presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz);
+				FullScreenWindowed = true;
 				presParams.Windowed = TRUE;
 				presParams.BackBufferFormat = D3DFMT_UNKNOWN;
 				presParams.FullScreen_RefreshRateInHz = 0;
 				hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 				if (SUCCEEDED(hr))
 				{
-					Utils::SetDisplaySettings(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
-
-					AdjustWindow(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight, true, true, true);
+					SetWindowFullScreen::FullScreen(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
 				}
 			}
 		}

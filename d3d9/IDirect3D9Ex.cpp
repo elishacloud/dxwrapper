@@ -903,13 +903,14 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 		wndpl.length = sizeof(WINDOWPLACEMENT);
 		if (GetWindowPlacement(MainhWnd, &wndpl))
 		{
+			wndpl.showCmd = wndpl.showCmd == SW_MAXIMIZE ? SW_MAXIMIZE : SW_NORMAL;
 			wndpl.rcNormalPosition = { xLoc, yLoc, Rect.right + xLoc, Rect.bottom + yLoc };
 			SetWindowPlacement(MainhWnd, &wndpl);
 		}
 		// Use SetWindowPos to center and adjust size
 		else
 		{
-			SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP), xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER);
+			SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER);
 		}
 	}
 }
