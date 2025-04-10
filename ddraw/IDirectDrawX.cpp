@@ -3386,7 +3386,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 				AdjustWindow(hWnd, Width, Height, true, false, true);
 
-				SetWindowLong(hWnd, GWL_STYLE, lStyle & ~(WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | WS_THICKFRAME));
+				SetWindowLong(hWnd, GWL_STYLE, lStyle & ~(WS_BORDER | WS_THICKFRAME));
 				SetWindowPos(hWnd, HWND_TOP, 0, 0, Width, Height, SWP_FRAMECHANGED | SWP_NOZORDER);
 			}
 		};
