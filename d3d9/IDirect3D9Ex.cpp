@@ -355,13 +355,15 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	}
 
 	// Hook WndProc before creating device
-	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hFocusWindow ? hFocusWindow : pPresentationParameters ? pPresentationParameters->hDeviceWindow : nullptr);
-	if (WndDataStruct && pPresentationParameters)
+	HWND hwnd = (hFocusWindow ? hFocusWindow : pPresentationParameters ? pPresentationParameters->hDeviceWindow : nullptr);
+	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hwnd);
+	if (WndDataStruct)
 	{
 		WndDataStruct->IsDirect3D9 = true;
-		WndDataStruct->IsCreatingDevice = true;
 		WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
 		DeviceDetails.IsDirectDrawDevice = WndDataStruct->IsDirectDraw;
+
+		SendMessage(hwnd, WM_APP_DX_NOTIFY, DX_BEGIN_DEVICE_CREATION, NULL);
 	}
 
 	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
@@ -453,7 +455,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	// Update WndProc after creating device
 	if (WndDataStruct)
 	{
-		WndDataStruct->IsCreatingDevice = false;
+		SendMessage(hwnd, WM_APP_DX_NOTIFY, DX_END_DEVICE_CREATION, NULL);
 	}
 
 	return hr;

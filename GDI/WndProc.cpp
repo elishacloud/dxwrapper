@@ -277,7 +277,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	const WNDPROC pWndProc = AppWndProcInstance->GetAppWndProc();
 	const HWND hWndInstance = AppWndProcInstance->GetHWnd();
-	const DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
+	DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
 
 	// Set instance as inactive when window closes
 	if ((Msg == WM_CLOSE || Msg == WM_DESTROY || Msg == WM_NCDESTROY || (Msg == WM_SYSCOMMAND && wParam == SC_CLOSE)) && hWnd == hWndInstance)
@@ -293,6 +293,21 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			((m_IDirectDrawX*)wParam)->CreateD9Device(__FUNCTION__);
 		}
 
+		return NULL;
+	}
+
+	// Handle dxwrapper notifications
+	if (Msg == WM_APP_DX_NOTIFY)
+	{
+		switch (wParam)
+		{
+		case DX_BEGIN_DEVICE_CREATION:
+			pDataStruct->IsCreatingDevice = true;
+			break;
+		case DX_END_DEVICE_CREATION:
+			pDataStruct->IsCreatingDevice = false;
+			break;
+		}
 		return NULL;
 	}
 

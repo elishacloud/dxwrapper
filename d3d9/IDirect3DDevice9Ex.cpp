@@ -172,6 +172,8 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	if (WndDataStruct)
 	{
 		WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
+
+		SendMessage(SHARED.DeviceWindow, WM_APP_DX_NOTIFY, DX_BEGIN_DEVICE_CREATION, NULL);
 	}
 
 	HRESULT hr;
@@ -247,6 +249,11 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 		ClearVars(pPresentationParameters);
 
 		ReInitInterface();
+	}
+
+	if (WndDataStruct)
+	{
+		SendMessage(SHARED.DeviceWindow, WM_APP_DX_NOTIFY, DX_END_DEVICE_CREATION, NULL);
 	}
 
 	return hr;
