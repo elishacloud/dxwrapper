@@ -746,7 +746,7 @@ HRESULT m_IDirect3DDevice9Ex::SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3
 	if (SUCCEEDED(hr))
 	{
 		// Check if this is a texture stage transform
-		if (Config.EnvironmentMapCubeFix)
+		if (Config.EnvironmentCubeMapFix)
 		{
 			CheckTransformForCubeMap(State, pMatrix);
 		}
@@ -1008,8 +1008,8 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 		SHARED.BeginSceneCalled = false;
 
 		// For environment map cube
-		std::fill(std::begin(SHARED.isTextureMapCube), std::end(SHARED.isTextureMapCube), false);
-		std::fill(std::begin(SHARED.isTransformMapCube), std::end(SHARED.isTransformMapCube), false);
+		std::fill(std::begin(SHARED.isTextureCubeMap), std::end(SHARED.isTextureCubeMap), false);
+		std::fill(std::begin(SHARED.isTransformCubeMap), std::end(SHARED.isTransformCubeMap), false);
 		std::fill(std::begin(SHARED.texCoordIndex), std::end(SHARED.texCoordIndex), 0);
 		std::fill(std::begin(SHARED.texTransformFlags), std::end(SHARED.texTransformFlags), 0);
 		SHARED.isBlankTextureUsed = false;
@@ -1469,9 +1469,9 @@ void m_IDirect3DDevice9Ex::ApplyDrawFixes()
 	}
 
 	// Fix environment map cubes
-	if (Config.EnvironmentMapCubeFix)
+	if (Config.EnvironmentCubeMapFix)
 	{
-		SetEnvironmentMapCubeTexture();
+		SetEnvironmentCubeMapTexture();
 	}
 }
 
@@ -1646,6 +1646,15 @@ HRESULT m_IDirect3DDevice9Ex::GetTexture(DWORD Stage, IDirect3DBaseTexture9 **pp
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (Stage == 0 && SHARED.isBlankTextureUsed)
+	{
+		if (ppTexture)
+		{
+			*ppTexture = nullptr;
+		}
+		return D3D_OK;
+	}
+
 	HRESULT hr = ProxyInterface->GetTexture(Stage, ppTexture);
 
 	if (SUCCEEDED(hr) && ppTexture && *ppTexture)
@@ -1716,7 +1725,7 @@ void m_IDirect3DDevice9Ex::CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State,
 			}
 
 			// Store cube map detection result
-			SHARED.isTransformMapCube[stage] = isCubeMap;
+			SHARED.isTransformCubeMap[stage] = isCubeMap;
 		}
 	}
 }
@@ -1735,13 +1744,13 @@ bool m_IDirect3DDevice9Ex::CheckTextureStageForCubeMap() const
 	return false;
 }
 
-void m_IDirect3DDevice9Ex::SetEnvironmentMapCubeTexture()
+void m_IDirect3DDevice9Ex::SetEnvironmentCubeMapTexture()
 {
 	const bool isCubeMap = CheckTextureStageForCubeMap() ||
 		[&]() {
 		for (int i = 0; i < MAX_TEXTURE_STAGES; ++i)
 		{
-			if (SHARED.isTextureMapCube[i] || SHARED.isTransformMapCube[i])
+			if (SHARED.isTextureCubeMap[i] || SHARED.isTransformCubeMap[i])
 			{
 				return true;
 			}
@@ -1787,6 +1796,11 @@ void m_IDirect3DDevice9Ex::SetEnvironmentMapCubeTexture()
 		SHARED.isBlankTextureUsed = true;
 		ProxyInterface->SetTexture(0, SHARED.BlankTexture);
 	}
+	else if (!isCubeMap && SHARED.isBlankTextureUsed)
+	{
+		SHARED.isBlankTextureUsed = false;
+		ProxyInterface->SetTexture(0, nullptr);
+	}
 }
 
 HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTexture)
@@ -1831,7 +1845,7 @@ HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTe
 	{
 		if (Stage < MAX_TEXTURE_STAGES)
 		{
-			SHARED.isTextureMapCube[Stage] = isTexCube;
+			SHARED.isTextureCubeMap[Stage] = isTexCube;
 		}
 		if (Stage == 0)
 		{

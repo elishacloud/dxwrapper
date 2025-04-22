@@ -68,8 +68,8 @@ struct DEVICEDETAILS
 	IDirect3DStateBlock9* pStateBlock = nullptr;
 
 	// For environment map cube
-	bool isTextureMapCube[MAX_TEXTURE_STAGES] = {};
-	bool isTransformMapCube[MAX_TEXTURE_STAGES] = {};
+	bool isTextureCubeMap[MAX_TEXTURE_STAGES] = {};
+	bool isTransformCubeMap[MAX_TEXTURE_STAGES] = {};
 	DWORD texCoordIndex[MAX_TEXTURE_STAGES] = {};
 	DWORD texTransformFlags[MAX_TEXTURE_STAGES] = {};
 	bool isBlankTextureUsed = false;
@@ -133,7 +133,7 @@ private:
 	// For environment map cube
 	void CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix) const;
 	bool CheckTextureStageForCubeMap() const;
-	void SetEnvironmentMapCubeTexture();
+	void SetEnvironmentCubeMapTexture();
 
 	// For Reset & ResetEx
 	void ReInitInterface() const;

@@ -41,6 +41,7 @@ namespace Settings
 	DWORD AutoFrameSkip = 0;
 	DWORD DdrawOverrideRefreshRate = 0;
 	bool DSoundCtrl = false;
+	bool EnvironmentMapCubeFix = false;
 	bool DDrawCompatExperimental = false;
 	bool DDrawCompat30 = false;
 	bool DDrawCompat31 = false;
@@ -291,6 +292,7 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 	SET_LOCAL_VALUE(AutoFrameSkip);
 	SET_LOCAL_VALUE(DdrawOverrideRefreshRate);
 	SET_LOCAL_VALUE(DSoundCtrl);
+	SET_LOCAL_VALUE(EnvironmentMapCubeFix);
 	SET_LOCAL_VALUE(DDrawCompatExperimental);
 	SET_LOCAL_VALUE(DDrawCompat30);
 	SET_LOCAL_VALUE(DDrawCompat31);
@@ -468,7 +470,6 @@ void Settings::SetDefaultConfigSettings()
 	Config.DsoundHookSystem32 = NOT_EXIST;
 	Config.DdrawResolutionHack = NOT_EXIST;
 	Config.CacheClipPlane = NOT_EXIST;
-	Config.EnvironmentMapCubeFix = NOT_EXIST;
 	Config.WindowModeGammaShader = NOT_EXIST;
 
 	// Other values that may not exist in ini file
@@ -694,6 +695,7 @@ void CONFIG::SetConfig()
 	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || IsSet(D3d9HookSystem32) ||
 		(EnableD3d9Wrapper == NOT_EXIST && (AnisotropicFiltering || AntiAliasing || IsSet(CacheClipPlane) || EnableVSync ||		// For legacy purposes
 			ForceMixedVertexProcessing || ForceSystemMemVertexCache || ForceVsyncMode || EnableWindowMode)));					// For legacy purposes
+	EnvironmentCubeMapFix = EnvironmentCubeMapFix || EnvironmentMapCubeFix;														// For legacy purposes
 
 	// Set ddraw color bit mode
 	DdrawOverrideBitMode = (DdrawOverrideBitMode) ? DdrawOverrideBitMode : (Force32bitColor) ? 32 : (Force16bitColor) ? 16 : 0;
@@ -767,6 +769,5 @@ void CONFIG::SetConfig()
 	// Set unset options
 	DdrawResolutionHack = (DdrawResolutionHack != 0);
 	CacheClipPlane = (CacheClipPlane != 0);
-	EnvironmentMapCubeFix = (EnvironmentMapCubeFix != 0);
 	WindowModeGammaShader = (WindowModeGammaShader != 0);
 }
