@@ -56,6 +56,8 @@ DEFINE_GUID(IID_IWbemLocator,
 DEFINE_GUID(CLSID_WbemLocator,
 	0x4590F811, 0x1D3A, 0x11D0, 0x89, 0x1F, 0x00, 0xAA, 0x00, 0x4B, 0x2E, 0x24);
 
+#define PAGE_READABLE_FLAGS (PAGE_READONLY | PAGE_READWRITE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)
+
 #ifdef _DPI_AWARENESS_CONTEXTS_
 typedef enum PROCESS_DPI_AWARENESS {
 	PROCESS_DPI_UNAWARE = 0,
@@ -75,6 +77,7 @@ typedef BOOL(WINAPI* GetDiskFreeSpaceAProc)(LPCSTR lpRootPathName, LPDWORD lpSec
 typedef BOOL(WINAPI *CreateProcessAFunc)(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
 typedef HANDLE(WINAPI* CreateThreadProc)(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
+typedef HANDLE(WINAPI* CreateFileAProc)(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
 typedef LPVOID(WINAPI* VirtualAllocProc)(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 typedef LPVOID(WINAPI* HeapAllocProc)(HANDLE, DWORD, SIZE_T);
 typedef SIZE_T(WINAPI* HeapSizeProc)(HANDLE, DWORD, LPCVOID);
@@ -111,6 +114,7 @@ namespace Utils
 	INITIALIZE_OUT_WRAPPED_PROC(GetModuleFileNameW, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(CreateThread, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(CreateFileA, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(VirtualAlloc, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(HeapAlloc, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(HeapSize, unused);
@@ -374,6 +378,62 @@ HANDLE WINAPI Utils::kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttribute
 	}
 
 	return CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
+}
+
+HANDLE WINAPI Utils::kernel_CreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
+{
+	Logging::LogDebug() << __FUNCTION__ << " " << lpFileName;
+
+	DEFINE_STATIC_PROC_ADDRESS(CreateFileAProc, CreateFileA, CreateFileA_out);
+
+	if (!CreateFileA)
+	{
+		return nullptr;
+	}
+
+	auto IsPointerReadable = [](LPCVOID ptr) -> bool
+		{
+			MEMORY_BASIC_INFORMATION mbi = {};
+			if (!ptr) return false;
+			if (VirtualQuery(ptr, &mbi, sizeof(mbi)))
+			{
+				return (mbi.State == MEM_COMMIT) && (mbi.Protect & PAGE_READABLE_FLAGS);
+			}
+			return false;
+		};
+
+	auto IsPointerAligned = [](void* ptr, size_t alignment) -> bool
+		{
+			return (reinterpret_cast<uintptr_t>(ptr) % alignment) == 0;
+		};
+
+	auto SafeIsValidSecurityDescriptor = [](PSECURITY_DESCRIPTOR lpSD) -> bool
+		{
+			__try
+			{
+				return IsValidSecurityDescriptor(lpSD) != FALSE;
+			}
+			__except (EXCEPTION_EXECUTE_HANDLER)
+			{
+				return false;
+			}
+		};
+
+	// Check for uninitialized Security Attributes
+	SECURITY_ATTRIBUTES SecurityAttributes = {};
+	if (lpSecurityAttributes &&
+		lpSecurityAttributes->lpSecurityDescriptor &&
+		(reinterpret_cast<uintptr_t>(lpSecurityAttributes->lpSecurityDescriptor) > 0x200000 ||	// Check for high-range garbage pointers
+		!IsPointerAligned(lpSecurityAttributes->lpSecurityDescriptor, sizeof(void*)) ||			// Check if pointer is not byte aligned
+		static_cast<uint32_t>(lpSecurityAttributes->bInheritHandle) > TRUE) &&					// Check if BOOL is not TRUE or FALSE
+		(!IsPointerReadable(lpSecurityAttributes->lpSecurityDescriptor) || !SafeIsValidSecurityDescriptor(lpSecurityAttributes->lpSecurityDescriptor)))
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " Fixing invalid SECURITY_ATTRIBUTES for CreateFileA");
+		SecurityAttributes.nLength = lpSecurityAttributes->nLength;
+		lpSecurityAttributes = &SecurityAttributes;
+	}
+
+	return CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 
 LPVOID WINAPI Utils::kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
