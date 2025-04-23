@@ -3372,7 +3372,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 		// Reset display mode after release when display mode is already setup and there is a primary surface
 		if (IsCurrentDevice && !d3d9Device &&	// Device needs to be recreated
-			presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)))
+			presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)) &&
+			!Config.EnableWindowMode)
 		{
 			Utils::SetDisplaySettings(hWnd, DisplayMode.Width, DisplayMode.Height);
 		}
@@ -3380,14 +3381,21 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		struct SetWindowFullScreen {
 			static void FullScreen(HWND hWnd, DWORD Width, DWORD Height)
 			{
-				Utils::SetDisplaySettings(hWnd, Width, Height);
+				if (Config.FullscreenWindowMode || !Config.EnableWindowMode)
+				{
+					Utils::SetDisplaySettings(hWnd, Width, Height);
 
-				LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
+					LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
 
-				AdjustWindow(hWnd, Width, Height, false, false, true);
+					AdjustWindow(hWnd, Width, Height, false, false, true);
 
-				SetWindowLong(hWnd, GWL_STYLE, lStyle & ~(WS_BORDER | WS_DLGFRAME | WS_THICKFRAME));
-				SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+					SetWindowLong(hWnd, GWL_STYLE, lStyle & ~(WS_BORDER | WS_DLGFRAME | WS_THICKFRAME));
+					SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+				}
+				else
+				{
+					AdjustWindow(hWnd, Width, Height, false, true, false);
+				}
 			}
 		};
 

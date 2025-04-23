@@ -188,7 +188,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, true);
+	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, true);
 
 	bool IsWindowMode = d3dpp.Windowed != FALSE;
 
@@ -198,7 +198,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 		do {
 
 			// Update Present Parameter for Multisample
-			UpdatePresentParameterForMultisample(&d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
+			m_IDirect3D9Ex::UpdatePresentParameterForMultisample(&d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
 
 			// Reset device
 			hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
@@ -211,7 +211,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 
 			// Reset presentation parameters
 			CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-			UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
+			m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
 
 			// Reset device
 			hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
@@ -235,7 +235,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 
 	if (SUCCEEDED(hr))
 	{
-		GetFinalPresentParameter(&d3dpp, SHARED);
+		m_IDirect3D9Ex::GetFinalPresentParameter(&d3dpp, SHARED);
 
 		if (WndDataStruct && WndDataStruct->IsExclusiveMode)
 		{
@@ -353,13 +353,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
+	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
 
 	// Test for Multisample
 	if (SHARED.DeviceMultiSampleFlag)
 	{
 		// Update Present Parameter for Multisample
-		UpdatePresentParameterForMultisample(&d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
+		m_IDirect3D9Ex::UpdatePresentParameterForMultisample(&d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
@@ -368,7 +368,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	if (FAILED(hr))
 	{
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
+		m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);

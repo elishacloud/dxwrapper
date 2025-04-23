@@ -631,7 +631,7 @@ bool m_IDirect3D9Ex::TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD B
 	return false;
 }
 
-DWORD UpdateBehaviorFlags(DWORD BehaviorFlags)
+DWORD m_IDirect3D9Ex::UpdateBehaviorFlags(DWORD BehaviorFlags)
 {
 	if (Config.ForceMixedVertexProcessing || (BehaviorFlags & D3DCREATE_MIXED_VERTEXPROCESSING) ||
 		((BehaviorFlags & D3DCREATE_SOFTWARE_VERTEXPROCESSING) && (BehaviorFlags & D3DCREATE_HARDWARE_VERTEXPROCESSING)))
@@ -653,7 +653,7 @@ DWORD UpdateBehaviorFlags(DWORD BehaviorFlags)
 }
 
 // Update Presentation Parameters
-void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool ForceExclusiveFullscreen, bool SetWindow)
+void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool ForceExclusiveFullscreen, bool SetWindow)
 {
 	if (!pPresentationParameters)
 	{
@@ -754,7 +754,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 	}
 }
 
-void GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails)
+void m_IDirect3D9Ex::GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails)
 {
 	if (pPresentationParameters && (IsWindow(pPresentationParameters->hDeviceWindow) || IsWindow(DeviceDetails.DeviceWindow)))
 	{
@@ -765,7 +765,7 @@ void GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DE
 }
 
 // Set Presentation Parameters for Multisample
-void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality)
+void m_IDirect3D9Ex::UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality)
 {
 	if (!pPresentationParameters)
 	{
@@ -788,7 +788,7 @@ void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationPa
 }
 
 // Adjusting the window position for WindowMode
-void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed, bool EnableWindowMode, bool FullscreenWindowMode)
+void m_IDirect3D9Ex::AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed, bool EnableWindowMode, bool FullscreenWindowMode)
 {
 	if (!IsWindow(MainhWnd) || !displayWidth || !displayHeight)
 	{

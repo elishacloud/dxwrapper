@@ -436,3 +436,8 @@ HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrid
 
 	return hr;
 }
+
+void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed, bool EnableWindowMode, bool FullscreenWindowMode)
+{
+	m_IDirect3D9Ex::AdjustWindow(MainhWnd, displayWidth, displayHeight, isWindowed, EnableWindowMode, FullscreenWindowMode);
+}
