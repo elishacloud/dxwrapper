@@ -61,6 +61,20 @@ namespace DdrawWrapper
 	{
 		ReleasePEThreadLock();
 	}
+
+	struct DDDeviceInfo
+	{
+		GUID guid;
+		std::string name;
+		std::string description;
+
+		bool operator==(const DDDeviceInfo& other) const
+		{
+			return IsEqualGUID(guid, other.guid);
+		}
+	};
+
+	std::vector<DDDeviceInfo> g_DeviceCache;
 }
 
 using namespace DdrawWrapper;
@@ -823,6 +837,47 @@ static void SetAllAppCompatData()
 	return;
 }
 
+static bool FindGUIDByDeviceName(const std::string& deviceName, const std::string& deviceDesc, GUID& outGuid)
+{
+	for (const auto& device : g_DeviceCache)
+	{
+		if (device.name == deviceName && device.description == deviceDesc)
+		{
+			outGuid = device.guid;
+			return true;
+		}
+	}
+	return false;
+}
+
+static BOOL CALLBACK CacheEnumCallbackExA(GUID* lpGUID, LPSTR lpDesc, LPSTR lpName, LPVOID lpContext, HMONITOR hMonitor)
+{
+	UNREFERENCED_PARAMETER(lpContext);
+	UNREFERENCED_PARAMETER(hMonitor);
+
+	DDDeviceInfo info = {};
+	if (lpGUID && lpDesc && lpName)
+	{
+		info.guid = *lpGUID;
+		info.description = lpDesc;
+		info.name = lpName;
+
+		// Store new device info or update existing cache
+		auto it = std::find(g_DeviceCache.begin(), g_DeviceCache.end(), info);
+		if (it == g_DeviceCache.end())
+		{
+			g_DeviceCache.push_back(info);
+		}
+		else
+		{
+			it->description = info.description;
+			it->name = info.name;
+		}
+	}
+
+	return DDENUMRET_OK;
+}
+
 static BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
 {
 	UNREFERENCED_PARAMETER(hdcMonitor);
@@ -850,61 +905,6 @@ static BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPR
 	}
 
 	return DDENUMRET_OK;
-}
-
-static bool FindGuidFromRegistryA(const char* matchDeviceName, GUID* outGuid)
-{
-	HKEY hVideoKey = nullptr;
-
-	if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Video", 0, KEY_READ, &hVideoKey) != ERROR_SUCCESS)
-	{
-		return false;
-	}
-
-	auto ReadRegistryStringA = [](HKEY hKey, const char* valueName, std::string& outStr) -> bool
-		{
-			CHAR buffer[256] = {};
-			DWORD size = sizeof(buffer);
-			DWORD type = 0;
-
-			if (RegQueryValueExA(hKey, valueName, nullptr, &type, (LPBYTE)buffer, &size) == ERROR_SUCCESS && type == REG_SZ)
-			{
-				outStr = buffer;
-				return true;
-			}
-			return false;
-		};
-
-	CHAR subKeyName[256];
-	DWORD index = 0;
-	while (RegEnumKeyA(hVideoKey, index++, subKeyName, sizeof(subKeyName)) == ERROR_SUCCESS)
-	{
-		std::string adapterKeyPath = std::string(subKeyName) + "\\0000";
-		HKEY hAdapterKey = nullptr;
-		if (RegOpenKeyExA(hVideoKey, adapterKeyPath.c_str(), 0, KEY_READ, &hAdapterKey) == ERROR_SUCCESS)
-		{
-			std::string regGuid, regDeviceName;
-			if (ReadRegistryStringA(hAdapterKey, "HardwareInformation.Guid", regGuid) &&
-				ReadRegistryStringA(hAdapterKey, "Device Description", regDeviceName))
-			{
-				// Match against device name
-				if (_stricmp(regDeviceName.c_str(), matchDeviceName) == 0)
-				{
-					// Parse string GUID into real GUID struct
-					if (SUCCEEDED(CLSIDFromString(std::wstring(regGuid.begin(), regGuid.end()).c_str(), outGuid)))
-					{
-						RegCloseKey(hAdapterKey);
-						RegCloseKey(hVideoKey);
-						return true;
-					}
-				}
-			}
-			RegCloseKey(hAdapterKey);
-		}
-	}
-
-	RegCloseKey(hVideoKey);
-	return false;
 }
 
 static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
@@ -935,12 +935,16 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 	D3DADAPTER_IDENTIFIER9 Identifier = {};
 	int AdapterCount = (dwFlags & DDENUM_ATTACHEDSECONDARYDEVICES) != DDENUM_ATTACHEDSECONDARYDEVICES ? 0 : (int)d3d9Object->GetAdapterCount();
 
+	bool CacheGUIDs = true;
+	GUID myGUID = {};
+	GUID lastGUID = {};
 	GUID* lpGUID;
 	LPSTR lpDesc, lpName;
 	wchar_t lpwName[32] = { '\0' };
 	wchar_t lpwDesc[128] = { '\0' };
-	HMONITOR hm = nullptr;
+	HMONITOR hMonitor;
 	HRESULT hr = DD_OK;
+
 	for (int x = -1; x < AdapterCount; x++)
 	{
 		if (x == -1)
@@ -948,7 +952,7 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 			lpGUID = nullptr;
 			lpDesc = "Primary Display Driver";
 			lpName = "display";
-			hm = nullptr;
+			hMonitor = nullptr;
 		}
 		else
 		{
@@ -957,21 +961,65 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 				hr = DDERR_UNSUPPORTED;
 				break;
 			}
-			if (!FindGuidFromRegistryA(Identifier.DeviceName, lpGUID))
+
+			// Get GUID
+			lpGUID = &myGUID;
 			{
-				// ToDo: find a way to get the correct device GUID
-				lpGUID = &Identifier.DeviceIdentifier;
+				DEFINE_STATIC_PROC_ADDRESS(DirectDrawEnumerateExAProc, DirectDrawEnumerateExA, DirectDrawEnumerateExA_out);
+
+				if (DirectDrawEnumerateExA && CacheGUIDs)
+				{
+					CacheGUIDs = false;
+
+					DirectDrawEnumerateExA(CacheEnumCallbackExA, nullptr, dwFlags);
+				}
+				if (!FindGUIDByDeviceName(Identifier.DeviceName, Identifier.Description, myGUID))
+				{
+					Logging::Log() << __FUNCTION__ << " Warning: could not get DirectDraw device GUID. Using DeviceIdentifier instead." <<
+						" Desc: " << Identifier.Description << " Name: " << Identifier.DeviceName;
+
+					// Set unique GUID
+					bool ReusingGUID = IsEqualGUID(lastGUID, Identifier.DeviceIdentifier) == TRUE;
+					myGUID = Identifier.DeviceIdentifier;
+					if (ReusingGUID)
+					{
+						myGUID.Data1++;
+					}
+
+					// Get device info
+					DDDeviceInfo info = {};
+					info.guid = myGUID;
+					info.description = Identifier.Description;
+					info.name = Identifier.DeviceName;
+
+					// Store new device info or update existing cache
+					auto it = std::find(g_DeviceCache.begin(), g_DeviceCache.end(), info);
+					if (it == g_DeviceCache.end())
+					{
+						g_DeviceCache.push_back(info);
+					}
+					else
+					{
+						it->description = info.description;
+						it->name = info.name;
+					}
+				}
+				lastGUID = Identifier.DeviceIdentifier;
 			}
+
+			// Get name and description
 			lpDesc = Identifier.Description;
 			lpName = Identifier.DeviceName;
 
+			// Get monitor handle
+			hMonitor = nullptr;
 			if (DDETType == DDET_ENUMCALLBACKEXA || DDETType == DDET_ENUMCALLBACKEXW)
 			{
 				ENUMMONITORS Monitors = {};
 				Monitors.lpName = lpName;
 				Monitors.hm = nullptr;
 				EnumDisplayMonitors(nullptr, nullptr, DispayEnumeratorProc, (LPARAM)&Monitors);
-				hm = Monitors.hm;
+				hMonitor = Monitors.hm;
 			}
 		}
 
@@ -989,10 +1037,10 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 			hr_Callback = LPDDENUMCALLBACKA(lpCallback)(lpGUID, lpDesc, lpName, lpContext);
 			break;
 		case DDET_ENUMCALLBACKEXA:
-			hr_Callback = LPDDENUMCALLBACKEXA(lpCallback)(lpGUID, lpDesc, lpName, lpContext, hm);
+			hr_Callback = LPDDENUMCALLBACKEXA(lpCallback)(lpGUID, lpDesc, lpName, lpContext, hMonitor);
 			break;
 		case DDET_ENUMCALLBACKEXW:
-			hr_Callback = LPDDENUMCALLBACKEXW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext, hm);
+			hr_Callback = LPDDENUMCALLBACKEXW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext, hMonitor);
 			break;
 		case DDET_ENUMCALLBACKW:
 			hr_Callback = LPDDENUMCALLBACKW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext);
