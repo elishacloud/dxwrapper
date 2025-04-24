@@ -209,12 +209,16 @@ void Compat32::InstallDd7to9Hooks(HMODULE hModule)
 		RunOnce = false;
 		Dll::g_currentModule = hModule;
 		auto systemPath(Compat32::getSystemPath());
-		Dll::g_origDDrawModule = LoadLibraryW((systemPath / "ddraw.dll").c_str());
+		Dll::g_origDDrawModule = LoadLibraryA("d3d9.dll");	// Just use d3d9 for this
 		auto currentDllPath(Compat32::getModulePath(hModule));
 		Dll::g_localDDModule = LoadLibraryW((currentDllPath.parent_path() / "ddraw.dll").c_str());
 		if (!Dll::g_localDDModule)
 		{
-			Dll::g_localDDModule = Dll::g_origDDrawModule;
+			Dll::g_localDDModule = LoadLibraryA("ddraw.dll");
+		}
+		if (!Dll::g_localDDModule)
+		{
+			Dll::g_localDDModule = Dll::g_currentModule;
 		}
 		Time::init();
 		Compat32::Log() << "Installing memory management hooks";
@@ -287,16 +291,16 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 			return FALSE;
 		}
 
-		Dll::g_localDDModule = LoadLibraryW((currentDllPath.parent_path() / "ddraw.dll").c_str());
-		if (!Dll::g_localDDModule)
-		{
-			Dll::g_localDDModule = Dll::g_origDDrawModule;
-		}
 		Dll::g_origDDrawModule = LoadLibraryW((systemPath / "ddraw.dll").c_str());
 		if (!Dll::g_origDDrawModule)
 		{
 			Compat32::Log() << "ERROR: Failed to load system ddraw.dll from " << systemPath.u8string();
 			return FALSE;
+		}
+		Dll::g_localDDModule = LoadLibraryW((currentDllPath.parent_path() / "ddraw.dll").c_str());
+		if (!Dll::g_localDDModule)
+		{
+			Dll::g_localDDModule = Dll::g_origDDrawModule;
 		}
 
 		Dll::pinModule(Dll::g_origDDrawModule);
