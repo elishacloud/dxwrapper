@@ -456,7 +456,10 @@ HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID 
 
 	if (Config.Dd7to9)
 	{
-		return DirectDrawEnumerateHandler(lpCallback, lpContext, dwFlags, DDET_ENUMCALLBACKEXW);
+		//return DirectDrawEnumerateHandler(lpCallback, lpContext, dwFlags, DDET_ENUMCALLBACKEXW);
+
+		// Just return unsupported to match native DirectDraw
+		return DDERR_UNSUPPORTED;
 	}
 
 	DEFINE_STATIC_PROC_ADDRESS(DirectDrawEnumerateExWProc, DirectDrawEnumerateExW, DirectDrawEnumerateExW_out);
@@ -475,7 +478,10 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 
 	if (Config.Dd7to9)
 	{
-		return DirectDrawEnumerateHandler(lpCallback, lpContext, 0, DDET_ENUMCALLBACKW);
+		//return DirectDrawEnumerateHandler(lpCallback, lpContext, 0, DDET_ENUMCALLBACKW);
+
+		// Just return unsupported to match native DirectDraw
+		return DDERR_UNSUPPORTED;
 	}
 
 	DEFINE_STATIC_PROC_ADDRESS(DirectDrawEnumerateWProc, DirectDrawEnumerateW, DirectDrawEnumerateW_out);
@@ -846,10 +852,63 @@ static BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPR
 	return DDENUMRET_OK;
 }
 
+static bool FindGuidFromRegistryA(const char* matchDeviceName, GUID* outGuid)
+{
+	HKEY hVideoKey = nullptr;
+
+	if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, "SYSTEM\\CurrentControlSet\\Control\\Video", 0, KEY_READ, &hVideoKey) != ERROR_SUCCESS)
+	{
+		return false;
+	}
+
+	auto ReadRegistryStringA = [](HKEY hKey, const char* valueName, std::string& outStr) -> bool
+		{
+			CHAR buffer[256] = {};
+			DWORD size = sizeof(buffer);
+			DWORD type = 0;
+
+			if (RegQueryValueExA(hKey, valueName, nullptr, &type, (LPBYTE)buffer, &size) == ERROR_SUCCESS && type == REG_SZ)
+			{
+				outStr = buffer;
+				return true;
+			}
+			return false;
+		};
+
+	CHAR subKeyName[256];
+	DWORD index = 0;
+	while (RegEnumKeyA(hVideoKey, index++, subKeyName, sizeof(subKeyName)) == ERROR_SUCCESS)
+	{
+		std::string adapterKeyPath = std::string(subKeyName) + "\\0000";
+		HKEY hAdapterKey = nullptr;
+		if (RegOpenKeyExA(hVideoKey, adapterKeyPath.c_str(), 0, KEY_READ, &hAdapterKey) == ERROR_SUCCESS)
+		{
+			std::string regGuid, regDeviceName;
+			if (ReadRegistryStringA(hAdapterKey, "HardwareInformation.Guid", regGuid) &&
+				ReadRegistryStringA(hAdapterKey, "Device Description", regDeviceName))
+			{
+				// Match against device name
+				if (_stricmp(regDeviceName.c_str(), matchDeviceName) == 0)
+				{
+					// Parse string GUID into real GUID struct
+					if (SUCCEEDED(CLSIDFromString(std::wstring(regGuid.begin(), regGuid.end()).c_str(), outGuid)))
+					{
+						RegCloseKey(hAdapterKey);
+						RegCloseKey(hVideoKey);
+						return true;
+					}
+				}
+			}
+			RegCloseKey(hAdapterKey);
+		}
+	}
+
+	RegCloseKey(hVideoKey);
+	return false;
+}
+
 static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
 {
-	UNREFERENCED_PARAMETER(dwFlags);
-
 	if (!lpCallback)
 	{
 		return DDERR_INVALIDPARAMS;
@@ -874,7 +933,7 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 		return DDERR_UNSUPPORTED;
 	}
 	D3DADAPTER_IDENTIFIER9 Identifier = {};
-	int AdapterCount = (!dwFlags) ? 0 : (int)d3d9Object->GetAdapterCount();
+	int AdapterCount = (dwFlags & DDENUM_ATTACHEDSECONDARYDEVICES) != DDENUM_ATTACHEDSECONDARYDEVICES ? 0 : (int)d3d9Object->GetAdapterCount();
 
 	GUID* lpGUID;
 	LPSTR lpDesc, lpName;
@@ -898,7 +957,11 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 				hr = DDERR_UNSUPPORTED;
 				break;
 			}
-			lpGUID = &Identifier.DeviceIdentifier;
+			if (!FindGuidFromRegistryA(Identifier.DeviceName, lpGUID))
+			{
+				// ToDo: find a way to get the correct device GUID
+				lpGUID = &Identifier.DeviceIdentifier;
+			}
 			lpDesc = Identifier.Description;
 			lpName = Identifier.DeviceName;
 

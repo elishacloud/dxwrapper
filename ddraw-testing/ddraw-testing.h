@@ -44,6 +44,10 @@ extern HWND DDhWnd;
 
 extern DirectDrawCreateProc pDirectDrawCreate;
 extern DirectDrawCreateExProc pDirectDrawCreateEx;
+extern DirectDrawEnumerateAProc pDirectDrawEnumerateA;
+extern DirectDrawEnumerateExAProc pDirectDrawEnumerateExA;
+extern DirectDrawEnumerateExWProc pDirectDrawEnumerateExW;
+extern DirectDrawEnumerateWProc pDirectDrawEnumerateW;
 
 template <typename T>
 static UINT GetRefCount(T IUnknownAddr)
@@ -52,6 +56,8 @@ static UINT GetRefCount(T IUnknownAddr)
     IUnknownAddr->Release(); // Undo AddRef
     return ref;
 }
+
+void TestEnumDisplaySettings();
 
 template <typename DDType>
 void TestQueryInterfaces(DDType* pDDraw, IUnknown* pInterface, const char* ParentName, DWORD TestIDBase);

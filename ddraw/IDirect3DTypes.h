@@ -38,6 +38,8 @@ constexpr UINT MAX_LIGHTS = 8;          // Devices can have up to eight lights.
 #define D3DDEVINFOID_TEXTURING         3
 #endif
 
+typedef enum _DX_D3DDEVTYPE { D3DDEVTYPE_TNLHAL = (D3DDEVTYPE)(D3DDEVTYPE_HAL + 0x10) } DX_D3DDEVTYPE;
+
 typedef struct _D3DSTATE7 {
     union {
         D3DTRANSFORMSTATETYPE   dtstTransformStateType;

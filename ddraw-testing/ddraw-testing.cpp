@@ -7,6 +7,10 @@ HWND DDhWnd = nullptr;
 
 DirectDrawCreateProc pDirectDrawCreate = nullptr;
 DirectDrawCreateExProc pDirectDrawCreateEx = nullptr;
+DirectDrawEnumerateAProc pDirectDrawEnumerateA = nullptr;
+DirectDrawEnumerateExAProc pDirectDrawEnumerateExA = nullptr;
+DirectDrawEnumerateExWProc pDirectDrawEnumerateExW = nullptr;
+DirectDrawEnumerateWProc pDirectDrawEnumerateW = nullptr;
 
 template void TestQueryInterfaces<IDirectDraw>(IDirectDraw*, IUnknown*, const char*, DWORD);
 template void TestQueryInterfaces<IDirectDraw2>(IDirectDraw2*, IUnknown*, const char*, DWORD);
@@ -112,6 +116,10 @@ static void RunAllTests()
     }
     pDirectDrawCreate = reinterpret_cast<DirectDrawCreateProc>(GetProcAddress(ddraw_dll, "DirectDrawCreate"));
     pDirectDrawCreateEx = reinterpret_cast<DirectDrawCreateExProc>(GetProcAddress(ddraw_dll, "DirectDrawCreateEx"));
+    pDirectDrawEnumerateA = reinterpret_cast<DirectDrawEnumerateAProc>(GetProcAddress(ddraw_dll, "DirectDrawEnumerateA"));
+    pDirectDrawEnumerateExA = reinterpret_cast<DirectDrawEnumerateExAProc>(GetProcAddress(ddraw_dll, "DirectDrawEnumerateExA"));
+    pDirectDrawEnumerateExW = reinterpret_cast<DirectDrawEnumerateExWProc>(GetProcAddress(ddraw_dll, "DirectDrawEnumerateExW"));
+    pDirectDrawEnumerateW = reinterpret_cast<DirectDrawEnumerateWProc>(GetProcAddress(ddraw_dll, "DirectDrawEnumerateW"));
 
     DDhWnd = CreateTestWindow();
     if (!DDhWnd)
@@ -120,6 +128,7 @@ static void RunAllTests()
         return;
     }
 
+    TestEnumDisplaySettings();
     TestDirectDrawCreate<IDirectDraw>();
     TestDirectDrawCreate<IDirectDraw2>();
     TestDirectDrawCreate<IDirectDraw3>();

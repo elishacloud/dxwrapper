@@ -683,7 +683,7 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 			ZeroMemory(&Caps9, sizeof(D3DCAPS9));
 			Caps9.DeviceType = (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DMMXDevice || riidDevice == IID_IDirect3DRefDevice) ? D3DDEVTYPE_REF :
 				(riidDevice == IID_IDirect3DHALDevice) ? D3DDEVTYPE_HAL :
-				(riidDevice == IID_IDirect3DTnLHalDevice) ? (D3DDEVTYPE)(D3DDEVTYPE_HAL + 0x10) :
+				(riidDevice == IID_IDirect3DTnLHalDevice) ? (D3DDEVTYPE)D3DDEVTYPE_TNLHAL :
 				D3DDEVTYPE_NULLREF;
 
 			ConvertDeviceDesc(Desc7, Caps9);
@@ -818,7 +818,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 			{
 				// Get Device Caps
 				D3DCAPS9 Caps9 = (x == 0) ? entry.REF : entry.HAL;
-				D3DDEVTYPE Type = (x == 0) ? D3DDEVTYPE_REF : (x == 1) ? D3DDEVTYPE_HAL : (D3DDEVTYPE)(D3DDEVTYPE_HAL + 0x10);
+				D3DDEVTYPE Type = (x == 0) ? D3DDEVTYPE_REF : (x == 1) ? D3DDEVTYPE_HAL : (D3DDEVTYPE)D3DDEVTYPE_TNLHAL;
 
 				// Convert device desc
 				D3DDEVICEDESC7 DeviceDesc7;
@@ -847,7 +847,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 					lpDescription = "Microsoft Direct3D Hardware acceleration through Direct3D HAL";
 					break;
 				default:
-				case D3DDEVTYPE_HAL + 0x10:
+				case D3DDEVTYPE_TNLHAL:
 					lpName = "Direct3D T&L HAL";
 					lpDescription = "Microsoft Direct3D Hardware Transform and Lighting acceleration capable device";
 					break;

@@ -130,12 +130,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\External\Logging\Logging.cpp" />
+    <ClCompile Include="EnumDisplaySettings.cpp" />
     <ClCompile Include="IDirect3D.cpp" />
     <ClCompile Include="IDirect3DDevice.cpp" />
     <ClCompile Include="IDirectDraw.cpp" />
     <ClCompile Include="IDirectDrawSurface.cpp" />
-    <ClCompile Include="Logging.cpp" />
     <ClCompile Include="ddraw-testing.cpp" />
+    <ClCompile Include="Logging.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\External\Logging\Logging.h" />
