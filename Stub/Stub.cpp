@@ -42,7 +42,7 @@ void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *)
 }
 
 // Set booloean value from string (file)
-bool IsValueEnabled(char* name)
+static bool IsValueEnabled(char* name)
 {
 	return (atoi(name) > 0 ||
 		_stricmp("on", name) == 0 ||
@@ -52,7 +52,7 @@ bool IsValueEnabled(char* name)
 }
 
 // Set config from string (file)
-void __stdcall ParseCallback(char* name, char* value)
+static void __stdcall ParseCallback(char* name, char* value)
 {
 	if (!_stricmp(name, "StubOnly"))
 	{
@@ -79,7 +79,7 @@ void __stdcall ParseCallback(char* name, char* value)
 	}
 }
 
-inline void GetConfig(HMODULE hModule)
+static void GetConfig(HMODULE hModule)
 {
 	// Get config file path
 	char configname[MAX_PATH];
@@ -98,7 +98,7 @@ inline void GetConfig(HMODULE hModule)
 	}
 }
 
-inline void LoadDxWrapper(HMODULE hModule)
+static void LoadDxWrapper(HMODULE hModule)
 {
 	// Open file and get size
 	char path[MAX_PATH];
@@ -159,21 +159,18 @@ inline void LoadDxWrapper(HMODULE hModule)
 	}
 }
 
-void LoadRealDLL()
+static void LoadRealDLL(const char* RealWrapperMode)
 {
-	// Get wrapper mode
-	const char *RealWrapperMode = Wrapper::GetWrapperName((WrapperMode.size()) ? WrapperMode.c_str() : WrapperName.c_str());
-
 	// Load custom wrapper
-	if (DxSettings.Dd7to9 && _stricmp(RealWrapperMode, "ddraw.dll") == 0)
+	if (DxSettings.Dd7to9 && _stricmp(RealWrapperMode, "ddraw.dll") == S_OK)
 	{
 		DdrawWrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
 	}
-	else if (DxSettings.D3d8to9 && _stricmp(RealWrapperMode, "d3d8.dll") == 0)
+	else if (DxSettings.D3d8to9 && _stricmp(RealWrapperMode, "d3d8.dll") == S_OK)
 	{
 		D3d8Wrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
 	}
-	else if (DxSettings.Dinputto8 && _stricmp(RealWrapperMode, "dinput.dll") == 0)
+	else if (DxSettings.Dinputto8 && _stricmp(RealWrapperMode, "dinput.dll") == S_OK)
 	{
 		DinputWrapper::Start((RealDllPath.size()) ? RealDllPath.c_str() : nullptr);
 	}
@@ -196,14 +193,30 @@ bool APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Get config settings
 		GetConfig(hModule);
 
+		// Get wrapper mode
+		const char* RealWrapperMode = Wrapper::GetWrapperName((WrapperMode.size()) ? WrapperMode.c_str() : WrapperName.c_str());
+
+		// Load required dlls before loading dxwrapper
+		bool IsRealDllLoaded = false;
+		if (_stricmp(RealWrapperMode, "ddraw.dll") != S_OK &&
+			_stricmp(RealWrapperMode, "d3d8.dll") != S_OK &&
+			_stricmp(RealWrapperMode, "dinput.dll") != S_OK)
+		{
+			IsRealDllLoaded = true;
+			LoadRealDLL(RealWrapperMode);
+		}
+
 		// Load DxWrapper
 		if (!StubOnly)
 		{
 			LoadDxWrapper(hModule);
 		}
 
-		// Load the real dll after loading dxwrapper
-		LoadRealDLL();
+		// Load other dlls after loading dxwrapper
+		if (!IsRealDllLoaded)
+		{
+			LoadRealDLL(RealWrapperMode);
+		}
 	}
 	break;
 	case DLL_PROCESS_DETACH:
