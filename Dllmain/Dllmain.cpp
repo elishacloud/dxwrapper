@@ -494,8 +494,14 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 					using namespace ddraw;
 					using namespace DDrawCompat;
 					DDrawCompat::Prepare();
-					VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
-					VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
+					if (Config.DDrawCompat32)
+					{
+						VISIT_DOCUMENTED_DDRAW_PROCS(SHIM_WRAPPED_PROC);
+					}
+					else
+					{
+						VISIT_BASIC_DDRAW_PROCS(SHIM_WRAPPED_PROC);
+					}
 					DDrawCompat::Start(hModule_dll, fdwReason);
 				}
 #endif // DDRAWCOMPAT

@@ -45,7 +45,6 @@
 	visit(SetAppCompatData)
 
 #define VISIT_DOCUMENTED_DDRAW_PROCS(visit) \
-	visit(D3DParseUnknownCommand, unused) \
 	visit(DirectDrawCreate, unused) \
 	visit(DirectDrawCreateEx, unused) \
 	visit(DirectDrawCreateClipper, unused) \
@@ -53,7 +52,11 @@
 	visit(DirectDrawEnumerateExA, unused) \
 	visit(DirectDrawEnumerateExW, unused) \
 	visit(DirectDrawEnumerateW, unused) \
-	visit(DllCanUnloadNow, unused) \
+	visit(DllGetClassObject, unused)
+
+#define VISIT_BASIC_DDRAW_PROCS(visit) \
+	visit(DirectDrawCreate, unused) \
+	visit(DirectDrawCreateEx, unused) \
 	visit(DllGetClassObject, unused)
 
 #undef VISIT_MODIFIED_DDRAW_PROCS

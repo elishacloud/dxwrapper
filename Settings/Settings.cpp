@@ -686,8 +686,18 @@ void CONFIG::SetConfig()
 	Dinputto8 = (Dinputto8 || IsSet(Dinput8HookSystem32));
 	EnableDinput8Wrapper = (EnableDinput8Wrapper || IsSet(Dinput8HookSystem32));
 
-	DDrawCompat32 = (DDrawCompat30 || DDrawCompat31 || DDrawCompat32 || DDrawCompatExperimental);
+	DDrawCompat32 = (DDrawCompat30 || DDrawCompat31 || DDrawCompat32 || DDrawCompatExperimental ||
+		(DDrawCompat && !DDrawCompat20 && !DDrawCompat21));
 	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompat32);
+	if (DDrawCompat32)
+	{
+		DDrawCompat20 = false;
+		DDrawCompat21 = false;
+	}
+	else if (DDrawCompat21)
+	{
+		DDrawCompat20 = false;
+	}
 	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || IsSet(DdrawResolutionHack) || Dd7to9);
 	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
 	DdrawAutoFrameSkip = (AutoFrameSkip || DdrawAutoFrameSkip);																	// For legacy purposes
