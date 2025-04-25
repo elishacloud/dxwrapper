@@ -663,7 +663,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Unload and Unhook DDrawCompat
 		if (DDrawCompat::IsEnabled())
 		{
-			DDrawCompat::Start(nullptr, fdwReason);
+			DDrawCompat::Start(hModule, fdwReason);
 		}
 #endif // DDRAWCOMPAT
 
@@ -678,7 +678,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Unload and Unhook DDrawCompat
 		if (DDrawCompat::IsEnabled())
 		{
-			DDrawCompat::Start(nullptr, fdwReason);
+			DDrawCompat::Start(hModule, fdwReason);
 		}
 #endif // DDRAWCOMPAT
 
@@ -726,7 +726,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Unload and Unhook DDrawCompat
 		if (DDrawCompat::IsEnabled())
 		{
-			DDrawCompat::Start(nullptr, fdwReason);
+			DDrawCompat::Start(hModule, fdwReason);
 		}
 #endif // DDRAWCOMPAT
 

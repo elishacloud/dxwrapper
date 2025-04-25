@@ -229,16 +229,11 @@ void Compat32::InstallDd7to9Hooks(HMODULE hModule)
 		Win32::Version::installHooks();
 		Compat32::Log() << "Installing display mode hooks";
 		Win32::DisplayMode::installHooks();
-		if (Config.DDrawCompat)
-		{
-			Compat32::Log() << "Installing Direct3D driver hooks";
-			D3dDdi::installHooks();
-		}
 		Compat32::Log() << "Installing registry hooks";
 		Win32::Registry::installHooks();
 		Compat32::Log() << "Installing Win32 hooks";
 		Win32::WaitFunctions::installHooks();
-		if (Config.DDrawCompat && !Config.DDrawCompatDisableGDIHook)
+		if (!Config.DDrawCompatDisableGDIHook)
 		{
 			Compat32::Log() << "Installing GDI hooks";
 			Gdi::installHooks();

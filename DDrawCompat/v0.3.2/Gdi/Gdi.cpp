@@ -14,6 +14,7 @@
 #include <DDrawCompat/v0.3.2/Gdi/ScrollFunctions.h>
 #include <DDrawCompat/v0.3.2/Gdi/User32WndProcs.h>
 #include <DDrawCompat/v0.3.2/Gdi/WinProc.h>
+#include "Settings\Settings.h"
 
 namespace
 {
@@ -41,13 +42,22 @@ namespace Gdi
 	{
 		DisableProcessWindowsGhosting();
 
-		DcFunctions::installHooks();
+		if (!Config.Dd7to9)
+		{
+			DcFunctions::installHooks();
+		}
 		Icon::installHooks();
 		Metrics::installHooks();
-		Palette::installHooks();
-		PresentationWindow::installHooks();
+		if (!Config.Dd7to9)
+		{
+			Palette::installHooks();
+			PresentationWindow::installHooks();
+		}
 		ScrollFunctions::installHooks();
-		User32WndProcs::installHooks();
+		if (!Config.Dd7to9)
+		{
+			User32WndProcs::installHooks();
+		}
 		Caret::installHooks();
 		Font::installHooks();
 	}
