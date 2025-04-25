@@ -448,6 +448,8 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		}
 
 		DeviceDetails.IsWindowMode = IsWindowMode;
+		DeviceDetails.Adapter = Adapter;
+		DeviceDetails.DeviceType = DeviceType;
 
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 	}
@@ -616,7 +618,7 @@ bool m_IDirect3D9Ex::TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD B
 		{
 			// Get display modes here
 			ZeroMemory(&d3ddispmode, sizeof(D3DDISPLAYMODE));
-			if (FAILED(ProxyInterface->EnumAdapterModes(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8, i, &d3ddispmode)))
+			if (FAILED(ProxyInterface->EnumAdapterModes(Adapter, D3DFMT_X8R8G8B8, i, &d3ddispmode)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: EnumAdapterModes failed");
 				break;

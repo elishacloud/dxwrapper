@@ -182,7 +182,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	bool ForceFullscreen = false;
 	if (m_pD3DEx)
 	{
-		ForceFullscreen = m_pD3DEx->TestResolution(D3DADAPTER_DEFAULT, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
+		ForceFullscreen = m_pD3DEx->TestResolution(SHARED.Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
 	}
 
 	// Setup presentation parameters
@@ -347,7 +347,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	bool ForceFullscreen = false;
 	if (m_pD3DEx)
 	{
-		ForceFullscreen = m_pD3DEx->TestResolution(D3DADAPTER_DEFAULT, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
+		ForceFullscreen = m_pD3DEx->TestResolution(SHARED.Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
 	}
 
 	// Setup presentation parameters

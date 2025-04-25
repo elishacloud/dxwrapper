@@ -19,6 +19,8 @@ struct DEVICEDETAILS
 	// Window handle and size
 	bool IsWindowMode = false;
 	bool IsDirectDrawDevice = false;
+	UINT Adapter = D3DADAPTER_DEFAULT;
+	D3DDEVTYPE DeviceType = D3DDEVTYPE_HAL;
 	HWND DeviceWindow = nullptr;
 	LONG BufferWidth = 0, BufferHeight = 0;
 	LONG screenWidth = 0, screenHeight = 0;
@@ -159,7 +161,7 @@ public:
 
 		// Check for SSAA
 		if (SHARED.DeviceMultiSampleType && m_pD3DEx &&
-			m_pD3DEx->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
+			m_pD3DEx->CheckDeviceFormat(SHARED.Adapter, SHARED.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
 		{
 			SHARED.SetSSAA = true;
 		}

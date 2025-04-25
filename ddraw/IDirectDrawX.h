@@ -21,6 +21,7 @@ private:
 	// Cached DirectDraw flags
 	const bool IsUsingEx = false;
 	bool Using3D = false;
+	const UINT AdapterIndex = D3DADAPTER_DEFAULT;
 
 	// Fix exclusive mode issue
 	HHOOK g_hook = nullptr;
@@ -136,7 +137,7 @@ public:
 
 		InitInterface(DirectXVersion);
 	}
-	m_IDirectDrawX(DWORD DirectXVersion, bool IsEx) : IsUsingEx(IsEx)
+	m_IDirectDrawX(DWORD DirectXVersion, UINT Adapter, bool IsEx) : AdapterIndex(Adapter), IsUsingEx(IsEx)
 	{
 		ProxyDirectXVersion = 9;
 
@@ -213,6 +214,7 @@ public:
 	bool IsInScene();
 
 	// Direct3D9 interfaces
+	UINT GetAdapterIndex() const { return AdapterIndex; }
 	bool CheckD9Device(char* FunctionName);
 	LPDIRECT3D9 GetDirectD9Object();
 	LPDIRECT3DDEVICE9 *GetDirectD9Device();

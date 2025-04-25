@@ -33,6 +33,8 @@ AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<
 void AcquirePEThreadLock();
 void ReleasePEThreadLock();
 
+UINT GetAdapterIndex(GUID FAR* lpGUID);
+
 namespace DdrawWrapper
 {
 	VISIT_PROCS_DDRAW(INITIALIZE_OUT_WRAPPED_PROC);
@@ -67,6 +69,7 @@ namespace DdrawWrapper
 		GUID guid;
 		std::string name;
 		std::string description;
+		UINT AdapterIndex;
 
 		bool operator==(const DDDeviceInfo& other) const
 		{
@@ -291,7 +294,7 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
 
-		m_IDirectDrawX* p_IDirectDrawX = new m_IDirectDrawX(1, false);
+		m_IDirectDrawX* p_IDirectDrawX = new m_IDirectDrawX(1, GetAdapterIndex(lpGUID), false);
 
 		*lplpDD = reinterpret_cast<LPDIRECTDRAW>(p_IDirectDrawX->GetWrapperInterfaceX(1));
 
@@ -389,7 +392,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
 
-		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(7, true);
+		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(7, GetAdapterIndex(lpGUID), true);
 
 		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(7);
 
@@ -837,6 +840,25 @@ static void SetAllAppCompatData()
 	return;
 }
 
+static UINT GetAdapterIndex(GUID* lpGUID)
+{
+	if (!lpGUID)
+	{
+		return D3DADAPTER_DEFAULT;
+	}
+
+	DDDeviceInfo info = {};
+	info.guid = *lpGUID;
+
+	auto it = std::find(g_DeviceCache.begin(), g_DeviceCache.end(), info);
+	if (it != g_DeviceCache.end())
+	{
+		return it->AdapterIndex;
+	}
+
+	return D3DADAPTER_DEFAULT;
+}
+
 static bool FindGUIDByDeviceName(const std::string& deviceName, const std::string& deviceDesc, GUID& outGuid)
 {
 	for (const auto& device : g_DeviceCache)
@@ -848,6 +870,21 @@ static bool FindGUIDByDeviceName(const std::string& deviceName, const std::strin
 		}
 	}
 	return false;
+}
+
+static void StoreDeviceCache(DDDeviceInfo& info)
+{
+	auto it = std::find(g_DeviceCache.begin(), g_DeviceCache.end(), info);
+	if (it == g_DeviceCache.end())
+	{
+		g_DeviceCache.push_back(info);
+	}
+	else
+	{
+		it->description = info.description;
+		it->name = info.name;
+		it->AdapterIndex = info.AdapterIndex;
+	}
 }
 
 static BOOL CALLBACK CacheEnumCallbackExA(GUID* lpGUID, LPSTR lpDesc, LPSTR lpName, LPVOID lpContext, HMONITOR hMonitor)
@@ -862,17 +899,7 @@ static BOOL CALLBACK CacheEnumCallbackExA(GUID* lpGUID, LPSTR lpDesc, LPSTR lpNa
 		info.description = lpDesc;
 		info.name = lpName;
 
-		// Store new device info or update existing cache
-		auto it = std::find(g_DeviceCache.begin(), g_DeviceCache.end(), info);
-		if (it == g_DeviceCache.end())
-		{
-			g_DeviceCache.push_back(info);
-		}
-		else
-		{
-			it->description = info.description;
-			it->name = info.name;
-		}
+		StoreDeviceCache(info);
 	}
 
 	return DDENUMRET_OK;
@@ -945,9 +972,9 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 	HMONITOR hMonitor;
 	HRESULT hr = DD_OK;
 
-	for (int x = -1; x < AdapterCount; x++)
+	for (int Adapter = -1; Adapter < AdapterCount; Adapter++)
 	{
-		if (x == -1)
+		if (Adapter == -1)
 		{
 			lpGUID = nullptr;
 			lpDesc = "Primary Display Driver";
@@ -956,7 +983,7 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 		}
 		else
 		{
-			if (FAILED(d3d9Object->GetAdapterIdentifier(x, 0, &Identifier)))
+			if (FAILED(d3d9Object->GetAdapterIdentifier(Adapter, 0, &Identifier)))
 			{
 				hr = DDERR_UNSUPPORTED;
 				break;
@@ -985,25 +1012,18 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 					{
 						myGUID.Data1++;
 					}
-
-					// Get device info
-					DDDeviceInfo info = {};
-					info.guid = myGUID;
-					info.description = Identifier.Description;
-					info.name = Identifier.DeviceName;
-
-					// Store new device info or update existing cache
-					auto it = std::find(g_DeviceCache.begin(), g_DeviceCache.end(), info);
-					if (it == g_DeviceCache.end())
-					{
-						g_DeviceCache.push_back(info);
-					}
-					else
-					{
-						it->description = info.description;
-						it->name = info.name;
-					}
 				}
+
+				// Get device info
+				DDDeviceInfo info = {};
+				info.guid = myGUID;
+				info.description = Identifier.Description;
+				info.name = Identifier.DeviceName;
+				info.AdapterIndex = Adapter;
+
+				// Store device info or update existing cache
+				StoreDeviceCache(info);
+
 				lastGUID = Identifier.DeviceIdentifier;
 			}
 

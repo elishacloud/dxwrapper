@@ -535,8 +535,8 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			const D3DFORMAT TestFormat = ConvertSurfaceFormat(Format);
 
 			if (IsUnsupportedFormat(TestFormat) ||
-				(FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, TestFormat)) &&
-				FAILED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, GetFailoverFormat(TestFormat)))))
+				(FAILED(d3d9Object->CheckDeviceFormat(AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, TestFormat)) &&
+				FAILED(d3d9Object->CheckDeviceFormat(AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, GetFailoverFormat(TestFormat)))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported pixel format! " << Usage << " " << Resource << " " << Format << "->" << TestFormat << " " << Desc2.ddpfPixelFormat);
 				return DDERR_INVALIDPIXELFORMAT;
@@ -822,14 +822,14 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 			{ (LONG)Config.DdrawCustomWidth, (LONG)Config.DdrawCustomHeight } };
 
 		// Enumerate modes for format XRGB
-		UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D9DisplayFormat);
+		UINT modeCount = d3d9Object->GetAdapterModeCount(AdapterIndex, D9DisplayFormat);
 
 		// Loop through all modes
 		for (UINT i = 0; i < modeCount; i++)
 		{
 			// Get display modes
 			D3DDISPLAYMODE d3ddispmode = {};
-			if (FAILED(d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D9DisplayFormat, i, &d3ddispmode)))
+			if (FAILED(d3d9Object->EnumAdapterModes(AdapterIndex, D9DisplayFormat, i, &d3ddispmode)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: EnumAdapterModes failed");
 				break;
@@ -1151,14 +1151,14 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 		D3DCAPS9 Caps9;
 		if (lpDDDriverCaps)
 		{
-			hr = d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &Caps9);
+			hr = d3d9Object->GetDeviceCaps(AdapterIndex, D3DDEVTYPE_HAL, &Caps9);
 			ConvertCaps(DriverCaps, Caps9);
 			DriverCaps.dwVidMemTotal = dwVidTotal;
 			DriverCaps.dwVidMemFree = dwVidFree;
 		}
 		if (lpDDHELCaps)
 		{
-			hr = d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_REF, &Caps9);
+			hr = d3d9Object->GetDeviceCaps(AdapterIndex, D3DDEVTYPE_REF, &Caps9);
 			ConvertCaps(HELCaps, Caps9);
 			HELCaps.dwVidMemTotal = dwVidTotal;
 			HELCaps.dwVidMemFree = dwVidFree;
@@ -1308,7 +1308,7 @@ HRESULT m_IDirectDrawX::GetFourCCCodes(LPDWORD lpNumCodes, LPDWORD lpCodes)
 			// Test FourCCs that are supported
 			for (D3DFORMAT format : FourCCTypes)
 			{
-				if (!IsUnsupportedFormat(format) && SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, format)))
+				if (!IsUnsupportedFormat(format) && SUCCEEDED(d3d9Object->CheckDeviceFormat(AdapterIndex, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, format)))
 				{
 					FourCCsList.push_back(format);
 				}
@@ -1797,7 +1797,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 				}
 
 				// Enumerate modes for format XRGB
-				UINT modeCount = d3d9Object->GetAdapterModeCount(D3DADAPTER_DEFAULT, D9DisplayFormat);
+				UINT modeCount = d3d9Object->GetAdapterModeCount(AdapterIndex, D9DisplayFormat);
 
 				D3DDISPLAYMODE d3ddispmode;
 				bool modeFound = false;
@@ -1807,7 +1807,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 				{
 					// Get display modes here
 					d3ddispmode = {};
-					if (FAILED(d3d9Object->EnumAdapterModes(D3DADAPTER_DEFAULT, D9DisplayFormat, i, &d3ddispmode)))
+					if (FAILED(d3d9Object->EnumAdapterModes(AdapterIndex, D9DisplayFormat, i, &d3ddispmode)))
 					{
 						LOG_LIMIT(100, __FUNCTION__ << " Error: EnumAdapterModes failed");
 						break;
@@ -2256,7 +2256,7 @@ HRESULT m_IDirectDrawX::GetDeviceIdentifier2(LPDDDEVICEIDENTIFIER2 lpdddi2, DWOR
 
 		D3DADAPTER_IDENTIFIER9 Identifier9;
 
-		HRESULT hr = d3d9Object->GetAdapterIdentifier(D3DADAPTER_DEFAULT, D3DENUM_WHQL_LEVEL, &Identifier9);
+		HRESULT hr = d3d9Object->GetAdapterIdentifier(AdapterIndex, D3DENUM_WHQL_LEVEL, &Identifier9);
 
 		if (FAILED(hr))
 		{
@@ -3057,7 +3057,7 @@ D3DMULTISAMPLE_TYPE m_IDirectDrawX::GetMultiSampleTypeQuality(D3DFORMAT Format, 
 		{
 			D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
 
-			if (SUCCEEDED(d3d9Object->CheckDeviceMultiSampleType(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, Format, presParams.Windowed, Samples, &QualityLevels)))
+			if (SUCCEEDED(d3d9Object->CheckDeviceMultiSampleType(AdapterIndex, D3DDEVTYPE_HAL, Format, presParams.Windowed, Samples, &QualityLevels)))
 			{
 				QualityLevels = (QualityLevels > 0) ? QualityLevels - 1 : 0;
 				return Samples;
@@ -3291,7 +3291,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			DWORD QualityLevels = 0;
 
 			// Check AntiAliasing quality
-			if (SUCCEEDED(d3d9Object->CheckDeviceMultiSampleType(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D9DisplayFormat, presParams.Windowed, D3DMULTISAMPLE_NONMASKABLE, &QualityLevels)))
+			if (SUCCEEDED(d3d9Object->CheckDeviceMultiSampleType(AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, presParams.Windowed, D3DMULTISAMPLE_NONMASKABLE, &QualityLevels)))
 			{
 				presParams.MultiSampleType = D3DMULTISAMPLE_NONMASKABLE;
 				presParams.MultiSampleQuality = QualityLevels ? QualityLevels - 1 : 0;
@@ -3300,7 +3300,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 		// Check device caps for vertex processing support
 		D3DCAPS9 d3dcaps = {};
-		hr = d3d9Object->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &d3dcaps);
+		hr = d3d9Object->GetDeviceCaps(AdapterIndex, D3DDEVTYPE_HAL, &d3dcaps);
 		if (FAILED(hr))
 		{
 			Logging::Log() << __FUNCTION__ << " Failed to get Direct3D9 device caps: " << (DDERR)hr;
@@ -3409,12 +3409,12 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		if (!d3d9Device)
 		{
 			// Attempt to create a device
-			hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+			hr = d3d9Object->CreateDevice(AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 			// If using unsupported refresh rate
 			if (hr == D3DERR_INVALIDCALL && presParams.FullScreen_RefreshRateInHz)
 			{
 				presParams.FullScreen_RefreshRateInHz = 0;
-				hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+				hr = d3d9Object->CreateDevice(AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 				if (SUCCEEDED(hr))
 				{
 					Device.RefreshRate = 0;
@@ -3431,7 +3431,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				presParams.Windowed = TRUE;
 				presParams.BackBufferFormat = D3DFMT_UNKNOWN;
 				presParams.FullScreen_RefreshRateInHz = 0;
-				hr = d3d9Object->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+				hr = d3d9Object->CreateDevice(AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 				if (SUCCEEDED(hr))
 				{
 					SetWindowFullScreen::FullScreen(hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
