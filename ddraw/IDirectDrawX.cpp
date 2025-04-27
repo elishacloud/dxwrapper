@@ -3058,7 +3058,7 @@ DWORD m_IDirectDrawX::GetHwndThreadID()
 	return FocusWindowThreadID;
 }
 
-D3DMULTISAMPLE_TYPE m_IDirectDrawX::GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels)
+D3DMULTISAMPLE_TYPE m_IDirectDrawX::GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels) const
 {
 	if (d3d9Object)
 	{

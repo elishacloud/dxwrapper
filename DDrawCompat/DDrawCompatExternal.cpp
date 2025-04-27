@@ -56,7 +56,7 @@ namespace DDrawCompat
 #endif
 	}
 
-	bool RunStart(HINSTANCE hinstDLL, DWORD fdwReason)
+	static bool RunStart(HINSTANCE hinstDLL, DWORD fdwReason)
 	{
 		// Dd7to9 DDrawCompat version
 		if (Config.Dd7to9)
@@ -78,6 +78,8 @@ namespace DDrawCompat
 #ifdef DDRAWCOMPAT_20
 		START_DDRAWCOMPAT(Compat20);
 #endif
+
+		return false;
 	}
 
 	bool IsDDrawEnabled = false;

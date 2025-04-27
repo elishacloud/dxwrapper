@@ -223,7 +223,7 @@ public:
 	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
 	LPDIRECT3DVERTEXBUFFER9 GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
-	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels);
+	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels) const;
 	HRESULT ResetD9Device();
 	HRESULT CreateD9Device(char* FunctionName);
 	void UpdateVertices(DWORD Width, DWORD Height);
