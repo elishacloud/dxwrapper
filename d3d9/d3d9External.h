@@ -3,6 +3,7 @@
 #define INITGUID
 
 #include <d3d9.h>
+#include "d3d9Shared.h"
 #include "Wrappers\wrapper.h"
 
 // Enable for testing only
@@ -14,24 +15,9 @@ extern DebugOverlay DOverlay;
 LRESULT WINAPI ImGuiWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 #endif
 
-typedef DWORD D3DCOLOR;
-struct __declspec(uuid("81BDCBCA-64D4-426d-AE8D-AD0147F4275C")) IDirect3D9;
-struct __declspec(uuid("02177241-69FC-400C-8FF1-93A44DF6861D")) IDirect3D9Ex;
-
-#define MAX_D3D9ON12_QUEUES        2
-
 // Initial screen resolution
 extern volatile LONG InitWidth;
 extern volatile LONG InitHeight;
-
-typedef struct _D3D9ON12_ARGS
-{
-	BOOL Enable9On12;
-	IUnknown* pD3D12Device;
-	IUnknown* ppD3D12Queues[MAX_D3D9ON12_QUEUES];
-	UINT NumQueues;
-	UINT NodeMask;
-} D3D9ON12_ARGS;
 
 typedef LPDIRECT3D9(WINAPI* Direct3DCreate9Proc)(UINT SDKVersion);
 typedef HRESULT(WINAPI* Direct3DCreate9ExProc)(UINT, IDirect3D9Ex**);
@@ -46,10 +32,12 @@ void WINAPI d9_D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName);
 void WINAPI Direct3D9SetSwapEffectUpgradeShim(int Unknown);
 IDirect3D9* WINAPI d9_Direct3DCreate9(UINT SDKVersion);
 HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppD3D);
-IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries);
-HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries, IDirect3D9Ex** ppOutputInterface);
 
-void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed, bool EnableWindowMode, bool FullscreenWindowMode);
+class m_IDirect3D9Ex
+{
+public:
+	static void AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed, bool EnableWindowMode, bool FullscreenWindowMode);
+};
 
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \
 	const FARPROC procName ## _in = (FARPROC)*d9_ ## procName;

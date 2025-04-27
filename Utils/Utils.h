@@ -57,10 +57,15 @@ namespace Utils
 	HWND GetMainWindowForProcess(DWORD processId);
 	bool IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd);
 	HWND GetTopLevelWindowOfCurrentProcess();
-	HMONITOR GetMonitorHandle(HWND hWnd);
-	void SetDisplaySettings(HWND hWnd, DWORD Width, DWORD Height);
-	DWORD GetRefreshRate(HWND hWnd);
-	DWORD GetBitCount(HWND hWnd);
+	bool IsMonitorValid(HMONITOR hMonitor);
+	HMONITOR GetMonitorFromWindow(HWND hWnd);
+	HMONITOR GetMonitorFromDeviceName(char* DeviceName);
+	bool MoveWindowToMonitor(HMONITOR hMonitor, HWND hWnd);
+	BOOL SetWindowPosToMonitor(HMONITOR hMonitor, HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags);
+	BOOL SetWindowPlacementToMonitor(HMONITOR hMonitor, HWND hWnd, const WINDOWPLACEMENT* lpwndpl);
+	void SetDisplaySettings(HMONITOR hMonitor, DWORD Width, DWORD Height);
+	DWORD GetRefreshRate(HMONITOR hMonitor);
+	DWORD GetBitCount(HMONITOR hMonitor);
 	DWORD GetThreadIDByHandle(HANDLE hThread);
 	void DisableGameUX();
 	void WaitForWindowActions(HWND hWnd, DWORD Loops);
@@ -68,9 +73,9 @@ namespace Utils
 	void GetModuleFromAddress(void* address, char* module, const size_t size);
 	bool SetWndProcFilter(HWND hWnd);
 	bool RestoreWndProcFilter(HWND hWnd);
-	void GetScreenSize(HWND hwnd, volatile LONG &screenWidth, volatile LONG &screenHeight);
-	void GetScreenSize(HWND hwnd, int &screenWidth, int &screenHeight);
-	void GetDesktopRect(HWND hWnd, RECT& screenRect);
+	void GetScreenSize(HMONITOR hMonitor, volatile LONG &screenWidth, volatile LONG &screenHeight);
+	void GetScreenSize(HMONITOR hMonitor, int& screenWidth, int& screenHeight);
+	void GetDesktopRect(HMONITOR hMonitor, RECT& screenRect);
 	HRESULT GetVideoRam(UINT AdapterNo, DWORD& TotalMemory);	// Adapters start numbering from '1', based on "Win32_VideoController" WMI class and "DeviceID" property.
 
 	// CPU Affinity

@@ -71,6 +71,7 @@ private:
 
 	// Helper functions
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice);
+	void SetMonitorHandle() const;
 	HRESULT CreateD9Object();
 	void BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height);
 	void RestoreState(DRAWSTATEBACKUP& DrawStates);
@@ -233,7 +234,7 @@ public:
 	HWND GetHwnd();
 	DWORD GetHwndThreadID();
 	HDC GetDC();
-	DWORD GetDisplayBPP(HWND hWnd);
+	DWORD GetDisplayBPP();
 	bool IsExclusiveMode();
 	void GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, DWORD& RefreshRate);
 	void GetViewportResolution(DWORD& Width, DWORD& Height);

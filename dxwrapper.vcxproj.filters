@@ -1904,6 +1904,9 @@
     <ClInclude Include="Libraries\ScopeGuard.h">
       <Filter>Libraries</Filter>
     </ClInclude>
+    <ClInclude Include="d3d9\d3d9Shared.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">

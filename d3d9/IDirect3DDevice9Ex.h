@@ -21,6 +21,7 @@ struct DEVICEDETAILS
 	bool IsDirectDrawDevice = false;
 	UINT Adapter = D3DADAPTER_DEFAULT;
 	D3DDEVTYPE DeviceType = D3DDEVTYPE_HAL;
+	HMONITOR hMonitor = nullptr;
 	HWND DeviceWindow = nullptr;
 	LONG BufferWidth = 0, BufferHeight = 0;
 	LONG screenWidth = 0, screenHeight = 0;

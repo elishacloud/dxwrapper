@@ -3049,7 +3049,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 // Runs when device is created and on every successful Reset()
 void m_IDirect3DDevice9Ex::ReInitInterface() const
 {
-	Utils::GetScreenSize(SHARED.DeviceWindow, SHARED.screenWidth, SHARED.screenHeight);
+	Utils::GetScreenSize(SHARED.hMonitor, SHARED.screenWidth, SHARED.screenHeight);
 
 	SHARED.IsGammaSet = false;
 	for (int i = 0; i < 256; ++i)

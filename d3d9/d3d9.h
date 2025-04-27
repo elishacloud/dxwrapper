@@ -2,7 +2,7 @@
 
 #include <d3d9.h>
 #include "d3dx9.h"
-#include "d3d9\d3d9External.h"
+#include "d3d9Shared.h"
 #include "GDI\GDI.h"
 
 class m_IDirect3D9Ex;
@@ -99,8 +99,6 @@ typedef IDirect3D9* (WINAPI* Direct3DCreate9On12Proc)(UINT SDKVersion, D3D9ON12_
 typedef HRESULT(WINAPI* Direct3DCreate9On12ExProc)(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries, IDirect3D9Ex** ppOutputInterface);
 
 constexpr UINT NO_MAP_VALUE = 0xFFFFFFFF;
-
-DWORD UpdateBehaviorFlags(DWORD BehaviorFlags);
 
 namespace D3d9Wrapper
 {

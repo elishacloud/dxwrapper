@@ -371,10 +371,25 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	// Create new d3d9 device
 	HRESULT hr = D3DERR_INVALIDCALL;
 
+	// Get monitor handle
+	HMONITOR hMonitor = nullptr;
+	D3DADAPTER_IDENTIFIER9 Identifier = {};
+	if (SUCCEEDED(ProxyInterface->GetAdapterIdentifier(Adapter, 0, &Identifier)))
+	{
+		hMonitor = Utils::GetMonitorFromDeviceName(Identifier.DeviceName);
+	}
+	if (hMonitor == nullptr)
+	{
+		Logging::Log() << __FUNCTION__ << " Warning: Failed to get monitor handle!";
+	}
+
+	// Needs to be set before updating present parameters
+	DeviceDetails.Adapter = Adapter;
+	DeviceDetails.DeviceType = DeviceType;
+	DeviceDetails.hMonitor = hMonitor;
+
 	// Check fullscreen
 	bool ForceFullscreen = TestResolution(Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
-
-	bool MultiSampleFlag = false;
 
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
@@ -382,6 +397,8 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	UpdatePresentParameter(&d3dpp, hFocusWindow, DeviceDetails, ForceFullscreen, true);
 
 	bool IsWindowMode = d3dpp.Windowed != FALSE;
+
+	bool MultiSampleFlag = false;
 
 	// Check for AntiAliasing
 	if (Config.AntiAliasing != 0)
@@ -448,8 +465,6 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		}
 
 		DeviceDetails.IsWindowMode = IsWindowMode;
-		DeviceDetails.Adapter = Adapter;
-		DeviceDetails.DeviceType = DeviceType;
 
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 	}
@@ -678,7 +693,7 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 		pPresentationParameters->Windowed = FALSE;
 		if (!pPresentationParameters->FullScreen_RefreshRateInHz)
 		{
-			pPresentationParameters->FullScreen_RefreshRateInHz = Utils::GetRefreshRate(DeviceDetails.DeviceWindow);
+			pPresentationParameters->FullScreen_RefreshRateInHz = Utils::GetRefreshRate(DeviceDetails.hMonitor);
 		}
 		if (pPresentationParameters->BackBufferFormat == D3DFMT_UNKNOWN)
 		{
@@ -744,13 +759,13 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 			GetClientRect(DeviceDetails.DeviceWindow, &Rect);
 			if (AnyChange || Rect.right - Rect.left != DeviceDetails.BufferWidth || Rect.bottom - Rect.top != DeviceDetails.BufferHeight)
 			{
-				AdjustWindow(DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, pPresentationParameters->Windowed, Config.EnableWindowMode, Config.FullscreenWindowMode);
+				AdjustWindow(DeviceDetails.hMonitor, DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, pPresentationParameters->Windowed, Config.EnableWindowMode, Config.FullscreenWindowMode);
 			}
 
 			// Set fullscreen resolution
 			if (AnyChange && Config.FullscreenWindowMode)
 			{
-				Utils::SetDisplaySettings(DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight);
+				Utils::SetDisplaySettings(DeviceDetails.hMonitor, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight);
 			}
 		}
 	}
@@ -790,12 +805,19 @@ void m_IDirect3D9Ex::UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS*
 }
 
 // Adjusting the window position for WindowMode
-void m_IDirect3D9Ex::AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed, bool EnableWindowMode, bool FullscreenWindowMode)
+void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed, bool EnableWindowMode, bool FullscreenWindowMode)
 {
 	if (!IsWindow(MainhWnd) || !displayWidth || !displayHeight)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not set window size, nullptr.");
 		return;
+	}
+
+	// Verify monitor handle
+	if (!Utils::IsMonitorValid(hMonitor))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: monitor handle is invalid, using window location instead.");
+		hMonitor = Utils::GetMonitorFromWindow(MainhWnd);
 	}
 
 	// Remove clip children for popup windows
@@ -848,7 +870,7 @@ void m_IDirect3D9Ex::AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG display
 
 	// Get screen width and height
 	LONG screenWidth = 0, screenHeight = 0;
-	Utils::GetScreenSize(MainhWnd, screenWidth, screenHeight);
+	Utils::GetScreenSize(hMonitor, screenWidth, screenHeight);
 
 	// Get window style
 	lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
@@ -900,6 +922,9 @@ void m_IDirect3D9Ex::AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG display
 	// Center and adjust size of window
 	if (SetWindowPositionFlag)
 	{
+		// Move window to correct monitor
+		Utils::MoveWindowToMonitor(hMonitor, MainhWnd);
+
 		// Use SetWindowPlacement to center and adjust size
 		WINDOWPLACEMENT wndpl = {};
 		wndpl.length = sizeof(WINDOWPLACEMENT);
@@ -907,12 +932,12 @@ void m_IDirect3D9Ex::AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG display
 		{
 			wndpl.showCmd = wndpl.showCmd == SW_MAXIMIZE ? SW_MAXIMIZE : SW_NORMAL;
 			wndpl.rcNormalPosition = { xLoc, yLoc, Rect.right + xLoc, Rect.bottom + yLoc };
-			SetWindowPlacement(MainhWnd, &wndpl);
+			Utils::SetWindowPlacementToMonitor(hMonitor, MainhWnd, &wndpl);
 		}
 		// Use SetWindowPos to center and adjust size
 		else
 		{
-			SetWindowPos(MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER);
+			Utils::SetWindowPosToMonitor(hMonitor, MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_NOZORDER | SWP_NOACTIVATE);
 		}
 	}
 }

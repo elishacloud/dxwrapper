@@ -22,7 +22,6 @@
 
 #include "ddraw.h"
 #include "Dllmain\Dllmain.h"
-#include "IClassFactory\IClassFactory.h"
 #include "d3d9\d3d9External.h"
 #include "Utils\Utils.h"
 #include "GDI\GDI.h"
@@ -33,7 +32,7 @@ AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<
 void AcquirePEThreadLock();
 void ReleasePEThreadLock();
 
-UINT GetAdapterIndex(GUID FAR* lpGUID);
+static UINT GetAdapterIndex(GUID FAR* lpGUID);
 
 namespace DdrawWrapper
 {
@@ -86,12 +85,6 @@ namespace {
 	bool IsInitialized = false;
 	CRITICAL_SECTION ddcs;
 	CRITICAL_SECTION pecs;
-
-	struct ENUMMONITORS
-	{
-		LPSTR lpName;
-		HMONITOR hm;
-	};
 }
 
 static void SetAllAppCompatData();
@@ -905,35 +898,6 @@ static BOOL CALLBACK CacheEnumCallbackExA(GUID* lpGUID, LPSTR lpDesc, LPSTR lpNa
 	return DDENUMRET_OK;
 }
 
-static BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
-{
-	UNREFERENCED_PARAMETER(hdcMonitor);
-	UNREFERENCED_PARAMETER(lprcMonitor);
-
-	ENUMMONITORS* lpMonitors = (ENUMMONITORS*)dwData;
-	if (!dwData || !lpMonitors->lpName)
-	{
-		return DDENUMRET_CANCEL;
-	}
-
-	MONITORINFOEX monitorInfo;
-	ZeroMemory(&monitorInfo, sizeof(monitorInfo));
-	monitorInfo.cbSize = sizeof(monitorInfo);
-
-	if (!GetMonitorInfo(hMonitor, &monitorInfo))
-	{
-		return DDENUMRET_OK;
-	}
-
-	if (strcmp(monitorInfo.szDevice, lpMonitors->lpName) == 0)
-	{
-		lpMonitors->hm = hMonitor;
-		return DDENUMRET_CANCEL;
-	}
-
-	return DDENUMRET_OK;
-}
-
 static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
 {
 	if (!lpCallback)
@@ -1035,11 +999,7 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 			hMonitor = nullptr;
 			if (DDETType == DDET_ENUMCALLBACKEXA || DDETType == DDET_ENUMCALLBACKEXW)
 			{
-				ENUMMONITORS Monitors = {};
-				Monitors.lpName = lpName;
-				Monitors.hm = nullptr;
-				EnumDisplayMonitors(nullptr, nullptr, DispayEnumeratorProc, (LPARAM)&Monitors);
-				hMonitor = Monitors.hm;
+				hMonitor = Utils::GetMonitorFromDeviceName(Identifier.DeviceName);
 			}
 		}
 
