@@ -6,15 +6,6 @@
 #include "d3d9Shared.h"
 #include "Wrappers\wrapper.h"
 
-// Enable for testing only
-//#define ENABLE_DEBUGOVERLAY
-
-#ifdef ENABLE_DEBUGOVERLAY
-#include "DebugOverlay.h"
-extern DebugOverlay DOverlay;
-LRESULT WINAPI ImGuiWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
-#endif
-
 // Initial screen resolution
 extern volatile LONG InitWidth;
 extern volatile LONG InitHeight;

@@ -1,5 +1,14 @@
 #pragma once
 
+// Enable for testing only
+//#define ENABLE_DEBUGOVERLAY
+
+#ifdef ENABLE_DEBUGOVERLAY
+#include "DebugOverlay.h"
+extern DebugOverlay DOverlay;
+LRESULT WINAPI ImGuiWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+#endif
+
 typedef DWORD D3DCOLOR;
 struct __declspec(uuid("81BDCBCA-64D4-426d-AE8D-AD0147F4275C")) IDirect3D9;
 struct __declspec(uuid("02177241-69FC-400C-8FF1-93A44DF6861D")) IDirect3D9Ex;
