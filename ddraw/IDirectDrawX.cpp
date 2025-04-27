@@ -2317,6 +2317,14 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 
 	ScopedDDCriticalSection ThreadLockDD;
 
+	for (auto& entry : DDrawVector)
+	{
+		if (entry->AdapterIndex != AdapterIndex)
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: AdapterIndex doesn't match accross DirectDraw instances: " << entry->AdapterIndex << "->" << AdapterIndex;
+		}
+	}
+
 	DDrawVector.push_back(this);
 
 	if (DDrawVector.size() == 1)
@@ -3195,11 +3203,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Device already exists
 		bool IsCurrentDevice = (d3d9Device != nullptr);
 
-		// Verify monitor handle
-		if (!Utils::IsMonitorValid(hMonitor))
-		{
-			SetMonitorHandle();
-		}
+		// Set monitor handle for current device
+		SetMonitorHandle();
 
 		// Backup last present parameters
 		D3DPRESENT_PARAMETERS presParamsBackup = presParams;
