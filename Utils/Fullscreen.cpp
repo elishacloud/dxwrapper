@@ -253,25 +253,26 @@ bool Utils::MoveWindowToMonitor(HMONITOR hMonitor, HWND hWnd)
 	int windowWidth = windowRect.right - windowRect.left;
 	int windowHeight = windowRect.bottom - windowRect.top;
 
-	// Proposed new position
-	int newLeft = rectNew.left + offsetX;
-	int newTop = rectNew.top + offsetY;
-
-	// Clamp so the window stays fully visible inside the monitor
 	int monitorWidth = rectNew.right - rectNew.left;
 	int monitorHeight = rectNew.bottom - rectNew.top;
 
+	// Clamp window size
 	if (windowWidth > monitorWidth)
 		windowWidth = monitorWidth;
 
 	if (windowHeight > monitorHeight)
 		windowHeight = monitorHeight;
 
+	// Window new position
+	int newLeft = rectNew.left + offsetX;
+	int newTop = rectNew.top + offsetY;
+
+	// Ensure the window stays fully visible inside the monitor
 	if (newLeft + windowWidth > rectNew.right)
-		newLeft += windowWidth - rectNew.right;
+		newLeft = rectNew.right - windowWidth;
 
 	if (newTop + windowHeight > rectNew.bottom)
-		newTop += windowHeight - rectNew.bottom;
+		newTop = rectNew.bottom - windowHeight;
 
 	return SetWindowPos(hWnd, HWND_TOP, newLeft, newTop, windowWidth, windowHeight, SWP_NOZORDER | SWP_NOACTIVATE);
 }
