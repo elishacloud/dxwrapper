@@ -82,6 +82,8 @@ namespace Utils
 	void SetProcessAffinity();
 	void SetThreadAffinity(DWORD threadId);
 	void ApplyThreadAffinity();
+	void StartPriorityMonitor();
+	void StopPriorityMonitor();
 
 	inline void BusyWaitYield(DWORD RemainingMS)
 	{

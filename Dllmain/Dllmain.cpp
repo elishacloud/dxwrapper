@@ -647,6 +647,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Fullscreen::StartThread();
 		}
 
+		// Start thread priority monitor thread
+		//Utils::StartPriorityMonitor();
+
 		// Loaded
 		Logging::Log() << "DxWrapper loaded!";
 	}
@@ -715,6 +718,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Stop threads
 		Fullscreen::StopThread();
 		WriteMemory::StopThread();
+		//Utils::StopPriorityMonitor();
 
 		// Unload DdrawWrapper
 		if (Config.Dd7to9)
