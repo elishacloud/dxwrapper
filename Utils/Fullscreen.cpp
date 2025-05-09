@@ -308,7 +308,7 @@ BOOL Utils::SetWindowPlacementToMonitor(HMONITOR hMonitor, HWND hWnd, const WIND
 	monitorInfo.cbSize = sizeof(monitorInfo);
 	if (!GetMonitorInfo(hMonitor, &monitorInfo))
 	{
-		std::cout << "Failed to get monitor info.\n";
+		LOG_LIMIT(3, __FUNCTION__ << " Failed to get monitor info: " << hMonitor);
 		return FALSE;
 	}
 
@@ -347,31 +347,21 @@ void Utils::SetDisplaySettings(HMONITOR hMonitor, DWORD Width, DWORD Height)
 
 DWORD Utils::GetRefreshRate(HMONITOR hMonitor)
 {
-	if (IsMonitorValid(hMonitor))
+	if (!IsMonitorValid(hMonitor))
 	{
-		// Get display bit count
-		MONITORINFOEX mi = {};
-		mi.cbSize = sizeof(MONITORINFOEX);
-		GetMonitorInfoA(hMonitor, &mi);
-		DEVMODEA DevMode;
-		ZeroMemory(&DevMode, sizeof(DEVMODEA));
-		DevMode.dmSize = sizeof(DEVMODEA);
-		if (EnumDisplaySettingsA(mi.szDevice, ENUM_CURRENT_SETTINGS, &DevMode))
-		{
-			return DevMode.dmDisplayFrequency;
-		}
+		hMonitor = MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY);
 	}
 
-	// Get desktop bit count
-	HDC hDC = GetDC(nullptr);
-	if (hDC)
+	// Get display bit count
+	MONITORINFOEX mi = {};
+	mi.cbSize = sizeof(MONITORINFOEX);
+	GetMonitorInfoA(hMonitor, &mi);
+	DEVMODEA DevMode;
+	ZeroMemory(&DevMode, sizeof(DEVMODEA));
+	DevMode.dmSize = sizeof(DEVMODEA);
+	if (EnumDisplaySettingsA(mi.szDevice, ENUM_CURRENT_SETTINGS, &DevMode))
 	{
-		DWORD RefreshRate = GetDeviceCaps(hDC, VREFRESH);
-		ReleaseDC(nullptr, hDC);
-		if (RefreshRate)
-		{
-			return RefreshRate;
-		}
+		return DevMode.dmDisplayFrequency;
 	}
 
 	// Default to 60
@@ -380,31 +370,21 @@ DWORD Utils::GetRefreshRate(HMONITOR hMonitor)
 
 DWORD Utils::GetBitCount(HMONITOR hMonitor)
 {
-	if (IsMonitorValid(hMonitor))
+	if (!IsMonitorValid(hMonitor))
 	{
-		// Get display bit count
-		MONITORINFOEX mi = {};
-		mi.cbSize = sizeof(MONITORINFOEX);
-		GetMonitorInfoA(hMonitor, &mi);
-		DEVMODEA DevMode;
-		ZeroMemory(&DevMode, sizeof(DEVMODEA));
-		DevMode.dmSize = sizeof(DEVMODEA);
-		if (EnumDisplaySettingsA(mi.szDevice, ENUM_CURRENT_SETTINGS, &DevMode))
-		{
-			return DevMode.dmBitsPerPel;
-		}
+		hMonitor = MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY);
 	}
 
-	// Get desktop bit count
-	HDC hDC = GetDC(nullptr);
-	if (hDC)
+	// Get display bit count
+	MONITORINFOEX mi = {};
+	mi.cbSize = sizeof(MONITORINFOEX);
+	GetMonitorInfoA(hMonitor, &mi);
+	DEVMODEA DevMode;
+	ZeroMemory(&DevMode, sizeof(DEVMODEA));
+	DevMode.dmSize = sizeof(DEVMODEA);
+	if (EnumDisplaySettingsA(mi.szDevice, ENUM_CURRENT_SETTINGS, &DevMode))
 	{
-		int bpp = GetDeviceCaps(hDC, BITSPIXEL);
-		ReleaseDC(nullptr, hDC);
-		if (bpp)
-		{
-			return bpp;
-		}
+		return DevMode.dmBitsPerPel;
 	}
 
 	// Default to 32
@@ -421,6 +401,11 @@ void Fullscreen::GetScreenSize(HWND hwnd, screen_res& Res, MONITORINFO& mi)
 
 void Utils::GetScreenSize(HMONITOR hMonitor, volatile LONG &screenWidth, volatile LONG &screenHeight)
 {
+	if (!IsMonitorValid(hMonitor))
+	{
+		hMonitor = MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY);
+	}
+
 	MONITORINFO info = {};
 	info.cbSize = sizeof(MONITORINFO);
 	GetMonitorInfo(hMonitor, &info);
@@ -434,17 +419,6 @@ void Utils::GetScreenSize(HMONITOR hMonitor, int& screenWidth, int& screenHeight
 	GetScreenSize(hMonitor, Width, Height);
 	screenWidth = Width;
 	screenHeight = Height;
-}
-
-void Utils::GetDesktopRect(HMONITOR hMonitor, RECT& screenRect)
-{
-	MONITORINFO info = {};
-	info.cbSize = sizeof(MONITORINFO);
-	GetMonitorInfo(hMonitor, &info);
-	screenRect.left = info.rcMonitor.left;
-	screenRect.top = info.rcMonitor.top;
-	screenRect.right = info.rcMonitor.right;
-	screenRect.bottom = info.rcMonitor.bottom;
 }
 
 // Check with resolution is best

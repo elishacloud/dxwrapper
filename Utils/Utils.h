@@ -75,7 +75,6 @@ namespace Utils
 	bool RestoreWndProcFilter(HWND hWnd);
 	void GetScreenSize(HMONITOR hMonitor, volatile LONG &screenWidth, volatile LONG &screenHeight);
 	void GetScreenSize(HMONITOR hMonitor, int& screenWidth, int& screenHeight);
-	void GetDesktopRect(HMONITOR hMonitor, RECT& screenRect);
 	HRESULT GetVideoRam(UINT AdapterNo, DWORD& TotalMemory);	// Adapters start numbering from '1', based on "Win32_VideoController" WMI class and "DeviceID" property.
 
 	// CPU Affinity

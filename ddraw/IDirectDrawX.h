@@ -71,7 +71,7 @@ private:
 
 	// Helper functions
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice);
-	void SetMonitorHandle() const;
+	void FindMonitorHandle() const;
 	HRESULT CreateD9Object();
 	void BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height);
 	void RestoreState(DRAWSTATEBACKUP& DrawStates);

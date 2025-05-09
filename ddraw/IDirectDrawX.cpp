@@ -2505,9 +2505,6 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 			MouseHook.ghWriteEvent = CreateEvent(nullptr, FALSE, FALSE, TEXT("Local\\DxwrapperMouseEvent"));
 		}
 
-		// Get monitor handle
-		SetMonitorHandle();
-
 		// Prepair shared memory
 		m_IDirectDrawSurfaceX::StartSharedEmulatedMemory();
 	}
@@ -3203,8 +3200,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Device already exists
 		bool IsCurrentDevice = (d3d9Device != nullptr);
 
-		// Set monitor handle for current device
-		SetMonitorHandle();
+		// Find monitor handle for current device
+		FindMonitorHandle();
 
 		// Backup last present parameters
 		D3DPRESENT_PARAMETERS presParamsBackup = presParams;
@@ -3663,13 +3660,20 @@ void m_IDirectDrawX::UpdateVertices(DWORD Width, DWORD Height)
 	IsDeviceVerticesSet = true;
 }
 
-void m_IDirectDrawX::SetMonitorHandle() const
+void m_IDirectDrawX::FindMonitorHandle() const
 {
 	// Get monitor handle
 	D3DADAPTER_IDENTIFIER9 Identifier = {};
 	if (d3d9Object && SUCCEEDED(d3d9Object->GetAdapterIdentifier(AdapterIndex, 0, &Identifier)))
 	{
+		HMONITOR lasthMonitor = hMonitor;
+
 		hMonitor = Utils::GetMonitorFromDeviceName(Identifier.DeviceName);
+
+		if (hMonitor && hMonitor != lasthMonitor)
+		{
+			Utils::GetScreenSize(hMonitor, InitWidth, InitHeight);
+		}
 	}
 	if (hMonitor == nullptr)
 	{
@@ -3699,6 +3703,9 @@ HRESULT m_IDirectDrawX::CreateD9Object()
 			LOG_LIMIT(100, __FUNCTION__ << " Error: d3d9 object not setup!");
 			return DDERR_GENERIC;
 		}
+
+		// Find monitor handle
+		FindMonitorHandle();
 	}
 
 	return D3D_OK;
