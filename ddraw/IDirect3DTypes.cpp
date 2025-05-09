@@ -229,7 +229,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7)
 		D3DDD_DEVICEZBUFFERBITDEPTH |
 		D3DDD_MAXBUFFERSIZE |
 		D3DDD_MAXVERTEXCOUNT;
-	Desc.dcmColorModel = 2;
+	Desc.dcmColorModel = D3DCOLOR_RGB;
 	Desc.dwDevCaps = Desc7.dwDevCaps;
 	Desc.dtcTransformCaps.dwSize = sizeof(D3DTRANSFORMCAPS);
 	Desc.dtcTransformCaps.dwCaps = D3DTRANSFORMCAPS_CLIP;

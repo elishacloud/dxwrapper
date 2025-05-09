@@ -110,5 +110,5 @@ HRESULT m_IDirect3D::FindDevice(LPD3DFINDDEVICESEARCH a, LPD3DFINDDEVICERESULT b
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->FindDevice(a, b);
+	return ProxyInterface->FindDevice(a, b, DirectXVersion);
 }

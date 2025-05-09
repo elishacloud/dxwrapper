@@ -189,7 +189,7 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 
 	if (Config.Dd7to9)
 	{
-		return EnumDevices7((LPD3DENUMDEVICESCALLBACK7)lpEnumDevicesCallback, lpUserArg, DirectXVersion);
+		return EnumDevices7(nullptr, lpEnumDevicesCallback, lpUserArg, DirectXVersion);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -378,7 +378,7 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3* lplpD3DViewport, LPUNK
 	return hr;
 }
 
-HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICERESULT lpD3DFDR)
+HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICERESULT lpD3DFDR, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -390,55 +390,172 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 			return DDERR_INVALIDPARAMS;
 		}
 
+		DWORD ExpectedSize =
+			(DirectXVersion == 1) ? D3DDEVICEDESC1_SIZE :
+			(DirectXVersion == 2) ? D3DDEVICEDESC5_SIZE :
+			(DirectXVersion == 3) ? D3DDEVICEDESC6_SIZE : sizeof(D3DDEVICEDESC);
+
+		DWORD Size = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
+		if (Size != ExpectedSize)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect result dwSize: " << Size << " v" << DirectXVersion);
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (lpD3DFDS->dwSize != sizeof(D3DFINDDEVICESEARCH))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect search dwSize: " << lpD3DFDS->dwSize << " v" << DirectXVersion);
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (lpD3DFDS->dwFlags == 0)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: blank dwFlags!");
+			return DDERR_INVALIDPARAMS;
+		}
+
 		struct EnumFindDevice
 		{
 			bool Found = false;
-			GUID guid = IID_IUnknown;
-			D3DDEVICEDESC7 DeviceDesc7 = {};
+			LPD3DFINDDEVICESEARCH lpD3DFDS = nullptr;
+			D3DDEVICEDESC ddHwDesc = {};
+			D3DDEVICEDESC ddSwDesc = {};
 
-			static HRESULT CALLBACK ConvertCallback(LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC7 lpDeviceDesc7, LPVOID lpContext)
+			static HRESULT CALLBACK ConvertCallback(GUID FAR* lpGuid, LPSTR lpDeviceDescription, LPSTR lpDeviceName, LPD3DDEVICEDESC lpddHwDesc, LPD3DDEVICEDESC lpddSwDesc, LPVOID lpContext)
 			{
 				UNREFERENCED_PARAMETER(lpDeviceDescription);
 				UNREFERENCED_PARAMETER(lpDeviceName);
 
 				EnumFindDevice* self = (EnumFindDevice*)lpContext;
+				LPD3DDEVICEDESC lpdd = (self->lpD3DFDS->dwFlags & D3DFDS_HARDWARE) && !self->lpD3DFDS->bHardware ? lpddSwDesc : lpddHwDesc;
 
-				if (lpDeviceDesc7->deviceGUID == self->guid)
+				if ((self->lpD3DFDS->dwFlags & D3DFDS_COLORMODEL) &&
+					(lpdd->dcmColorModel != self->lpD3DFDS->dcmColorModel))
 				{
-					self->Found = true;
-					self->DeviceDesc7 = *lpDeviceDesc7;
-
-					return DDENUMRET_CANCEL;
+					return DDENUMRET_OK;	// Doesn't match continue
 				}
 
-				return DDENUMRET_OK;
+				if ((self->lpD3DFDS->dwFlags & D3DFDS_GUID) &&
+					(lpGuid && !IsEqualGUID(*lpGuid, self->lpD3DFDS->guid)))
+				{
+					return DDENUMRET_OK;	// Doesn't match continue
+				}
+
+				std::vector<LPD3DPRIMCAPS> PrimCaps;
+
+				if (self->lpD3DFDS->dwFlags & D3DFDS_TRIANGLES)
+				{
+					PrimCaps.push_back(&lpdd->dpcTriCaps);
+				}
+
+				if (self->lpD3DFDS->dwFlags & D3DFDS_LINES)	
+				{
+					PrimCaps.push_back(&lpdd->dpcLineCaps);
+				}
+
+				for (auto lpPrimCaps : PrimCaps)
+				{
+					if ((self->lpD3DFDS->dwFlags & D3DFDS_MISCCAPS) &&
+						((lpPrimCaps->dwMiscCaps & self->lpD3DFDS->dpcPrimCaps.dwMiscCaps) != self->lpD3DFDS->dpcPrimCaps.dwMiscCaps))
+					{
+						return DDENUMRET_OK;	// Doesn't match continue
+					}
+
+					if ((self->lpD3DFDS->dwFlags & D3DFDS_RASTERCAPS) &&
+						((lpPrimCaps->dwRasterCaps & self->lpD3DFDS->dpcPrimCaps.dwRasterCaps) != self->lpD3DFDS->dpcPrimCaps.dwRasterCaps))
+					{
+						return DDENUMRET_OK;	// Doesn't match continue
+					}
+
+					if ((self->lpD3DFDS->dwFlags & D3DFDS_ZCMPCAPS) &&
+						((lpPrimCaps->dwZCmpCaps & self->lpD3DFDS->dpcPrimCaps.dwZCmpCaps) != self->lpD3DFDS->dpcPrimCaps.dwZCmpCaps))
+					{
+						return DDENUMRET_OK;	// Doesn't match continue
+					}
+
+					if ((self->lpD3DFDS->dwFlags & D3DFDS_ALPHACMPCAPS) &&
+						((lpPrimCaps->dwAlphaCmpCaps & self->lpD3DFDS->dpcPrimCaps.dwAlphaCmpCaps) != self->lpD3DFDS->dpcPrimCaps.dwAlphaCmpCaps))
+					{
+						return DDENUMRET_OK;	// Doesn't match continue
+					}
+
+					if ((self->lpD3DFDS->dwFlags & D3DFDS_SRCBLENDCAPS) &&
+						((lpPrimCaps->dwSrcBlendCaps & self->lpD3DFDS->dpcPrimCaps.dwSrcBlendCaps) != self->lpD3DFDS->dpcPrimCaps.dwSrcBlendCaps))
+					{
+						return DDENUMRET_OK;	// Doesn't match continue
+					}
+
+					if ((self->lpD3DFDS->dwFlags & D3DFDS_DSTBLENDCAPS) &&
+						((lpPrimCaps->dwDestBlendCaps & self->lpD3DFDS->dpcPrimCaps.dwDestBlendCaps) != self->lpD3DFDS->dpcPrimCaps.dwDestBlendCaps))
+					{
+						return DDENUMRET_OK;	// Doesn't match continue
+					}
+
+					if ((self->lpD3DFDS->dwFlags & D3DFDS_SHADECAPS) &&
+						((lpPrimCaps->dwShadeCaps & self->lpD3DFDS->dpcPrimCaps.dwShadeCaps) != self->lpD3DFDS->dpcPrimCaps.dwShadeCaps))
+					{
+						return DDENUMRET_OK;	// Doesn't match continue
+					}
+
+					if ((self->lpD3DFDS->dwFlags & D3DFDS_TEXTURECAPS) &&
+						((lpPrimCaps->dwTextureCaps & self->lpD3DFDS->dpcPrimCaps.dwTextureCaps) != self->lpD3DFDS->dpcPrimCaps.dwTextureCaps))
+					{
+						return DDENUMRET_OK;	// Doesn't match continue
+					}
+
+					if ((self->lpD3DFDS->dwFlags & D3DFDS_TEXTUREFILTERCAPS) &&
+						((lpPrimCaps->dwTextureFilterCaps & self->lpD3DFDS->dpcPrimCaps.dwTextureFilterCaps) != self->lpD3DFDS->dpcPrimCaps.dwTextureFilterCaps))
+					{
+						return DDENUMRET_OK;	// Doesn't match continue
+					}
+
+					if ((self->lpD3DFDS->dwFlags & D3DFDS_TEXTUREBLENDCAPS) &&
+						((lpPrimCaps->dwTextureBlendCaps & self->lpD3DFDS->dpcPrimCaps.dwTextureBlendCaps) != self->lpD3DFDS->dpcPrimCaps.dwTextureBlendCaps))
+					{
+						return DDENUMRET_OK;	// Doesn't match continue
+					}
+
+					if ((self->lpD3DFDS->dwFlags & D3DFDS_TEXTUREADDRESSCAPS) &&
+						((lpPrimCaps->dwTextureAddressCaps & self->lpD3DFDS->dpcPrimCaps.dwTextureAddressCaps) != self->lpD3DFDS->dpcPrimCaps.dwTextureAddressCaps))
+					{
+						return DDENUMRET_OK;	// Doesn't match continue
+					}
+				}
+
+				// All requested flags matched
+				self->Found = true;
+				self->ddHwDesc = *lpddHwDesc;
+				self->ddSwDesc = *lpddSwDesc;
+
+				return DDENUMRET_CANCEL;
 			}
 		} CallbackContext;
-		CallbackContext.guid = lpD3DFDS->guid;
+		CallbackContext.lpD3DFDS = lpD3DFDS;
 
-		EnumDevices7(EnumFindDevice::ConvertCallback, &CallbackContext, 7);
+		EnumDevices7(nullptr, EnumFindDevice::ConvertCallback, &CallbackContext, DirectXVersion);
 
 		if (CallbackContext.Found)
 		{
-			DWORD Size = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
-			if (Size != D3DDEVICEDESC1_SIZE && Size != D3DDEVICEDESC5_SIZE && Size != D3DDEVICEDESC6_SIZE)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Size);
-				return DDERR_INVALIDPARAMS;
-			}
-
-			lpD3DFDR->guid = CallbackContext.DeviceDesc7.deviceGUID;
+			lpD3DFDR->guid = lpD3DFDS->guid;
 
 			LPD3DDEVICEDESC lpddHwDesc = &lpD3DFDR->ddHwDesc;
+			memcpy(lpddHwDesc, &CallbackContext.ddHwDesc, Size);
 			lpddHwDesc->dwSize = Size;
-			ConvertDeviceDesc(*lpddHwDesc, CallbackContext.DeviceDesc7);
 
-			LPD3DDEVICEDESC lpddSwDesc = (LPD3DDEVICEDESC)((DWORD)lpddHwDesc + Size);
+			LPD3DDEVICEDESC lpddSwDesc = (LPD3DDEVICEDESC)(((BYTE*)lpddHwDesc) + Size);
+			memcpy(lpddSwDesc, &CallbackContext.ddSwDesc, Size);
 			lpddSwDesc->dwSize = Size;
-			ConvertDeviceDesc(*lpddSwDesc, CallbackContext.DeviceDesc7);
 
 			return D3D_OK;
 		}
+
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: could not find device: "
+			<< lpD3DFDS->guid
+			<< " Flags: " << Logging::hex(lpD3DFDS->dwFlags)
+			<< " Hardware: " << lpD3DFDS->bHardware
+			<< " ColorModel: " << lpD3DFDS->dcmColorModel
+			<< " Caps: " << Logging::hex(lpD3DFDS->dwCaps)
+			<< " PrimCaps: " << lpD3DFDS->dpcPrimCaps);
 
 		return DDERR_NOTFOUND;
 	}
@@ -783,19 +900,16 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 // IDirect3D v7 functions
 // ******************************
 
-HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallback7, LPVOID lpUserArg, DWORD DirectXVersion)
+HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallback7, LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback, LPVOID lpUserArg, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		if (!lpEnumDevicesCallback7)
+		if (!lpEnumDevicesCallback7 && !lpEnumDevicesCallback)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-
-		// Conversion callback
-		LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback = (LPD3DENUMDEVICESCALLBACK)lpEnumDevicesCallback7;
 
 		// Update Cap9 cache
 		GetCap9Cache();
@@ -807,7 +921,8 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 			return DDERR_INVALIDOBJECT;
 		}
 
-		DWORD DevSize = (DirectXVersion == 1) ? D3DDEVICEDESC1_SIZE :
+		DWORD DevSize =
+			(DirectXVersion == 1) ? D3DDEVICEDESC1_SIZE :
 			(DirectXVersion == 2) ? D3DDEVICEDESC5_SIZE :
 			(DirectXVersion == 3) ? D3DDEVICEDESC6_SIZE : sizeof(D3DDEVICEDESC);
 
@@ -856,7 +971,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 				strcpy_s(Desc, lpDescription);
 				strcpy_s(Name, lpName);
 
-				if (DirectXVersion < 7)
+				if (lpEnumDevicesCallback)
 				{
 					// Get D3DSWDevDesc data (D3DDEVTYPE_REF)
 					ConvertDeviceDesc(D3DSWDevDesc, DeviceDesc7);
@@ -875,7 +990,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 						return D3D_OK;
 					}
 				}
-				else if (DirectXVersion == 7)
+				else if (lpEnumDevicesCallback7)
 				{
 					if (lpEnumDevicesCallback7(Desc, Name, &DeviceDesc7, lpUserArg) == DDENUMRET_CANCEL)
 					{

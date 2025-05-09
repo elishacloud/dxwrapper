@@ -53,7 +53,7 @@ HRESULT m_IDirect3D7::EnumDevices(LPD3DENUMDEVICESCALLBACK7 a, LPVOID b)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->EnumDevices7(a, b, DirectXVersion);
+	return ProxyInterface->EnumDevices7(a, nullptr, b, DirectXVersion);
 }
 
 HRESULT m_IDirect3D7::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE7 b, LPDIRECT3DDEVICE7 * c)
