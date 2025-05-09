@@ -1541,13 +1541,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 	{
 		// Check for valid parameters
 		// Note: real DirectDraw will allow both DDSCL_NORMAL and DDSCL_FULLSCREEN in some cases
-		if (!(dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE | DDSCL_SETDEVICEWINDOW | DDSCL_SETFOCUSWINDOW)) ||								// An application must set either of these flags
-			((dwFlags & DDSCL_NORMAL) && (dwFlags & (DDSCL_ALLOWMODEX | DDSCL_EXCLUSIVE))) ||											// Normal flag cannot be used with Modex, Exclusive or Fullscreen flags
-			((dwFlags & DDSCL_EXCLUSIVE) && !(dwFlags & DDSCL_FULLSCREEN)) ||															// If Exclusive flag is set then Fullscreen flag must be set
-			((dwFlags & DDSCL_FULLSCREEN) && !(dwFlags & DDSCL_EXCLUSIVE)) ||															// If Fullscreen flag is set then Exclusive flag must be set
-			((dwFlags & DDSCL_ALLOWMODEX) && (!(dwFlags & DDSCL_EXCLUSIVE) || !(dwFlags & DDSCL_FULLSCREEN))) ||						// If AllowModeX is set then Exclusive and Fullscreen flags must be set
-			((dwFlags & DDSCL_SETDEVICEWINDOW) && (dwFlags & DDSCL_SETFOCUSWINDOW)) ||													// SetDeviceWindow flag cannot be used with SetFocusWindow flag
-			(!(dwFlags & DDSCL_NORMAL) && !IsWindow(hWnd)))																				// When using Exclusive mode the hwnd must be valid
+		if (!(dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE | DDSCL_SETDEVICEWINDOW | DDSCL_SETFOCUSWINDOW)) ||			// An application must set at least one of these flags
+			((dwFlags & DDSCL_EXCLUSIVE) && !(dwFlags & DDSCL_FULLSCREEN)) ||										// If Exclusive flag is set then Fullscreen flag must be set
+			((dwFlags & DDSCL_FULLSCREEN) && !(dwFlags & DDSCL_EXCLUSIVE)) ||										// If Fullscreen flag is set then Exclusive flag must be set
+			((dwFlags & DDSCL_ALLOWMODEX) && (!(dwFlags & DDSCL_EXCLUSIVE) || !(dwFlags & DDSCL_FULLSCREEN))) ||	// If AllowModeX is set then Exclusive and Fullscreen flags must be set
+			((dwFlags & DDSCL_SETDEVICEWINDOW) && (dwFlags & DDSCL_SETFOCUSWINDOW)) ||								// SetDeviceWindow flag cannot be used with SetFocusWindow flag
+			((dwFlags & DDSCL_EXCLUSIVE) && !IsWindow(hWnd)))														// When using Exclusive mode the hwnd must be valid
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 			return DDERR_INVALIDPARAMS;
@@ -1558,6 +1557,9 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Flags not supported. dwFlags: " << Logging::hex(dwFlags) << " " << hWnd);
 		}
+
+		// Remove normal flag if exclusive is set
+		dwFlags = (dwFlags & DDSCL_NORMAL) && (dwFlags & DDSCL_EXCLUSIVE) ? (dwFlags & ~DDSCL_NORMAL) : dwFlags;
 
 		bool WasDeviceCreated = false;
 		HWND LasthWnd = DisplayMode.hWnd;
@@ -1580,8 +1582,8 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 				FullScreenWindowed = true;
 			}
 		}
-		// Set fullscreen mode
-		else if (dwFlags & DDSCL_FULLSCREEN)
+		// Set exclusive mode
+		else if (dwFlags & DDSCL_EXCLUSIVE)
 		{
 			if (ExclusiveMode && Exclusive.hWnd != hWnd && IsWindow(Exclusive.hWnd))
 			{
