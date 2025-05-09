@@ -34,6 +34,15 @@ namespace Utils
 	NtQueryInformationThreadFunc g_ntQueryInformationThread = nullptr;
 	NtSetInformationThreadFunc g_ntSetInformationThread = nullptr;
 
+#if (_WIN32_WINNT < 0x0502)
+	typedef struct _CLIENT_ID {
+		HANDLE UniqueProcess;
+		HANDLE UniqueThread;
+	} CLIENT_ID;
+
+	typedef LONG KPRIORITY;
+#endif
+
 	struct THREAD_BASIC_INFORMATION {
 		NTSTATUS ExitStatus;
 		PVOID TebBaseAddress;
