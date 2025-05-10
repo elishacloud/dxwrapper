@@ -467,7 +467,7 @@ void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9)
 	Caps7.ddsCaps.dwCaps2 = (Config.DdrawDisableDirect3DCaps ? 0 : 0 /*| DDSCAPS2_CUBEMAP | DDSCAPS2_VOLUME*/);
 	Caps7.ddsCaps.dwCaps3 = 0;								// Not used
 	Caps7.ddsCaps.dwCaps4 = 0;								// Not used
-	Caps7.ddsCaps.dwVolumeDepth = 0;						// Not used
+	Caps7.ddsCaps.dwVolumeDepth = 0;
 	Caps7.ddsOldCaps.dwCaps = Caps7.ddsCaps.dwCaps;
 
 	// Stereo Vision capabilities
