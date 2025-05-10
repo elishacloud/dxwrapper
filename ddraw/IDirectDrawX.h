@@ -231,6 +231,7 @@ public:
 
 	// Device information functions
 	static m_IDirectDrawX* GetDirectDrawInterface();
+	HMONITOR GetHMonitor();
 	HWND GetHwnd();
 	DWORD GetHwndThreadID();
 	HDC GetDC();

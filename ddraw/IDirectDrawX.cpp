@@ -1257,8 +1257,9 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 		}
 		else
 		{
-			Utils::GetScreenSize(hMonitor, (LONG&)lpDDSurfaceDesc2->dwWidth, (LONG&)lpDDSurfaceDesc2->dwHeight);
-			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(hMonitor);
+			HMONITOR hm = GetHMonitor();
+			Utils::GetScreenSize(hm, (LONG&)lpDDSurfaceDesc2->dwWidth, (LONG&)lpDDSurfaceDesc2->dwHeight);
+			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(hm);
 			displayModeBits = GetDisplayBPP();
 		}
 
@@ -1392,7 +1393,7 @@ HRESULT m_IDirectDrawX::GetMonitorFrequency(LPDWORD lpdwFrequency)
 		// If frequency cannot be found
 		if (!Frequency)
 		{
-			Frequency = Utils::GetRefreshRate(hMonitor);
+			Frequency = Utils::GetRefreshRate(GetHMonitor());
 		}
 
 		*lpdwFrequency = Frequency;
@@ -1677,7 +1678,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			}
 		}
 
-		// Redraw display window
+		// Do events if device is not created
 		if (!WasDeviceCreated && IsWindow(DisplayMode.hWnd))
 		{
 			RedrawWindow(DisplayMode.hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
@@ -2669,9 +2670,10 @@ void m_IDirectDrawX::ReleaseInterface()
 		if (IsWindow(DisplayMode.hWnd) && DisplayMode.DC)
 		{
 			ReleaseDC(DisplayMode.hWnd, DisplayMode.DC);
-			DisplayMode.DC = nullptr;
-			DisplayMode.hWnd = nullptr;
 		}
+		DisplayMode.DC = nullptr;
+		DisplayMode.hWnd = nullptr;
+		hMonitor = nullptr;
 
 		// Force a redraw of the desktop
 		if (ExclusiveMode || FullScreenWindowed || Config.FullscreenWindowMode)
@@ -2746,6 +2748,23 @@ m_IDirectDrawX* m_IDirectDrawX::GetDirectDrawInterface()
 	return DDrawVector[0];
 }
 
+HMONITOR m_IDirectDrawX::GetHMonitor()
+{
+	if (IsWindow(GetHwnd()))
+	{
+		if (hMonitor)
+		{
+			return hMonitor;
+		}
+
+		FindMonitorHandle();
+
+		return hMonitor;
+	}
+
+	return nullptr;
+}
+
 HWND m_IDirectDrawX::GetHwnd()
 {
 	return IsWindow(DisplayMode.hWnd) ? DisplayMode.hWnd : ClipperHWnd;
@@ -2758,7 +2777,7 @@ HDC m_IDirectDrawX::GetDC()
 
 DWORD m_IDirectDrawX::GetDisplayBPP()
 {
-	return (ExclusiveMode && Exclusive.BPP) ? Exclusive.BPP : Utils::GetBitCount(hMonitor);
+	return (ExclusiveMode && Exclusive.BPP) ? Exclusive.BPP : Utils::GetBitCount(GetHMonitor());
 }
 
 bool m_IDirectDrawX::IsExclusiveMode()
@@ -2788,7 +2807,7 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 		{
 			if (Device.Width && Device.Height)
 			{
-				Utils::GetScreenSize(hMonitor, (LONG&)Width, (LONG&)Height);
+				Utils::GetScreenSize(GetHMonitor(), (LONG&)Width, (LONG&)Height);
 			}
 			else
 			{
@@ -3193,6 +3212,10 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		return d3d9Device ? DD_OK : DDERR_GENERIC;
 	}
 
+	// Get monitor handle
+	if (IsWindow(hWnd)) FindMonitorHandle();
+	HMONITOR hm = GetHMonitor();
+
 	HRESULT hr = DD_OK;
 	do {
 		// Last call variables
@@ -3202,9 +3225,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Device already exists
 		bool IsCurrentDevice = (d3d9Device != nullptr);
 
-		// Find monitor handle for current device
-		FindMonitorHandle();
-
 		// Backup last present parameters
 		D3DPRESENT_PARAMETERS presParamsBackup = presParams;
 
@@ -3213,11 +3233,11 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 		// Get current resolution and rect
 		DWORD CurrentWidth = 0, CurrentHeight = 0;
-		Utils::GetScreenSize(hMonitor, (LONG&)CurrentWidth, (LONG&)CurrentHeight);
+		Utils::GetScreenSize(hm, (LONG&)CurrentWidth, (LONG&)CurrentHeight);
 
 		// Get current window size
 		RECT LastClientRect = {};
-		if (hWnd)
+		if (IsWindow(hWnd))
 		{
 			GetWindowRect(hWnd, &LastWindowRect);
 			GetClientRect(hWnd, &LastClientRect);
@@ -3277,7 +3297,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		presParams.hDeviceWindow = hWnd;
 
 		// Set parameters for the current display mode
-		if (Device.IsWindowed || !hWnd)
+		if (Device.IsWindowed || !IsWindow(hWnd))
 		{
 			// Window mode
 			presParams.Windowed = TRUE;
@@ -3386,7 +3406,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)) &&
 			!Config.EnableWindowMode)
 		{
-			Utils::SetDisplaySettings(hMonitor, DisplayMode.Width, DisplayMode.Height);
+			Utils::SetDisplaySettings(hm, DisplayMode.Width, DisplayMode.Height);
 		}
 
 		struct SetWindowFullScreen {
@@ -3413,7 +3433,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Prepare window and display size
 		if ((!presParams.Windowed || FullScreenWindowed) && !Config.EnableWindowMode)
 		{
-			SetWindowFullScreen::FullScreen(hMonitor, hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
+			SetWindowFullScreen::FullScreen(hm, hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
 		}
 
 		// Create d3d9 Device
@@ -3445,7 +3465,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 				hr = d3d9Object->CreateDevice(AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 				if (SUCCEEDED(hr))
 				{
-					SetWindowFullScreen::FullScreen(hMonitor, hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
+					SetWindowFullScreen::FullScreen(hm, hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
 				}
 			}
 		}
@@ -3544,7 +3564,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		}
 
 		// Store display frequency
-		DWORD RefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(hMonitor);
+		DWORD RefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(hm);
 		Counter.PerFrameMS = 1000.0 / (RefreshRate ? RefreshRate : 60);
 
 	} while (false);
@@ -3705,9 +3725,6 @@ HRESULT m_IDirectDrawX::CreateD9Object()
 			LOG_LIMIT(100, __FUNCTION__ << " Error: d3d9 object not setup!");
 			return DDERR_GENERIC;
 		}
-
-		// Find monitor handle
-		FindMonitorHandle();
 	}
 
 	return D3D_OK;
@@ -5170,9 +5187,7 @@ DWORD m_IDirectDrawX::GetDDrawBitsPixel(HWND hWnd)
 		return Config.DdrawOverrideBitMode;
 	}
 
-	ScopedDDCriticalSection ThreadLockDD;
-
-	if (!DDrawVector.empty() && DisplayMode.hWnd)
+	if (!DDrawVector.empty() && IsWindow(DisplayMode.hWnd))
 	{
 		return DDrawVector.data()[0]->GetDisplayBPP();
 	}
@@ -5182,7 +5197,7 @@ DWORD m_IDirectDrawX::GetDDrawBitsPixel(HWND hWnd)
 
 DWORD m_IDirectDrawX::GetDDrawWidth()
 {
-	if (DDrawVector.size() && DisplayMode.hWnd)
+	if (!DDrawVector.empty() && IsWindow(DisplayMode.hWnd))
 	{
 		return Exclusive.Width ? Exclusive.Width : 0;
 	}
@@ -5191,7 +5206,7 @@ DWORD m_IDirectDrawX::GetDDrawWidth()
 
 DWORD m_IDirectDrawX::GetDDrawHeight()
 {
-	if (DDrawVector.size() && DisplayMode.hWnd)
+	if (!DDrawVector.empty() && IsWindow(DisplayMode.hWnd))
 	{
 		return Exclusive.Height ? Exclusive.Height : 0;
 	}

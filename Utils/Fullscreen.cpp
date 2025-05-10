@@ -153,7 +153,7 @@ bool Utils::IsMonitorValid(HMONITOR hMonitor)
 {
 	MONITORINFO mi = {};
 	mi.cbSize = sizeof(mi);
-	return GetMonitorInfo(hMonitor, &mi) != 0;
+	return GetMonitorInfo(hMonitor, &mi) != FALSE;
 }
 
 HMONITOR Utils::GetMonitorFromWindow(HWND hWnd)
@@ -291,10 +291,8 @@ BOOL Utils::SetWindowPosToMonitor(HMONITOR hMonitor, HWND hWnd, HWND hWndInsertA
 
 	int xLoc = rect.left + X;
 	int yLoc = rect.top + Y;
-	int width = (cx == 0) ? (rect.right - rect.left) : cx;
-	int height = (cy == 0) ? (rect.bottom - rect.top) : cy;
 
-	return SetWindowPos(hWnd, hWndInsertAfter, xLoc, yLoc, width, height, uFlags);
+	return SetWindowPos(hWnd, hWndInsertAfter, xLoc, yLoc, cx, cy, uFlags);
 }
 
 BOOL Utils::SetWindowPlacementToMonitor(HMONITOR hMonitor, HWND hWnd, const WINDOWPLACEMENT* lpwndpl)

@@ -880,24 +880,6 @@ static void StoreDeviceCache(DDDeviceInfo& info)
 	}
 }
 
-static BOOL CALLBACK CacheEnumCallbackExA(GUID* lpGUID, LPSTR lpDesc, LPSTR lpName, LPVOID lpContext, HMONITOR hMonitor)
-{
-	UNREFERENCED_PARAMETER(lpContext);
-	UNREFERENCED_PARAMETER(hMonitor);
-
-	DDDeviceInfo info = {};
-	if (lpGUID && lpDesc && lpName)
-	{
-		info.guid = *lpGUID;
-		info.description = lpDesc;
-		info.name = lpName;
-
-		StoreDeviceCache(info);
-	}
-
-	return DDENUMRET_OK;
-}
-
 static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
 {
 	if (!lpCallback)
@@ -926,7 +908,6 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 	D3DADAPTER_IDENTIFIER9 Identifier = {};
 	int AdapterCount = (dwFlags & DDENUM_ATTACHEDSECONDARYDEVICES) != DDENUM_ATTACHEDSECONDARYDEVICES ? 0 : (int)d3d9Object->GetAdapterCount();
 
-	bool CacheGUIDs = true;
 	GUID myGUID = {};
 	GUID lastGUID = {};
 	GUID* lpGUID;
@@ -956,14 +937,6 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 			// Get GUID
 			lpGUID = &myGUID;
 			{
-				DEFINE_STATIC_PROC_ADDRESS(DirectDrawEnumerateExAProc, DirectDrawEnumerateExA, DirectDrawEnumerateExA_out);
-
-				if (DirectDrawEnumerateExA && CacheGUIDs)
-				{
-					CacheGUIDs = false;
-
-					DirectDrawEnumerateExA(CacheEnumCallbackExA, nullptr, dwFlags);
-				}
 				if (!FindGUIDByDeviceName(Identifier.DeviceName, Identifier.Description, myGUID))
 				{
 					Logging::Log() << __FUNCTION__ << " Warning: could not get DirectDraw device GUID. Using DeviceIdentifier instead." <<
