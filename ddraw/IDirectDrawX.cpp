@@ -1604,19 +1604,14 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			(((!ExclusiveMode || Exclusive.hWnd == hWnd) && (!DisplayMode.hWnd || !DisplayMode.SetBy || DisplayMode.SetBy == this)) || !IsWindow(DisplayMode.hWnd)))
 		{
 			// Check if DC needs to be released
-			if (DisplayMode.hWnd && DisplayMode.DC)
+			if (IsWindow(DisplayMode.hWnd) && DisplayMode.DC)
 			{
 				CloseD3DDDI();
 				ReleaseDC(DisplayMode.hWnd, DisplayMode.DC);
-				DisplayMode.DC = nullptr;
 			}
 
 			DisplayMode.hWnd = hWnd;
-
-			if (DisplayMode.hWnd && !DisplayMode.DC)
-			{
-				DisplayMode.DC = ::GetDC(DisplayMode.hWnd);
-			}
+			DisplayMode.DC = ::GetDC(DisplayMode.hWnd);
 		}
 
 		// Check window handle
@@ -2336,11 +2331,12 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		LastWindowRect = {};
 
 		// Release DC
-		if (DisplayMode.hWnd && DisplayMode.DC)
+		if (IsWindow(DisplayMode.hWnd) && DisplayMode.DC)
 		{
+			CloseD3DDDI();
 			ReleaseDC(DisplayMode.hWnd, DisplayMode.DC);
-			DisplayMode.DC = nullptr;
 		}
+		DisplayMode.DC = nullptr;
 		ClipperHWnd = nullptr;
 
 		// Display mode
@@ -2750,12 +2746,13 @@ m_IDirectDrawX* m_IDirectDrawX::GetDirectDrawInterface()
 
 HMONITOR m_IDirectDrawX::GetHMonitor()
 {
-	if (IsWindow(GetHwnd()))
+	if (GetHwnd())
 	{
-		if (hMonitor)
+		if (Utils::IsMonitorValid(hMonitor))
 		{
 			return hMonitor;
 		}
+		hMonitor = nullptr;
 
 		FindMonitorHandle();
 
@@ -2767,12 +2764,32 @@ HMONITOR m_IDirectDrawX::GetHMonitor()
 
 HWND m_IDirectDrawX::GetHwnd()
 {
-	return IsWindow(DisplayMode.hWnd) ? DisplayMode.hWnd : ClipperHWnd;
+	if (DisplayMode.hWnd)
+	{
+		if (IsWindow(DisplayMode.hWnd))
+		{
+			return DisplayMode.hWnd;
+		}
+
+		DisplayMode.hWnd = nullptr;
+	}
+
+	if (ClipperHWnd)
+	{
+		if (IsWindow(ClipperHWnd))
+		{
+			return ClipperHWnd;
+		}
+
+		ClipperHWnd = nullptr;
+	}
+
+	return  nullptr;
 }
 
 HDC m_IDirectDrawX::GetDC()
 {
-	return WindowFromDC(DisplayMode.DC) ? DisplayMode.DC : nullptr;
+	return IsWindow(DisplayMode.hWnd) && WindowFromDC(DisplayMode.DC) ? DisplayMode.DC : nullptr;
 }
 
 DWORD m_IDirectDrawX::GetDisplayBPP()
@@ -3213,7 +3230,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	}
 
 	// Get monitor handle
-	if (IsWindow(hWnd)) FindMonitorHandle();
+	FindMonitorHandle();
 	HMONITOR hm = GetHMonitor();
 
 	HRESULT hr = DD_OK;
@@ -3237,7 +3254,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 		// Get current window size
 		RECT LastClientRect = {};
-		if (IsWindow(hWnd))
+		if (hWnd)
 		{
 			GetWindowRect(hWnd, &LastWindowRect);
 			GetClientRect(hWnd, &LastClientRect);
@@ -3297,7 +3314,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		presParams.hDeviceWindow = hWnd;
 
 		// Set parameters for the current display mode
-		if (Device.IsWindowed || !IsWindow(hWnd))
+		if (Device.IsWindowed || !hWnd)
 		{
 			// Window mode
 			presParams.Windowed = TRUE;
@@ -4829,7 +4846,7 @@ HRESULT m_IDirectDrawX::CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer)
 	// Get source rect
 	RECT* pSrcRect = nullptr;
 	RECT SrcRect = { 0, 0, (LONG)PrimarySurface->GetD3d9Width(), (LONG)PrimarySurface->GetD3d9Height() };
-	if (!ExclusiveMode && IsWindow(hWnd) && !IsIconic(hWnd))
+	if (!ExclusiveMode && hWnd && !IsIconic(hWnd))
 	{
 		// Clip rect
 		RECT ClientRect = {};

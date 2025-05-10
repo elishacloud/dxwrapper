@@ -208,8 +208,12 @@ HRESULT m_IDirectDrawClipper::GetHWnd(HWND FAR * lphWnd)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!cliphWnd)
+		if (!cliphWnd || !IsWindow(cliphWnd))
 		{
+			cliphWnd = nullptr;
+
+			Logging::Log() << __FUNCTION__ << " Warning: Clip Window invalid or has not been set!";
+
 			return DDERR_GENERIC;
 		}
 
@@ -309,6 +313,16 @@ HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 
 	if (Config.Dd7to9)
 	{
+		if (hWnd && !IsWindow(hWnd))
+		{
+			if (cliphWnd && !IsWindow(cliphWnd))
+			{
+				cliphWnd = nullptr;
+			}
+
+			return DDERR_INVALIDPARAMS;
+		}
+
 		cliphWnd = hWnd;
 
 		// Load clip list from window

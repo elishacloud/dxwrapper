@@ -151,6 +151,11 @@ using namespace Utils;
 
 bool Utils::IsMonitorValid(HMONITOR hMonitor)
 {
+	if (!hMonitor)
+	{
+		return false;
+	}
+
 	MONITORINFO mi = {};
 	mi.cbSize = sizeof(mi);
 	return GetMonitorInfo(hMonitor, &mi) != FALSE;
