@@ -996,7 +996,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSU
 
 	if (Config.Dd7to9)
 	{
-		return EnumAttachedSurfaces2(lpContext, (LPDDENUMSURFACESCALLBACK7)lpEnumSurfacesCallback, MipMapLevel, DirectXVersion);
+		return EnumAttachedSurfaces2(lpContext, nullptr, lpEnumSurfacesCallback, MipMapLevel, DirectXVersion);
 	}
 
 	if (!lpEnumSurfacesCallback)
@@ -1029,11 +1029,11 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSU
 	return GetProxyInterfaceV3()->EnumAttachedSurfaces(&CallbackContext, EnumSurface::ConvertCallback);
 }
 
-HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback7, DWORD MipMapLevel, DWORD DirectXVersion)
+HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpEnumSurfacesCallback7, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback, DWORD MipMapLevel, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lpEnumSurfacesCallback7)
+	if (!lpEnumSurfacesCallback7 && !lpEnumSurfacesCallback)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -1041,36 +1041,39 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 	struct EnumSurface
 	{
 		LPVOID lpContext;
-		LPDDENUMSURFACESCALLBACK7 lpCallback;
+		LPDDENUMSURFACESCALLBACK7 lpCallback7;
+		LPDDENUMSURFACESCALLBACK lpCallback;
 		DWORD DirectXVersion;
-		bool ConvertSurfaceDescTo2;
 
 		static HRESULT CALLBACK ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext)
 		{
 			EnumSurface* self = (EnumSurface*)lpContext;
 
-			if (!Config.Dd7to9 && lpDDSurface)
+			if (!Config.Dd7to9)
 			{
 				lpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
 			}
 
-			// Game using old DirectX, Convert back to LPDDSURFACEDESC
-			if (self->ConvertSurfaceDescTo2)
+			if (self->lpCallback7)
+			{
+				return self->lpCallback7(lpDDSurface, lpDDSurfaceDesc2, self->lpContext);
+			}
+			else if (self->lpCallback)
 			{
 				DDSURFACEDESC Desc = {};
 				Desc.dwSize = sizeof(DDSURFACEDESC);
 				ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
-				return ((LPDDENUMSURFACESCALLBACK)self->lpCallback)((LPDIRECTDRAWSURFACE)lpDDSurface, &Desc, self->lpContext);
+				return self->lpCallback((LPDIRECTDRAWSURFACE)lpDDSurface, &Desc, self->lpContext);
 			}
 
-			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc2, self->lpContext);
+			return DDENUMRET_OK;
 		}
 	} CallbackContext = {};
 	CallbackContext.lpContext = lpContext;
-	CallbackContext.lpCallback = lpEnumSurfacesCallback7;
+	CallbackContext.lpCallback7 = lpEnumSurfacesCallback7;
+	CallbackContext.lpCallback = lpEnumSurfacesCallback;
 	CallbackContext.DirectXVersion = DirectXVersion;
-	CallbackContext.ConvertSurfaceDescTo2 = (ProxyDirectXVersion > 3 && DirectXVersion < 4);
 
 	if (Config.Dd7to9)
 	{
@@ -1120,7 +1123,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders(DWORD dwFlags, LPVOID lpContex
 
 	if (Config.Dd7to9)
 	{
-		return EnumOverlayZOrders2(dwFlags, lpContext, (LPDDENUMSURFACESCALLBACK7)lpfnCallback, DirectXVersion);
+		return EnumOverlayZOrders2(dwFlags, lpContext, nullptr, lpfnCallback, DirectXVersion);
 	}
 
 	if (!lpfnCallback)
@@ -1153,11 +1156,11 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders(DWORD dwFlags, LPVOID lpContex
 	return GetProxyInterfaceV3()->EnumOverlayZOrders(dwFlags, &CallbackContext, EnumSurface::ConvertCallback);
 }
 
-HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpfnCallback7, DWORD DirectXVersion)
+HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK7 lpfnCallback7, LPDDENUMSURFACESCALLBACK lpfnCallback, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lpfnCallback7)
+	if (!lpfnCallback7 && !lpfnCallback)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -1165,36 +1168,39 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 	struct EnumSurface
 	{
 		LPVOID lpContext;
-		LPDDENUMSURFACESCALLBACK7 lpCallback;
+		LPDDENUMSURFACESCALLBACK7 lpCallback7;
+		LPDDENUMSURFACESCALLBACK lpCallback;
 		DWORD DirectXVersion;
-		bool ConvertSurfaceDescTo2;
 
 		static HRESULT CALLBACK ConvertCallback(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext)
 		{
 			EnumSurface *self = (EnumSurface*)lpContext;
 
-			if (!Config.Dd7to9 && lpDDSurface)
+			if (!Config.Dd7to9)
 			{
 				lpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
 			}
 
-			// Game using old DirectX, Convert back to LPDDSURFACEDESC
-			if (self->ConvertSurfaceDescTo2)
+			if (self->lpCallback7)
+			{
+				return self->lpCallback7(lpDDSurface, lpDDSurfaceDesc2, self->lpContext);
+			}
+			else if (self->lpCallback)
 			{
 				DDSURFACEDESC Desc = {};
 				Desc.dwSize = sizeof(DDSURFACEDESC);
 				ConvertSurfaceDesc(Desc, *lpDDSurfaceDesc2);
 
-				return ((LPDDENUMSURFACESCALLBACK)self->lpCallback)((LPDIRECTDRAWSURFACE)lpDDSurface, &Desc, self->lpContext);
+				return self->lpCallback((LPDIRECTDRAWSURFACE)lpDDSurface, &Desc, self->lpContext);
 			}
 
-			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc2, self->lpContext);
+			return DDENUMRET_OK;
 		}
 	} CallbackContext = {};
 	CallbackContext.lpContext = lpContext;
-	CallbackContext.lpCallback = lpfnCallback7;
+	CallbackContext.lpCallback7 = lpfnCallback7;
+	CallbackContext.lpCallback = lpfnCallback;
 	CallbackContext.DirectXVersion = DirectXVersion;
-	CallbackContext.ConvertSurfaceDescTo2 = (ProxyDirectXVersion > 3 && DirectXVersion < 4);
 
 	if (Config.Dd7to9)
 	{
@@ -1482,7 +1488,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTD
 		DDSCAPS2 Caps2;
 		ConvertCaps(Caps2, *lpDDSCaps);
 
-		return GetAttachedSurface2((lpDDSCaps) ? &Caps2 : nullptr, lplpDDAttachedSurface, MipMapLevel, DirectXVersion);
+		return GetAttachedSurface2((lpDDSCaps ? &Caps2 : nullptr), lplpDDAttachedSurface, MipMapLevel, DirectXVersion);
 	}
 
 	HRESULT hr = GetProxyInterfaceV3()->GetAttachedSurface(lpDDSCaps, (LPDIRECTDRAWSURFACE3*)lplpDDAttachedSurface);
@@ -2119,7 +2125,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc(LPDDSURFACEDESC lpDDSurfaceDesc, D
 
 		if (!lpDDSurfaceDesc || lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << (lpDDSurfaceDesc ? lpDDSurfaceDesc->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -2148,7 +2154,7 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 	{
 		if (!lpDDSurfaceDesc2 || lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << (lpDDSurfaceDesc2 ? lpDDSurfaceDesc2->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -2349,7 +2355,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock(LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfa
 	{
 		if (!lpDDSurfaceDesc || lpDDSurfaceDesc->dwSize != sizeof(DDSURFACEDESC))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc) ? lpDDSurfaceDesc->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << (lpDDSurfaceDesc ? lpDDSurfaceDesc->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -2388,7 +2394,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Check surfaceDesc
 		if (!lpDDSurfaceDesc2 || lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << (lpDDSurfaceDesc2 ? lpDDSurfaceDesc2->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 

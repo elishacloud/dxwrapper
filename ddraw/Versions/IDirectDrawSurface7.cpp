@@ -128,7 +128,7 @@ HRESULT m_IDirectDrawSurface7::EnumAttachedSurfaces(LPVOID a, LPDDENUMSURFACESCA
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->EnumAttachedSurfaces2(a, b, MipMapLevel, DirectXVersion);
+	return ProxyInterface->EnumAttachedSurfaces2(a, b, nullptr, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface7::EnumOverlayZOrders(DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK7 c)
@@ -137,7 +137,7 @@ HRESULT m_IDirectDrawSurface7::EnumOverlayZOrders(DWORD a, LPVOID b, LPDDENUMSUR
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->EnumOverlayZOrders2(a, b, c, DirectXVersion);
+	return ProxyInterface->EnumOverlayZOrders2(a, b, c, nullptr, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface7::Flip(LPDIRECTDRAWSURFACE7 a, DWORD b)

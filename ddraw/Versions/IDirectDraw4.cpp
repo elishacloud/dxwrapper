@@ -123,7 +123,7 @@ HRESULT m_IDirectDraw4::EnumSurfaces(DWORD a, LPDDSURFACEDESC2 b, LPVOID c, LPDD
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->EnumSurfaces2(a, b, c, (LPDDENUMSURFACESCALLBACK7)d, DirectXVersion);
+	return ProxyInterface->EnumSurfaces2(a, b, c, (LPDDENUMSURFACESCALLBACK7)d, nullptr, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw4::FlipToGDISurface()
