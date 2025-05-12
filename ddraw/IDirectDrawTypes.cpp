@@ -178,7 +178,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC& Desc, const DDSURFACEDESC2& Desc2)
 			Desc.ddpfPixelFormat.dwZBitMask = 0;
 		}
 	}
-	ConvertCaps(Desc.ddsCaps, Desc2.ddsCaps);
+	Desc.ddsCaps.dwCaps = Desc2.ddsCaps.dwCaps;
 	// Check for dwFlags that did not get converted
 	if (Desc.dwFlags != Desc2.dwFlags && (Desc2.dwFlags - Desc.dwFlags) != ((DWORD)DDSD_PIXELFORMAT - (DWORD)DDSD_ZBUFFERBITDEPTH))
 	{
@@ -203,7 +203,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC2& Desc2, const DDSURFACEDESC& Desc)
 	Desc2.dwWidth = Desc.dwWidth;
 	Desc2.lPitch = Desc.lPitch;
 	Desc2.dwBackBufferCount = Desc.dwBackBufferCount;
-	Desc2.dwRefreshRate = Desc.dwRefreshRate;
+	Desc2.dwMipMapCount = Desc.dwMipMapCount;
 	Desc2.dwAlphaBitDepth = Desc.dwAlphaBitDepth;
 	Desc2.dwReserved = Desc.dwReserved;
 	Desc2.lpSurface = Desc.lpSurface;
@@ -236,9 +236,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC2& Desc2, const DDSURFACEDESC& Desc)
 			(Desc2.ddpfPixelFormat.dwZBufferBitDepth == 16) ? 0xFFFF : 0;
 		Desc2.dwRefreshRate = 0;	// Union with dwZBufferBitDepth
 	}
-	ConvertCaps(Desc2.ddsCaps, Desc.ddsCaps);
-	// Extra parameters
-	Desc2.dwTextureStage = 0;			// Stage identifier that is used to bind a texture to a specific stage
+	Desc2.ddsCaps.dwCaps, Desc.ddsCaps.dwCaps;
 	// Check for dwFlags that did not get converted
 	if (Desc.dwFlags != Desc2.dwFlags && (Desc2.dwFlags - Desc.dwFlags) != ((DWORD)DDSD_PIXELFORMAT - (DWORD)DDSD_ZBUFFERBITDEPTH))
 	{
@@ -377,7 +375,7 @@ void ConvertCaps(DDSCAPS2& Caps2, const DDSCAPS& Caps)
 	Caps2.dwCaps2 = 0;				// Additional surface capabilities
 	Caps2.dwCaps3 = 0;				// Not used
 	Caps2.dwCaps4 = 0;				// Not used
-	Caps2.dwVolumeDepth = 0;		// Not used
+	Caps2.dwVolumeDepth = 0;
 }
 
 void ConvertCaps(DDCAPS& Caps, const DDCAPS& Caps2)
@@ -583,11 +581,6 @@ void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9)
 	// Video memory
 	Caps7.dwVidMemTotal = MaxVidMemory;
 	Caps7.dwVidMemFree = MaxVidMemory - MinUsedVidMemory;
-
-	// Reserved fields
-	Caps7.dwReserved1 = 0;
-	Caps7.dwReserved2 = 0;
-	Caps7.dwReserved3 = 0;
 }
 
 void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)

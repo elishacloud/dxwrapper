@@ -563,12 +563,6 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9)
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_32;
 		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24 | DDBD_32;
 	}
-
-	// Reserved fields (should be zero)
-	Desc7.dwReserved1 = 0;
-	Desc7.dwReserved2 = 0;
-	Desc7.dwReserved3 = 0;
-	Desc7.dwReserved4 = 0;
 }
 
 void ConvertVertices(D3DLVERTEX* lFVF, const D3DLVERTEX9* lFVF9, DWORD NumVertices)
