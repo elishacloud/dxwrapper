@@ -6535,9 +6535,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 					SrcRect.left + RoundF((clippedDest.right - DestRect.left) * scaleX),
 					SrcRect.top + RoundF((clippedDest.bottom - DestRect.top) * scaleY)
 				};
-
-				// Adjusted dest rects
-				DestRect = clippedDest;
 			}
 			else
 			{
@@ -6546,9 +6543,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				SrcRect.top += clippedDest.top - DestRect.top;
 				SrcRect.right -= DestRect.right - clippedDest.right;
 				SrcRect.bottom -= DestRect.bottom - clippedDest.bottom;
-
-				// Adjusted dest rects
-				DestRect = clippedDest;
 			}
 
 			// Check if rect is fully clipped
@@ -6557,6 +6551,9 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: source rect is fully clipped!");
 				return DD_OK;
 			}
+
+			// Adjusted dest rects
+			DestRect = clippedDest;
 		}
 	}
 
