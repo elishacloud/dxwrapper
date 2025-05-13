@@ -236,7 +236,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC2& Desc2, const DDSURFACEDESC& Desc)
 			(Desc2.ddpfPixelFormat.dwZBufferBitDepth == 16) ? 0xFFFF : 0;
 		Desc2.dwRefreshRate = 0;	// Union with dwZBufferBitDepth
 	}
-	Desc2.ddsCaps.dwCaps, Desc.ddsCaps.dwCaps;
+	Desc2.ddsCaps.dwCaps = Desc.ddsCaps.dwCaps;
 	// Check for dwFlags that did not get converted
 	if (Desc.dwFlags != Desc2.dwFlags && (Desc2.dwFlags - Desc.dwFlags) != ((DWORD)DDSD_PIXELFORMAT - (DWORD)DDSD_ZBUFFERBITDEPTH))
 	{
