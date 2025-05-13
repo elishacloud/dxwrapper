@@ -6519,55 +6519,43 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 			if (IsStretchRect)
 			{
+				// Calculate scaling factors
+				float scaleX = float(SrcRect.right - SrcRect.left) / float(DestRect.right - DestRect.left);
+				float scaleY = float(SrcRect.bottom - SrcRect.top) / float(DestRect.bottom - DestRect.top);
+
 				// Lambda function to round up
 				auto RoundF = [](float value) {
 					return int(value + 0.5f);
 					};
 
-				// Calculate scaling factors
-				float scaleX = float(SrcRect.right - SrcRect.left) / float(DestRect.right - DestRect.left);
-				float scaleY = float(SrcRect.bottom - SrcRect.top) / float(DestRect.bottom - DestRect.top);
-
 				// Adjust source rect proportionally
-				RECT adjustedSrc = {
+				SrcRect = {
 					SrcRect.left + RoundF((clippedDest.left - DestRect.left) * scaleX),
 					SrcRect.top + RoundF((clippedDest.top - DestRect.top) * scaleY),
 					SrcRect.left + RoundF((clippedDest.right - DestRect.left) * scaleX),
 					SrcRect.top + RoundF((clippedDest.bottom - DestRect.top) * scaleY)
 				};
 
-				SrcRect = adjustedSrc;
+				// Adjusted dest rects
 				DestRect = clippedDest;
-
-				// Check if rect is fully clipped
-				if (SrcRect.left >= SrcRect.right || SrcRect.top >= SrcRect.bottom)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: stretched source rect is fully clipped!");
-					return DD_OK;
-				}
 			}
 			else
 			{
 				// Calculate how many pixels were clipped off each side
-				LONG clipLeft = clippedDest.left - DestRect.left;
-				LONG clipTop = clippedDest.top - DestRect.top;
-				LONG clipRight = DestRect.right - clippedDest.right;
-				LONG clipBottom = DestRect.bottom - clippedDest.bottom;
+				SrcRect.left += clippedDest.left - DestRect.left;
+				SrcRect.top += clippedDest.top - DestRect.top;
+				SrcRect.right -= DestRect.right - clippedDest.right;
+				SrcRect.bottom -= DestRect.bottom - clippedDest.bottom;
 
-				// Adjust both rects by same pixel amount
+				// Adjusted dest rects
 				DestRect = clippedDest;
+			}
 
-				SrcRect.left += clipLeft;
-				SrcRect.top += clipTop;
-				SrcRect.right -= clipRight;
-				SrcRect.bottom -= clipBottom;
-
-				// Check if rect is fully clipped
-				if (SrcRect.left >= SrcRect.right || SrcRect.top >= SrcRect.bottom)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: source rect is fully clipped!");
-					return DD_OK;
-				}
+			// Check if rect is fully clipped
+			if (SrcRect.left >= SrcRect.right || SrcRect.top >= SrcRect.bottom)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: source rect is fully clipped!");
+				return DD_OK;
 			}
 		}
 	}
