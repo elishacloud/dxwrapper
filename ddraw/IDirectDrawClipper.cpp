@@ -224,7 +224,6 @@ HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * lpbChanged)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// ToDo: Fix this to get real status of ClipList
 		// lpbChanged is TRUE if the clip list has changed, and FALSE otherwise.
 		if (IsClipListChangedFlag)
 		{
