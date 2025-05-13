@@ -108,108 +108,59 @@ HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, L
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Case 1: Custom clip list is set
-		if (IsClipListSet)
+		if (!IsClipListSet)
 		{
-			const RGNDATA* input = reinterpret_cast<const RGNDATA*>(ClipList.data());
-			DWORD regionSize = sizeof(RGNDATAHEADER) + input->rdh.nRgnSize;
-
-			if (!lpClipList)
-			{
-				*lpdwSize = regionSize;
-				return DD_OK;
-			}
-			else if (*lpdwSize < regionSize)
-			{
-				*lpdwSize = regionSize;
-				return DDERR_REGIONTOOSMALL;
-			}
-
-			// Intersect clip list with lpRect if needed
-			if (lpRect)
-			{
-				RGNDATA* output = reinterpret_cast<RGNDATA*>(lpClipList);
-				output->rdh.dwSize = sizeof(RGNDATAHEADER);
-				output->rdh.iType = RDH_RECTANGLES;
-				output->rdh.nCount = 0;
-				output->rdh.nRgnSize = 0;
-				SetRectEmpty(&output->rdh.rcBound);
-
-				const RECT* inputRects = reinterpret_cast<const RECT*>(input->Buffer);
-				RECT* outputRects = reinterpret_cast<RECT*>(output->Buffer);
-
-				for (DWORD i = 0; i < input->rdh.nCount; ++i)
-				{
-					RECT result;
-					if (IntersectRect(&result, &inputRects[i], lpRect))
-					{
-						outputRects[output->rdh.nCount++] = result;
-						UnionRect(&output->rdh.rcBound, &output->rdh.rcBound, &result);
-					}
-				}
-
-				*lpdwSize = sizeof(RGNDATAHEADER) + output->rdh.nRgnSize;
-				output->rdh.nRgnSize = output->rdh.nCount * sizeof(RECT);
-			}
-			else
-			{
-				*lpdwSize = regionSize;
-				memcpy(lpClipList, ClipList.data(), regionSize);
-			}
-
-			IsClipListChangedFlag = false;
-			return DD_OK;
+			*lpdwSize = 0;
+			return DDERR_NOCLIPLIST;
 		}
 
-		// Case 2: Default client area clip region
-		HWND hWnd = cliphWnd ? cliphWnd : (ddrawParent ? ddrawParent->GetHwnd() : nullptr);
-		if (!hWnd)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Could not get window handle!");
-			return DDERR_GENERIC;
-		}
-
-		RECT clientRect = {};
-		GetClientRect(hWnd, &clientRect);
-		MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&clientRect, 2);
-
-		HRGN hRgn = CreateRectRgnIndirect(&clientRect);
-		if (lpRect)
-		{
-			HRGN hClipRgn = CreateRectRgnIndirect(lpRect);
-			CombineRgn(hRgn, hRgn, hClipRgn, RGN_AND);
-			DeleteObject(hClipRgn);
-		}
-
-		DWORD regionSize = GetRegionData(hRgn, 0, nullptr);
-		if (!regionSize)
-		{
-			DeleteObject(hRgn);
-			return DDERR_GENERIC;
-		}
+		const RGNDATA* input = reinterpret_cast<const RGNDATA*>(ClipList.data());
+		DWORD regionSize = sizeof(RGNDATAHEADER) + input->rdh.nRgnSize;
 
 		if (!lpClipList)
 		{
 			*lpdwSize = regionSize;
-			DeleteObject(hRgn);
 			return DD_OK;
 		}
 		else if (*lpdwSize < regionSize)
 		{
 			*lpdwSize = regionSize;
-			DeleteObject(hRgn);
 			return DDERR_REGIONTOOSMALL;
 		}
 
-		DWORD copiedSize = GetRegionData(hRgn, *lpdwSize, lpClipList);
-		DeleteObject(hRgn);
-
-		if (!copiedSize)
+		// Intersect clip list with lpRect if needed
+		if (lpRect)
 		{
-			return DDERR_GENERIC;
+			RGNDATA* output = reinterpret_cast<RGNDATA*>(lpClipList);
+			output->rdh.dwSize = sizeof(RGNDATAHEADER);
+			output->rdh.iType = RDH_RECTANGLES;
+			output->rdh.nCount = 0;
+			output->rdh.nRgnSize = 0;
+			SetRectEmpty(&output->rdh.rcBound);
+
+			const RECT* inputRects = reinterpret_cast<const RECT*>(input->Buffer);
+			RECT* outputRects = reinterpret_cast<RECT*>(output->Buffer);
+
+			for (DWORD i = 0; i < input->rdh.nCount; ++i)
+			{
+				RECT result;
+				if (IntersectRect(&result, &inputRects[i], lpRect))
+				{
+					outputRects[output->rdh.nCount++] = result;
+					UnionRect(&output->rdh.rcBound, &output->rdh.rcBound, &result);
+				}
+			}
+
+			*lpdwSize = sizeof(RGNDATAHEADER) + output->rdh.nRgnSize;
+			output->rdh.nRgnSize = output->rdh.nCount * sizeof(RECT);
+		}
+		else
+		{
+			*lpdwSize = regionSize;
+			memcpy(lpClipList, ClipList.data(), regionSize);
 		}
 
-		*lpdwSize = copiedSize;
+		IsClipListChangedFlag = false;
 		return DD_OK;
 	}
 
@@ -309,10 +260,6 @@ HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 		}
 		else
 		{
-			// Set clip list to lpClipList
-			IsClipListSet = true;
-			IsClipListChangedFlag = true;
-
 			if (lpClipList->rdh.nRgnSize < lpClipList->rdh.nCount * sizeof(RECT))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: nRgnSize is not Correct: " << lpClipList->rdh.nRgnSize << " -> " << (lpClipList->rdh.nCount * sizeof(RECT)));
@@ -323,6 +270,30 @@ HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 				LOG_LIMIT(100, __FUNCTION__ << " Error: dwSize does not match: " << lpClipList->rdh.dwSize);
 				return DDERR_INVALIDPARAMS;
 			}
+			if (lpClipList->rdh.rcBound.left >= lpClipList->rdh.rcBound.right || lpClipList->rdh.rcBound.top >= lpClipList->rdh.rcBound.bottom)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid clip bounds: " << lpClipList->rdh.rcBound);
+				return DDERR_INVALIDPARAMS;
+			}
+			if (lpClipList->rdh.nCount == 0)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: no clip list added!");
+				return DDERR_NOCLIPLIST;
+			}
+			for (DWORD i = 0; i < lpClipList->rdh.nCount; ++i)
+			{
+				const RECT* rects = reinterpret_cast<const RECT*>(lpClipList->Buffer);
+
+				if (rects[i].left >= rects[i].right || rects[i].top >= rects[i].bottom)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: invalid rect: " << i << " - " << rects[i]);
+					return DDERR_INVALIDPARAMS;
+				}
+			}
+
+			// Set clip list to lpClipList
+			IsClipListSet = true;
+			IsClipListChangedFlag = true;
 
 			DWORD Size = sizeof(RGNDATAHEADER) + lpClipList->rdh.nRgnSize;
 			ClipList.resize(Size);
@@ -396,6 +367,52 @@ void m_IDirectDrawClipper::ReleaseInterface()
 	{
 		ddrawParent->ClearClipper(this);
 	}
+}
+
+bool m_IDirectDrawClipper::GetClipBoundsFromData(RECT& bounds)
+{
+	if (IsClipListSet)
+	{
+		const RGNDATA* data = reinterpret_cast<const RGNDATA*>(ClipList.data());
+		bounds = data->rdh.rcBound;
+
+		return true;
+	}
+	return false;
+}
+
+HRESULT m_IDirectDrawClipper::GetClipRegion(HRGN hOutRgn)
+{
+	if (!hOutRgn)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (IsClipListSet)
+	{
+		const RGNDATA* pRgnData = reinterpret_cast<const RGNDATA*>(ClipList.data());
+		if (pRgnData->rdh.nCount == 0)
+		{
+			return DDERR_NOCLIPLIST;
+		}
+
+		const RECT* rects = reinterpret_cast<const RECT*>(pRgnData->Buffer);
+		HRGN hCombinedRgn = CreateRectRgnIndirect(&rects[0]);
+
+		for (DWORD i = 1; i < pRgnData->rdh.nCount; ++i)
+		{
+			HRGN hTmp = CreateRectRgnIndirect(&rects[i]);
+			CombineRgn(hCombinedRgn, hCombinedRgn, hTmp, RGN_OR);
+			DeleteObject(hTmp);
+		}
+
+		CombineRgn(hOutRgn, hCombinedRgn, nullptr, RGN_COPY);
+		DeleteObject(hCombinedRgn);
+
+		return DD_OK;
+	}
+
+	return DDERR_NOCLIPLIST;
 }
 
 m_IDirectDrawClipper* m_IDirectDrawClipper::CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags)

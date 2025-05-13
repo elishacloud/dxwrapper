@@ -939,9 +939,6 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 			{
 				if (!FindGUIDByDeviceName(Identifier.DeviceName, Identifier.Description, myGUID))
 				{
-					Logging::Log() << __FUNCTION__ << " Warning: could not get DirectDraw device GUID. Using DeviceIdentifier instead." <<
-						" Desc: " << Identifier.Description << " Name: " << Identifier.DeviceName;
-
 					// Set unique GUID
 					bool ReusingGUID = IsEqualGUID(lastGUID, Identifier.DeviceIdentifier) == TRUE;
 					myGUID = Identifier.DeviceIdentifier;

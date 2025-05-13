@@ -85,5 +85,8 @@ public:
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw() { ddrawParent = nullptr; }
+	bool HasClipList() const { return IsClipListSet; }
+	bool GetClipBoundsFromData(RECT& bounds);
+	HRESULT GetClipRegion(HRGN hOutRgn);
 	static m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags);
 };
