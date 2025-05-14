@@ -273,7 +273,7 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 				m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 				if (lpDDSrcSurfaceX)
 				{
-					lpDDSrcSurfaceX->PresentSurface(false);
+					lpDDSrcSurfaceX->PresentSurface(false, false);
 				}
 			}
 		}
