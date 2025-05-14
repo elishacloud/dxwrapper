@@ -2424,7 +2424,9 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		GetSurfaceDesc2(lpDDSurfaceDesc2, MipMapLevel, DirectXVersion);
 		if (!surface.UsingSurfaceMemory && !IsUsingEmulation())
 		{
+			lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE | DDSD_PITCH;
 			lpDDSurfaceDesc2->lpSurface = dummySurface.data();
+			lpDDSurfaceDesc2->lPitch = ComputePitch(surface.Format, lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight);
 		}
 		if (IsUsingEmulation())
 		{
