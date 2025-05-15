@@ -151,7 +151,6 @@ private:
 	// Convert to Direct3D9
 	const DWORD CreatedVersion;
 	CRITICAL_SECTION ddscs = {};
-	CRITICAL_SECTION ddsucs = {};
 	m_IDirectDrawX *ddrawParent = nullptr;				// DirectDraw parent device
 	SURFACEOVERLAY SurfaceOverlay;						// The overlays for this surface
 	std::vector<MIPMAP> MipMaps;						// MipMaps structure with addresses
@@ -506,7 +505,7 @@ public:
 	m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
 	void ClearUsing3DFlag();
 	HRESULT GetPresentWindowRect(LPRECT pRect, RECT& DestRect);
-	CRITICAL_SECTION* GetCriticalSection() { return &ddscs; }
+	CRITICAL_SECTION* GetCriticalSection() { return IsPrimarySurface() ? DdrawWrapper::GetDDCriticalSection() : &ddscs; }
 
 	// For texture loading
 	HRESULT Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDestPoint, LPDIRECTDRAWSURFACE7 lpSrcTex, LPRECT lprcSrcRect, DWORD dwFlags);

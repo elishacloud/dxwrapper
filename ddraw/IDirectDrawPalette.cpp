@@ -290,8 +290,6 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 
 void m_IDirectDrawPalette::InitInterface(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
 {
-	ScopedDDCriticalSection ThreadLockDD;
-
 	if (ddrawParent)
 	{
 		ddrawParent->AddPalette(this);
@@ -375,8 +373,6 @@ void m_IDirectDrawPalette::ReleaseInterface()
 	{
 		return;
 	}
-
-	ScopedDDCriticalSection ThreadLockDD;
 
 	if (ddrawParent)
 	{

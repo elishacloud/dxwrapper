@@ -402,8 +402,6 @@ HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 
 void m_IDirectDrawClipper::InitInterface(DWORD dwFlags)
 {
-	ScopedDDCriticalSection ThreadLockDD;
-
 	if (ddrawParent)
 	{
 		ddrawParent->AddClipper(this);
@@ -421,8 +419,6 @@ void m_IDirectDrawClipper::ReleaseInterface()
 	{
 		return;
 	}
-
-	ScopedDDCriticalSection ThreadLockDD;
 
 	m_IDirectDrawX::ClearBaseClipper(this);
 

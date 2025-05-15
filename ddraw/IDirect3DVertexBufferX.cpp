@@ -535,8 +535,6 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 
 void m_IDirect3DVertexBufferX::InitInterface(DWORD DirectXVersion)
 {
-	ScopedDDCriticalSection ThreadLockDD;
-
 	if (ddrawParent)
 	{
 		ddrawParent->AddVertexBuffer(this);
@@ -564,8 +562,6 @@ void m_IDirect3DVertexBufferX::ReleaseInterface()
 	{
 		return;
 	}
-
-	ScopedDDCriticalSection ThreadLockDD;
 
 	if (ddrawParent)
 	{

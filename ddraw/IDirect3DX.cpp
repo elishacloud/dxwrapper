@@ -1012,8 +1012,6 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 
 void m_IDirect3DX::InitInterface(DWORD DirectXVersion)
 {
-	ScopedDDCriticalSection ThreadLockDD;
-
 	if (!Config.Dd7to9)
 	{
 		ResolutionHack();
@@ -1033,8 +1031,6 @@ void m_IDirect3DX::ReleaseInterface()
 	{
 		return;
 	}
-
-	ScopedDDCriticalSection ThreadLockDD;
 
 	// Release device
 	for (auto& entry : D3DDeviceList)

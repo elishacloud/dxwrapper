@@ -107,6 +107,8 @@ namespace DdrawWrapper
 	HRESULT ProxyQueryInterface(LPVOID ProxyInterface, REFIID CalledID, LPVOID * ppvObj, REFIID CallerID);
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj);
 
+	CRITICAL_SECTION* GetDDCriticalSection();
+
 	struct ScopedDDCriticalSection {
 		ScopedDDCriticalSection();
 		~ScopedDDCriticalSection();

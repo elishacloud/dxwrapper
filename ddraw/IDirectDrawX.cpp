@@ -2929,8 +2929,6 @@ bool m_IDirectDrawX::CheckD9Device(char* FunctionName)
 	// Check for device, if not then create it
 	if (!d3d9Device)
 	{
-		ScopedDDCriticalSection ThreadLockDD;
-
 		if (FAILED(CreateD9Device(FunctionName)))
 		{
 			return false;
@@ -4376,7 +4374,12 @@ HRESULT m_IDirectDrawX::SetClipperHWnd(HWND hWnd)
 		}
 		if (!DisplayMode.hWnd && ClipperHWnd && ClipperHWnd != OldClipperHWnd)
 		{
-			ScopedDDCriticalSection ThreadLockDD;
+			std::vector<ScopedDDCriticalSection> ThreadLockDD;
+			if (d3d9Device)
+			{
+				ThreadLockDD.reserve(1);
+				ThreadLockDD.emplace_back();
+			}
 
 			return CreateD9Device(__FUNCTION__);
 		}
@@ -4937,6 +4940,8 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 		return DDERR_GENERIC;
 	}
 
+	ScopedCriticalSection ThreadLock(PrimarySurface->GetCriticalSection());
+
 	// Prepare primary surface render target before presenting
 	PrimarySurface->PrepareRenderTarget();
 
@@ -5040,6 +5045,17 @@ DWORD WINAPI m_IDirectDrawX::PresentThreadFunction(LPVOID)
 		if (PresentThread.ExitFlag || WaitForSingleObject(PresentThread.exitEvent, timeout) == WAIT_OBJECT_0 || PresentThread.ExitFlag)
 		{
 			break;
+		}
+
+		// Wait until d3d9 device is created
+		while (!d3d9Device) 
+		{
+			if (WaitForSingleObject(PresentThread.exitEvent, 100) == WAIT_OBJECT_0)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Closing thread!");
+
+				return S_OK;
+			}
 		}
 
 		// Attempt to get thread lock

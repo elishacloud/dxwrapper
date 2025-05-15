@@ -29,9 +29,6 @@
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 
-void AcquirePEThreadLock();
-void ReleasePEThreadLock();
-
 static UINT GetAdapterIndex(GUID FAR* lpGUID);
 
 namespace DdrawWrapper
@@ -39,29 +36,6 @@ namespace DdrawWrapper
 	VISIT_PROCS_DDRAW(INITIALIZE_OUT_WRAPPED_PROC);
 	VISIT_PROCS_DDRAW_SHARED(INITIALIZE_OUT_WRAPPED_PROC);
 	INITIALIZE_OUT_WRAPPED_PROC(Direct3DCreate9, unused);
-
-	ScopedDDCriticalSection::ScopedDDCriticalSection()
-	{
-		dd_AcquireDDThreadLock();
-	}
-	ScopedDDCriticalSection::~ScopedDDCriticalSection()
-	{
-		dd_ReleaseDDThreadLock();
-	}
-
-	ScopedDDLeaveCriticalSection::~ScopedDDLeaveCriticalSection()
-	{
-		dd_ReleaseDDThreadLock();
-	}
-
-	ScopedPECriticalSection::ScopedPECriticalSection()
-	{
-		AcquirePEThreadLock();
-	}
-	ScopedPECriticalSection::~ScopedPECriticalSection()
-	{
-		ReleasePEThreadLock();
-	}
 
 	struct DDDeviceInfo
 	{
@@ -89,6 +63,11 @@ namespace {
 
 static void SetAllAppCompatData();
 static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType);
+
+CRITICAL_SECTION* DdrawWrapper::GetDDCriticalSection()
+{
+	return IsInitialized ? &ddcs : nullptr;
+}
 
 // ******************************
 // ddraw.dll export functions
@@ -332,8 +311,6 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-
-		ScopedDDCriticalSection ThreadLockDD;
 
 		m_IDirectDrawClipper* ClipperX = m_IDirectDrawClipper::CreateDirectDrawClipper(nullptr, nullptr, dwFlags);
 
@@ -775,16 +752,41 @@ void ExitDDraw()
 	}
 }
 
+
+ScopedDDCriticalSection::ScopedDDCriticalSection()
+{
+	if (IsInitialized)
+	{
+		EnterCriticalSection(&ddcs);
+	}
+}
+
+ScopedDDCriticalSection::~ScopedDDCriticalSection()
+{
+	if (IsInitialized)
+	{
+		LeaveCriticalSection(&ddcs);
+	}
+}
+
+ScopedDDLeaveCriticalSection::~ScopedDDLeaveCriticalSection()
+{
+	if (IsInitialized)
+	{
+		LeaveCriticalSection(&ddcs);
+	}
+}
+
 bool TryDDThreadLock()
 {
 	if (IsInitialized)
 	{
 		return TryEnterCriticalSection(&ddcs) != FALSE;
 	}
-	return true;
+	return false;
 }
 
-void AcquirePEThreadLock()
+ScopedPECriticalSection::ScopedPECriticalSection()
 {
 	if (IsInitialized)
 	{
@@ -792,7 +794,7 @@ void AcquirePEThreadLock()
 	}
 }
 
-void ReleasePEThreadLock()
+ScopedPECriticalSection::~ScopedPECriticalSection()
 {
 	if (IsInitialized)
 	{

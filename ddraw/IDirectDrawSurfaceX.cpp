@@ -538,8 +538,8 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		// Set critical section
-		ScopedCriticalSection ThreadLock(&ddscs);
-		ScopedCriticalSection ThreadLockSrc(&lpDDSrcSurfaceX->ddscs);
+		ScopedCriticalSection ThreadLock(GetCriticalSection());
+		ScopedCriticalSection ThreadLockSrc(lpDDSrcSurfaceX->GetCriticalSection());
 
 		// Present before write if needed
 		if (PresentBlt)
@@ -775,7 +775,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 
 	bool IsSkipScene = false;
 
-	ScopedCriticalSection ThreadLock(&ddscs);
+	ScopedCriticalSection ThreadLock(GetCriticalSection());
 
 	// Present before write if needed
 	BeginWritePresent(IsSkipScene);
@@ -1355,13 +1355,13 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		// Prepare critical sections
 		std::vector<ScopedCriticalSection> ThreadLocks;
 		ThreadLocks.reserve(FlipList.size() + 1);
-		ThreadLocks.emplace_back(&ddscs);
+		ThreadLocks.emplace_back(GetCriticalSection());
 
 		// Set critical section for each surface
 		for (auto& pSurfaceX : FlipList)
 		{
 			// Constructs AUTOCRITICALLOCK and locks the section
-			ThreadLocks.emplace_back(&pSurfaceX->ddscs);
+			ThreadLocks.emplace_back(pSurfaceX->GetCriticalSection());
 		}
 
 		// Present before write if needed
@@ -1857,7 +1857,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: does not support device context with bit alignment!");
 		}
 
-		ScopedCriticalSection ThreadLock(&ddscs);
+		ScopedCriticalSection ThreadLock(GetCriticalSection());
 
 		// Present before write if needed
 		BeginWritePresent(false);
@@ -2499,7 +2499,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Check if the scene needs to be presented
 		const bool IsSkipScene = (CheckRectforSkipScene(DestRect) || (Flags & D3DLOCK_READONLY));
 
-		ScopedCriticalSection ThreadLock(&ddscs);
+		ScopedCriticalSection ThreadLock(GetCriticalSection());
 
 		// Present before write if needed
 		BeginWritePresent(IsSkipScene);
@@ -2726,8 +2726,6 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 		HRESULT hr = DD_OK;
 
 		{
-			ScopedCriticalSection ThreadLockU(&ddsucs);
-
 			do {
 				if (IsUsingEmulation() || DCRequiresEmulation)
 				{
@@ -3079,8 +3077,6 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 		HRESULT hr = DD_OK;
 
 		{
-			ScopedCriticalSection ThreadLockU(&ddsucs);
-
 			do {
 				// Check rect
 				if (!lpRect && LockRectList.size() > 1)
@@ -3851,8 +3847,6 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 
 void m_IDirectDrawSurfaceX::InitInterface(DWORD DirectXVersion)
 {
-	ScopedDDCriticalSection ThreadLockDD;
-
 	if (ddrawParent)
 	{
 		ddrawParent->AddSurface(this);
@@ -3863,7 +3857,6 @@ void m_IDirectDrawSurfaceX::InitInterface(DWORD DirectXVersion)
 		AddRef(DirectXVersion);
 
 		InitializeCriticalSection(&ddscs);
-		InitializeCriticalSection(&ddsucs);
 
 		if (ddrawParent)
 		{
@@ -3884,8 +3877,6 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 	{
 		return;
 	}
-
-	ScopedDDCriticalSection ThreadLockDD;
 
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface);
@@ -3915,7 +3906,6 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 
 		// Delete critical section last
 		DeleteCriticalSection(&ddscs);
-		DeleteCriticalSection(&ddsucs);
 	}
 }
 
@@ -4389,7 +4379,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	// Update surface description
 	UpdateSurfaceDesc();
 
-	ScopedCriticalSection ThreadLock(&ddscs);
+	ScopedCriticalSection ThreadLock(GetCriticalSection());
 
 	// Get texture format
 	surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
@@ -5240,7 +5230,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9AuxiliarySurfaces()
 
 void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 {
-	ScopedCriticalSection ThreadLock(&ddscs);
+	ScopedCriticalSection ThreadLock(GetCriticalSection());
 
 	// Check if surface is busy
 	if (IsSurfaceBusy())
@@ -5400,8 +5390,6 @@ void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 
 HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 {
-	ScopedCriticalSection ThreadLock(&ddscs);
-
 	// Check for device interface
 	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
 	if (FAILED(c_hr))
@@ -7360,11 +7348,11 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRect)
 		return DDERR_GENERIC;
 	}
 
-	ScopedPECriticalSection ThreadLockPE;
-
 	HRESULT hr = DD_OK;
 
 	do {
+		ScopedPECriticalSection ThreadLockPE;
+
 		// Set new palette data
 		UpdatePaletteData();
 
