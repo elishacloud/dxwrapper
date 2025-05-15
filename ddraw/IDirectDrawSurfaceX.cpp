@@ -674,7 +674,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 					SetDirtyFlag(MipMapLevel);
 
 					// Present surface
-					EndWritePresent(lpDestRect, false, true, PresentBlt, IsSkipScene);
+					EndWritePresent(lpDestRect, true, PresentBlt, IsSkipScene);
 				}
 			}
 
@@ -802,7 +802,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 		SetDirtyFlag(MipMapLevel);
 
 		// Present surface
-		EndWritePresent(nullptr, false, false, true, IsSkipScene);
+		EndWritePresent(nullptr, false, true, IsSkipScene);
 	}
 
 	return hr;
@@ -1454,7 +1454,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			}
 
 			// Present surface
-			EndWritePresent(nullptr, true, true, true, false);
+			EndWritePresent(nullptr, true, true, false);
 
 			if (IsRenderTarget())
 			{
@@ -2785,7 +2785,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC)
 		// Present surface
 		if (SUCCEEDED(hr))
 		{
-			EndWritePresent(nullptr, false, true, true, false);
+			EndWritePresent(nullptr, true, true, false);
 		}
 
 		if (FAILED(hr))
@@ -3187,7 +3187,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 		// Present surface
 		if (SUCCEEDED(hr) && !LastLock.ReadOnly)
 		{
-			EndWritePresent(&LastLock.Rect, false, true, true, LastLock.IsSkipScene);
+			EndWritePresent(&LastLock.Rect, true, true, LastLock.IsSkipScene);
 		}
 
 		return hr;
@@ -5398,7 +5398,7 @@ void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 	}
 }
 
-HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsFlip, bool IsSkipScene)
+HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 {
 	ScopedCriticalSection ThreadLock(&ddscs);
 
@@ -5420,17 +5420,12 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsFlip, bool IsSkipScene)
 		if (SceneReady && !IsPresentRunning)
 		{
 			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
-			if (lpDDSrcSurfaceX)
+			if (lpDDSrcSurfaceX && !lpDDSrcSurfaceX->IsFlipSurface())
 			{
-				return lpDDSrcSurfaceX->PresentSurface(IsFlip, IsSkipScene);
+				return lpDDSrcSurfaceX->PresentSurface(IsSkipScene);
 			}
 		}
 		return DDERR_GENERIC;
-	}
-	else if (!IsFlip && IsFlipSurface())
-	{
-		// Don't present when using flip surface and it is not a flip
-		return DD_OK;
 	}
 	else if ((IsSkipScene && !SceneReady) || IsPresentRunning)
 	{
@@ -5813,7 +5808,7 @@ void m_IDirectDrawSurfaceX::SetDirtyFlag(DWORD MipMapLevel)
 {
 	if (MipMapLevel == 0)
 	{
-		if (IsPrimarySurface() && ddrawParent && !ddrawParent->IsInScene())
+		if (IsPrimarySurface() && ddrawParent && !ddrawParent->IsInScene() && (!IsFlipSurface() || SUCCEEDED(GetFlipStatus(DDGFS_CANFLIP, true))))
 		{
 			dirtyFlag = true;
 		}
@@ -5858,14 +5853,14 @@ void m_IDirectDrawSurfaceX::BeginWritePresent(bool IsSkipScene)
 	// Check if data needs to be presented before write
 	if (dirtyFlag)
 	{
-		if (FAILED(PresentSurface(false, IsSkipScene)))
+		if (FAILED(PresentSurface(IsSkipScene)))
 		{
 			PresentOnUnlock = true;
 		}
 	}
 }
 
-void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, bool IsFlip, bool WriteToWindow, bool FullPresent, bool IsSkipScene)
+void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, bool WriteToWindow, bool FullPresent, bool IsSkipScene)
 {
 	// Handle overlays
 	PresentOverlay(lpDestRect);
@@ -5893,7 +5888,7 @@ void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, bool IsFlip, bool
 	// Present surface after each draw unless removing interlacing
 	else if (FullPresent && (PresentOnUnlock || !Config.DdrawRemoveInterlacing))
 	{
-		PresentSurface(IsFlip, IsSkipScene);
+		PresentSurface(IsSkipScene);
 
 		// Reset endscene lock
 		PresentOnUnlock = false;

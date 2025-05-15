@@ -4736,6 +4736,11 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture)
 	DRAWSTATEBACKUP DrawStates;
 	BackupAndResetState(DrawStates, Desc.Width, Desc.Height);
 
+	// Get texture
+	ComPtr<IDirect3DBaseTexture9> pTexture[2];
+	d3d9Device->GetTexture(0, pTexture[0].GetAddressOf());
+	d3d9Device->GetTexture(1, pTexture[1].GetAddressOf());
+
 	// Set texture
 	d3d9Device->SetTexture(0, pDisplayTexture);
 
@@ -4781,14 +4786,31 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture)
 	// Set vertex format
 	d3d9Device->SetFVF(TLVERTEXFVF);
 
+	// Get render target
+	ComPtr<IDirect3DSurface9> pRenderTarget;
+	d3d9Device->GetRenderTarget(0, pRenderTarget.GetAddressOf());
+
+	// Get depth stencil
+	ComPtr<IDirect3DSurface9> pDepthStencil = nullptr;
+	d3d9Device->GetDepthStencilSurface(pDepthStencil.GetAddressOf());
+
 	// Set backbuffer to render target
 	ClearRenderTarget();
 
 	// Draw primitive
 	HRESULT hr = d3d9Device->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, DeviceVertices, sizeof(TLVERTEX));
 
-	// Reset redner target if needed
-	SetCurrentRenderTarget();
+	// Reset render target
+	if (pRenderTarget.Get())
+	{
+		d3d9Device->SetRenderTarget(0, pRenderTarget.Get());
+	}
+
+	// Reset depth stencil
+	if (pDepthStencil.Get())
+	{
+		d3d9Device->SetDepthStencilSurface(pDepthStencil.Get());
+	}
 
 	// Reset dirty flags
 	if (SUCCEEDED(hr))
@@ -4801,8 +4823,8 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture)
 	}
 
 	// Reset textures
-	d3d9Device->SetTexture(0, nullptr);
-	d3d9Device->SetTexture(1, nullptr);
+	d3d9Device->SetTexture(0, pTexture[0].Get());
+	d3d9Device->SetTexture(1, pTexture[1].Get());
 
 	// Reset pixel shader
 	d3d9Device->SetPixelShader(nullptr);
