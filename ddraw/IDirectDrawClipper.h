@@ -13,7 +13,10 @@ private:
 	HWND cliphWnd = nullptr;
 	std::vector<BYTE> ClipList;
 	bool IsClipListSet = false;
-	bool IsClipListChangedFlag = false;
+	RECT LastClipBounds = {};
+
+	// Helper functions
+	bool CheckHwnd();
 
 	// Interface initialization functions
 	void InitInterface(DWORD dwFlags);

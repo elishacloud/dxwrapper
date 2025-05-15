@@ -108,6 +108,58 @@ HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, L
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Case 1: Default client area clip region
+		HWND hWnd = CheckHwnd() ? cliphWnd : (ddrawParent ? ddrawParent->GetHwnd() : nullptr);
+		if (hWnd)
+		{
+			RECT clientRect = {};
+			GetClientRect(hWnd, &clientRect);
+			MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&clientRect, 2);
+
+			HRGN hRgn = CreateRectRgnIndirect(&clientRect);
+			if (lpRect)
+			{
+				HRGN hClipRgn = CreateRectRgnIndirect(lpRect);
+				CombineRgn(hRgn, hRgn, hClipRgn, RGN_AND);
+				DeleteObject(hClipRgn);
+			}
+
+			DWORD regionSize = GetRegionData(hRgn, 0, nullptr);
+			if (!regionSize)
+			{
+				DeleteObject(hRgn);
+				return DDERR_GENERIC;
+			}
+
+			if (!lpClipList)
+			{
+				*lpdwSize = regionSize;
+				DeleteObject(hRgn);
+				return DD_OK;
+			}
+			else if (*lpdwSize < regionSize)
+			{
+				*lpdwSize = regionSize;
+				DeleteObject(hRgn);
+				return DDERR_REGIONTOOSMALL;
+			}
+
+			DWORD copiedSize = GetRegionData(hRgn, *lpdwSize, lpClipList);
+			DeleteObject(hRgn);
+
+			if (!copiedSize)
+			{
+				return DDERR_GENERIC;
+			}
+
+			*lpdwSize = copiedSize;
+
+			LastClipBounds = lpClipList->rdh.rcBound;
+
+			return DD_OK;
+		}
+
+		// Case 2: Custom clip list is set
 		if (!IsClipListSet)
 		{
 			*lpdwSize = 0;
@@ -160,7 +212,7 @@ HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, L
 			memcpy(lpClipList, ClipList.data(), regionSize);
 		}
 
-		IsClipListChangedFlag = false;
+		LastClipBounds = lpClipList->rdh.rcBound;
 		return DD_OK;
 	}
 
@@ -178,10 +230,8 @@ HRESULT m_IDirectDrawClipper::GetHWnd(HWND FAR * lphWnd)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!cliphWnd || !IsWindow(cliphWnd))
+		if (!CheckHwnd())
 		{
-			cliphWnd = nullptr;
-
 			Logging::Log() << __FUNCTION__ << " Warning: Clip Window invalid or has not been set!";
 
 			return DDERR_GENERIC;
@@ -224,16 +274,33 @@ HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * lpbChanged)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// lpbChanged is TRUE if the clip list has changed, and FALSE otherwise.
-		if (IsClipListChangedFlag)
-		{
-			*lpbChanged = TRUE;
-		}
-		else
+		// This method monitors the status of the clip list if a window handle is associated with a DirectDrawClipper object.
+
+		// ToDo: check full cliplist rather than just bounds rect
+
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: only checking bounds rect not full cliplist.");
+
+		HWND hWnd = CheckHwnd() ? cliphWnd : (ddrawParent ? ddrawParent->GetHwnd() : nullptr);
+		if (!hWnd)
 		{
 			*lpbChanged = FALSE;
+			return DD_OK;
 		}
 
+		RECT clientRect = {};
+		GetClientRect(hWnd, &clientRect);
+		MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&clientRect, 2);
+
+		if (clientRect.left != LastClipBounds.left ||
+			clientRect.top != LastClipBounds.top ||
+			clientRect.right != LastClipBounds.right ||
+			clientRect.bottom != LastClipBounds.bottom)
+		{
+			*lpbChanged = TRUE;
+			return DD_OK;
+		}
+
+		*lpbChanged = FALSE;
 		return DD_OK;
 	}
 
@@ -292,7 +359,6 @@ HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 
 			// Set clip list to lpClipList
 			IsClipListSet = true;
-			IsClipListChangedFlag = true;
 
 			DWORD Size = sizeof(RGNDATAHEADER) + lpClipList->rdh.nRgnSize;
 			ClipList.resize(Size);
@@ -313,17 +379,16 @@ HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 	{
 		if (hWnd && !IsWindow(hWnd))
 		{
-			if (cliphWnd && !IsWindow(cliphWnd))
-			{
-				cliphWnd = nullptr;
-			}
+			CheckHwnd();
 
 			return DDERR_INVALIDPARAMS;
 		}
 
-		cliphWnd = hWnd;
-
 		// Load clip list from window
+
+		IsClipListSet = false;
+
+		cliphWnd = hWnd;
 
 		return DD_OK;
 	}
@@ -348,7 +413,6 @@ void m_IDirectDrawClipper::InitInterface(DWORD dwFlags)
 	cliphWnd = nullptr;
 	ClipList.clear();
 	IsClipListSet = false;
-	IsClipListChangedFlag = false;
 }
 
 void m_IDirectDrawClipper::ReleaseInterface()
@@ -366,6 +430,20 @@ void m_IDirectDrawClipper::ReleaseInterface()
 	{
 		ddrawParent->ClearClipper(this);
 	}
+}
+
+bool m_IDirectDrawClipper::CheckHwnd()
+{
+	if (cliphWnd && !IsWindow(cliphWnd))
+	{
+		IsClipListSet = false;
+
+		cliphWnd = nullptr;
+
+		return false;
+	}
+
+	return (cliphWnd != nullptr);
 }
 
 bool m_IDirectDrawClipper::GetClipBoundsFromData(RECT& bounds)
