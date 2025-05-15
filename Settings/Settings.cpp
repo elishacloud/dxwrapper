@@ -470,6 +470,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.DsoundHookSystem32 = NOT_EXIST;
 	Config.DdrawResolutionHack = NOT_EXIST;
 	Config.CacheClipPlane = NOT_EXIST;
+	Config.LimitStateBlocks = NOT_EXIST;
 	Config.WindowModeGammaShader = NOT_EXIST;
 
 	// Other values that may not exist in ini file
@@ -780,4 +781,8 @@ void CONFIG::SetConfig()
 	DdrawResolutionHack = (DdrawResolutionHack != 0);
 	CacheClipPlane = (CacheClipPlane != 0);
 	WindowModeGammaShader = (WindowModeGammaShader != 0);
+	if (!IsSet(LimitStateBlocks))
+	{
+		LimitStateBlocks = (Dd7to9 || D3d8to9);
+	}
 }

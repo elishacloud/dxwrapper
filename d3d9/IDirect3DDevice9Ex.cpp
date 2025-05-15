@@ -613,8 +613,6 @@ HRESULT m_IDirect3DDevice9Ex::CreateStateBlock(THIS_ D3DSTATEBLOCKTYPE Type, IDi
 		if (Config.LimitStateBlocks)
 		{
 			SHARED.StateBlockTable.AddStateBlock(StateBlockX);
-
-			StateBlockX->SetDDKey(DDKey);
 		}
 
 		*ppSB = StateBlockX;
@@ -645,8 +643,6 @@ HRESULT m_IDirect3DDevice9Ex::EndStateBlock(THIS_ IDirect3DStateBlock9** ppSB)
 		if (Config.LimitStateBlocks)
 		{
 			SHARED.StateBlockTable.AddStateBlock(StateBlockX);
-
-			StateBlockX->SetDDKey(DDKey);
 		}
 
 		*ppSB = StateBlockX;
@@ -996,9 +992,6 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 
 	if (isReset)
 	{
-		// Clear all state blocks on reset
-		SHARED.StateBlockTable.ReleaseAllStateBlocks();
-
 		// Anisotropic Filtering
 		SHARED.isAnisotropySet = false;
 		SHARED.AnisotropyDisabledFlag = false;

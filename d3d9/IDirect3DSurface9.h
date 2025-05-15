@@ -33,6 +33,8 @@ public:
 	~m_IDirect3DSurface9()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
 	}
 
 	/*** IUnknown methods ***/

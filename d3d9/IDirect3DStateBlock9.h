@@ -19,10 +19,9 @@ public:
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
-		if (DDKey != NO_MAP_VALUE)
-		{
-			DeviceDetailsMap[DDKey].StateBlockTable.RemoveStateBlock(this);
-		}
+		m_pDeviceEx->GetStateBlockTable()->RemoveStateBlock(this);
+
+		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
 	}
 
 	/*** IUnknown methods ***/
@@ -37,6 +36,4 @@ public:
 
 	// Helper functions
 	LPDIRECT3DSTATEBLOCK9 GetProxyInterface() { return ProxyInterface; }
-	void ClearDirect3DDevice() { DDKey = NO_MAP_VALUE; }
-	void SetDDKey(UINT NewDDKey) { DDKey = NewDDKey; }
 };

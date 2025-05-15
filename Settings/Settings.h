@@ -301,7 +301,7 @@ struct CONFIG
 	bool LoadFromScriptsOnly = false;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
 	bool ProcessExcluded = false;				// Set if this process is excluded from dxwrapper functions
 	bool ResetScreenRes = false;				// Reset the screen resolution on close
-	bool LimitStateBlocks = false;				// Reuses state block interfaces to prevent memory leaks
+	DWORD LimitStateBlocks = 0;					// Reuses state block interfaces to prevent memory leaks
 	bool SendAltEnter = false;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen, requires FullScreen
 	bool WaitForProcess = false;				// Waits for process to end before continuing, requires FullScreen
 	bool WaitForWindowChanges = false;			// Waits for window handle to stabilize before setting fullsreen, requires FullScreen

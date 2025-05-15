@@ -53,7 +53,14 @@ ULONG m_IDirect3DVertexShader9::Release(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->Release();
+	ULONG ref = ProxyInterface->Release();
+
+	if (ref == 0)
+	{
+		delete this;
+	}
+
+	return ref;
 }
 
 HRESULT m_IDirect3DVertexShader9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)

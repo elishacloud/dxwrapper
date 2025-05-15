@@ -57,10 +57,7 @@ ULONG m_IDirect3DStateBlock9::Release(THIS)
 
 	if (ref == 0)
 	{
-		if (Config.LimitStateBlocks)
-		{
-			delete this;
-		}
+		delete this;
 	}
 
 	return ref;

@@ -209,10 +209,6 @@ void AddressLookupTableD3d9::DeleteAddress(T* Wrapper)
 
 StateBlockCache::~StateBlockCache()
 {
-	for (auto& entry : stateBlocks)
-	{
-		entry->ClearDirect3DDevice();
-	}
 	stateBlocks.clear();
 }
 
@@ -230,11 +226,7 @@ void StateBlockCache::AddStateBlock(m_IDirect3DStateBlock9* stateBlock)
 		if (Config.LimitStateBlocks && stateBlocks.size() > MAX_STATE_BLOCKS)
 		{
 			m_IDirect3DStateBlock9* StateBlockX = stateBlocks.front();
-			StateBlockX->ClearDirect3DDevice();
 			StateBlockX->Release();
-
-			// Remove from vector
-			stateBlocks.erase(stateBlocks.begin());
 		}
 	}
 }
@@ -246,14 +238,4 @@ void StateBlockCache::RemoveStateBlock(m_IDirect3DStateBlock9* stateBlock)
 	{
 		stateBlocks.erase(it);
 	}
-}
-
-void StateBlockCache::ReleaseAllStateBlocks()
-{
-	for (auto& entry : stateBlocks)
-	{
-		entry->ClearDirect3DDevice();
-		entry->Release();
-	}
-	stateBlocks.clear();
 }
