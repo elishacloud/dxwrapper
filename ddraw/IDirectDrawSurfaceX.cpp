@@ -4314,18 +4314,6 @@ HRESULT m_IDirectDrawSurfaceX::GenerateMipMapLevels()
 
 HRESULT m_IDirectDrawSurfaceX::CreateD9AuxiliarySurfaces()
 {
-	// Create shadow surface
-	if (!surface.Shadow && (surface.Usage & D3DUSAGE_RENDERTARGET))
-	{
-		D3DSURFACE_DESC Desc;
-		if (FAILED(surface.Surface ? surface.Surface->GetDesc(&Desc) : surface.Texture->GetLevelDesc(0, &Desc)) ||
-			FAILED((*d3d9Device)->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, D3DPOOL_SYSTEMMEM, &surface.Shadow, nullptr)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create shadow surface. Size: " << surface.Width << "x" << surface.Height << " Format: " << surface.Format << " dwCaps: " << surfaceDesc2.ddsCaps);
-			return DDERR_GENERIC;
-		}
-	}
-
 	// Create primary surface texture
 	if (!PrimaryDisplayTexture && ShouldPresentToWindow(false))
 	{
@@ -5783,14 +5771,28 @@ void m_IDirectDrawSurfaceX::PrepareRenderTarget()
 
 void m_IDirectDrawSurfaceX::SetRenderTargetShadow()
 {
-	if (!surface.UsingShadowSurface && surface.Shadow)
+	if (!surface.UsingShadowSurface)
 	{
-		if (SUCCEEDED((*d3d9Device)->GetRenderTargetData(Get3DSurface(), surface.Shadow)))
+		// Create shadow surface
+		if (!surface.Shadow && surface.Surface && (surface.Usage & D3DUSAGE_RENDERTARGET))
 		{
-			surface.UsingShadowSurface = true;
-			return;
+			D3DSURFACE_DESC Desc;
+			if (FAILED(surface.Surface ? surface.Surface->GetDesc(&Desc) : surface.Texture->GetLevelDesc(0, &Desc)) ||
+				FAILED((*d3d9Device)->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, D3DPOOL_SYSTEMMEM, &surface.Shadow, nullptr)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create shadow surface. Size: " << surface.Width << "x" << surface.Height << " Format: " << surface.Format << " dwCaps: " << surfaceDesc2.ddsCaps);
+				return;
+			}
 		}
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get render target data!");
+		if (surface.Shadow)
+		{
+			if (SUCCEEDED((*d3d9Device)->GetRenderTargetData(Get3DSurface(), surface.Shadow)))
+			{
+				surface.UsingShadowSurface = true;
+				return;
+			}
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get render target data!");
+		}
 	}
 }
 
