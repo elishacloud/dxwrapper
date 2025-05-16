@@ -525,21 +525,62 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return (c_hr == DDERR_SURFACELOST || s_hr == DDERR_SURFACELOST) ? DDERR_SURFACELOST : FAILED(c_hr) ? c_hr : s_hr;
 		}
 
-		// Clear the depth stencil surface
-		if (dwFlags & DDBLT_DEPTHFILL)
-		{
-			// Check if the surface or the attached surface is the current depth stencil
-			if (ddrawParent->GetDepthStencilSurface() != this && ddrawParent->GetDepthStencilSurface() != GetAttachedDepthStencil())
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: not current Depth Stencil format: " << surfaceDesc2);
-				return DDERR_INVALIDPARAMS;
-			}
-			return (*d3d9Device)->Clear(0, NULL, D3DCLEAR_ZBUFFER, 0, float(double(lpDDBltFx->dwFillDepth) / double(ConvertDepthValue(0xFFFFFFFF, surface.Format))), 0);
-		}
-
 		// Set critical section
 		ScopedCriticalSection ThreadLock(GetCriticalSection());
 		ScopedCriticalSection ThreadLockSrc(lpDDSrcSurfaceX->GetCriticalSection());
+
+		// Clear the depth stencil surface
+		if (dwFlags & DDBLT_DEPTHFILL)
+		{
+			// Check rect and do clipping
+			RECT DestRect = {};
+			if (lpDestRect)
+			{
+				if (!CheckCoordinates(DestRect, lpDestRect, &surfaceDesc2))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
+					return DDERR_INVALIDRECT;
+				}
+				lpDestRect = &DestRect;
+			}
+
+			// Check if the surface or the attached surface is the current depth stencil
+			if (ddrawParent->GetDepthStencilSurface() == this || ddrawParent->GetDepthStencilSurface() == GetAttachedDepthStencil())
+			{
+				return (*d3d9Device)->Clear(
+					lpDestRect ? 1 : 0,
+					(D3DRECT*)&DestRect,
+					D3DCLEAR_ZBUFFER,
+					0,
+					float(double(lpDDBltFx->dwFillDepth) / double(ConvertDepthValue(0xFFFFFFFF, surface.Format))),
+					0);
+			}
+
+			// Get depth stencil
+			ComPtr<IDirect3DSurface9> pDepthStencil = nullptr;
+			(*d3d9Device)->GetDepthStencilSurface(pDepthStencil.GetAddressOf());
+
+			// Set new depth stencil
+			HRESULT hr = (*d3d9Device)->SetDepthStencilSurface(surface.Surface);
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set Depth Stencil: " << (DDERR)hr);
+				return hr;
+			}
+
+			hr = (*d3d9Device)->Clear(
+				lpDestRect ? 1 : 0,
+				(D3DRECT*)&DestRect,
+				D3DCLEAR_ZBUFFER,
+				0,
+				float(double(lpDDBltFx->dwFillDepth) / double(ConvertDepthValue(0xFFFFFFFF, surface.Format))),
+				0);
+
+			// Reset depth stencil
+			(*d3d9Device)->SetDepthStencilSurface(pDepthStencil.Get());
+
+			return hr;
+		}
 
 		// Present before write if needed
 		if (PresentBlt)
