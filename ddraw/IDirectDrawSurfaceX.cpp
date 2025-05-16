@@ -517,6 +517,14 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			lpDDSrcSurfaceX = this;
 		}
 
+		// Check depth stencil Blt
+		if ((!(dwFlags & DDBLT_DEPTHFILL) && (IsDepthStencil() || lpDDSrcSurfaceX->IsDepthStencil())) &&
+			(IsDepthStencil() != lpDDSrcSurfaceX->IsDepthStencil()))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: mismatched depth stencil surface: " << lpDDSrcSurfaceX->surface.Format << " -> " << surface.Format);
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device interface
 		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
 		HRESULT s_hr = (lpDDSrcSurfaceX == this) ? c_hr : lpDDSrcSurfaceX->CheckInterface(__FUNCTION__, true, true, true);
@@ -529,57 +537,10 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		ScopedCriticalSection ThreadLock(GetCriticalSection());
 		ScopedCriticalSection ThreadLockSrc(lpDDSrcSurfaceX->GetCriticalSection());
 
-		// Clear the depth stencil surface
-		if (dwFlags & DDBLT_DEPTHFILL)
+		// Handle depth stencil surface
+		if (IsDepthStencil())
 		{
-			// Check rect and do clipping
-			RECT DestRect = {};
-			if (lpDestRect)
-			{
-				if (!CheckCoordinates(DestRect, lpDestRect, &surfaceDesc2))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
-					return DDERR_INVALIDRECT;
-				}
-				lpDestRect = &DestRect;
-			}
-
-			// Check if the surface or the attached surface is the current depth stencil
-			if (ddrawParent->GetDepthStencilSurface() == this || ddrawParent->GetDepthStencilSurface() == GetAttachedDepthStencil())
-			{
-				return (*d3d9Device)->Clear(
-					lpDestRect ? 1 : 0,
-					(D3DRECT*)&DestRect,
-					D3DCLEAR_ZBUFFER,
-					0,
-					float(double(lpDDBltFx->dwFillDepth) / double(ConvertDepthValue(0xFFFFFFFF, surface.Format))),
-					0);
-			}
-
-			// Get depth stencil
-			ComPtr<IDirect3DSurface9> pDepthStencil = nullptr;
-			(*d3d9Device)->GetDepthStencilSurface(pDepthStencil.GetAddressOf());
-
-			// Set new depth stencil
-			HRESULT hr = (*d3d9Device)->SetDepthStencilSurface(surface.Surface);
-			if (FAILED(hr))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set Depth Stencil: " << (DDERR)hr);
-				return hr;
-			}
-
-			hr = (*d3d9Device)->Clear(
-				lpDestRect ? 1 : 0,
-				(D3DRECT*)&DestRect,
-				D3DCLEAR_ZBUFFER,
-				0,
-				float(double(lpDDBltFx->dwFillDepth) / double(ConvertDepthValue(0xFFFFFFFF, surface.Format))),
-				0);
-
-			// Reset depth stencil
-			(*d3d9Device)->SetDepthStencilSurface(pDepthStencil.Get());
-
-			return hr;
+			return CopyZBuffer(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, (dwFlags & DDBLT_DEPTHFILL), lpDDBltFx ? lpDDBltFx->dwFillDepth : 0);
 		}
 
 		// Present before write if needed
@@ -3097,7 +3058,6 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 
 	if (Config.Dd7to9)
 	{
-
 		// Handle dummy mipmaps
 		if (IsDummyMipMap(MipMapLevel))
 		{
@@ -4436,7 +4396,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	bool IsTexture = ((IsPrimaryOrBackBuffer() && !ShouldPresentToWindow(false)) || IsPalette() || IsSurfaceTexture());
 
 	// Get memory pool
-	bool UseVideoMemory = false;
+	bool UseVideoMemory = IsRenderTarget() || IsDepthStencil();
 	surface.Pool = (IsPrimaryOrBackBuffer() && ShouldPresentToWindow(false)) ? D3DPOOL_SYSTEMMEM :
 		(surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) ? D3DPOOL_MANAGED :
 		UseVideoMemory ? (((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) || IsPrimaryOrBackBuffer()) ? D3DPOOL_DEFAULT :
@@ -4473,7 +4433,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 
 	do {
 		// Create depth stencil
-		if (IsDepthStencil())
+		if (IsDepthStencil() && surface.Pool != D3DPOOL_SYSTEMMEM)
 		{
 			surface.Type = D3DTYPE_DEPTHSTENCIL;
 			surface.Usage = D3DUSAGE_DEPTHSTENCIL;
@@ -4558,11 +4518,12 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 		}
 		else
 		{
+			const D3DFORMAT NewFormat = IsDepthStencil() ? GetStencilEmulatedFormat(surface.BitCount) : Format;
 			surface.Type = D3DTYPE_OFFPLAINSURFACE;
-			if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(surface.Width, surface.Height, Format, surface.Pool, &surface.Surface, nullptr)) &&
-				FAILED((*d3d9Device)->CreateOffscreenPlainSurface(surface.Width, surface.Height, GetFailoverFormat(Format), surface.Pool, &surface.Surface, nullptr)))
+			if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(surface.Width, surface.Height, NewFormat, surface.Pool, &surface.Surface, nullptr)) &&
+				FAILED((*d3d9Device)->CreateOffscreenPlainSurface(surface.Width, surface.Height, GetFailoverFormat(NewFormat), surface.Pool, &surface.Surface, nullptr)))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create offplain surface. Size: " << surface.Width << "x" << surface.Height << " Format: " << Format << " dwCaps: " << surfaceDesc2.ddsCaps);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create offplain surface. Size: " << surface.Width << "x" << surface.Height << " Format: " << NewFormat << " dwCaps: " << surfaceDesc2.ddsCaps);
 				hr = DDERR_GENERIC;
 				break;
 			}
@@ -5020,7 +4981,7 @@ void m_IDirectDrawSurfaceX::UpdateAttachedDepthStencil(m_IDirectDrawSurfaceX* lp
 		lpAttachedSurfaceX->surfaceDesc2.dwHeight = surfaceDesc2.dwHeight;
 	}
 	// Set depth stencil multisampling
-	if (lpAttachedSurfaceX && (surface.MultiSampleType != lpAttachedSurfaceX->surface.MultiSampleType || surface.MultiSampleQuality != lpAttachedSurfaceX->surface.MultiSampleQuality))
+	if (surface.MultiSampleType != lpAttachedSurfaceX->surface.MultiSampleType || surface.MultiSampleQuality != lpAttachedSurfaceX->surface.MultiSampleQuality)
 	{
 		HasChanged = true;
 		lpAttachedSurfaceX->surface.MultiSampleType = surface.MultiSampleType;
@@ -6468,7 +6429,11 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	HRESULT s_hr = (pSourceSurface == this) ? c_hr : pSourceSurface->CheckInterface(__FUNCTION__, true, true, true);
 	if (FAILED(c_hr) || FAILED(s_hr))
 	{
-		return (c_hr == DDERR_SURFACELOST || s_hr == DDERR_SURFACELOST) ? DDERR_SURFACELOST : FAILED(c_hr) ? c_hr : s_hr;
+		if (c_hr == DDERR_SURFACELOST || s_hr == DDERR_SURFACELOST)
+		{
+			return DDERR_SURFACELOST;
+		}
+		return FAILED(c_hr) ? c_hr : s_hr;
 	}
 
 	// Get surface desc for mipmap
@@ -6624,9 +6589,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			(pSourceSurface->surface.Pool == D3DPOOL_DEFAULT && surface.Pool == D3DPOOL_DEFAULT) &&
 			(pSourceSurface->surface.Type == surface.Type || (pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE && (surface.Usage & D3DUSAGE_RENDERTARGET))) &&
 			(!IsStretchRect || (this != pSourceSurface && !ISDXTEX(SrcFormat) && !ISDXTEX(DestFormat) && (surface.Usage & D3DUSAGE_RENDERTARGET))) &&
-			(surface.Type != D3DTYPE_DEPTHSTENCIL || !ddrawParent->IsInScene()) &&
-			(surface.Type != D3DTYPE_DEPTHSTENCIL || (surface.Type == D3DTYPE_DEPTHSTENCIL &&
-				!SrcRect.left && SrcRect.left == SrcRect.top && SrcRect.top == DestRect.left && DestRect.left == DestRect.top && DestRect.top)) &&
 			(surface.Type != D3DTYPE_TEXTURE) &&
 			(!pSourceSurface->IsPalette() && !IsPalette()) &&
 			!IsMirrorLeftRight && !IsMirrorUpDown && !IsColorKey)
@@ -6636,14 +6598,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 			if (pSourceSurfaceD9 && pDestSurfaceD9)
 			{
-				if (surface.Type == D3DTYPE_DEPTHSTENCIL)
-				{
-					hr = (*d3d9Device)->StretchRect(pSourceSurfaceD9, nullptr, pDestSurfaceD9, nullptr, D3DTEXF_NONE);
-				}
-				else
-				{
-					hr = (*d3d9Device)->StretchRect(pSourceSurfaceD9, &SrcRect, pDestSurfaceD9, &DestRect, Filter);
-				}
+				hr = (*d3d9Device)->StretchRect(pSourceSurfaceD9, &SrcRect, pDestSurfaceD9, &DestRect, Filter);
 
 				if (FAILED(hr))
 				{
@@ -6989,7 +6944,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				SimpleColorKeyCopy<WORD>((WORD)ColorKey, SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
 				break;
 			case 3:
-				SimpleColorKeyCopy<TRIBYTE>(*reinterpret_cast<TRIBYTE*>(&ColorKey), SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
+				SimpleColorKeyCopy<TRIBYTE>((TRIBYTE)ColorKey, SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
 				break;
 			case 4:
 				SimpleColorKeyCopy<DWORD>((DWORD)ColorKey, SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
@@ -7009,10 +6964,11 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			ComplexCopy<WORD>((WORD)ColorKey, SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
 			break;
 		case 3:
-			ComplexCopy<TRIBYTE>(*reinterpret_cast<TRIBYTE*>(&ColorKey), SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
+			ComplexCopy<TRIBYTE>((TRIBYTE)ColorKey, SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
 			break;
 		case 4:
 			ComplexCopy<DWORD>((DWORD)ColorKey, SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
+			break;
 		}
 		hr = DD_OK;
 		break;
@@ -7055,6 +7011,209 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 
 	// Return
+	return hr;
+}
+
+HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, bool DepthFill, DWORD DepthColor)
+{
+	// Check parameters
+	if (!pSourceSurface)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid parameters!");
+		return DDERR_INVALIDPARAMS;
+	}
+
+	// Check for device interface
+	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
+	HRESULT s_hr = (pSourceSurface == this) ? c_hr : pSourceSurface->CheckInterface(__FUNCTION__, true, true, true);
+	if (FAILED(c_hr) || FAILED(s_hr))
+	{
+		if (c_hr == DDERR_SURFACELOST || s_hr == DDERR_SURFACELOST)
+		{
+			return DDERR_SURFACELOST;
+		}
+		return FAILED(c_hr) ? c_hr : s_hr;
+	}
+
+	// Check rect
+	RECT SrcRect = {}, DestRect = {};
+	if (!pSourceSurface->CheckCoordinates(SrcRect, pSourceRect, &pSourceSurface->surfaceDesc2) || !CheckCoordinates(DestRect, pDestRect, &surfaceDesc2))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << pSourceRect << " -> " << pDestRect);
+		return DDERR_INVALIDRECT;
+	}
+
+	// Check dest is memory pool
+	if (surface.Pool == D3DPOOL_SYSTEMMEM && (pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM || pSourceSurface->surface.Format != surface.Format))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: destination surface cannot be system memory for mismatching surfaces!");
+		return DDERR_INVALIDPARAMS;
+	}
+
+	// Check conditions for copying Z-buffer
+	if (!DepthFill)
+	{
+		// Check if source and dest surfaces are the same
+		if (pSourceSurface == this)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: source and destination surfaces cannot be the same!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check for sub-rectangle copies
+		if (pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM && surface.Pool != D3DPOOL_SYSTEMMEM &&
+			(DestRect.left || DestRect.top || DestRect.right < (LONG)surface.Width || DestRect.bottom < (LONG)surface.Height ||
+				SrcRect.left || SrcRect.top || SrcRect.right != DestRect.right || SrcRect.bottom != DestRect.bottom ||
+				SrcRect.right < (LONG)pSourceSurface->surface.Width || SrcRect.bottom < (LONG)pSourceSurface->surface.Height))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: depth buffer copy cannot copy sub-rectangles!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check if rect is being stretched
+		if (abs((SrcRect.right - SrcRect.left) - (DestRect.right - DestRect.left)) > 1 ||		// Width size
+			abs((SrcRect.bottom - SrcRect.top) - (DestRect.bottom - DestRect.top)) > 1)			// Height size
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: stretched rect not supported!");
+			return DDERR_GENERIC;
+		}
+
+		// Check BitCount
+		if (pSourceSurface->surface.BitCount != 16 && pSourceSurface->surface.BitCount != 24 && pSourceSurface->surface.BitCount != 32)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid BitCount for source depth buffer: " << pSourceSurface->surface.BitCount);
+			return DDERR_GENERIC;
+		}
+	}
+
+	// Do rect clipping
+	LONG Width = min(SrcRect.right - SrcRect.left, DestRect.right - DestRect.left);
+	LONG Height = min(SrcRect.bottom - SrcRect.top, DestRect.bottom - DestRect.top);
+	SrcRect.right = SrcRect.left + Width;
+	SrcRect.bottom = SrcRect.top + Height;
+	DestRect.right = DestRect.left + Width;
+	DestRect.bottom = DestRect.top + Height;
+
+	// Handle system memory copy
+	if (surface.Pool == D3DPOOL_SYSTEMMEM)
+	{
+		if (DepthFill)
+		{
+			return ColorFill(&DestRect, DepthColor, 0);
+		}
+		else
+		{
+			// Lock source
+			D3DLOCKED_RECT SrcLockedRect = {}, DestLockedRect = {};
+			if (FAILED(pSourceSurface->surface.Surface->LockRect(&SrcLockedRect, &SrcRect, D3DLOCK_READONLY)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock source surface!");
+				return DDERR_GENERIC;
+			}
+
+			// Lock dest
+			if (FAILED(surface.Surface->LockRect(&DestLockedRect, &DestRect, 0)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock destination surface!");
+				pSourceSurface->surface.Surface->UnlockRect();
+				return DDERR_GENERIC;
+			}
+
+			DWORD CopyPitch = min(SrcLockedRect.Pitch, DestLockedRect.Pitch);
+
+			BYTE* SrcBuffer = reinterpret_cast<BYTE*>(SrcLockedRect.pBits);
+			BYTE* DestBuffer = reinterpret_cast<BYTE*>(DestLockedRect.pBits);
+
+			// Copy data
+			for (int x = 0; x < Height; ++x)
+			{
+				memcpy(DestBuffer, SrcBuffer, CopyPitch);
+				SrcBuffer += SrcLockedRect.Pitch;
+				DestBuffer += DestLockedRect.Pitch;
+			}
+
+			// Unlock
+			surface.Surface->UnlockRect();
+			pSourceSurface->surface.Surface->UnlockRect();
+
+			return DD_OK;
+		}
+	}
+
+	// Handle video memory copy
+	if (!DepthFill && pSourceSurface->surface.Pool == D3DPOOL_DEFAULT && surface.Pool == D3DPOOL_DEFAULT)
+	{
+		HRESULT hr = (*d3d9Device)->StretchRect(pSourceSurface->surface.Surface, nullptr, surface.Surface, nullptr, D3DTEXF_NONE);
+
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not copy depth buffer: " << pSourceSurface->surfaceDesc2.ddsCaps << " -> " << surfaceDesc2.ddsCaps << " " <<
+				pSourceSurface->surface.Format << " -> " << surface.Format << " " << (D3DERR)hr);
+		}
+
+		return hr;
+	}
+
+	ScopedDDCriticalSection ThreadLockDD;
+
+	bool IsUsingCurrentZBuffer =
+		(ddrawParent->GetDepthStencilSurface() != this && ddrawParent->GetDepthStencilSurface() != GetAttachedDepthStencil());
+
+	// Get depth stencil
+	ComPtr<IDirect3DSurface9> pDepthStencil = nullptr;
+	if (!IsUsingCurrentZBuffer)
+	{
+		(*d3d9Device)->GetDepthStencilSurface(pDepthStencil.GetAddressOf());
+
+		// Set new depth stencil
+		HRESULT hr = (*d3d9Device)->SetDepthStencilSurface(surface.Surface);
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set depth buffer: " << (DDERR)hr);
+			return hr;
+		}
+	}
+
+	HRESULT hr = DD_OK;
+
+	// Depth stencil fill
+	if (DepthFill)
+	{
+		if (pDestRect)
+		{
+			pDestRect = &DestRect;
+		}
+		
+		hr = (*d3d9Device)->Clear(pDestRect ? 1 : 0, (D3DRECT*)pDestRect, D3DCLEAR_ZBUFFER, 0, ConvertDepthToFloat(DepthColor, surfaceDesc2.ddpfPixelFormat.dwZBitMask), 0);
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to fill depth buffer: " << (DDERR)hr);
+			return hr;
+		}
+	}
+	// Copy depth stencil
+	else
+	{
+		switch (pSourceSurface->surface.BitCount)
+		{
+		case 16:
+			hr = ComplexZBufferCopy<WORD>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, pSourceSurface->surfaceDesc2.ddpfPixelFormat.dwZBitMask);
+			break;
+		case 24:
+			hr = ComplexZBufferCopy<TRIBYTE>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, pSourceSurface->surfaceDesc2.ddpfPixelFormat.dwZBitMask);
+			break;
+		case 32:
+			hr = ComplexZBufferCopy<DWORD>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, pSourceSurface->surfaceDesc2.ddpfPixelFormat.dwZBitMask);
+			break;
+		}
+	}
+
+	// Reset depth stencil
+	if (!IsUsingCurrentZBuffer)
+	{
+		(*d3d9Device)->SetDepthStencilSurface(pDepthStencil.Get());
+	}
+
 	return hr;
 }
 

@@ -209,6 +209,17 @@ struct TRIBYTE
 	BYTE second;
 	BYTE third;
 
+	// Constructor from DWORD
+	TRIBYTE(DWORD value)
+		: first(BYTE(value & 0xFF)),
+		second(BYTE((value >> 8) & 0xFF)),
+		third(BYTE((value >> 16) & 0xFF))
+	{
+	}
+
+	// Default constructor
+	TRIBYTE() : first(0), second(0), third(0) {}
+
 	// Conversion operator from TRIBYTE to DWORD
 	operator DWORD() const {
 		return (DWORD(first) | (DWORD(second) << 8) | (DWORD(third) << 16));
@@ -245,6 +256,9 @@ template <typename T>
 void SimpleColorKeyCopy(T ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
 template <typename T>
 void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
+float ConvertDepthToFloat(DWORD DepthColor, DWORD ZBitMask);
+template <typename T>
+HRESULT ComplexZBufferCopy(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, DWORD ZBufferMask);
 DWORD ComputeRND(DWORD Seed, DWORD Num);
 bool DoRectsMatch(const RECT& lhs, const RECT& rhs);
 bool GetOverlappingRect(const RECT& rect1, const RECT& rect2, RECT& outOverlapRect);
@@ -274,6 +288,7 @@ bool IsPixelFormatPalette(const DDPIXELFORMAT& ddpfPixelFormat);
 D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format);
 bool IsUnsupportedFormat(D3DFORMAT Format);
 D3DFORMAT GetFailoverFormat(D3DFORMAT Format);
+D3DFORMAT GetStencilEmulatedFormat(DWORD BitCount);
 D3DFORMAT GetDisplayFormat(const DDPIXELFORMAT& ddpfPixelFormat);
 void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT& ddpfPixelFormat);
 D3DFORMAT SetDisplayFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);

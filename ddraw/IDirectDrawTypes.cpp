@@ -107,6 +107,157 @@ void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLock
 	}
 }
 
+float ConvertDepthToFloat(DWORD DepthColor, DWORD ZBitMask)
+{
+	if (ZBitMask == 0)
+	{
+		// Avoid division by zero; assume full depth (1.0f) if unknown
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: ZBitMask is zero, returning 1.0f");
+		return 1.0f;
+	}
+
+	// Mask the depth bits
+	DWORD maskedDepth = DepthColor & ZBitMask;
+
+	// Shift down to get a 0-based integer depth value
+	DWORD shift = 0;
+	while (((ZBitMask >> shift) & 1) == 0 && shift < 32)
+	{
+		++shift;
+	}
+	maskedDepth >>= shift;
+
+	// Count how many bits are used in the mask
+	DWORD maxDepthValue = 0;
+	DWORD bits = ZBitMask >> shift;
+	while (bits)
+	{
+		maxDepthValue = (maxDepthValue << 1) | 1;
+		bits >>= 1;
+	}
+
+	if (maxDepthValue == 0)
+	{
+		// This shouldn't happen, but just in case
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Invalid ZBitMask, returning 1.0f");
+		return 1.0f;
+	}
+
+	// Normalize
+	float normalized = float(maskedDepth) / float(maxDepthValue);
+
+	// Clamp (in case of rounding errors)
+	if (normalized > 1.0f) normalized = 1.0f;
+	if (normalized < 0.0f) normalized = 0.0f;
+
+	return normalized;
+}
+
+// Extracts and normalizes the z value from the masked pixel
+template<typename T>
+static float ExtractZValue(T pixel, DWORD mask)
+{
+	// Count number of bits set in mask
+	int bitsUsed = 0;
+	DWORD temp = mask;
+	while (temp)
+	{
+		bitsUsed += (temp & 1);
+		temp >>= 1;
+	}
+
+	if (bitsUsed == 0)
+	{
+		return 0.0f; // avoid divide by zero
+	}
+
+	// Shift to LSB
+	DWORD shift = 0;
+	while (((mask >> shift) & 1) == 0 && shift < sizeof(T) * 8)
+	{
+		++shift;
+	}
+
+	DWORD zBits = ((DWORD)pixel & mask) >> shift;
+
+	uint64_t maxZInt = (bitsUsed >= 64) ? ~0ULL : ((1ULL << bitsUsed) - 1);
+	float maxZ = static_cast<float>(maxZInt);
+
+	return (float)zBits / maxZ;
+}
+
+// Copy zbuffer complex
+template HRESULT ComplexZBufferCopy<BYTE>(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, DWORD ZBufferMask);
+template HRESULT ComplexZBufferCopy<WORD>(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, DWORD ZBufferMask);
+template HRESULT ComplexZBufferCopy<TRIBYTE>(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, DWORD ZBufferMask);
+template HRESULT ComplexZBufferCopy<DWORD>(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, DWORD ZBufferMask);
+template <typename T>
+HRESULT ComplexZBufferCopy(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, DWORD ZBufferMask)
+{
+	if (!d3d9Device || !pSourceSurfaceD9)
+	{
+		return DDERR_GENERIC;
+	}
+
+	D3DLOCKED_RECT locked = {};
+	if (FAILED(pSourceSurfaceD9->LockRect(&locked, &SrcRect, D3DLOCK_READONLY)) || !locked.pBits)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to lock depth buffer source surface!");
+		return DDERR_GENERIC;
+	}
+
+	LOG_LIMIT(100, __FUNCTION__ << " Warning: Copying depth buffer surfaces may cause slowdowns!");
+
+	int width = SrcRect.right - SrcRect.left;
+	int height = SrcRect.bottom - SrcRect.top;
+
+	// Map of z-value -> vector of rects
+	std::map<T, std::vector<D3DRECT>> zRectMap;
+
+	for (int y = 0; y < height; ++y)
+	{
+		T* row = (T*)((BYTE*)locked.pBits + y * locked.Pitch);
+		int runStart = 0;
+		T currentZ = row[0];
+
+		for (int x = 1; x <= width; ++x)
+		{
+			if (x == width || row[x] != currentZ)
+			{
+				// Flush current run
+				D3DRECT rect = {
+					(LONG)(DestRect.left + runStart),
+					(LONG)(DestRect.top + y),
+					(LONG)(DestRect.left + x),
+					(LONG)(DestRect.top + y + 1)
+				};
+				zRectMap[currentZ].push_back(rect);
+
+				// Start new run
+				if (x < width)
+				{
+					runStart = x;
+					currentZ = row[x];
+				}
+			}
+		}
+	}
+
+	pSourceSurfaceD9->UnlockRect();
+
+	// Now perform Clear() calls by z-value
+	for (const auto& [zWord, rects] : zRectMap)
+	{
+		float z = ExtractZValue<T>(zWord, ZBufferMask);
+		if (!rects.empty())
+		{
+			d3d9Device->Clear((DWORD)rects.size(), rects.data(), D3DCLEAR_ZBUFFER, 0, z, 0);
+		}
+	}
+
+	return DD_OK;
+}
+
 DWORD ComputeRND(DWORD Seed, DWORD Num)
 {
 	LARGE_INTEGER PerformanceCount = {};
@@ -1008,6 +1159,21 @@ D3DFORMAT GetFailoverFormat(D3DFORMAT Format)
 	return Format;
 }
 
+D3DFORMAT GetStencilEmulatedFormat(DWORD BitCount)
+{
+	switch (BitCount)
+	{
+	case 16:
+		return D3DFMT_R5G6B5;
+	case 24:
+		return D3DFMT_R8G8B8;
+	case 32:
+		return D3DFMT_A8R8G8B8;
+	}
+
+	return D3DFMT_UNKNOWN;
+}
+
 D3DFORMAT GetDisplayFormat(const DDPIXELFORMAT& ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
@@ -1204,7 +1370,7 @@ D3DFORMAT GetDisplayFormat(const DDPIXELFORMAT& ddpfPixelFormat)
 			}
 			if (ddpfPixelFormat.dwZBitMask == 0xFFFF)
 			{
-				return D3DFMT_D16_LOCKABLE;
+				return D3DFMT_D16;
 			}
 			break;
 		case 24:
