@@ -1246,6 +1246,8 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
 			if (!PrimarySurface || FAILED(PrimarySurface->GetFlipStatus(DDGFS_CANFLIP, true)) || PrimarySurface == ddrawParent->GetRenderTargetSurface() || !PrimarySurface->IsRenderTarget())
 			{
+				ScopedCriticalSection ThreadLock(PrimarySurface->GetCriticalSection());
+
 				ddrawParent->PresentScene(nullptr);
 			}
 		}

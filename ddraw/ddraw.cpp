@@ -746,16 +746,21 @@ void ExitDDraw()
 {
 	if (IsInitialized)
 	{
-		IsInitialized = false;
+		{
+			ScopedCriticalSection ThreadLockDD(&ddcs);
+			ScopedCriticalSection ThreadLockPE(&pecs);
+
+			IsInitialized = false;
+		}
 		DeleteCriticalSection(&ddcs);
 		DeleteCriticalSection(&pecs);
 	}
 }
 
 
-ScopedDDCriticalSection::ScopedDDCriticalSection()
+ScopedDDCriticalSection::ScopedDDCriticalSection(bool enable) : flag(enable)
 {
-	if (IsInitialized)
+	if (IsInitialized && flag)
 	{
 		EnterCriticalSection(&ddcs);
 	}
@@ -763,7 +768,7 @@ ScopedDDCriticalSection::ScopedDDCriticalSection()
 
 ScopedDDCriticalSection::~ScopedDDCriticalSection()
 {
-	if (IsInitialized)
+	if (IsInitialized && flag)
 	{
 		LeaveCriticalSection(&ddcs);
 	}
@@ -771,7 +776,7 @@ ScopedDDCriticalSection::~ScopedDDCriticalSection()
 
 ScopedDDLeaveCriticalSection::~ScopedDDLeaveCriticalSection()
 {
-	if (IsInitialized)
+	if (IsInitialized && flag)
 	{
 		LeaveCriticalSection(&ddcs);
 	}
@@ -786,9 +791,9 @@ bool TryDDThreadLock()
 	return false;
 }
 
-ScopedPECriticalSection::ScopedPECriticalSection()
+ScopedPECriticalSection::ScopedPECriticalSection(bool enable) : flag(enable)
 {
-	if (IsInitialized)
+	if (IsInitialized && flag)
 	{
 		EnterCriticalSection(&pecs);
 	}
@@ -796,10 +801,27 @@ ScopedPECriticalSection::ScopedPECriticalSection()
 
 ScopedPECriticalSection::~ScopedPECriticalSection()
 {
-	if (IsInitialized)
+	if (IsInitialized && flag)
 	{
 		LeaveCriticalSection(&pecs);
 	}
+}
+
+ScopedPELeaveCriticalSection::~ScopedPELeaveCriticalSection()
+{
+	if (IsInitialized && flag)
+	{
+		LeaveCriticalSection(&pecs);
+	}
+}
+
+bool TryPEThreadLock()
+{
+	if (IsInitialized)
+	{
+		return TryEnterCriticalSection(&pecs) != FALSE;
+	}
+	return false;
 }
 
 // Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API

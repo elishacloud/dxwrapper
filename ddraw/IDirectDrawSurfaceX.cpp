@@ -533,15 +533,15 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return (c_hr == DDERR_SURFACELOST || s_hr == DDERR_SURFACELOST) ? DDERR_SURFACELOST : FAILED(c_hr) ? c_hr : s_hr;
 		}
 
-		// Set critical section
-		ScopedCriticalSection ThreadLock(GetCriticalSection());
-		ScopedCriticalSection ThreadLockSrc(lpDDSrcSurfaceX->GetCriticalSection());
-
 		// Handle depth stencil surface
 		if (IsDepthStencil())
 		{
 			return CopyZBuffer(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, (dwFlags & DDBLT_DEPTHFILL), lpDDBltFx ? lpDDBltFx->dwFillDepth : 0);
 		}
+
+		// Set critical section
+		ScopedCriticalSection ThreadLock(GetCriticalSection());
+		ScopedCriticalSection ThreadLockSrc(lpDDSrcSurfaceX->GetCriticalSection());
 
 		// Present before write if needed
 		if (PresentBlt)
@@ -3878,37 +3878,43 @@ void m_IDirectDrawSurfaceX::InitInterface(DWORD DirectXVersion)
 
 void m_IDirectDrawSurfaceX::ReleaseInterface()
 {
-	if (Config.Exiting)
 	{
-		return;
-	}
+		ScopedCriticalSection ThreadLock(GetCriticalSection(), Config.Dd7to9);
 
-	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface);
-	SaveInterfaceAddress(WrapperInterface2);
-	SaveInterfaceAddress(WrapperInterface3);
-	SaveInterfaceAddress(WrapperInterface4);
-	SaveInterfaceAddress(WrapperInterface7);
-
-	// Clean up mipmaps
-	if (!MipMaps.empty())
-	{
-		for (auto& entry : MipMaps)
+		if (Config.Exiting)
 		{
-			if (entry.Addr) entry.Addr->DeleteMe();
-			if (entry.Addr2) entry.Addr2->DeleteMe();
-			if (entry.Addr3) entry.Addr3->DeleteMe();
-			if (entry.Addr4) entry.Addr4->DeleteMe();
-			if (entry.Addr7) entry.Addr7->DeleteMe();
+			return;
+		}
+
+		// Don't delete wrapper interface
+		SaveInterfaceAddress(WrapperInterface);
+		SaveInterfaceAddress(WrapperInterface2);
+		SaveInterfaceAddress(WrapperInterface3);
+		SaveInterfaceAddress(WrapperInterface4);
+		SaveInterfaceAddress(WrapperInterface7);
+
+		// Clean up mipmaps
+		if (!MipMaps.empty())
+		{
+			for (auto& entry : MipMaps)
+			{
+				if (entry.Addr) entry.Addr->DeleteMe();
+				if (entry.Addr2) entry.Addr2->DeleteMe();
+				if (entry.Addr3) entry.Addr3->DeleteMe();
+				if (entry.Addr4) entry.Addr4->DeleteMe();
+				if (entry.Addr7) entry.Addr7->DeleteMe();
+			}
+		}
+
+		ReleaseDirectDrawResources();
+
+		if (Config.Dd7to9)
+		{
+			ReleaseD9Surface(false, false);
 		}
 	}
-
-	ReleaseDirectDrawResources();
-
 	if (Config.Dd7to9)
 	{
-		ReleaseD9Surface(false, false);
-
 		// Delete critical section last
 		DeleteCriticalSection(&ddscs);
 	}
@@ -4008,16 +4014,11 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char* FunctionName, bool CheckD3DD
 			ClearUsing3DFlag();
 		}
 
-		// Release d3d9 surface
-		if (attached3DTexture && surface.Pool != D3DPOOL_MANAGED)
-		{
-			ReleaseD9Surface(true, false);
-		}
-
 		// Make sure surface exists, if not then create it
-		if ((!surface.Surface && !surface.Texture) ||
-			(IsPrimaryOrBackBuffer() && LastWindowedMode != surface.IsUsingWindowedMode) ||
-			(PrimaryDisplayTexture && !ShouldPresentToWindow(false)))
+		if ((!surface.Surface && !surface.Texture) ||											// Surface not created yet
+			(attached3DTexture && surface.Pool != D3DPOOL_MANAGED) ||							// Surface changed to be a texture but not using the correct memory pool
+			(IsPrimaryOrBackBuffer() && LastWindowedMode != surface.IsUsingWindowedMode) ||		// Primary surface and window mode changed
+			(PrimaryDisplayTexture && !ShouldPresentToWindow(false)))							// Needs to present to a window but display texture not setup
 		{
 			if (FAILED(CreateD9Surface()))
 			{
@@ -4218,21 +4219,24 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3d9DrawTexture()
 	return nullptr;
 }
 
-LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3d9Texture()
+LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3d9Texture(bool InterfaceCheck)
 {
-	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true, true, true)))
+	if (InterfaceCheck)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: texture not setup!");
-		return nullptr;
-	}
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true, true, true)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: texture not setup!");
+			return nullptr;
+		}
 
-	// Check texture pool
-	if ((surface.Pool == D3DPOOL_SYSTEMMEM || surface.Pool == D3DPOOL_SCRATCH) && IsSurfaceTexture())
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: texture pool does not support Driect3D: " << surface.Format << " Pool: " << surface.Pool <<
-			" Caps: " << surfaceDesc2.ddsCaps << " Attached: " << attached3DTexture);
-		return nullptr;
+		// Check texture pool
+		if ((surface.Pool == D3DPOOL_SYSTEMMEM || surface.Pool == D3DPOOL_SCRATCH) && IsSurfaceTexture())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: texture pool does not support Driect3D: " << surface.Format << " Pool: " << surface.Pool <<
+				" Caps: " << surfaceDesc2.ddsCaps << " Attached: " << attached3DTexture);
+			return nullptr;
+		}
 	}
 
 	return Get3DTexture();
@@ -4356,8 +4360,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	// Don't recreate surface while it is locked
 	if ((surface.Surface || surface.Texture) && IsSurfaceBusy(false, false))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy! Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting() << " ThreadID " << LockedWithID);
-		return DDERR_GENERIC;
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: surface is busy! Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting() << " ThreadID " << LockedWithID);
 	}
 
 	// Check for device interface
@@ -4366,13 +4369,13 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 		return DDERR_GENERIC;
 	}
 
+	ScopedCriticalSection ThreadLock(GetCriticalSection());
+
 	// Release existing surface
 	ReleaseD9Surface(true, false);
 
 	// Update surface description
 	UpdateSurfaceDesc();
-
-	ScopedCriticalSection ThreadLock(GetCriticalSection());
 
 	// Get texture format
 	surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
@@ -5224,8 +5227,6 @@ void m_IDirectDrawSurfaceX::ReleaseD9AuxiliarySurfaces()
 
 void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 {
-	ScopedCriticalSection ThreadLock(GetCriticalSection());
-
 	// Check if surface is busy
 	if (IsSurfaceBusy())
 	{
@@ -5440,6 +5441,8 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsFlip, bool IsSkipScene)
 
 	// Set present flag
 	IsPresentRunning = true;
+
+	ScopedCriticalSection ThreadLock(GetCriticalSection());
 
 	// Present to d3d9
 	HRESULT hr = DD_OK;
@@ -7556,7 +7559,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToEmulatedSurface(LPRECT lpDestRect)
 
 HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRect)
 {
-	if (!IsPalette())
+	if (!IsPalette() || !d3d9Device || !*d3d9Device)
 	{
 		return DDERR_GENERIC;
 	}

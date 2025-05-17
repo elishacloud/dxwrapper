@@ -260,7 +260,6 @@ private:
 	bool IsSurfaceLocked(bool CheckLocking = true) const { return (IsLocked || (CheckLocking && IsLocking)); }
 	bool IsSurfaceBlitting() const { return (IsInBlt || IsInBltBatch); }
 	bool IsSurfaceInDC(bool CheckGettingDC = true) const { return (IsInDC || (CheckGettingDC && IsPreparingDC)); }
-	bool IsSurfaceBusy(bool CheckLocking = true, bool CheckGettingDC = true) const { return (IsSurfaceBlitting() || IsSurfaceLocked(CheckLocking) || IsSurfaceInDC(CheckGettingDC)); }
 	bool IsD9UsingVideoMemory() const { return ((surface.Surface || surface.Texture) ? surface.Pool == D3DPOOL_DEFAULT : false); }
 	bool IsUsingShadowSurface() const { return (surface.UsingShadowSurface && surface.Shadow); }
 	bool IsLockedFromOtherThread() const { return (IsSurfaceBlitting() || IsSurfaceLocked()) && LockedWithID && LockedWithID != GetCurrentThreadId(); }
@@ -466,10 +465,12 @@ public:
 	bool IsFlipSurface() const { return ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) == (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)); }
 	bool IsSurface3D() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) != 0; }
 	bool IsSurfaceTexture() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
+	bool IsSurfaceCreated() const { return (surface.Texture || surface.Surface); }
 	bool IsColorKeyTexture() const { return (IsSurfaceTexture() && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)); }
 	bool IsPalette() const { return (surface.Format == D3DFMT_P8); }
 	bool IsDepthStencil() const { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	bool IsSurfaceManaged() const { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
+	bool IsSurfaceBusy(bool CheckLocking = true, bool CheckGettingDC = true) const { return (IsSurfaceBlitting() || IsSurfaceLocked(CheckLocking) || IsSurfaceInDC(CheckGettingDC)); }
 	bool CanSurfaceBeDeleted() const { return !ComplexChild; }
 	bool CanSurfaceUseEmulation() const
 	{ return ((IsPixelFormatRGB(surfaceDesc2.ddpfPixelFormat) || IsPixelFormatPalette(surfaceDesc2.ddpfPixelFormat)) && (!IsSurface3D() || !Using3D) && !surface.UsingSurfaceMemory); }
@@ -499,7 +500,7 @@ public:
 	m_IDirectDrawSurfaceX* GetAttachedDepthStencil();
 	LPDIRECT3DSURFACE9 GetD3d9Surface();
 	LPDIRECT3DTEXTURE9 GetD3d9DrawTexture();
-	LPDIRECT3DTEXTURE9 GetD3d9Texture();
+	LPDIRECT3DTEXTURE9 GetD3d9Texture(bool InterfaceCheck = true);
 	HRESULT GenerateMipMapLevels();
 	DWORD GetD3d9Width() const { return surface.Width; }
 	DWORD GetD3d9Height() const { return surface.Height; }
