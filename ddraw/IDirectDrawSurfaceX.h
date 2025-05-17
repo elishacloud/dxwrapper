@@ -176,6 +176,8 @@ private:
 	bool ComplexChild = false;
 	bool IsSurfaceLost = false;
 	bool IsInFlip = false;
+	bool HasDoneFlip = false;
+	DWORD NonFlipPresentSkipCount = 0;
 	bool PresentOnUnlock = false;
 	bool IsInDC = false;
 	bool IsPreparingDC = false;
@@ -251,7 +253,7 @@ private:
 	bool CheckRectforSkipScene(RECT& DestRect);
 	HRESULT PresentOverlay(LPRECT lpSrcRect);
 	void BeginWritePresent(bool IsSkipScene);
-	void EndWritePresent(LPRECT lpDestRect, bool WriteToWindow, bool FullPresent, bool IsSkipScene);
+	void EndWritePresent(LPRECT lpDestRect, bool IsFlip, bool WriteToWindow, bool FullPresent, bool IsSkipScene);
 	void EndWriteSyncSurfaces(LPRECT lpDestRect);
 
 	// Surface information functions
@@ -453,7 +455,7 @@ public:
 	void SetAsRenderTarget();
 	void ReleaseD9AuxiliarySurfaces();
 	void ReleaseD9Surface(bool BackupData, bool ResetSurface);
-	HRESULT PresentSurface(bool IsSkipScene);
+	HRESULT PresentSurface(bool IsFlip, bool IsSkipScene);
 	void ResetSurfaceDisplay();
 
 	// Surface information functions
