@@ -233,11 +233,7 @@ void Compat32::InstallDd7to9Hooks(HMODULE hModule)
 		Win32::Registry::installHooks();
 		Compat32::Log() << "Installing Win32 hooks";
 		Win32::WaitFunctions::installHooks();
-		if (!Config.DDrawCompatDisableGDIHook)
-		{
-			Compat32::Log() << "Installing GDI hooks";
-			Gdi::installHooks();
-		}
+		DisableProcessWindowsGhosting();
 	}
 }
 //********** End Edit ***************

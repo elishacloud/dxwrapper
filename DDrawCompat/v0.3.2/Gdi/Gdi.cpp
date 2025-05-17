@@ -42,22 +42,13 @@ namespace Gdi
 	{
 		DisableProcessWindowsGhosting();
 
-		if (!Config.Dd7to9)
-		{
-			DcFunctions::installHooks();
-		}
+		DcFunctions::installHooks();
 		Icon::installHooks();
 		Metrics::installHooks();
-		if (!Config.Dd7to9)
-		{
-			Palette::installHooks();
-			PresentationWindow::installHooks();
-		}
+		Palette::installHooks();
+		PresentationWindow::installHooks();
 		ScrollFunctions::installHooks();
-		if (!Config.Dd7to9)
-		{
-			User32WndProcs::installHooks();
-		}
+		User32WndProcs::installHooks();
 		Caret::installHooks();
 		Font::installHooks();
 	}
