@@ -879,19 +879,33 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 	// Set window style
 	if (EnableWindowMode)
 	{
-		// Get new style
+		// Compute adjusted window rect
 		RECT Rect = { 0, 0, displayWidth, displayHeight };
 		AdjustWindowRectEx(&Rect, lStyle | WS_OVERLAPPEDWINDOW, GetMenu(MainhWnd) != NULL, lExStyle);
-		if (Config.WindowModeBorder && !FullscreenWindowMode && screenWidth > Rect.right - Rect.left && screenHeight > Rect.bottom - Rect.top)
+		LONG windowWidth = Rect.right - Rect.left;
+		LONG windowHeight = Rect.bottom - Rect.top;
+
+		if (Config.WindowModeBorder && !FullscreenWindowMode &&
+			screenWidth > windowWidth && screenHeight > windowHeight)
 		{
-			lStyle |= WS_OVERLAPPEDWINDOW;
+			// Apply windowed border to popup window
+			if (lStyle & (WS_POPUP | WS_BORDER))
+			{
+				lStyle |= WS_POPUPWINDOW;
+			}
+			// Apply windowed border to other window types
+			else
+			{
+				lStyle |= WS_OVERLAPPEDWINDOW;
+			}
 		}
-		else if (EnableWindowMode)
+		else
 		{
+			// Remove window border
 			lStyle &= ~(WS_OVERLAPPEDWINDOW | WS_BORDER);
 		}
 
-		// Set new border
+		// Set new style
 		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
 		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 	}
@@ -922,22 +936,23 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 	// Center and adjust size of window
 	if (SetWindowPositionFlag)
 	{
-		// Move window to correct monitor
-		Utils::MoveWindowToMonitor(hMonitor, MainhWnd);
-
 		// Use SetWindowPlacement to center and adjust size
 		WINDOWPLACEMENT wndpl = {};
 		wndpl.length = sizeof(WINDOWPLACEMENT);
 		if (GetWindowPlacement(MainhWnd, &wndpl))
 		{
-			wndpl.showCmd = wndpl.showCmd == SW_MAXIMIZE ? SW_MAXIMIZE : SW_NORMAL;
+			// Force restore first if maximized/fullscreen
+			if (wndpl.showCmd == SW_MAXIMIZE || IsZoomed(MainhWnd))
+			{
+				ShowWindow(MainhWnd, SW_RESTORE);
+			}
+
+			wndpl.showCmd = SW_NORMAL;
 			wndpl.rcNormalPosition = { xLoc, yLoc, Rect.right + xLoc, Rect.bottom + yLoc };
 			Utils::SetWindowPlacementToMonitor(hMonitor, MainhWnd, &wndpl);
 		}
+
 		// Use SetWindowPos to center and adjust size
-		else
-		{
-			Utils::SetWindowPosToMonitor(hMonitor, MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_NOZORDER | SWP_NOACTIVATE);
-		}
+		Utils::SetWindowPosToMonitor(hMonitor, MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_NOZORDER | SWP_NOACTIVATE);
 	}
 }
