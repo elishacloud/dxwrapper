@@ -587,18 +587,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::GetScreenSize(nullptr, InitWidth, InitHeight);
 		}
 
-		// Load custom dlls
-		if (Config.LoadCustomDllPath.size() != 0)
-		{
-			Utils::LoadCustomDll();
-		}
-
-		// Load ASI plugins
-		if (Config.LoadPlugins)
-		{
-			Utils::LoadPlugins();
-		}
-
 		bool DDrawCompatEnabed = false;
 #ifdef DDRAWCOMPAT
 		DDrawCompatEnabed = DDrawCompat::IsEnabled();
@@ -641,6 +629,25 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 		}
 
+		// Fix QPC uptime issues
+		if (Config.FixPerfCounterUptime)
+		{
+			using namespace GdiWrapper;
+			HMODULE winmm = LoadLibrary("winmm.dll");
+			Utils::GetUpTimeValues();
+			if (kernel32)
+			{
+				Utils::QueryPerformanceCounter_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "QueryPerformanceCounter"), "QueryPerformanceCounter", Utils::kernel_QueryPerformanceCounter);
+				Utils::GetTickCount_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetTickCount"), "GetTickCount", Utils::kernel_GetTickCount);
+			}
+			if (winmm)
+			{
+				Logging::Log() << "Installing winmm hooks";
+				Utils::timeGetTime_out = (FARPROC)Hook::HotPatch(GetProcAddress(winmm, "timeGetTime"), "timeGetTime", Utils::winmm_timeGetTime);
+				Utils::timeGetSystemTime_out = (FARPROC)Hook::HotPatch(GetProcAddress(winmm, "timeGetSystemTime"), "timeGetSystemTime", Utils::winmm_timeGetSystemTime);
+			}
+		}
+
 		// Start fullscreen thread
 		if (Config.FullScreen || Config.ForceTermination)
 		{
@@ -649,6 +656,18 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Start thread priority monitor thread
 		//Utils::StartPriorityMonitor();
+
+		// Load custom dlls
+		if (Config.LoadCustomDllPath.size() != 0)
+		{
+			Utils::LoadCustomDll();
+		}
+
+		// Load ASI plugins
+		if (Config.LoadPlugins)
+		{
+			Utils::LoadPlugins();
+		}
 
 		// Loaded
 		Logging::Log() << "DxWrapper loaded!";

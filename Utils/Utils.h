@@ -6,6 +6,9 @@
 #include "Wrappers\wrapper.h"
 #include "External\MemoryModule\MemoryModule.h"
 #include "Logging\Logging.h"
+#ifndef _TIMERAPI_H_
+#include "winmm.h"
+#endif
 
 #undef LoadLibrary
 
@@ -20,6 +23,11 @@ namespace Utils
 	EXPORT_OUT_WRAPPED_PROC(VirtualAlloc, unused);
 	EXPORT_OUT_WRAPPED_PROC(HeapAlloc, unused);
 	EXPORT_OUT_WRAPPED_PROC(HeapSize, unused);
+	EXPORT_OUT_WRAPPED_PROC(QueryPerformanceCounter, unused);
+	EXPORT_OUT_WRAPPED_PROC(GetTickCount, unused);
+	EXPORT_OUT_WRAPPED_PROC(GetTickCount64, unused);
+	EXPORT_OUT_WRAPPED_PROC(timeGetTime, unused);
+	EXPORT_OUT_WRAPPED_PROC(timeGetSystemTime, unused);
 
 	void Shell(const char*);
 	void DisableHighDPIScaling();
@@ -33,6 +41,12 @@ namespace Utils
 	LPVOID WINAPI kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 	LPVOID WINAPI kernel_HeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwBytes);
 	SIZE_T WINAPI kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem);
+	bool GetUpTimeValues();
+	BOOL WINAPI kernel_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
+	DWORD WINAPI kernel_GetTickCount();
+	ULONGLONG WINAPI kernel_GetTickCount64();
+	DWORD WINAPI winmm_timeGetTime();
+	MMRESULT WINAPI winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt);
 	void HookExceptionHandler();
 	void UnHookExceptionHandler();
 	LONG WINAPI Vectored_Exception_Handler(EXCEPTION_POINTERS* ExceptionInfo);
