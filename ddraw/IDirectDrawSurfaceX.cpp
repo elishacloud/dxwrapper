@@ -675,8 +675,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 					// Set dirty flag
 					SetDirtyFlag(MipMapLevel);
 
+					// Handle fullscreen blt as flip
+					bool IsFullScreenBlt = IsPrimarySurface() && (!lpSrcRect ||
+						(lpSrcRect->left == 0 && lpSrcRect->top == 0 && lpSrcRect->right == (LONG)surfaceDesc2.dwWidth && lpSrcRect->bottom == (LONG)surfaceDesc2.dwHeight));
+
 					// Present surface
-					EndWritePresent(lpDestRect, false, true, PresentBlt, IsSkipScene);
+					EndWritePresent(lpDestRect, IsFullScreenBlt, true, PresentBlt, IsSkipScene);
 				}
 			}
 
