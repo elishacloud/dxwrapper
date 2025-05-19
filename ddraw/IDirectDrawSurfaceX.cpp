@@ -5798,7 +5798,7 @@ void m_IDirectDrawSurfaceX::SetRenderTargetShadow()
 	if (!surface.UsingShadowSurface)
 	{
 		// Create shadow surface
-		if (!surface.Shadow && surface.Surface && (surface.Usage & D3DUSAGE_RENDERTARGET))
+		if (!surface.Shadow && (surface.Surface || surface.Texture) && (surface.Usage & D3DUSAGE_RENDERTARGET))
 		{
 			D3DSURFACE_DESC Desc;
 			if (FAILED(surface.Surface ? surface.Surface->GetDesc(&Desc) : surface.Texture->GetLevelDesc(0, &Desc)) ||
