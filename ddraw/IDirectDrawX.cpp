@@ -3191,8 +3191,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ScopedDDCriticalSection ThreadLockDD;
-
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, false)))
 	{
@@ -3221,6 +3219,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 		return d3d9Device ? DD_OK : DDERR_GENERIC;
 	}
+
+	ScopedDDCriticalSection ThreadLockDD;
 
 	// Get monitor handle
 	FindMonitorHandle();
