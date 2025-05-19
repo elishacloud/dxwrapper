@@ -57,6 +57,10 @@ ULONG m_IDirect3DStateBlock9::Release(THIS)
 
 	if (ref == 0)
 	{
+		m_pDeviceEx->GetStateBlockTable()->RemoveStateBlock(this);
+
+		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
+
 		delete this;
 	}
 

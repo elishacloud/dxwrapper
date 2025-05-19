@@ -57,6 +57,8 @@ ULONG m_IDirect3DPixelShader9::Release(THIS)
 
 	if (ref == 0)
 	{
+		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
+
 		delete this;
 	}
 

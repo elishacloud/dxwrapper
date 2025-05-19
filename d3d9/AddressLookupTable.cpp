@@ -189,6 +189,19 @@ void AddressLookupTableD3d9::SaveAddress(T* Wrapper, void* Proxy)
 }
 
 template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3D9Ex>(m_IDirect3D9Ex*);
+template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3DCubeTexture9>(m_IDirect3DCubeTexture9*);
+template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3DIndexBuffer9>(m_IDirect3DIndexBuffer9*);
+template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3DPixelShader9>(m_IDirect3DPixelShader9*);
+template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3DQuery9>(m_IDirect3DQuery9*);
+template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3DStateBlock9>(m_IDirect3DStateBlock9*);
+template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3DSurface9>(m_IDirect3DSurface9*);
+template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3DSwapChain9Ex>(m_IDirect3DSwapChain9Ex*);
+template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3DTexture9>(m_IDirect3DTexture9*);
+template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3DVertexBuffer9>(m_IDirect3DVertexBuffer9*);
+template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3DVertexDeclaration9>(m_IDirect3DVertexDeclaration9*);
+template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3DVertexShader9>(m_IDirect3DVertexShader9*);
+template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3DVolume9>(m_IDirect3DVolume9*);
+template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3DVolumeTexture9>(m_IDirect3DVolumeTexture9*);
 template <typename T>
 void AddressLookupTableD3d9::DeleteAddress(T* Wrapper)
 {

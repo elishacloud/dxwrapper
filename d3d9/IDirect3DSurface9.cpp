@@ -81,6 +81,8 @@ ULONG m_IDirect3DSurface9::Release(THIS)
 			Emu.pSurface = nullptr;
 		}
 
+		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
+
 		delete this;
     }
 
