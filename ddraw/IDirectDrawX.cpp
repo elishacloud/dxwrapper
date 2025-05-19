@@ -3187,8 +3187,6 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 
 HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 {
-	// To avoid threadlock check all critical sections in this function and sub-functions
-
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Check for device interface
@@ -5015,8 +5013,6 @@ bool m_IDirectDrawX::IsUsingThreadPresent()
 
 DWORD WINAPI m_IDirectDrawX::PresentThreadFunction(LPVOID)
 {
-	// To avoid threadlock check all critical sections in this function and sub-functions
-
 	LOG_LIMIT(100, __FUNCTION__ << " Creating thread!");
 
 	ScopedFlagSet AutoSet(PresentThread.IsInitialized);
