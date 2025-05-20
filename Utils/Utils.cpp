@@ -592,7 +592,7 @@ bool Utils::GetUpTimeValues()
 			SubtractTimeInMS = minDays * MS_PER_DAY;
 			SubtractTimeInQPCTicks = (SubtractTimeInMS * freq.QuadPart) / 1000ULL;
 
-			Logging::Log() << __FUNCTION__ << " Reversing " << minDays << " days system up time!";
+			Logging::Log() << __FUNCTION__ << " Found " << minDays << " day" << (minDays == 1 ? "" : "s") << " system up time!";
 
 			return true;
 		}
