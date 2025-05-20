@@ -84,6 +84,7 @@ public:
 	bool TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD BackBufferHeight);
 
 	// Static functions
+	static DWORD AdjustPOW2Caps(DWORD OriginalCaps);
 	static DWORD UpdateBehaviorFlags(DWORD BehaviorFlags);
 	static void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool ForceExclusiveFullscreen, bool SetWindow);
 	static void GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails);

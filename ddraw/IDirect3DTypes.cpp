@@ -15,6 +15,7 @@
 */
 
 #include "ddraw.h"
+#include "d3d9\d3d9External.h"
 
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 {
@@ -481,6 +482,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9)
 			D3DPTEXTURECAPS_NONPOW2CONDITIONAL |
 			D3DPTEXTURECAPS_PROJECTED |
 			D3DPTEXTURECAPS_CUBEMAP));
+	Desc7.dpcLineCaps.dwTextureCaps = m_IDirect3D9Ex::AdjustPOW2Caps(Desc7.dpcLineCaps.dwTextureCaps);
 	Desc7.dpcLineCaps.dwTextureFilterCaps =
 		D3DPTFILTERCAPS_NEAREST |
 		D3DPTFILTERCAPS_LINEAR |

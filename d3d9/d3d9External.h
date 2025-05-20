@@ -27,6 +27,7 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppD3D);
 class m_IDirect3D9Ex
 {
 public:
+	static DWORD AdjustPOW2Caps(DWORD OriginalCaps);
 	static void AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed, bool EnableWindowMode, bool FullscreenWindowMode);
 };
 

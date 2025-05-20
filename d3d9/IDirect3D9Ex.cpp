@@ -291,7 +291,14 @@ HRESULT m_IDirect3D9Ex::GetDeviceCaps(UINT Adapter, D3DDEVTYPE DeviceType, D3DCA
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetDeviceCaps(Adapter, DeviceType, pCaps);
+	HRESULT hr = ProxyInterface->GetDeviceCaps(Adapter, DeviceType, pCaps);
+
+	if (SUCCEEDED(hr))
+	{
+		pCaps->TextureCaps = AdjustPOW2Caps(pCaps->TextureCaps);
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3D9Ex::RegisterSoftwareDevice(void *pInitializeFunction)
@@ -646,6 +653,20 @@ bool m_IDirect3D9Ex::TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD B
 		}
 	}
 	return false;
+}
+
+DWORD m_IDirect3D9Ex::AdjustPOW2Caps(DWORD OriginalCaps)
+{
+	DWORD Caps = OriginalCaps & ~(D3DPTEXTURECAPS_POW2 | D3DPTEXTURECAPS_NONPOW2CONDITIONAL);
+
+	switch (Config.SetPOW2Caps)
+	{
+	case 0: return OriginalCaps;														// 0 = return original caps
+	case 1: return Caps | D3DPTEXTURECAPS_POW2 | D3DPTEXTURECAPS_NONPOW2CONDITIONAL;	// 1 = force both
+	case 2: return Caps | D3DPTEXTURECAPS_NONPOW2CONDITIONAL;							// 2 = force D3DPTEXTURECAPS_NONPOW2CONDITIONAL
+	case 3: return Caps | D3DPTEXTURECAPS_POW2;											// 3 = force D3DPTEXTURECAPS_POW2
+	default: return Caps;																// 4 = remove both
+	}
 }
 
 DWORD m_IDirect3D9Ex::UpdateBehaviorFlags(DWORD BehaviorFlags)

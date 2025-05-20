@@ -130,6 +130,7 @@
 	visit(SetFullScreenLayer) \
 	visit(SetInitialWindowPosition) \
 	visit(SetNamedLayer) \
+	visit(SetPOW2Caps) \
 	visit(ShowFPSCounter) \
 	visit(SingleProcAffinity) \
 	visit(StoppedDriverWorkaround) \
@@ -318,6 +319,7 @@ struct CONFIG
 	DWORD ShowFPSCounter = 0;					// Shows the FPS counter. 1 = top left; 2 = top right; 3 = bottom right; 4 = bottom left
 	DWORD SingleProcAffinity = 0;				// Sets the CPU affinity for this process
 	DWORD SetFullScreenLayer = 0;				// The layer to be selected for fullscreen, requires FullScreen
+	DWORD SetPOW2Caps = 0;						// Force caps change: 1 = force both, 2 = force D3DPTEXTURECAPS_NONPOW2CONDITIONAL, 3 = force D3DPTEXTURECAPS_POW2, 4 = remove both
 	DWORD AnisotropicFiltering = 0;				// Enable Anisotropic Filtering for d3d9
 	DWORD AntiAliasing = 0;						// Enable AntiAliasing for d3d9 CreateDevice
 	DWORD RealWrapperMode = 0;					// Internal wrapper mode
