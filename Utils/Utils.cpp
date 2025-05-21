@@ -530,12 +530,32 @@ bool Utils::InitUpTimeOffsets()
 {
 	const uint64_t MS_PER_DAY = 86400000ULL;
 
-	// Gather system uptime values
-	DWORD gtc = GetTickCount();
+	// Preinitialize functions
+	{
+		GetTickCount();
 #if (_WIN32_WINNT >= 0x0502)
-	ULONGLONG gtc64 = GetTickCount64();
+		GetTickCount64();
 #endif
-	DWORD tmt = timeGetTime();
+		timeGetTime();
+
+		MMTIME mmt = {};
+		mmt.wType = TIME_MS;
+		timeGetSystemTime(&mmt, sizeof(mmt));
+
+		LARGE_INTEGER qpc, freq;
+		QueryPerformanceFrequency(&freq);
+		QueryPerformanceCounter(&qpc);
+	}
+
+	// Gather system uptime values
+	LARGE_INTEGER qpc, freq;
+	if (!QueryPerformanceFrequency(&freq) || !QueryPerformanceCounter(&qpc))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Query Performance failed!";
+
+		return false;
+	}
+	uint64_t ms_qpc = (qpc.QuadPart * 1000ULL) / freq.QuadPart;
 
 	MMTIME mmt = {};
 	mmt.wType = TIME_MS;
@@ -546,14 +566,12 @@ bool Utils::InitUpTimeOffsets()
 		return false;
 	}
 
-	LARGE_INTEGER qpc, freq;
-	if (!QueryPerformanceFrequency(&freq) || !QueryPerformanceCounter(&qpc))
-	{
-		Logging::Log() << __FUNCTION__ << " Error: Query Performance failed!";
+	DWORD tmt = timeGetTime();
 
-		return false;
-	}
-	uint64_t ms_qpc = (qpc.QuadPart * 1000ULL) / freq.QuadPart;
+	DWORD gtc = GetTickCount();
+#if (_WIN32_WINNT >= 0x0502)
+	ULONGLONG gtc64 = GetTickCount64();
+#endif
 
 	// Calculate full days from uptime in ms
 	uint64_t timeInDays = ms_qpc / MS_PER_DAY;
