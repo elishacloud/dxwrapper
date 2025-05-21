@@ -134,8 +134,11 @@ namespace Utils
 	WNDPROC OriginalWndProc = nullptr;
 	std::vector<type_dll> custom_dll;		// Used for custom dll's and asi plugins
 
-	int64_t SubtractTimeInMS = 0;
-	int64_t SubtractTimeInQPCTicks = 0;
+	DWORD SubtractTimeInMS_gtc = 0;
+	int64_t SubtractTimeInMS_gtc64 = 0;
+	DWORD SubtractTimeInMS_tmt = 0;
+	DWORD SubtractTimeInMS_mmt = 0;
+	int64_t SubtractTimeInTicks_qpc = 0;
 
 	// Function declarations
 	void InitializeASI(HMODULE hModule);
@@ -523,18 +526,7 @@ SIZE_T WINAPI Utils::kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem)
 	return HeapSize(hHeap, dwFlags, lpMem);
 }
 
-static ULONGLONG GetTickCount64_Emulated()
-{
-	LARGE_INTEGER qpc, freq;
-	if (!QueryPerformanceFrequency(&freq) || !QueryPerformanceCounter(&qpc))
-	{
-		return 0;
-	}
-
-	return (qpc.QuadPart * 1000ULL) / freq.QuadPart;
-}
-
-bool Utils::GetUpTimeValues()
+bool Utils::InitUpTimeOffsets()
 {
 	const uint64_t MS_PER_DAY = 86400000ULL;
 
@@ -542,8 +534,6 @@ bool Utils::GetUpTimeValues()
 	DWORD gtc = GetTickCount();
 #if (_WIN32_WINNT >= 0x0502)
 	ULONGLONG gtc64 = GetTickCount64();
-#else
-	ULONGLONG gtc64 = GetTickCount64_Emulated();
 #endif
 	DWORD tmt = timeGetTime();
 
@@ -555,7 +545,6 @@ bool Utils::GetUpTimeValues()
 
 		return false;
 	}
-	DWORD mmt_ms = mmt.u.ms;
 
 	LARGE_INTEGER qpc, freq;
 	if (!QueryPerformanceFrequency(&freq) || !QueryPerformanceCounter(&qpc))
@@ -564,46 +553,24 @@ bool Utils::GetUpTimeValues()
 
 		return false;
 	}
-	uint64_t qpcMs = (qpc.QuadPart * 1000ULL) / freq.QuadPart;
+	uint64_t ms_qpc = (qpc.QuadPart * 1000ULL) / freq.QuadPart;
 
 	// Calculate full days from uptime in ms
-	auto calcDays = [](uint64_t ms) {
-		return ms / 86400000ULL;
-		};
+	uint64_t timeInDays = ms_qpc / MS_PER_DAY;
+	uint64_t timeInMS = timeInDays * MS_PER_DAY;
+	uint64_t remainderTimeMS = ms_qpc - timeInMS;
 
-	uint64_t daysQPC = calcDays(qpcMs);
-	uint64_t daysGTC64 = calcDays(gtc64);
-	uint64_t minDays = min(daysQPC, daysGTC64);
+	SubtractTimeInMS_gtc = static_cast<DWORD>(gtc - remainderTimeMS);
+#if (_WIN32_WINNT >= 0x0502)
+	SubtractTimeInMS_gtc64 = gtc64 - remainderTimeMS;
+#endif
+	SubtractTimeInMS_tmt = static_cast<DWORD>(tmt - remainderTimeMS);
+	SubtractTimeInMS_mmt = static_cast<DWORD>(mmt.u.ms - remainderTimeMS);
+	SubtractTimeInTicks_qpc = (timeInMS * freq.QuadPart) / 1000ULL;
 
-	// Handle wraparound on 32-bit values
-	auto matchWithWrap = [&](DWORD val32, ULONGLONG DaysInMS) {
-		DWORD wrappedRef = static_cast<DWORD>(val32 - DaysInMS);
-		return calcDays(wrappedRef) <= 1;
-		};
+	Logging::Log() << __FUNCTION__ << " Found " << timeInDays << " day" << (timeInDays == 1 ? "" : "s") << " system up time!";
 
-	// Check the last 2 number of days for a match
-	for (int x = 0; x < 2; x++)
-	{
-		if (daysGTC64 - minDays <= 1 && daysQPC - minDays <= 1 &&
-			matchWithWrap(gtc, minDays * MS_PER_DAY) &&
-			matchWithWrap(tmt, minDays * MS_PER_DAY) &&
-			matchWithWrap(mmt_ms, minDays * MS_PER_DAY))
-		{
-			SubtractTimeInMS = minDays * MS_PER_DAY;
-			SubtractTimeInQPCTicks = (SubtractTimeInMS * freq.QuadPart) / 1000ULL;
-
-			Logging::Log() << __FUNCTION__ << " Found " << minDays << " day" << (minDays == 1 ? "" : "s") << " system up time!";
-
-			return true;
-		}
-		if (minDays) --minDays;
-	}
-
-	Logging::Log() << __FUNCTION__ << " Error: could not match system up time! "
-		<< "Mismatch: gtc=" << gtc << ", tmt=" << tmt << ", mmt_ms=" << mmt_ms
-		<< ", gtc64=" << gtc64 << ", qpc=" << qpcMs << ", days=" << minDays;
-
-	return false;
+	return true;
 }
 
 BOOL WINAPI Utils::kernel_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
@@ -618,7 +585,7 @@ BOOL WINAPI Utils::kernel_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCo
 	BOOL result = QueryPerformanceCounter(lpPerformanceCount);
 	if (result != 0)
 	{
-		lpPerformanceCount->QuadPart -= SubtractTimeInQPCTicks;
+		lpPerformanceCount->QuadPart -= SubtractTimeInTicks_qpc;
 	}
 	return result;
 }
@@ -632,7 +599,7 @@ DWORD WINAPI Utils::kernel_GetTickCount()
 		return 0;
 	}
 
-	return static_cast<DWORD>(GetTickCount() - SubtractTimeInMS);
+	return GetTickCount() - SubtractTimeInMS_gtc;
 }
 
 ULONGLONG WINAPI Utils::kernel_GetTickCount64()
@@ -644,7 +611,7 @@ ULONGLONG WINAPI Utils::kernel_GetTickCount64()
 		return 0;
 	}
 
-	return GetTickCount64() - SubtractTimeInMS;
+	return GetTickCount64() - SubtractTimeInMS_gtc64;
 }
 
 DWORD WINAPI Utils::winmm_timeGetTime()
@@ -656,8 +623,7 @@ DWORD WINAPI Utils::winmm_timeGetTime()
 		return 0;
 	}
 
-	DWORD Time = timeGetTime();
-	return static_cast<DWORD>(Time - SubtractTimeInMS);
+	return timeGetTime() - SubtractTimeInMS_tmt;
 }
 
 MMRESULT WINAPI Utils::winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt)
@@ -674,7 +640,7 @@ MMRESULT WINAPI Utils::winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt)
 	{
 		if (cbmmt == sizeof(MMTIME) && pmmt->wType == TIME_MS)
 		{
-			pmmt->u.ms -= static_cast<DWORD>(SubtractTimeInMS);
+			pmmt->u.ms -= SubtractTimeInMS_mmt;
 		}
 	}
 	return result;

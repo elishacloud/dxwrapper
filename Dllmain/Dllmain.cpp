@@ -630,11 +630,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Fix QPC uptime issues
-		if (Config.FixPerfCounterUptime)
+		if (Config.FixPerfCounterUptime && Utils::InitUpTimeOffsets())
 		{
 			using namespace GdiWrapper;
 			HMODULE winmm = LoadLibrary("winmm.dll");
-			Utils::GetUpTimeValues();
 			if (kernel32)
 			{
 				Utils::QueryPerformanceCounter_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "QueryPerformanceCounter"), "QueryPerformanceCounter", Utils::kernel_QueryPerformanceCounter);

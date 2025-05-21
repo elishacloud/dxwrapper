@@ -41,7 +41,7 @@ namespace Utils
 	LPVOID WINAPI kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 	LPVOID WINAPI kernel_HeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwBytes);
 	SIZE_T WINAPI kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem);
-	bool GetUpTimeValues();
+	bool InitUpTimeOffsets();
 	BOOL WINAPI kernel_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
 	DWORD WINAPI kernel_GetTickCount();
 	ULONGLONG WINAPI kernel_GetTickCount64();
