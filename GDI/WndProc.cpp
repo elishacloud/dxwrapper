@@ -296,21 +296,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		return NULL;
 	}
 
-	// Handle dxwrapper notifications
-	if (Msg == WM_APP_DX_NOTIFY)
-	{
-		switch (wParam)
-		{
-		case DX_BEGIN_DEVICE_CREATION:
-			pDataStruct->IsCreatingDevice = true;
-			break;
-		case DX_END_DEVICE_CREATION:
-			pDataStruct->IsCreatingDevice = false;
-			break;
-		}
-		return NULL;
-	}
-
 	// Special handling for DirectDraw games
 	if (pDataStruct->IsDirectDraw)
 	{

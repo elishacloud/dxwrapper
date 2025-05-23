@@ -367,10 +367,9 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	if (WndDataStruct)
 	{
 		WndDataStruct->IsDirect3D9 = true;
+		WndDataStruct->IsCreatingDevice = true;
 		WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
 		DeviceDetails.IsDirectDrawDevice = WndDataStruct->IsDirectDraw;
-
-		SendMessage(hwnd, WM_APP_DX_NOTIFY, DX_BEGIN_DEVICE_CREATION, NULL);
 	}
 
 	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
@@ -479,7 +478,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	// Update WndProc after creating device
 	if (WndDataStruct)
 	{
-		SendMessage(hwnd, WM_APP_DX_NOTIFY, DX_END_DEVICE_CREATION, NULL);
+		WndDataStruct->IsCreatingDevice = false;
 	}
 
 	return hr;
@@ -912,7 +911,7 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 			// Apply windowed border to popup window
 			if (lStyle & (WS_POPUP | WS_BORDER))
 			{
-				lStyle |= WS_POPUPWINDOW;
+				lStyle |= WS_POPUPWINDOW | WS_CAPTION;
 			}
 			// Apply windowed border to other window types
 			else
