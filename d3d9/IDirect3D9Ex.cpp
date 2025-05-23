@@ -867,12 +867,16 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 			DWORD currentThreadId = GetCurrentThreadId();
 			DWORD foregroundThreadId = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
 
-			bool isForeground = (MainhWnd == GetForegroundWindow()) || (currentThreadId == foregroundThreadId);
+			bool isForeground = (MainhWnd == GetForegroundWindow());
+			bool shouldAttachThreadID = !isForeground && (currentThreadId != foregroundThreadId);
 
 			// Attach the input of the foreground window and current window
-			if (!isForeground)
+			if (shouldAttachThreadID)
 			{
 				AttachThreadInput(currentThreadId, foregroundThreadId, TRUE);
+			}
+			if (!isForeground)
+			{
 				SetForegroundWindow(MainhWnd);
 			}
 
@@ -881,43 +885,72 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 			BringWindowToTop(MainhWnd);
 
 			// Detach the input from the foreground window
-			if (!isForeground)
+			if (shouldAttachThreadID)
 			{
 				AttachThreadInput(currentThreadId, foregroundThreadId, FALSE);
 			}
 		}
 	}
 
-	// Get screen width and height
+	// Get screen area and width and height
 	LONG screenWidth = 0, screenHeight = 0;
 	Utils::GetScreenSize(hMonitor, screenWidth, screenHeight);
+	RECT screenClientRect = {};
+	Utils::GetScreenClientRect(hMonitor, screenClientRect);
+	LONG screenClientWidth = screenClientRect.right - screenClientRect.left;
+	LONG screenClientHeight = screenClientRect.bottom - screenClientRect.top;
 
 	// Get window style
 	lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
 	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+	BOOL HasMenu = (GetMenu(MainhWnd) != NULL);
 
 	// Set window style
+	bool clientWidthOverlap = false, clientHeightOverlap = false;
 	if (EnableWindowMode)
 	{
-		// Compute adjusted window rect
-		RECT Rect = { 0, 0, displayWidth, displayHeight };
-		AdjustWindowRectEx(&Rect, lStyle | WS_OVERLAPPEDWINDOW, GetMenu(MainhWnd) != NULL, lExStyle);
-		LONG windowWidth = Rect.right - Rect.left;
-		LONG windowHeight = Rect.bottom - Rect.top;
+		// New window size
+		LONG windowWidth = displayWidth;
+		LONG windowHeight = displayHeight;
 
-		if (Config.WindowModeBorder && !FullscreenWindowMode &&
-			screenWidth > windowWidth && screenHeight > windowHeight)
+		// Get border style and size
+		LONG lBorderStyle = lStyle;
+		int borderWidth = 0, borderHeight = 0;
+		if (Config.WindowModeBorder && !FullscreenWindowMode)
 		{
 			// Apply windowed border to popup window
-			if (lStyle & (WS_POPUP | WS_BORDER))
+			if (lBorderStyle & (WS_POPUP | WS_BORDER))
 			{
-				lStyle |= WS_POPUPWINDOW | WS_CAPTION;
+				lBorderStyle |= WS_POPUPWINDOW | WS_CAPTION;
 			}
 			// Apply windowed border to other window types
 			else
 			{
-				lStyle |= WS_OVERLAPPEDWINDOW;
+				lBorderStyle |= WS_OVERLAPPEDWINDOW;
 			}
+
+			// Get window size with border
+			RECT rc = { 0, 0, displayWidth, displayHeight };
+			AdjustWindowRectEx(&rc, lBorderStyle, HasMenu, lExStyle);
+
+			int borderLeft = -rc.left;
+			int borderTop = -rc.top;    // Includes the title bar
+			int borderRight = rc.right - displayWidth;
+			int borderBottom = rc.bottom - displayHeight;
+
+			borderWidth = borderLeft + borderRight;
+			borderHeight = borderTop + borderBottom;
+		}
+
+		// Check for overlapping
+		clientWidthOverlap = screenClientWidth < windowWidth + borderWidth;
+		clientHeightOverlap = screenClientHeight < windowHeight + borderHeight;
+
+		// Update style
+		if (Config.WindowModeBorder && !FullscreenWindowMode && !clientWidthOverlap && !clientHeightOverlap)
+		{
+			// Apply window border
+			lStyle = lBorderStyle;
 		}
 		else
 		{
@@ -926,13 +959,16 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		}
 
 		// Set new style
-		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+		if (GetWindowLong(MainhWnd, GWL_STYLE) != lStyle)
+		{
+			SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
+			SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+		}
 	}
 
 	// Get new window rect
 	RECT Rect = { 0, 0, displayWidth, displayHeight };
-	AdjustWindowRectEx(&Rect, lStyle, GetMenu(MainhWnd) != NULL, lExStyle);
+	AdjustWindowRectEx(&Rect, lStyle, HasMenu, lExStyle);
 	Rect = { 0, 0, Rect.right - Rect.left, Rect.bottom - Rect.top };
 
 	// Get upper left window position
@@ -951,6 +987,33 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		SetWindowPositionFlag = true;
 		xLoc = (screenWidth - Rect.right) / 2;
 		yLoc = (screenHeight - Rect.bottom) / 2;
+	}
+
+	// Ensure the window doesn't cross over the desktop client area
+	if (!FullscreenWindowMode)
+	{
+		if (!clientWidthOverlap)
+		{
+			if (xLoc < screenClientRect.left)
+			{
+				xLoc = screenClientRect.left;
+			}
+			if (xLoc + Rect.right > screenClientRect.right)
+			{
+				xLoc -= (xLoc + Rect.right) - screenClientRect.right;
+			}
+		}
+		if (!clientHeightOverlap)
+		{
+			if (yLoc < screenClientRect.top)
+			{
+				yLoc = screenClientRect.top;
+			}
+			if (yLoc + Rect.bottom > screenClientRect.bottom)
+			{
+				yLoc -= (yLoc + Rect.bottom) - screenClientRect.bottom;
+			}
+		}
 	}
 
 	// Center and adjust size of window

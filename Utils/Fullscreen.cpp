@@ -15,6 +15,7 @@
 */
 
 #include "Settings\Settings.h"
+#include "shellapi.h"
 #include "Dllmain\Dllmain.h"
 #include "Utils.h"
 #include "Logging\Logging.h"
@@ -422,6 +423,19 @@ void Utils::GetScreenSize(HMONITOR hMonitor, int& screenWidth, int& screenHeight
 	GetScreenSize(hMonitor, Width, Height);
 	screenWidth = Width;
 	screenHeight = Height;
+}
+
+void Utils::GetScreenClientRect(HMONITOR hMonitor, RECT& workAreaOut)
+{
+	if (!IsMonitorValid(hMonitor))
+	{
+		hMonitor = MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY);
+	}
+
+	MONITORINFO mi = {};
+	mi.cbSize = sizeof(mi);
+	GetMonitorInfo(hMonitor, &mi);
+	workAreaOut = mi.rcWork;
 }
 
 // Check with resolution is best

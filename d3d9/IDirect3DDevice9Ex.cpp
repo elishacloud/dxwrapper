@@ -187,7 +187,8 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, true);
+	bool SetWindow = (SHARED.BufferWidth != (LONG)pPresentationParameters->BackBufferWidth || SHARED.BufferHeight != (LONG)pPresentationParameters->BackBufferHeight);
+	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, SetWindow);
 
 	bool IsWindowMode = d3dpp.Windowed != FALSE;
 
@@ -210,7 +211,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 
 			// Reset presentation parameters
 			CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-			m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
+			m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
 
 			// Reset device
 			hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
@@ -352,7 +353,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
+	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
 
 	// Test for Multisample
 	if (SHARED.DeviceMultiSampleFlag)
@@ -367,7 +368,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	if (FAILED(hr))
 	{
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
+		m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
