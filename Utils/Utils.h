@@ -78,6 +78,7 @@ namespace Utils
 	BOOL SetWindowPosToMonitor(HMONITOR hMonitor, HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags);
 	BOOL SetWindowPlacementToMonitor(HMONITOR hMonitor, HWND hWnd, const WINDOWPLACEMENT* lpwndpl);
 	void SetDisplaySettings(HMONITOR hMonitor, DWORD Width, DWORD Height);
+	void ResetDisplaySettings(HMONITOR hMonitor);
 	DWORD GetRefreshRate(HMONITOR hMonitor);
 	DWORD GetBitCount(HMONITOR hMonitor);
 	DWORD GetThreadIDByHandle(HANDLE hThread);

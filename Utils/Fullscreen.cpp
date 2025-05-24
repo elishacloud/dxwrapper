@@ -349,6 +349,17 @@ void Utils::SetDisplaySettings(HMONITOR hMonitor, DWORD Width, DWORD Height)
 	}
 }
 
+void Utils::ResetDisplaySettings(HMONITOR hMonitor)
+{
+	// Get monitor info
+	MONITORINFOEX infoex = {};
+	infoex.cbSize = sizeof(MONITORINFOEX);
+	BOOL bRet = GetMonitorInfo(hMonitor, &infoex);
+
+	// Reset resolution for specified monitor
+	ChangeDisplaySettingsEx(bRet ? infoex.szDevice : nullptr, nullptr, nullptr, CDS_RESET, nullptr);
+}
+
 DWORD Utils::GetRefreshRate(HMONITOR hMonitor)
 {
 	if (!IsMonitorValid(hMonitor))

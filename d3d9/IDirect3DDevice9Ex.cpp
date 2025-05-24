@@ -120,6 +120,7 @@ ULONG m_IDirect3DDevice9Ex::Release()
 		// Remove device details if no devices are using it
 		if (!MoreInstances)
 		{
+			HMONITOR hMonitor = SHARED.hMonitor;
 			for (auto it = DeviceDetailsMap.begin(); it != DeviceDetailsMap.end(); ++it)
 			{
 				if (it->first == DDKey)
@@ -127,6 +128,11 @@ ULONG m_IDirect3DDevice9Ex::Release()
 					DeviceDetailsMap.erase(it);
 					break;
 				}
+			}
+			// Reset display
+			if (Config.FullscreenWindowMode)
+			{
+				Utils::ResetDisplaySettings(hMonitor);
 			}
 		}
 	}
@@ -184,13 +190,19 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 		ForceFullscreen = m_pD3DEx->TestResolution(SHARED.Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
 	}
 
+	// Check if display needs to be reset
+	bool IsSettingWindowMode = (pPresentationParameters->Windowed != FALSE);
+	bool IsWindowModeChanging = (SHARED.IsWindowMode != IsSettingWindowMode);
+	bool IsResolutionChanging = (SHARED.BufferWidth != (LONG)pPresentationParameters->BackBufferWidth || SHARED.BufferHeight != (LONG)pPresentationParameters->BackBufferHeight);
+	if ((IsWindowModeChanging && IsSettingWindowMode) || (Config.FullscreenWindowMode && IsResolutionChanging))
+	{
+		Utils::ResetDisplaySettings(SHARED.hMonitor);
+	}
+
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	bool SetWindow = (SHARED.BufferWidth != (LONG)pPresentationParameters->BackBufferWidth || SHARED.BufferHeight != (LONG)pPresentationParameters->BackBufferHeight);
-	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, SetWindow);
-
-	bool IsWindowMode = d3dpp.Windowed != FALSE;
+	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, IsWindowModeChanging || IsResolutionChanging);
 
 	// Test for Multisample
 	if (SHARED.DeviceMultiSampleFlag)
@@ -242,7 +254,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 			d3dpp.Windowed = FALSE;
 		}
 
-		SHARED.IsWindowMode = IsWindowMode;
+		SHARED.IsWindowMode = IsSettingWindowMode;
 
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 
