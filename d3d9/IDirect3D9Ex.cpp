@@ -901,7 +901,8 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 	LONG screenClientHeight = screenClientRect.bottom - screenClientRect.top;
 
 	// Get window style
-	lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+	LONG lOrgStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+	lStyle = lOrgStyle;
 	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 	BOOL HasMenu = (GetMenu(MainhWnd) != NULL);
 
@@ -918,15 +919,15 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		int borderWidth = 0, borderHeight = 0;
 		if (Config.WindowModeBorder && !FullscreenWindowMode)
 		{
-			// Apply windowed border to popup window
+			// Apply windowed border to popup window (without adding sysmenu)
 			if (lBorderStyle & (WS_POPUP | WS_BORDER))
 			{
-				lBorderStyle |= WS_POPUPWINDOW | WS_CAPTION;
+				lBorderStyle |= ((WS_POPUPWINDOW | WS_CAPTION) & ~WS_SYSMENU);
 			}
-			// Apply windowed border to other window types
+			// Apply windowed border to other window types (without adding sysmenu)
 			else
 			{
-				lBorderStyle |= WS_OVERLAPPEDWINDOW;
+				lBorderStyle |= (WS_OVERLAPPEDWINDOW & ~WS_SYSMENU);
 			}
 
 			// Get window size with border
@@ -954,12 +955,12 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		}
 		else
 		{
-			// Remove window border
-			lStyle &= ~(WS_OVERLAPPEDWINDOW | WS_BORDER);
+			// Remove window border (without removing sysmenu)
+			lStyle &= ~((WS_OVERLAPPEDWINDOW | WS_BORDER | WS_DLGFRAME) & ~WS_SYSMENU);
 		}
 
-		// Set new style
-		if (GetWindowLong(MainhWnd, GWL_STYLE) != lStyle)
+		// Set style if it needs to change
+		if (lOrgStyle != lStyle)
 		{
 			SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
 			SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);

@@ -1673,7 +1673,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		// Do events if device is not created
 		if (!WasDeviceCreated && IsWindow(DisplayMode.hWnd))
 		{
-			RedrawWindow(DisplayMode.hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+			RedrawWindow(DisplayMode.hWnd, nullptr, nullptr, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 		}
 
 		return DD_OK;
@@ -1871,7 +1871,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		// Redraw display window
 		if (!WasDeviceCreated && IsWindow(DisplayMode.hWnd))
 		{
-			RedrawWindow(DisplayMode.hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+			RedrawWindow(DisplayMode.hWnd, nullptr, nullptr, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 		}
 
 		return DD_OK;
