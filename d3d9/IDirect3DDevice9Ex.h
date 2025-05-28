@@ -9,7 +9,10 @@ struct DEVICEDETAILS
 {
 	DEVICEDETAILS()
 	{
-		InitializeCriticalSection(&d9cs);
+		if (!InitializeCriticalSectionAndSpinCount(&d9cs, 4000))
+		{
+			InitializeCriticalSection(&d9cs);
+		}
 	}
 	~DEVICEDETAILS()
 	{

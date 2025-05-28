@@ -21,7 +21,7 @@ private:
 	// Remember the last lock info
 	struct LASTLOCK
 	{
-		std::mutex LockMutex;								// Mutex to protect this instance
+		std::recursive_mutex LockMutex;						// Mutex to protect this instance
 		bool IsLocked = false;
 		DWORD LockedWithID = 0;								// Thread ID of the current lock
 		std::vector<RECT> LockRectList;						// Rects used to lock the surface
@@ -30,6 +30,14 @@ private:
 		RECT Rect = {};
 		D3DLOCKED_RECT LockedRect = {};
 		DWORD MipMapLevel = 0;
+
+		LASTLOCK() = default;
+
+		// Prevent copy and move
+		LASTLOCK(const LASTLOCK&) = delete;
+		LASTLOCK& operator=(const LASTLOCK&) = delete;
+		LASTLOCK(LASTLOCK&&) = delete;
+		LASTLOCK& operator=(LASTLOCK&&) = delete;
 	};
 
 	// Removal of scanlines

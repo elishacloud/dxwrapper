@@ -2445,7 +2445,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		LASTLOCK& LastLock = LockedLevel[MipMapLevel];
 
-		std::lock_guard<std::mutex> guard(LastLock.LockMutex);
+		std::lock_guard<std::recursive_mutex> guard(LastLock.LockMutex);
 
 		// Check for already locked state
 		if (!lpDestRect && !LastLock.LockRectList.empty())
@@ -2694,6 +2694,13 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC, DWORD MipMapLevel)
 		if (FAILED(c_hr))
 		{
 			return c_hr;
+		}
+
+		// Check struct
+		if (GetDCLevel.find(MipMapLevel) == GetDCLevel.end())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: DC level struct hasn't been created yet: " << MipMapLevel);
+			return DDERR_NOTLOCKED;
 		}
 
 		if (!GetDCLevel[MipMapLevel])
@@ -3044,9 +3051,16 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 			return c_hr;
 		}
 
+		// Check struct
+		if (LockedLevel.find(MipMapLevel) == LockedLevel.end())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: locked level struct hasn't been created yet: " << MipMapLevel);
+			return DDERR_NOTLOCKED;
+		}
+
 		LASTLOCK& LastLock = LockedLevel[MipMapLevel];
 
-		std::lock_guard<std::mutex> guard(LastLock.LockMutex);
+		std::lock_guard<std::recursive_mutex> guard(LastLock.LockMutex);
 
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
@@ -3832,7 +3846,10 @@ void m_IDirectDrawSurfaceX::InitInterface(DWORD DirectXVersion)
 	{
 		AddRef(DirectXVersion);
 
-		InitializeCriticalSection(&ddscs);
+		if (!InitializeCriticalSectionAndSpinCount(&ddscs, 4000))
+		{
+			InitializeCriticalSection(&ddscs);
+		}
 
 		if (ddrawParent)
 		{
@@ -5231,6 +5248,8 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 
 	IsInBlt = false;
 	IsInBltBatch = false;
+	LockedLevel[0].IsLocked = false;
+	GetDCLevel[0] = nullptr;
 	IsInFlip = false;
 	HasDoneFlip = false;
 
@@ -5893,7 +5912,14 @@ bool m_IDirectDrawSurfaceX::IsSurfaceLocked(DWORD MipMapLevel)
 		}
 		return false;
 	}
-	return LockedLevel[MipMapLevel].IsLocked;
+
+	const auto it = LockedLevel.find(MipMapLevel);
+	if (it != LockedLevel.end())
+	{
+		return it->second.IsLocked;
+	}
+
+	return false;
 }
 
 bool m_IDirectDrawSurfaceX::IsSurfaceInDC(DWORD MipMapLevel)
@@ -5909,17 +5935,28 @@ bool m_IDirectDrawSurfaceX::IsSurfaceInDC(DWORD MipMapLevel)
 		}
 		return false;
 	}
-	return GetDCLevel[MipMapLevel] != nullptr;
+
+	const auto it = GetDCLevel.find(MipMapLevel);
+	if (it != GetDCLevel.end())
+	{
+		return it->second != nullptr;
+	}
+
+	return false;
 }
 
 bool m_IDirectDrawSurfaceX::IsLockedFromOtherThread(DWORD MipMapLevel)
 {
 	if (IsSurfaceBlitting() || IsSurfaceLocked(MipMapLevel))
 	{
-		DWORD LockedWithID = LockedLevel[MipMapLevel].LockedWithID;
-		if (LockedWithID)
+		const auto it = LockedLevel.find(MipMapLevel);
+		if (it != LockedLevel.end())
 		{
-			return LockedWithID != GetCurrentThreadId();
+			DWORD LockedWithID = it->second.LockedWithID;
+			if (LockedWithID)
+			{
+				return LockedWithID != GetCurrentThreadId();
+			}
 		}
 	}
 	return false;

@@ -694,8 +694,14 @@ void InitDDraw()
 {
 	if (!IsInitialized)
 	{
-		InitializeCriticalSection(&ddcs);
-		InitializeCriticalSection(&pecs);
+		if (!InitializeCriticalSectionAndSpinCount(&ddcs, 4000))
+		{
+			InitializeCriticalSection(&ddcs);
+		}
+		if (!InitializeCriticalSectionAndSpinCount(&pecs, 4000))
+		{
+			InitializeCriticalSection(&pecs);
+		}
 		IsInitialized = true;
 	}
 
