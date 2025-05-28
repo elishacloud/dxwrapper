@@ -21,6 +21,9 @@ private:
 	// Remember the last lock info
 	struct LASTLOCK
 	{
+		bool IsLocked = false;
+		DWORD LockedWithID = 0;								// Thread ID of the current lock
+		std::vector<RECT> LockRectList;						// Rects used to lock the surface
 		bool bEvenScanlines = false;
 		bool bOddScanlines = false;
 		bool ReadOnly = false;
@@ -154,6 +157,8 @@ private:
 	m_IDirectDrawX *ddrawParent = nullptr;				// DirectDraw parent device
 	SURFACEOVERLAY SurfaceOverlay;						// The overlays for this surface
 	std::vector<MIPMAP> MipMaps;						// MipMaps structure with addresses
+	std::unordered_map<DWORD, LASTLOCK> LockedLevel;	// LastLocked MipMap levels
+	std::unordered_map<DWORD, HDC> GetDCLevel;			// DC in MipMap levels
 	DWORD MaxMipMapLevel = 0;							// Total number of manually created MipMap levels
 	bool IsMipMapReadyToUse = false;					// Used for MipMap filtering
 	bool RecreateAuxiliarySurfaces = false;
@@ -179,17 +184,9 @@ private:
 	bool HasDoneFlip = false;
 	DWORD NonFlipPresentSkipCount = 0;
 	bool PresentOnUnlock = false;
-	bool IsInDC = false;
-	bool IsPreparingDC = false;
-	HDC LastDC = nullptr;
 	bool IsInBlt = false;
 	bool IsInBltBatch = false;
-	bool IsLocked = false;
-	bool IsLocking = false;
 	bool WasBitAlignLocked = false;
-	DWORD LockedWithID = 0;								// Thread ID of the current lock
-	LASTLOCK LastLock;									// Remember the last lock info
-	std::vector<RECT> LockRectList;						// Rects used to lock the surface
 	DDRAWEMULATELOCK EmuLock;							// For aligning bits after a lock for games that hard code the pitch
 	std::vector<byte> ByteArray;						// Memory used for coping from one surface to the same surface
 	std::vector<DDBACKUP> LostDeviceBackup;				// Memory used for backing up the surfaceTexture
@@ -257,12 +254,12 @@ private:
 	void EndWriteSyncSurfaces(LPRECT lpDestRect);
 
 	// Surface information functions
-	bool IsSurfaceLocked(bool CheckLocking = true) const { return (IsLocked || (CheckLocking && IsLocking)); }
+	bool IsSurfaceLocked() const;
 	bool IsSurfaceBlitting() const { return (IsInBlt || IsInBltBatch); }
-	bool IsSurfaceInDC(bool CheckGettingDC = true) const { return (IsInDC || (CheckGettingDC && IsPreparingDC)); }
+	bool IsSurfaceInDC() const;
 	bool IsD9UsingVideoMemory() const { return ((surface.Surface || surface.Texture) ? surface.Pool == D3DPOOL_DEFAULT : false); }
 	bool IsUsingShadowSurface() const { return (surface.UsingShadowSurface && surface.Shadow); }
-	bool IsLockedFromOtherThread() const { return (IsSurfaceBlitting() || IsSurfaceLocked()) && LockedWithID && LockedWithID != GetCurrentThreadId(); }
+	bool IsLockedFromOtherThread(DWORD MipMapLevel);
 	bool IsDummyMipMap(DWORD MipMapLevel) { return (MipMapLevel > MaxMipMapLevel || ((MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1 < MipMaps.size() && MipMaps[(MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1].IsDummy)); }
 	DWORD GetD3d9MipMapLevel(DWORD MipMapLevel) const { return min(MipMapLevel, MaxMipMapLevel); }
 	DWORD GetWidth() const { return surfaceDesc2.dwWidth; }
@@ -398,7 +395,7 @@ public:
 	STDMETHOD(IsLost)(THIS);
 	HRESULT Lock(LPRECT, LPDDSURFACEDESC, DWORD, HANDLE, DWORD, DWORD);
 	HRESULT Lock2(LPRECT, LPDDSURFACEDESC2, DWORD, HANDLE, DWORD, DWORD);
-	STDMETHOD(ReleaseDC)(THIS_ HDC);
+	STDMETHOD(ReleaseDC)(THIS_ HDC, DWORD MipMapLevel);
 	STDMETHOD(Restore)(THIS);
 	STDMETHOD(SetClipper)(THIS_ LPDIRECTDRAWCLIPPER);
 	STDMETHOD(SetColorKey)(THIS_ DWORD, LPDDCOLORKEY);
@@ -470,7 +467,7 @@ public:
 	bool IsPalette() const { return (surface.Format == D3DFMT_P8); }
 	bool IsDepthStencil() const { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	bool IsSurfaceManaged() const { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
-	bool IsSurfaceBusy(bool CheckLocking = true, bool CheckGettingDC = true) const { return (IsSurfaceBlitting() || IsSurfaceLocked(CheckLocking) || IsSurfaceInDC(CheckGettingDC)); }
+	bool IsSurfaceBusy() const { return (IsSurfaceBlitting() || IsSurfaceLocked() || IsSurfaceInDC()); }
 	bool CanSurfaceBeDeleted() const { return !ComplexChild; }
 	bool CanSurfaceUseEmulation() const
 	{ return ((IsPixelFormatRGB(surfaceDesc2.ddpfPixelFormat) || IsPixelFormatPalette(surfaceDesc2.ddpfPixelFormat)) && (!IsSurface3D() || !Using3D) && !surface.UsingSurfaceMemory); }

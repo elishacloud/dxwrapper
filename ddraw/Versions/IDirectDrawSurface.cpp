@@ -314,7 +314,7 @@ HRESULT m_IDirectDrawSurface::ReleaseDC(HDC a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->ReleaseDC(a);
+	return ProxyInterface->ReleaseDC(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface::Restore()
