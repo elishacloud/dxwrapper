@@ -168,7 +168,7 @@ HRESULT m_IDirectDrawSurface4::GetBltStatus(DWORD a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetBltStatus(a);
+	return ProxyInterface->GetBltStatus(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface4::GetCaps(LPDDSCAPS2 a)
