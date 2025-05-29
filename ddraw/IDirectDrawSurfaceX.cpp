@@ -1834,14 +1834,14 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 		ScopedCriticalSection ThreadLock(GetCriticalSection());
 
 		// MipMap level support
-		if (MipMapLevel && (IsUsingEmulation() || DCRequiresEmulation))
+		if (MipMapLevel && (IsUsingEmulation() || DCRequiresEmulation || IsDummyMipMap(MipMapLevel)))
 		{
 			// Prepare surfaceDesc
 			DDSURFACEDESC2 Desc2 = {};
 			Desc2.dwSize = sizeof(Desc2);
 			GetSurfaceDesc2(&Desc2, MipMapLevel, 7);
 
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Emulated DC not supported from MipMap surface: " << Desc2);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Emulated DC not supported from MipMap level: " << MipMapLevel << " surface: " << Desc2);
 			return DDERR_UNSUPPORTED;
 		}
 
