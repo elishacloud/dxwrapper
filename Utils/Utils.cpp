@@ -28,6 +28,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <iomanip>
 #include <intrin.h>
 #include <tlhelp32.h>
 #include <atlbase.h>
@@ -83,6 +84,7 @@ typedef LPVOID(WINAPI* HeapAllocProc)(HANDLE, DWORD, SIZE_T);
 typedef SIZE_T(WINAPI* HeapSizeProc)(HANDLE, DWORD, LPCVOID);
 typedef BOOL(WINAPI *CreateProcessWProc)(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
+typedef BOOL(WINAPI* QueryPerformanceFrequencyProc)(LARGE_INTEGER* lpFrequency);
 typedef BOOL(WINAPI* QueryPerformanceCounterProc)(LARGE_INTEGER* lpPerformanceCount);
 typedef DWORD(WINAPI* GetTickCountProc)();
 typedef LONGLONG(WINAPI* GetTickCount64Proc)();
@@ -123,6 +125,7 @@ namespace Utils
 	INITIALIZE_OUT_WRAPPED_PROC(VirtualAlloc, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(HeapAlloc, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(HeapSize, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(QueryPerformanceFrequency, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(QueryPerformanceCounter, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(GetTickCount, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(GetTickCount64, unused);
@@ -139,8 +142,12 @@ namespace Utils
 	DWORD SubtractTimeInMS_tmt = 0;
 	DWORD SubtractTimeInMS_mmt = 0;
 	int64_t SubtractTimeInTicks_qpc = 0;
+	bool IsPerformanceFrequencyCapped = false;
+	uint64_t PerformanceFrequency_real = 0;
+	constexpr uint64_t PerformanceFrequency_cap = 0xFFFFFFFF;
 
 	// Function declarations
+	ULONGLONG GetTickCount64_Emulated();
 	void InitializeASI(HMODULE hModule);
 	void FindFiles(WIN32_FIND_DATA*);
 	void *memmem(const void *l, size_t l_len, const void *s, size_t s_len);
@@ -530,23 +537,6 @@ bool Utils::InitUpTimeOffsets()
 {
 	const uint64_t MS_PER_DAY = 86400000ULL;
 
-	// Preinitialize functions
-	{
-		GetTickCount();
-#if (_WIN32_WINNT >= 0x0502)
-		GetTickCount64();
-#endif
-		timeGetTime();
-
-		MMTIME mmt = {};
-		mmt.wType = TIME_MS;
-		timeGetSystemTime(&mmt, sizeof(mmt));
-
-		LARGE_INTEGER qpc, freq;
-		QueryPerformanceFrequency(&freq);
-		QueryPerformanceCounter(&qpc);
-	}
-
 	// Gather system uptime values
 	LARGE_INTEGER qpc, freq;
 	if (!QueryPerformanceFrequency(&freq) || !QueryPerformanceCounter(&qpc))
@@ -586,9 +576,47 @@ bool Utils::InitUpTimeOffsets()
 	SubtractTimeInMS_mmt = static_cast<DWORD>(mmt.u.ms - remainderTimeMS);
 	SubtractTimeInTicks_qpc = (timeInMS * freq.QuadPart) / 1000ULL;
 
+	PerformanceFrequency_real = freq.QuadPart;
+
+	if (Config.FixPerfCounterUptime == 1 && PerformanceFrequency_real > PerformanceFrequency_cap)
+	{
+		IsPerformanceFrequencyCapped = true;
+
+		Logging::Log() << __FUNCTION__ << " Warning: Frequency is too high capping it. " <<
+			std::fixed << std::setprecision(3) <<
+			" Real: " << ((double)PerformanceFrequency_real / 1'000'000'000.0) << " GHz" <<
+			" Capped: " << ((double)PerformanceFrequency_cap / 1'000'000'000.0) << " GHz";
+	}
+
 	Logging::Log() << __FUNCTION__ << " Found " << timeInDays << " day" << (timeInDays == 1 ? "" : "s") << " system up time!";
 
 	return true;
+}
+
+BOOL WINAPI Utils::kernel_QueryPerformanceFrequency(LARGE_INTEGER* lpFrequency)
+{
+	DEFINE_STATIC_PROC_ADDRESS(QueryPerformanceFrequencyProc, QueryPerformanceFrequency, QueryPerformanceFrequency_out);
+
+	if (!QueryPerformanceFrequency)
+	{
+		return 0;
+	}
+
+	if (lpFrequency && PerformanceFrequency_real)
+	{
+		if (IsPerformanceFrequencyCapped)
+		{
+			lpFrequency->QuadPart = PerformanceFrequency_cap;
+		}
+		else
+		{
+			lpFrequency->QuadPart = PerformanceFrequency_real;
+		}
+
+		return TRUE;
+	}
+
+	return QueryPerformanceFrequency(lpFrequency);
 }
 
 BOOL WINAPI Utils::kernel_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
@@ -597,15 +625,47 @@ BOOL WINAPI Utils::kernel_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCo
 
 	if (!QueryPerformanceCounter)
 	{
+		return FALSE;
+	}
+
+	BOOL ret = QueryPerformanceCounter(lpPerformanceCount);
+	if (ret != FALSE)
+	{
+		if (IsPerformanceFrequencyCapped)
+		{
+			// Use integer math with carefully ordered operations to increase precision
+			int64_t delta = lpPerformanceCount->QuadPart - SubtractTimeInTicks_qpc;
+			lpPerformanceCount->QuadPart = (delta / PerformanceFrequency_real) * PerformanceFrequency_cap +
+				(delta % PerformanceFrequency_real) * PerformanceFrequency_cap / PerformanceFrequency_real;
+		}
+		else
+		{
+			lpPerformanceCount->QuadPart -= SubtractTimeInTicks_qpc;
+		}
+	}
+	return ret;
+}
+
+ULONGLONG Utils::GetTickCount64_Emulated()
+{
+	struct QPF {
+		BOOL ret;
+		LARGE_INTEGER freq;
+		QPF()
+		{
+			ret = kernel_QueryPerformanceFrequency(&freq);
+		}
+	};
+
+	static QPF qpf;
+
+	LARGE_INTEGER qpc;
+	if (!qpf.ret || !kernel_QueryPerformanceCounter(&qpc))
+	{
 		return 0;
 	}
 
-	BOOL result = QueryPerformanceCounter(lpPerformanceCount);
-	if (result != 0)
-	{
-		lpPerformanceCount->QuadPart -= SubtractTimeInTicks_qpc;
-	}
-	return result;
+	return (qpc.QuadPart * 1000ULL) / qpf.freq.QuadPart;
 }
 
 DWORD WINAPI Utils::kernel_GetTickCount()
@@ -617,7 +677,14 @@ DWORD WINAPI Utils::kernel_GetTickCount()
 		return 0;
 	}
 
-	return GetTickCount() - SubtractTimeInMS_gtc;
+	if (IsPerformanceFrequencyCapped)
+	{
+		return static_cast<DWORD>(GetTickCount64_Emulated());
+	}
+	else
+	{
+		return GetTickCount() - SubtractTimeInMS_gtc;
+	}
 }
 
 ULONGLONG WINAPI Utils::kernel_GetTickCount64()
@@ -629,7 +696,14 @@ ULONGLONG WINAPI Utils::kernel_GetTickCount64()
 		return 0;
 	}
 
-	return GetTickCount64() - SubtractTimeInMS_gtc64;
+	if (IsPerformanceFrequencyCapped)
+	{
+		return GetTickCount64_Emulated();
+	}
+	else
+	{
+		return GetTickCount64() - SubtractTimeInMS_gtc64;
+	}
 }
 
 DWORD WINAPI Utils::winmm_timeGetTime()

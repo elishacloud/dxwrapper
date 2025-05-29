@@ -636,6 +636,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			HMODULE winmm = LoadLibrary("winmm.dll");
 			if (kernel32)
 			{
+				Utils::QueryPerformanceFrequency_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "QueryPerformanceFrequency"), "QueryPerformanceFrequency", Utils::kernel_QueryPerformanceFrequency);
 				Utils::QueryPerformanceCounter_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "QueryPerformanceCounter"), "QueryPerformanceCounter", Utils::kernel_QueryPerformanceCounter);
 				Utils::GetTickCount_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetTickCount"), "GetTickCount", Utils::kernel_GetTickCount);
 #if (_WIN32_WINNT >= 0x0502)

@@ -23,6 +23,7 @@ namespace Utils
 	EXPORT_OUT_WRAPPED_PROC(VirtualAlloc, unused);
 	EXPORT_OUT_WRAPPED_PROC(HeapAlloc, unused);
 	EXPORT_OUT_WRAPPED_PROC(HeapSize, unused);
+	EXPORT_OUT_WRAPPED_PROC(QueryPerformanceFrequency, unused);
 	EXPORT_OUT_WRAPPED_PROC(QueryPerformanceCounter, unused);
 	EXPORT_OUT_WRAPPED_PROC(GetTickCount, unused);
 	EXPORT_OUT_WRAPPED_PROC(GetTickCount64, unused);
@@ -42,6 +43,7 @@ namespace Utils
 	LPVOID WINAPI kernel_HeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwBytes);
 	SIZE_T WINAPI kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem);
 	bool InitUpTimeOffsets();
+	BOOL WINAPI kernel_QueryPerformanceFrequency(LARGE_INTEGER* lpFrequency);
 	BOOL WINAPI kernel_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
 	DWORD WINAPI kernel_GetTickCount();
 	ULONGLONG WINAPI kernel_GetTickCount64();
