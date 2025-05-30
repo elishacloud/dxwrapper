@@ -602,7 +602,7 @@ BOOL WINAPI Utils::kernel_QueryPerformanceFrequency(LARGE_INTEGER* lpFrequency)
 		return 0;
 	}
 
-	if (lpFrequency && PerformanceFrequency_real)
+	if (lpFrequency)
 	{
 		if (IsPerformanceFrequencyCapped)
 		{
