@@ -209,7 +209,7 @@ HRESULT m_IDirect3DViewport3::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4 * a, LPBO
 		}
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetBackgroundDepth2(a, b);
+	return ProxyInterface->GetBackgroundDepth2(a, b, 4);
 }
 
 HRESULT m_IDirect3DViewport3::Clear2(DWORD a, LPD3DRECT b, DWORD c, D3DCOLOR d, D3DVALUE e, DWORD f)

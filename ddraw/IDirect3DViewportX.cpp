@@ -317,11 +317,7 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth(LPDIRECTDRAWSURFACE lpDDSurface
 
 	if (Config.Dd7to9)
 	{
-		// Sets the background-depth field for the viewport.
-		// The depth-buffer is filled with the specified depth field when the IDirect3DViewport3::Clear method is called
-		// and the D3DCLEAR_ZBUFFER flag is specified. The bit depth must be 16 bits.
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		return SetBackgroundDepth2(reinterpret_cast<LPDIRECTDRAWSURFACE4>(lpDDSurface));
 	}
 
 	if (lpDDSurface)
@@ -338,8 +334,7 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth(LPDIRECTDRAWSURFACE * lplpDDSur
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		return GetBackgroundDepth2(reinterpret_cast<LPDIRECTDRAWSURFACE4*>(lplpDDSurface), lpValid, 1);
 	}
 
 	HRESULT hr = ProxyInterface->GetBackgroundDepth(lplpDDSurface, lpValid);
@@ -669,12 +664,15 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
 	return ProxyInterface->SetBackgroundDepth2(lpDDS);
 }
 
-HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4* lplpDDS, LPBOOL lpValid)
+HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4* lplpDDS, LPBOOL lpValid, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
+		UNREFERENCED_PARAMETER(DirectXVersion);
+
+		// Note: 'DirectXVersion' is the interface version needed to pass back in lplpDDS
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
