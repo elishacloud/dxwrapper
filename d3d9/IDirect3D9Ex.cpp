@@ -495,8 +495,6 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 
 	DEVICEDETAILS DeviceDetails;
 
-	HRESULT hr = D3DERR_INVALIDCALL;
-
 	if (Config.D3d9to9Ex)
 	{
 		IDirect3DDevice9Ex* pD3D9Ex = nullptr;
@@ -505,9 +503,7 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 
 		GetFullscreenDisplayMode(*pPresentationParameters, FullscreenDisplayMode);
 
-		hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, &FullscreenDisplayMode, &pD3D9Ex);
-
-		if (SUCCEEDED(hr))
+		if (SUCCEEDED(CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, &FullscreenDisplayMode, &pD3D9Ex)))
 		{
 			UINT DDKey = (UINT)pD3D9Ex + (UINT)&pD3D9Ex + (UINT)DeviceDetails.DeviceWindow;
 			DeviceDetailsMap[DDKey] = DeviceDetails;
@@ -520,7 +516,7 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		}
 	}
 
-	hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, nullptr, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, nullptr, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
@@ -533,6 +529,7 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Adapter << " " << DeviceType << " " << hFocusWindow << " " << BehaviorFlags << " " << pPresentationParameters;
+	
 	return hr;
 }
 
