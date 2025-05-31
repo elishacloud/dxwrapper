@@ -2039,8 +2039,9 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 		DWORD AvailableMemory = 0;
 
 		// Get memory
-		if (lpDDSCaps2 && ((lpDDSCaps2->dwCaps & (DDSCAPS_TEXTURE | DDSCAPS_OFFSCREENPLAIN | DDSCAPS_ZBUFFER)) ||	// Surface and Texture memory
-			(lpDDSCaps2->dwCaps & (DDSCAPS_VIDEOMEMORY | DDSCAPS_LOCALVIDMEM | DDSCAPS_3DDEVICE))))					// Video memory
+		if (lpDDSCaps2 &&
+			((lpDDSCaps2->dwCaps & (DDSCAPS_TEXTURE | DDSCAPS_PRIMARYSURFACE | DDSCAPS_OFFSCREENPLAIN | DDSCAPS_ZBUFFER)) ||	// Surface and Texture memory
+			(lpDDSCaps2->dwCaps & (DDSCAPS_VIDEOMEMORY | DDSCAPS_LOCALVIDMEM | DDSCAPS_3DDEVICE))))								// Video memory
 		{
 			if (!OpenD3DDDI(GetDC()) || !D3DDDIGetVideoMemory(TotalMemory, AvailableMemory))
 			{
