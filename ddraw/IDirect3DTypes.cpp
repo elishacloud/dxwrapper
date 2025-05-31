@@ -944,27 +944,29 @@ UINT GetVertexStride(DWORD dwVertexTypeDesc)
 		LOG_LIMIT(100, __FUNCTION__ " Warning: Unsupported FVF type: " << Logging::hex(UnSupportedVertexTypes));
 	}
 
+	DWORD dwVertexPositionType = (dwVertexTypeDesc & D3DFVF_POSITION_MASK);
+
+	DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
+
+	if (texCount > D3DDP_MAXTEXCOORD)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: texCount " << texCount << " exceeds D3DDP_MAXTEXCOORD!");
+		return 0;
+	}
+
 	return
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZ) ? sizeof(float) * 3 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW) ? sizeof(float) * 4 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB1) ? sizeof(float) * 4 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB2) ? sizeof(float) * 5 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB3) ? sizeof(float) * 6 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB4) ? sizeof(float) * 6 + sizeof(DWORD) : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB5) ? sizeof(float) * 7 + sizeof(DWORD) : 0) +
+		((dwVertexPositionType == D3DFVF_XYZ) ? sizeof(float) * 3 : 0) +
+		((dwVertexPositionType == D3DFVF_XYZRHW) ? sizeof(float) * 4 : 0) +
+		((dwVertexPositionType == D3DFVF_XYZB1) ? sizeof(float) * 4 : 0) +
+		((dwVertexPositionType == D3DFVF_XYZB2) ? sizeof(float) * 5 : 0) +
+		((dwVertexPositionType == D3DFVF_XYZB3) ? sizeof(float) * 6 : 0) +
+		((dwVertexPositionType == D3DFVF_XYZB4) ? sizeof(float) * 6 + sizeof(DWORD) : 0) +
+		((dwVertexPositionType == D3DFVF_XYZB5) ? sizeof(float) * 7 + sizeof(DWORD) : 0) +
 		((dwVertexTypeDesc & D3DFVF_XYZW & ~D3DFVF_XYZ) ? sizeof(float) : 0) +
 		((dwVertexTypeDesc & D3DFVF_NORMAL) ? sizeof(float) * 3 : 0) +
 		((dwVertexTypeDesc & D3DFVF_DIFFUSE) ? sizeof(D3DCOLOR) : 0) +
 		((dwVertexTypeDesc & D3DFVF_SPECULAR) ? sizeof(D3DCOLOR) : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX1) ? sizeof(float) * 2 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX2) ? sizeof(float) * 4 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX3) ? sizeof(float) * 6 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX4) ? sizeof(float) * 8 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX5) ? sizeof(float) * 10 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX6) ? sizeof(float) * 12 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX7) ? sizeof(float) * 14 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX8) ? sizeof(float) * 16 : 0) +
-		0;
+		(texCount * sizeof(float) * 2);
 }
 
 UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount)

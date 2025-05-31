@@ -48,6 +48,9 @@ private:
 	inline IDirect3DVertexBuffer *GetProxyInterfaceV1() { return (IDirect3DVertexBuffer *)ProxyInterface; }
 	inline IDirect3DVertexBuffer7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
+	// Helper functions
+	HRESULT ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags);
+
 	// Interface initialization functions
 	void InitInterface(DWORD DirectXVersion);
 	void ReleaseInterface();

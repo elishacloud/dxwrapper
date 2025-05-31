@@ -2580,6 +2580,11 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 
 	if (Config.Dd7to9)
 	{
+		if (dwVertexCount == 0)
+		{
+			return DD_OK; // Nothing to draw
+		}
+
 		if (!lpVertices)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -2610,7 +2615,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
 		// Update vertices for Direct3D9 (needs to be first)
-		UpdateVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
+		UpdateVertices(dwVertexTypeDesc, lpVertices, 0, dwVertexCount);
 
 		// Set fixed function vertex type
 		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
@@ -2659,21 +2664,26 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpVertices, DWORD dwVertexCount, LPWORD lpIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
+HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpVertices, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")" <<
 		" VertexType = " << Logging::hex(dptPrimitiveType) <<
 		" VertexDesc = " << Logging::hex(dwVertexTypeDesc) <<
 		" Vertices = " << lpVertices <<
 		" VertexCount = " << dwVertexCount <<
-		" Indices = " << lpIndices <<
+		" Indices = " << lpwIndices <<
 		" IndexCount = " << dwIndexCount <<
 		" Flags = " << Logging::hex(dwFlags) <<
 		" Version = " << DirectXVersion;
 
 	if (Config.Dd7to9)
 	{
-		if (!lpVertices || !lpIndices)
+		if (dwVertexCount == 0 || dwIndexCount == 0)
+		{
+			return DD_OK; // Nothing to draw
+		}
+
+		if (!lpVertices || !lpwIndices)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -2702,8 +2712,12 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
+		// Compute minimum and maximum vertex referenced by index
+		DWORD minVertex = 0, maxVertex = 0;
+		ComputeMinMaxVertex(lpwIndices, dwIndexCount, minVertex, maxVertex);
+
 		// Update vertices for Direct3D9 (needs to be first)
-		UpdateVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
+		UpdateVertices(dwVertexTypeDesc, lpVertices, minVertex, min(dwVertexCount, maxVertex) - minVertex);
 
 		// Set fixed function vertex type
 		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
@@ -2716,7 +2730,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		// Draw indexed primitive UP
-		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
+		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, min(dwVertexCount, maxVertex), GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
 		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -2744,11 +2758,11 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 	default:
 		return DDERR_GENERIC;
 	case 2:
-		return GetProxyInterfaceV2()->DrawIndexedPrimitive(dptPrimitiveType, (D3DVERTEXTYPE)dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, dwFlags);
+		return GetProxyInterfaceV2()->DrawIndexedPrimitive(dptPrimitiveType, (D3DVERTEXTYPE)dwVertexTypeDesc, lpVertices, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
 	case 3:
-		return GetProxyInterfaceV3()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, dwFlags);
+		return GetProxyInterfaceV3()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
 	case 7:
-		return GetProxyInterfaceV7()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, dwFlags);
+		return GetProxyInterfaceV7()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
 	}
 }
 
@@ -2930,8 +2944,74 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (dwVertexCount == 0)
+		{
+			return DD_OK; // Nothing to draw
+		}
+
+		if (!lpVertexArray)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (DirectXVersion == 2)
+		{
+			if (dwVertexTypeDesc != D3DVT_VERTEX && dwVertexTypeDesc != D3DVT_LVERTEX && dwVertexTypeDesc != D3DVT_TLVERTEX)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid Vertex type: " << dwVertexTypeDesc);
+				return D3DERR_INVALIDVERTEXTYPE;
+			}
+			dwVertexTypeDesc = ConvertVertexTypeToFVF((D3DVERTEXTYPE)dwVertexTypeDesc);
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_INVALIDOBJECT;
+		}
+
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
+		ScopedCriticalSection ThreadLock(lpCurrentRenderTargetX ? lpCurrentRenderTargetX->GetCriticalSection() : DdrawWrapper::GetDDCriticalSection());
+
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
+
+		// Update vertices for Direct3D9 (needs to be first)
+		DWORD VertexStride = 0;
+		if (!InterleaveStridedVertexData(VertexCache, VertexStride, lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Set fixed function vertex type
+		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Handle dwFlags
+		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+		// Draw primitive UP
+		HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), VertexCache.data(), VertexStride);
+
+		// Handle dwFlags
+		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: 'DrawPrimitiveUP' call failed: " << (D3DERR)hr);
+		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
+
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -2969,8 +3049,78 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (dwVertexCount == 0 || dwIndexCount == 0)
+		{
+			return DD_OK; // Nothing to draw
+		}
+
+		if (!lpVertexArray || !lpwIndices)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (DirectXVersion == 2)
+		{
+			if (dwVertexTypeDesc != D3DVT_VERTEX && dwVertexTypeDesc != D3DVT_LVERTEX && dwVertexTypeDesc != D3DVT_TLVERTEX)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid Vertex type: " << dwVertexTypeDesc);
+				return D3DERR_INVALIDVERTEXTYPE;
+			}
+			dwVertexTypeDesc = ConvertVertexTypeToFVF((D3DVERTEXTYPE)dwVertexTypeDesc);
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_INVALIDOBJECT;
+		}
+
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
+		ScopedCriticalSection ThreadLock(lpCurrentRenderTargetX ? lpCurrentRenderTargetX->GetCriticalSection() : DdrawWrapper::GetDDCriticalSection());
+
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
+
+		// Compute minimum and maximum vertex referenced by index
+		DWORD minVertex = 0, maxVertex = 0;
+		ComputeMinMaxVertex(lpwIndices, dwIndexCount, minVertex, maxVertex);
+
+		// Update vertices for Direct3D9 (needs to be first)
+		DWORD VertexStride = 0;
+		if (!InterleaveStridedVertexData(VertexCache, VertexStride, lpVertexArray, minVertex, min(dwVertexCount, maxVertex) - minVertex, dwVertexTypeDesc))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Set fixed function vertex type
+		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Handle dwFlags
+		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+		// Draw indexed primitive UP
+		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, min(dwVertexCount, maxVertex), GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, VertexCache.data(), VertexStride);
+
+		// Handle dwFlags
+		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: 'DrawIndexedPrimitiveUP' call failed: " << (D3DERR)hr);
+		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
+
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -3014,6 +3164,11 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 
 	if (Config.Dd7to9)
 	{
+		if (dwNumVertices == 0)
+		{
+			return DD_OK; // Nothing to draw
+		}
+
 		if (!lpd3dVertexBuffer)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -3113,6 +3268,11 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 
 	if (Config.Dd7to9)
 	{
+		if (dwNumVertices == 0 || dwIndexCount == 0)
+		{
+			return DD_OK; // Nothing to draw
+		}
+
 		if (!lpd3dVertexBuffer || !lpwIndices)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -3154,12 +3314,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(FVF));
 			return DDERR_INVALIDPARAMS;
-		}
-
-		// No operation to performed
-		if (dwIndexCount == 0)
-		{
-			return D3D_OK;
 		}
 
 		LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = ddrawParent->GetIndexBuffer(lpwIndices, dwIndexCount);
@@ -5519,6 +5673,26 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags
 	}
 }
 
+void m_IDirect3DDeviceX::ComputeMinMaxVertex(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& minVertex, DWORD& maxVertex)
+{
+	minVertex = 0;
+	maxVertex = 0;
+
+	if (!lpwIndices || dwIndexCount == 0) return;
+
+	minVertex = lpwIndices[0];
+	maxVertex = lpwIndices[0];
+
+	for (DWORD i = 1; i < dwIndexCount; ++i)
+	{
+		WORD idx = lpwIndices[i];
+		if (idx < minVertex) minVertex = idx;
+		if (idx > maxVertex) maxVertex = idx;
+	}
+
+	maxVertex += 1; // Make it exclusive like Direct3D9 expects
+}
+
 void m_IDirect3DDeviceX::ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount)
 {
 	if (dwVertexTypeDesc == 3)
@@ -5537,14 +5711,154 @@ void m_IDirect3DDeviceX::ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertice
 	}
 }
 
-void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount)
+void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwVertexCount)
 {
 	if (dwVertexTypeDesc == D3DFVF_LVERTEX)
 	{
-		VertexCache.resize(dwVertexCount * sizeof(D3DLVERTEX9));
-		ConvertVertices((D3DLVERTEX9*)VertexCache.data(), (D3DLVERTEX*)lpVertices, dwVertexCount);
+		VertexCache.resize((dwVertexStart + dwVertexCount) * sizeof(D3DLVERTEX9));
+		BYTE* base = static_cast<BYTE*>(VertexCache.data());
+		ConvertVertices(reinterpret_cast<D3DLVERTEX9*>(base + (dwVertexStart * sizeof(D3DLVERTEX9))), reinterpret_cast<D3DLVERTEX*>(lpVertices), dwVertexCount);
 
 		dwVertexTypeDesc = D3DFVF_LVERTEX9;
 		lpVertices = VertexCache.data();
 	}
+}
+
+bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE>& outputBuffer, DWORD& dwVertexStride, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, DWORD dwVertexStart, DWORD dwVertexCount, DWORD& dwVertexTypeDesc)
+{
+	if (!sd)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: missing D3DDRAWPRIMITIVESTRIDEDDATA!");
+		return false;
+	}
+
+	if (dwVertexTypeDesc == D3DFVF_LVERTEX)
+	{
+		dwVertexTypeDesc = D3DFVF_LVERTEX9;
+	}
+
+	dwVertexStride = GetVertexStride(dwVertexTypeDesc);
+
+	bool hasPosition = (dwVertexTypeDesc & D3DFVF_POSITION_MASK);
+	bool hasNormal = (dwVertexTypeDesc & D3DFVF_NORMAL);
+	bool hasDiffuse = (dwVertexTypeDesc & D3DFVF_DIFFUSE);
+	bool hasSpecular = (dwVertexTypeDesc & D3DFVF_SPECULAR);
+	DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
+
+	if (texCount > D3DDP_MAXTEXCOORD)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: texCount " << texCount << " exceeds D3DDP_MAXTEXCOORD!");
+		return false;
+	}
+
+	// Check data and compute stride
+	DWORD stride = 0;
+	if (hasPosition)
+	{
+		if (!sd->position.lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: position data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		stride += sd->position.dwStride;
+	}
+	if (hasNormal)
+	{
+		if (!sd->normal.lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: normal data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		if (sd->normal.dwStride != sizeof(float) * 3)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: normal stride does not match: " << (sizeof(float) * 3) << " -> " << sd->normal.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		stride += sd->normal.dwStride;
+	}
+	if (hasDiffuse)
+	{
+		if (!sd->diffuse.lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: diffuse data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		if (sd->diffuse.dwStride != sizeof(D3DCOLOR))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: diffuse stride does not match: " << sizeof(D3DCOLOR) << " -> " << sd->diffuse.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		stride += sd->diffuse.dwStride;
+	}
+	if (hasSpecular)
+	{
+		if (!sd->specular.lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: specular data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		if (sd->specular.dwStride != sizeof(D3DCOLOR))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: specular stride does not match: " << sizeof(D3DCOLOR) << " -> " << sd->specular.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		stride += sd->specular.dwStride;
+	}
+	for (DWORD t = 0; t < texCount; ++t)
+	{
+		if (!sd->textureCoords[t].lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: textureCoords " << t << " data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		stride += sd->textureCoords[t].dwStride;
+	}
+
+	// Check if stride matches
+	if (stride != dwVertexStride)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: stride does not match: " << dwVertexStride << " -> " << stride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+		return false;
+	}
+
+	outputBuffer.resize(dwVertexStride * (dwVertexStart + dwVertexCount));
+
+	const BYTE* base = static_cast<const BYTE*>(outputBuffer.data());
+
+	for (DWORD i = 0; i < dwVertexCount; ++i)
+	{
+		BYTE* cursor = const_cast<BYTE*>(base) + (i + dwVertexStart) * dwVertexStride;
+
+		if (hasPosition)
+		{
+			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->position.lpvData) + (i + dwVertexStart) * sd->position.dwStride, sd->position.dwStride);
+			cursor += sd->position.dwStride;
+		}
+
+		if (hasNormal)
+		{
+			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->normal.lpvData) + (i + dwVertexStart) * sd->normal.dwStride, sd->normal.dwStride);
+			cursor += sd->normal.dwStride;
+		}
+
+		if (hasDiffuse)
+		{
+			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->diffuse.lpvData) + (i + dwVertexStart) * sd->diffuse.dwStride, sd->diffuse.dwStride);
+			cursor += sd->diffuse.dwStride;
+		}
+
+		if (hasSpecular)
+		{
+			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->specular.lpvData) + (i + dwVertexStart) * sd->specular.dwStride, sd->specular.dwStride);
+			cursor += sd->specular.dwStride;
+		}
+
+		for (DWORD t = 0; t < texCount; ++t)
+		{
+			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->textureCoords[t].lpvData) + (i + dwVertexStart) * sd->textureCoords[t].dwStride, sd->textureCoords[t].dwStride);
+			cursor += sd->textureCoords[t].dwStride;
+		}
+	}
+
+	return true;
 }

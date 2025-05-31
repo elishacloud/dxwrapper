@@ -159,8 +159,9 @@ private:
 	void SetDefaults();
 	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
 	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
+	void ComputeMinMaxVertex(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& minVertex, DWORD& maxVertex);
 	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
-	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
+	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwVertexCount);
 
 	D3DMATRIX* GetMatrix(D3DMATRIXHANDLE MatrixHandle)
 	{
@@ -402,4 +403,7 @@ public:
 	void BeforeResetDevice();
 	void AfterResetDevice();
 	void ReleaseAllStateBlocks();
+
+	// Static functions
+	static bool InterleaveStridedVertexData(std::vector<BYTE>& outputBuffer, DWORD& dwVertexStride, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, DWORD dwVertexStart, DWORD dwVertexCount, DWORD& dwVertexTypeDesc);
 };
