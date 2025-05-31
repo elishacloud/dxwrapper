@@ -36,7 +36,7 @@ HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if (riid == IID_IUnknown || riid == WrapperID)
+	if (riid == IID_IUnknown || riid == WrapperID || (Config.D3d9to9Ex && riid == IID_IDirect3D9))
 	{
 		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
 
@@ -495,7 +495,32 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 
 	DEVICEDETAILS DeviceDetails;
 
-	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, nullptr, ppReturnedDeviceInterface);
+	HRESULT hr = D3DERR_INVALIDCALL;
+
+	if (Config.D3d9to9Ex)
+	{
+		IDirect3DDevice9Ex* pD3D9Ex = nullptr;
+
+		D3DDISPLAYMODEEX FullscreenDisplayMode = {};
+
+		GetFullscreenDisplayMode(*pPresentationParameters, FullscreenDisplayMode);
+
+		hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, &FullscreenDisplayMode, &pD3D9Ex);
+
+		if (SUCCEEDED(hr))
+		{
+			UINT DDKey = (UINT)pD3D9Ex + (UINT)&pD3D9Ex + (UINT)DeviceDetails.DeviceWindow;
+			DeviceDetailsMap[DDKey] = DeviceDetails;
+
+			LOG_LIMIT(3, "Created IDirect3DDevice9Ex interface by redirecting to 'CreateDeviceEx' ...");
+
+			*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(pD3D9Ex, this, IID_IDirect3DDevice9Ex, DDKey);
+
+			return D3D_OK;
+		}
+	}
+
+	hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, nullptr, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
@@ -822,6 +847,29 @@ void m_IDirect3D9Ex::UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS*
 	}
 
 	pPresentationParameters->BackBufferCount = (pPresentationParameters->BackBufferCount) ? pPresentationParameters->BackBufferCount : 1;
+}
+
+void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DDISPLAYMODEEX& Mode)
+{
+	Mode.Size = sizeof(D3DDISPLAYMODEEX);
+
+	// Derive width and height
+	Mode.Width = d3dpp.BackBufferWidth;
+	Mode.Height = d3dpp.BackBufferHeight;
+
+	// Derive format (fall back to a default if BackBufferFormat is unknown)
+	Mode.Format = d3dpp.BackBufferFormat != D3DFMT_UNKNOWN
+		? d3dpp.BackBufferFormat
+		: D3DFMT_X8R8G8B8; // or another reasonable default
+
+	// RefreshRate - try to copy from d3dpp if not zero
+	Mode.RefreshRate = d3dpp.FullScreen_RefreshRateInHz != 0
+		? d3dpp.FullScreen_RefreshRateInHz
+		: 60; // default to 60Hz
+
+	// ScanLineOrdering and Scaling are optional and can usually be defaulted
+	Mode.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
+
 }
 
 // Adjusting the window position for WindowMode

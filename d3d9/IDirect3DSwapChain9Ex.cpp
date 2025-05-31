@@ -109,6 +109,27 @@ HRESULT m_IDirect3DSwapChain9Ex::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	{
+		D3DDISPLAYMODEEX* pModeEx = nullptr;
+		D3DDISPLAYMODEEX ModeEx = {};
+
+		if (pMode)
+		{
+			ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
+			ModeEx.Width = pMode->Width;
+			ModeEx.Height = pMode->Height;
+			ModeEx.RefreshRate = pMode->RefreshRate;
+			ModeEx.Format = pMode->Format;
+			ModeEx.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
+			pModeEx = &ModeEx;
+		}
+
+		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
+
+		return GetDisplayModeEx(pModeEx, &Rotation);
+	}
+
 	return ProxyInterface->GetDisplayMode(pMode);
 }
 

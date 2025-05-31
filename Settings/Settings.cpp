@@ -704,7 +704,7 @@ void CONFIG::SetConfig()
 	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
 	DdrawAutoFrameSkip = (AutoFrameSkip || DdrawAutoFrameSkip);																	// For legacy purposes
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
-	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || IsSet(D3d9HookSystem32) ||
+	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || IsSet(D3d9HookSystem32) || D3d9to9Ex ||
 		(EnableD3d9Wrapper == NOT_EXIST && (AnisotropicFiltering || AntiAliasing || IsSet(CacheClipPlane) || EnableVSync ||		// For legacy purposes
 			ForceMixedVertexProcessing || ForceSystemMemVertexCache || ForceVsyncMode || EnableWindowMode)));					// For legacy purposes
 	EnvironmentCubeMapFix = EnvironmentCubeMapFix || EnvironmentMapCubeFix;														// For legacy purposes

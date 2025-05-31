@@ -17,6 +17,7 @@
 	visit(CustomDisplayHeight) \
 	visit(Dd7to9) \
 	visit(D3d8to9) \
+	visit(D3d9to9Ex) \
 	visit(Dinputto8) \
 	visit(DDrawCompat) \
 	visit(DDrawCompat20) \
@@ -218,6 +219,7 @@ struct CONFIG
 	bool Exiting = false;						// Dxwrapper is being unloaded
 	bool Dd7to9 = false;						// Converts DirectDraw/Direct3D (ddraw.dll) to Direct3D9 (d3d9.dll)
 	bool D3d8to9 = false;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
+	bool D3d9to9Ex = false;						// Converts Direct3D9 to Direct3D9Ex
 	bool Dinputto8 = false;						// Converts DirectInput (dinput.dll) to DirectInput8 (dinput8.dll)
 	bool DDrawCompat = false;					// Enables the default DDrawCompat functions https://github.com/narzoul/DDrawCompat/
 	bool DDrawCompat20 = false;					// Enables DDrawCompat v0.2.0b

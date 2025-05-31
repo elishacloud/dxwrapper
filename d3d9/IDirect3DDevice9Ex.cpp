@@ -32,7 +32,7 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if (riid == IID_IUnknown || riid == WrapperID)
+	if (riid == IID_IUnknown || riid == WrapperID || (Config.D3d9to9Ex && riid == IID_IDirect3DDevice9))
 	{
 		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
 
@@ -280,6 +280,15 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	{
+		D3DDISPLAYMODEEX FullscreenDisplayMode = {};
+
+		m_IDirect3D9Ex::GetFullscreenDisplayMode(*pPresentationParameters, FullscreenDisplayMode);
+
+		return ResetEx(pPresentationParameters, &FullscreenDisplayMode);
+	}
+
 	return ResetT<fReset>(nullptr, pPresentationParameters);
 }
 
@@ -445,6 +454,11 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	{
+		return CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, 0);
+	}
+
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Test for Multisample
@@ -501,6 +515,11 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 	if (!ppSurface)
 	{
 		return D3DERR_INVALIDCALL;
+	}
+
+	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	{
+		return CreateRenderTargetEx(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle, 0);
 	}
 
 	HRESULT hr = D3DERR_INVALIDCALL;
@@ -673,6 +692,27 @@ HRESULT m_IDirect3DDevice9Ex::GetClipStatus(D3DCLIPSTATUS9 *pClipStatus)
 HRESULT m_IDirect3DDevice9Ex::GetDisplayMode(THIS_ UINT iSwapChain, D3DDISPLAYMODE* pMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	{
+		D3DDISPLAYMODEEX* pModeEx = nullptr;
+		D3DDISPLAYMODEEX ModeEx = {};
+
+		if (pMode)
+		{
+			ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
+			ModeEx.Width = pMode->Width;
+			ModeEx.Height = pMode->Height;
+			ModeEx.RefreshRate = pMode->RefreshRate;
+			ModeEx.Format = pMode->Format;
+			ModeEx.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
+			pModeEx = &ModeEx;
+		}
+
+		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
+
+		return GetDisplayModeEx(iSwapChain, pModeEx, &Rotation);
+	}
 
 	return ProxyInterface->GetDisplayMode(iSwapChain, pMode);
 }
@@ -1443,6 +1483,11 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	{
+		return PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, 0);
+	}
 
 	ApplyPresentFixes();
 
@@ -2418,6 +2463,11 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurface(THIS_ UINT Width, UINT
 	if (!ppSurface)
 	{
 		return D3DERR_INVALIDCALL;
+	}
+
+	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	{
+		return CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, 0);
 	}
 
 	HRESULT hr = ProxyInterface->CreateOffscreenPlainSurface(Width, Height, Format, Pool, ppSurface, pSharedHandle);
