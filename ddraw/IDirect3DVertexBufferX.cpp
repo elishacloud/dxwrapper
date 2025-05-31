@@ -274,7 +274,11 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 			return DDERR_GENERIC;
 		}
 
-		// Get and verify FVF
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
+		// Get FVF
 		DWORD dwSrcVertexTypeDesc = pSrcVertexBufferX->GetFVF9();
 
 		void* pSrcVertices = nullptr;
@@ -303,6 +307,10 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		{
 			d3d9SrcVertexBuffer->Unlock();
 		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
 
 		return hr;
 	}
@@ -393,6 +401,10 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 			return DDERR_GENERIC;
 		}
 
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
 		// Setup vars
 		DWORD VertexStride = 0;
 		DWORD dwVertexTypeDesc = GetFVF9();
@@ -405,7 +417,13 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 			return DDERR_INVALIDPARAMS;
 		}
 
-		return ProcessVerticesUP(dwVertexOp, dwDestIndex, dwCount, VertexCache.data(), dwVertexTypeDesc, dwSrcIndex, lpD3DDevice, dwFlags);
+		HRESULT hr = ProcessVerticesUP(dwVertexOp, dwDestIndex, dwCount, VertexCache.data(), dwVertexTypeDesc, dwSrcIndex, lpD3DDevice, dwFlags);
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
+
+		return hr;
 	}
 
 	if (lpD3DDevice)

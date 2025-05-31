@@ -3713,6 +3713,10 @@ HRESULT m_IDirect3DDeviceX::ValidateDevice(LPDWORD lpdwPasses)
 			return DDERR_INVALIDOBJECT;
 		}
 
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
 		DWORD FVF, Size;
 		IDirect3DVertexBuffer9* vertexBuffer = ddrawParent->GetValidateDeviceVertexBuffer(FVF, Size);
 
@@ -3735,6 +3739,10 @@ HRESULT m_IDirect3DDeviceX::ValidateDevice(LPDWORD lpdwPasses)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: ValidateDevice() function failed: " << (DDERR)hr);
 		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
 
 		return hr;
 	}
