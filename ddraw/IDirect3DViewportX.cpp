@@ -275,12 +275,6 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (AttachedD3DDevices.empty())
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3Ddevice attached!");
-			return D3DERR_VIEWPORTHASNODEVICE;
-		}
-
 		if (dwFlags & D3DTRANSFORM_CLIPPED)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DTRANSFORM_CLIPPED is ignored");
@@ -288,11 +282,16 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 
 		// D3DTRANSFORM_UNCLIPPED: flag can be safily ignored
 
-		LPDIRECT3DDEVICE9* d3d9Device = AttachedD3DDevices.front()->GetD3d9Device();
-
-		if (!d3d9Device || !*d3d9Device)
+		if (AttachedD3DDevices.empty())
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: d3d9 device not setup!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3Ddevice attached!");
+			return D3DERR_VIEWPORTHASNODEVICE;
+		}
+
+		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.front();
+		if (!pDirect3DDeviceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3DDeviceX interface!");
 			return DDERR_GENERIC;
 		}
 
@@ -301,9 +300,9 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 #endif
 
 		D3DMATRIX matWorld, matView, matProj;
-		if (FAILED((*d3d9Device)->GetTransform(D3DTS_WORLD, &matWorld)) ||
-			FAILED((*d3d9Device)->GetTransform(D3DTS_VIEW, &matView)) ||
-			FAILED((*d3d9Device)->GetTransform(D3DTS_PROJECTION, &matProj)))
+		if (FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_WORLD, &matWorld)) ||
+			FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_VIEW, &matView)) ||
+			FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_PROJECTION, &matProj)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get transform matrices");
 			return DDERR_GENERIC;

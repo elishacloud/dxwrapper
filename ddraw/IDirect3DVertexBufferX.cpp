@@ -624,13 +624,20 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	if (!lpSrcBuffer)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: missing source buffer data!");
-		return DDERR_GENERIC;
+		return DDERR_INVALIDPARAMS;
 	}
 
-	if (lpD3DDevice)
+	if (!lpD3DDevice)
 	{
-		m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
-		lpD3DDevice->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
+		return DDERR_INVALIDPARAMS;
+	}
+
+	m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
+	lpD3DDevice->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
+	if (!pDirect3DDeviceX)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3DDeviceX interface!");
+		return DDERR_GENERIC;
 	}
 
 	LPDIRECT3DVERTEXBUFFER9 d3d9DestVertexBuffer = d3d9VertexBuffer;
@@ -674,9 +681,9 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	D3DMATRIX matWorldViewProj = {};
 	{
 		D3DMATRIX matWorld, matView, matProj, matWorldView = {};
-		if (FAILED((*d3d9Device)->GetTransform(D3DTS_WORLD, &matWorld)) ||
-			FAILED((*d3d9Device)->GetTransform(D3DTS_VIEW, &matView)) ||
-			FAILED((*d3d9Device)->GetTransform(D3DTS_PROJECTION, &matProj)))
+		if (FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_WORLD, &matWorld)) ||
+			FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_VIEW, &matView)) ||
+			FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_PROJECTION, &matProj)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get world, view or projection matrix!");
 			return DDERR_GENERIC;
