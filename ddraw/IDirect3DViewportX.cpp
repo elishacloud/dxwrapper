@@ -295,6 +295,11 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 			return DDERR_GENERIC;
 		}
 
+		if (AttachedD3DDevices.size() > 1)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: More than one attached Direct3DDeviceX interface!");
+		}
+
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
@@ -376,15 +381,280 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 	return ProxyInterface->TransformVertices(dwVertexCount, lpData, dwFlags, lpOffscreen);
 }
 
-HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA lpData)
+HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA lpData, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		// This method is not currently implemented (only implemented in DirectX2).
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (DirectXVersion != 1)
+		{
+			// This method is only implemented in DirectX2, in Viewport v1
+			return DDERR_UNSUPPORTED;
+		}
+
+		if (dwElementCount == 0)
+		{
+			return DD_OK;
+		}
+
+		if (!lpData || !lpData->lpIn || !lpData->lpOut)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Validate sizes
+		if (lpData->dwSize != sizeof(D3DLIGHTDATA) ||
+			lpData->dwInSize != sizeof(D3DLIGHTINGELEMENT) ||
+			lpData->dwOutSize != sizeof(D3DTLVERTEX))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: dwSize doesn't match: " <<
+				sizeof(D3DLIGHTDATA) << " -> " << lpData->dwSize <<
+				" dwInSize: " << sizeof(D3DLIGHTINGELEMENT) << " -> " << lpData->dwInSize <<
+				" dwOutSize: " << sizeof(D3DTLVERTEX) << " -> " << lpData->dwOutSize);
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (AttachedD3DDevices.empty())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3Ddevice attached!");
+			return D3DERR_VIEWPORTHASNODEVICE;
+		}
+
+		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.front();
+		if (!pDirect3DDeviceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3DDeviceX interface!");
+			return DDERR_GENERIC;
+		}
+
+		if (AttachedD3DDevices.size() > 1)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: More than one attached Direct3DDeviceX interface!");
+		}
+
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: emulating LightElements()!");
+
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
+		D3DMATRIX matWorld, matView;
+		if (FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_WORLD, &matWorld)) ||
+			FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_VIEW, &matView)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get transform matrices");
+			return DDERR_GENERIC;
+		}
+
+		D3DMATRIX matWorldView = {};
+		D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
+
+		// Get materal for specular
+		bool UseMaterial = false;
+		D3DMATERIAL7 mat = {};
+		if (SUCCEEDED(pDirect3DDeviceX->GetMaterial(&mat)))
+		{
+			UseMaterial = true;
+		}
+
+		// Cache light data once
+		std::vector<D3DLIGHT> cachedLights;
+		for (auto& entry : AttachedLights)
+		{
+			// Get light data
+			D3DLIGHT light = {};
+			if (SUCCEEDED(entry->GetLight(&light)))
+			{
+				// Get LightX interface
+				m_IDirect3DLight* pLightX = nullptr;
+				entry->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pLightX);
+				if (pLightX)
+				{
+					// Check if light is enabled
+					for (auto& DeviceX : AttachedD3DDevices)
+					{
+						BOOL Enable = FALSE;
+						if (SUCCEEDED(DeviceX->GetLightEnable(pLightX, &Enable)) && Enable)
+						{
+							if (light.dltType == D3DLIGHT_SPOT && light.dvFalloff < 1.0f)
+							{
+								light.dvFalloff = 1.0f;  // Clamp it to minimum 1.0
+							}
+							cachedLights.push_back(light);
+							continue;
+						}
+					}
+				}
+			}
+		}
+
+		for (DWORD i = 0; i < dwElementCount; ++i)
+		{
+			D3DLIGHTINGELEMENT& src = lpData->lpIn[i];
+			D3DTLVERTEX& dst = lpData->lpOut[i];
+
+			D3DXVECTOR3& srcPosition = *reinterpret_cast<D3DXVECTOR3*>(&src.dvPosition);
+			D3DXVECTOR3& srcNormal = *reinterpret_cast<D3DXVECTOR3*>(&src.dvNormal);
+
+			// Transform position using full world-view matrix (this is fine)
+			D3DXVECTOR3 worldPos;
+			D3DXVec3TransformCoord(&worldPos, &srcPosition, &matWorldView);
+
+			// Now transform the normal using only the world matrix (like DX2 behavior)
+			D3DXMATRIX matWorldRotOnly = matWorld;
+			matWorldRotOnly._41 = 0.0f;
+			matWorldRotOnly._42 = 0.0f;
+			matWorldRotOnly._43 = 0.0f;
+
+			// Clear perspective components
+			matWorldRotOnly._14 = 0.0f;
+			matWorldRotOnly._24 = 0.0f;
+			matWorldRotOnly._34 = 0.0f;
+			matWorldRotOnly._44 = 1.0f;
+
+			D3DXVECTOR3 worldNormal;
+			D3DXVec3TransformNormal(&worldNormal, &srcNormal, &matWorldRotOnly);
+			D3DXVec3Normalize(&worldNormal, &worldNormal);
+
+			D3DCOLORVALUE diffuse = { 0, 0, 0, 0 };
+			D3DCOLORVALUE specular = { 0, 0, 0, 0 };
+
+			for (const auto& light : cachedLights)
+			{
+				const D3DXVECTOR3& lightPos = *reinterpret_cast<const D3DXVECTOR3*>(&light.dvPosition);
+				const D3DXVECTOR3& lightDir = *reinterpret_cast<const D3DXVECTOR3*>(&light.dvDirection);
+
+				D3DXVECTOR3 toLight;
+				float dist = 1.0f;
+				float attenuation = 1.0f;
+				float denom = 1.0f;
+
+				switch (light.dltType)
+				{
+				case D3DLIGHT_DIRECTIONAL:
+					toLight = -lightDir;
+					D3DXVec3Normalize(&toLight, &toLight);
+					break;
+
+				case D3DLIGHT_POINT:
+				case D3DLIGHT_SPOT:
+					toLight = lightPos - worldPos;
+					dist = D3DXVec3Length(&toLight);
+					if (dist == 0.0f) continue;
+					toLight /= dist;
+
+					denom = light.dvAttenuation0 +
+						light.dvAttenuation1 * dist +
+						light.dvAttenuation2 * dist * dist;
+
+					if (denom <= 0.0f) continue;  // Skip bad light
+
+					attenuation = 1.0f / denom;
+
+					// Handle range cutoff
+					if (light.dvRange > 0.0f && dist > light.dvRange)
+					{
+						continue;
+					}
+
+					// Spotlight falloff
+					if (light.dltType == D3DLIGHT_SPOT)
+					{
+						D3DXVECTOR3 toLightNeg = -toLight;
+						float spotCos = D3DXVec3Dot(&toLightNeg, &lightDir);
+						float cosPhi = cosf(light.dvPhi * 0.5f);
+						if (spotCos < cosPhi) continue;
+
+						float cosTheta = cosf(light.dvTheta * 0.5f);
+						if (spotCos >= cosTheta)
+						{
+							// full light
+						}
+						else
+						{
+							float falloff = powf((spotCos - cosPhi) / (cosTheta - cosPhi), light.dvFalloff);
+							attenuation *= falloff;
+						}
+					}
+					break;
+
+				default:
+					continue; // unsupported light type
+				}
+
+				// Clamp attenuation to [0,1]
+				attenuation = min(max(attenuation, 0.0f), 1.0f);
+
+				// Diffuse lighting
+				float NdotL = max(0.0f, D3DXVec3Dot(&worldNormal, &toLight));
+				diffuse.r += light.dcvColor.r * NdotL * attenuation;
+				diffuse.g += light.dcvColor.g * NdotL * attenuation;
+				diffuse.b += light.dcvColor.b * NdotL * attenuation;
+
+				// Specular lighting
+				if (UseMaterial && NdotL > 0.0f)
+				{
+					// Transform position to view space
+					D3DXVECTOR3 viewPos;
+					D3DXVec3TransformCoord(&viewPos, &srcPosition, &matView);
+
+					// View direction from fragment to camera
+					D3DXVECTOR3 viewDir = -viewPos;
+					D3DXVec3Normalize(&viewDir, &viewDir);
+
+					D3DXVec3Normalize(&toLight, &toLight);
+
+					D3DXVECTOR3 reflectDir = worldNormal * 2.0f * NdotL - toLight;
+					D3DXVec3Normalize(&reflectDir, &reflectDir);
+
+					float RdotV = max(0.0f, D3DXVec3Dot(&reflectDir, &viewDir));
+					float shininess = UseMaterial ? mat.power : 16.0f;
+					float spec = powf(RdotV, shininess) * attenuation;
+
+					specular.r += mat.specular.r * spec;
+					specular.g += mat.specular.g * spec;
+					specular.b += mat.specular.b * spec;
+				}
+			}
+
+			// Add material ambient color
+			if (UseMaterial)
+			{
+				diffuse.r += mat.diffuse.r * mat.ambient.r;
+				diffuse.g += mat.diffuse.g * mat.ambient.g;
+				diffuse.b += mat.diffuse.b * mat.ambient.b;
+			}
+
+			float alpha = UseMaterial ? mat.diffuse.a : 1.0f;
+
+			// Clamp and convert to DWORD color
+			dst.color = D3DCOLOR_COLORVALUE(
+				min(diffuse.r, 1.0f),
+				min(diffuse.g, 1.0f),
+				min(diffuse.b, 1.0f),
+				alpha);
+
+			// Clamp and convert to DWORD specular
+			dst.specular = D3DCOLOR_COLORVALUE(
+				min(specular.r, 1.0f),
+				min(specular.g, 1.0f),
+				min(specular.b, 1.0f),
+				alpha);
+
+			dst.sx = src.dvPosition.x;
+			dst.sy = src.dvPosition.y;
+			dst.sz = src.dvPosition.z;
+			dst.rhw = 1.0f;		// Assumes pre-transformed
+			dst.tu = 0;
+			dst.tv = 0;
+		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)DD_OK << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->LightElements(dwElementCount, lpData);

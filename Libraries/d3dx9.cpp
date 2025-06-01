@@ -32,7 +32,11 @@ typedef HRESULT(WINAPI* PFN_D3DXSaveTextureToFileInMemory)(LPD3DXBUFFER* ppDestB
 
 typedef HRESULT(WINAPI* PFN_D3DXDeclaratorFromFVF)(DWORD FVF, D3DVERTEXELEMENT9 pDeclarator[MAX_FVF_DECL_SIZE]);
 typedef D3DXMATRIX*(WINAPI* PFN_D3DXMatrixMultiply)(_Inout_ D3DXMATRIX* pOut, _In_ const D3DXMATRIX* pM1, _In_ const D3DXMATRIX* pM2);
+typedef FLOAT(WINAPI* PFN_D3DXVec3Dot)(_In_ const D3DXVECTOR3* pV1, _In_ const D3DXVECTOR3* pV2);
+typedef FLOAT(WINAPI* PFN_D3DXVec3Length)(_In_ const D3DXVECTOR3* pV);
+typedef D3DXVECTOR3*(WINAPI* PFN_D3DXVec3Normalize)(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV);
 typedef D3DXVECTOR3*(WINAPI* PFN_D3DXVec3TransformCoord)(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV, _In_ const D3DXMATRIX* pM);
+typedef D3DXVECTOR3*(WINAPI* PFN_D3DXVec3TransformNormal)(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV, _In_ const D3DXMATRIX* pM);
 typedef D3DXVECTOR4*(WINAPI* PFN_D3DXVec4Transform)(_Inout_ D3DXVECTOR4* pOut, _In_ const D3DXVECTOR4* pV, _In_ const D3DXMATRIX* pM);
 
 typedef HRESULT(WINAPI* PFN_D3DXCompileShaderFromFileA)(LPCSTR pSrcFile, const D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, LPCSTR pFunctionName, LPCSTR pProfile, DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs, LPD3DXCONSTANTTABLE* ppConstantTable);
@@ -61,7 +65,11 @@ PFN_D3DXSaveSurfaceToFileInMemory p_D3DXSaveSurfaceToFileInMemory = nullptr;
 PFN_D3DXSaveTextureToFileInMemory p_D3DXSaveTextureToFileInMemory = nullptr;
 PFN_D3DXDeclaratorFromFVF p_D3DXDeclaratorFromFVF = nullptr;
 PFN_D3DXMatrixMultiply p_D3DXMatrixMultiply = nullptr;
+PFN_D3DXVec3Dot p_D3DXVec3Dot = nullptr;
+PFN_D3DXVec3Length p_D3DXVec3Length = nullptr;
+PFN_D3DXVec3Normalize p_D3DXVec3Normalize = nullptr;
 PFN_D3DXVec3TransformCoord p_D3DXVec3TransformCoord = nullptr;
+PFN_D3DXVec3TransformNormal p_D3DXVec3TransformNormal = nullptr;
 PFN_D3DXVec4Transform p_D3DXVec4Transform = nullptr;
 PFN_D3DXCompileShaderFromFileA p_D3DXCompileShaderFromFileA = nullptr;
 PFN_D3DXCompileShaderFromFileW p_D3DXCompileShaderFromFileW = nullptr;
@@ -108,7 +116,11 @@ void LoadD3dx9()
 		p_D3DXSaveTextureToFileInMemory = reinterpret_cast<PFN_D3DXSaveTextureToFileInMemory>(MemoryGetProcAddress(d3dx9Module, "D3DXSaveTextureToFileInMemory"));
 		p_D3DXDeclaratorFromFVF = reinterpret_cast<PFN_D3DXDeclaratorFromFVF>(MemoryGetProcAddress(d3dx9Module, "D3DXDeclaratorFromFVF"));
 		p_D3DXMatrixMultiply = reinterpret_cast<PFN_D3DXMatrixMultiply>(MemoryGetProcAddress(d3dx9Module, "D3DXMatrixMultiply"));
+		p_D3DXVec3Dot = reinterpret_cast<PFN_D3DXVec3Dot>(MemoryGetProcAddress(d3dx9Module, "D3DXVec3Dot"));
+		p_D3DXVec3Length = reinterpret_cast<PFN_D3DXVec3Length>(MemoryGetProcAddress(d3dx9Module, "D3DXVec3Length"));
+		p_D3DXVec3Normalize = reinterpret_cast<PFN_D3DXVec3Normalize>(MemoryGetProcAddress(d3dx9Module, "D3DXVec3Normalize"));
 		p_D3DXVec3TransformCoord = reinterpret_cast<PFN_D3DXVec3TransformCoord>(MemoryGetProcAddress(d3dx9Module, "D3DXVec3TransformCoord"));
+		p_D3DXVec3TransformNormal = reinterpret_cast<PFN_D3DXVec3TransformNormal>(MemoryGetProcAddress(d3dx9Module, "D3DXVec3TransformNormal"));
 		p_D3DXVec4Transform = reinterpret_cast<PFN_D3DXVec4Transform>(MemoryGetProcAddress(d3dx9Module, "D3DXVec4Transform"));
 		p_D3DXCompileShaderFromFileA = reinterpret_cast<PFN_D3DXCompileShaderFromFileA>(MemoryGetProcAddress(d3dx9Module, "D3DXCompileShaderFromFileA"));
 		p_D3DXCompileShaderFromFileW = reinterpret_cast<PFN_D3DXCompileShaderFromFileW>(MemoryGetProcAddress(d3dx9Module, "D3DXCompileShaderFromFileW"));
@@ -290,6 +302,51 @@ D3DXMATRIX* WINAPI D3DXMatrixMultiply(_Inout_ D3DXMATRIX* pOut, _In_ const D3DXM
 	return p_D3DXMatrixMultiply(pOut, pM1, pM2);
 }
 
+FLOAT WINAPI D3DXVec3Dot(_In_ const D3DXVECTOR3* pV1, _In_ const D3DXVECTOR3* pV2)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	LoadD3dx9();
+
+	if (!p_D3DXVec3Dot)
+	{
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return 0.0f;
+	}
+
+	return p_D3DXVec3Dot(pV1, pV2);
+}
+
+FLOAT WINAPI D3DXVec3Length(_In_ const D3DXVECTOR3* pV)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	LoadD3dx9();
+
+	if (!p_D3DXVec3Length)
+	{
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return 0.0f;
+	}
+
+	return p_D3DXVec3Length(pV);
+}
+
+D3DXVECTOR3* WINAPI D3DXVec3Normalize(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	LoadD3dx9();
+
+	if (!p_D3DXVec3Normalize)
+	{
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return nullptr;
+	}
+
+	return p_D3DXVec3Normalize(pOut, pV);
+}
+
 D3DXVECTOR3* WINAPI D3DXVec3TransformCoord(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV, _In_ const D3DXMATRIX* pM)
 {
 	Logging::LogDebug() << __FUNCTION__;
@@ -303,6 +360,21 @@ D3DXVECTOR3* WINAPI D3DXVec3TransformCoord(_Inout_ D3DXVECTOR3* pOut, _In_ const
 	}
 
 	return p_D3DXVec3TransformCoord(pOut, pV, pM);
+}
+
+D3DXVECTOR3* WINAPI D3DXVec3TransformNormal(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV, _In_ const D3DXMATRIX* pM)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	LoadD3dx9();
+
+	if (!p_D3DXVec3TransformNormal)
+	{
+		LOG_ONCE(__FUNCTION__ << " Error: Could not find ProcAddress!");
+		return nullptr;
+	}
+
+	return p_D3DXVec3TransformNormal(pOut, pV, pM);
 }
 
 D3DXVECTOR4* WINAPI D3DXVec4Transform(_Inout_ D3DXVECTOR4* pOut, _In_ const D3DXVECTOR4* pV, _In_ const D3DXMATRIX* pM)

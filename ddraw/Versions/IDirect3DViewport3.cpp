@@ -89,7 +89,7 @@ HRESULT m_IDirect3DViewport3::LightElements(DWORD a, LPD3DLIGHTDATA b)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->LightElements(a, b);
+	return ProxyInterface->LightElements(a, b, DirectXVersion);
 }
 
 HRESULT m_IDirect3DViewport3::SetBackground(D3DMATERIALHANDLE a)

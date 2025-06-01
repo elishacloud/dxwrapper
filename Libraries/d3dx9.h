@@ -81,11 +81,96 @@ using LPD3DXBUFFER = ID3DXBuffer*;
 using ID3DXInclude = ID3DInclude;
 using LPD3DXINCLUDE = ID3DXInclude*;
 
-typedef struct D3DXVECTOR3 {
-	FLOAT x;
-	FLOAT y;
-	FLOAT z;
+typedef struct D3DXCOLOR {
+	FLOAT r;
+	FLOAT g;
+	FLOAT b;
+	FLOAT a;
+} D3DXCOLOR, * LPD3DXCOLOR;
+
+// Define the D3DXVECTOR2 structure
+typedef struct D3DXVECTOR2
+{
+	float x, y;
+
+	D3DXVECTOR2() : x(0), y(0) {}
+	D3DXVECTOR2(float x_, float y_) : x(x_), y(y_) {}
+} D3DXVECTOR2, * LPD3DXVECTOR2;
+
+// Define the D3DXVECTOR3 structure with operator overloading
+typedef struct D3DXVECTOR3
+{
+	float x, y, z;
+
+	D3DXVECTOR3() : x(0), y(0), z(0) {}
+	D3DXVECTOR3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
+
+	// Addition
+	D3DXVECTOR3 operator+(const D3DXVECTOR3& rhs) const
+	{
+		return D3DXVECTOR3(x + rhs.x, y + rhs.y, z + rhs.z);
+	}
+
+	// Subtraction
+	D3DXVECTOR3 operator-(const D3DXVECTOR3& rhs) const
+	{
+		return D3DXVECTOR3(x - rhs.x, y - rhs.y, z - rhs.z);
+	}
+
+	// Unary minus
+	D3DXVECTOR3 operator-() const
+	{
+		return D3DXVECTOR3(-x, -y, -z);
+	}
+
+	// Scalar multiplication
+	D3DXVECTOR3 operator*(float scalar) const
+	{
+		return D3DXVECTOR3(x * scalar, y * scalar, z * scalar);
+	}
+
+	// Scalar division
+	D3DXVECTOR3 operator/(float scalar) const
+	{
+		float inv = 1.0f / scalar;
+		return D3DXVECTOR3(x * inv, y * inv, z * inv);
+	}
+
+	// Compound assignment operators
+	D3DXVECTOR3& operator+=(const D3DXVECTOR3& rhs)
+	{
+		x += rhs.x; y += rhs.y; z += rhs.z;
+		return *this;
+	}
+
+	D3DXVECTOR3& operator-=(const D3DXVECTOR3& rhs)
+	{
+		x -= rhs.x; y -= rhs.y; z -= rhs.z;
+		return *this;
+	}
+
+	D3DXVECTOR3& operator*=(float scalar)
+	{
+		x *= scalar; y *= scalar; z *= scalar;
+		return *this;
+	}
+
+	D3DXVECTOR3& operator/=(float scalar)
+	{
+		float inv = 1.0f / scalar;
+		x *= inv; y *= inv; z *= inv;
+		return *this;
+	}
 } D3DXVECTOR3, * LPD3DXVECTOR3;
+
+// Define the D3DXVECTOR4 structure
+typedef struct D3DXVECTOR4
+{
+	float x, y, z, w;
+
+	D3DXVECTOR4() : x(0), y(0), z(0), w(0) {}
+	D3DXVECTOR4(float x_, float y_, float z_, float w_) : x(x_), y(y_), z(z_), w(w_) {}
+} D3DXVECTOR4, * LPD3DXVECTOR4;
 
 //////////////////////////////////////////////////////////////////////////////
 // D3DXSPRITE flags:
@@ -270,24 +355,6 @@ typedef enum D3DXIMAGE_FILEFORMAT {
 typedef interface ID3DXConstantTable ID3DXConstantTable;
 typedef interface ID3DXConstantTable* LPD3DXCONSTANTTABLE;
 
-// Define the D3DXVECTOR4 structure
-struct D3DXVECTOR4
-{
-	float x, y, z, w;
-
-	D3DXVECTOR4() : x(0), y(0), z(0), w(0) {}
-	D3DXVECTOR4(float x_, float y_, float z_, float w_) : x(x_), y(y_), z(z_), w(w_) {}
-};
-
-// Define the D3DXVECTOR2 structure
-struct D3DXVECTOR2
-{
-	float x, y;
-
-	D3DXVECTOR2() : x(0), y(0) {}
-	D3DXVECTOR2(float x_, float y_) : x(x_), y(y_) {}
-};
-
 #define MAX_FVF_DECL_SIZE MAXD3DDECLLENGTH + 1
 
 // Define the D3DXFillTexture function prototype
@@ -308,7 +375,11 @@ HRESULT WINAPI D3DXSaveTextureToFileInMemory(LPD3DXBUFFER* ppDestBuf, D3DXIMAGE_
 
 HRESULT WINAPI D3DXDeclaratorFromFVF(DWORD FVF, D3DVERTEXELEMENT9 pDeclarator[MAX_FVF_DECL_SIZE]);
 D3DXMATRIX* WINAPI D3DXMatrixMultiply(_Inout_ D3DXMATRIX* pOut, _In_ const D3DXMATRIX* pM1, _In_ const D3DXMATRIX* pM2);
+FLOAT WINAPI D3DXVec3Dot(_In_ const D3DXVECTOR3* pV1, _In_ const D3DXVECTOR3* pV2);
+FLOAT WINAPI D3DXVec3Length(_In_ const D3DXVECTOR3* pV);
+D3DXVECTOR3* WINAPI D3DXVec3Normalize(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV);
 D3DXVECTOR3* WINAPI D3DXVec3TransformCoord(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV, _In_ const D3DXMATRIX* pM);
+D3DXVECTOR3* WINAPI D3DXVec3TransformNormal(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV, _In_ const D3DXMATRIX* pM);
 D3DXVECTOR4* WINAPI D3DXVec4Transform(_Inout_ D3DXVECTOR4* pOut, _In_ const D3DXVECTOR4* pV, _In_ const D3DXMATRIX* pM);
 
 HRESULT WINAPI D3DXCompileShaderFromFileA(LPCSTR pSrcFile, const D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, LPCSTR pFunctionName, LPCSTR pProfile, DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs, LPD3DXCONSTANTTABLE* ppConstantTable);
