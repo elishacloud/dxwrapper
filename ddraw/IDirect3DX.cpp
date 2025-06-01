@@ -390,13 +390,8 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 			return DDERR_INVALIDPARAMS;
 		}
 
-		DWORD ExpectedSize =
-			(DirectXVersion == 1) ? D3DDEVICEDESC1_SIZE :
-			(DirectXVersion == 2) ? D3DDEVICEDESC5_SIZE :
-			(DirectXVersion == 3) ? D3DDEVICEDESC6_SIZE : sizeof(D3DDEVICEDESC);
-
 		DWORD Size = (lpD3DFDR->dwSize - sizeof(DWORD) - sizeof(GUID)) / 2;
-		if (Size != ExpectedSize)
+		if (Size != D3DDEVICEDESC1_SIZE && Size != D3DDEVICEDESC5_SIZE && Size != D3DDEVICEDESC6_SIZE)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect result dwSize: " << Size << " v" << DirectXVersion);
 			return DDERR_INVALIDPARAMS;
