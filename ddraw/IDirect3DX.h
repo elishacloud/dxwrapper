@@ -148,6 +148,7 @@ public:
 	void AddViewport(m_IDirect3DViewportX* lpViewportX);
 	void ClearViewport(m_IDirect3DViewportX* lpViewportX);
 	void GetViewportResolution(DWORD& Width, DWORD& Height);
+	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 

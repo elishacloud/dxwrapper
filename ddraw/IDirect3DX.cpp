@@ -1262,6 +1262,14 @@ void m_IDirect3DX::ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX)
 	}
 }
 
+void m_IDirect3DX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
+{
+	for (auto& entry : ViewportList)
+	{
+		entry->ClearSurface(lpSurfaceX);
+	}
+}
+
 void m_IDirect3DX::ResolutionHack()
 {
 	if (Config.DdrawResolutionHack)

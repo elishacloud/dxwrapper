@@ -4179,6 +4179,10 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 	// Remove attached surface from map
 	for (const auto& pDDraw : DDrawVector)
 	{
+		if (pDDraw->D3DInterface)
+		{
+			pDDraw->D3DInterface->ClearSurface(lpSurfaceX);
+		}
 		{
 			DWORD x = 0;
 			while (pDDraw->D3DInterface)

@@ -20,6 +20,7 @@ private:
 	D3DVIEWPORT vData = {};
 	bool IsViewPort2Set = false;
 	D3DVIEWPORT2 vData2 = {};
+	m_IDirectDrawSurfaceX* pBackgroundDepthSurfaceX = nullptr;
 
 	struct MATERIALBACKGROUND {
 		BOOL IsSet = FALSE;
@@ -154,6 +155,7 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	void SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
 	void AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
+	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void ClearD3D() { D3DInterface = nullptr; }
 	ULONG AddRef(DWORD DirectXVersion);

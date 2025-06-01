@@ -278,7 +278,7 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 		if (AttachedD3DDevices.empty())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3Ddevice attached!");
-			return DDERR_GENERIC;
+			return D3DERR_VIEWPORTHASNODEVICE;
 		}
 
 		if (dwFlags & D3DTRANSFORM_CLIPPED)
@@ -383,6 +383,7 @@ HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA
 
 	if (Config.Dd7to9)
 	{
+		// This method is not currently implemented (only implemented in DirectX2).
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
 		return DDERR_UNSUPPORTED;
 	}
@@ -766,11 +767,33 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
 
 	if (Config.Dd7to9)
 	{
-		// Sets the background-depth field for the viewport.
+		// Sets the background-depth field (which is a depth buffer surface) for the viewport.
 		// The depth-buffer is filled with the specified depth field when the IDirect3DViewport3::Clear or
 		// IDirect3DViewport3::Clear2 methods are called with the D3DCLEAR_ZBUFFER flag is specified.
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+
+		if (!lpDDS)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		m_IDirectDrawSurfaceX* lpSurfaceX = nullptr;
+		if (FAILED(lpDDS->QueryInterface(IID_GetInterfaceX, reinterpret_cast<LPVOID*>(&lpSurfaceX))))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get SurfaceX interface!");
+			return DDERR_GENERIC;
+		}
+
+		if (!lpSurfaceX->IsDepthStencil())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not depth stencil!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: background depth stencil surface not fully implemented!");
+
+		pBackgroundDepthSurfaceX = lpSurfaceX;
+
+		return DD_OK;
 	}
 
 	if (lpDDS)
@@ -787,11 +810,30 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4* lplpDDS,
 
 	if (Config.Dd7to9)
 	{
-		UNREFERENCED_PARAMETER(DirectXVersion);
+		if (lpValid)
+		{
+			*lpValid = FALSE;
+		}
 
-		// Note: 'DirectXVersion' is the interface version needed to pass back in lplpDDS
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lplpDDS)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+		*lplpDDS = nullptr;
+
+		if (!pBackgroundDepthSurfaceX)
+		{
+			return DD_OK;
+		}
+
+		*lplpDDS = reinterpret_cast<LPDIRECTDRAWSURFACE4>(pBackgroundDepthSurfaceX->GetWrapperInterfaceX(DirectXVersion));
+
+		if (lpValid && *lplpDDS)
+		{
+			*lpValid = TRUE;
+		}
+
+		return DD_OK;
 	}
 
 	HRESULT hr = ProxyInterface->GetBackgroundDepth2(lplpDDS, lpValid);
@@ -814,6 +856,12 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 		HRESULT hr = D3DERR_VIEWPORTHASNODEVICE;
 
 		// ToDo: check on zbuffer and stencil buffer and return error if does not exist:  D3DERR_ZBUFFER_NOTPRESENT and D3DERR_STENCILBUFFER_NOTPRESENT
+
+		// For now just hard code this to 1.0f rather than copying the depth stencil buffer
+		if ((dwFlags & D3DCLEAR_ZBUFFER) && pBackgroundDepthSurfaceX)
+		{
+			dvZ = 1.0f;
+		}
 
 		for (auto& entry : AttachedD3DDevices)
 		{
@@ -940,6 +988,14 @@ void m_IDirect3DViewportX::SetCurrentViewportActive(bool SetViewPortData, bool S
 				}
 			}
 		}
+	}
+}
+
+void m_IDirect3DViewportX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
+{
+	if (lpSurfaceX == pBackgroundDepthSurfaceX)
+	{
+		pBackgroundDepthSurfaceX = nullptr;
 	}
 }
 
