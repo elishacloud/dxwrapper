@@ -296,6 +296,10 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 			return DDERR_GENERIC;
 		}
 
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
 		D3DMATRIX matWorld, matView, matProj;
 		if (FAILED((*d3d9Device)->GetTransform(D3DTS_WORLD, &matWorld)) ||
 			FAILED((*d3d9Device)->GetTransform(D3DTS_VIEW, &matView)) ||
@@ -362,6 +366,10 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 		{
 			*lpOffscreen = 0;
 		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)DD_OK << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
 
 		return DD_OK;
 	}
