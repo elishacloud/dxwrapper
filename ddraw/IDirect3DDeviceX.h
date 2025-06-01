@@ -356,6 +356,7 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 	bool IsDeviceInScene() const { return IsInScene; }
 	void SetParent3DSurface(m_IDirectDrawSurfaceX* lpSurfaceX, DWORD DxVersion) { parent3DSurface = { lpSurfaceX, DxVersion }; }
+	LPDIRECT3DDEVICE9* GetD3d9Device();
 
 	// ExecuteBuffer
 	void AddExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer);

@@ -253,8 +253,117 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (dwVertexCount == 0)
+		{
+			return DD_OK;
+		}
+
+		if (!lpData || !lpData->lpIn || !lpData->lpOut)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check dwSize parameters
+		if (lpData->dwSize != sizeof(D3DTRANSFORMDATA) ||
+			lpData->dwInSize != sizeof(D3DLVERTEX) ||
+			lpData->dwOutSize != sizeof(D3DTLVERTEX))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: dwSize doesn't match: " <<
+				sizeof(D3DTRANSFORMDATA) << " -> " << lpData->dwSize <<
+				" dwInSize: " << sizeof(D3DLVERTEX) << " -> " << lpData->dwInSize <<
+				" dwOutSize: " << sizeof(D3DTLVERTEX) << " -> " << lpData->dwOutSize);
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (AttachedD3DDevices.empty())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3Ddevice attached!");
+			return DDERR_GENERIC;
+		}
+
+		if (dwFlags & D3DTRANSFORM_CLIPPED)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DTRANSFORM_CLIPPED is ignored");
+		}
+
+		// D3DTRANSFORM_UNCLIPPED: flag can be safily ignored
+
+		LPDIRECT3DDEVICE9* d3d9Device = AttachedD3DDevices.front()->GetD3d9Device();
+
+		if (!d3d9Device || !*d3d9Device)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: d3d9 device not setup!");
+			return DDERR_GENERIC;
+		}
+
+		D3DMATRIX matWorld, matView, matProj;
+		if (FAILED((*d3d9Device)->GetTransform(D3DTS_WORLD, &matWorld)) ||
+			FAILED((*d3d9Device)->GetTransform(D3DTS_VIEW, &matView)) ||
+			FAILED((*d3d9Device)->GetTransform(D3DTS_PROJECTION, &matProj)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get transform matrices");
+			return DDERR_GENERIC;
+		}
+
+		D3DMATRIX matWorldView = {}, matWorldViewProj = {};
+		D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
+		D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
+
+		LONG minX = LONG_MAX;
+		LONG minY = LONG_MAX;
+		LONG maxX = LONG_MIN;
+		LONG maxY = LONG_MIN;
+
+		D3DLVERTEX* pIn = reinterpret_cast<D3DLVERTEX*>(lpData->lpIn);
+		D3DTLVERTEX* pOut = reinterpret_cast<D3DTLVERTEX*>(lpData->lpOut);
+		D3DHVERTEX* pHOut = reinterpret_cast<D3DHVERTEX*>(lpData->lpHOut);
+
+		for (DWORD i = 0; i < dwVertexCount; ++i)
+		{
+			D3DLVERTEX& src = pIn[i];
+			D3DTLVERTEX& dst = pOut[i];
+
+			D3DXVECTOR4 pos(src.x, src.y, src.z, 1.0f);
+			D3DXVECTOR4 result;
+			D3DXVec4Transform(&result, &pos, &matWorldViewProj);
+
+			dst.sx = result.x / result.w;
+			dst.sy = result.y / result.w;
+			dst.sz = result.z / result.w;
+			dst.rhw = 1.0f / result.w;
+
+			dst.color = src.color;
+			dst.specular = src.specular;
+			dst.tu = src.tu;
+			dst.tv = src.tv;
+
+			if (pHOut)
+			{
+				D3DHVERTEX& hdst = pHOut[i];
+				hdst.hx = result.x;
+				hdst.hy = result.y;
+				hdst.hz = result.z;
+				hdst.dwFlags = 0;	// No clip flags computed
+			}
+
+			minX = min(minX, static_cast<LONG>(floor(dst.sx)));
+			minY = min(minY, static_cast<LONG>(floor(dst.sy)));
+			maxX = max(maxX, static_cast<LONG>(ceil(dst.sx)));
+			maxY = max(maxY, static_cast<LONG>(ceil(dst.sy)));
+		}
+
+		lpData->drExtent.x1 = minX;
+		lpData->drExtent.y1 = minY;
+		lpData->drExtent.x2 = maxX;
+		lpData->drExtent.y2 = maxY;
+
+		//Address of a variable that is set to a nonzero value if the resulting vertices are all off-screen.
+		if (lpOffscreen)
+		{
+			*lpOffscreen = 0;
+		}
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->TransformVertices(dwVertexCount, lpData, dwFlags, lpOffscreen);

@@ -4744,6 +4744,13 @@ void* m_IDirect3DDeviceX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	return nullptr;
 }
 
+LPDIRECT3DDEVICE9* m_IDirect3DDeviceX::GetD3d9Device()
+{
+	CheckInterface(__FUNCTION__, true);
+
+	return d3d9Device;
+}
+
 void m_IDirect3DDeviceX::ClearTextureHandle(D3DTEXTUREHANDLE tHandle)
 {
 	if (tHandle)
