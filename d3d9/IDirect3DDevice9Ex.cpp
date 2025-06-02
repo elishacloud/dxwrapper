@@ -559,6 +559,19 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (Config.D3d9to9Ex)
+	{
+		if (Pool == D3DPOOL_MANAGED)
+		{
+			Pool = D3DPOOL_DEFAULT;
+			Usage |= D3DUSAGE_DYNAMIC;
+		}
+		else if (Pool == D3DPOOL_DEFAULT && Usage == 0)
+		{
+			Usage = D3DUSAGE_DYNAMIC;
+		}
+	}
+
 	HRESULT hr = ProxyInterface->CreateTexture(Width, Height, Levels, Usage, Format, Pool, ppTexture, pSharedHandle);
 
 	if (SUCCEEDED(hr))
@@ -3019,6 +3032,14 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 	if (!ppSurface)
 	{
 		return D3DERR_INVALIDCALL;
+	}
+
+	if (Config.D3d9to9Ex)
+	{
+		if (Pool == D3DPOOL_DEFAULT && Usage == 0)
+		{
+			Usage = D3DUSAGE_DYNAMIC;
+		}
 	}
 
 	HRESULT hr = ProxyInterfaceEx->CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, Usage);
