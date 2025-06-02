@@ -329,5 +329,8 @@ public:
 	AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() const { return &SHARED.StateBlockTable; }
 	REFIID GetIID() { return WrapperID; }
+
+	// Static functions
+	static void m_IDirect3DDevice9Ex::ModeToModeEx(D3DDISPLAYMODE& Mode, D3DDISPLAYMODEEX& ModeEx);
 };
 #undef SHARED

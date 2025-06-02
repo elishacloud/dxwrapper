@@ -116,12 +116,7 @@ HRESULT m_IDirect3DSwapChain9Ex::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
 
 		if (pMode)
 		{
-			ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
-			ModeEx.Width = pMode->Width;
-			ModeEx.Height = pMode->Height;
-			ModeEx.RefreshRate = pMode->RefreshRate;
-			ModeEx.Format = pMode->Format;
-			ModeEx.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
+			m_IDirect3DDevice9Ex::ModeToModeEx(*pMode, ModeEx);
 			pModeEx = &ModeEx;
 		}
 

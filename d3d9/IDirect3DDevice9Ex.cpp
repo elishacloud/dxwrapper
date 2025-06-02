@@ -713,12 +713,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayMode(THIS_ UINT iSwapChain, D3DDISPLAYMO
 
 		if (pMode)
 		{
-			ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
-			ModeEx.Width = pMode->Width;
-			ModeEx.Height = pMode->Height;
-			ModeEx.RefreshRate = pMode->RefreshRate;
-			ModeEx.Format = pMode->Format;
-			ModeEx.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
+			ModeToModeEx(*pMode, ModeEx);
 			pModeEx = &ModeEx;
 		}
 
@@ -3138,6 +3133,16 @@ void m_IDirect3DDevice9Ex::ReInitInterface() const
 		SHARED.DefaultRampData.green[i] = value;
 		SHARED.DefaultRampData.blue[i] = value;
 	}
+}
+
+void m_IDirect3DDevice9Ex::ModeToModeEx(D3DDISPLAYMODE& Mode, D3DDISPLAYMODEEX& ModeEx)
+{
+	ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
+	ModeEx.Width = Mode.Width;
+	ModeEx.Height = Mode.Height;
+	ModeEx.RefreshRate = Mode.RefreshRate;
+	ModeEx.Format = Mode.Format;
+	ModeEx.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
 }
 
 void m_IDirect3DDevice9Ex::LimitFrameRate() const
