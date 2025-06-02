@@ -5,7 +5,7 @@ class m_IDirectDrawClipper : public IDirectDrawClipper, public AddressLookupTabl
 private:
 	IDirectDrawClipper *ProxyInterface = nullptr;
 	ULONG RefCount = 1;
-	REFIID WrapperID = IID_IDirectDrawClipper;
+	const IID WrapperID = IID_IDirectDrawClipper;
 
 	// Convert to Direct3D9
 	m_IDirectDrawX* ddrawParent = nullptr;

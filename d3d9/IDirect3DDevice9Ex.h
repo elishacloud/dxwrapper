@@ -109,7 +109,7 @@ private:
 	LPDIRECT3DDEVICE9 ProxyInterface;
 	LPDIRECT3DDEVICE9EX ProxyInterfaceEx = nullptr;
 	m_IDirect3D9Ex* m_pD3DEx;
-	REFIID WrapperID;
+	const IID WrapperID;
 
 	UINT DDKey;
 

@@ -9,7 +9,7 @@ private:
 	ULONG RefCount2 = 0;
 	ULONG RefCount3 = 0;
 	ULONG RefCount7 = 0;
-	REFCLSID ClassID = IID_IUnknown;
+	const CLSID ClassID = IID_IUnknown;
 
 	// Store version wrappers
 	m_IDirect3DDevice* WrapperInterface = nullptr;

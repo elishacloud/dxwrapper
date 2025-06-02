@@ -5,7 +5,7 @@ class m_IDirect3D9Ex : public IDirect3D9Ex, public AddressLookupTableD3d9Object
 private:
 	LPDIRECT3D9 ProxyInterface;
 	LPDIRECT3D9EX ProxyInterfaceEx = nullptr;
-	REFIID WrapperID;
+	const IID WrapperID;
 
 	struct ENUM_ADAPTERS_CACHE {
 		UINT Adapter = 0;

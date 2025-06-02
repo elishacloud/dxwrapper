@@ -4,7 +4,7 @@ class m_IDirect3DExecuteBuffer : public IDirect3DExecuteBuffer, public AddressLo
 {
 private:
 	IDirect3DExecuteBuffer *ProxyInterface = nullptr;
-	REFIID WrapperID = IID_IDirect3DExecuteBuffer;
+	const IID WrapperID = IID_IDirect3DExecuteBuffer;
 	ULONG RefCount = 1;
 
 	// Convert Buffer

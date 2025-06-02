@@ -5,7 +5,7 @@ class m_IDirectDrawPalette : public IDirectDrawPalette, public AddressLookupTabl
 private:
 	IDirectDrawPalette *ProxyInterface = nullptr;
 	ULONG RefCount = 1;
-	REFIID WrapperID = IID_IDirectDrawPalette;
+	const IID WrapperID = IID_IDirectDrawPalette;
 
 	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;

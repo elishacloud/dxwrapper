@@ -5,7 +5,7 @@ class m_IDirect3DVolumeTexture9 : public IDirect3DVolumeTexture9, public Address
 private:
 	LPDIRECT3DVOLUMETEXTURE9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
-	REFIID WrapperID = IID_IDirect3DVolumeTexture9;
+	const IID WrapperID = IID_IDirect3DVolumeTexture9;
 
 public:
 	m_IDirect3DVolumeTexture9(LPDIRECT3DVOLUMETEXTURE9 pTexture8, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pTexture8), m_pDeviceEx(pDevice)
