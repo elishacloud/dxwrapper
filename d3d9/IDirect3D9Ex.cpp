@@ -495,9 +495,17 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 
 	if (Config.D3d9to9Ex)
 	{
+		D3DDISPLAYMODEEX* pFullscreenMode = nullptr;
 		D3DDISPLAYMODEEX FullscreenDisplayMode = {};
 
-		if (SUCCEEDED(CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, &FullscreenDisplayMode, reinterpret_cast<IDirect3DDevice9Ex**>(ppReturnedDeviceInterface))))
+		// Fill fullscreen display mode only in fullscreen mode
+		if (!pPresentationParameters->Windowed)
+		{
+			GetFullscreenDisplayMode(*pPresentationParameters, FullscreenDisplayMode);
+			pFullscreenMode = &FullscreenDisplayMode;
+		}
+
+		if (SUCCEEDED(CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenMode, reinterpret_cast<IDirect3DDevice9Ex**>(ppReturnedDeviceInterface))))
 		{
 			return D3D_OK;
 		}
@@ -858,15 +866,11 @@ void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DD
 	Mode.Width = d3dpp.BackBufferWidth;
 	Mode.Height = d3dpp.BackBufferHeight;
 
-	// Derive format (fall back to a default if BackBufferFormat is unknown)
-	Mode.Format = d3dpp.BackBufferFormat != D3DFMT_UNKNOWN
-		? d3dpp.BackBufferFormat
-		: D3DFMT_X8R8G8B8; // or another reasonable default
+	// Derive format
+	Mode.Format = d3dpp.BackBufferFormat;
 
-	// RefreshRate - try to copy from d3dpp if not zero
-	Mode.RefreshRate = d3dpp.FullScreen_RefreshRateInHz != 0
-		? d3dpp.FullScreen_RefreshRateInHz
-		: 60; // default to 60Hz
+	// RefreshRate
+	Mode.RefreshRate = d3dpp.FullScreen_RefreshRateInHz;
 
 	// ScanLineOrdering and Scaling are optional and can usually be defaulted
 	Mode.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
