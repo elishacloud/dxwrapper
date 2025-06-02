@@ -493,37 +493,41 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		return D3DERR_INVALIDCALL;
 	}
 
-	DEVICEDETAILS DeviceDetails;
-
 	if (Config.D3d9to9Ex)
 	{
-		IDirect3DDevice9Ex* pD3D9Ex = nullptr;
-
 		D3DDISPLAYMODEEX FullscreenDisplayMode = {};
 
-		GetFullscreenDisplayMode(*pPresentationParameters, FullscreenDisplayMode);
-
-		if (SUCCEEDED(CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, &FullscreenDisplayMode, &pD3D9Ex)))
+		if (SUCCEEDED(CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, &FullscreenDisplayMode, reinterpret_cast<IDirect3DDevice9Ex**>(ppReturnedDeviceInterface))))
 		{
-			UINT DDKey = (UINT)pD3D9Ex + (UINT)&pD3D9Ex + (UINT)DeviceDetails.DeviceWindow;
-			DeviceDetailsMap[DDKey] = DeviceDetails;
-
-			LOG_LIMIT(3, "Created IDirect3DDevice9Ex interface by redirecting to 'CreateDeviceEx' ...");
-
-			*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(pD3D9Ex, this, IID_IDirect3DDevice9Ex, DDKey);
-
 			return D3D_OK;
 		}
 	}
+
+	DEVICEDETAILS DeviceDetails;
 
 	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, nullptr, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
+		GUID riid = IID_IDirect3DDevice9;
+
+		if (Config.D3d9to9Ex)
+		{
+			IDirect3DDevice9* pD3DD = *ppReturnedDeviceInterface;
+			IDirect3DDevice9Ex* pD3DDEx = nullptr;
+
+			if (SUCCEEDED(pD3DD->QueryInterface(IID_IDirect3DDevice9Ex, reinterpret_cast<LPVOID*>(&pD3DDEx))))
+			{
+				pD3DD->Release();
+				*ppReturnedDeviceInterface = pD3DDEx;
+				riid = IID_IDirect3DDevice9Ex;
+			}
+		}
+
 		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.DeviceWindow;
 		DeviceDetailsMap[DDKey] = DeviceDetails;
 
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9, DDKey);
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, riid, DDKey);
 
 		return D3D_OK;
 	}
@@ -866,7 +870,6 @@ void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DD
 
 	// ScanLineOrdering and Scaling are optional and can usually be defaulted
 	Mode.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
-
 }
 
 // Adjusting the window position for WindowMode
