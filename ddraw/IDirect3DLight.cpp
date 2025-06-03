@@ -148,43 +148,89 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 
 	if (Config.Dd7to9)
 	{
-		// Although this method's declaration specifies the lpLight parameter as being the address of a D3DLIGHT structure, that structure is not normally used.
-		// Rather, the D3DLIGHT2 structure is recommended to achieve the best lighting effects.
-
-		if (!lpLight || (lpLight->dwSize != sizeof(D3DLIGHT) && lpLight->dwSize != sizeof(D3DLIGHT2)))
+		if (!lpLight)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpLight) ? lpLight->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// If current light is in use then update device
-		DWORD x = 0;
-		while (D3DInterface)
-		{
-			m_IDirect3DDeviceX* D3DDeviceInterface = D3DInterface->GetNextD3DDevice(x++);
-			if (!D3DDeviceInterface)
-			{
-				break;
-			}
-			BOOL Enable = FALSE;
-			if (SUCCEEDED(D3DDeviceInterface->GetLightEnable(this, &Enable)) && Enable)
-			{
-				D3DLIGHT2 Light2 = {};
-				memcpy(&Light2, lpLight, lpLight->dwSize);
-				Light2.dwSize = sizeof(D3DLIGHT2);
-				Light2.dwFlags |= D3DLIGHT_ACTIVE;
+		// Although this method's declaration specifies the lpLight parameter as being the address of a D3DLIGHT structure, that structure is not normally used.
+		// Rather, the D3DLIGHT2 structure is recommended to achieve the best lighting effects.
 
-				if (FAILED(D3DDeviceInterface->SetLight(this, (LPD3DLIGHT)&Light2)))
+		// Unlike its predecessors, the IDirect3DDevice7 interface does not use light objects. This method, and its use of the D3DLIGHT7 structure to describe a
+		// set of lighting properties, replaces the lighting semantics used by previous versions of the device interface.
+
+		if (lpLight->dwSize != sizeof(D3DLIGHT) && lpLight->dwSize != sizeof(D3DLIGHT2))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpLight->dwSize);
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Only save D3DLIGHT struct without dwFlags, not D3DLIGHT2
+		D3DLIGHT2 tmpLight2;
+		memcpy(&tmpLight2, lpLight, sizeof(D3DLIGHT));
+		tmpLight2.dwSize = sizeof(tmpLight2);
+		tmpLight2.dwFlags = Light.dwFlags;
+
+		// Handle dwFlags
+		if (lpLight->dwSize == sizeof(D3DLIGHT2))
+		{
+			LPD3DLIGHT2 lpLight2 = reinterpret_cast<LPD3DLIGHT2>(lpLight);
+
+			// Add active flag
+			if (lpLight2->dwFlags & D3DLIGHT_ACTIVE)
+			{
+				tmpLight2.dwFlags |= D3DLIGHT_ACTIVE;
+			}
+			// Remove active flag
+			else
+			{
+				tmpLight2.dwFlags &= ~D3DLIGHT_ACTIVE;
+			}
+
+			// Add no specular flag
+			if (lpLight2->dwFlags & D3DLIGHT_NO_SPECULAR)
+			{
+				tmpLight2.dwFlags |= D3DLIGHT_NO_SPECULAR;
+			}
+			// Remove no specular flag
+			else
+			{
+				tmpLight2.dwFlags &= ~D3DLIGHT_NO_SPECULAR;
+			}
+		}
+		// Default to active
+		else if (!LightSet)
+		{
+			tmpLight2.dwFlags |= D3DLIGHT_ACTIVE;
+		}
+
+		// If current light is in use then update device
+		{
+			DWORD x = 0;
+			while (D3DInterface)
+			{
+				m_IDirect3DDeviceX* D3DDeviceInterface = D3DInterface->GetNextD3DDevice(x++);
+				if (!D3DDeviceInterface)
 				{
-					return D3DERR_LIGHT_SET_FAILED;
+					break;
 				}
-				Enable = FALSE;
+				if (D3DDeviceInterface->IsLightInUse(this))
+				{
+					if (FAILED(D3DDeviceInterface->SetLight(this, reinterpret_cast<LPD3DLIGHT>(&tmpLight2))))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set light!");
+						return D3DERR_LIGHT_SET_FAILED;
+					}
+				}
 			}
 		}
 
 		LightSet = true;
 
-		memcpy(&Light, lpLight, lpLight->dwSize);
+		// Only save D3DLIGHT struct without dwFlags, not D3DLIGHT2
+		memcpy(&Light, &tmpLight2, sizeof(D3DLIGHT));
+		Light.dwSize = sizeof(Light);
+		Light.dwFlags = tmpLight2.dwFlags;
 
 		return D3D_OK;
 	}
@@ -203,12 +249,20 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 
 	if (Config.Dd7to9)
 	{
+		if (!lpLight)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Although this method's declaration specifies the lpLight parameter as being the address of a D3DLIGHT structure, that structure is not normally used.
 		// Rather, the D3DLIGHT2 structure is recommended to achieve the best lighting effects.
 
-		if (!lpLight || (lpLight->dwSize != sizeof(D3DLIGHT) && lpLight->dwSize != sizeof(D3DLIGHT2)))
+		// Unlike its predecessors, the IDirect3DDevice7 interface does not use light objects. This method, and its use of the D3DLIGHT7 structure to describe a
+		// set of lighting properties, replaces the lighting semantics used by previous versions of the device interface.
+
+		if (lpLight->dwSize != sizeof(D3DLIGHT) && lpLight->dwSize != sizeof(D3DLIGHT2))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpLight) ? lpLight->dwSize : -1));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpLight->dwSize);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -222,37 +276,6 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 		DWORD Size = lpLight->dwSize;
 		memcpy(lpLight, &Light, Size);
 		lpLight->dwSize = Size;
-
-		// D3DLIGHT2
-		if (lpLight->dwSize == sizeof(D3DLIGHT2))
-		{
-			// Reset flags if Light struct does not have them because it is using the old structure
-			if (Light.dwSize == sizeof(D3DLIGHT))
-			{
-				((LPD3DLIGHT2)lpLight)->dwFlags = NULL;
-			}
-
-			// Set to non-active first
-			((LPD3DLIGHT2)lpLight)->dwFlags &= ~D3DLIGHT_ACTIVE;
-
-			// Check for active
-			DWORD x = 0;
-			while (D3DInterface)
-			{
-				m_IDirect3DDeviceX* D3DDeviceInterface = D3DInterface->GetNextD3DDevice(x++);
-
-				if (!D3DDeviceInterface)
-				{
-					break;
-				}
-				BOOL Enable = FALSE;
-				if (SUCCEEDED(D3DDeviceInterface->GetLightEnable(this, &Enable)) && Enable)
-				{
-					((LPD3DLIGHT2)lpLight)->dwFlags |= D3DLIGHT_ACTIVE;
-					break;
-				}
-			}
-		}
 
 		return D3D_OK;
 	}
@@ -272,6 +295,8 @@ void m_IDirect3DLight::InitInterface()
 	}
 
 	LightSet = false;
+	Light = {};
+	Light.dwSize = sizeof(Light);
 }
 
 void m_IDirect3DLight::ReleaseInterface()

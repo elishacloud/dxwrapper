@@ -838,6 +838,15 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 
 		lpDirect3DViewport->AddRef();
 
+		// The first version of the device doesn't have SetCurrentViewport()
+		if (ProxyDirectXVersion == 1)
+		{
+			if (AttachedViewports.size() == 1)
+			{
+				SetCurrentViewport(lpDirect3DViewport);
+			}
+		}
+
 		return D3D_OK;
 	}
 
@@ -886,12 +895,22 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// ToDo: if deleting the current material then invalidate the material
-
 		if (lpDirect3DViewport == lpCurrentViewport)
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: deleting active viewport!");
+
+			// Backup old viewport
+			m_IDirect3DViewportX* lpOldViewportX = lpCurrentViewportX;
+
+			// Set to null first
 			lpCurrentViewport = nullptr;
 			lpCurrentViewportX = nullptr;
+
+			// Clear old viewport data
+			if (lpOldViewportX)
+			{
+				lpOldViewportX->ClearCurrentViewport(this, true);
+			}
 		}
 
 		lpDirect3DViewport->Release();
@@ -927,7 +946,6 @@ HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport,
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-
 		*lplpDirect3DViewport = nullptr;
 
 		if (AttachedViewports.size() == 0)
@@ -960,6 +978,15 @@ HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport,
 		default:
 			return DDERR_INVALIDPARAMS;
 			break;
+		}
+
+		// The first version of the device doesn't have SetCurrentViewport()
+		if (DirectXVersion == 1)
+		{
+			if (*lplpDirect3DViewport)
+			{
+				SetCurrentViewport(*lplpDirect3DViewport);
+			}
 		}
 
 		return D3D_OK;
@@ -1373,13 +1400,23 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 
 			if (SUCCEEDED(hr))
 			{
+				// Backup old viewport
+				m_IDirect3DViewportX* lpOldViewportX = lpCurrentViewportX;
+
+				// Set new viewport first
 				lpCurrentViewport = lpd3dViewport;
-
-				lpCurrentViewport->AddRef();
-
 				lpCurrentViewportX = lpViewportX;
 
-				lpCurrentViewportX->SetCurrentViewportActive(true, true, true);
+				// Clear old viewport data and apply new viewport data
+				if (lpOldViewportX != lpCurrentViewportX)
+				{
+					if (lpOldViewportX)
+					{
+						lpOldViewportX->ClearCurrentViewport(this, false);
+					}
+
+					lpCurrentViewportX->SetCurrentViewportActive(false, true, true);
+				}
 			}
 		}
 
@@ -4751,6 +4788,19 @@ LPDIRECT3DDEVICE9* m_IDirect3DDeviceX::GetD3d9Device()
 	return d3d9Device;
 }
 
+bool m_IDirect3DDeviceX::DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
+{
+	auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
+		[=](auto pViewport) -> bool { return pViewport == ViewportX; });
+
+	if (it != std::end(AttachedViewports))
+	{
+		AttachedViewports.erase(it);
+		return true;
+	}
+	return false;
+}
+
 void m_IDirect3DDeviceX::ClearTextureHandle(D3DTEXTUREHANDLE tHandle)
 {
 	if (tHandle)
@@ -4868,13 +4918,18 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 
 	if (SUCCEEDED(hr))
 	{
-		if (((LPD3DLIGHT2)lpLight)->dwSize == sizeof(D3DLIGHT2) && (((LPD3DLIGHT2)lpLight)->dwFlags & D3DLIGHT_ACTIVE) == NULL)
+		if (lpLight->dwSize == sizeof(D3DLIGHT2))
 		{
-			LightEnable(dwLightIndex, FALSE);
-		}
-		else
-		{
-			LightEnable(dwLightIndex, TRUE);
+			LPD3DLIGHT2 lpLight2 = reinterpret_cast<LPD3DLIGHT2>(lpLight);
+
+			if (lpLight2->dwFlags & D3DLIGHT_ACTIVE)
+			{
+				LightEnable(dwLightIndex, TRUE);
+			}
+			else
+			{
+				LightEnable(dwLightIndex, FALSE);
+			}
 		}
 	}
 
@@ -5688,24 +5743,42 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags
 	}
 }
 
-void m_IDirect3DDeviceX::GetAttachedLights(std::vector<D3DLIGHT>& AttachedLightList)
+bool m_IDirect3DDeviceX::IsLightInUse(m_IDirect3DLight* pLightX)
 {
-	for (auto& entry : LightIndexMap)
+	if (ProxyDirectXVersion != 7)
 	{
-		// Get light data
-		D3DLIGHT light = {};
-		if (SUCCEEDED(entry.second->GetLight(&light)))
+		if (lpCurrentViewportX && lpCurrentViewportX->IsLightAttached(pLightX))
 		{
-			m_IDirect3DLight* pLightX = entry.second;
+			return true;
+		}
+	}
 
-			// Check if light is enabled
-			BOOL Enable = FALSE;
-			if (SUCCEEDED(GetLightEnable(pLightX, &Enable)) && Enable)
+	return false;
+}
+
+void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<D3DLIGHT2>& AttachedLightList)
+{
+	if (ProxyDirectXVersion == 7)
+	{
+		for (auto& entry : LightIndexMap)
+		{
+			D3DLIGHT2 light = {};
+			light.dwSize = sizeof(D3DLIGHT2);
+
+			// Get light data
+			if (SUCCEEDED(entry.second->GetLight(reinterpret_cast<LPD3DLIGHT>(&light))))
 			{
-				AttachedLightList.push_back(light);
-				continue;
+				// Check if light is enabled
+				if (light.dwFlags & D3DLIGHT_ACTIVE)
+				{
+					AttachedLightList.push_back(light);
+				}
 			}
 		}
+	}
+	else if (lpCurrentViewportX)
+	{
+		lpCurrentViewportX->GetEnabledLightList(AttachedLightList, this);
 	}
 }
 

@@ -173,19 +173,6 @@ private:
 		return &MatrixMap[MatrixHandle].m;
 	}
 
-	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
-	{
-		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
-			[=](auto pViewport) -> bool { return pViewport == ViewportX; });
-
-		if (it != std::end(AttachedViewports))
-		{
-			AttachedViewports.erase(it);
-			return true;
-		}
-		return false;
-	}
-
 	m_IDirect3DTextureX* GetTexture(D3DTEXTUREHANDLE TextureHandle)
 	{
 		m_IDirect3DTextureX* pTextureX = TextureHandleMap[TextureHandle];
@@ -382,6 +369,9 @@ public:
 		return false;
 	}
 
+	// Viewport vector function
+	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX);
+
 	// Texture handle function
 	void ClearTextureHandle(D3DTEXTUREHANDLE tHandle);
 	HRESULT SetTextureHandle(D3DTEXTUREHANDLE& tHandle, m_IDirect3DTextureX* pTextureX);
@@ -392,7 +382,8 @@ public:
 	bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == lsMaterialHandle); }
 
 	// Light index function
-	void GetAttachedLights(std::vector<D3DLIGHT>& AttachedLightList);
+	bool IsLightInUse(m_IDirect3DLight* pLightX);
+	void GetEnabledLightList(std::vector<D3DLIGHT2>& AttachedLightList);
 	void ClearLight(m_IDirect3DLight* lpLight);
 
 	// Functions handling the Direct3D parent interface

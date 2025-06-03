@@ -154,7 +154,7 @@ public:
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	void SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
-	void GetAttachedLights(std::vector<D3DLIGHT>& AttachedLightList, m_IDirect3DDeviceX* pDirect3DDeviceX);
+	void ClearCurrentViewport(m_IDirect3DDeviceX* pDirect3DDeviceX, bool ClearViewport);
 	void AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
@@ -162,6 +162,8 @@ public:
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 
-	// Static functions
-	static void ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& outSpecular, const D3DXVECTOR3& Position, const D3DXVECTOR3& Normal, const std::vector<D3DLIGHT>& cachedLights, const D3DXMATRIX& matWorldView, const D3DMATRIX& matWorld, const D3DMATRIX& matView, const D3DMATERIAL7& mat, bool UseMaterial);
+	// Light functions
+	void GetEnabledLightList(std::vector<D3DLIGHT2>& AttachedLightList, m_IDirect3DDeviceX* pDirect3DDeviceX);
+	bool IsLightAttached(m_IDirect3DLight* lpLight);
+	void ClearLight(m_IDirect3DLight* lpLight);
 };
