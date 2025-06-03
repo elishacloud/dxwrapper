@@ -182,7 +182,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 			}
 
 			// Should not need to copy from vertex buffer??
-			//ConvertVertices((D3DLVERTEX*)VertexData.data(), (D3DLVERTEX9*)pData, VBDesc.dwNumVertices);
+			//ConvertLVertex((D3DLVERTEX*)VertexData.data(), (D3DLVERTEX9*)pData, VBDesc.dwNumVertices);
 		}
 		else
 		{
@@ -215,7 +215,7 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 		// Handle D3DFVF_LVERTEX
 		if (VBDesc.dwFVF == D3DFVF_LVERTEX && LastLockAddr && !(LastLockFlags & DDLOCK_READONLY))
 		{
-			ConvertVertices((D3DLVERTEX9*)LastLockAddr, (D3DLVERTEX*)VertexData.data(), VBDesc.dwNumVertices);
+			ConvertLVertex((D3DLVERTEX9*)LastLockAddr, (D3DLVERTEX*)VertexData.data(), VBDesc.dwNumVertices);
 		}
 
 		HRESULT hr = d3d9VertexBuffer->Unlock();
@@ -648,14 +648,19 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_CLIP' not handled!");
 	}
-	if (dwVertexOp & D3DVOP_LIGHT)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_LIGHT' not handled!");
-	}
 	if (dwVertexOp & D3DVOP_EXTENTS)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_EXTENTS' not handled!");
 	}
+
+	// Check the dwDestIndex and dwCount to make sure they won't cause an overload
+	DWORD DestNumVertices = VBDesc.dwNumVertices;
+	if (dwDestIndex > DestNumVertices)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: destination vertex index is too large: " << DestNumVertices << " -> " << dwDestIndex);
+		return D3DERR_INVALIDVERTEXTYPE;
+	}
+	dwCount = min(dwCount, DestNumVertices - dwDestIndex);
 
 	// Get and verify FVF
 	DWORD SrcFVF = dwSrcVertexTypeDesc;
@@ -668,29 +673,112 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	UINT SrcStride = GetVertexStride(SrcFVF);
 	UINT DestStride = GetVertexStride(DestFVF);
 
-	// Check the dwDestIndex and dwCount to make sure they won't cause an overload
-	DWORD DestNumVertices = VBDesc.dwNumVertices;
-	if (dwDestIndex > DestNumVertices)
+	DWORD SrcPosFVF = (SrcFVF & D3DFVF_POSITION_MASK_9);
+	DWORD DestPosFVF = (DestFVF & D3DFVF_POSITION_MASK_9);
+
+	if (SrcPosFVF == D3DFVF_XYZRHW && DestPosFVF != D3DFVF_XYZRHW)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: destination vertex index is too large: " <<
-			DestNumVertices << " -> " << dwDestIndex);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid FVF conversion: Cannot convert from D3DFVF_XYZRHW to non-RHW format: " << Logging::hex(SrcFVF) << " -> " << Logging::hex(DestFVF));
 		return D3DERR_INVALIDVERTEXTYPE;
 	}
-	dwCount = min(dwCount, DestNumVertices - dwDestIndex);
 
-	D3DMATRIX matWorldViewProj = {};
+	bool DoNotCopyData = (dwFlags & D3DPV_DONOTCOPYDATA);
+	bool IsDiffuseFVF = (DestFVF & D3DFVF_DIFFUSE);
+	bool IsSpecularFVF = (DestFVF & D3DFVF_SPECULAR);
+	bool IsLight = (IsDiffuseFVF || IsSpecularFVF) && (dwVertexOp & D3DVOP_LIGHT) && ((DestFVF & D3DFVF_NORMAL) || (SrcFVF & D3DFVF_NORMAL));
+
+	if ((dwVertexOp & D3DVOP_LIGHT) && !IsLight)
 	{
-		D3DMATRIX matWorld, matView, matProj, matWorldView = {};
-		if (FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_WORLD, &matWorld)) ||
-			FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_VIEW, &matView)) ||
-			FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_PROJECTION, &matProj)))
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_LIGHT' is specified but verticies don't support it: " << Logging::hex(SrcFVF) << " -> " << Logging::hex(DestFVF));
+	}
+
+	DWORD SrcPosSize = GetVertexPositionSize(SrcFVF);
+	DWORD DestPosSize = GetVertexPositionSize(DestFVF);
+
+	DWORD SrcBlendCount = GetFVFBlendCount(SrcFVF);
+	DWORD DestBlendCount = GetFVFBlendCount(DestFVF);
+
+	DWORD SrcBlendOffset = (SrcPosFVF == D3DFVF_XYZRHW) ? 4 * sizeof(float) : 3 * sizeof(float);
+	DWORD DestBlendOffset = (DestPosFVF == D3DFVF_XYZRHW) ? 4 * sizeof(float) : 3 * sizeof(float);
+
+	DWORD NormalSrcOffset = 0;
+	DWORD NormalDestOffset = 0;
+	DWORD DiffuseOffset = 0;
+	DWORD SpecularOffset = 0;
+
+	if (IsLight)
+	{
+		DWORD offset = DestPosSize;
+		if (DestFVF & D3DFVF_NORMAL)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get world, view or projection matrix!");
-			return DDERR_GENERIC;
+			NormalDestOffset = offset;
+			offset += 3 * sizeof(float);
+		}
+		if (DestFVF & D3DFVF_DIFFUSE)
+		{
+			DiffuseOffset = offset;
+			offset += sizeof(DWORD);
+		}
+		if (DestFVF & D3DFVF_SPECULAR)
+		{
+			SpecularOffset = offset;
+			offset += sizeof(DWORD);
+		}
+		if (SrcFVF & D3DFVF_NORMAL)
+		{
+			NormalDestOffset = SrcPosSize;
+		}
+	}
+
+	m_IDirect3DViewportX* pViewportX = nullptr;
+	if (IsLight)
+	{
+		pViewportX = pDirect3DDeviceX->GetCurrentViewport();
+	}
+
+	D3DMATRIX matWorld, matView, matProj;
+	if (FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_WORLD, &matWorld)) ||
+		FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_VIEW, &matView)) ||
+		FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_PROJECTION, &matProj)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get transform matrices");
+		return DDERR_GENERIC;
+	}
+
+	D3DMATRIX matWorldView = {}, matWorldViewProj = {};
+	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
+	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
+
+	// Get materal for specular
+	bool UseMaterial = false;
+	D3DMATERIAL7 mat = {};
+	if (IsLight)
+	{
+		if (SUCCEEDED(pDirect3DDeviceX->GetMaterial(&mat)))
+		{
+			UseMaterial = true;
+		}
+	}
+
+	// Cache light data once
+	std::vector<D3DLIGHT> cachedLights;
+	if (IsLight)
+	{
+		// Try getting lights from viewport
+		if (pViewportX)
+		{
+			pViewportX->GetAttachedLights(cachedLights, pDirect3DDeviceX);
+		}
+		// Try getting lights from device
+		else
+		{
+			pDirect3DDeviceX->GetAttachedLights(cachedLights);
 		}
 
-		// Multiply the world, view and projection matrices
-		D3DXMatrixMultiply(&matWorldViewProj, D3DXMatrixMultiply(&matWorldView, &matWorld, &matView), &matProj);
+		if (cachedLights.empty())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: no attached lights found!");
+		}
 	}
 
 	void* pSrcVertices = lpSrcBuffer;
@@ -703,80 +791,127 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 		return DDERR_GENERIC;
 	}
 
-	bool CopyRHW = (((SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZRHW && (DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZRHW) ||
-		((SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZW && (DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZW));
-
 	BYTE* pSrcVertex = (BYTE*)pSrcVertices + (dwSrcIndex * SrcStride);
 	BYTE* pDestVertex = (BYTE*)pDestVertices + (dwDestIndex * DestStride);
 
-	// Copy only position data
-	if ((dwFlags & D3DPV_DONOTCOPYDATA) && !CopyRHW)
-	{
-		for (UINT i = 0; i < dwCount; ++i)
-		{
-			// Apply the transformation to the position
-			D3DXVec3TransformCoord(reinterpret_cast<D3DXVECTOR3*>(pDestVertex), reinterpret_cast<D3DXVECTOR3*>(pSrcVertex), &matWorldViewProj);
-
-			// Move to the next vertex
-			pSrcVertex = pSrcVertex + SrcStride;
-			pDestVertex = pDestVertex + DestStride;
-		}
-	}
-	// Copy position and RHW/W data
-	else if (dwFlags & D3DPV_DONOTCOPYDATA)
-	{
-		for (UINT i = 0; i < dwCount; ++i)
-		{
-			// Apply the transformation to the position
-			D3DXVec3TransformCoord(reinterpret_cast<D3DXVECTOR3*>(pDestVertex), reinterpret_cast<D3DXVECTOR3*>(pSrcVertex), &matWorldViewProj);
-
-			// Copy RHW/W data
-			*(float*)(pDestVertex + 3 * sizeof(float)) = *(float*)(pSrcVertex + 3 * sizeof(float));
-
-			// Move to the next vertex
-			pSrcVertex = pSrcVertex + SrcStride;
-			pDestVertex = pDestVertex + DestStride;
-		}
-	}
 	// Copy all data
-	else if (SrcFVF == DestFVF)
+	if (SrcFVF == DestFVF && !DoNotCopyData)
 	{
 		memcpy(pDestVertex, pSrcVertex, DestStride * dwCount);
-
-		for (UINT i = 0; i < dwCount; ++i)
-		{
-			// Apply the transformation to the position
-			D3DXVec3TransformCoord(reinterpret_cast<D3DXVECTOR3*>(pDestVertex), reinterpret_cast<D3DXVECTOR3*>(pSrcVertex), &matWorldViewProj);
-
-			// Move to the next vertex
-			pSrcVertex = pSrcVertex + SrcStride;
-			pDestVertex = pDestVertex + DestStride;
-		}
 	}
-	// Copy all data converting vertices
-	else
+
+	for (UINT i = 0; i < dwCount; ++i)
 	{
-		for (UINT i = 0; i < dwCount; ++i)
+		// Convert and copy all vertex data
+		if (SrcFVF != DestFVF && !DoNotCopyData)
 		{
-			// Convert and copy all vertex data
 			ConvertVertex(pDestVertex, DestFVF, pSrcVertex, SrcFVF);
-
-			// Apply the transformation to the position
-			D3DXVec3TransformCoord(reinterpret_cast<D3DXVECTOR3*>(pDestVertex), reinterpret_cast<D3DXVECTOR3*>(pSrcVertex), &matWorldViewProj);
-
-			// Move to the next vertex
-			pSrcVertex = pSrcVertex + SrcStride;
-			pDestVertex = pDestVertex + DestStride;
 		}
+
+		D3DXVECTOR3& SrcVertex3 = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex);
+		D3DXVECTOR4& SrcVertex4 = *reinterpret_cast<D3DXVECTOR4*>(pSrcVertex);
+		D3DXVECTOR3& DestVertex3 = *reinterpret_cast<D3DXVECTOR3*>(pDestVertex);
+		D3DXVECTOR4& DestVertex4 = *reinterpret_cast<D3DXVECTOR4*>(pDestVertex);
+
+		// Apply the transformation to the position
+		if (DestPosFVF == D3DFVF_XYZ)
+		{
+			D3DXVec3TransformCoord(&DestVertex3, &SrcVertex3, &matWorldViewProj);
+		}
+		else if (DestPosFVF == D3DFVF_XYZW)
+		{
+			if (SrcPosFVF == D3DFVF_XYZW)
+			{
+				D3DXVec4Transform(&DestVertex4, &SrcVertex4, &matWorldViewProj);
+			}
+			else // D3DFVF_XYZ and other formats
+			{
+				D3DXVec3TransformCoord(&DestVertex3, &SrcVertex3, &matWorldViewProj);
+				DestVertex4.w = 1.0f;
+			}
+		}
+		else if (DestPosFVF == D3DFVF_XYZRHW)
+		{
+			float& DestVertex_RHW = *(float*)(pDestVertex + 3 * sizeof(float));
+
+			switch (SrcPosFVF)
+			{
+			case D3DFVF_XYZW:
+			{
+				D3DXVec4Transform(&DestVertex4, &SrcVertex4, &matWorldViewProj);
+				if (DestVertex4.w != 0.0f)
+				{
+					DestVertex3.x = DestVertex4.x / DestVertex4.w;
+					DestVertex3.y = DestVertex4.y / DestVertex4.w;
+					DestVertex3.z = DestVertex4.z / DestVertex4.w;
+					DestVertex_RHW = 1.0f / DestVertex4.w; // RHW
+				}
+				break;
+			}
+			case D3DFVF_XYZRHW:
+			{
+				// Just copy XYZ and RHW directly — no transform
+				DestVertex4 = SrcVertex4;
+				break;
+			}
+			default: // Assume untransformed
+				D3DXVec3TransformCoord(&DestVertex3, &SrcVertex3, &matWorldViewProj);
+				DestVertex_RHW = 1.0f; // RHW = 1.0 as fallback
+				break;
+			}
+		}
+		else
+		{
+			// Fallback: bone-blended formats etc. Just transform position
+			D3DXVec3TransformCoord(&DestVertex3, &SrcVertex3, &matWorldViewProj);
+
+			// Copy over multimatrix vertex blending operation weighting (beta) values
+			if (DestBlendCount)
+			{
+				if (SrcBlendCount < DestBlendCount)
+				{
+					ZeroMemory(pDestVertex + DestBlendOffset, DestBlendCount * sizeof(float));
+				}
+				if (SrcBlendCount)
+				{
+					memcpy(pDestVertex + DestBlendOffset, pSrcVertex + SrcBlendOffset, min(SrcBlendCount, DestBlendCount) * sizeof(float));
+				}
+			}
+		}
+
+		// Perform lighting if required
+		if (IsLight)
+		{
+			D3DXVECTOR3 Pos = *reinterpret_cast<const D3DXVECTOR3*>(pDestVertex);
+			D3DXVECTOR3 Normal = NormalSrcOffset ?
+				*reinterpret_cast<const D3DXVECTOR3*>(pSrcVertex + NormalSrcOffset) :
+				*reinterpret_cast<const D3DXVECTOR3*>(pDestVertex + NormalDestOffset);
+
+			D3DCOLOR Diffuse = 0, Specular = 0;
+			m_IDirect3DViewportX::ComputeLightColor(Diffuse, Specular, Pos, Normal, cachedLights, matWorldView, matWorld, matView, mat, UseMaterial);
+
+			if (IsDiffuseFVF)
+			{
+				*(D3DCOLOR*)(pDestVertex + DiffuseOffset) = Diffuse;
+			}
+			if (IsSpecularFVF)
+			{
+				*(D3DCOLOR*)(pDestVertex + SpecularOffset) = Specular;
+			}
+		}
+
+		// Move to the next vertex
+		pSrcVertex += SrcStride;
+		pDestVertex += DestStride;
 	}
 
 	// Handle D3DFVF_LVERTEX
 	if (VBDesc.dwFVF == D3DFVF_LVERTEX)
 	{
 		BYTE* pDestData = VertexData.data() + (dwDestIndex * LVERTEX_SIZE);
-		BYTE* pSrcData = (BYTE*)pDestVertices + (dwDestIndex * DestStride);		// Destination vertex is the source for this copy
+		BYTE* pSrcData = reinterpret_cast<BYTE*>(pDestVertices)+(dwDestIndex * DestStride);		// Destination vertex is the source for this copy
 
-		ConvertVertices((D3DLVERTEX*)pDestData, (D3DLVERTEX9*)pSrcData, dwCount);
+		ConvertLVertex(reinterpret_cast<D3DLVERTEX*>(pDestData), reinterpret_cast<D3DLVERTEX9*>(pSrcData), dwCount);
 	}
 
 	// Unlock the destination vertex buffer

@@ -5688,6 +5688,27 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags
 	}
 }
 
+void m_IDirect3DDeviceX::GetAttachedLights(std::vector<D3DLIGHT>& AttachedLightList)
+{
+	for (auto& entry : LightIndexMap)
+	{
+		// Get light data
+		D3DLIGHT light = {};
+		if (SUCCEEDED(entry.second->GetLight(&light)))
+		{
+			m_IDirect3DLight* pLightX = entry.second;
+
+			// Check if light is enabled
+			BOOL Enable = FALSE;
+			if (SUCCEEDED(GetLightEnable(pLightX, &Enable)) && Enable)
+			{
+				AttachedLightList.push_back(light);
+				continue;
+			}
+		}
+	}
+}
+
 void m_IDirect3DDeviceX::ComputeMinMaxVertex(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& minVertex, DWORD& maxVertex)
 {
 	minVertex = 0;
@@ -5732,7 +5753,7 @@ void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVerti
 	{
 		VertexCache.resize((dwVertexStart + dwVertexCount) * sizeof(D3DLVERTEX9));
 		BYTE* base = static_cast<BYTE*>(VertexCache.data());
-		ConvertVertices(reinterpret_cast<D3DLVERTEX9*>(base + (dwVertexStart * sizeof(D3DLVERTEX9))), reinterpret_cast<D3DLVERTEX*>(lpVertices), dwVertexCount);
+		ConvertLVertex(reinterpret_cast<D3DLVERTEX9*>(base + (dwVertexStart * sizeof(D3DLVERTEX9))), reinterpret_cast<D3DLVERTEX*>(lpVertices), dwVertexCount);
 
 		dwVertexTypeDesc = D3DFVF_LVERTEX9;
 		lpVertices = VertexCache.data();

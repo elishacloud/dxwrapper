@@ -364,6 +364,7 @@ public:
 
 	// Viewport functions
 	void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
+	m_IDirect3DViewportX* GetCurrentViewport() { return lpCurrentViewportX; }
 	bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
 	void ClearViewport(m_IDirect3DViewportX* lpViewportX);
 
@@ -391,6 +392,7 @@ public:
 	bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == lsMaterialHandle); }
 
 	// Light index function
+	void GetAttachedLights(std::vector<D3DLIGHT>& AttachedLightList);
 	void ClearLight(m_IDirect3DLight* lpLight);
 
 	// Functions handling the Direct3D parent interface
