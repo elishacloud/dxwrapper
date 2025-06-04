@@ -752,7 +752,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	}
 
 	// Cache light data once
-	std::vector<D3DLIGHT2> cachedLights;
+	std::vector<D3DLIGHT7> cachedLights;
 	if (IsLight)
 	{
 		pDirect3DDeviceX->GetEnabledLightList(cachedLights);
@@ -907,7 +907,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	return DD_OK;
 }
 
-void m_IDirect3DVertexBufferX::ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& outSpecular, const D3DXVECTOR3& Position, const D3DXVECTOR3& Normal, const std::vector<D3DLIGHT2>& cachedLights, const D3DXMATRIX& matWorldView, const D3DMATRIX& matWorld, const D3DMATRIX& matView, const D3DMATERIAL7& mat, bool UseMaterial)
+void m_IDirect3DVertexBufferX::ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& outSpecular, const D3DXVECTOR3& Position, const D3DXVECTOR3& Normal, const std::vector<D3DLIGHT7>& cachedLights, const D3DXMATRIX& matWorldView, const D3DMATRIX& matWorld, const D3DMATRIX& matView, const D3DMATERIAL7& mat, bool UseMaterial)
 {
 	// Transform position using full world-view matrix (this is fine)
 	D3DXVECTOR3 worldPos;
@@ -1003,33 +1003,40 @@ void m_IDirect3DVertexBufferX::ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& o
 		attenuation = min(max(attenuation, 0.0f), 1.0f);
 
 		// Diffuse lighting
-		diffuse.r += light.dcvColor.r * NdotL * attenuation;
-		diffuse.g += light.dcvColor.g * NdotL * attenuation;
-		diffuse.b += light.dcvColor.b * NdotL * attenuation;
+		diffuse.r += light.dcvDiffuse.r * NdotL * attenuation;
+		diffuse.g += light.dcvDiffuse.g * NdotL * attenuation;
+		diffuse.b += light.dcvDiffuse.b * NdotL * attenuation;
 
 		// Specular lighting
-		if (UseMaterial && !(light.dwFlags & D3DLIGHT_NO_SPECULAR))
+		if (light.dcvSpecular.r != 0.0f || light.dcvSpecular.g != 0.0f || light.dcvSpecular.b != 0.0f)
 		{
-			// Transform position to view space
-			D3DXVECTOR3 viewPos;
-			D3DXVec3TransformCoord(&viewPos, &Position, &matView);
+			if (UseMaterial)
+			{
+				// Compute view direction
+				D3DXVECTOR3 viewPos;
+				D3DXVec3TransformCoord(&viewPos, &Position, &matView);
+				D3DXVECTOR3 viewDir = -viewPos;
+				D3DXVec3Normalize(&viewDir, &viewDir);
 
-			// View direction from fragment to camera
-			D3DXVECTOR3 viewDir = -viewPos;
-			D3DXVec3Normalize(&viewDir, &viewDir);
+				D3DXVec3Normalize(&toLight, &toLight);
+				D3DXVECTOR3 reflectDir = worldNormal * 2.0f * NdotL - toLight;
+				D3DXVec3Normalize(&reflectDir, &reflectDir);
 
-			D3DXVec3Normalize(&toLight, &toLight);
+				float RdotV = max(0.0f, D3DXVec3Dot(&reflectDir, &viewDir));
+				float shininess = max(1.0f, mat.power);
+				float spec = powf(RdotV, shininess) * attenuation;
 
-			D3DXVECTOR3 reflectDir = worldNormal * 2.0f * NdotL - toLight;
-			D3DXVec3Normalize(&reflectDir, &reflectDir);
-
-			float RdotV = max(0.0f, D3DXVec3Dot(&reflectDir, &viewDir));
-			float shininess = UseMaterial ? mat.power : 4.0f;
-			float spec = powf(RdotV, shininess) * attenuation;
-
-			specular.r += mat.specular.r * spec;
-			specular.g += mat.specular.g * spec;
-			specular.b += mat.specular.b * spec;
+				specular.r += mat.specular.r * light.dcvSpecular.r * spec;
+				specular.g += mat.specular.g * light.dcvSpecular.g * spec;
+				specular.b += mat.specular.b * light.dcvSpecular.b * spec;
+			}
+			else
+			{
+				// No material; use light's specular with NdotL
+				specular.r += light.dcvSpecular.r * NdotL * attenuation;
+				specular.g += light.dcvSpecular.g * NdotL * attenuation;
+				specular.b += light.dcvSpecular.b * NdotL * attenuation;
+			}
 		}
 	}
 

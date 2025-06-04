@@ -163,7 +163,7 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Light functions
-	void GetEnabledLightList(std::vector<D3DLIGHT2>& AttachedLightList, m_IDirect3DDeviceX* pDirect3DDeviceX);
+	void GetEnabledLightList(std::vector<D3DLIGHT7>& AttachedLightList, m_IDirect3DDeviceX* pDirect3DDeviceX);
 	bool IsLightAttached(m_IDirect3DLight* lpLight);
 	void ClearLight(m_IDirect3DLight* lpLight);
 };

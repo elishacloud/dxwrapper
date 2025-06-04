@@ -127,6 +127,7 @@ private:
 
 	// Light index map
 	std::unordered_map<DWORD, m_IDirect3DLight*> LightIndexMap;
+	std::unordered_map<DWORD, D3DLIGHT7> LightIndexMap7;
 
 	// ExecuteBuffer array
 	std::vector<m_IDirect3DExecuteBuffer*> ExecuteBufferList;
@@ -383,7 +384,7 @@ public:
 
 	// Light index function
 	bool IsLightInUse(m_IDirect3DLight* pLightX);
-	void GetEnabledLightList(std::vector<D3DLIGHT2>& AttachedLightList);
+	void GetEnabledLightList(std::vector<D3DLIGHT7>& AttachedLightList);
 	void ClearLight(m_IDirect3DLight* lpLight);
 
 	// Functions handling the Direct3D parent interface

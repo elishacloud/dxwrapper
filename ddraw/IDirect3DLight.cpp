@@ -198,7 +198,7 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 				tmpLight2.dwFlags &= ~D3DLIGHT_NO_SPECULAR;
 			}
 		}
-		// Default to active
+		// Default to active after light has been set
 		else if (!LightSet)
 		{
 			tmpLight2.dwFlags |= D3DLIGHT_ACTIVE;
@@ -227,10 +227,10 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 
 		LightSet = true;
 
-		// Only save D3DLIGHT struct without dwFlags, not D3DLIGHT2
+		// Only copy D3DLIGHT struct without dwFlags, not D3DLIGHT2
 		memcpy(&Light, &tmpLight2, sizeof(D3DLIGHT));
 		Light.dwSize = sizeof(Light);
-		Light.dwFlags = tmpLight2.dwFlags;
+		Light.dwFlags = tmpLight2.dwFlags;		// Add flags manually
 
 		return D3D_OK;
 	}

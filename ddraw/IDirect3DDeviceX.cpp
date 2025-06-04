@@ -4123,6 +4123,9 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 
 		if (SUCCEEDED(hr))
 		{
+			// Store light in map
+			LightIndexMap7[dwLightIndex] = *lpLight;
+
 #ifdef ENABLE_DEBUGOVERLAY
 			if (Config.EnableImgui)
 			{
@@ -5756,23 +5759,17 @@ bool m_IDirect3DDeviceX::IsLightInUse(m_IDirect3DLight* pLightX)
 	return false;
 }
 
-void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<D3DLIGHT2>& AttachedLightList)
+void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<D3DLIGHT7>& AttachedLightList)
 {
 	if (ProxyDirectXVersion == 7)
 	{
-		for (auto& entry : LightIndexMap)
+		for (auto& entry : LightIndexMap7)
 		{
-			D3DLIGHT2 light = {};
-			light.dwSize = sizeof(D3DLIGHT2);
-
-			// Get light data
-			if (SUCCEEDED(entry.second->GetLight(reinterpret_cast<LPD3DLIGHT>(&light))))
+			// Check if light is enabled
+			BOOL Enabled = FALSE;
+			if (SUCCEEDED(GetLightEnable(entry.first, &Enabled)) && Enabled)
 			{
-				// Check if light is enabled
-				if (light.dwFlags & D3DLIGHT_ACTIVE)
-				{
-					AttachedLightList.push_back(light);
-				}
+				AttachedLightList.push_back(entry.second);
 			}
 		}
 	}

@@ -459,7 +459,7 @@ HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA
 		}
 
 		// Cache light data once
-		std::vector<D3DLIGHT2> cachedLights;
+		std::vector<D3DLIGHT7> cachedLights;
 		GetEnabledLightList(cachedLights, pDirect3DDeviceX);
 
 		if (cachedLights.empty())
@@ -1137,7 +1137,7 @@ void m_IDirect3DViewportX::ClearCurrentViewport(m_IDirect3DDeviceX* pDirect3DDev
 	}
 }
 
-void m_IDirect3DViewportX::GetEnabledLightList(std::vector<D3DLIGHT2>& AttachedLightList, m_IDirect3DDeviceX* pDirect3DDeviceX)
+void m_IDirect3DViewportX::GetEnabledLightList(std::vector<D3DLIGHT7>& AttachedLightList, m_IDirect3DDeviceX* pDirect3DDeviceX)
 {
 	if (!pDirect3DDeviceX)
 	{
@@ -1146,16 +1146,19 @@ void m_IDirect3DViewportX::GetEnabledLightList(std::vector<D3DLIGHT2>& AttachedL
 
 	for (auto& entry : AttachedLights)
 	{
-		D3DLIGHT2 light = {};
-		light.dwSize = sizeof(D3DLIGHT2);
+		D3DLIGHT2 Light2 = {};
+		Light2.dwSize = sizeof(Light2);
 
 		// Get light data
-		if (SUCCEEDED(entry->GetLight(reinterpret_cast<LPD3DLIGHT>(&light))))
+		if (SUCCEEDED(entry->GetLight(reinterpret_cast<LPD3DLIGHT>(&Light2))))
 		{
 			// Check if light is enabled
-			if (light.dwFlags & D3DLIGHT_ACTIVE)
+			if (Light2.dwFlags & D3DLIGHT_ACTIVE)
 			{
-				AttachedLightList.push_back(light);
+				D3DLIGHT7 Light7;
+				ConvertLight(Light7, *reinterpret_cast<LPD3DLIGHT>(&Light2));
+
+				AttachedLightList.push_back(Light7);
 			}
 		}
 	}

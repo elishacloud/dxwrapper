@@ -24,13 +24,30 @@ void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize);
 		return;
 	}
-	const float DiffuseFactor = 1.0f;
-	const float SpecularFactor = 0.1f;
-	const float AmbientFactor = 0.3f;
+
+	// Apply specular flag
+	bool HasSpecular = true;
+	if (Light.dwSize == sizeof(D3DLIGHT2))
+	{
+		const D3DLIGHT2& Light2 = *reinterpret_cast<const D3DLIGHT2*>(&Light);
+
+		if (Light2.dwFlags & D3DLIGHT_NO_SPECULAR)
+		{
+			HasSpecular = false;
+		}
+	}
+
 	Light7.dltType = Light.dltType;
-	Light7.dcvDiffuse = { Light.dcvColor.r * DiffuseFactor, Light.dcvColor.g * DiffuseFactor, Light.dcvColor.b * DiffuseFactor, Light.dcvColor.a };
-	Light7.dcvSpecular = { Light.dcvColor.r * SpecularFactor, Light.dcvColor.g * SpecularFactor, Light.dcvColor.b * SpecularFactor, Light.dcvColor.a };
-	Light7.dcvAmbient = { Light.dcvColor.r * AmbientFactor, Light.dcvColor.g * AmbientFactor, Light.dcvColor.b * AmbientFactor, Light.dcvColor.a };
+	Light7.dcvDiffuse = Light.dcvColor;
+	if (HasSpecular)
+	{
+		Light7.dcvSpecular = { 1.0f, 1.0f, 1.0f, 1.0f };
+	}
+	else
+	{
+		Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 0.0f };
+	}
+	Light7.dcvAmbient = { 0.0f, 0.0f, 0.0f, 0.0f };
 	Light7.dvPosition = Light.dvPosition;
 	Light7.dvDirection = Light.dvDirection;
 	Light7.dvRange = Light.dvRange;
@@ -40,13 +57,6 @@ void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 	Light7.dvAttenuation2 = Light.dvAttenuation2;
 	Light7.dvTheta = Light.dvTheta;
 	Light7.dvPhi = Light.dvPhi;
-
-	// Apply additional flags
-	if (Light.dwSize == sizeof(D3DLIGHT2) && (((LPD3DLIGHT2)&Light)->dwFlags & D3DLIGHT_NO_SPECULAR))
-	{
-		// No specular reflection
-		Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 1.0f };
-	}
 }
 
 void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7)
