@@ -271,16 +271,6 @@ IDirect3D9* WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	if (Config.D3d9to9Ex)
-	{
-		IDirect3D9Ex* PD3DEx = nullptr;
-		HRESULT hr = d9_Direct3DCreate9Ex(SDKVersion, &PD3DEx);
-		if (SUCCEEDED(hr))
-		{
-			return PD3DEx;
-		}
-	}
-
 	DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9Proc, Direct3DCreate9, Direct3DCreate9_out);
 
 	if (!Direct3DCreate9)
@@ -308,6 +298,23 @@ IDirect3D9* WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 	if (Config.DXPrimaryEmulation[AppCompatDataType.DisableMaxWindowedMode])
 	{
 		Direct3D9DisableMaximizedWindowedMode();
+	}
+
+	if (Config.D3d9to9Ex)
+	{
+		DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9ExProc, Direct3DCreate9Ex, Direct3DCreate9Ex_out);
+
+		if (Direct3DCreate9Ex)
+		{
+			IDirect3D9Ex* pD3D9Ex = nullptr;
+
+			LOG_LIMIT(3, "Redirecting 'Direct3DCreate9Ex' ...");
+
+			if (SUCCEEDED(Direct3DCreate9Ex(SDKVersion, &pD3D9Ex)))
+			{
+				return new m_IDirect3D9Ex(pD3D9Ex, IID_IDirect3D9Ex);
+			}
+		}
 	}
 
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9' ...");
