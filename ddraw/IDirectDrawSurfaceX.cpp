@@ -517,14 +517,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			lpDDSrcSurfaceX = this;
 		}
 
-		// Check depth stencil Blt
-		if ((!(dwFlags & DDBLT_DEPTHFILL) && (IsDepthStencil() || lpDDSrcSurfaceX->IsDepthStencil())) &&
-			(IsDepthStencil() != lpDDSrcSurfaceX->IsDepthStencil()))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: mismatched depth stencil surface: " << lpDDSrcSurfaceX->surface.Format << " -> " << surface.Format);
-			return DDERR_INVALIDPARAMS;
-		}
-
 		// Check for device interface
 		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
 		HRESULT s_hr = (lpDDSrcSurfaceX == this) ? c_hr : lpDDSrcSurfaceX->CheckInterface(__FUNCTION__, true, true, true);
@@ -7123,6 +7115,12 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		return DDERR_INVALIDPARAMS;
 	}
 
+	// zBuffer fill value
+	float depthValue = (DepthColor & 0xFFFF0000) ?
+		static_cast<float>(DepthColor) / static_cast<float>(0xFFFFFFFF) :
+		static_cast<float>(DepthColor & 0xFFFF) / static_cast<float>(0xFFFF);
+	depthValue = min(max(depthValue, 0.0f), 1.0f);	// Clamp between [0.0f-1.0f]
+
 	// Check conditions for copying Z-buffer
 	if (!DepthFill)
 	{
@@ -7130,6 +7128,13 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		if (pSourceSurface == this)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: source and destination surfaces cannot be the same!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Check if source and dest surfaces are the same
+		if (pSourceSurface->surface.Format != surface.Format)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: source and destination surfaces must be the same format: " << pSourceSurface->surface.Format << " -> " << surface.Format);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -7172,7 +7177,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 	{
 		if (DepthFill)
 		{
-			return ColorFill(&DestRect, DepthColor, 0);
+			return ColorFill(&DestRect, GetDepthFillValue(depthValue, surface.Format), 0);
 		}
 		else
 		{
@@ -7256,8 +7261,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		{
 			pDestRect = &DestRect;
 		}
-		
-		hr = (*d3d9Device)->Clear(pDestRect ? 1 : 0, (D3DRECT*)pDestRect, D3DCLEAR_ZBUFFER, 0, ConvertDepthToFloat(DepthColor, surfaceDesc2.ddpfPixelFormat.dwZBitMask), 0);
+
+		hr = (*d3d9Device)->Clear(pDestRect ? 1 : 0, (D3DRECT*)pDestRect, D3DCLEAR_ZBUFFER, 0, depthValue, 0);
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to fill depth buffer: " << (DDERR)hr);
@@ -7270,13 +7275,13 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		switch (pSourceSurface->surface.BitCount)
 		{
 		case 16:
-			hr = ComplexZBufferCopy<WORD>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, pSourceSurface->surfaceDesc2.ddpfPixelFormat.dwZBitMask);
+			hr = ComplexZBufferCopy<WORD>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, surface.Format);
 			break;
 		case 24:
-			hr = ComplexZBufferCopy<TRIBYTE>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, pSourceSurface->surfaceDesc2.ddpfPixelFormat.dwZBitMask);
+			hr = ComplexZBufferCopy<TRIBYTE>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, surface.Format);
 			break;
 		case 32:
-			hr = ComplexZBufferCopy<DWORD>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, pSourceSurface->surfaceDesc2.ddpfPixelFormat.dwZBitMask);
+			hr = ComplexZBufferCopy<DWORD>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, surface.Format);
 			break;
 		}
 	}

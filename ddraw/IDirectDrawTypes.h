@@ -258,9 +258,9 @@ template <typename T>
 void SimpleColorKeyCopy(T ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
 template <typename T>
 void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
-float ConvertDepthToFloat(DWORD DepthColor, DWORD ZBitMask);
+DWORD GetDepthFillValue(float depthValue, D3DFORMAT Format);
 template <typename T>
-HRESULT ComplexZBufferCopy(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, DWORD ZBufferMask);
+HRESULT ComplexZBufferCopy(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format);
 DWORD ComputeRND(DWORD Seed, DWORD Num);
 bool DoRectsMatch(const RECT& lhs, const RECT& rhs);
 bool GetOverlappingRect(const RECT& rect1, const RECT& rect2, RECT& outOverlapRect);
@@ -280,7 +280,6 @@ DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount);
 DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height);
 DWORD GetBitCount(const DDPIXELFORMAT& ddpfPixelFormat);
 DWORD GetBitCount(D3DFORMAT Format);
-float ConvertDepthValue(DWORD dwFillDepth, D3DFORMAT Format);
 DWORD ComputePitch(D3DFORMAT Format, DWORD Width, DWORD Height);
 DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch);
 DWORD GetARGBColorKey(DWORD ColorKey, const DDPIXELFORMAT& ddpfPixelFormat);
