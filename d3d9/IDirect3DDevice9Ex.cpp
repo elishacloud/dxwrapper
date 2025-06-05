@@ -1430,14 +1430,13 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 			{
 				// Backup depth stencil
 				ComPtr<IDirect3DSurface9> pOldDepthStencil;
-				ProxyInterface->SetDepthStencilSurface(pOldDepthStencil.Get());
+				ProxyInterface->GetDepthStencilSurface(pOldDepthStencil.GetAddressOf());
 
 				// Set back buffer as render target
 				ComPtr<IDirect3DSurface9> pOldRenderTarget, pBackBuffer;
 				if (SUCCEEDED(ProxyInterface->GetRenderTarget(0, pOldRenderTarget.GetAddressOf())) &&
 					SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))
 				{
-					ProxyInterface->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
 					ProxyInterface->SetDepthStencilSurface(nullptr);
 					ProxyInterface->SetRenderTarget(0, pBackBuffer.Get());
 				}
