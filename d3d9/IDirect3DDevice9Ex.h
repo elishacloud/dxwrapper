@@ -119,6 +119,8 @@ private:
 	HRESULT CallBeginScene();
 	HRESULT CallEndScene();
 
+	inline bool RequirePresentHandling() const { return (SHARED.IsGammaSet || Config.ShowFPSCounter); }
+
 	// Limit frame rate
 	void LimitFrameRate() const;
 

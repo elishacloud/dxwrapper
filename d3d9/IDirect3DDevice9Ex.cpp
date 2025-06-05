@@ -296,7 +296,6 @@ HRESULT m_IDirect3DDevice9Ex::CallEndScene()
 {
 	// clear Begin/End Scene flags
 	SHARED.IsInScene = false;
-	SHARED.BeginSceneCalled = false;
 
 #ifdef ENABLE_DEBUGOVERLAY
 	if (Config.EnableImgui && DOverlay.Getd3d9Device() == ProxyInterface)
@@ -926,12 +925,57 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		return;
 	}
 
+	// Set render states
+	ProxyInterface->SetRenderState(D3DRS_LIGHTING, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_FOGENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ZENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+	ProxyInterface->SetRenderState(D3DRS_CLIPPING, FALSE);
+
+	// Set texture states
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+
+	// Set sampler states
+	for (UINT x = 0; x < 2; x++)
+	{
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+	}
+
+	// Set viewport
+	D3DVIEWPORT9 Viewport = { 0, 0, static_cast<DWORD>(SHARED.BufferWidth), static_cast<DWORD>(SHARED.BufferHeight), 0.0f, 1.0f };
+	ProxyInterface->SetViewport(&Viewport);
+
+	// Set trasform
+	D3DMATRIX identityMatrix = {
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+	ProxyInterface->SetTransform(D3DTS_WORLD, &identityMatrix);
+	ProxyInterface->SetTransform(D3DTS_VIEW, &identityMatrix);
+	ProxyInterface->SetTransform(D3DTS_PROJECTION, &identityMatrix);
+
 	// Clear render target
 	ProxyInterface->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
 
 	// Set texture
 	ProxyInterface->SetTexture(0, SHARED.ScreenCopyTexture);
 	ProxyInterface->SetTexture(1, SHARED.GammaLUTTexture);
+
+	// Clear textures
+	for (int x = 2; x < MAX_TEXTURE_STAGES; x++)
+	{
+		ProxyInterface->SetTexture(x, nullptr);
+	}
 
 	// Set shader
 	ProxyInterface->SetPixelShader(pShader);
@@ -968,7 +1012,7 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 
 void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 {
-	ScopedCriticalSection ThreadLock(&SHARED.d9cs);
+	ScopedCriticalSection ThreadLock(&SHARED.d9cs, RequirePresentHandling());
 
 	if (SHARED.DontReleaseResources)
 	{
@@ -1366,7 +1410,7 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 {
 	bool CalledBeginScene = false;
 
-	if (SHARED.IsGammaSet || Config.ShowFPSCounter)
+	if (RequirePresentHandling())
 	{
 		ScopedCriticalSection ThreadLock(&SHARED.d9cs);
 		ScopedFlagSet AutoSet(SHARED.DontReleaseResources);
@@ -1374,6 +1418,7 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 		// Create state block
 		if (SHARED.pStateBlock || SUCCEEDED(ProxyInterface->CreateStateBlock(D3DSBT_ALL, &SHARED.pStateBlock)))
 		{
+			// Begin scene
 			if (!Config.ForceSingleBeginEndScene || !SHARED.BeginSceneCalled)
 			{
 				CalledBeginScene = true;
@@ -1383,66 +1428,12 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 			// Capture modified state
 			SHARED.pStateBlock->Capture();
 
-			// Set render states
-			ProxyInterface->SetRenderState(D3DRS_LIGHTING, FALSE);
-			ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-			ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-			ProxyInterface->SetRenderState(D3DRS_FOGENABLE, FALSE);
-			ProxyInterface->SetRenderState(D3DRS_ZENABLE, FALSE);
-			ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-			ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, FALSE);
-			ProxyInterface->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-			ProxyInterface->SetRenderState(D3DRS_CLIPPING, FALSE);
-
-			// Set texture states
-			ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-			ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-			ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
-			ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-
-			// Set sampler states
-			for (UINT x = 0; x < 2; x++)
-			{
-				ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-				ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
-			}
-
-			// Set viewport
-			D3DVIEWPORT9 Viewport = { 0, 0, static_cast<DWORD>(SHARED.BufferWidth), static_cast<DWORD>(SHARED.BufferHeight), 0.0f, 1.0f };
-			ProxyInterface->SetViewport(&Viewport);
-
-			// Set trasform
-			D3DMATRIX identityMatrix = {
-				1.0f, 0.0f, 0.0f, 0.0f,
-				0.0f, 1.0f, 0.0f, 0.0f,
-				0.0f, 0.0f, 1.0f, 0.0f,
-				0.0f, 0.0f, 0.0f, 1.0f
-			};
-			ProxyInterface->SetTransform(D3DTS_WORLD, &identityMatrix);
-			ProxyInterface->SetTransform(D3DTS_VIEW, &identityMatrix);
-			ProxyInterface->SetTransform(D3DTS_PROJECTION, &identityMatrix);
-
-			// Set shaders
-			ProxyInterface->SetPixelShader(nullptr);
-			ProxyInterface->SetVertexShader(nullptr);
-
-			// Set textures
-			for (int x = 0; x < 8; x++)
-			{
-				ProxyInterface->SetTexture(x, nullptr);
-			}
-
-			// Backup the current render target
-			ComPtr<IDirect3DSurface9> pOldRenderTarget;
-			if (SUCCEEDED(ProxyInterface->GetRenderTarget(0, pOldRenderTarget.GetAddressOf())))
+			// Set back buffer as render target
 			{
 				ComPtr<IDirect3DSurface9> pBackBuffer;
 				if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))
 				{
-					if (pOldRenderTarget.Get() != pBackBuffer.Get())
-					{
-						ProxyInterface->SetRenderTarget(0, pBackBuffer.Get());
-					}
+					ProxyInterface->SetRenderTarget(0, pBackBuffer.Get());
 				}
 			}
 
@@ -1463,12 +1454,6 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 				DrawFPS(static_cast<float>(SHARED.AverageFPSCounter), rect, Config.ShowFPSCounter);
 			}
 
-			// Restore render target
-			if (pOldRenderTarget)
-			{
-				ProxyInterface->SetRenderTarget(0, pOldRenderTarget.Get());
-			}
-
 			// Apply state block
 			SHARED.pStateBlock->Apply();
 		}
@@ -1478,6 +1463,7 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 	{
 		CallEndScene();
 	}
+	SHARED.BeginSceneCalled = false;
 
 	if (Config.LimitPerFrameFPS)
 	{
