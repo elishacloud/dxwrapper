@@ -1287,7 +1287,6 @@ HRESULT m_IDirect3DDevice9Ex::LightEnable(DWORD LightIndex, BOOL bEnable)
 
 HRESULT m_IDirect3DDevice9Ex::SetLight(DWORD Index, CONST D3DLIGHT9 *pLight)
 {
-
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->SetLight(Index, pLight);
@@ -1428,30 +1427,49 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 			// Capture modified state
 			SHARED.pStateBlock->Capture();
 
-			// Set back buffer as render target
 			{
-				ComPtr<IDirect3DSurface9> pBackBuffer;
-				if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))
+				// Backup depth stencil
+				ComPtr<IDirect3DSurface9> pOldDepthStencil;
+				ProxyInterface->SetDepthStencilSurface(pOldDepthStencil.Get());
+
+				// Set back buffer as render target
+				ComPtr<IDirect3DSurface9> pOldRenderTarget, pBackBuffer;
+				if (SUCCEEDED(ProxyInterface->GetRenderTarget(0, pOldRenderTarget.GetAddressOf())) &&
+					SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))
 				{
+					ProxyInterface->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+					ProxyInterface->SetDepthStencilSurface(nullptr);
 					ProxyInterface->SetRenderTarget(0, pBackBuffer.Get());
 				}
-			}
 
-			// Apply brightness level
-			if (SHARED.IsGammaSet)
-			{
-				ApplyBrightnessLevel();
-			}
-
-			// Draw FPS counter to screen
-			if (Config.ShowFPSCounter)
-			{
-				RECT rect = { 0, 0, SHARED.BufferWidth, SHARED.BufferHeight };
-				if (SHARED.IsDirectDrawDevice && SHARED.IsWindowMode)
+				// Apply brightness level
+				if (SHARED.IsGammaSet)
 				{
-					GetClientRect(SHARED.DeviceWindow, &rect);
+					ApplyBrightnessLevel();
 				}
-				DrawFPS(static_cast<float>(SHARED.AverageFPSCounter), rect, Config.ShowFPSCounter);
+
+				// Draw FPS counter to screen
+				if (Config.ShowFPSCounter)
+				{
+					RECT rect = { 0, 0, SHARED.BufferWidth, SHARED.BufferHeight };
+					if (SHARED.IsDirectDrawDevice && SHARED.IsWindowMode)
+					{
+						GetClientRect(SHARED.DeviceWindow, &rect);
+					}
+					DrawFPS(static_cast<float>(SHARED.AverageFPSCounter), rect, Config.ShowFPSCounter);
+				}
+
+				// Restore render target
+				if (pOldRenderTarget.Get())
+				{
+					ProxyInterface->SetRenderTarget(0, pOldRenderTarget.Get());
+				}
+
+				// Restore depth stencil
+				if (pOldDepthStencil.Get())
+				{
+					ProxyInterface->SetDepthStencilSurface(pOldDepthStencil.Get());
+				}
 			}
 
 			// Apply state block
