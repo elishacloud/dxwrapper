@@ -432,8 +432,8 @@ public:
 	STDMETHOD(SetPrivateData)(THIS_ REFGUID, LPVOID, DWORD, DWORD);
 	STDMETHOD(GetPrivateData)(THIS_ REFGUID, LPVOID, LPDWORD);
 	STDMETHOD(FreePrivateData)(THIS_ REFGUID);
-	STDMETHOD(GetUniquenessValue)(THIS_ LPDWORD);
-	STDMETHOD(ChangeUniquenessValue)(THIS);
+	STDMETHOD(GetUniquenessValue)(THIS_ LPDWORD, DWORD MipMapLevel);
+	STDMETHOD(ChangeUniquenessValue)(THIS_ DWORD MipMapLevel);
 
 	/*** Moved Texture7 methods here ***/
 	STDMETHOD(SetPriority)(THIS_ DWORD);

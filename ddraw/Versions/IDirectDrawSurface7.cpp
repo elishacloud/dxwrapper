@@ -467,7 +467,7 @@ HRESULT m_IDirectDrawSurface7::GetUniquenessValue(LPDWORD a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetUniquenessValue(a);
+	return ProxyInterface->GetUniquenessValue(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface7::ChangeUniquenessValue()
@@ -476,7 +476,7 @@ HRESULT m_IDirectDrawSurface7::ChangeUniquenessValue()
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->ChangeUniquenessValue();
+	return ProxyInterface->ChangeUniquenessValue(MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface7::SetPriority(DWORD a)

@@ -2753,7 +2753,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC, DWORD MipMapLevel)
 		if (SUCCEEDED(hr))
 		{
 			// Set dirty flag
-			SetDirtyFlag(0);
+			SetDirtyFlag(MipMapLevel);
 
 			// Keep surface insync
 			EndWriteSyncSurfaces(nullptr);
@@ -3665,7 +3665,7 @@ HRESULT m_IDirectDrawSurfaceX::FreePrivateData(REFGUID guidTag)
 	return ProxyInterface->FreePrivateData(guidTag);
 }
 
-HRESULT m_IDirectDrawSurfaceX::GetUniquenessValue(LPDWORD lpValue)
+HRESULT m_IDirectDrawSurfaceX::GetUniquenessValue(LPDWORD lpValue, DWORD MipMapLevel)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -3676,14 +3676,21 @@ HRESULT m_IDirectDrawSurfaceX::GetUniquenessValue(LPDWORD lpValue)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (IsSurfaceBusy())
+		if (IsSurfaceBusy() || (MipMapLevel && MipMapLevel > MipMaps.size()))
 		{
 			// The only defined uniqueness value is 0, which indicates that the surface is likely to be changing beyond the control of DirectDraw.
 			*lpValue = 0;
 		}
 		else
 		{
-			*lpValue = UniquenessValue;
+			if (MipMapLevel == 0)
+			{
+				*lpValue = UniquenessValue;
+			}
+			else
+			{
+				*lpValue = MipMaps[MipMapLevel - 1].UniquenessValue;
+			}
 		}
 		return DD_OK;
 	}
@@ -3691,14 +3698,17 @@ HRESULT m_IDirectDrawSurfaceX::GetUniquenessValue(LPDWORD lpValue)
 	return ProxyInterface->GetUniquenessValue(lpValue);
 }
 
-HRESULT m_IDirectDrawSurfaceX::ChangeUniquenessValue()
+HRESULT m_IDirectDrawSurfaceX::ChangeUniquenessValue(DWORD MipMapLevel)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
 		// Manually updates the uniqueness value for this surface.
-		UniquenessValue++;
+		if (MipMapLevel == 0)
+		{
+			UniquenessValue++;
+		}
 		return DD_OK;
 	}
 
@@ -4278,7 +4288,8 @@ HRESULT m_IDirectDrawSurfaceX::GenerateMipMapLevels()
 			IDirect3DSurface9* pDestSurfaceD9 = Get3DMipMapSurface(x + 1);
 			if (pDestSurfaceD9)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: attempting to add missing data to MipMap surface level: " << (x + 1));
+				LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: attempting to add missing data to MipMap surface level: " << (x + 1) <<
+					" UniquenessValue: " << MipMaps[x].UniquenessValue << " -> " << UniquenessValue);
 				if (SUCCEEDED(D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, nullptr, pSourceSurfaceD9, nullptr, nullptr, D3DX_FILTER_LINEAR, 0x00000000)))
 				{
 					MipMaps[x].UniquenessValue = UniquenessValue;
@@ -5792,14 +5803,21 @@ void m_IDirectDrawSurfaceX::SetDirtyFlag(DWORD MipMapLevel)
 		IsMipMapReadyToUse = (IsMipMapAutogen() || MipMaps.empty());
 
 		// Update Uniqueness Value
-		ChangeUniquenessValue();
+		ChangeUniquenessValue(0);
 	}
 	// Mark mipmap data flag
 	if (MipMaps.size())
 	{
 		if (MipMapLevel && MipMapLevel <= MipMaps.size())
 		{
-			MipMaps[MipMapLevel - 1].UniquenessValue = UniquenessValue;
+			if (MipMaps[MipMapLevel - 1].UniquenessValue == UniquenessValue)
+			{
+				MipMaps[MipMapLevel - 1].UniquenessValue++;
+			}
+			else if (MipMaps[MipMapLevel - 1].UniquenessValue < UniquenessValue)
+			{
+				MipMaps[MipMapLevel - 1].UniquenessValue = UniquenessValue;
+			}
 		}
 		CheckMipMapLevelGen();
 	}
