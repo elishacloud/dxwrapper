@@ -566,11 +566,11 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				}
 			}
 
-			// Set blt flag
-			IsInBlt = true;
-			lpDDSrcSurfaceX->IsInBlt = true;
-
 			do {
+				// Set blt flag
+				ScopedFlagSet AutoSet(IsInBlt);
+				ScopedFlagSet AutoSetSrc(lpDDSrcSurfaceX->IsInBlt);
+
 				// Do color fill
 				if (dwFlags & DDBLT_COLORFILL)
 				{
@@ -640,10 +640,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 #endif
 
 			} while (false);
-
-			// Reset Blt flag
-			lpDDSrcSurfaceX->IsInBlt = false;
-			IsInBlt = false;
 
 #ifdef ENABLE_PROFILING
 			Logging::Log() << __FUNCTION__ << " (" << lpDDSrcSurfaceX << ") -> (" << this << ")" <<
@@ -778,21 +774,22 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 	// Present before write if needed
 	BeginWritePresent(IsSkipScene);
 
-	IsInBltBatch = true;
-
-	for (DWORD x = 0; x < dwCount; x++)
 	{
-		IsSkipScene |= (lpDDBltBatch[x].lprDest) ? CheckRectforSkipScene(*lpDDBltBatch[x].lprDest) : false;
+		// Set blt flag
+		ScopedFlagSet AutoSet(IsInBltBatch);
 
-		hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags | DDBLT_DONOTWAIT, lpDDBltBatch[x].lpDDBltFx, MipMapLevel, false);
-		if (FAILED(hr))
+		for (DWORD x = 0; x < dwCount; x++)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: BltBatch failed before the end! " << x << " of " << dwCount << " " << (DDERR)hr);
-			break;
+			IsSkipScene |= (lpDDBltBatch[x].lprDest) ? CheckRectforSkipScene(*lpDDBltBatch[x].lprDest) : false;
+
+			hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags | DDBLT_DONOTWAIT, lpDDBltBatch[x].lpDDBltFx, MipMapLevel, false);
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: BltBatch failed before the end! " << x << " of " << dwCount << " " << (DDERR)hr);
+				break;
+			}
 		}
 	}
-
-	IsInBltBatch = false;
 
 	if (SUCCEEDED(hr))
 	{
@@ -1402,27 +1399,26 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				}
 			}
 
-			// Set flip flag
-			IsInFlip = true;
-
-			// Clear surface before flip if system memory
-			if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
 			{
-				if (FAILED(ColorFill(nullptr, Config.DdrawFlipFillColor, 0)))
+				// Set flip flag
+				ScopedFlagSet AutoSet(IsInFlip);
+
+				// Clear surface before flip if system memory
+				if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface.");
+					if (FAILED(ColorFill(nullptr, Config.DdrawFlipFillColor, 0)))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface.");
+					}
+					ClearDirtyFlags();
 				}
-				ClearDirtyFlags();
-			}
 
-			// Execute flip
-			for (size_t x = 0; x < FlipList.size() - 1; x++)
-			{
-				SwapAddresses(&FlipList[x]->surface, &FlipList[x + 1]->surface);
+				// Execute flip
+				for (size_t x = 0; x < FlipList.size() - 1; x++)
+				{
+					SwapAddresses(&FlipList[x]->surface, &FlipList[x + 1]->surface);
+				}
 			}
-
-			// Reset flip flag
-			IsInFlip = false;
 
 #ifdef ENABLE_PROFILING
 			Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr;
@@ -1458,10 +1454,6 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			{
 				ddrawParent->SetCurrentRenderTarget();
 			}
-
-			// Set flip flags
-			HasDoneFlip = true;
-			NonFlipPresentSkipCount = 0;
 
 		} while (false);
 
@@ -5248,7 +5240,6 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	LockedLevel[0].IsLocked = false;
 	GetDCLevel[0] = nullptr;
 	IsInFlip = false;
-	HasDoneFlip = false;
 
 	// Backup d3d9 surface texture
 	if (BackupData)
@@ -5396,17 +5387,6 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsFlip, bool IsSkipScene)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Skipping scene!";
 		return DDERR_GENERIC;
-	}
-
-	// Only present flip surface on flip
-	if (!IsFlip && HasDoneFlip && SUCCEEDED(GetFlipStatus(DDGFS_CANFLIP, true)))
-	{
-		if (NonFlipPresentSkipCount++ < 5)
-		{
-			return DD_OK;
-		}
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: resetting flip flag, present frames may have been lost!");
-		HasDoneFlip = false;
 	}
 
 	// Set scene ready

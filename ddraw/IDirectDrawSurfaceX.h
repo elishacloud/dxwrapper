@@ -195,8 +195,6 @@ private:
 	bool ComplexChild = false;
 	bool IsSurfaceLost = false;
 	bool IsInFlip = false;
-	bool HasDoneFlip = false;
-	DWORD NonFlipPresentSkipCount = 0;
 	bool PresentOnUnlock = false;
 	bool IsInBlt = false;
 	bool IsInBltBatch = false;
@@ -521,7 +519,7 @@ public:
 	m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
 	void ClearUsing3DFlag();
 	HRESULT GetPresentWindowRect(LPRECT pRect, RECT& DestRect);
-	CRITICAL_SECTION* GetCriticalSection() { return IsPrimarySurface() ? DdrawWrapper::GetDDCriticalSection() : &ddscs; }
+	CRITICAL_SECTION* GetCriticalSection() { return IsPrimaryOrBackBuffer() || IsRenderTarget() ? DdrawWrapper::GetDDCriticalSection() : &ddscs; }
 
 	// For texture loading
 	HRESULT Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDestPoint, LPDIRECTDRAWSURFACE7 lpSrcTex, LPRECT lprcSrcRect, DWORD dwFlags);
