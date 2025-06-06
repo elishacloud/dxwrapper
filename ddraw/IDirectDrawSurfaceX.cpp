@@ -2966,7 +2966,7 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 			return DD_OK;
 		}
 
-		ScopedPECriticalSection ThreadLockPE;
+		ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
 
 		// If palette exists increament ref
 		if (lpDDPalette)
@@ -4804,7 +4804,7 @@ void m_IDirectDrawSurfaceX::UnsetEmulationGameDC()
 
 HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 {
-	ScopedPECriticalSection ThreadLockPE;
+	ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
 
 	// Check if color masks are needed
 	bool ColorMaskReq = ((surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32) &&									// Only valid when used with 16 bit, 24 bit and 32 bit surfaces
@@ -5344,7 +5344,7 @@ void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 {
 	if (surface.emu)
 	{
-		ScopedPECriticalSection ThreadLockPE;
+		ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
 
 		if (!ShareEmulatedMemory || !IsUsingEmulation())
 		{
@@ -7214,7 +7214,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		return hr;
 	}
 
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	bool IsUsingCurrentZBuffer =
 		(ddrawParent->GetDepthStencilSurface() != this && ddrawParent->GetDepthStencilSurface() != GetAttachedDepthStencil());
@@ -7611,7 +7611,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRect)
 	HRESULT hr = DD_OK;
 
 	do {
-		ScopedPECriticalSection ThreadLockPE;
+		ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
 
 		// Set new palette data
 		UpdatePaletteData();
@@ -7955,7 +7955,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	const PALETTEENTRY* NewPaletteEntry = nullptr;
 	const RGBQUAD* NewRGBPalette = nullptr;
 
-	ScopedPECriticalSection ThreadLockPE;
+	ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
 
 	// Get palette data
 	if (attachedPalette)
@@ -8306,7 +8306,7 @@ void m_IDirectDrawSurfaceX::DeleteEmulatedMemory(EMUSURFACE **ppEmuSurface)
 
 	LOG_LIMIT(100, __FUNCTION__ << " Deleting emulated surface (" << *ppEmuSurface << ")");
 
-	ScopedPECriticalSection ThreadLockPE;
+	ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
 
 	// Release device context memory
 	if ((*ppEmuSurface)->DC)
@@ -8343,7 +8343,7 @@ void m_IDirectDrawSurfaceX::CleanupSharedEmulatedMemory()
 	
 	LOG_LIMIT(100, __FUNCTION__ << " Deleting " << memorySurfaces.size() << " emulated surface" << ((memorySurfaces.size() != 1) ? "s" : "") << "!");
 
-	ScopedPECriticalSection ThreadLockPE;
+	ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
 
 	// Clean up unused emulated surfaces
 	for (EMUSURFACE* pEmuSurface: memorySurfaces)

@@ -2307,7 +2307,7 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 
 	AddRef(DirectXVersion);
 
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	for (auto& entry : DDrawVector)
 	{
@@ -2513,7 +2513,7 @@ void m_IDirectDrawX::ReleaseInterface()
 		return;
 	}
 
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface);
@@ -3109,7 +3109,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, true)))
@@ -3219,7 +3219,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		return d3d9Device ? DD_OK : DDERR_GENERIC;
 	}
 
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	// Get monitor handle
 	FindMonitorHandle();
@@ -3896,7 +3896,7 @@ void m_IDirectDrawX::Clear3DFlagForAllSurfaces()
 
 void m_IDirectDrawX::ResetAllSurfaceDisplay()
 {
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	for (const auto& pDDraw : DDrawVector)
 	{
@@ -3924,7 +3924,7 @@ void m_IDirectDrawX::ReleaseD3D9IndexBuffer()
 
 void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 {
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	// Remove render target and depth stencil surfaces
 	if (d3d9Device && ResetInterface && (RenderTargetSurface || DepthStencilSurface))
@@ -5048,8 +5048,10 @@ DWORD WINAPI m_IDirectDrawX::PresentThreadFunction(LPVOID)
 			}
 		}
 
+		CRITICAL_SECTION* ddcs = DdrawWrapper::GetDDCriticalSection();
+
 		// Wait until can get thread lock
-		while (!TryDDThreadLock())
+		while (TryEnterCriticalSection(ddcs) == FALSE)
 		{
 			if (WaitForSingleObject(PresentThread.exitEvent, 0) == WAIT_OBJECT_0)
 			{
@@ -5059,7 +5061,7 @@ DWORD WINAPI m_IDirectDrawX::PresentThreadFunction(LPVOID)
 			}
 			Utils::BusyWaitYield(0);
 		}
-		ScopedDDLeaveCriticalSection ThreadLockLeave;
+		ScopedLeaveCriticalSection ThreadLockDDLeave(ddcs);
 
 		if (d3d9Device)
 		{
@@ -5082,9 +5084,11 @@ DWORD WINAPI m_IDirectDrawX::PresentThreadFunction(LPVOID)
 				{
 					ScopedLeaveCriticalSection ThreadLockSCLeave(cs);
 
-					if (TryPEThreadLock())
+					CRITICAL_SECTION* pecs = DdrawWrapper::GetPECriticalSection();
+
+					if (pecs && TryEnterCriticalSection(pecs) != FALSE)
 					{
-						ScopedPELeaveCriticalSection ThreadLockPELeave;
+						ScopedLeaveCriticalSection ThreadLockPELeave(pecs);
 
 						if (pPrimarySurface->GetD3d9Texture(false))
 						{

@@ -1212,7 +1212,7 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 			return DDERR_INVALIDOBJECT;
 		}
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		// Set 3D Enabled
 		ddrawParent->Enable3D();
@@ -1259,7 +1259,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			return DDERR_INVALIDOBJECT;
 		}
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
 		// When this method succeeds, the scene has been rendered, and the device surface holds the rendered scene.
@@ -1502,7 +1502,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 			return D3D_OK;
 		}
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		// dwFlags: Not currently used; set to 0.
 
@@ -2651,7 +2651,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -2749,7 +2749,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3015,7 +3015,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3120,7 +3120,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3225,7 +3225,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3329,7 +3329,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3966,7 +3966,7 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 			return DDERR_INVALIDOBJECT;
 		}
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		if (lpCurrentRenderTargetX)
 		{
@@ -4305,7 +4305,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			return DDERR_INVALIDOBJECT;
 		}
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
 
@@ -5312,7 +5312,7 @@ void m_IDirect3DDeviceX::ClearD3D(m_IDirect3DX* lpD3D)
 
 HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState)
 {
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	HRESULT hr = (*d3d9Device)->SetRenderState(dwRenderStateType, dwRenderState);
 
@@ -5327,7 +5327,7 @@ HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE dwRenderStateTyp
 
 HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value)
 {
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	HRESULT hr = (*d3d9Device)->SetTextureStageState(Stage, Type, Value);
 
@@ -5342,7 +5342,7 @@ HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 
 HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value)
 {
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	HRESULT hr = (*d3d9Device)->SetSamplerState(Sampler, Type, Value);
 
@@ -5357,7 +5357,7 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 
 HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, CONST D3DLIGHT9* pLight)
 {
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	HRESULT hr = (*d3d9Device)->SetLight(Index, pLight);
 
@@ -5375,7 +5375,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, CONST D3DLIGHT9* pLight)
 
 HRESULT m_IDirect3DDeviceX::LightD9Enable(DWORD Index, BOOL bEnable)
 {
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	HRESULT hr = (*d3d9Device)->LightEnable(Index, bEnable);
 
@@ -5390,7 +5390,7 @@ HRESULT m_IDirect3DDeviceX::LightD9Enable(DWORD Index, BOOL bEnable)
 
 HRESULT m_IDirect3DDeviceX::SetD9Viewport(CONST D3DVIEWPORT9* pViewport)
 {
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	HRESULT hr = (*d3d9Device)->SetViewport(pViewport);
 
@@ -5405,7 +5405,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Viewport(CONST D3DVIEWPORT9* pViewport)
 
 HRESULT m_IDirect3DDeviceX::SetD9Material(CONST D3DMATERIAL9* pMaterial)
 {
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	HRESULT hr = (*d3d9Device)->SetMaterial(pMaterial);
 
@@ -5420,7 +5420,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Material(CONST D3DMATERIAL9* pMaterial)
 
 HRESULT m_IDirect3DDeviceX::SetD9Transform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix)
 {
-	ScopedDDCriticalSection ThreadLockDD;
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	HRESULT hr = (*d3d9Device)->SetTransform(State, pMatrix);
 

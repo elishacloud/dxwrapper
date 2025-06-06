@@ -98,9 +98,6 @@ typedef HRESULT(WINAPI *RegisterSpecialCaseProc)(DWORD, DWORD, DWORD, DWORD);
 typedef HRESULT(WINAPI *ReleaseDDThreadLockProc)();
 typedef HRESULT(WINAPI *SetAppCompatDataProc)(DWORD Type, DWORD Value);
 
-bool TryDDThreadLock();
-bool TryPEThreadLock();
-
 // Function and variable forward declarations
 namespace DdrawWrapper
 {
@@ -110,38 +107,7 @@ namespace DdrawWrapper
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID *ppvObj);
 
 	CRITICAL_SECTION* GetDDCriticalSection();
-
-	struct ScopedDDCriticalSection {
-	private:
-		bool flag;
-	public:
-		ScopedDDCriticalSection(bool enable = true);
-		~ScopedDDCriticalSection();
-	};
-
-	struct ScopedDDLeaveCriticalSection {
-	private:
-		bool flag;
-	public:
-		ScopedDDLeaveCriticalSection(bool enable = true) : flag(enable) {}
-		~ScopedDDLeaveCriticalSection();
-	};
-
-	struct ScopedPECriticalSection {
-	private:
-		bool flag;
-	public:
-		ScopedPECriticalSection(bool enable = true);
-		~ScopedPECriticalSection();
-	};
-
-	struct ScopedPELeaveCriticalSection {
-	private:
-		bool flag;
-	public:
-		ScopedPELeaveCriticalSection(bool enable = true) : flag(enable) {}
-		~ScopedPELeaveCriticalSection();
-	};
+	CRITICAL_SECTION* GetPECriticalSection();
 }
 
 extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;

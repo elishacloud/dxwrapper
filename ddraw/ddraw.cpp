@@ -31,6 +31,12 @@ AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<
 
 static UINT GetAdapterIndex(GUID FAR* lpGUID);
 
+namespace {
+	bool IsInitialized = false;
+	CRITICAL_SECTION ddcs;
+	CRITICAL_SECTION pecs;
+}
+
 namespace DdrawWrapper
 {
 	VISIT_PROCS_DDRAW(INITIALIZE_OUT_WRAPPED_PROC);
@@ -51,23 +57,22 @@ namespace DdrawWrapper
 	};
 
 	std::vector<DDDeviceInfo> g_DeviceCache;
+
+	CRITICAL_SECTION* GetDDCriticalSection()
+	{
+		return IsInitialized ? &ddcs : nullptr;
+	}
+
+	CRITICAL_SECTION* GetPECriticalSection()
+	{
+		return IsInitialized ? &pecs : nullptr;
+	}
 }
 
 using namespace DdrawWrapper;
 
-namespace {
-	bool IsInitialized = false;
-	CRITICAL_SECTION ddcs;
-	CRITICAL_SECTION pecs;
-}
-
 static void SetAllAppCompatData();
 static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType);
-
-CRITICAL_SECTION* DdrawWrapper::GetDDCriticalSection()
-{
-	return IsInitialized ? &ddcs : nullptr;
-}
 
 // ******************************
 // ddraw.dll export functions
@@ -761,73 +766,6 @@ void ExitDDraw()
 		DeleteCriticalSection(&ddcs);
 		DeleteCriticalSection(&pecs);
 	}
-}
-
-
-ScopedDDCriticalSection::ScopedDDCriticalSection(bool enable) : flag(enable)
-{
-	if (IsInitialized && flag)
-	{
-		EnterCriticalSection(&ddcs);
-	}
-}
-
-ScopedDDCriticalSection::~ScopedDDCriticalSection()
-{
-	if (IsInitialized && flag)
-	{
-		LeaveCriticalSection(&ddcs);
-	}
-}
-
-ScopedDDLeaveCriticalSection::~ScopedDDLeaveCriticalSection()
-{
-	if (IsInitialized && flag)
-	{
-		LeaveCriticalSection(&ddcs);
-	}
-}
-
-bool TryDDThreadLock()
-{
-	if (IsInitialized)
-	{
-		return TryEnterCriticalSection(&ddcs) != FALSE;
-	}
-	return false;
-}
-
-ScopedPECriticalSection::ScopedPECriticalSection(bool enable) : flag(enable)
-{
-	if (IsInitialized && flag)
-	{
-		EnterCriticalSection(&pecs);
-	}
-}
-
-ScopedPECriticalSection::~ScopedPECriticalSection()
-{
-	if (IsInitialized && flag)
-	{
-		LeaveCriticalSection(&pecs);
-	}
-}
-
-ScopedPELeaveCriticalSection::~ScopedPELeaveCriticalSection()
-{
-	if (IsInitialized && flag)
-	{
-		LeaveCriticalSection(&pecs);
-	}
-}
-
-bool TryPEThreadLock()
-{
-	if (IsInitialized)
-	{
-		return TryEnterCriticalSection(&pecs) != FALSE;
-	}
-	return false;
 }
 
 // Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API

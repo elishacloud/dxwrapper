@@ -238,7 +238,7 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 
 		// Update palette data
 		{
-			ScopedPECriticalSection ThreadLockPE;
+			ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
 
 			// Translate new raw pallete entries to RGB
 			for (UINT i = Start; i < End; i++, x++)
