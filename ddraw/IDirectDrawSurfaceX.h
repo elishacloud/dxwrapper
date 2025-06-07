@@ -65,6 +65,29 @@ private:
 		bool IsDummy = false;
 	};
 
+	// For ensuring the MipMap context is released after acquiring it
+	struct ScopedGetMipMapContext
+	{
+	private:
+		IDirect3DSurface9* pSurfaceD9 = nullptr;
+		DWORD MipMapLevel = 0;
+		m_IDirectDrawSurfaceX* parent = nullptr;
+
+	public:
+		ScopedGetMipMapContext(m_IDirectDrawSurfaceX* parentClass, DWORD Level)
+			: MipMapLevel(Level), parent(parentClass)
+		{
+			pSurfaceD9 = parent->Get3DMipMapSurface(MipMapLevel);
+		}
+
+		~ScopedGetMipMapContext()
+		{
+			parent->Release3DMipMapSurface(pSurfaceD9, MipMapLevel);
+		}
+
+		IDirect3DSurface9* GetSurface() const { return pSurfaceD9; }
+	};
+
 	// For aligning bits after a lock for games that hard code the pitch
 	struct DDRAWEMULATELOCK
 	{

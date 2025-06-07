@@ -1887,8 +1887,8 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 			else
 			{
 				// Get surface
-				IDirect3DSurface9* pSurfaceD9 = Get3DMipMapSurface(MipMapLevel);
-				if (!pSurfaceD9)
+				ScopedGetMipMapContext Dest(this, MipMapLevel);
+				if (!Dest.GetSurface())
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
 					hr = DDERR_GENERIC;
@@ -1896,7 +1896,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 				}
 
 				// Get device context
-				hr = pSurfaceD9->GetDC(lphDC);
+				hr = Dest.GetSurface()->GetDC(lphDC);
 				if (FAILED(hr))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get device context!");
@@ -2724,8 +2724,8 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC, DWORD MipMapLevel)
 			else
 			{
 				// Get surface
-				IDirect3DSurface9* pSurfaceD9 = Get3DMipMapSurface(MipMapLevel);
-				if (!pSurfaceD9)
+				ScopedGetMipMapContext Dest(this, MipMapLevel);
+				if (!Dest.GetSurface())
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
 					hr = DDERR_GENERIC;
@@ -2733,7 +2733,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC, DWORD MipMapLevel)
 				}
 
 				// Release device context
-				if (FAILED(pSurfaceD9->ReleaseDC(hDC)))
+				if (FAILED(Dest.GetSurface()->ReleaseDC(hDC)))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release surface DC!");
 					hr = IsSurfaceBusy(MipMapLevel) ? DDERR_SURFACEBUSY : IsLost() == DDERR_SURFACELOST ? DDERR_SURFACELOST : DDERR_GENERIC;
@@ -4140,7 +4140,7 @@ LPDIRECT3DSURFACE9 m_IDirectDrawSurfaceX::Get3DSurface()
 	}
 	else if (surface.Texture)
 	{
-		if (surface.Context || (!surface.Context && SUCCEEDED(surface.Texture->GetSurfaceLevel(0, &surface.Context))))
+		if (surface.Context || SUCCEEDED(surface.Texture->GetSurfaceLevel(0, &surface.Context)))
 		{
 			return surface.Context;
 		}
@@ -4285,12 +4285,12 @@ HRESULT m_IDirectDrawSurfaceX::GenerateMipMapLevels()
 	{
 		if (!MipMaps[x].IsDummy && MipMaps[x].UniquenessValue < UniquenessValue)
 		{
-			IDirect3DSurface9* pDestSurfaceD9 = Get3DMipMapSurface(x + 1);
-			if (pDestSurfaceD9)
+			ScopedGetMipMapContext Dest(this, x + 1);
+			if (Dest.GetSurface())
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: attempting to add missing data to MipMap surface level: " << (x + 1) <<
 					" UniquenessValue: " << MipMaps[x].UniquenessValue << " -> " << UniquenessValue);
-				if (SUCCEEDED(D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, nullptr, pSourceSurfaceD9, nullptr, nullptr, D3DX_FILTER_LINEAR, 0x00000000)))
+				if (SUCCEEDED(D3DXLoadSurfaceFromSurface(Dest.GetSurface(), nullptr, nullptr, pSourceSurfaceD9, nullptr, nullptr, D3DX_FILTER_LINEAR, 0x00000000)))
 				{
 					MipMaps[x].UniquenessValue = UniquenessValue;
 				}
@@ -4298,7 +4298,6 @@ HRESULT m_IDirectDrawSurfaceX::GenerateMipMapLevels()
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not copy MipMap surface level!");
 				}
-				Release3DMipMapSurface(pDestSurfaceD9, x + 1);
 			}
 		}
 	}
@@ -6217,10 +6216,10 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 	// Use GPU ColorFill
 	if (!IsUsingShadowSurface() && ((surface.Usage & D3DUSAGE_RENDERTARGET) || surface.Type == D3DTYPE_OFFPLAINSURFACE) && surface.Pool == D3DPOOL_DEFAULT)
 	{
-		IDirect3DSurface9* pDestSurfaceD9 = Get3DMipMapSurface(MipMapLevel);
-		if (pDestSurfaceD9)
+		ScopedGetMipMapContext Dest(this, MipMapLevel);
+		if (Dest.GetSurface())
 		{
-			hr = (*d3d9Device)->ColorFill(pDestSurfaceD9, &DestRect, dwFillColor);
+			hr = (*d3d9Device)->ColorFill(Dest.GetSurface(), &DestRect, dwFillColor);
 
 			if (FAILED(hr))
 			{
@@ -6658,12 +6657,12 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			(!pSourceSurface->IsPalette() && !IsPalette()) &&
 			!IsMirrorLeftRight && !IsMirrorUpDown && !IsColorKey)
 		{
-			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->Get3DMipMapSurface(SrcMipMapLevel);
-			IDirect3DSurface9* pDestSurfaceD9 = Get3DMipMapSurface(MipMapLevel);
+			ScopedGetMipMapContext Src(pSourceSurface, SrcMipMapLevel);
+			ScopedGetMipMapContext Dest(this, MipMapLevel);
 
-			if (pSourceSurfaceD9 && pDestSurfaceD9)
+			if (Src.GetSurface() && Dest.GetSurface())
 			{
-				hr = (*d3d9Device)->StretchRect(pSourceSurfaceD9, &SrcRect, pDestSurfaceD9, &DestRect, Filter);
+				hr = (*d3d9Device)->StretchRect(Src.GetSurface(), &SrcRect, Dest.GetSurface(), &DestRect, Filter);
 
 				if (FAILED(hr))
 				{
@@ -6671,9 +6670,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 						SrcFormat << " -> " << DestFormat << " " << SrcRect << " -> " << DestRect << " " << IsStretchRect << " " << (D3DERR)hr);
 				}
 			}
-
-			pSourceSurface->Release3DMipMapSurface(pSourceSurfaceD9, SrcMipMapLevel);
-			Release3DMipMapSurface(pDestSurfaceD9, MipMapLevel);
 
 			if (SUCCEEDED(hr))
 			{
@@ -6690,20 +6686,20 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			(!pSourceSurface->IsPalette() && !IsPalette()) &&
 			!IsStretchRect && !IsMirrorLeftRight && !IsMirrorUpDown && !IsColorKey)
 		{
-			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->Get3DMipMapSurface(SrcMipMapLevel);
-			IDirect3DSurface9* pDestSurfaceD9 = Get3DMipMapSurface(MipMapLevel);
+			ScopedGetMipMapContext Src(pSourceSurface, SrcMipMapLevel);
+			ScopedGetMipMapContext Dest(this, MipMapLevel);
 
-			if (pSourceSurfaceD9 && pDestSurfaceD9)
+			if (Src.GetSurface() && Dest.GetSurface())
 			{
 				if (pSourceSurface->surface.Pool == D3DPOOL_SYSTEMMEM || pSourceSurface->IsUsingShadowSurface())
 				{
-					hr = (*d3d9Device)->UpdateSurface(pSourceSurfaceD9, &SrcRect, pDestSurfaceD9, (LPPOINT)&DestRect);
+					hr = (*d3d9Device)->UpdateSurface(Src.GetSurface(), &SrcRect, Dest.GetSurface(), (LPPOINT)&DestRect);
 				}
 				else
 				{
 					do {
 						D3DLOCKED_RECT SrcLockedRect = {};
-						if (FAILED(pSourceSurfaceD9->LockRect(&SrcLockedRect, &SrcRect, D3DLOCK_READONLY)))
+						if (FAILED(Src.GetSurface()->LockRect(&SrcLockedRect, &SrcRect, D3DLOCK_READONLY)))
 						{
 							LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock source surface for update!");
 							break;
@@ -6712,7 +6708,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 						if (FAILED(surface.Shadow->LockRect(&DestLockedRect, &DestRect, 0)))
 						{
 							LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock shadow surface for update!");
-							pSourceSurfaceD9->UnlockRect();
+							Src.GetSurface()->UnlockRect();
 							break;
 						}
 
@@ -6727,9 +6723,9 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 						}
 
 						surface.Shadow->UnlockRect();
-						pSourceSurfaceD9->UnlockRect();
+						Src.GetSurface()->UnlockRect();
 
-						hr = (*d3d9Device)->UpdateSurface(surface.Shadow, &DestRect, pDestSurfaceD9, (LPPOINT)&DestRect);
+						hr = (*d3d9Device)->UpdateSurface(surface.Shadow, &DestRect, Dest.GetSurface(), (LPPOINT)&DestRect);
 
 					} while (false);
 				}
@@ -6740,9 +6736,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 						SrcFormat << " -> " << DestFormat << " " << SrcRect << " -> " << DestRect << " " << IsStretchRect << " " << (D3DERR)hr);
 				}
 			}
-
-			pSourceSurface->Release3DMipMapSurface(pSourceSurfaceD9, SrcMipMapLevel);
-			Release3DMipMapSurface(pDestSurfaceD9, MipMapLevel);
 
 			if (SUCCEEDED(hr))
 			{
@@ -6777,12 +6770,12 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 				break;
 			}
 
-			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->Get3DMipMapSurface(SrcMipMapLevel);
-			IDirect3DSurface9* pDestSurfaceD9 = Get3DMipMapSurface(MipMapLevel);
+			ScopedGetMipMapContext Src(pSourceSurface, SrcMipMapLevel);
+			ScopedGetMipMapContext Dest(this, MipMapLevel);
 
-			if (pSourceSurfaceD9 && pDestSurfaceD9)
+			if (Src.GetSurface() && Dest.GetSurface())
 			{
-				hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, D3DXFilter, 0);
+				hr = D3DXLoadSurfaceFromSurface(Dest.GetSurface(), nullptr, &DestRect, Src.GetSurface(), nullptr, &SrcRect, D3DXFilter, 0);
 
 				if (FAILED(hr))
 				{
@@ -6791,11 +6784,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			}
 			else
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get source or destination surface level: " << pSourceSurfaceD9 << "->" << pDestSurfaceD9);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get source or destination surface level: " << Src.GetSurface() << "->" << Dest.GetSurface());
 			}
-
-			pSourceSurface->Release3DMipMapSurface(pSourceSurfaceD9, SrcMipMapLevel);
-			Release3DMipMapSurface(pDestSurfaceD9, MipMapLevel);
 
 			if (SUCCEEDED(hr))
 			{
@@ -6856,21 +6846,18 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			!surface.UsingSurfaceMemory && !pSourceSurface->surface.UsingSurfaceMemory &&
 			(pSourceSurface->IsPalette() == IsPalette()))
 		{
-			IDirect3DSurface9* pSourceSurfaceD9 = pSourceSurface->Get3DMipMapSurface(SrcMipMapLevel);
-			IDirect3DSurface9* pDestSurfaceD9 = Get3DMipMapSurface(MipMapLevel);
+			ScopedGetMipMapContext Src(pSourceSurface, SrcMipMapLevel);
+			ScopedGetMipMapContext Dest(this, MipMapLevel);
 
-			if (pSourceSurfaceD9 && pDestSurfaceD9)
+			if (Src.GetSurface() && Dest.GetSurface())
 			{
-				hr = D3DXLoadSurfaceFromSurface(pDestSurfaceD9, nullptr, &DestRect, pSourceSurfaceD9, nullptr, &SrcRect, D3DXFilter, 0);
+				hr = D3DXLoadSurfaceFromSurface(Dest.GetSurface(), nullptr, &DestRect, Src.GetSurface(), nullptr, &SrcRect, D3DXFilter, 0);
 
 				if (FAILED(hr))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to load surface from surface. " << (D3DERR)hr);
 				}
 			}
-
-			pSourceSurface->Release3DMipMapSurface(pSourceSurfaceD9, SrcMipMapLevel);
-			Release3DMipMapSurface(pDestSurfaceD9, MipMapLevel);
 
 			if (SUCCEEDED(hr))
 			{
