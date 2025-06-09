@@ -2636,7 +2636,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			}
 
 			// Emulate lock
-			if ((Config.DdrawEmulateLock || Config.DdrawFixByteAlignment) && !(Flags & D3DLOCK_READONLY) && MipMapLevel == 0)
+			if ((((Config.DdrawEmulateLock || IsExtraEmulationSizeEnabled()) && !IsUsingEmulation()) || Config.DdrawFixByteAlignment) && !(Flags & D3DLOCK_READONLY) && MipMapLevel == 0)
 			{
 				LockEmuLock(lpDestRect, lpDDSurfaceDesc2);
 			}
@@ -4891,7 +4891,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	ZeroMemory(surface.emu->bmiMemory, sizeof(surface.emu->bmiMemory));
 	surface.emu->bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	surface.emu->bmi->bmiHeader.biWidth = Width;
-	surface.emu->bmi->bmiHeader.biHeight = -((LONG)Height + (LONG)ExtraDataBufferSize);
+	surface.emu->bmi->bmiHeader.biHeight = -((LONG)Height + (LONG)ExtraDataBufferSize + (LONG)(IsExtraEmulationSizeEnabled() ? Config.DdrawExtraEmulationSize : 0));
 	surface.emu->bmi->bmiHeader.biPlanes = 1;
 	surface.emu->bmi->bmiHeader.biBitCount = (WORD)surface.BitCount;
 	surface.emu->bmi->bmiHeader.biCompression =
@@ -5540,7 +5540,7 @@ void m_IDirectDrawSurfaceX::LockEmuLock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDD
 		EmuLock.Height = lpDDSurfaceDesc->dwHeight;
 
 		// Update surface memory and pitch
-		size_t Size = NewPitch * (lpDDSurfaceDesc->dwHeight + ExtraDataBufferSize);
+		size_t Size = NewPitch * (lpDDSurfaceDesc->dwHeight + ExtraDataBufferSize + (IsExtraEmulationSizeEnabled() ? Config.DdrawExtraEmulationSize : 0));
 		if (EmuLock.Mem.size() < Size)
 		{
 			EmuLock.Mem.resize(Size);

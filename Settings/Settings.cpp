@@ -764,7 +764,7 @@ void CONFIG::SetConfig()
 	{
 		MouseMovementFactor = 1.0f;
 	}
-	else
+	else if (MouseMovementFactor != 0.0f)
 	{
 		FixHighFrequencyMouse = true;
 	}
@@ -787,4 +787,5 @@ void CONFIG::SetConfig()
 	{
 		LimitStateBlocks = (Dd7to9 || D3d8to9);
 	}
+	DdrawExtraEmulationSize = min(DdrawExtraEmulationSize, 10000);
 }
