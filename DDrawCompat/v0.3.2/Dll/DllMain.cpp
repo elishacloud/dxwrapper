@@ -77,8 +77,6 @@ namespace
 			Win32::Registry::installHooks();
 			Compat32::Log() << "Installing Direct3D driver hooks";
 			D3dDdi::installHooks();
-			Compat32::Log() << "Installing Win32 hooks";
-			Win32::WaitFunctions::installHooks();
 			Gdi::VirtualScreen::init();
 
 			CompatPtr<IDirectDraw> dd;
@@ -333,6 +331,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 			Win32::MsgHooks::installHooks();
 			Win32::Version::installHooks();
 			Time::init();
+			Compat32::Log() << "Installing Win32 hooks";
+			Win32::WaitFunctions::installHooks();
 		}
 
 		const DWORD disableMaxWindowedMode = 12;

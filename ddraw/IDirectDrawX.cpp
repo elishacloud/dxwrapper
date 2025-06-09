@@ -1105,7 +1105,7 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.Dd7to9)
+	if (Config.Dd7to9 || Config.DdrawUseDirect3D9Caps)
 	{
 		if (!lpDDDriverCaps && !lpDDHELCaps)
 		{
@@ -1135,10 +1135,51 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 		DriverCaps.dwSize = sizeof(DDCAPS);
 		HELCaps.dwSize = sizeof(DDCAPS);
 
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, false)))
+		IDirect3D9* pObjectD9 = nullptr;
+		ComPtr<IDirect3D9> ComObjectD9;
+
+		if (Config.Dd7to9)
 		{
-			return DDERR_GENERIC;
+			// Check for device interface
+			if (FAILED(CheckInterface(__FUNCTION__, false)))
+			{
+				return DDERR_GENERIC;
+			}
+			pObjectD9 = d3d9Object;
+		}
+		else // DdrawUseDirect3D9Caps
+		{
+			// Load d3d9.dll
+			HMODULE d3d9_dll = nullptr;
+			GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, "d3d9.dll", &d3d9_dll);
+			if (!d3d9_dll)
+			{
+				d3d9_dll = LoadLibraryA("d3d9.dll");
+			}
+			if (!d3d9_dll)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to load d3d9.dll!");
+				return DDERR_GENERIC;
+			}
+
+			// Get Direct3DCreate9 function address
+			Direct3DCreate9Proc Direct3DCreate9 = (Direct3DCreate9Proc)GetProcAddress(d3d9_dll, "Direct3DCreate9");
+
+			if (!Direct3DCreate9)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
+				return DDERR_GENERIC;
+			}
+
+			*ComObjectD9.GetAddressOf() = Direct3DCreate9(D3D_SDK_VERSION);
+
+			// Error creating Direct3D9
+			if (!ComObjectD9.Get())
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: d3d9 object not setup!");
+				return DDERR_GENERIC;
+			}
+			pObjectD9 = ComObjectD9.Get();
 		}
 
 		HRESULT hr = DD_OK;
@@ -1153,14 +1194,14 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 		D3DCAPS9 Caps9;
 		if (lpDDDriverCaps)
 		{
-			hr = d3d9Object->GetDeviceCaps(AdapterIndex, D3DDEVTYPE_HAL, &Caps9);
+			hr = pObjectD9->GetDeviceCaps(AdapterIndex, D3DDEVTYPE_HAL, &Caps9);
 			ConvertCaps(DriverCaps, Caps9);
 			DriverCaps.dwVidMemTotal = dwVidTotal;
 			DriverCaps.dwVidMemFree = dwVidFree;
 		}
 		if (lpDDHELCaps)
 		{
-			hr = d3d9Object->GetDeviceCaps(AdapterIndex, D3DDEVTYPE_REF, &Caps9);
+			hr = pObjectD9->GetDeviceCaps(AdapterIndex, D3DDEVTYPE_REF, &Caps9);
 			ConvertCaps(HELCaps, Caps9);
 			HELCaps.dwVidMemTotal = dwVidTotal;
 			HELCaps.dwVidMemFree = dwVidFree;

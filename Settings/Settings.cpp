@@ -700,7 +700,7 @@ void CONFIG::SetConfig()
 	{
 		DDrawCompat20 = false;
 	}
-	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || IsSet(DdrawResolutionHack) || Dd7to9);
+	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || IsSet(DdrawResolutionHack) || DdrawUseDirect3D9Caps || Dd7to9);
 	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
 	DdrawAutoFrameSkip = (AutoFrameSkip || DdrawAutoFrameSkip);																	// For legacy purposes
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
@@ -775,17 +775,16 @@ void CONFIG::SetConfig()
 		FixHighFrequencyMouse = true;
 	}
 
+	// Limit surface emulation size
+	DdrawExtraEmulationSize = DdrawExtraEmulationSize == 1 ? 4000 : min(DdrawExtraEmulationSize, 10000);
+
 	// Windows Lie
 	WinVersionLieSP = (WinVersionLieSP > 0 && WinVersionLieSP <= 5) ? WinVersionLieSP : 0;
 
 	// Set unset options
-	DdrawResolutionHack = (DdrawResolutionHack != 0);
 	CacheClipPlane = (CacheClipPlane != 0);
+	DdrawResolutionHack = (DdrawResolutionHack != 0);
 	FixPerfCounterUptime = (FixPerfCounterUptime != 0);
+	LimitStateBlocks = !IsSet(LimitStateBlocks) ? (Dd7to9 || D3d8to9) : LimitStateBlocks;
 	WindowModeGammaShader = (WindowModeGammaShader != 0);
-	if (!IsSet(LimitStateBlocks))
-	{
-		LimitStateBlocks = (Dd7to9 || D3d8to9);
-	}
-	DdrawExtraEmulationSize = min(DdrawExtraEmulationSize, 10000);
 }
