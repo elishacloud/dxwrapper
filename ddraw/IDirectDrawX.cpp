@@ -1155,11 +1155,11 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 			if (!d3d9_dll)
 			{
 				d3d9_dll = LoadLibraryA("d3d9.dll");
-			}
-			if (!d3d9_dll)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to load d3d9.dll!");
-				return DDERR_GENERIC;
+				if (!d3d9_dll)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to load d3d9.dll!");
+					return DDERR_GENERIC;
+				}
 			}
 
 			// Get Direct3DCreate9 function address
