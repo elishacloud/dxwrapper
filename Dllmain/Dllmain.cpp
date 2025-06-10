@@ -231,6 +231,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Logging::LogVideoCard();
 		Logging::LogOSVersion();
 		Logging::LogProcessNameAndPID();
+		Logging::Log() << GetCommandLineA();
 		Logging::LogGameType();
 		Logging::LogCompatLayer();
 		Logging::Log() << "Windows is newer than," <<
