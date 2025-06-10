@@ -4638,6 +4638,7 @@ void m_IDirectDrawX::BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Widt
 	d3d9Device->GetRenderState(D3DRS_STENCILENABLE, &DrawStates.rsStencilEnable);
 	d3d9Device->GetRenderState(D3DRS_CULLMODE, &DrawStates.rsCullMode);
 	d3d9Device->GetRenderState(D3DRS_CLIPPING, &DrawStates.rsClipping);
+	d3d9Device->GetRenderState(D3DRS_SCISSORTESTENABLE, &DrawStates.rsScissorTest);
 	d3d9Device->SetRenderState(D3DRS_LIGHTING, FALSE);
 	d3d9Device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
 	d3d9Device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
@@ -4647,6 +4648,7 @@ void m_IDirectDrawX::BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Widt
 	d3d9Device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 	d3d9Device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 	d3d9Device->SetRenderState(D3DRS_CLIPPING, FALSE);
+	d3d9Device->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
 
 	// Viewport
 	d3d9Device->GetViewport(&DrawStates.ViewPort);
@@ -4731,6 +4733,7 @@ void m_IDirectDrawX::RestoreState(DRAWSTATEBACKUP& DrawStates)
 	d3d9Device->SetRenderState(D3DRS_STENCILENABLE, DrawStates.rsStencilEnable);
 	d3d9Device->SetRenderState(D3DRS_CULLMODE, DrawStates.rsCullMode);
 	d3d9Device->SetRenderState(D3DRS_CLIPPING, DrawStates.rsClipping);
+	d3d9Device->SetRenderState(D3DRS_SCISSORTESTENABLE, DrawStates.rsScissorTest);
 
 	// Reset viewport
 	d3d9Device->SetViewport(&DrawStates.ViewPort);

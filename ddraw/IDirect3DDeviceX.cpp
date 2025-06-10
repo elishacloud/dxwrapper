@@ -5615,6 +5615,7 @@ void m_IDirect3DDeviceX::SetDefaults()
 
 void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion)
 {
+	// Prepare render target surface
 	if (lpCurrentRenderTargetX)
 	{
 		lpCurrentRenderTargetX->PrepareRenderTarget();
@@ -5628,6 +5629,18 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		{
 			(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, DeviceStates.RenderState[D3DRS_ZENABLE].State);
 		}
+	}
+
+	// Set scissor rect based on viewport
+	if (DeviceStates.Viewport.Set)
+	{
+		(*d3d9Device)->SetRenderState(D3DRS_SCISSORTESTENABLE, TRUE);
+		RECT rect = {
+			(LONG)DeviceStates.Viewport.View.X,
+			(LONG)DeviceStates.Viewport.View.Y,
+			(LONG)DeviceStates.Viewport.View.X + (LONG)DeviceStates.Viewport.View.Width,
+			(LONG)DeviceStates.Viewport.View.Y + (LONG)DeviceStates.Viewport.View.Height };
+		(*d3d9Device)->SetScissorRect(&rect);
 	}
 
 	// Handle texture wrapping

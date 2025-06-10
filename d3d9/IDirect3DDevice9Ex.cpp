@@ -935,6 +935,7 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 	ProxyInterface->SetRenderState(D3DRS_CLIPPING, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
 
 	// Set texture states
 	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
