@@ -5615,50 +5615,6 @@ void m_IDirect3DDeviceX::SetDefaults()
 
 void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion)
 {
-	// Prepare render target surface
-	if (lpCurrentRenderTargetX)
-	{
-		lpCurrentRenderTargetX->PrepareRenderTarget();
-
-		if (ddrawParent->GetRenderTargetSurface() != lpCurrentRenderTargetX)
-		{
-			ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
-		}
-
-		if (DeviceStates.RenderState[D3DRS_ZENABLE].Set)
-		{
-			(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, DeviceStates.RenderState[D3DRS_ZENABLE].State);
-		}
-	}
-
-	// Set scissor rect based on viewport
-	if (DeviceStates.Viewport.Set)
-	{
-		(*d3d9Device)->SetRenderState(D3DRS_SCISSORTESTENABLE, TRUE);
-		RECT rect = {
-			(LONG)DeviceStates.Viewport.View.X,
-			(LONG)DeviceStates.Viewport.View.Y,
-			(LONG)DeviceStates.Viewport.View.X + (LONG)DeviceStates.Viewport.View.Width,
-			(LONG)DeviceStates.Viewport.View.Y + (LONG)DeviceStates.Viewport.View.Height };
-		(*d3d9Device)->SetScissorRect(&rect);
-	}
-
-	// Handle texture wrapping
-	if (rsTextureWrappingChanged)
-	{
-		DWORD RenderState = (rsTextureWrappingU ? D3DWRAP_U : 0) | (rsTextureWrappingV ? D3DWRAP_V : 0);
-		SetD9RenderState(D3DRS_WRAP0, RenderState);
-		rsTextureWrappingChanged = false;
-	}
-
-	// Handle anti-aliasing
-	if (rsAntiAliasChanged)
-	{
-		BOOL AntiAliasEnabled = (bool)((D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTDEPENDENT || (D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTINDEPENDENT);
-		SetD9RenderState(D3DRS_MULTISAMPLEANTIALIAS, AntiAliasEnabled);
-		rsAntiAliasChanged = false;
-	}
-
 	// Handle dwFlags
 	if (DirectXVersion < 7)
 	{
@@ -5681,6 +5637,45 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			//SetRenderState(D3DRENDERSTATE_EXTENTS, FALSE);
 		}
 	}
+
+	// Prepare render target surface
+	if (lpCurrentRenderTargetX)
+	{
+		lpCurrentRenderTargetX->PrepareRenderTarget();
+
+		if (ddrawParent->GetRenderTargetSurface() != lpCurrentRenderTargetX)
+		{
+			ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+		}
+
+		if (DeviceStates.RenderState[D3DRS_ZENABLE].Set)
+		{
+			(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, DeviceStates.RenderState[D3DRS_ZENABLE].State);
+		}
+	}
+
+	// Set viewport
+	if (DeviceStates.Viewport.Set)
+	{
+		(*d3d9Device)->SetViewport(&DeviceStates.Viewport.View);
+	}
+
+	// Handle texture wrapping
+	if (rsTextureWrappingChanged)
+	{
+		DWORD RenderState = (rsTextureWrappingU ? D3DWRAP_U : 0) | (rsTextureWrappingV ? D3DWRAP_V : 0);
+		SetD9RenderState(D3DRS_WRAP0, RenderState);
+		rsTextureWrappingChanged = false;
+	}
+
+	// Handle anti-aliasing
+	if (rsAntiAliasChanged)
+	{
+		BOOL AntiAliasEnabled = (bool)((D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTDEPENDENT || (D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTINDEPENDENT);
+		SetD9RenderState(D3DRS_MULTISAMPLEANTIALIAS, AntiAliasEnabled);
+		rsAntiAliasChanged = false;
+	}
+
 	if (Config.DdrawFixByteAlignment > 1)
 	{
 		for (UINT x = 0; x < MaxTextureStages; x++)
@@ -5697,6 +5692,16 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	}
 	for (UINT x = 0; x < MaxTextureStages; x++)
 	{
+		// Set textures
+		if (CurrentTextureSurfaceX[x])
+		{
+			IDirect3DTexture9* pTexture9 = CurrentTextureSurfaceX[x]->GetD3d9Texture();
+			if (pTexture9)
+			{
+				(*d3d9Device)->SetTexture(x, pTexture9);
+			}
+		}
+		// Generate MipMap levels
 		if (ssMipFilter[x] != D3DTEXF_NONE && CurrentTextureSurfaceX[x] && !CurrentTextureSurfaceX[x]->IsMipMapGenerated())
 		{
 			CurrentTextureSurfaceX[x]->GenerateMipMapLevels();

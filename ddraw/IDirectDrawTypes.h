@@ -137,7 +137,6 @@ struct DRAWSTATEBACKUP
 	DWORD rsStencilEnable = 0;
 	DWORD rsCullMode = 0;
 	DWORD rsClipping = 0;
-	DWORD rsScissorTest = 0;
 	D3DVIEWPORT9 ViewPort = {};
 	D3DMATRIX WorldMatrix = {};
 	D3DMATRIX ViewMatrix = {};
