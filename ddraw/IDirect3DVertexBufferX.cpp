@@ -752,7 +752,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	}
 
 	// Cache light data once
-	std::vector<D3DLIGHT7> cachedLights;
+	std::vector<DXLIGHT7> cachedLights;
 	if (IsLight)
 	{
 		pDirect3DDeviceX->GetEnabledLightList(cachedLights);
@@ -907,7 +907,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	return DD_OK;
 }
 
-void m_IDirect3DVertexBufferX::ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& outSpecular, const D3DXVECTOR3& Position, const D3DXVECTOR3& Normal, const std::vector<D3DLIGHT7>& cachedLights, const D3DXMATRIX& matWorldView, const D3DMATRIX& matWorld, const D3DMATRIX& matView, const D3DMATERIAL7& mat, bool UseMaterial)
+void m_IDirect3DVertexBufferX::ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& outSpecular, const D3DXVECTOR3& Position, const D3DXVECTOR3& Normal, const std::vector<DXLIGHT7>& cachedLights, const D3DXMATRIX& matWorldView, const D3DMATRIX& matWorld, const D3DMATRIX& matView, const D3DMATERIAL7& mat, bool UseMaterial)
 {
 	// Transform position using full world-view matrix (this is fine)
 	D3DXVECTOR3 worldPos;
@@ -1008,7 +1008,8 @@ void m_IDirect3DVertexBufferX::ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& o
 		diffuse.b += light.dcvDiffuse.b * NdotL * attenuation;
 
 		// Specular lighting
-		if (light.dcvSpecular.r != 0.0f || light.dcvSpecular.g != 0.0f || light.dcvSpecular.b != 0.0f)
+		if ((light.dwLightVersion != 7 && !(light.dwFlags & D3DLIGHT_NO_SPECULAR) && UseMaterial) ||
+			(light.dwLightVersion == 7 && (light.dcvSpecular.r != 0.0f || light.dcvSpecular.g != 0.0f || light.dcvSpecular.b != 0.0f)))
 		{
 			if (UseMaterial)
 			{
@@ -1026,9 +1027,19 @@ void m_IDirect3DVertexBufferX::ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& o
 				float shininess = max(1.0f, mat.power);
 				float spec = powf(RdotV, shininess) * attenuation;
 
-				specular.r += mat.specular.r * light.dcvSpecular.r * spec;
-				specular.g += mat.specular.g * light.dcvSpecular.g * spec;
-				specular.b += mat.specular.b * light.dcvSpecular.b * spec;
+				// Light versions older than 7 don't have specular
+				if (light.dwLightVersion != 7)
+				{
+					specular.r += mat.specular.r * spec;
+					specular.g += mat.specular.g * spec;
+					specular.b += mat.specular.b * spec;
+				}
+				else
+				{
+					specular.r += mat.specular.r * light.dcvSpecular.r * spec;
+					specular.g += mat.specular.g * light.dcvSpecular.g * spec;
+					specular.b += mat.specular.b * light.dcvSpecular.b * spec;
+				}
 			}
 			else
 			{

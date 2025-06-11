@@ -5877,7 +5877,7 @@ bool m_IDirect3DDeviceX::IsLightInUse(m_IDirect3DLight* pLightX)
 	return false;
 }
 
-void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<D3DLIGHT7>& AttachedLightList)
+void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLightList)
 {
 	if (ProxyDirectXVersion == 7)
 	{
@@ -5887,7 +5887,12 @@ void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<D3DLIGHT7>& AttachedLig
 			BOOL Enabled = FALSE;
 			if (SUCCEEDED(GetLightEnable(entry.first, &Enabled)) && Enabled)
 			{
-				AttachedLightList.push_back(entry.second);
+				DXLIGHT7 DxLight7 = {};
+				*reinterpret_cast<LPD3DLIGHT7>(&DxLight7) = entry.second;
+				DxLight7.dwLightVersion = 7;
+				DxLight7.dwFlags = 0;
+
+				AttachedLightList.push_back(DxLight7);
 			}
 		}
 	}

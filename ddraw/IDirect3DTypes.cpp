@@ -25,28 +25,9 @@ void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 		return;
 	}
 
-	// Apply specular flag
-	bool HasSpecular = true;
-	if (Light.dwSize == sizeof(D3DLIGHT2))
-	{
-		const D3DLIGHT2& Light2 = *reinterpret_cast<const D3DLIGHT2*>(&Light);
-
-		if (Light2.dwFlags & D3DLIGHT_NO_SPECULAR)
-		{
-			HasSpecular = false;
-		}
-	}
-
 	Light7.dltType = Light.dltType;
 	Light7.dcvDiffuse = Light.dcvColor;
-	if (HasSpecular)
-	{
-		Light7.dcvSpecular = { 1.0f, 1.0f, 1.0f, 1.0f };
-	}
-	else
-	{
-		Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 0.0f };
-	}
+	Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 0.0f };
 	Light7.dcvAmbient = { 0.0f, 0.0f, 0.0f, 0.0f };
 	Light7.dvPosition = Light.dvPosition;
 	Light7.dvDirection = Light.dvDirection;

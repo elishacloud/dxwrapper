@@ -52,6 +52,26 @@ typedef struct _D3DSTATE7 {
     };
 } D3DSTATE7, * LPD3DSTATE7;
 
+typedef struct _DXLIGHT7 {
+    /* D3DLIGHT7 Begin */
+    D3DLIGHTTYPE    dltType;
+    D3DCOLORVALUE   dcvDiffuse;
+    D3DCOLORVALUE   dcvSpecular;
+    D3DCOLORVALUE   dcvAmbient;
+    D3DVECTOR       dvPosition;
+    D3DVECTOR       dvDirection;
+    D3DVALUE        dvRange;
+    D3DVALUE        dvFalloff;
+    D3DVALUE        dvAttenuation0;
+    D3DVALUE        dvAttenuation1;
+    D3DVALUE        dvAttenuation2;
+    D3DVALUE        dvTheta;
+    D3DVALUE        dvPhi;
+    /* D3DLIGHT7 End */
+    DWORD           dwFlags;        // D3DLIGHT2 flags
+    DWORD           dwLightVersion; // D3DLIGHT version (1, 2 or 7)
+} DXLIGHT7;
+
 typedef struct _D3DDEVINFO_TEXTUREMANAGER {
     BOOL    bThrashing;             // Thrashing status. TRUE if thrashing occurred during the last frame, or FALSE otherwise.
     DWORD   dwNumEvicts;            // Number of textures that were removed during the last frame.

@@ -391,7 +391,7 @@ public:
 
 	// Light index function
 	bool IsLightInUse(m_IDirect3DLight* pLightX);
-	void GetEnabledLightList(std::vector<D3DLIGHT7>& AttachedLightList);
+	void GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLightList);
 	void ClearLight(m_IDirect3DLight* lpLight);
 
 	// Functions handling the Direct3D parent interface
