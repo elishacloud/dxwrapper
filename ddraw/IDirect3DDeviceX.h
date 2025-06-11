@@ -49,6 +49,11 @@ private:
 		struct {
 			bool Set = false;
 			D3DVIEWPORT9 View = {};
+			bool UseViewportScale = false;
+			D3DVALUE dvScaleX = 0.0f;
+			D3DVALUE dvScaleY = 0.0f;
+			D3DVALUE dvMaxX = 0.0f;
+			D3DVALUE dvMaxY = 0.0f;
 		} Viewport;
 		struct {
 			bool Set = false;
@@ -371,6 +376,8 @@ public:
 	}
 
 	// Viewport vector function
+	HRESULT SetViewport(LPD3DVIEWPORT lpViewport);
+	HRESULT SetViewport(LPD3DVIEWPORT2 lpViewport);
 	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX);
 
 	// Texture handle function

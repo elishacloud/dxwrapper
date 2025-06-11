@@ -220,12 +220,6 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (lpData->dvScaleX != 0 || lpData->dvScaleY != 0 || lpData->dvMaxX != 0 || lpData->dvMaxY != 0)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'Scale homogeneous' Not Implemented: " <<
-				" ScaleX: " << lpData->dvScaleX << " ScaleY: " << lpData->dvScaleY << " MaxX: " << lpData->dvMaxX << " MaxY: " << lpData->dvMaxY);
-		}
-
 		IsViewPortSet = true;
 
 		vData = *lpData;
@@ -823,12 +817,6 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (lpData->dvClipWidth != 0 || lpData->dvClipHeight != 0 || lpData->dvClipX != 0 || lpData->dvClipY != 0)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'clip volume' Not Implemented: " <<
-				lpData->dvClipWidth << "x" << lpData->dvClipHeight << " X: " << lpData->dvClipX << " Y: " << lpData->dvClipY);
-		}
-
 		IsViewPort2Set = true;
 
 		vData2 = *lpData;
@@ -1055,16 +1043,16 @@ void m_IDirect3DViewportX::SetCurrentViewportActive(bool SetViewPortData, bool S
 		{
 			if (SetViewPortData && (IsViewPortSet || IsViewPort2Set))
 			{
-				D3DVIEWPORT7 Viewport7 = {};
+				HRESULT hr;
 				if (IsViewPort2Set)
 				{
-					ConvertViewport(Viewport7, vData2);
+					hr = D3DDevice->SetViewport(&vData2);
 				}
 				else
 				{
-					ConvertViewport(Viewport7, vData);
+					hr = D3DDevice->SetViewport(&vData);
 				}
-				if (FAILED(D3DDevice->SetViewport(&Viewport7)))
+				if (FAILED(hr))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set viewport data!");
 				}

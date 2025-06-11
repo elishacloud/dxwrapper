@@ -4001,6 +4001,9 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 			return DDERR_INVALIDOBJECT;
 		}
 
+		// Clear viewport scaling
+		DeviceStates.Viewport.UseViewportScale = false;
+
 		return SetD9Viewport((D3DVIEWPORT9*)lpViewport);
 	}
 
@@ -4797,6 +4800,55 @@ LPDIRECT3DDEVICE9* m_IDirect3DDeviceX::GetD3d9Device()
 	return d3d9Device;
 }
 
+HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT lpViewport)
+{
+	if (!lpViewport)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	D3DVIEWPORT7 Viewport7 = {};
+	ConvertViewport(Viewport7, *lpViewport);
+
+	HRESULT hr = SetViewport(&Viewport7);
+
+	if (SUCCEEDED(hr))
+	{
+		DeviceStates.Viewport.UseViewportScale = true;
+		DeviceStates.Viewport.dvScaleX = lpViewport->dvScaleX;
+		DeviceStates.Viewport.dvScaleY = lpViewport->dvScaleY;
+		DeviceStates.Viewport.dvMaxX = lpViewport->dvMaxX;
+		DeviceStates.Viewport.dvMaxY = lpViewport->dvMaxY;
+
+		// Set transform
+		if (DeviceStates.Matrix.find(D3DTS_PROJECTION) != DeviceStates.Matrix.end())
+		{
+			SetD9Transform(D3DTS_PROJECTION, &DeviceStates.Matrix[D3DTS_PROJECTION]);
+		}
+	}
+
+	return hr;
+}
+
+HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT2 lpViewport)
+{
+	if (!lpViewport)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (lpViewport->dvClipWidth != 0 || lpViewport->dvClipHeight != 0 || lpViewport->dvClipX != 0 || lpViewport->dvClipY != 0)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'clip volume' Not Implemented: " <<
+			lpViewport->dvClipWidth << "x" << lpViewport->dvClipHeight << " X: " << lpViewport->dvClipX << " Y: " << lpViewport->dvClipY);
+	}
+
+	D3DVIEWPORT7 Viewport7 = {};
+	ConvertViewport(Viewport7, *lpViewport);
+
+	return SetViewport(&Viewport7);
+}
+
 bool m_IDirect3DDeviceX::DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
 {
 	auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
@@ -5420,11 +5472,37 @@ HRESULT m_IDirect3DDeviceX::SetD9Material(CONST D3DMATERIAL9* pMaterial)
 
 HRESULT m_IDirect3DDeviceX::SetD9Transform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix)
 {
+	if (!pMatrix)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
-	HRESULT hr = (*d3d9Device)->SetTransform(State, pMatrix);
+	D3DMATRIX Matrix = *pMatrix;
 
-	if (SUCCEEDED(hr) && pMatrix)
+	if (DeviceStates.Viewport.UseViewportScale && State == D3DTS_PROJECTION)
+	{
+		const float dvScaleX = DeviceStates.Viewport.dvScaleX;
+		const float dvScaleY = DeviceStates.Viewport.dvScaleY;
+		const float dvMaxX = DeviceStates.Viewport.dvMaxX;
+		const float dvMaxY = DeviceStates.Viewport.dvMaxY;
+		const DWORD dwWidth = DeviceStates.Viewport.View.Width;
+		const DWORD dwHeight = DeviceStates.Viewport.View.Height;
+
+		if (dvScaleX != 0 && dvScaleY != 0 && dvMaxX != 0 && dvMaxY != 0 && dwWidth != 0 && dwHeight != 0)
+		{
+			const float sx = dvScaleX / (dwWidth * 0.5f * dvMaxX);
+			const float sy = dvScaleY / (dwHeight * 0.5f * dvMaxY);
+
+			Matrix._11 *= sx;
+			Matrix._22 *= sy;
+		}
+	}
+
+	HRESULT hr = (*d3d9Device)->SetTransform(State, &Matrix);
+
+	if (SUCCEEDED(hr))
 	{
 		DeviceStates.Matrix[State] = *pMatrix;
 	}
