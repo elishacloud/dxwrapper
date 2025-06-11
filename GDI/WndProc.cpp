@@ -277,7 +277,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	const WNDPROC pWndProc = AppWndProcInstance->GetAppWndProc();
 	const HWND hWndInstance = AppWndProcInstance->GetHWnd();
-	const DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
+	DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
 
 	// Set instance as inactive when window closes
 	if ((Msg == WM_CLOSE || Msg == WM_DESTROY || Msg == WM_NCDESTROY || (Msg == WM_SYSCOMMAND && wParam == SC_CLOSE)) && hWnd == hWndInstance)

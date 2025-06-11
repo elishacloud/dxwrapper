@@ -14,6 +14,7 @@
 #include <DDrawCompat/v0.3.2/Gdi/ScrollFunctions.h>
 #include <DDrawCompat/v0.3.2/Gdi/User32WndProcs.h>
 #include <DDrawCompat/v0.3.2/Gdi/WinProc.h>
+#include "Settings\Settings.h"
 
 namespace
 {

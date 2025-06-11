@@ -11,6 +11,8 @@ static constexpr D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
 
 static constexpr DWORD MaxPaletteSize = 256;
 
+static constexpr DWORD DXW_ALL_SURFACE_LEVELS = 0xFFFF;
+
 #define BLT_MIRRORLEFTRIGHT		0x00000002l
 #define BLT_MIRRORUPDOWN		0x00000004l
 #define BLT_COLORKEY			0x00002000l
@@ -156,9 +158,9 @@ struct DEVICESETTINGS
 {
 	bool IsWindowed;
 	bool AntiAliasing;
-	bool AllowModeX;
 	bool MultiThreaded;
 	bool FPUPreserve;
+	bool FPUSetup;
 	bool NoWindowChanges;
 	DWORD Width;
 	DWORD Height;
@@ -209,6 +211,17 @@ struct TRIBYTE
 	BYTE second;
 	BYTE third;
 
+	// Constructor from DWORD
+	TRIBYTE(DWORD value)
+		: first(BYTE(value & 0xFF)),
+		second(BYTE((value >> 8) & 0xFF)),
+		third(BYTE((value >> 16) & 0xFF))
+	{
+	}
+
+	// Default constructor
+	TRIBYTE() : first(0), second(0), third(0) {}
+
 	// Conversion operator from TRIBYTE to DWORD
 	operator DWORD() const {
 		return (DWORD(first) | (DWORD(second) << 8) | (DWORD(third) << 16));
@@ -245,6 +258,9 @@ template <typename T>
 void SimpleColorKeyCopy(T ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
 template <typename T>
 void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
+DWORD GetDepthFillValue(float depthValue, D3DFORMAT Format);
+template <typename T>
+HRESULT ComplexZBufferCopy(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format);
 DWORD ComputeRND(DWORD Seed, DWORD Num);
 bool DoRectsMatch(const RECT& lhs, const RECT& rhs);
 bool GetOverlappingRect(const RECT& rect1, const RECT& rect2, RECT& outOverlapRect);
@@ -264,7 +280,6 @@ DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount);
 DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height);
 DWORD GetBitCount(const DDPIXELFORMAT& ddpfPixelFormat);
 DWORD GetBitCount(D3DFORMAT Format);
-float ConvertDepthValue(DWORD dwFillDepth, D3DFORMAT Format);
 DWORD ComputePitch(D3DFORMAT Format, DWORD Width, DWORD Height);
 DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch);
 DWORD GetARGBColorKey(DWORD ColorKey, const DDPIXELFORMAT& ddpfPixelFormat);
@@ -274,6 +289,7 @@ bool IsPixelFormatPalette(const DDPIXELFORMAT& ddpfPixelFormat);
 D3DFORMAT ConvertSurfaceFormat(D3DFORMAT Format);
 bool IsUnsupportedFormat(D3DFORMAT Format);
 D3DFORMAT GetFailoverFormat(D3DFORMAT Format);
+D3DFORMAT GetStencilEmulatedFormat(DWORD BitCount);
 D3DFORMAT GetDisplayFormat(const DDPIXELFORMAT& ddpfPixelFormat);
 void SetPixelDisplayFormat(D3DFORMAT Format, DDPIXELFORMAT& ddpfPixelFormat);
 D3DFORMAT SetDisplayFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);

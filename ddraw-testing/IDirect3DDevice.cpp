@@ -2,16 +2,51 @@
 #include "testing-harness.h"
 
 
+template <typename DDType, typename D3DDType>
+void TestExecuteBuffer(DDType* pDDraw, D3DDType* pDirect3DDevice)
+{
+    IDirect3DExecuteBuffer* pBuffer = nullptr;
+
+    D3DEXECUTEBUFFERDESC eDesc = {};
+    eDesc.dwSize = sizeof(D3DEXECUTEBUFFERDESC);
+    eDesc.dwFlags = D3DDEB_BUFSIZE;
+    eDesc.dwBufferSize = 15600;
+
+    // ****  900  ****
+    DWORD TestID = 900;
+    HRESULT hr = pDirect3DDevice->CreateExecuteBuffer(&eDesc, &pBuffer, nullptr);
+    if (FAILED(hr))
+    {
+        LOG_TEST_RESULT(TestID, "Failed to create ExecuteBuffer. Error: ", (DDERR)hr, TEST_FAILED);
+        return;
+    }
+
+    LOG_TEST_RESULT(TestID, "ExecuteBuffer created. Ref count: ", GetRefCount(pBuffer), GetResults<DDType>(TestID));
+
+    // ****  901  ****
+    TestID = 901;
+    LOG_TEST_RESULT(TestID, "DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+    // ****  902  ****
+    TestID = 902;
+    LOG_TEST_RESULT(TestID, "Direct3DDevice Ref count: ", GetRefCount(pDirect3DDevice), GetResults<DDType>(TestID));
+
+    pBuffer->Release();
+
+    // ****  903  ****
+    TestID = 903;
+    LOG_TEST_RESULT(TestID, "After ExecuteBuffer release. Direct3DDevice Ref count: ", GetRefCount(pDirect3DDevice), GetResults<DDType>(TestID));
+}
+
 template <typename DDType, typename DSType, typename DSDesc, typename D3DType, typename D3DDType>
 void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
 {
-    // Create surface1
+    // Create primary surface with backbuffer
     DSDesc ddsd = {};
     ddsd.dwSize = sizeof(ddsd);
-    ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-    ddsd.ddsCaps.dwCaps = DDSCAPS_3DDEVICE | DDSCAPS_VIDEOMEMORY | DDSCAPS_OFFSCREENPLAIN;
-    ddsd.dwWidth = 640;
-    ddsd.dwHeight = 480;
+    ddsd.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
+    ddsd.ddsCaps.dwCaps = DDSCAPS_3DDEVICE | DDSCAPS_VIDEOMEMORY | DDSCAPS_PRIMARYSURFACE | DDSCAPS_FLIP | DDSCAPS_COMPLEX;
+    ddsd.dwBackBufferCount = 1;
 
     DSType* pSurface1 = nullptr;
     HRESULT hr = pDDraw->CreateSurface(&ddsd, &pSurface1, nullptr);
@@ -32,6 +67,82 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
 
     // ****  802  ****
     TestID = 802;
+    LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+    // Create Z-buffer surface
+    DSDesc zddsd = {};
+    zddsd.dwSize = sizeof(zddsd);
+    zddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
+    zddsd.dwWidth = 640;
+    zddsd.dwHeight = 480;
+    zddsd.ddsCaps.dwCaps = DDSCAPS_ZBUFFER | DDSCAPS_VIDEOMEMORY;
+
+    // Set pixel format for z-buffer (example: 16-bit Z-buffer)
+    if constexpr (std::is_same_v<D3DType, IDirect3D> || std::is_same_v<D3DType, IDirect3D2>)
+    {
+        zddsd.dwFlags |= DDSD_ZBUFFERBITDEPTH;
+        zddsd.dwZBufferBitDepth = 16;
+    }
+    else
+    {
+        zddsd.dwFlags |= DDSD_PIXELFORMAT;
+        zddsd.ddpfPixelFormat.dwSize = sizeof(zddsd.ddpfPixelFormat);
+        zddsd.ddpfPixelFormat.dwFlags = DDPF_ZBUFFER;
+        zddsd.ddpfPixelFormat.dwZBufferBitDepth = 16;
+        zddsd.ddpfPixelFormat.dwZBitMask = 0xFFFF;
+    }
+
+    DSType* pZBuffer = nullptr;
+    hr = pDDraw->CreateSurface(&zddsd, &pZBuffer, nullptr);
+
+    // ****  838  ****
+    TestID = 838;
+    if (FAILED(hr))
+    {
+        LOG_TEST_RESULT(TestID, "Failed to create Z-buffer surface", (DDERR)hr, TEST_FAILED);
+        pSurface1->Release();
+        return;
+    }
+
+    LOG_TEST_RESULT(TestID, "zBuffer Surface created. Ref count: ", GetRefCount(pZBuffer), GetResults<DDType>(TestID));
+
+    // ****  839  ****
+    TestID = 839;
+    LOG_TEST_RESULT(TestID, "3D Surface1 Ref count: ", GetRefCount(pSurface1), GetResults<DDType>(TestID));
+
+    // ****  840  ****
+    TestID = 840;
+    LOG_TEST_RESULT(TestID, "Direct3D Ref count ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+
+    // ****  841  ****
+    TestID = 841;
+    LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+    // Attach Z-buffer to the back buffer
+    hr = pSurface1->AddAttachedSurface(pZBuffer);
+
+    // ****  842  ****
+    TestID = 842;
+    if (FAILED(hr))
+    {
+        LOG_TEST_RESULT(TestID, "Failed to attach Z-buffer", (DDERR)hr, TEST_FAILED);
+        pZBuffer->Release();
+        pSurface1->Release();
+        return;
+    }
+
+    LOG_TEST_RESULT(TestID, "zBuffer Attached. Ref count: ", GetRefCount(pZBuffer), GetResults<DDType>(TestID));
+
+    // ****  843  ****
+    TestID = 843;
+    LOG_TEST_RESULT(TestID, "3D Surface1 Ref count: ", GetRefCount(pSurface1), GetResults<DDType>(TestID));
+
+    // ****  844  ****
+    TestID = 844;
+    LOG_TEST_RESULT(TestID, "Direct3D Ref count ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+
+    // ****  845  ****
+    TestID = 845;
     LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
 
     D3DDType* pD3DDevice1 = nullptr;
@@ -74,7 +185,20 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
         TestID = 806;
         LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
 
+        // Test execute buffer
+        if constexpr (std::is_same_v<D3DDType, IDirect3DDevice>)
+        {
+            TestExecuteBuffer(pDDraw, pD3DDevice1);
+        }
+
         // Create surface2
+        ddsd = {};
+        ddsd.dwSize = sizeof(ddsd);
+        ddsd.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
+        ddsd.ddsCaps.dwCaps = DDSCAPS_3DDEVICE | DDSCAPS_VIDEOMEMORY | DDSCAPS_OFFSCREENPLAIN;
+        ddsd.dwWidth = 640;
+        ddsd.dwHeight = 480;
+
         DSType* pSurface2 = nullptr;
         hr = pDDraw->CreateSurface(&ddsd, &pSurface2, nullptr);
 
@@ -231,6 +355,8 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
         // ****  837  ****
         TestID = 837;
         LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+        pZBuffer->Release();
 
         pSurface1->Release();
 

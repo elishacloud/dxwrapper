@@ -4,7 +4,7 @@ class m_IDirect3DMaterial2 : public IDirect3DMaterial2, public AddressLookupTabl
 {
 private:
 	m_IDirect3DMaterialX *ProxyInterface;
-	REFIID WrapperID = IID_IDirect3DMaterial2;
+	const IID WrapperID = IID_IDirect3DMaterial2;
 	const DWORD DirectXVersion = 2;
 
 public:

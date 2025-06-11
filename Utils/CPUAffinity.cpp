@@ -16,6 +16,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <winternl.h>
 #include <tlhelp32.h>
 #include <map>
 #include "Utils.h"
@@ -24,9 +25,45 @@
 
 namespace Utils
 {
+	constexpr THREADINFOCLASS ThreadBasicInformation = (THREADINFOCLASS)0;
+	constexpr THREADINFOCLASS ThreadPriority = (THREADINFOCLASS)2;
+
+	using NtQueryInformationThreadFunc = NTSTATUS(WINAPI*)(HANDLE, int, PVOID, ULONG, PULONG);
+	using NtSetInformationThreadFunc = NTSTATUS(WINAPI*)(HANDLE, int, PVOID, ULONG);
+
+	NtQueryInformationThreadFunc g_ntQueryInformationThread = nullptr;
+	NtSetInformationThreadFunc g_ntSetInformationThread = nullptr;
+
+#if (_WIN32_WINNT < 0x0502)
+	typedef struct _CLIENT_ID {
+		HANDLE UniqueProcess;
+		HANDLE UniqueThread;
+	} CLIENT_ID;
+
+	typedef LONG KPRIORITY;
+#endif
+
+	struct THREAD_BASIC_INFORMATION {
+		NTSTATUS ExitStatus;
+		PVOID TebBaseAddress;
+		CLIENT_ID ClientId;
+		KAFFINITY AffinityMask;
+		KPRIORITY Priority;
+		KPRIORITY BasePriority;
+	};
+
+	struct SuspiciousThread {
+		HANDLE thread;
+		DWORD threadId;
+	};
+
+	HANDLE g_hPriorityFixThread = nullptr;
+	HANDLE g_hStopEvent = nullptr;
+
 	// Function declarations
 	DWORD GetCoresUsedByProcess();
 	DWORD_PTR GetCPUMask();
+	DWORD WINAPI PriorityFixThreadProc(LPVOID);
 }
 
 // Check the number CPU cores is being used by the process
@@ -121,4 +158,94 @@ void Utils::ApplyThreadAffinity()
 	} while (Thread32Next(snapshot, &te));
 
 	CloseHandle(snapshot);
+}
+
+DWORD WINAPI Utils::PriorityFixThreadProc(LPVOID)
+{
+	DWORD currentPid = GetCurrentProcessId();
+
+	while (WaitForSingleObject(g_hStopEvent, 10) == WAIT_TIMEOUT)
+	{
+		HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+		if (snapshot == INVALID_HANDLE_VALUE)
+		{
+			continue;
+		}
+
+		THREADENTRY32 te = { sizeof(te) };
+		if (Thread32First(snapshot, &te))
+		{
+			do {
+				if (te.th32OwnerProcessID == currentPid)
+				{
+					HANDLE hThread = OpenThread(THREAD_QUERY_INFORMATION | THREAD_SET_INFORMATION, FALSE, te.th32ThreadID);
+					if (hThread)
+					{
+						THREAD_BASIC_INFORMATION tbi = {};
+						NTSTATUS status = g_ntQueryInformationThread(hThread, ThreadBasicInformation, &tbi, sizeof(tbi), nullptr);
+						if (NT_SUCCESS(status))
+						{
+							if (tbi.Priority >= 16 && tbi.BasePriority < 16)
+							{
+								ULONG prio = THREAD_PRIORITY_HIGHEST;
+								status = g_ntSetInformationThread(hThread, ThreadPriority, &prio, sizeof(prio));
+								if (!NT_SUCCESS(status))
+								{
+									//Log(L"NtSetInformationThread failed for thread %u\n", it->first, 0, 0);
+								}
+							}
+						}
+						CloseHandle(hThread);
+					}
+				}
+			} while (Thread32Next(snapshot, &te));
+		}
+		CloseHandle(snapshot);
+	}
+
+	return 0;
+}
+
+void Utils::StartPriorityMonitor()
+{
+	if (!g_ntQueryInformationThread || !g_ntSetInformationThread)
+	{
+		HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
+		if (ntdll)
+		{
+			g_ntQueryInformationThread = (NtQueryInformationThreadFunc)GetProcAddress(ntdll, "NtQueryInformationThread");
+			g_ntSetInformationThread = (NtSetInformationThreadFunc)GetProcAddress(ntdll, "NtSetInformationThread");
+		}
+	}
+
+	if (!g_ntQueryInformationThread || !g_ntSetInformationThread)
+	{
+		return;
+	}
+
+	if (!g_hStopEvent)
+	{
+		g_hStopEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr); // Manual-reset, initially non-signaled
+	}
+
+	if (!g_hPriorityFixThread)
+	{
+		g_hPriorityFixThread = CreateThread(nullptr, 0, PriorityFixThreadProc, nullptr, 0, nullptr);
+	}
+}
+
+void Utils::StopPriorityMonitor()
+{
+	if (g_hStopEvent)
+	{
+		SetEvent(g_hStopEvent);
+		if (g_hPriorityFixThread)
+		{
+			WaitForSingleObject(g_hPriorityFixThread, INFINITE);
+			CloseHandle(g_hPriorityFixThread);
+			g_hPriorityFixThread = nullptr;
+		}
+		CloseHandle(g_hStopEvent);
+		g_hStopEvent = nullptr;
+	}
 }

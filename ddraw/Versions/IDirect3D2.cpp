@@ -101,7 +101,7 @@ HRESULT m_IDirect3D2::FindDevice(LPD3DFINDDEVICESEARCH a, LPD3DFINDDEVICERESULT 
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->FindDevice(a, b);
+	return ProxyInterface->FindDevice(a, b, DirectXVersion);
 }
 
 HRESULT m_IDirect3D2::CreateDevice(REFCLSID a, LPDIRECTDRAWSURFACE b, LPDIRECT3DDEVICE2 * c)

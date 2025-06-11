@@ -28,6 +28,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <iomanip>
 #include <intrin.h>
 #include <tlhelp32.h>
 #include <atlbase.h>
@@ -56,6 +57,8 @@ DEFINE_GUID(IID_IWbemLocator,
 DEFINE_GUID(CLSID_WbemLocator,
 	0x4590F811, 0x1D3A, 0x11D0, 0x89, 0x1F, 0x00, 0xAA, 0x00, 0x4B, 0x2E, 0x24);
 
+#define PAGE_READABLE_FLAGS (PAGE_READONLY | PAGE_READWRITE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE)
+
 #ifdef _DPI_AWARENESS_CONTEXTS_
 typedef enum PROCESS_DPI_AWARENESS {
 	PROCESS_DPI_UNAWARE = 0,
@@ -75,11 +78,18 @@ typedef BOOL(WINAPI* GetDiskFreeSpaceAProc)(LPCSTR lpRootPathName, LPDWORD lpSec
 typedef BOOL(WINAPI *CreateProcessAFunc)(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
 typedef HANDLE(WINAPI* CreateThreadProc)(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
+typedef HANDLE(WINAPI* CreateFileAProc)(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
 typedef LPVOID(WINAPI* VirtualAllocProc)(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 typedef LPVOID(WINAPI* HeapAllocProc)(HANDLE, DWORD, SIZE_T);
 typedef SIZE_T(WINAPI* HeapSizeProc)(HANDLE, DWORD, LPCVOID);
-typedef BOOL(WINAPI *CreateProcessWFunc)(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
+typedef BOOL(WINAPI *CreateProcessWProc)(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
+typedef BOOL(WINAPI* QueryPerformanceFrequencyProc)(LARGE_INTEGER* lpFrequency);
+typedef BOOL(WINAPI* QueryPerformanceCounterProc)(LARGE_INTEGER* lpPerformanceCount);
+typedef DWORD(WINAPI* GetTickCountProc)();
+typedef LONGLONG(WINAPI* GetTickCount64Proc)();
+typedef DWORD(WINAPI* timeGetTimeProc)();
+typedef MMRESULT(WINAPI* timeGetSystemTimeProc)(LPMMTIME pmmt, UINT cbmmt);
 
 namespace Utils
 {
@@ -111,16 +121,33 @@ namespace Utils
 	INITIALIZE_OUT_WRAPPED_PROC(GetModuleFileNameW, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(CreateThread, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(CreateFileA, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(VirtualAlloc, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(HeapAlloc, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(HeapSize, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(QueryPerformanceFrequency, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(QueryPerformanceCounter, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(GetTickCount, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(GetTickCount64, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(timeGetTime, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(timeGetSystemTime, unused);
 
 	FARPROC p_CreateProcessA = nullptr;
 	FARPROC p_CreateProcessW = nullptr;
 	WNDPROC OriginalWndProc = nullptr;
 	std::vector<type_dll> custom_dll;		// Used for custom dll's and asi plugins
 
+	DWORD SubtractTimeInMS_gtc = 0;
+	int64_t SubtractTimeInMS_gtc64 = 0;
+	DWORD SubtractTimeInMS_tmt = 0;
+	DWORD SubtractTimeInMS_mmt = 0;
+	int64_t SubtractTimeInTicks_qpc = 0;
+	bool IsPerformanceFrequencyCapped = false;
+	uint64_t PerformanceFrequency_real = 0;
+	constexpr uint64_t PerformanceFrequency_cap = 0xFFFFFFFF;
+
 	// Function declarations
+	ULONGLONG GetTickCount64_Emulated();
 	void InitializeASI(HMODULE hModule);
 	void FindFiles(WIN32_FIND_DATA*);
 	void *memmem(const void *l, size_t l_len, const void *s, size_t s_len);
@@ -376,6 +403,62 @@ HANDLE WINAPI Utils::kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttribute
 	return CreateThread(lpThreadAttributes, dwStackSize, lpStartAddress, lpParameter, dwCreationFlags, lpThreadId);
 }
 
+HANDLE WINAPI Utils::kernel_CreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
+{
+	Logging::LogDebug() << __FUNCTION__ << " " << lpFileName;
+
+	DEFINE_STATIC_PROC_ADDRESS(CreateFileAProc, CreateFileA, CreateFileA_out);
+
+	if (!CreateFileA)
+	{
+		return nullptr;
+	}
+
+	auto IsPointerReadable = [](LPCVOID ptr) -> bool
+		{
+			MEMORY_BASIC_INFORMATION mbi = {};
+			if (!ptr) return false;
+			if (VirtualQuery(ptr, &mbi, sizeof(mbi)))
+			{
+				return (mbi.State == MEM_COMMIT) && (mbi.Protect & PAGE_READABLE_FLAGS);
+			}
+			return false;
+		};
+
+	auto IsPointerAligned = [](void* ptr, size_t alignment) -> bool
+		{
+			return (reinterpret_cast<uintptr_t>(ptr) % alignment) == 0;
+		};
+
+	auto SafeIsValidSecurityDescriptor = [](PSECURITY_DESCRIPTOR lpSD) -> bool
+		{
+			__try
+			{
+				return IsValidSecurityDescriptor(lpSD) != FALSE;
+			}
+			__except (EXCEPTION_EXECUTE_HANDLER)
+			{
+				return false;
+			}
+		};
+
+	// Check for uninitialized Security Attributes
+	SECURITY_ATTRIBUTES SecurityAttributes = {};
+	if (lpSecurityAttributes &&
+		lpSecurityAttributes->lpSecurityDescriptor &&
+		(reinterpret_cast<uintptr_t>(lpSecurityAttributes->lpSecurityDescriptor) > 0x200000 ||	// Check for high-range garbage pointers
+		!IsPointerAligned(lpSecurityAttributes->lpSecurityDescriptor, sizeof(void*)) ||			// Check if pointer is not byte aligned
+		static_cast<uint32_t>(lpSecurityAttributes->bInheritHandle) > TRUE) &&					// Check if BOOL is not TRUE or FALSE
+		(!IsPointerReadable(lpSecurityAttributes->lpSecurityDescriptor) || !SafeIsValidSecurityDescriptor(lpSecurityAttributes->lpSecurityDescriptor)))
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " Fixing invalid SECURITY_ATTRIBUTES for CreateFileA");
+		SecurityAttributes.nLength = lpSecurityAttributes->nLength;
+		lpSecurityAttributes = &SecurityAttributes;
+	}
+
+	return CreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+}
+
 LPVOID WINAPI Utils::kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
 {
 	Logging::LogDebug() << __FUNCTION__ " " << lpAddress << " " << dwSize << " " << flAllocationType << " " << flProtect;
@@ -448,6 +531,211 @@ SIZE_T WINAPI Utils::kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem)
 
 	// Call the original HeapSize function
 	return HeapSize(hHeap, dwFlags, lpMem);
+}
+
+bool Utils::InitUpTimeOffsets()
+{
+	const uint64_t MS_PER_DAY = 86400000ULL;
+
+	// Gather system uptime values
+	LARGE_INTEGER qpc, freq;
+	if (!QueryPerformanceFrequency(&freq) || !QueryPerformanceCounter(&qpc))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Query Performance failed!";
+
+		return false;
+	}
+	uint64_t ms_qpc = (qpc.QuadPart * 1000ULL) / freq.QuadPart;
+
+	MMTIME mmt = {};
+	mmt.wType = TIME_MS;
+	if (timeGetSystemTime(&mmt, sizeof(mmt)) != MMSYSERR_NOERROR || mmt.wType != TIME_MS)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: timeGetSystemTime failed!";
+
+		return false;
+	}
+
+	DWORD tmt = timeGetTime();
+
+	DWORD gtc = GetTickCount();
+#if (_WIN32_WINNT >= 0x0502)
+	ULONGLONG gtc64 = GetTickCount64();
+#endif
+
+	// Calculate full days from uptime in ms
+	uint64_t timeInDays = ms_qpc / MS_PER_DAY;
+	uint64_t timeInMS = timeInDays * MS_PER_DAY;
+	uint64_t remainderTimeMS = ms_qpc - timeInMS;
+
+	SubtractTimeInMS_gtc = static_cast<DWORD>(gtc - remainderTimeMS);
+#if (_WIN32_WINNT >= 0x0502)
+	SubtractTimeInMS_gtc64 = gtc64 - remainderTimeMS;
+#endif
+	SubtractTimeInMS_tmt = static_cast<DWORD>(tmt - remainderTimeMS);
+	SubtractTimeInMS_mmt = static_cast<DWORD>(mmt.u.ms - remainderTimeMS);
+	SubtractTimeInTicks_qpc = (timeInMS * freq.QuadPart) / 1000ULL;
+
+	PerformanceFrequency_real = freq.QuadPart;
+
+	if (Config.FixPerfCounterUptime == 1 && PerformanceFrequency_real > PerformanceFrequency_cap)
+	{
+		IsPerformanceFrequencyCapped = true;
+
+		Logging::Log() << __FUNCTION__ << " Warning: Frequency is too high capping it. " <<
+			std::fixed << std::setprecision(3) <<
+			" Real: " << ((double)PerformanceFrequency_real / 1'000'000'000.0) << " GHz" <<
+			" Capped: " << ((double)PerformanceFrequency_cap / 1'000'000'000.0) << " GHz";
+	}
+
+	Logging::Log() << __FUNCTION__ << " Found " << timeInDays << " day" << (timeInDays == 1 ? "" : "s") << " system up time!";
+
+	return true;
+}
+
+BOOL WINAPI Utils::kernel_QueryPerformanceFrequency(LARGE_INTEGER* lpFrequency)
+{
+	DEFINE_STATIC_PROC_ADDRESS(QueryPerformanceFrequencyProc, QueryPerformanceFrequency, QueryPerformanceFrequency_out);
+
+	if (!QueryPerformanceFrequency)
+	{
+		return 0;
+	}
+
+	if (lpFrequency)
+	{
+		if (IsPerformanceFrequencyCapped)
+		{
+			lpFrequency->QuadPart = PerformanceFrequency_cap;
+		}
+		else
+		{
+			lpFrequency->QuadPart = PerformanceFrequency_real;
+		}
+
+		return TRUE;
+	}
+
+	return QueryPerformanceFrequency(lpFrequency);
+}
+
+BOOL WINAPI Utils::kernel_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount)
+{
+	DEFINE_STATIC_PROC_ADDRESS(QueryPerformanceCounterProc, QueryPerformanceCounter, QueryPerformanceCounter_out);
+
+	if (!QueryPerformanceCounter)
+	{
+		return FALSE;
+	}
+
+	BOOL ret = QueryPerformanceCounter(lpPerformanceCount);
+	if (ret != FALSE)
+	{
+		if (IsPerformanceFrequencyCapped)
+		{
+			// Use integer math with carefully ordered operations to increase precision
+			int64_t delta = lpPerformanceCount->QuadPart - SubtractTimeInTicks_qpc;
+			lpPerformanceCount->QuadPart = (delta / PerformanceFrequency_real) * PerformanceFrequency_cap +
+				(delta % PerformanceFrequency_real) * PerformanceFrequency_cap / PerformanceFrequency_real;
+		}
+		else
+		{
+			lpPerformanceCount->QuadPart -= SubtractTimeInTicks_qpc;
+		}
+	}
+	return ret;
+}
+
+ULONGLONG Utils::GetTickCount64_Emulated()
+{
+	struct QPF {
+		BOOL ret;
+		LARGE_INTEGER freq;
+		QPF()
+		{
+			ret = kernel_QueryPerformanceFrequency(&freq);
+		}
+	};
+
+	static QPF qpf;
+
+	LARGE_INTEGER qpc;
+	if (!qpf.ret || !kernel_QueryPerformanceCounter(&qpc))
+	{
+		return 0;
+	}
+
+	return (qpc.QuadPart * 1000ULL) / qpf.freq.QuadPart;
+}
+
+DWORD WINAPI Utils::kernel_GetTickCount()
+{
+	DEFINE_STATIC_PROC_ADDRESS(GetTickCountProc, GetTickCount, GetTickCount_out);
+
+	if (!GetTickCount)
+	{
+		return 0;
+	}
+
+	if (IsPerformanceFrequencyCapped)
+	{
+		return static_cast<DWORD>(GetTickCount64_Emulated());
+	}
+	else
+	{
+		return GetTickCount() - SubtractTimeInMS_gtc;
+	}
+}
+
+ULONGLONG WINAPI Utils::kernel_GetTickCount64()
+{
+	DEFINE_STATIC_PROC_ADDRESS(GetTickCount64Proc, GetTickCount64, GetTickCount64_out);
+
+	if (!GetTickCount64)
+	{
+		return 0;
+	}
+
+	if (IsPerformanceFrequencyCapped)
+	{
+		return GetTickCount64_Emulated();
+	}
+	else
+	{
+		return GetTickCount64() - SubtractTimeInMS_gtc64;
+	}
+}
+
+DWORD WINAPI Utils::winmm_timeGetTime()
+{
+	DEFINE_STATIC_PROC_ADDRESS(timeGetTimeProc, timeGetTime, timeGetTime_out);
+
+	if (!timeGetTime)
+	{
+		return 0;
+	}
+
+	return timeGetTime() - SubtractTimeInMS_tmt;
+}
+
+MMRESULT WINAPI Utils::winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt)
+{
+	DEFINE_STATIC_PROC_ADDRESS(timeGetSystemTimeProc, timeGetSystemTime, timeGetSystemTime_out);
+
+	if (!timeGetSystemTime)
+	{
+		return TIMERR_NOCANDO;
+	}
+
+	MMRESULT result = timeGetSystemTime(pmmt, cbmmt);
+	if (result == TIMERR_NOERROR)
+	{
+		if (cbmmt == sizeof(MMTIME) && pmmt->wType == TIME_MS)
+		{
+			pmmt->u.ms -= SubtractTimeInMS_mmt;
+		}
+	}
+	return result;
 }
 
 // Your existing exception handler function
@@ -1022,7 +1310,7 @@ bool Utils::IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd)
 	return false;
 }
 
-static BOOL WINAPI CreateProcessAHandler(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
+static BOOL WINAPI kernel_CreateProcessA(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
 {
 	DEFINE_STATIC_PROC_ADDRESS(CreateProcessAFunc, CreateProcessA, Utils::p_CreateProcessA);
@@ -1061,10 +1349,10 @@ static BOOL WINAPI CreateProcessAHandler(LPCSTR lpApplicationName, LPSTR lpComma
 		lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 }
 
-static BOOL WINAPI CreateProcessWHandler(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
+static BOOL WINAPI kernel_CreateProcessW(LPCWSTR lpApplicationName, LPWSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory, LPSTARTUPINFOW lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation)
 {
-	DEFINE_STATIC_PROC_ADDRESS(CreateProcessWFunc, CreateProcessW, Utils::p_CreateProcessW);
+	DEFINE_STATIC_PROC_ADDRESS(CreateProcessWProc, CreateProcessW, Utils::p_CreateProcessW);
 
 	if (!CreateProcessW)
 	{
@@ -1157,8 +1445,8 @@ void Utils::DisableGameUX()
 	// Hook CreateProcess APIs
 	Logging::Log() << "Hooking 'CreateProcess' API...";
 	HMODULE h_kernel32 = GetModuleHandle("kernel32");
-	InterlockedExchangePointer((PVOID*)&p_CreateProcessA, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessA"), "CreateProcessA", *CreateProcessAHandler));
-	InterlockedExchangePointer((PVOID*)&p_CreateProcessW, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessW"), "CreateProcessW", *CreateProcessWHandler));
+	InterlockedExchangePointer((PVOID*)&p_CreateProcessA, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessA"), "CreateProcessA", *kernel_CreateProcessA));
+	InterlockedExchangePointer((PVOID*)&p_CreateProcessW, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessW"), "CreateProcessW", *kernel_CreateProcessW));
 }
 
 inline static UINT GetValueFromString(wchar_t* str)
@@ -1302,6 +1590,15 @@ void Utils::WaitForWindowActions(HWND hWnd, DWORD Loops)
 			break;
 		}
 	}
+}
+
+// Single precision and exceptions disabled
+void Utils::ApplyFPUSetup()
+{
+	unsigned int currentControl = 0;
+	unsigned int newControl = _EM_INEXACT | _EM_UNDERFLOW | _EM_OVERFLOW | _EM_ZERODIVIDE | _EM_INVALID | _EM_DENORMAL;
+
+	_controlfp_s(&currentControl, newControl, _MCW_EM);
 }
 
 void Utils::GetModuleFromAddress(void* address, char* module, const size_t size)

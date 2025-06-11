@@ -1,15 +1,11 @@
 #pragma once
 
-void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool ForceExclusiveFullscreen, bool SetWindow);
-void GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails);
-void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality);
-
 class m_IDirect3D9Ex : public IDirect3D9Ex, public AddressLookupTableD3d9Object
 {
 private:
 	LPDIRECT3D9 ProxyInterface;
 	LPDIRECT3D9EX ProxyInterfaceEx = nullptr;
-	REFIID WrapperID;
+	const IID WrapperID;
 
 	struct ENUM_ADAPTERS_CACHE {
 		UINT Adapter = 0;
@@ -86,4 +82,13 @@ public:
 
 	// Helper functions
 	bool TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD BackBufferHeight);
+
+	// Static functions
+	static DWORD AdjustPOW2Caps(DWORD OriginalCaps);
+	static DWORD UpdateBehaviorFlags(DWORD BehaviorFlags);
+	static void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool ForceExclusiveFullscreen, bool SetWindow);
+	static void GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails);
+	static void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DDISPLAYMODEEX& Mode);
+	static void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality);
+	static void AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed, bool EnableWindowMode, bool FullscreenWindowMode);
 };

@@ -18,10 +18,6 @@
 
 #include "ddraw.h"
 
-namespace {
-	m_IDirectDrawPalette* WrapperInterfaceBackup = nullptr;
-}
-
 // ******************************
 // IUnknown functions
 // ******************************
@@ -100,7 +96,7 @@ ULONG m_IDirectDrawPalette::Release()
 
 		if (ref == 0)
 		{
-			SaveInterfaceAddress(this, WrapperInterfaceBackup);
+			SaveInterfaceAddress(this);
 		}
 
 		return ref;
@@ -110,7 +106,7 @@ ULONG m_IDirectDrawPalette::Release()
 
 	if (ref == 0)
 	{
-		SaveInterfaceAddress(this, WrapperInterfaceBackup);
+		SaveInterfaceAddress(this);
 	}
 
 	return ref;
@@ -240,26 +236,29 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 			return DD_OK;	// No new data found
 		}
 
-		ScopedDDCriticalSection ThreadLockDD;
-
-		// Translate new raw pallete entries to RGB
-		for (UINT i = Start; i < End; i++, x++)
+		// Update palette data
 		{
-			BYTE alpha = (paletteCaps & DDPCAPS_ALPHA) ? lpEntries[x].peFlags : 0xFF;
-			// Palette entry
-			rawPalette[i].peFlags = alpha;
-			rawPalette[i].peRed = lpEntries[x].peRed;
-			rawPalette[i].peGreen = lpEntries[x].peGreen;
-			rawPalette[i].peBlue = lpEntries[x].peBlue;
-			// RGB palette
-			rgbPalette[i].rgbBlue = lpEntries[x].peBlue;
-			rgbPalette[i].rgbGreen = lpEntries[x].peGreen;
-			rgbPalette[i].rgbRed = lpEntries[x].peRed;
-			rgbPalette[i].rgbReserved = alpha;
-		}
+			ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
 
-		// Note that there is new palette data
-		PaletteUSN++;
+			// Translate new raw pallete entries to RGB
+			for (UINT i = Start; i < End; i++, x++)
+			{
+				BYTE alpha = (paletteCaps & DDPCAPS_ALPHA) ? lpEntries[x].peFlags : 0xFF;
+				// Palette entry
+				rawPalette[i].peFlags = alpha;
+				rawPalette[i].peRed = lpEntries[x].peRed;
+				rawPalette[i].peGreen = lpEntries[x].peGreen;
+				rawPalette[i].peBlue = lpEntries[x].peBlue;
+				// RGB palette
+				rgbPalette[i].rgbBlue = lpEntries[x].peBlue;
+				rgbPalette[i].rgbGreen = lpEntries[x].peGreen;
+				rgbPalette[i].rgbRed = lpEntries[x].peRed;
+				rgbPalette[i].rgbReserved = alpha;
+			}
+
+			// Note that there is new palette data
+			PaletteUSN++;
+		}
 
 		// Present new palette
 		if (ddrawParent)
@@ -274,7 +273,7 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 				m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 				if (lpDDSrcSurfaceX)
 				{
-					lpDDSrcSurfaceX->PresentSurface(false);
+					lpDDSrcSurfaceX->PresentSurface(false, false);
 				}
 			}
 		}
@@ -291,8 +290,6 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 
 void m_IDirectDrawPalette::InitInterface(DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
 {
-	ScopedDDCriticalSection ThreadLockDD;
-
 	if (ddrawParent)
 	{
 		ddrawParent->AddPalette(this);
@@ -377,8 +374,6 @@ void m_IDirectDrawPalette::ReleaseInterface()
 		return;
 	}
 
-	ScopedDDCriticalSection ThreadLockDD;
-
 	if (ddrawParent)
 	{
 		ddrawParent->ClearPalette(this);
@@ -387,11 +382,9 @@ void m_IDirectDrawPalette::ReleaseInterface()
 
 m_IDirectDrawPalette* m_IDirectDrawPalette::CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)
 {
-	m_IDirectDrawPalette* Interface = nullptr;
-	if (WrapperInterfaceBackup)
+	m_IDirectDrawPalette* Interface = InterfaceAddressCache<m_IDirectDrawPalette>(nullptr);
+	if (Interface)
 	{
-		Interface = WrapperInterfaceBackup;
-		WrapperInterfaceBackup = nullptr;
 		Interface->SetProxy(aOriginal, NewParent, dwFlags, lpDDColorArray);
 	}
 	else

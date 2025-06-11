@@ -6,6 +6,9 @@
 #include "Wrappers\wrapper.h"
 #include "External\MemoryModule\MemoryModule.h"
 #include "Logging\Logging.h"
+#ifndef _TIMERAPI_H_
+#include "winmm.h"
+#endif
 
 #undef LoadLibrary
 
@@ -16,9 +19,16 @@ namespace Utils
 	EXPORT_OUT_WRAPPED_PROC(GetModuleFileNameW, unused);
 	EXPORT_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
 	EXPORT_OUT_WRAPPED_PROC(CreateThread, unused);
+	EXPORT_OUT_WRAPPED_PROC(CreateFileA, unused);
 	EXPORT_OUT_WRAPPED_PROC(VirtualAlloc, unused);
 	EXPORT_OUT_WRAPPED_PROC(HeapAlloc, unused);
 	EXPORT_OUT_WRAPPED_PROC(HeapSize, unused);
+	EXPORT_OUT_WRAPPED_PROC(QueryPerformanceFrequency, unused);
+	EXPORT_OUT_WRAPPED_PROC(QueryPerformanceCounter, unused);
+	EXPORT_OUT_WRAPPED_PROC(GetTickCount, unused);
+	EXPORT_OUT_WRAPPED_PROC(GetTickCount64, unused);
+	EXPORT_OUT_WRAPPED_PROC(timeGetTime, unused);
+	EXPORT_OUT_WRAPPED_PROC(timeGetSystemTime, unused);
 
 	void Shell(const char*);
 	void DisableHighDPIScaling();
@@ -28,9 +38,17 @@ namespace Utils
 	DWORD WINAPI GetModuleFileNameWHandler(HMODULE hModule, LPWSTR lpFilename, DWORD nSize);
 	BOOL WINAPI kernel_GetDiskFreeSpaceA(LPCSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters);
 	HANDLE WINAPI kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
+	HANDLE WINAPI kernel_CreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
 	LPVOID WINAPI kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
 	LPVOID WINAPI kernel_HeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwBytes);
 	SIZE_T WINAPI kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem);
+	bool InitUpTimeOffsets();
+	BOOL WINAPI kernel_QueryPerformanceFrequency(LARGE_INTEGER* lpFrequency);
+	BOOL WINAPI kernel_QueryPerformanceCounter(LARGE_INTEGER* lpPerformanceCount);
+	DWORD WINAPI kernel_GetTickCount();
+	ULONGLONG WINAPI kernel_GetTickCount64();
+	DWORD WINAPI winmm_timeGetTime();
+	MMRESULT WINAPI winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt);
 	void HookExceptionHandler();
 	void UnHookExceptionHandler();
 	LONG WINAPI Vectored_Exception_Handler(EXCEPTION_POINTERS* ExceptionInfo);
@@ -55,25 +73,34 @@ namespace Utils
 	HWND GetMainWindowForProcess(DWORD processId);
 	bool IsWindowRectEqualOrLarger(HWND srchWnd, HWND desthWnd);
 	HWND GetTopLevelWindowOfCurrentProcess();
-	HMONITOR GetMonitorHandle(HWND hWnd);
-	void SetDisplaySettings(HWND hWnd, DWORD Width, DWORD Height);
-	DWORD GetRefreshRate(HWND hWnd);
-	DWORD GetBitCount(HWND hWnd);
+	bool IsMonitorValid(HMONITOR hMonitor);
+	HMONITOR GetMonitorFromWindow(HWND hWnd);
+	HMONITOR GetMonitorFromDeviceName(char* DeviceName);
+	bool MoveWindowToMonitor(HMONITOR hMonitor, HWND hWnd);
+	BOOL SetWindowPosToMonitor(HMONITOR hMonitor, HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags);
+	BOOL SetWindowPlacementToMonitor(HMONITOR hMonitor, HWND hWnd, const WINDOWPLACEMENT* lpwndpl);
+	void SetDisplaySettings(HMONITOR hMonitor, DWORD Width, DWORD Height);
+	void ResetDisplaySettings(HMONITOR hMonitor);
+	DWORD GetRefreshRate(HMONITOR hMonitor);
+	DWORD GetBitCount(HMONITOR hMonitor);
 	DWORD GetThreadIDByHandle(HANDLE hThread);
 	void DisableGameUX();
 	void WaitForWindowActions(HWND hWnd, DWORD Loops);
+	void ApplyFPUSetup();
 	void GetModuleFromAddress(void* address, char* module, const size_t size);
 	bool SetWndProcFilter(HWND hWnd);
 	bool RestoreWndProcFilter(HWND hWnd);
-	void GetScreenSize(HWND hwnd, volatile LONG &screenWidth, volatile LONG &screenHeight);
-	void GetScreenSize(HWND hwnd, int &screenWidth, int &screenHeight);
-	void GetDesktopRect(HWND hWnd, RECT& screenRect);
+	void GetScreenSize(HMONITOR hMonitor, volatile LONG &screenWidth, volatile LONG &screenHeight);
+	void GetScreenSize(HMONITOR hMonitor, int& screenWidth, int& screenHeight);
+	void GetScreenClientRect(HMONITOR hMonitor, RECT& workAreaOut);
 	HRESULT GetVideoRam(UINT AdapterNo, DWORD& TotalMemory);	// Adapters start numbering from '1', based on "Win32_VideoController" WMI class and "DeviceID" property.
 
 	// CPU Affinity
 	void SetProcessAffinity();
 	void SetThreadAffinity(DWORD threadId);
 	void ApplyThreadAffinity();
+	void StartPriorityMonitor();
+	void StopPriorityMonitor();
 
 	inline void BusyWaitYield(DWORD RemainingMS)
 	{

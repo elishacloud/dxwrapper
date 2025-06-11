@@ -4,7 +4,7 @@ class m_IDirect3DVertexBuffer : public IDirect3DVertexBuffer, public AddressLook
 {
 private:
 	m_IDirect3DVertexBufferX *ProxyInterface;
-	REFIID WrapperID = IID_IDirect3DVertexBuffer;
+	const IID WrapperID = IID_IDirect3DVertexBuffer;
 	const DWORD DirectXVersion = 1;
 
 public:

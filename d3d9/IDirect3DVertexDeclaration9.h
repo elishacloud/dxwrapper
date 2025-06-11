@@ -5,7 +5,7 @@ class m_IDirect3DVertexDeclaration9 : public IDirect3DVertexDeclaration9, public
 private:
 	LPDIRECT3DVERTEXDECLARATION9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
-	REFIID WrapperID = IID_IDirect3DVertexDeclaration9;
+	const IID WrapperID = IID_IDirect3DVertexDeclaration9;
 
 public:
 	m_IDirect3DVertexDeclaration9(LPDIRECT3DVERTEXDECLARATION9 pDeclaration9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pDeclaration9), m_pDeviceEx(pDevice)

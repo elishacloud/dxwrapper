@@ -41,6 +41,7 @@ namespace Settings
 	DWORD AutoFrameSkip = 0;
 	DWORD DdrawOverrideRefreshRate = 0;
 	bool DSoundCtrl = false;
+	bool EnvironmentMapCubeFix = false;
 	bool DDrawCompatExperimental = false;
 	bool DDrawCompat30 = false;
 	bool DDrawCompat31 = false;
@@ -291,6 +292,7 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 	SET_LOCAL_VALUE(AutoFrameSkip);
 	SET_LOCAL_VALUE(DdrawOverrideRefreshRate);
 	SET_LOCAL_VALUE(DSoundCtrl);
+	SET_LOCAL_VALUE(EnvironmentMapCubeFix);
 	SET_LOCAL_VALUE(DDrawCompatExperimental);
 	SET_LOCAL_VALUE(DDrawCompat30);
 	SET_LOCAL_VALUE(DDrawCompat31);
@@ -460,6 +462,7 @@ void Settings::SetDefaultConfigSettings()
 {
 	// Set value to check if it exists in the ini file
 	Config.EnableD3d9Wrapper = NOT_EXIST;
+	Config.FixPerfCounterUptime = NOT_EXIST;
 	Config.DdrawHookSystem32 = NOT_EXIST;
 	Config.D3d8HookSystem32 = NOT_EXIST;
 	Config.D3d9HookSystem32 = NOT_EXIST;
@@ -468,9 +471,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.DsoundHookSystem32 = NOT_EXIST;
 	Config.DdrawResolutionHack = NOT_EXIST;
 	Config.CacheClipPlane = NOT_EXIST;
-	Config.EnvironmentMapCubeFix = NOT_EXIST;
 	Config.LimitStateBlocks = NOT_EXIST;
-	Config.ForceSingleBeginEndScene = NOT_EXIST;
 	Config.WindowModeGammaShader = NOT_EXIST;
 
 	// Other values that may not exist in ini file
@@ -690,15 +691,26 @@ void CONFIG::SetConfig()
 	Dinputto8 = (Dinputto8 || IsSet(Dinput8HookSystem32));
 	EnableDinput8Wrapper = (EnableDinput8Wrapper || IsSet(Dinput8HookSystem32));
 
-	DDrawCompat32 = (DDrawCompat30 || DDrawCompat31 || DDrawCompat32 || DDrawCompatExperimental);
+	DDrawCompat32 = (DDrawCompat30 || DDrawCompat31 || DDrawCompat32 || DDrawCompatExperimental ||
+		(DDrawCompat && !DDrawCompat20 && !DDrawCompat21));
 	DDrawCompat = (DDrawCompat || DDrawCompat20 || DDrawCompat21 || DDrawCompat32);
-	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || IsSet(DdrawResolutionHack) || Dd7to9);
+	if (DDrawCompat32)
+	{
+		DDrawCompat20 = false;
+		DDrawCompat21 = false;
+	}
+	else if (DDrawCompat21)
+	{
+		DDrawCompat20 = false;
+	}
+	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || IsSet(DdrawResolutionHack) || DdrawUseDirect3D9Caps || Dd7to9);
 	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
 	DdrawAutoFrameSkip = (AutoFrameSkip || DdrawAutoFrameSkip);																	// For legacy purposes
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
-	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || IsSet(D3d9HookSystem32) ||
+	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || IsSet(D3d9HookSystem32) || D3d9to9Ex ||
 		(EnableD3d9Wrapper == NOT_EXIST && (AnisotropicFiltering || AntiAliasing || IsSet(CacheClipPlane) || EnableVSync ||		// For legacy purposes
 			ForceMixedVertexProcessing || ForceSystemMemVertexCache || ForceVsyncMode || EnableWindowMode)));					// For legacy purposes
+	EnvironmentCubeMapFix = EnvironmentCubeMapFix || EnvironmentMapCubeFix;														// For legacy purposes
 
 	// Set ddraw color bit mode
 	DdrawOverrideBitMode = (DdrawOverrideBitMode) ? DdrawOverrideBitMode : (Force32bitColor) ? 32 : (Force16bitColor) ? 16 : 0;
@@ -755,7 +767,7 @@ void CONFIG::SetConfig()
 	{
 		MouseMovementFactor = 1.0f;
 	}
-	else
+	else if (MouseMovementFactor != 0.0f)
 	{
 		FixHighFrequencyMouse = true;
 	}
@@ -766,14 +778,16 @@ void CONFIG::SetConfig()
 		FixHighFrequencyMouse = true;
 	}
 
+	// Limit surface emulation size
+	DdrawExtraEmulationSize = DdrawExtraEmulationSize == 1 ? 4000 : min(DdrawExtraEmulationSize, 10000);
+
 	// Windows Lie
 	WinVersionLieSP = (WinVersionLieSP > 0 && WinVersionLieSP <= 5) ? WinVersionLieSP : 0;
 
 	// Set unset options
-	DdrawResolutionHack = (DdrawResolutionHack != 0);
 	CacheClipPlane = (CacheClipPlane != 0);
-	EnvironmentMapCubeFix = (EnvironmentMapCubeFix != 0);
-	LimitStateBlocks = (LimitStateBlocks != 0);
-	ForceSingleBeginEndScene = (ForceSingleBeginEndScene != 0);
+	DdrawResolutionHack = (DdrawResolutionHack != 0);
+	FixPerfCounterUptime = (FixPerfCounterUptime != 0);
+	LimitStateBlocks = !IsSet(LimitStateBlocks) ? (Dd7to9 || D3d8to9) : LimitStateBlocks;
 	WindowModeGammaShader = (WindowModeGammaShader != 0);
 }

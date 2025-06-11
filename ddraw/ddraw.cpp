@@ -22,7 +22,6 @@
 
 #include "ddraw.h"
 #include "Dllmain\Dllmain.h"
-#include "IClassFactory\IClassFactory.h"
 #include "d3d9\d3d9External.h"
 #include "Utils\Utils.h"
 #include "GDI\GDI.h"
@@ -30,25 +29,47 @@
 
 AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
 
+static UINT GetAdapterIndex(GUID FAR* lpGUID);
+
+namespace {
+	bool IsInitialized = false;
+	CRITICAL_SECTION ddcs;
+	CRITICAL_SECTION pecs;
+}
+
 namespace DdrawWrapper
 {
 	VISIT_PROCS_DDRAW(INITIALIZE_OUT_WRAPPED_PROC);
 	VISIT_PROCS_DDRAW_SHARED(INITIALIZE_OUT_WRAPPED_PROC);
 	INITIALIZE_OUT_WRAPPED_PROC(Direct3DCreate9, unused);
+
+	struct DDDeviceInfo
+	{
+		GUID guid;
+		std::string name;
+		std::string description;
+		UINT AdapterIndex;
+
+		bool operator==(const DDDeviceInfo& other) const
+		{
+			return IsEqualGUID(guid, other.guid);
+		}
+	};
+
+	std::vector<DDDeviceInfo> g_DeviceCache;
+
+	CRITICAL_SECTION* GetDDCriticalSection()
+	{
+		return IsInitialized ? &ddcs : nullptr;
+	}
+
+	CRITICAL_SECTION* GetPECriticalSection()
+	{
+		return IsInitialized ? &pecs : nullptr;
+	}
 }
 
 using namespace DdrawWrapper;
-
-namespace {
-	bool IsInitialized = false;
-	CRITICAL_SECTION ddcs;
-
-	struct ENUMMONITORS
-	{
-		LPSTR lpName;
-		HMONITOR hm;
-	};
-}
 
 static void SetAllAppCompatData();
 static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType);
@@ -250,7 +271,7 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
 
-		m_IDirectDrawX* p_IDirectDrawX = new m_IDirectDrawX(1, false);
+		m_IDirectDrawX* p_IDirectDrawX = new m_IDirectDrawX(1, GetAdapterIndex(lpGUID), false);
 
 		*lplpDD = reinterpret_cast<LPDIRECTDRAW>(p_IDirectDrawX->GetWrapperInterfaceX(1));
 
@@ -295,8 +316,6 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-
-		ScopedDDCriticalSection ThreadLockDD;
 
 		m_IDirectDrawClipper* ClipperX = m_IDirectDrawClipper::CreateDirectDrawClipper(nullptr, nullptr, dwFlags);
 
@@ -348,7 +367,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
 
-		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(7, true);
+		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(7, GetAdapterIndex(lpGUID), true);
 
 		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(7);
 
@@ -429,7 +448,10 @@ HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID 
 
 	if (Config.Dd7to9)
 	{
-		return DirectDrawEnumerateHandler(lpCallback, lpContext, dwFlags, DDET_ENUMCALLBACKEXW);
+		//return DirectDrawEnumerateHandler(lpCallback, lpContext, dwFlags, DDET_ENUMCALLBACKEXW);
+
+		// Just return unsupported to match native DirectDraw
+		return DDERR_UNSUPPORTED;
 	}
 
 	DEFINE_STATIC_PROC_ADDRESS(DirectDrawEnumerateExWProc, DirectDrawEnumerateExW, DirectDrawEnumerateExW_out);
@@ -448,7 +470,10 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 
 	if (Config.Dd7to9)
 	{
-		return DirectDrawEnumerateHandler(lpCallback, lpContext, 0, DDET_ENUMCALLBACKW);
+		//return DirectDrawEnumerateHandler(lpCallback, lpContext, 0, DDET_ENUMCALLBACKW);
+
+		// Just return unsupported to match native DirectDraw
+		return DDERR_UNSUPPORTED;
 	}
 
 	DEFINE_STATIC_PROC_ADDRESS(DirectDrawEnumerateWProc, DirectDrawEnumerateW, DirectDrawEnumerateW_out);
@@ -674,7 +699,14 @@ void InitDDraw()
 {
 	if (!IsInitialized)
 	{
-		InitializeCriticalSection(&ddcs);
+		if (!InitializeCriticalSectionAndSpinCount(&ddcs, 4000))
+		{
+			InitializeCriticalSection(&ddcs);
+		}
+		if (!InitializeCriticalSectionAndSpinCount(&pecs, 4000))
+		{
+			InitializeCriticalSection(&pecs);
+		}
 		IsInitialized = true;
 	}
 
@@ -712,6 +744,7 @@ void InitDDraw()
 			{
 				Utils::CreateThread_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "CreateThread"), "CreateThread", Utils::kernel_CreateThread);
 			}
+			Utils::CreateFileA_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "CreateFileA"), "CreateFileA", Utils::kernel_CreateFileA);
 			Utils::VirtualAlloc_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "VirtualAlloc"), "VirtualAlloc", Utils::kernel_VirtualAlloc);
 			//Utils::HeapAlloc_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "HeapAlloc"), "HeapAlloc", Utils::kernel_HeapAlloc);
 			Utils::HeapSize_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "HeapSize"), "HeapSize", Utils::kernel_HeapSize);
@@ -724,18 +757,15 @@ void ExitDDraw()
 {
 	if (IsInitialized)
 	{
-		IsInitialized = false;
-		DeleteCriticalSection(&ddcs);
-	}
-}
+		{
+			ScopedCriticalSection ThreadLockDD(&ddcs);
+			ScopedCriticalSection ThreadLockPE(&pecs);
 
-bool TryDDThreadLock()
-{
-	if (IsInitialized)
-	{
-		return TryEnterCriticalSection(&ddcs) != FALSE;
+			IsInitialized = false;
+		}
+		DeleteCriticalSection(&ddcs);
+		DeleteCriticalSection(&pecs);
 	}
-	return true;
 }
 
 // Sets Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
@@ -771,39 +801,55 @@ static void SetAllAppCompatData()
 	return;
 }
 
-static BOOL CALLBACK DispayEnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+static UINT GetAdapterIndex(GUID* lpGUID)
 {
-	UNREFERENCED_PARAMETER(hdcMonitor);
-	UNREFERENCED_PARAMETER(lprcMonitor);
-
-	ENUMMONITORS* lpMonitors = (ENUMMONITORS*)dwData;
-	if (!dwData || !lpMonitors->lpName)
+	if (!lpGUID)
 	{
-		return DDENUMRET_CANCEL;
+		return D3DADAPTER_DEFAULT;
 	}
 
-	MONITORINFOEX monitorInfo;
-	ZeroMemory(&monitorInfo, sizeof(monitorInfo));
-	monitorInfo.cbSize = sizeof(monitorInfo);
+	DDDeviceInfo info = {};
+	info.guid = *lpGUID;
 
-	if (!GetMonitorInfo(hMonitor, &monitorInfo))
+	auto it = std::find(g_DeviceCache.begin(), g_DeviceCache.end(), info);
+	if (it != g_DeviceCache.end())
 	{
-		return DDENUMRET_OK;
+		return it->AdapterIndex;
 	}
 
-	if (strcmp(monitorInfo.szDevice, lpMonitors->lpName) == 0)
-	{
-		lpMonitors->hm = hMonitor;
-		return DDENUMRET_CANCEL;
-	}
+	return D3DADAPTER_DEFAULT;
+}
 
-	return DDENUMRET_OK;
+static bool FindGUIDByDeviceName(const std::string& deviceName, const std::string& deviceDesc, GUID& outGuid)
+{
+	for (const auto& device : g_DeviceCache)
+	{
+		if (device.name == deviceName && device.description == deviceDesc)
+		{
+			outGuid = device.guid;
+			return true;
+		}
+	}
+	return false;
+}
+
+static void StoreDeviceCache(DDDeviceInfo& info)
+{
+	auto it = std::find(g_DeviceCache.begin(), g_DeviceCache.end(), info);
+	if (it == g_DeviceCache.end())
+	{
+		g_DeviceCache.push_back(info);
+	}
+	else
+	{
+		it->description = info.description;
+		it->name = info.name;
+		it->AdapterIndex = info.AdapterIndex;
+	}
 }
 
 static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType)
 {
-	UNREFERENCED_PARAMETER(dwFlags);
-
 	if (!lpCallback)
 	{
 		return DDERR_INVALIDPARAMS;
@@ -828,41 +874,70 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 		return DDERR_UNSUPPORTED;
 	}
 	D3DADAPTER_IDENTIFIER9 Identifier = {};
-	int AdapterCount = (!dwFlags) ? 0 : (int)d3d9Object->GetAdapterCount();
+	int AdapterCount = (dwFlags & DDENUM_ATTACHEDSECONDARYDEVICES) != DDENUM_ATTACHEDSECONDARYDEVICES ? 0 : (int)d3d9Object->GetAdapterCount();
 
+	GUID myGUID = {};
+	GUID lastGUID = {};
 	GUID* lpGUID;
 	LPSTR lpDesc, lpName;
 	wchar_t lpwName[32] = { '\0' };
 	wchar_t lpwDesc[128] = { '\0' };
-	HMONITOR hm = nullptr;
+	HMONITOR hMonitor;
 	HRESULT hr = DD_OK;
-	for (int x = -1; x < AdapterCount; x++)
+
+	for (int Adapter = -1; Adapter < AdapterCount; Adapter++)
 	{
-		if (x == -1)
+		if (Adapter == -1)
 		{
 			lpGUID = nullptr;
 			lpDesc = "Primary Display Driver";
 			lpName = "display";
-			hm = nullptr;
+			hMonitor = nullptr;
 		}
 		else
 		{
-			if (FAILED(d3d9Object->GetAdapterIdentifier(x, 0, &Identifier)))
+			if (FAILED(d3d9Object->GetAdapterIdentifier(Adapter, 0, &Identifier)))
 			{
 				hr = DDERR_UNSUPPORTED;
 				break;
 			}
-			lpGUID = &Identifier.DeviceIdentifier;
+
+			// Get GUID
+			lpGUID = &myGUID;
+			{
+				if (!FindGUIDByDeviceName(Identifier.DeviceName, Identifier.Description, myGUID))
+				{
+					// Set unique GUID
+					bool ReusingGUID = IsEqualGUID(lastGUID, Identifier.DeviceIdentifier) == TRUE;
+					myGUID = Identifier.DeviceIdentifier;
+					if (ReusingGUID)
+					{
+						myGUID.Data1++;
+					}
+				}
+
+				// Get device info
+				DDDeviceInfo info = {};
+				info.guid = myGUID;
+				info.description = Identifier.Description;
+				info.name = Identifier.DeviceName;
+				info.AdapterIndex = Adapter;
+
+				// Store device info or update existing cache
+				StoreDeviceCache(info);
+
+				lastGUID = Identifier.DeviceIdentifier;
+			}
+
+			// Get name and description
 			lpDesc = Identifier.Description;
 			lpName = Identifier.DeviceName;
 
+			// Get monitor handle
+			hMonitor = nullptr;
 			if (DDETType == DDET_ENUMCALLBACKEXA || DDETType == DDET_ENUMCALLBACKEXW)
 			{
-				ENUMMONITORS Monitors = {};
-				Monitors.lpName = lpName;
-				Monitors.hm = nullptr;
-				EnumDisplayMonitors(nullptr, nullptr, DispayEnumeratorProc, (LPARAM)&Monitors);
-				hm = Monitors.hm;
+				hMonitor = Utils::GetMonitorFromDeviceName(Identifier.DeviceName);
 			}
 		}
 
@@ -880,10 +955,10 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 			hr_Callback = LPDDENUMCALLBACKA(lpCallback)(lpGUID, lpDesc, lpName, lpContext);
 			break;
 		case DDET_ENUMCALLBACKEXA:
-			hr_Callback = LPDDENUMCALLBACKEXA(lpCallback)(lpGUID, lpDesc, lpName, lpContext, hm);
+			hr_Callback = LPDDENUMCALLBACKEXA(lpCallback)(lpGUID, lpDesc, lpName, lpContext, hMonitor);
 			break;
 		case DDET_ENUMCALLBACKEXW:
-			hr_Callback = LPDDENUMCALLBACKEXW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext, hm);
+			hr_Callback = LPDDENUMCALLBACKEXW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext, hMonitor);
 			break;
 		case DDET_ENUMCALLBACKW:
 			hr_Callback = LPDDENUMCALLBACKW(lpCallback)(lpGUID, lpwDesc, lpwName, lpContext);

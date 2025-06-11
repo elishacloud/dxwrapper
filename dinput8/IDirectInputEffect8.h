@@ -4,7 +4,7 @@ class m_IDirectInputEffect8 : public IDirectInputEffect, public AddressLookupTab
 {
 private:
 	IDirectInputEffect *ProxyInterface;
-	REFIID WrapperID;
+	const IID WrapperID;
 
 public:
 	m_IDirectInputEffect8(IDirectInputEffect *aOriginal, REFIID riid) : ProxyInterface(aOriginal), WrapperID(riid)

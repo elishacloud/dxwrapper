@@ -21,6 +21,7 @@ private:
 	// Cached DirectDraw flags
 	const bool IsUsingEx = false;
 	bool Using3D = false;
+	const UINT AdapterIndex = D3DADAPTER_DEFAULT;
 
 	// Fix exclusive mode issue
 	HHOOK g_hook = nullptr;
@@ -67,10 +68,10 @@ private:
 
 	// Store d3d interface
 	m_IDirect3DX *D3DInterface = nullptr;
-	m_IDirect3DDeviceX *D3DDeviceInterface = nullptr;
 
 	// Helper functions
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice);
+	void FindMonitorHandle() const;
 	HRESULT CreateD9Object();
 	void BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height);
 	void RestoreState(DRAWSTATEBACKUP& DrawStates);
@@ -137,7 +138,7 @@ public:
 
 		InitInterface(DirectXVersion);
 	}
-	m_IDirectDrawX(DWORD DirectXVersion, bool IsEx) : IsUsingEx(IsEx)
+	m_IDirectDrawX(DWORD DirectXVersion, UINT Adapter, bool IsEx) : AdapterIndex(Adapter), IsUsingEx(IsEx)
 	{
 		ProxyDirectXVersion = 9;
 
@@ -167,7 +168,7 @@ public:
 	HRESULT EnumDisplayModes(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK, DWORD);
 	HRESULT EnumDisplayModes2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2, DWORD);
 	HRESULT EnumSurfaces(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMSURFACESCALLBACK, DWORD);
-	HRESULT EnumSurfaces2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7, DWORD);
+	HRESULT EnumSurfaces2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7, LPDDENUMSURFACESCALLBACK, DWORD);
 	STDMETHOD(FlipToGDISurface)(THIS);
 	STDMETHOD(GetCaps)(THIS_ LPDDCAPS, LPDDCAPS);
 	HRESULT GetDisplayMode(LPDDSURFACEDESC);
@@ -206,9 +207,7 @@ public:
 
 	// Direct3D interfaces
 	m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
-	void SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
-	m_IDirect3DDeviceX** GetCurrentD3DDevice() { return &D3DDeviceInterface; }
-	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
+	void ClearD3DDevice();
 	bool IsCreatedEx() const { return IsUsingEx; }
 	void Enable3D() { Using3D = true; }
 	bool IsUsing3D() const { return Using3D; }
@@ -216,6 +215,7 @@ public:
 	bool IsInScene();
 
 	// Direct3D9 interfaces
+	UINT GetAdapterIndex() const { return AdapterIndex; }
 	bool CheckD9Device(char* FunctionName);
 	LPDIRECT3D9 GetDirectD9Object();
 	LPDIRECT3DDEVICE9 *GetDirectD9Device();
@@ -223,7 +223,7 @@ public:
 	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
 	LPDIRECT3DVERTEXBUFFER9 GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
-	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels);
+	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels) const;
 	HRESULT ResetD9Device();
 	HRESULT CreateD9Device(char* FunctionName);
 	void UpdateVertices(DWORD Width, DWORD Height);
@@ -231,12 +231,14 @@ public:
 
 	// Device information functions
 	static m_IDirectDrawX* GetDirectDrawInterface();
+	HMONITOR GetHMonitor();
 	HWND GetHwnd();
 	DWORD GetHwndThreadID();
 	HDC GetDC();
-	DWORD GetDisplayBPP(HWND hWnd);
+	DWORD GetDisplayBPP();
 	bool IsExclusiveMode();
 	void GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, DWORD& RefreshRate);
+	void GetViewportResolution(DWORD& Width, DWORD& Height);
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
 
 	// Surface vector functions
@@ -247,11 +249,13 @@ public:
 	m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
 	m_IDirectDrawSurfaceX *GetRenderTargetSurface() { return RenderTargetSurface; }
 	void ClearRenderTarget();
-	void ReSetRenderTarget();
 	void SetCurrentRenderTarget();
-	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface, bool ShouldCheckInterface = true);
+	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface);
 	m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
-	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface, bool ShouldCheckInterface = true);
+	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface);
+
+	// Texture functions
+	void ClearTextureHandle(D3DTEXTUREHANDLE tHandle);
 
 	// Clipper functions
 	static void AddBaseClipper(m_IDirectDrawClipper* lpClipper);

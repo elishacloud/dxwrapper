@@ -20,13 +20,13 @@ private:
 	m_IDirectDrawX* ddrawParent = nullptr;
 	DWORD DDrawVersion = 0;
 
-	// Device interface pointers
-	struct {
+	// D3D Device array
+	struct D3DDEVICELIST {
 		m_IDirect3DDeviceX* Interface = nullptr;
 		DWORD DxVersion = 0;
 		DWORD RefCount = 0;
-	} Direct3DDeviceEx;
-	m_IDirect3DDeviceX*& D3DDeviceInterface = Direct3DDeviceEx.Interface;
+	};
+	std::vector<D3DDEVICELIST> D3DDeviceList;
 
 	// Cache Cap9
 	struct DUALCAP9 {
@@ -123,11 +123,11 @@ public:
 	/*** IDirect3D methods ***/
 	STDMETHOD(Initialize)(THIS_ REFCLSID);
 	HRESULT EnumDevices(LPD3DENUMDEVICESCALLBACK, LPVOID, DWORD);
-	HRESULT EnumDevices7(LPD3DENUMDEVICESCALLBACK7, LPVOID, DWORD);
+	HRESULT EnumDevices7(LPD3DENUMDEVICESCALLBACK7, LPD3DENUMDEVICESCALLBACK, LPVOID, DWORD);
 	STDMETHOD(CreateLight)(THIS_ LPDIRECT3DLIGHT*, LPUNKNOWN);
 	STDMETHOD(CreateMaterial)(THIS_ LPDIRECT3DMATERIAL3*, LPUNKNOWN, DWORD);
 	STDMETHOD(CreateViewport)(THIS_ LPDIRECT3DVIEWPORT3*, LPUNKNOWN, DWORD);
-	STDMETHOD(FindDevice)(THIS_ LPD3DFINDDEVICESEARCH, LPD3DFINDDEVICERESULT);
+	STDMETHOD(FindDevice)(THIS_ LPD3DFINDDEVICESEARCH, LPD3DFINDDEVICERESULT, DWORD);
 	STDMETHOD(CreateDevice)(THIS_ REFCLSID, LPDIRECTDRAWSURFACE7, LPDIRECT3DDEVICE7*, LPUNKNOWN, DWORD);
 	STDMETHOD(CreateVertexBuffer)(THIS_ LPD3DVERTEXBUFFERDESC, LPDIRECT3DVERTEXBUFFER7*, DWORD, LPUNKNOWN, DWORD);
 	STDMETHOD(EnumZBufferFormats)(THIS_ REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
@@ -136,21 +136,23 @@ public:
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void* GetWrapperInterfaceX(DWORD DirectXVersion);
-	m_IDirect3DDeviceX** GetD3DDevice() { return &D3DDeviceInterface; }
-	void SetD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
+	m_IDirect3DDeviceX* GetNextD3DDevice(DWORD Index) { return D3DDeviceList.size() > Index ? D3DDeviceList[Index].Interface : nullptr; }
+	void AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void AddLight(m_IDirect3DLight* lpLight);
 	void ClearLight(m_IDirect3DLight* lpLight);
 	void AddMaterial(m_IDirect3DMaterialX* lpMaterialX);
-	void ClearMaterial(m_IDirect3DMaterialX* lpMaterialX);
+	void ClearMaterial(m_IDirect3DMaterialX* lpMaterialX, D3DMATERIALHANDLE mHandle);
 	void AddVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX);
 	void ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX);
 	void AddViewport(m_IDirect3DViewportX* lpViewportX);
 	void ClearViewport(m_IDirect3DViewportX* lpViewportX);
+	void GetViewportResolution(DWORD& Width, DWORD& Height);
+	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; GetCap9Cache(); }
-	void ClearDdraw() { ddrawParent = nullptr; }
+	void ClearDdraw();
 };

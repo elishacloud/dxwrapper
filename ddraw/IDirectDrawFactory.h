@@ -5,7 +5,7 @@ class m_IDirectDrawFactory : public IDirectDrawFactory
 private:
 	IDirectDrawFactory *ProxyInterface = nullptr;
 	ULONG RefCount = 1;
-	REFIID WrapperID = IID_IDirectDrawFactory;
+	const IID WrapperID = IID_IDirectDrawFactory;
 
 public:
 	m_IDirectDrawFactory(IDirectDrawFactory *aOriginal) : ProxyInterface(aOriginal)

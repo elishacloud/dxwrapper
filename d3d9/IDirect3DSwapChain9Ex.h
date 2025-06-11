@@ -6,7 +6,7 @@ private:
 	LPDIRECT3DSWAPCHAIN9 ProxyInterface;
 	LPDIRECT3DSWAPCHAIN9EX ProxyInterfaceEx = nullptr;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
-	REFIID WrapperID;
+	const IID WrapperID;
 
 public:
 	m_IDirect3DSwapChain9Ex(LPDIRECT3DSWAPCHAIN9EX pSwapChain9, m_IDirect3DDevice9Ex* pDevice, REFIID DeviceID) : ProxyInterface(pSwapChain9), m_pDeviceEx(pDevice), WrapperID(DeviceID)

@@ -22,8 +22,8 @@ class m_IClassFactory : public IClassFactory
 private:
 	IQueryInterfaceProc IQueryInterface;
 	IClassFactory *ProxyInterface;
-	REFIID WrapperID = IID_IClassFactory;
-	IID ClassID = IID_IUnknown;
+	const IID WrapperID = IID_IClassFactory;
+	CLSID ClassID = IID_IUnknown;
 	ULONG RefCount = 1;
 
 public:

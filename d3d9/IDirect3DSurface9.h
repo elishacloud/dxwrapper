@@ -5,7 +5,7 @@ class m_IDirect3DSurface9 : public IDirect3DSurface9, public AddressLookupTableD
 private:
 	LPDIRECT3DSURFACE9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
-	REFIID WrapperID = IID_IDirect3DSurface9;
+	const IID WrapperID = IID_IDirect3DSurface9;
 
 	// For fake emulated locking
 	D3DSURFACE_DESC Desc = {};

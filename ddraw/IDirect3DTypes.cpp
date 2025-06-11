@@ -15,6 +15,7 @@
 */
 
 #include "ddraw.h"
+#include "d3d9\d3d9External.h"
 
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 {
@@ -23,13 +24,30 @@ void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Light.dwSize);
 		return;
 	}
-	const float DiffuseFactor = 1.0f;
-	const float SpecularFactor = 0.1f;
-	const float AmbientFactor = 0.3f;
+
+	// Apply specular flag
+	bool HasSpecular = true;
+	if (Light.dwSize == sizeof(D3DLIGHT2))
+	{
+		const D3DLIGHT2& Light2 = *reinterpret_cast<const D3DLIGHT2*>(&Light);
+
+		if (Light2.dwFlags & D3DLIGHT_NO_SPECULAR)
+		{
+			HasSpecular = false;
+		}
+	}
+
 	Light7.dltType = Light.dltType;
-	Light7.dcvDiffuse = { Light.dcvColor.r * DiffuseFactor, Light.dcvColor.g * DiffuseFactor, Light.dcvColor.b * DiffuseFactor, Light.dcvColor.a };
-	Light7.dcvSpecular = { Light.dcvColor.r * SpecularFactor, Light.dcvColor.g * SpecularFactor, Light.dcvColor.b * SpecularFactor, Light.dcvColor.a };
-	Light7.dcvAmbient = { Light.dcvColor.r * AmbientFactor, Light.dcvColor.g * AmbientFactor, Light.dcvColor.b * AmbientFactor, Light.dcvColor.a };
+	Light7.dcvDiffuse = Light.dcvColor;
+	if (HasSpecular)
+	{
+		Light7.dcvSpecular = { 1.0f, 1.0f, 1.0f, 1.0f };
+	}
+	else
+	{
+		Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 0.0f };
+	}
+	Light7.dcvAmbient = { 0.0f, 0.0f, 0.0f, 0.0f };
 	Light7.dvPosition = Light.dvPosition;
 	Light7.dvDirection = Light.dvDirection;
 	Light7.dvRange = Light.dvRange;
@@ -39,13 +57,6 @@ void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 	Light7.dvAttenuation2 = Light.dvAttenuation2;
 	Light7.dvTheta = Light.dvTheta;
 	Light7.dvPhi = Light.dvPhi;
-
-	// Apply additional flags
-	if (Light.dwSize == sizeof(D3DLIGHT2) && (((LPD3DLIGHT2)&Light)->dwFlags & D3DLIGHT_NO_SPECULAR))
-	{
-		// No specular reflection
-		Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 1.0f };
-	}
 }
 
 void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7)
@@ -229,7 +240,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7)
 		D3DDD_DEVICEZBUFFERBITDEPTH |
 		D3DDD_MAXBUFFERSIZE |
 		D3DDD_MAXVERTEXCOUNT;
-	Desc.dcmColorModel = 2;
+	Desc.dcmColorModel = D3DCOLOR_RGB;
 	Desc.dwDevCaps = Desc7.dwDevCaps;
 	Desc.dtcTransformCaps.dwSize = sizeof(D3DTRANSFORMCAPS);
 	Desc.dtcTransformCaps.dwCaps = D3DTRANSFORMCAPS_CLIP;
@@ -471,7 +482,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9)
 		D3DPTEXTURECAPS_TRANSPARENCY |
 		D3DPTEXTURECAPS_BORDER |
 		D3DPTEXTURECAPS_COLORKEYBLEND |
-		D3DPTEXTURECAPS_POW2 |
+		((Caps9.TextureCaps & D3DPTEXTURECAPS_POW2) ? D3DPTEXTURECAPS_POW2 : D3DPTEXTURECAPS_POW2 | D3DPTEXTURECAPS_NONPOW2CONDITIONAL) |
 		(Caps9.TextureCaps &
 			(D3DPTEXTURECAPS_PERSPECTIVE |
 			D3DPTEXTURECAPS_ALPHA |
@@ -481,6 +492,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9)
 			D3DPTEXTURECAPS_NONPOW2CONDITIONAL |
 			D3DPTEXTURECAPS_PROJECTED |
 			D3DPTEXTURECAPS_CUBEMAP));
+	Desc7.dpcLineCaps.dwTextureCaps = m_IDirect3D9Ex::AdjustPOW2Caps(Desc7.dpcLineCaps.dwTextureCaps);
 	Desc7.dpcLineCaps.dwTextureFilterCaps =
 		D3DPTFILTERCAPS_NEAREST |
 		D3DPTFILTERCAPS_LINEAR |
@@ -556,22 +568,16 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9)
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_32;
 		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24 | DDBD_32;
 	}
-	else if (Caps9.DeviceType == D3DDEVTYPE_HAL + 0x10)
+	else if (Caps9.DeviceType == D3DDEVTYPE_TNLHAL)
 	{
 		Desc7.deviceGUID = IID_IDirect3DTnLHalDevice;
 		Desc7.dwDevCaps |= D3DDEVCAPS_HWTRANSFORMANDLIGHT | D3DDEVCAPS_HWRASTERIZATION;
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_32;
 		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24 | DDBD_32;
 	}
-
-	// Reserved fields (should be zero)
-	Desc7.dwReserved1 = 0;
-	Desc7.dwReserved2 = 0;
-	Desc7.dwReserved3 = 0;
-	Desc7.dwReserved4 = 0;
 }
 
-void ConvertVertices(D3DLVERTEX* lFVF, const D3DLVERTEX9* lFVF9, DWORD NumVertices)
+void ConvertLVertex(D3DLVERTEX* lFVF, const D3DLVERTEX9* lFVF9, DWORD NumVertices)
 {
 	for (UINT x = 0; x < NumVertices; x++)
 	{
@@ -585,7 +591,7 @@ void ConvertVertices(D3DLVERTEX* lFVF, const D3DLVERTEX9* lFVF9, DWORD NumVertic
 	}
 }
 
-void ConvertVertices(D3DLVERTEX9* lFVF9, const D3DLVERTEX* lFVF, DWORD NumVertices)
+void ConvertLVertex(D3DLVERTEX9* lFVF9, const D3DLVERTEX* lFVF, DWORD NumVertices)
 {
 	for (UINT x = 0; x < NumVertices; x++)
 	{
@@ -929,6 +935,36 @@ DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType)
 	return 0;
 }
 
+UINT GetFVFBlendCount(DWORD fvf)
+{
+	const DWORD blendMask = D3DFVF_POSITION_MASK;
+	switch (fvf & blendMask)
+	{
+	case D3DFVF_XYZ:       return 0;
+	case D3DFVF_XYZB1:     return 1;
+	case D3DFVF_XYZB2:     return 2;
+	case D3DFVF_XYZB3:     return 3;
+	case D3DFVF_XYZB4:     return 4;
+	case D3DFVF_XYZB5:     return 5;
+	default:               return 0;
+	}
+}
+
+UINT GetVertexPositionSize(DWORD dwVertexTypeDesc)
+{
+	const DWORD dwVertexPositionType = (dwVertexTypeDesc & D3DFVF_POSITION_MASK);
+
+	return
+		((dwVertexPositionType == D3DFVF_XYZ) ? sizeof(float) * 3 : 0) +
+		((dwVertexPositionType == D3DFVF_XYZRHW) ? sizeof(float) * 4 : 0) +
+		((dwVertexPositionType == D3DFVF_XYZB1) ? sizeof(float) * 4 : 0) +
+		((dwVertexPositionType == D3DFVF_XYZB2) ? sizeof(float) * 5 : 0) +
+		((dwVertexPositionType == D3DFVF_XYZB3) ? sizeof(float) * 6 : 0) +
+		((dwVertexPositionType == D3DFVF_XYZB4) ? sizeof(float) * 6 + sizeof(DWORD) : 0) +
+		((dwVertexPositionType == D3DFVF_XYZB5) ? sizeof(float) * 7 + sizeof(DWORD) : 0) +
+		((dwVertexTypeDesc & D3DFVF_XYZW & ~D3DFVF_XYZ) ? sizeof(float) : 0);
+}
+
 UINT GetVertexStride(DWORD dwVertexTypeDesc)
 {
 	// Reserved:
@@ -942,33 +978,26 @@ UINT GetVertexStride(DWORD dwVertexTypeDesc)
 	// #define D3DFVF_RESERVED2        0x6000  // 2 reserved bits (DX9)
 
 	// Check for unsupported vertex types
-	DWORD UnSupportedVertexTypes = dwVertexTypeDesc & ~(D3DFVF_POSITION_MASK_9 | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEXCOUNT_MASK);
+	const DWORD UnSupportedVertexTypes = dwVertexTypeDesc & ~(D3DFVF_POSITION_MASK_9 | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEXCOUNT_MASK);
 	if (UnSupportedVertexTypes)
 	{
 		LOG_LIMIT(100, __FUNCTION__ " Warning: Unsupported FVF type: " << Logging::hex(UnSupportedVertexTypes));
 	}
 
+	const DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
+
+	if (texCount > D3DDP_MAXTEXCOORD)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: texCount " << texCount << " exceeds D3DDP_MAXTEXCOORD!");
+		return 0;
+	}
+
 	return
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZ) ? sizeof(float) * 3 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW) ? sizeof(float) * 4 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB1) ? sizeof(float) * 4 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB2) ? sizeof(float) * 5 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB3) ? sizeof(float) * 6 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB4) ? sizeof(float) * 6 + sizeof(DWORD) : 0) +
-		(((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZB5) ? sizeof(float) * 7 + sizeof(DWORD) : 0) +
-		((dwVertexTypeDesc & D3DFVF_XYZW & ~D3DFVF_XYZ) ? sizeof(float) : 0) +
+		GetVertexPositionSize(dwVertexTypeDesc) +
 		((dwVertexTypeDesc & D3DFVF_NORMAL) ? sizeof(float) * 3 : 0) +
 		((dwVertexTypeDesc & D3DFVF_DIFFUSE) ? sizeof(D3DCOLOR) : 0) +
 		((dwVertexTypeDesc & D3DFVF_SPECULAR) ? sizeof(D3DCOLOR) : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX1) ? sizeof(float) * 2 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX2) ? sizeof(float) * 4 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX3) ? sizeof(float) * 6 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX4) ? sizeof(float) * 8 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX5) ? sizeof(float) * 10 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX6) ? sizeof(float) * 12 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX7) ? sizeof(float) * 14 : 0) +
-		(((dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) == D3DFVF_TEX8) ? sizeof(float) * 16 : 0) +
-		0;
+		(texCount * sizeof(float) * 2);
 }
 
 UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount)

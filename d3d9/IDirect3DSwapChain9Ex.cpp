@@ -53,7 +53,16 @@ ULONG m_IDirect3DSwapChain9Ex::Release(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->Release();
+	ULONG ref = ProxyInterface->Release();
+
+	if (ref == 0)
+	{
+		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
+
+		delete this;
+	}
+
+	return ref;
 }
 
 HRESULT m_IDirect3DSwapChain9Ex::Present(THIS_ CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion, DWORD dwFlags)
@@ -99,6 +108,22 @@ HRESULT m_IDirect3DSwapChain9Ex::GetRasterStatus(THIS_ D3DRASTER_STATUS* pRaster
 HRESULT m_IDirect3DSwapChain9Ex::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	{
+		D3DDISPLAYMODEEX* pModeEx = nullptr;
+		D3DDISPLAYMODEEX ModeEx = {};
+
+		if (pMode)
+		{
+			m_IDirect3DDevice9Ex::ModeToModeEx(*pMode, ModeEx);
+			pModeEx = &ModeEx;
+		}
+
+		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
+
+		return GetDisplayModeEx(pModeEx, &Rotation);
+	}
 
 	return ProxyInterface->GetDisplayMode(pMode);
 }

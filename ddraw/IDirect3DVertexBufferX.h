@@ -48,6 +48,9 @@ private:
 	inline IDirect3DVertexBuffer *GetProxyInterfaceV1() { return (IDirect3DVertexBuffer *)ProxyInterface; }
 	inline IDirect3DVertexBuffer7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
+	// Helper functions
+	HRESULT ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags);
+
 	// Interface initialization functions
 	void InitInterface(DWORD DirectXVersion);
 	void ReleaseInterface();
@@ -127,4 +130,7 @@ public:
 	void ReleaseD9Buffer(bool BackupData, bool ResetBuffer);
 
 	DWORD GetFVF9() const { return d3d9VBDesc.FVF; };
+
+	// Static functions
+	static void ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& outSpecular, const D3DXVECTOR3& Position, const D3DXVECTOR3& Normal, const std::vector<D3DLIGHT7>& cachedLights, const D3DXMATRIX& matWorldView, const D3DMATRIX& matWorld, const D3DMATRIX& matView, const D3DMATERIAL7& mat, bool UseMaterial);
 };

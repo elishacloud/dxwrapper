@@ -5,7 +5,7 @@ class m_IDirect3DVolume9 : public IDirect3DVolume9, public AddressLookupTableD3d
 private:
 	LPDIRECT3DVOLUME9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
-	REFIID WrapperID = IID_IDirect3DVolume9;
+	const IID WrapperID = IID_IDirect3DVolume9;
 
 public:
 	m_IDirect3DVolume9(LPDIRECT3DVOLUME9 pVolume8, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pVolume8), m_pDeviceEx(pDevice)

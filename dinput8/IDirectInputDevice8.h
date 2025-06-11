@@ -4,7 +4,7 @@ class m_IDirectInputDevice8 : public IDirectInputDevice8A, public IDirectInputDe
 {
 private:
 	IDirectInputDevice8W *ProxyInterface;
-	REFIID WrapperID;
+	const IID WrapperID;
 
 	CRITICAL_SECTION dics = {};
 

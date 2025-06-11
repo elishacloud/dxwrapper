@@ -4,7 +4,7 @@ class m_IDirect3DDevice7 : public IDirect3DDevice7, public AddressLookupTableDdr
 {
 private:
 	m_IDirect3DDeviceX *ProxyInterface;
-	REFIID WrapperID = IID_IDirect3DDevice7;
+	const IID WrapperID = IID_IDirect3DDevice7;
 	const DWORD DirectXVersion = 7;
 
 public:

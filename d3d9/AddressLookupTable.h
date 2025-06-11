@@ -82,5 +82,4 @@ public:
 
 	void AddStateBlock(m_IDirect3DStateBlock9* stateBlock);
 	void RemoveStateBlock(m_IDirect3DStateBlock9* stateBlock);
-	void ReleaseAllStateBlocks();
 };

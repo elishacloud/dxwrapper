@@ -107,6 +107,171 @@ void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLock
 	}
 }
 
+DWORD GetDepthFillValue(float depthValue, D3DFORMAT Format)
+{
+	switch ((DWORD)Format)
+	{
+	case D3DFMT_S1D15:
+		return uint16_t(depthValue * static_cast<float>(0x7FFF) + 0.5f); // 15-bit depth
+
+	case D3DFMT_D15S1:
+		// Shift the depth value by 1 bits before extracting
+		return uint16_t(depthValue * static_cast<float>(0x7FFF) + 0.5f) << 1; // 15-bit depth
+
+	case D3DFMT_D16:
+	case D3DFMT_D16_LOCKABLE:
+		return uint16_t(depthValue * static_cast<float>(0xFFFF) + 0.5f); // 16-bit depth
+
+	case D3DFMT_X8D24:
+	case D3DFMT_S8D24:
+	case D3DFMT_X4S4D24:
+		return uint32_t(depthValue * static_cast<float>(0xFFFFFF) + 0.5f); // 24-bit depth
+
+	case D3DFMT_D24X8:
+	case D3DFMT_D24S8:
+	case D3DFMT_D24FS8:
+	case D3DFMT_D24X4S4:
+		// Shift the depth value by 8 bits before extracting
+		return uint32_t(depthValue * static_cast<float>(0xFFFFFF) + 0.5f) << 8; // 24-bit depth
+
+	case D3DFMT_D32:
+	case D3DFMT_D32_LOCKABLE:
+	case D3DFMT_D32F_LOCKABLE:
+		return uint32_t(depthValue * static_cast<float>(0xFFFFFFFF) + 0.5f); // 32-bit depth
+
+	default:
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Depth Stencil format not Implemented: " << Format);
+		return 0;
+	}
+}
+
+static inline float GetDepthValue(DWORD DepthColor, D3DFORMAT Format)
+{
+	float DepthValue = 0.0f;
+
+	switch ((DWORD)Format)
+	{
+	case D3DFMT_S1D15:
+		DepthValue = static_cast<float>(DepthColor & 0x7FFF) / static_cast<float>(0x7FFF);
+		break;
+
+	case D3DFMT_D15S1:
+		// Shift the depth value by 1 bits before extracting
+		DepthValue = static_cast<float>((DepthColor >> 1) & 0x7FFF) / static_cast<float>(0x7FFF);
+		break;
+
+	case D3DFMT_D16:
+	case D3DFMT_D16_LOCKABLE:
+		// 16-bit normalized int
+		DepthValue = static_cast<float>(DepthColor & 0xFFFF) / static_cast<float>(0xFFFF);
+		break;
+
+	case D3DFMT_X8D24:
+	case D3DFMT_S8D24:
+	case D3DFMT_X4S4D24:
+		DepthValue = static_cast<float>(DepthColor & 0xFFFFFF) / static_cast<float>(0xFFFFFF);
+		break;
+
+	case D3DFMT_D24X8:
+	case D3DFMT_D24S8:
+	case D3DFMT_D24FS8:
+	case D3DFMT_D24X4S4:
+		// Shift the depth value by 8 bits before extracting
+		DepthValue = static_cast<float>((DepthColor >> 8) & 0xFFFFFF) / static_cast<float>(0xFFFFFF);
+		break;
+
+	case D3DFMT_D32:
+		// Full 32-bit unsigned int normalized
+		DepthValue = static_cast<float>(DepthColor) / static_cast<float>(0xFFFFFFFF);
+		break;
+
+	case D3DFMT_D32_LOCKABLE:
+	case D3DFMT_D32F_LOCKABLE:
+		// Depth is already a float
+		DepthValue = *reinterpret_cast<float*>(&DepthColor);
+		break;
+
+	default:
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Depth Stencil format not Implemented: " << Format);
+		return 0.0f;
+	}
+
+	// Clamp result to valid range
+	return min(max(DepthValue, 0.0f), 1.0f);
+}
+
+// Copy zbuffer complex
+template HRESULT ComplexZBufferCopy<BYTE>(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format);
+template HRESULT ComplexZBufferCopy<WORD>(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format);
+template HRESULT ComplexZBufferCopy<TRIBYTE>(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format);
+template HRESULT ComplexZBufferCopy<DWORD>(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format);
+template <typename T>
+HRESULT ComplexZBufferCopy(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format)
+{
+	if (!d3d9Device || !pSourceSurfaceD9)
+	{
+		return DDERR_GENERIC;
+	}
+
+	D3DLOCKED_RECT locked = {};
+	if (FAILED(pSourceSurfaceD9->LockRect(&locked, &SrcRect, D3DLOCK_READONLY)) || !locked.pBits)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to lock depth buffer source surface!");
+		return DDERR_GENERIC;
+	}
+
+	LOG_LIMIT(100, __FUNCTION__ << " Warning: Copying depth buffer surfaces may cause slowdowns!");
+
+	int width = SrcRect.right - SrcRect.left;
+	int height = SrcRect.bottom - SrcRect.top;
+
+	// Map of z-value -> vector of rects
+	std::map<T, std::vector<D3DRECT>> zRectMap;
+
+	for (int y = 0; y < height; ++y)
+	{
+		T* row = (T*)((BYTE*)locked.pBits + y * locked.Pitch);
+		int runStart = 0;
+		T currentZ = row[0];
+
+		for (int x = 1; x <= width; ++x)
+		{
+			if (x == width || row[x] != currentZ)
+			{
+				// Flush current run
+				D3DRECT rect = {
+					(LONG)(DestRect.left + runStart),
+					(LONG)(DestRect.top + y),
+					(LONG)(DestRect.left + x),
+					(LONG)(DestRect.top + y + 1)
+				};
+				zRectMap[currentZ].push_back(rect);
+
+				// Start new run
+				if (x < width)
+				{
+					runStart = x;
+					currentZ = row[x];
+				}
+			}
+		}
+	}
+
+	pSourceSurfaceD9->UnlockRect();
+
+	// Now perform Clear() calls by z-value
+	for (const auto& [zWord, rects] : zRectMap)
+	{
+		float z = GetDepthValue(zWord, Format);
+		if (!rects.empty())
+		{
+			d3d9Device->Clear((DWORD)rects.size(), rects.data(), D3DCLEAR_ZBUFFER, 0, z, 0);
+		}
+	}
+
+	return DD_OK;
+}
+
 DWORD ComputeRND(DWORD Seed, DWORD Num)
 {
 	LARGE_INTEGER PerformanceCount = {};
@@ -178,7 +343,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC& Desc, const DDSURFACEDESC2& Desc2)
 			Desc.ddpfPixelFormat.dwZBitMask = 0;
 		}
 	}
-	ConvertCaps(Desc.ddsCaps, Desc2.ddsCaps);
+	Desc.ddsCaps.dwCaps = Desc2.ddsCaps.dwCaps;
 	// Check for dwFlags that did not get converted
 	if (Desc.dwFlags != Desc2.dwFlags && (Desc2.dwFlags - Desc.dwFlags) != ((DWORD)DDSD_PIXELFORMAT - (DWORD)DDSD_ZBUFFERBITDEPTH))
 	{
@@ -203,7 +368,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC2& Desc2, const DDSURFACEDESC& Desc)
 	Desc2.dwWidth = Desc.dwWidth;
 	Desc2.lPitch = Desc.lPitch;
 	Desc2.dwBackBufferCount = Desc.dwBackBufferCount;
-	Desc2.dwRefreshRate = Desc.dwRefreshRate;
+	Desc2.dwMipMapCount = Desc.dwMipMapCount;
 	Desc2.dwAlphaBitDepth = Desc.dwAlphaBitDepth;
 	Desc2.dwReserved = Desc.dwReserved;
 	Desc2.lpSurface = Desc.lpSurface;
@@ -236,9 +401,7 @@ void ConvertSurfaceDesc(DDSURFACEDESC2& Desc2, const DDSURFACEDESC& Desc)
 			(Desc2.ddpfPixelFormat.dwZBufferBitDepth == 16) ? 0xFFFF : 0;
 		Desc2.dwRefreshRate = 0;	// Union with dwZBufferBitDepth
 	}
-	ConvertCaps(Desc2.ddsCaps, Desc.ddsCaps);
-	// Extra parameters
-	Desc2.dwTextureStage = 0;			// Stage identifier that is used to bind a texture to a specific stage
+	Desc2.ddsCaps.dwCaps = Desc.ddsCaps.dwCaps;
 	// Check for dwFlags that did not get converted
 	if (Desc.dwFlags != Desc2.dwFlags && (Desc2.dwFlags - Desc.dwFlags) != ((DWORD)DDSD_PIXELFORMAT - (DWORD)DDSD_ZBUFFERBITDEPTH))
 	{
@@ -377,7 +540,7 @@ void ConvertCaps(DDSCAPS2& Caps2, const DDSCAPS& Caps)
 	Caps2.dwCaps2 = 0;				// Additional surface capabilities
 	Caps2.dwCaps3 = 0;				// Not used
 	Caps2.dwCaps4 = 0;				// Not used
-	Caps2.dwVolumeDepth = 0;		// Not used
+	Caps2.dwVolumeDepth = 0;
 }
 
 void ConvertCaps(DDCAPS& Caps, const DDCAPS& Caps2)
@@ -467,7 +630,7 @@ void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9)
 	Caps7.ddsCaps.dwCaps2 = (Config.DdrawDisableDirect3DCaps ? 0 : 0 /*| DDSCAPS2_CUBEMAP | DDSCAPS2_VOLUME*/);
 	Caps7.ddsCaps.dwCaps3 = 0;								// Not used
 	Caps7.ddsCaps.dwCaps4 = 0;								// Not used
-	Caps7.ddsCaps.dwVolumeDepth = 0;						// Not used
+	Caps7.ddsCaps.dwVolumeDepth = 0;
 	Caps7.ddsOldCaps.dwCaps = Caps7.ddsCaps.dwCaps;
 
 	// Stereo Vision capabilities
@@ -583,11 +746,6 @@ void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9)
 	// Video memory
 	Caps7.dwVidMemTotal = MaxVidMemory;
 	Caps7.dwVidMemFree = MaxVidMemory - MinUsedVidMemory;
-
-	// Reserved fields
-	Caps7.dwReserved1 = 0;
-	Caps7.dwReserved2 = 0;
-	Caps7.dwReserved3 = 0;
 }
 
 void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
@@ -759,44 +917,6 @@ DWORD GetBitCount(D3DFORMAT Format)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Display format not Implemented: " << Format);
 		return 0;
 	};
-}
-
-float ConvertDepthValue(DWORD dwFillDepth, D3DFORMAT Format)
-{
-	switch ((DWORD)Format)
-	{
-	case D3DFMT_S1D15:
-		return static_cast<float>(dwFillDepth & 0x7FFF) / 0x7FFF; // 15-bit depth
-
-	case D3DFMT_D15S1:
-		// Shift the depth value to the right by 1 bits before extracting
-		return static_cast<float>((dwFillDepth >> 1) & 0x7FFF) / 0x7FFF; // 15-bit depth
-
-	case D3DFMT_D16:
-	case D3DFMT_D16_LOCKABLE:
-		return static_cast<float>(dwFillDepth & 0xFFFF) / 0xFFFF; // 16-bit depth
-
-	case D3DFMT_X8D24:
-	case D3DFMT_S8D24:
-	case D3DFMT_X4S4D24:
-		return static_cast<float>(dwFillDepth & 0xFFFFFF) / 0xFFFFFF; // 24-bit depth
-
-	case D3DFMT_D24X8:
-	case D3DFMT_D24S8:
-	case D3DFMT_D24FS8:
-	case D3DFMT_D24X4S4:
-		// Shift the depth value to the right by 8 bits before extracting
-		return static_cast<float>((dwFillDepth >> 8) & 0xFFFFFF) / 0xFFFFFF; // 24-bit depth
-
-	case D3DFMT_D32:
-	case D3DFMT_D32_LOCKABLE:
-	case D3DFMT_D32F_LOCKABLE:
-		return (float)(static_cast<double>(dwFillDepth & 0xFFFFFFFF) / 0xFFFFFFFF); // 32-bit depth
-
-	default:
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Depth Stencil format not Implemented: " << Format);
-		return 0.0f;
-	}
 }
 
 DWORD ComputePitch(D3DFORMAT Format, DWORD Width, DWORD Height)
@@ -1015,6 +1135,21 @@ D3DFORMAT GetFailoverFormat(D3DFORMAT Format)
 	return Format;
 }
 
+D3DFORMAT GetStencilEmulatedFormat(DWORD BitCount)
+{
+	switch (BitCount)
+	{
+	case 16:
+		return D3DFMT_R5G6B5;
+	case 24:
+		return D3DFMT_R8G8B8;
+	case 32:
+		return D3DFMT_A8R8G8B8;
+	}
+
+	return D3DFMT_UNKNOWN;
+}
+
 D3DFORMAT GetDisplayFormat(const DDPIXELFORMAT& ddpfPixelFormat)
 {
 	if (ddpfPixelFormat.dwSize != sizeof(DDPIXELFORMAT))
@@ -1211,7 +1346,7 @@ D3DFORMAT GetDisplayFormat(const DDPIXELFORMAT& ddpfPixelFormat)
 			}
 			if (ddpfPixelFormat.dwZBitMask == 0xFFFF)
 			{
-				return D3DFMT_D16_LOCKABLE;
+				return D3DFMT_D16;
 			}
 			break;
 		case 24:

@@ -128,7 +128,7 @@ HRESULT m_IDirectDrawSurface4::EnumAttachedSurfaces(LPVOID a, LPDDENUMSURFACESCA
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->EnumAttachedSurfaces2(a, (LPDDENUMSURFACESCALLBACK7)b, MipMapLevel, DirectXVersion);
+	return ProxyInterface->EnumAttachedSurfaces2(a, (LPDDENUMSURFACESCALLBACK7)b, nullptr, MipMapLevel, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface4::EnumOverlayZOrders(DWORD a, LPVOID b, LPDDENUMSURFACESCALLBACK2 c)
@@ -137,7 +137,7 @@ HRESULT m_IDirectDrawSurface4::EnumOverlayZOrders(DWORD a, LPVOID b, LPDDENUMSUR
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->EnumOverlayZOrders2(a, b, (LPDDENUMSURFACESCALLBACK7)c, DirectXVersion);
+	return ProxyInterface->EnumOverlayZOrders2(a, b, (LPDDENUMSURFACESCALLBACK7)c, nullptr, DirectXVersion);
 }
 
 HRESULT m_IDirectDrawSurface4::Flip(LPDIRECTDRAWSURFACE4 a, DWORD b)
@@ -168,7 +168,7 @@ HRESULT m_IDirectDrawSurface4::GetBltStatus(DWORD a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetBltStatus(a);
+	return ProxyInterface->GetBltStatus(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface4::GetCaps(LPDDSCAPS2 a)
@@ -310,7 +310,7 @@ HRESULT m_IDirectDrawSurface4::ReleaseDC(HDC a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->ReleaseDC(a);
+	return ProxyInterface->ReleaseDC(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface4::Restore()
@@ -467,7 +467,7 @@ HRESULT m_IDirectDrawSurface4::GetUniquenessValue(LPDWORD a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetUniquenessValue(a);
+	return ProxyInterface->GetUniquenessValue(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface4::ChangeUniquenessValue()
@@ -476,5 +476,5 @@ HRESULT m_IDirectDrawSurface4::ChangeUniquenessValue()
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->ChangeUniquenessValue();
+	return ProxyInterface->ChangeUniquenessValue(MipMapLevel);
 }

@@ -4,17 +4,13 @@ class m_IDirect3DLight : public IDirect3DLight, public AddressLookupTableDdrawOb
 {
 private:
 	IDirect3DLight *ProxyInterface = nullptr;
-	REFIID WrapperID = IID_IDirect3DLight;
+	const IID WrapperID = IID_IDirect3DLight;
 	ULONG RefCount = 1;
 
 	// Convert Light
 	m_IDirect3DX* D3DInterface = nullptr;
-	m_IDirect3DDeviceX** D3DDeviceInterface = nullptr;
 	D3DLIGHT2 Light;
 	bool LightSet = false;
-
-	// Helper functions
-	HRESULT CheckInterface(char* FunctionName);
 
 	// Interface initialization functions
 	void InitInterface();
@@ -81,7 +77,6 @@ public:
 	STDMETHOD(GetLight)(THIS_ LPD3DLIGHT);
 
 	// Helper function
-	m_IDirect3DDeviceX* GetD3DDevice();
-	void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
+	void ClearD3D() { D3DInterface = nullptr; }
 	static m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface);
 };

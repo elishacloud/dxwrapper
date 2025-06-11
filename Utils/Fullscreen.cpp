@@ -15,6 +15,7 @@
 */
 
 #include "Settings\Settings.h"
+#include "shellapi.h"
 #include "Dllmain\Dllmain.h"
 #include "Utils.h"
 #include "Logging\Logging.h"
@@ -149,22 +150,197 @@ using namespace Utils;
 // Screen/monitor functions below
 //*********************************************************************************
 
-HMONITOR Utils::GetMonitorHandle(HWND hWnd)
+bool Utils::IsMonitorValid(HMONITOR hMonitor)
+{
+	if (!hMonitor)
+	{
+		return false;
+	}
+
+	MONITORINFO mi = {};
+	mi.cbSize = sizeof(mi);
+	return GetMonitorInfo(hMonitor, &mi) != FALSE;
+}
+
+HMONITOR Utils::GetMonitorFromWindow(HWND hWnd)
 {
 	return MonitorFromWindow(IsWindow(hWnd) ? hWnd : GetDesktopWindow(), MONITOR_DEFAULTTONEAREST);
 }
 
-void Utils::SetDisplaySettings(HWND hWnd, DWORD Width, DWORD Height)
+HMONITOR Utils::GetMonitorFromDeviceName(char* DeviceName)
+{
+	struct ENUMMONITORS
+	{
+		LPSTR lpName = nullptr;
+		HMONITOR hm = nullptr;
+	} Monitors;
+	Monitors.lpName = DeviceName;
+
+	struct Display {
+		static BOOL CALLBACK EnumeratorProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+		{
+			UNREFERENCED_PARAMETER(hdcMonitor);
+			UNREFERENCED_PARAMETER(lprcMonitor);
+
+			ENUMMONITORS* lpMonitors = (ENUMMONITORS*)dwData;
+			if (!dwData || !lpMonitors->lpName)
+			{
+				return FALSE;	// Cancel
+			}
+
+			MONITORINFOEX monitorInfo;
+			ZeroMemory(&monitorInfo, sizeof(monitorInfo));
+			monitorInfo.cbSize = sizeof(monitorInfo);
+
+			if (!GetMonitorInfo(hMonitor, &monitorInfo))
+			{
+				return TRUE;	// Continue
+			}
+
+			if (strcmp(monitorInfo.szDevice, lpMonitors->lpName) == S_OK)
+			{
+				lpMonitors->hm = hMonitor;
+				return FALSE;	// Cancel
+			}
+
+			return TRUE;	// Continue
+		}
+	};
+
+	EnumDisplayMonitors(nullptr, nullptr, Display::EnumeratorProc, (LPARAM)&Monitors);
+
+	return Monitors.hm;
+}
+
+bool Utils::MoveWindowToMonitor(HMONITOR hMonitor, HWND hWnd)
+{
+	// Check for valid handles
+	if (!IsWindow(hWnd) || !IsMonitorValid(hMonitor))
+	{
+		return false;
+	}
+
+	// Check if window needs to be moved
+	if (hMonitor == GetMonitorFromWindow(hWnd))
+	{
+		return true;
+	}
+
+	// Get the target monitor info
+	MONITORINFO miNew = {};
+	miNew.cbSize = sizeof(miNew);
+	if (!GetMonitorInfo(hMonitor, &miNew))
+	{
+		return false;
+	}
+
+	RECT windowRect = {};
+	if (!GetWindowRect(hWnd, &windowRect))
+	{
+		return false;
+	}
+
+	// Get the current monitor info
+	HMONITOR hOldMonitor = GetMonitorFromWindow(hWnd);
+	MONITORINFO miOld = {};
+	miOld.cbSize = sizeof(miOld);
+	if (!GetMonitorInfo(hOldMonitor, &miOld))
+	{
+		return false;
+	}
+
+	RECT rectNew = miNew.rcMonitor;
+	RECT rectOld = miOld.rcMonitor;
+
+	// Calculate relative position inside old monitor
+	int offsetX = windowRect.left - rectOld.left;
+	int offsetY = windowRect.top - rectOld.top;
+
+	int windowWidth = windowRect.right - windowRect.left;
+	int windowHeight = windowRect.bottom - windowRect.top;
+
+	int monitorWidth = rectNew.right - rectNew.left;
+	int monitorHeight = rectNew.bottom - rectNew.top;
+
+	// Clamp window size
+	if (windowWidth > monitorWidth)
+		windowWidth = monitorWidth;
+
+	if (windowHeight > monitorHeight)
+		windowHeight = monitorHeight;
+
+	// Window new position
+	int newLeft = rectNew.left + offsetX;
+	int newTop = rectNew.top + offsetY;
+
+	// Ensure the window stays fully visible inside the monitor
+	if (newLeft + windowWidth > rectNew.right)
+		newLeft = rectNew.right - windowWidth;
+
+	if (newTop + windowHeight > rectNew.bottom)
+		newTop = rectNew.bottom - windowHeight;
+
+	return SetWindowPos(hWnd, HWND_TOP, newLeft, newTop, windowWidth, windowHeight, SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+BOOL Utils::SetWindowPosToMonitor(HMONITOR hMonitor, HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags)
+{
+	MONITORINFO monitorInfo = {};
+	monitorInfo.cbSize = sizeof(monitorInfo);
+	if (!GetMonitorInfo(hMonitor, &monitorInfo))
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " Failed to get monitor info: " << hMonitor);
+		return FALSE;
+	}
+
+	RECT rect = monitorInfo.rcMonitor;
+
+	int xLoc = rect.left + X;
+	int yLoc = rect.top + Y;
+
+	return SetWindowPos(hWnd, hWndInsertAfter, xLoc, yLoc, cx, cy, uFlags);
+}
+
+BOOL Utils::SetWindowPlacementToMonitor(HMONITOR hMonitor, HWND hWnd, const WINDOWPLACEMENT* lpwndpl)
+{
+	if (!lpwndpl)
+	{
+		return FALSE;
+	}
+
+	MONITORINFO monitorInfo = {};
+	monitorInfo.cbSize = sizeof(monitorInfo);
+	if (!GetMonitorInfo(hMonitor, &monitorInfo))
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " Failed to get monitor info: " << hMonitor);
+		return FALSE;
+	}
+
+	RECT rect = monitorInfo.rcMonitor;
+
+	// Copy the input placement so we can modify it
+	WINDOWPLACEMENT adjustedPlacement = *lpwndpl;
+
+	// Offset normal position relative to the monitor's top-left corner
+	adjustedPlacement.rcNormalPosition.left += rect.left;
+	adjustedPlacement.rcNormalPosition.top += rect.top;
+	adjustedPlacement.rcNormalPosition.right += rect.left;
+	adjustedPlacement.rcNormalPosition.bottom += rect.top;
+
+	return SetWindowPlacement(hWnd, &adjustedPlacement);
+}
+
+void Utils::SetDisplaySettings(HMONITOR hMonitor, DWORD Width, DWORD Height)
 {
 	// Get monitor info
 	MONITORINFOEX infoex = {};
 	infoex.cbSize = sizeof(MONITORINFOEX);
-	BOOL bRet = GetMonitorInfo(Utils::GetMonitorHandle(hWnd), &infoex);
+	BOOL bRet = GetMonitorInfo(hMonitor, &infoex);
 
 	// Get resolution list for specified monitor
 	DEVMODE newSettings = {};
 	newSettings.dmSize = sizeof(newSettings);
-	if (EnumDisplaySettings(bRet ? infoex.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &newSettings) != 0)
+	if (EnumDisplaySettings(bRet ? infoex.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &newSettings))
 	{
 		newSettings.dmPelsWidth = Width;
 		newSettings.dmPelsHeight = Height;
@@ -173,74 +349,57 @@ void Utils::SetDisplaySettings(HWND hWnd, DWORD Width, DWORD Height)
 	}
 }
 
-DWORD Utils::GetRefreshRate(HWND hWnd)
+void Utils::ResetDisplaySettings(HMONITOR hMonitor)
 {
-	if (IsWindow(hWnd))
+	// Get monitor info
+	MONITORINFOEX infoex = {};
+	infoex.cbSize = sizeof(MONITORINFOEX);
+	BOOL bRet = GetMonitorInfo(hMonitor, &infoex);
+
+	// Reset resolution for specified monitor
+	ChangeDisplaySettingsEx(bRet ? infoex.szDevice : nullptr, nullptr, nullptr, CDS_RESET, nullptr);
+}
+
+DWORD Utils::GetRefreshRate(HMONITOR hMonitor)
+{
+	if (!IsMonitorValid(hMonitor))
 	{
-		// Get display bit count
-		MONITORINFOEX mi = {};
-		mi.cbSize = sizeof(MONITORINFOEX);
-		bool DeviceNameFlag = (GetMonitorInfoA(MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST), &mi) != 0);
-		if (!DeviceNameFlag)
-		{
-			Logging::Log() << __FUNCTION__ << " Failed to get MonitorInfo!";
-		}
-		DEVMODEA DevMode;
-		ZeroMemory(&DevMode, sizeof(DEVMODEA));
-		DevMode.dmSize = sizeof(DEVMODEA);
-		if (EnumDisplaySettingsA((DeviceNameFlag) ? mi.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &DevMode))
-		{
-			return DevMode.dmDisplayFrequency;
-		}
+		hMonitor = MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY);
 	}
 
-	// Get desktop bit count
-	HDC hDC = GetDC(nullptr);
-	if (hDC)
+	// Get display bit count
+	MONITORINFOEX mi = {};
+	mi.cbSize = sizeof(MONITORINFOEX);
+	GetMonitorInfoA(hMonitor, &mi);
+	DEVMODEA DevMode;
+	ZeroMemory(&DevMode, sizeof(DEVMODEA));
+	DevMode.dmSize = sizeof(DEVMODEA);
+	if (EnumDisplaySettingsA(mi.szDevice, ENUM_CURRENT_SETTINGS, &DevMode))
 	{
-		DWORD RefreshRate = GetDeviceCaps(hDC, VREFRESH);
-		ReleaseDC(nullptr, hDC);
-		if (RefreshRate)
-		{
-			return RefreshRate;
-		}
+		return DevMode.dmDisplayFrequency;
 	}
 
 	// Default to 60
 	return 60;
 }
 
-DWORD Utils::GetBitCount(HWND hWnd)
+DWORD Utils::GetBitCount(HMONITOR hMonitor)
 {
-	if (IsWindow(hWnd))
+	if (!IsMonitorValid(hMonitor))
 	{
-		// Get display bit count
-		MONITORINFOEX mi = {};
-		mi.cbSize = sizeof(MONITORINFOEX);
-		bool DeviceNameFlag = (GetMonitorInfoA(MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST), &mi) != 0);
-		if (!DeviceNameFlag)
-		{
-			Logging::Log() << __FUNCTION__ << " Failed to get MonitorInfo!";
-		}
-		DEVMODEA DevMode;
-		ZeroMemory(&DevMode, sizeof(DEVMODEA));
-		DevMode.dmSize = sizeof(DEVMODEA);
-		if (EnumDisplaySettingsA((DeviceNameFlag) ? mi.szDevice : nullptr, ENUM_CURRENT_SETTINGS, &DevMode))
-		{
-			return DevMode.dmBitsPerPel;
-		}
+		hMonitor = MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY);
 	}
 
-	// Get desktop bit count
-	HDC hDC = GetDC(nullptr);
-	if (hDC)
+	// Get display bit count
+	MONITORINFOEX mi = {};
+	mi.cbSize = sizeof(MONITORINFOEX);
+	GetMonitorInfoA(hMonitor, &mi);
+	DEVMODEA DevMode;
+	ZeroMemory(&DevMode, sizeof(DEVMODEA));
+	DevMode.dmSize = sizeof(DEVMODEA);
+	if (EnumDisplaySettingsA(mi.szDevice, ENUM_CURRENT_SETTINGS, &DevMode))
 	{
-		int bpp = GetDeviceCaps(hDC, BITSPIXEL);
-		ReleaseDC(nullptr, hDC);
-		if (bpp)
-		{
-			return bpp;
-		}
+		return DevMode.dmBitsPerPel;
 	}
 
 	// Default to 32
@@ -255,32 +414,39 @@ void Fullscreen::GetScreenSize(HWND hwnd, screen_res& Res, MONITORINFO& mi)
 	Res.Height = mi.rcMonitor.bottom - mi.rcMonitor.top;
 }
 
-void Utils::GetScreenSize(HWND hwnd, volatile LONG &screenWidth, volatile LONG &screenHeight)
+void Utils::GetScreenSize(HMONITOR hMonitor, volatile LONG &screenWidth, volatile LONG &screenHeight)
 {
+	if (!IsMonitorValid(hMonitor))
+	{
+		hMonitor = MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY);
+	}
+
 	MONITORINFO info = {};
 	info.cbSize = sizeof(MONITORINFO);
-	GetMonitorInfo(GetMonitorHandle(hwnd), &info);
+	GetMonitorInfo(hMonitor, &info);
 	screenWidth = info.rcMonitor.right - info.rcMonitor.left;
 	screenHeight = info.rcMonitor.bottom - info.rcMonitor.top;
 }
 
-void Utils::GetScreenSize(HWND hwnd, int &screenWidth, int &screenHeight)
+void Utils::GetScreenSize(HMONITOR hMonitor, int& screenWidth, int& screenHeight)
 {
 	LONG Width = 0, Height = 0;
-	GetScreenSize(hwnd, Width, Height);
+	GetScreenSize(hMonitor, Width, Height);
 	screenWidth = Width;
 	screenHeight = Height;
 }
 
-void Utils::GetDesktopRect(HWND hWnd, RECT& screenRect)
+void Utils::GetScreenClientRect(HMONITOR hMonitor, RECT& workAreaOut)
 {
-	MONITORINFO info = {};
-	info.cbSize = sizeof(MONITORINFO);
-	GetMonitorInfo(GetMonitorHandle(hWnd), &info);
-	screenRect.left = info.rcMonitor.left;
-	screenRect.top = info.rcMonitor.top;
-	screenRect.right = info.rcMonitor.right;
-	screenRect.bottom = info.rcMonitor.bottom;
+	if (!IsMonitorValid(hMonitor))
+	{
+		hMonitor = MonitorFromWindow(GetDesktopWindow(), MONITOR_DEFAULTTOPRIMARY);
+	}
+
+	MONITORINFO mi = {};
+	mi.cbSize = sizeof(mi);
+	GetMonitorInfo(hMonitor, &mi);
+	workAreaOut = mi.rcWork;
 }
 
 // Check with resolution is best

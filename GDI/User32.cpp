@@ -67,7 +67,7 @@ HWND WINAPI user_CreateWindowExT(D CreateWindowExT, DWORD dwExStyle, T lpClassNa
 	// Handle popup window type (some games forget to initialize the nWidth and nHeight values)
 	if ((dwStyle & WS_POPUP) && !(nWidth & CW_USEDEFAULT) && (nWidth > 20000 || nHeight > 20000))
 	{
-		Utils::GetScreenSize(hWndParent, nWidth, nHeight);
+		Utils::GetScreenSize(Utils::GetMonitorFromWindow(hWndParent), nWidth, nHeight);
 	}
 
 	return CreateWindowExT(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);

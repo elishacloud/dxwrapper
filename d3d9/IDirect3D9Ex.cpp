@@ -23,8 +23,6 @@ volatile LONG InitHeight = 0;
 
 AddressLookupTableD3d9 ProxyAddressLookupTable9;		// Just used for m_IDirect3D9Ex interfaces only
 
-void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed);
-
 void m_IDirect3D9Ex::InitInterface()
 {
 	ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
@@ -38,7 +36,7 @@ HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if (riid == IID_IUnknown || riid == WrapperID)
+	if (riid == IID_IUnknown || riid == WrapperID || (Config.D3d9to9Ex && riid == IID_IDirect3D9))
 	{
 		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
 
@@ -293,7 +291,14 @@ HRESULT m_IDirect3D9Ex::GetDeviceCaps(UINT Adapter, D3DDEVTYPE DeviceType, D3DCA
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetDeviceCaps(Adapter, DeviceType, pCaps);
+	HRESULT hr = ProxyInterface->GetDeviceCaps(Adapter, DeviceType, pCaps);
+
+	if (SUCCEEDED(hr))
+	{
+		pCaps->TextureCaps = AdjustPOW2Caps(pCaps->TextureCaps);
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3D9Ex::RegisterSoftwareDevice(void *pInitializeFunction)
@@ -357,8 +362,9 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	}
 
 	// Hook WndProc before creating device
-	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hFocusWindow ? hFocusWindow : pPresentationParameters ? pPresentationParameters->hDeviceWindow : nullptr);
-	if (WndDataStruct && pPresentationParameters)
+	HWND hwnd = (hFocusWindow ? hFocusWindow : pPresentationParameters ? pPresentationParameters->hDeviceWindow : nullptr);
+	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hwnd);
+	if (WndDataStruct)
 	{
 		WndDataStruct->IsDirect3D9 = true;
 		WndDataStruct->IsCreatingDevice = true;
@@ -371,10 +377,25 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	// Create new d3d9 device
 	HRESULT hr = D3DERR_INVALIDCALL;
 
+	// Get monitor handle
+	HMONITOR hMonitor = nullptr;
+	D3DADAPTER_IDENTIFIER9 Identifier = {};
+	if (SUCCEEDED(ProxyInterface->GetAdapterIdentifier(Adapter, 0, &Identifier)))
+	{
+		hMonitor = Utils::GetMonitorFromDeviceName(Identifier.DeviceName);
+	}
+	if (hMonitor == nullptr)
+	{
+		Logging::Log() << __FUNCTION__ << " Warning: Failed to get monitor handle!";
+	}
+
+	// Needs to be set before updating present parameters
+	DeviceDetails.Adapter = Adapter;
+	DeviceDetails.DeviceType = DeviceType;
+	DeviceDetails.hMonitor = hMonitor;
+
 	// Check fullscreen
 	bool ForceFullscreen = TestResolution(Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
-
-	bool MultiSampleFlag = false;
 
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
@@ -382,6 +403,8 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	UpdatePresentParameter(&d3dpp, hFocusWindow, DeviceDetails, ForceFullscreen, true);
 
 	bool IsWindowMode = d3dpp.Windowed != FALSE;
+
+	bool MultiSampleFlag = false;
 
 	// Check for AntiAliasing
 	if (Config.AntiAliasing != 0)
@@ -470,21 +493,55 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (Config.D3d9to9Ex)
+	{
+		D3DDISPLAYMODEEX* pFullscreenMode = nullptr;
+		D3DDISPLAYMODEEX FullscreenDisplayMode = {};
+
+		// Fill fullscreen display mode only in fullscreen mode
+		if (!pPresentationParameters->Windowed)
+		{
+			GetFullscreenDisplayMode(*pPresentationParameters, FullscreenDisplayMode);
+			pFullscreenMode = &FullscreenDisplayMode;
+		}
+
+		if (SUCCEEDED(CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenMode, reinterpret_cast<IDirect3DDevice9Ex**>(ppReturnedDeviceInterface))))
+		{
+			return D3D_OK;
+		}
+	}
+
 	DEVICEDETAILS DeviceDetails;
 
 	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, nullptr, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
+		GUID riid = IID_IDirect3DDevice9;
+
+		if (Config.D3d9to9Ex)
+		{
+			IDirect3DDevice9* pD3DD = *ppReturnedDeviceInterface;
+			IDirect3DDevice9Ex* pD3DDEx = nullptr;
+
+			if (SUCCEEDED(pD3DD->QueryInterface(IID_IDirect3DDevice9Ex, reinterpret_cast<LPVOID*>(&pD3DDEx))))
+			{
+				pD3DD->Release();
+				*ppReturnedDeviceInterface = pD3DDEx;
+				riid = IID_IDirect3DDevice9Ex;
+			}
+		}
+
 		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.DeviceWindow;
 		DeviceDetailsMap[DDKey] = DeviceDetails;
 
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9, DDKey);
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, riid, DDKey);
 
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Adapter << " " << DeviceType << " " << hFocusWindow << " " << BehaviorFlags << " " << pPresentationParameters;
+	
 	return hr;
 }
 
@@ -616,7 +673,7 @@ bool m_IDirect3D9Ex::TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD B
 		{
 			// Get display modes here
 			ZeroMemory(&d3ddispmode, sizeof(D3DDISPLAYMODE));
-			if (FAILED(ProxyInterface->EnumAdapterModes(D3DADAPTER_DEFAULT, D3DFMT_X8R8G8B8, i, &d3ddispmode)))
+			if (FAILED(ProxyInterface->EnumAdapterModes(Adapter, D3DFMT_X8R8G8B8, i, &d3ddispmode)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: EnumAdapterModes failed");
 				break;
@@ -631,7 +688,21 @@ bool m_IDirect3D9Ex::TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD B
 	return false;
 }
 
-DWORD UpdateBehaviorFlags(DWORD BehaviorFlags)
+DWORD m_IDirect3D9Ex::AdjustPOW2Caps(DWORD OriginalCaps)
+{
+	DWORD Caps = OriginalCaps & ~(D3DPTEXTURECAPS_POW2 | D3DPTEXTURECAPS_NONPOW2CONDITIONAL);
+
+	switch (Config.SetPOW2Caps)
+	{
+	case 0: return OriginalCaps;														// 0 = return original caps
+	case 1: return Caps | D3DPTEXTURECAPS_POW2 | D3DPTEXTURECAPS_NONPOW2CONDITIONAL;	// 1 = force both
+	case 2: return Caps | D3DPTEXTURECAPS_NONPOW2CONDITIONAL;							// 2 = force D3DPTEXTURECAPS_NONPOW2CONDITIONAL
+	case 3: return Caps | D3DPTEXTURECAPS_POW2;											// 3 = force D3DPTEXTURECAPS_POW2
+	default: return Caps;																// 4 = remove both
+	}
+}
+
+DWORD m_IDirect3D9Ex::UpdateBehaviorFlags(DWORD BehaviorFlags)
 {
 	if (Config.ForceMixedVertexProcessing || (BehaviorFlags & D3DCREATE_MIXED_VERTEXPROCESSING) ||
 		((BehaviorFlags & D3DCREATE_SOFTWARE_VERTEXPROCESSING) && (BehaviorFlags & D3DCREATE_HARDWARE_VERTEXPROCESSING)))
@@ -653,7 +724,7 @@ DWORD UpdateBehaviorFlags(DWORD BehaviorFlags)
 }
 
 // Update Presentation Parameters
-void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool ForceExclusiveFullscreen, bool SetWindow)
+void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool ForceExclusiveFullscreen, bool SetWindow)
 {
 	if (!pPresentationParameters)
 	{
@@ -676,7 +747,7 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 		pPresentationParameters->Windowed = FALSE;
 		if (!pPresentationParameters->FullScreen_RefreshRateInHz)
 		{
-			pPresentationParameters->FullScreen_RefreshRateInHz = Utils::GetRefreshRate(DeviceDetails.DeviceWindow);
+			pPresentationParameters->FullScreen_RefreshRateInHz = Utils::GetRefreshRate(DeviceDetails.hMonitor);
 		}
 		if (pPresentationParameters->BackBufferFormat == D3DFMT_UNKNOWN)
 		{
@@ -742,19 +813,19 @@ void UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND
 			GetClientRect(DeviceDetails.DeviceWindow, &Rect);
 			if (AnyChange || Rect.right - Rect.left != DeviceDetails.BufferWidth || Rect.bottom - Rect.top != DeviceDetails.BufferHeight)
 			{
-				AdjustWindow(DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, pPresentationParameters->Windowed);
+				AdjustWindow(DeviceDetails.hMonitor, DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, pPresentationParameters->Windowed, Config.EnableWindowMode, Config.FullscreenWindowMode);
 			}
 
 			// Set fullscreen resolution
 			if (AnyChange && Config.FullscreenWindowMode)
 			{
-				Utils::SetDisplaySettings(DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight);
+				Utils::SetDisplaySettings(DeviceDetails.hMonitor, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight);
 			}
 		}
 	}
 }
 
-void GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails)
+void m_IDirect3D9Ex::GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails)
 {
 	if (pPresentationParameters && (IsWindow(pPresentationParameters->hDeviceWindow) || IsWindow(DeviceDetails.DeviceWindow)))
 	{
@@ -765,7 +836,7 @@ void GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DE
 }
 
 // Set Presentation Parameters for Multisample
-void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality)
+void m_IDirect3D9Ex::UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality)
 {
 	if (!pPresentationParameters)
 	{
@@ -787,8 +858,26 @@ void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationPa
 	pPresentationParameters->BackBufferCount = (pPresentationParameters->BackBufferCount) ? pPresentationParameters->BackBufferCount : 1;
 }
 
+void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DDISPLAYMODEEX& Mode)
+{
+	Mode.Size = sizeof(D3DDISPLAYMODEEX);
+
+	// Derive width and height
+	Mode.Width = d3dpp.BackBufferWidth;
+	Mode.Height = d3dpp.BackBufferHeight;
+
+	// Derive format
+	Mode.Format = d3dpp.BackBufferFormat;
+
+	// RefreshRate
+	Mode.RefreshRate = d3dpp.FullScreen_RefreshRateInHz;
+
+	// ScanLineOrdering and Scaling are optional and can usually be defaulted
+	Mode.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
+}
+
 // Adjusting the window position for WindowMode
-void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed)
+void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed, bool EnableWindowMode, bool FullscreenWindowMode)
 {
 	if (!IsWindow(MainhWnd) || !displayWidth || !displayHeight)
 	{
@@ -796,16 +885,23 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 		return;
 	}
 
+	// Verify monitor handle
+	if (!Utils::IsMonitorValid(hMonitor))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: monitor handle is invalid, using window location instead.");
+		hMonitor = Utils::GetMonitorFromWindow(MainhWnd);
+	}
+
 	// Remove clip children for popup windows
 	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
 	if ((lStyle & WS_POPUP) && (lStyle & WS_CLIPCHILDREN))
 	{
 		SetWindowLong(MainhWnd, GWL_STYLE, lStyle & ~WS_CLIPCHILDREN);
-		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 	}
 
 	// Set window active and focus
-	if (Config.EnableWindowMode || isWindowed)
+	if (EnableWindowMode || isWindowed)
 	{
 		// Move window to top if not already topmost
 		LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
@@ -823,12 +919,16 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 			DWORD currentThreadId = GetCurrentThreadId();
 			DWORD foregroundThreadId = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
 
-			bool isForeground = (MainhWnd == GetForegroundWindow()) || (currentThreadId == foregroundThreadId);
+			bool isForeground = (MainhWnd == GetForegroundWindow());
+			bool shouldAttachThreadID = !isForeground && (currentThreadId != foregroundThreadId);
 
 			// Attach the input of the foreground window and current window
-			if (!isForeground)
+			if (shouldAttachThreadID)
 			{
 				AttachThreadInput(currentThreadId, foregroundThreadId, TRUE);
+			}
+			if (!isForeground)
+			{
 				SetForegroundWindow(MainhWnd);
 			}
 
@@ -837,52 +937,97 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 			BringWindowToTop(MainhWnd);
 
 			// Detach the input from the foreground window
-			if (!isForeground)
+			if (shouldAttachThreadID)
 			{
 				AttachThreadInput(currentThreadId, foregroundThreadId, FALSE);
 			}
 		}
 	}
 
-	// Get screen width and height
+	// Get screen area and width and height
 	LONG screenWidth = 0, screenHeight = 0;
-	Utils::GetScreenSize(MainhWnd, screenWidth, screenHeight);
-	RECT screenRect = {};
-	Utils::GetDesktopRect(MainhWnd, screenRect);
+	Utils::GetScreenSize(hMonitor, screenWidth, screenHeight);
+	RECT screenClientRect = {};
+	Utils::GetScreenClientRect(hMonitor, screenClientRect);
+	LONG screenClientWidth = screenClientRect.right - screenClientRect.left;
+	LONG screenClientHeight = screenClientRect.bottom - screenClientRect.top;
 
 	// Get window style
-	lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+	LONG lOrgStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+	lStyle = lOrgStyle;
 	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+	BOOL HasMenu = (GetMenu(MainhWnd) != NULL);
 
 	// Set window style
-	if (Config.EnableWindowMode)
+	bool clientWidthOverlap = false, clientHeightOverlap = false;
+	if (EnableWindowMode)
 	{
-		// Get new style
-		RECT Rect = { 0, 0, displayWidth, displayHeight };
-		AdjustWindowRectEx(&Rect, lStyle | WS_OVERLAPPEDWINDOW, GetMenu(MainhWnd) != NULL, lExStyle);
-		if (Config.WindowModeBorder && !Config.FullscreenWindowMode && screenWidth > Rect.right - Rect.left && screenHeight > Rect.bottom - Rect.top)
+		// New window size
+		LONG windowWidth = displayWidth;
+		LONG windowHeight = displayHeight;
+
+		// Get border style and size
+		LONG lBorderStyle = lStyle;
+		int borderWidth = 0, borderHeight = 0;
+		if (Config.WindowModeBorder && !FullscreenWindowMode)
 		{
-			lStyle |= WS_OVERLAPPEDWINDOW;
-		}
-		else if (Config.EnableWindowMode)
-		{
-			lStyle &= ~(WS_OVERLAPPEDWINDOW | WS_BORDER);
+			// Apply windowed border to popup window (without adding sysmenu)
+			if (lBorderStyle & (WS_POPUP | WS_BORDER))
+			{
+				lBorderStyle |= ((WS_POPUPWINDOW | WS_CAPTION) & ~WS_SYSMENU);
+			}
+			// Apply windowed border to other window types (without adding sysmenu)
+			else
+			{
+				lBorderStyle |= (WS_OVERLAPPEDWINDOW & ~WS_SYSMENU);
+			}
+
+			// Get window size with border
+			RECT rc = { 0, 0, displayWidth, displayHeight };
+			AdjustWindowRectEx(&rc, lBorderStyle, HasMenu, lExStyle);
+
+			int borderLeft = -rc.left;
+			int borderTop = -rc.top;    // Includes the title bar
+			int borderRight = rc.right - displayWidth;
+			int borderBottom = rc.bottom - displayHeight;
+
+			borderWidth = borderLeft + borderRight;
+			borderHeight = borderTop + borderBottom;
 		}
 
-		// Set new border
-		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-		SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP), 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+		// Check for overlapping
+		clientWidthOverlap = screenClientWidth < windowWidth + borderWidth;
+		clientHeightOverlap = screenClientHeight < windowHeight + borderHeight;
+
+		// Update style
+		if (Config.WindowModeBorder && !FullscreenWindowMode && !clientWidthOverlap && !clientHeightOverlap)
+		{
+			// Apply window border
+			lStyle = lBorderStyle;
+		}
+		else
+		{
+			// Remove window border (without removing sysmenu)
+			lStyle &= ~((WS_OVERLAPPEDWINDOW | WS_BORDER | WS_DLGFRAME) & ~WS_SYSMENU);
+		}
+
+		// Set style if it needs to change
+		if (lOrgStyle != lStyle)
+		{
+			SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
+			SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+		}
 	}
 
 	// Get new window rect
 	RECT Rect = { 0, 0, displayWidth, displayHeight };
-	AdjustWindowRectEx(&Rect, lStyle, GetMenu(MainhWnd) != NULL, lExStyle);
+	AdjustWindowRectEx(&Rect, lStyle, HasMenu, lExStyle);
 	Rect = { 0, 0, Rect.right - Rect.left, Rect.bottom - Rect.top };
 
 	// Get upper left window position
-	bool SetWindowPositionFlag = Config.FullscreenWindowMode;
+	bool SetWindowPositionFlag = FullscreenWindowMode;
 	LONG xLoc = 0, yLoc = 0;
-	if (Config.SetInitialWindowPosition && !Config.FullscreenWindowMode &&
+	if (Config.SetInitialWindowPosition && !FullscreenWindowMode &&
 		(Config.InitialWindowPositionLeft == 0 || Rect.right + (LONG)Config.InitialWindowPositionLeft <= screenWidth) &&
 		(Config.InitialWindowPositionTop == 0 || Rect.bottom + (LONG)Config.InitialWindowPositionTop <= screenHeight))
 	{
@@ -890,11 +1035,38 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 		xLoc = Config.InitialWindowPositionLeft;
 		yLoc = Config.InitialWindowPositionTop;
 	}
-	else if (Config.EnableWindowMode && !Config.FullscreenWindowMode && screenWidth >= Rect.right && screenHeight >= Rect.bottom)
+	else if (EnableWindowMode && !FullscreenWindowMode && screenWidth >= Rect.right && screenHeight >= Rect.bottom)
 	{
 		SetWindowPositionFlag = true;
 		xLoc = (screenWidth - Rect.right) / 2;
 		yLoc = (screenHeight - Rect.bottom) / 2;
+	}
+
+	// Ensure the window doesn't cross over the desktop client area
+	if (!FullscreenWindowMode)
+	{
+		if (!clientWidthOverlap)
+		{
+			if (xLoc < screenClientRect.left)
+			{
+				xLoc = screenClientRect.left;
+			}
+			if (xLoc + Rect.right > screenClientRect.right)
+			{
+				xLoc -= (xLoc + Rect.right) - screenClientRect.right;
+			}
+		}
+		if (!clientHeightOverlap)
+		{
+			if (yLoc < screenClientRect.top)
+			{
+				yLoc = screenClientRect.top;
+			}
+			if (yLoc + Rect.bottom > screenClientRect.bottom)
+			{
+				yLoc -= (yLoc + Rect.bottom) - screenClientRect.bottom;
+			}
+		}
 	}
 
 	// Center and adjust size of window
@@ -905,13 +1077,18 @@ void AdjustWindow(HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isW
 		wndpl.length = sizeof(WINDOWPLACEMENT);
 		if (GetWindowPlacement(MainhWnd, &wndpl))
 		{
+			// Force restore first if maximized/fullscreen
+			if (wndpl.showCmd == SW_MAXIMIZE || IsZoomed(MainhWnd))
+			{
+				ShowWindow(MainhWnd, SW_RESTORE);
+			}
+
+			wndpl.showCmd = SW_NORMAL;
 			wndpl.rcNormalPosition = { xLoc, yLoc, Rect.right + xLoc, Rect.bottom + yLoc };
-			SetWindowPlacement(MainhWnd, &wndpl);
+			Utils::SetWindowPlacementToMonitor(hMonitor, MainhWnd, &wndpl);
 		}
+
 		// Use SetWindowPos to center and adjust size
-		else
-		{
-			SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_TOPMOST : HWND_TOP), xLoc, yLoc, Rect.right, Rect.bottom, SWP_SHOWWINDOW | SWP_NOZORDER);
-		}
+		Utils::SetWindowPosToMonitor(hMonitor, MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_NOZORDER | SWP_NOACTIVATE);
 	}
 }

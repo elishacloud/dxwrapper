@@ -16,12 +16,8 @@ private:
 
 	// Convert to Direct3D9
 	m_IDirect3DX* D3DInterface = nullptr;
-	m_IDirect3DDeviceX** D3DDeviceInterface = nullptr;
 	D3DMATERIAL Material = {};		// Defaults to all null
 	D3DMATERIALHANDLE mHandle = 0;
-
-	// Helper functions
-	HRESULT CheckInterface(char* FunctionName);
 
 	// Wrapper interface functions
 	inline REFIID GetWrapperType(DWORD DirectXVersion)
@@ -102,8 +98,7 @@ public:
 	// Helper function
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
-	m_IDirect3DDeviceX* GetD3DDevice();
-	void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
+	void ClearD3D() { D3DInterface = nullptr; }
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 };

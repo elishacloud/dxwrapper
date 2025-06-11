@@ -9,7 +9,10 @@ struct DEVICEDETAILS
 {
 	DEVICEDETAILS()
 	{
-		InitializeCriticalSection(&d9cs);
+		if (!InitializeCriticalSectionAndSpinCount(&d9cs, 4000))
+		{
+			InitializeCriticalSection(&d9cs);
+		}
 	}
 	~DEVICEDETAILS()
 	{
@@ -19,6 +22,9 @@ struct DEVICEDETAILS
 	// Window handle and size
 	bool IsWindowMode = false;
 	bool IsDirectDrawDevice = false;
+	UINT Adapter = D3DADAPTER_DEFAULT;
+	D3DDEVTYPE DeviceType = D3DDEVTYPE_HAL;
+	HMONITOR hMonitor = nullptr;
 	HWND DeviceWindow = nullptr;
 	LONG BufferWidth = 0, BufferHeight = 0;
 	LONG screenWidth = 0, screenHeight = 0;
@@ -68,8 +74,8 @@ struct DEVICEDETAILS
 	IDirect3DStateBlock9* pStateBlock = nullptr;
 
 	// For environment map cube
-	bool isTextureMapCube[MAX_TEXTURE_STAGES] = {};
-	bool isTransformMapCube[MAX_TEXTURE_STAGES] = {};
+	bool isTextureCubeMap[MAX_TEXTURE_STAGES] = {};
+	bool isTransformCubeMap[MAX_TEXTURE_STAGES] = {};
 	DWORD texCoordIndex[MAX_TEXTURE_STAGES] = {};
 	DWORD texTransformFlags[MAX_TEXTURE_STAGES] = {};
 	bool isBlankTextureUsed = false;
@@ -103,7 +109,7 @@ private:
 	LPDIRECT3DDEVICE9 ProxyInterface;
 	LPDIRECT3DDEVICE9EX ProxyInterfaceEx = nullptr;
 	m_IDirect3D9Ex* m_pD3DEx;
-	REFIID WrapperID;
+	const IID WrapperID;
 
 	UINT DDKey;
 
@@ -112,6 +118,8 @@ private:
 
 	HRESULT CallBeginScene();
 	HRESULT CallEndScene();
+
+	inline bool RequirePresentHandling() const { return (SHARED.IsGammaSet || Config.ShowFPSCounter); }
 
 	// Limit frame rate
 	void LimitFrameRate() const;
@@ -133,7 +141,7 @@ private:
 	// For environment map cube
 	void CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix) const;
 	bool CheckTextureStageForCubeMap() const;
-	void SetEnvironmentMapCubeTexture();
+	void SetEnvironmentCubeMapTexture();
 
 	// For Reset & ResetEx
 	void ReInitInterface() const;
@@ -159,7 +167,7 @@ public:
 
 		// Check for SSAA
 		if (SHARED.DeviceMultiSampleType && m_pD3DEx &&
-			m_pD3DEx->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
+			m_pD3DEx->CheckDeviceFormat(SHARED.Adapter, SHARED.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
 		{
 			SHARED.SetSSAA = true;
 		}
@@ -321,6 +329,10 @@ public:
 	// Helper functions
 	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
 	AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
+	StateBlockCache* GetStateBlockTable() const { return &SHARED.StateBlockTable; }
 	REFIID GetIID() { return WrapperID; }
+
+	// Static functions
+	static void m_IDirect3DDevice9Ex::ModeToModeEx(D3DDISPLAYMODE& Mode, D3DDISPLAYMODEEX& ModeEx);
 };
 #undef SHARED

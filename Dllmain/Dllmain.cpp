@@ -68,13 +68,6 @@ static RemoveHandlerFunc remove_handler = nullptr;
 		} \
 	}
 
-#define HOOK_FORCE_WRAPPED_PROC(procName, unused) \
-	if (GetProcAddress(dll, #procName)) \
-	{ \
-		FARPROC prodAddr = (FARPROC)Hook::HotPatch(Hook::GetProcAddress(dll, #procName), #procName, procName ## _funct); \
-		Logging::LogDebug() << __FUNCTION__ << " " << #procName << " addr: " << prodAddr; \
-	}
-
 __declspec(dllexport) void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings)
 {
 	Logging::LogDebug() << __FUNCTION__ << " Called!";
@@ -238,6 +231,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Logging::LogVideoCard();
 		Logging::LogOSVersion();
 		Logging::LogProcessNameAndPID();
+		Logging::Log() << GetCommandLineA();
 		Logging::LogGameType();
 		Logging::LogCompatLayer();
 		Logging::Log() << "Windows is newer than," <<
@@ -397,8 +391,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 				// Hook dinput.dll APIs
 				Logging::Log() << "Hooking dinput.dll APIs...";
-				VISIT_PROCS_DINPUT(HOOK_FORCE_WRAPPED_PROC);
-				VISIT_PROCS_DINPUT_SHARED(HOOK_FORCE_WRAPPED_PROC);
+				VISIT_PROCS_DINPUT(HOOK_WRAPPED_PROC);
+				VISIT_PROCS_DINPUT_SHARED(HOOK_WRAPPED_PROC);
 			}
 
 			// Prepare wrapper
@@ -476,8 +470,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				}
 				else
 				{
-					VISIT_PROCS_DDRAW(HOOK_FORCE_WRAPPED_PROC);
-					VISIT_PROCS_DDRAW_SHARED(HOOK_FORCE_WRAPPED_PROC);
+					VISIT_PROCS_DDRAW(HOOK_WRAPPED_PROC);
+					VISIT_PROCS_DDRAW_SHARED(HOOK_WRAPPED_PROC);
 				}
 			}
 
@@ -486,8 +480,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			{
 				using namespace ddraw;
 				using namespace DdrawWrapper;
-				VISIT_PROCS_DDRAW(SET_WRAPPED_PROC);
-				VISIT_PROCS_DDRAW_SHARED(SET_WRAPPED_PROC);
+				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
+				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
 				HMODULE d3d9_dll = LoadLibrary("d3d9.dll");
 				DdrawWrapper::Direct3DCreate9_out = GetProcAddress(d3d9_dll, "Direct3DCreate9");
 			}
@@ -501,8 +495,14 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 					using namespace ddraw;
 					using namespace DDrawCompat;
 					DDrawCompat::Prepare();
-					VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
-					VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
+					if (Config.DDrawCompat32)
+					{
+						VISIT_DOCUMENTED_DDRAW_PROCS(SHIM_WRAPPED_PROC);
+					}
+					else
+					{
+						VISIT_BASIC_DDRAW_PROCS(SHIM_WRAPPED_PROC);
+					}
 					DDrawCompat::Start(hModule_dll, fdwReason);
 				}
 #endif // DDRAWCOMPAT
@@ -536,7 +536,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 				// Hook d3d8.dll -> D3d8to9
 				Logging::Log() << "Hooking d3d8.dll APIs...";
-				VISIT_PROCS_D3D8(HOOK_FORCE_WRAPPED_PROC);
+				VISIT_PROCS_D3D8(HOOK_WRAPPED_PROC);
 			}
 
 			// Prepare wrapper
@@ -588,18 +588,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::GetScreenSize(nullptr, InitWidth, InitHeight);
 		}
 
-		// Load custom dlls
-		if (Config.LoadCustomDllPath.size() != 0)
-		{
-			Utils::LoadCustomDll();
-		}
-
-		// Load ASI plugins
-		if (Config.LoadPlugins)
-		{
-			Utils::LoadPlugins();
-		}
-
 		bool DDrawCompatEnabed = false;
 #ifdef DDRAWCOMPAT
 		DDrawCompatEnabed = DDrawCompat::IsEnabled();
@@ -642,10 +630,47 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 		}
 
+		// Fix QPC uptime issues
+		if (Config.FixPerfCounterUptime && Utils::InitUpTimeOffsets())
+		{
+			using namespace GdiWrapper;
+			HMODULE winmm = LoadLibrary("winmm.dll");
+			if (kernel32)
+			{
+				Utils::QueryPerformanceFrequency_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "QueryPerformanceFrequency"), "QueryPerformanceFrequency", Utils::kernel_QueryPerformanceFrequency);
+				Utils::QueryPerformanceCounter_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "QueryPerformanceCounter"), "QueryPerformanceCounter", Utils::kernel_QueryPerformanceCounter);
+				Utils::GetTickCount_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetTickCount"), "GetTickCount", Utils::kernel_GetTickCount);
+#if (_WIN32_WINNT >= 0x0502)
+				Utils::GetTickCount64_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetTickCount64"), "GetTickCount64", Utils::kernel_GetTickCount64);
+#endif
+			}
+			if (winmm)
+			{
+				Logging::Log() << "Installing winmm hooks";
+				Utils::timeGetTime_out = (FARPROC)Hook::HotPatch(GetProcAddress(winmm, "timeGetTime"), "timeGetTime", Utils::winmm_timeGetTime);
+				Utils::timeGetSystemTime_out = (FARPROC)Hook::HotPatch(GetProcAddress(winmm, "timeGetSystemTime"), "timeGetSystemTime", Utils::winmm_timeGetSystemTime);
+			}
+		}
+
 		// Start fullscreen thread
 		if (Config.FullScreen || Config.ForceTermination)
 		{
 			Fullscreen::StartThread();
+		}
+
+		// Start thread priority monitor thread
+		//Utils::StartPriorityMonitor();
+
+		// Load custom dlls
+		if (Config.LoadCustomDllPath.size() != 0)
+		{
+			Utils::LoadCustomDll();
+		}
+
+		// Load ASI plugins
+		if (Config.LoadPlugins)
+		{
+			Utils::LoadPlugins();
 		}
 
 		// Loaded
@@ -664,7 +689,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Unload and Unhook DDrawCompat
 		if (DDrawCompat::IsEnabled())
 		{
-			DDrawCompat::Start(nullptr, fdwReason);
+			DDrawCompat::Start(hModule, fdwReason);
 		}
 #endif // DDRAWCOMPAT
 
@@ -679,7 +704,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Unload and Unhook DDrawCompat
 		if (DDrawCompat::IsEnabled())
 		{
-			DDrawCompat::Start(nullptr, fdwReason);
+			DDrawCompat::Start(hModule, fdwReason);
 		}
 #endif // DDRAWCOMPAT
 
@@ -716,6 +741,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Stop threads
 		Fullscreen::StopThread();
 		WriteMemory::StopThread();
+		//Utils::StopPriorityMonitor();
 
 		// Unload DdrawWrapper
 		if (Config.Dd7to9)
@@ -727,7 +753,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Unload and Unhook DDrawCompat
 		if (DDrawCompat::IsEnabled())
 		{
-			DDrawCompat::Start(nullptr, fdwReason);
+			DDrawCompat::Start(hModule, fdwReason);
 		}
 #endif // DDRAWCOMPAT
 

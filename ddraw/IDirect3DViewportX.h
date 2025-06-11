@@ -16,11 +16,11 @@ private:
 
 	// Convert to Direct3D9
 	m_IDirect3DX* D3DInterface = nullptr;
-	m_IDirect3DDeviceX** D3DDeviceInterface = nullptr;
 	bool IsViewPortSet = false;
 	D3DVIEWPORT vData = {};
 	bool IsViewPort2Set = false;
 	D3DVIEWPORT2 vData2 = {};
+	m_IDirectDrawSurfaceX* pBackgroundDepthSurfaceX = nullptr;
 
 	struct MATERIALBACKGROUND {
 		BOOL IsSet = FALSE;
@@ -30,8 +30,8 @@ private:
 	// Light array
 	std::vector<LPDIRECT3DLIGHT> AttachedLights;
 
-	// Helper functions
-	HRESULT CheckInterface(char* FunctionName);
+	// D3D Device array
+	std::vector<m_IDirect3DDeviceX*> AttachedD3DDevices;
 
 	bool IsLightAttached(LPDIRECT3DLIGHT LightX)
 	{
@@ -56,13 +56,6 @@ private:
 			return true;
 		}
 		return false;
-	}
-
-	bool IsViewportAssiciated() {
-		return SUCCEEDED(CheckInterface(__FUNCTION__)) && ((*D3DDeviceInterface)->CheckIfViewportSet(this) ||
-			(*D3DDeviceInterface)->IsViewportAttached((LPDIRECT3DVIEWPORT3)WrapperInterface) ||
-			(*D3DDeviceInterface)->IsViewportAttached((LPDIRECT3DVIEWPORT3)WrapperInterface2) ||
-			(*D3DDeviceInterface)->IsViewportAttached((LPDIRECT3DVIEWPORT3)WrapperInterface3));
 	}
 
 	// Wrapper interface functions
@@ -138,7 +131,7 @@ public:
 	STDMETHOD(GetViewport)(THIS_ LPD3DVIEWPORT);
 	STDMETHOD(SetViewport)(THIS_ LPD3DVIEWPORT);
 	STDMETHOD(TransformVertices)(THIS_ DWORD, LPD3DTRANSFORMDATA, DWORD, LPDWORD);
-	STDMETHOD(LightElements)(THIS_ DWORD, LPD3DLIGHTDATA);
+	STDMETHOD(LightElements)(THIS_ DWORD, LPD3DLIGHTDATA, DWORD DirectXVersion);
 	STDMETHOD(SetBackground)(THIS_ D3DMATERIALHANDLE);
 	STDMETHOD(GetBackground)(THIS_ LPD3DMATERIALHANDLE, LPBOOL);
 	STDMETHOD(SetBackgroundDepth)(THIS_ LPDIRECTDRAWSURFACE);
@@ -154,15 +147,23 @@ public:
 
 	/*** IDirect3DViewport3 methods ***/
 	STDMETHOD(SetBackgroundDepth2)(THIS_ LPDIRECTDRAWSURFACE4);
-	STDMETHOD(GetBackgroundDepth2)(THIS_ LPDIRECTDRAWSURFACE4*, LPBOOL);
+	STDMETHOD(GetBackgroundDepth2)(THIS_ LPDIRECTDRAWSURFACE4*, LPBOOL, DWORD DirectXVersion);
 	STDMETHOD(Clear2)(THIS_ DWORD, LPD3DRECT, DWORD, D3DCOLOR, D3DVALUE, DWORD);
 
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	void SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
-	m_IDirect3DDeviceX* GetD3DDevice();
-	void ClearD3D() { D3DInterface = nullptr; D3DDeviceInterface = nullptr; }
+	void ClearCurrentViewport(m_IDirect3DDeviceX* pDirect3DDeviceX, bool ClearViewport);
+	void AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
+	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
+	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
+	void ClearD3D() { D3DInterface = nullptr; }
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
+
+	// Light functions
+	void GetEnabledLightList(std::vector<D3DLIGHT7>& AttachedLightList, m_IDirect3DDeviceX* pDirect3DDeviceX);
+	bool IsLightAttached(m_IDirect3DLight* lpLight);
+	void ClearLight(m_IDirect3DLight* lpLight);
 };

@@ -5,7 +5,7 @@ class m_IDirectDrawColorControl : public IDirectDrawColorControl, public Address
 private:
 	IDirectDrawColorControl *ProxyInterface = nullptr;
 	ULONG RefCount = 1;
-	REFIID WrapperID = IID_IDirectDrawColorControl;
+	const IID WrapperID = IID_IDirectDrawColorControl;
 
 	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;

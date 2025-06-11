@@ -5,7 +5,7 @@ class m_IDirectDrawClipper : public IDirectDrawClipper, public AddressLookupTabl
 private:
 	IDirectDrawClipper *ProxyInterface = nullptr;
 	ULONG RefCount = 1;
-	REFIID WrapperID = IID_IDirectDrawClipper;
+	const IID WrapperID = IID_IDirectDrawClipper;
 
 	// Convert to Direct3D9
 	m_IDirectDrawX* ddrawParent = nullptr;
@@ -13,7 +13,10 @@ private:
 	HWND cliphWnd = nullptr;
 	std::vector<BYTE> ClipList;
 	bool IsClipListSet = false;
-	bool IsClipListChangedFlag = false;
+	RECT LastClipBounds = {};
+
+	// Helper functions
+	bool CheckHwnd();
 
 	// Interface initialization functions
 	void InitInterface(DWORD dwFlags);
@@ -85,5 +88,8 @@ public:
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw() { ddrawParent = nullptr; }
+	bool HasClipList() const { return IsClipListSet; }
+	bool GetClipBoundsFromData(RECT& bounds);
+	HRESULT GetClipRegion(HRGN hOutRgn);
 	static m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags);
 };

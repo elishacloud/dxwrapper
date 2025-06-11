@@ -57,10 +57,11 @@ ULONG m_IDirect3DStateBlock9::Release(THIS)
 
 	if (ref == 0)
 	{
-		if (Config.LimitStateBlocks)
-		{
-			delete this;
-		}
+		m_pDeviceEx->GetStateBlockTable()->RemoveStateBlock(this);
+
+		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
+
+		delete this;
 	}
 
 	return ref;

@@ -17,6 +17,7 @@
 	visit(CustomDisplayHeight) \
 	visit(Dd7to9) \
 	visit(D3d8to9) \
+	visit(D3d9to9Ex) \
 	visit(Dinputto8) \
 	visit(DDrawCompat) \
 	visit(DDrawCompat20) \
@@ -30,11 +31,13 @@
 	visit(DdrawCustomWidth) \
 	visit(DdrawCustomHeight) \
 	visit(DdrawEnableByteAlignment) \
+	visit(DdrawExtraEmulationSize) \
 	visit(DdrawDisableDirect3DCaps) \
 	visit(DdrawEmulateLock) \
 	visit(DdrawFillSurfaceColor) \
 	visit(DdrawForceMipMapAutoGen) \
 	visit(DdrawFlipFillColor) \
+	visit(DdrawKeepAllInterfaceCache) \
 	visit(DdrawRemoveScanlines) \
 	visit(DdrawRemoveInterlacing) \
 	visit(DdrawFixByteAlignment) \
@@ -51,7 +54,6 @@
 	visit(DdrawOverrideHeight) \
 	visit(DdrawOverrideStencilFormat) \
 	visit(DdrawResolutionHack) \
-	visit(DdrawUseDirect3D9Ex) \
 	visit(DdrawConvertHomogeneousW) \
 	visit(DdrawConvertHomogeneousToWorld) \
 	visit(DdrawConvertHomogeneousToWorldUseGameCamera) \
@@ -59,6 +61,7 @@
 	visit(DdrawConvertHomogeneousToWorldNearPlane) \
 	visit(DdrawConvertHomogeneousToWorldFarPlane) \
 	visit(DdrawConvertHomogeneousToWorldDepthOffset) \
+	visit(DdrawUseDirect3D9Caps) \
 	visit(DdrawUseNativeResolution) \
 	visit(DdrawEnableMouseHook) \
 	visit(DdrawDisableLighting) \
@@ -75,7 +78,7 @@
 	visit(DisableLogging) \
 	visit(DirectShowEmulation) \
 	visit(CacheClipPlane) \
-	visit(EnvironmentMapCubeFix) \
+	visit(EnvironmentCubeMapFix) \
 	visit(EnableDdrawWrapper) \
 	visit(EnableD3d9Wrapper) \
 	visit(EnableDinput8Wrapper) \
@@ -92,6 +95,7 @@
 	visit(ForceSingleBeginEndScene) \
 	visit(FilterNonActiveInput) \
 	visit(FixHighFrequencyMouse) \
+	visit(FixPerfCounterUptime) \
 	visit(FixSpeakerConfigType) \
 	visit(ForceExclusiveMode) \
 	visit(ForceHardwareMixing) \
@@ -136,6 +140,7 @@
 	visit(SetFullScreenLayer) \
 	visit(SetInitialWindowPosition) \
 	visit(SetNamedLayer) \
+	visit(SetPOW2Caps) \
 	visit(ShowFPSCounter) \
 	visit(SingleProcAffinity) \
 	visit(StoppedDriverWorkaround) \
@@ -223,6 +228,7 @@ struct CONFIG
 	bool Exiting = false;						// Dxwrapper is being unloaded
 	bool Dd7to9 = false;						// Converts DirectDraw/Direct3D (ddraw.dll) to Direct3D9 (d3d9.dll)
 	bool D3d8to9 = false;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
+	bool D3d9to9Ex = false;						// Converts Direct3D9 to Direct3D9Ex
 	bool Dinputto8 = false;						// Converts DirectInput (dinput.dll) to DirectInput8 (dinput8.dll)
 	bool DDrawCompat = false;					// Enables the default DDrawCompat functions https://github.com/narzoul/DDrawCompat/
 	bool DDrawCompat20 = false;					// Enables DDrawCompat v0.2.0b
@@ -233,18 +239,19 @@ struct CONFIG
 	bool DdrawAutoFrameSkip = false;			// Automatically skips frames to reduce input lag
 	DWORD DdrawFixByteAlignment = false;		// Fixes lock with surfaces that have unaligned byte sizes, 1) just byte align, 2) byte align + D3DTEXF_NONE, 3) byte align + D3DTEXF_LINEAR
 	bool DdrawEnableByteAlignment = false;		// Disables 32bit / 64bit byte alignment
+	DWORD DdrawExtraEmulationSize = 0;			// Adds extra space to system memory surfaces to help with cases where games read beyond the bottom of the surface
 	bool DdrawIntroVideoFix = false;			// Enables some fixes that may help with showing intro videos
 	DWORD DdrawResolutionHack = 0;				// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DdrawRemoveScanlines = false;			// Experimental feature to removing interlaced black lines in a single frame
 	bool DdrawRemoveInterlacing = false;		// Experimental feature to removing interlacing between frames
 	bool DdrawFillSurfaceColor = false;			// After creating surface fill with random color for testing black screen or objects
+	bool DdrawKeepAllInterfaceCache = false;	// Preserve the interface cache all ddraw interfaces, which may casue higher memory usage
 	bool DdrawEmulateSurface = false;			// Emulates the ddraw surface using device context for Dd7to9
 	bool DdrawEmulateLock = false;				// Emulates the lock to prevent crashes when an application tries to read data outside Lock/Unlock pair
 	bool DdrawReadFromGDI = false;				// Read from GDI bfore passing surface to program
 	bool DdrawWriteToGDI = false;				// Blt surface directly to GDI rather than Direct3D9
 	bool DdrawIntegerScalingClamp = false;		// Scales the screen by an integer value to help preserve video quality
 	bool DdrawMaintainAspectRatio = false;		// Keeps the current DirectDraw aspect ratio when overriding the game's resolution
-	bool DdrawUseDirect3D9Ex = false;			// Use Direct3D9Ex extensions for Dd7to9
 	bool DdrawConvertHomogeneousW = false;		// Convert primites using D3DFVF_XYZRHW to D3DFVF_XYZW.
 	bool DdrawConvertHomogeneousToWorld = false;				// Convert primitives back into a world space. Needed for RTX.
 	bool DdrawConvertHomogeneousToWorldUseGameCamera = false;	// Use the game's view matrix instead of replacing it with our own.
@@ -252,6 +259,7 @@ struct CONFIG
 	float DdrawConvertHomogeneousToWorldNearPlane = 0.0f;		// The near plane of the camera used to reconstruct the original 3D world.
 	float DdrawConvertHomogeneousToWorldFarPlane = 0.0f;		// The far plane of the camera used to reconstruct the original 3D world.
 	float DdrawConvertHomogeneousToWorldDepthOffset = 0.0f;		// The offset to add to the geometry so it does not clip into the near plane.
+	bool DdrawUseDirect3D9Caps = false;			// Use Direct3D9 (Dd7to9) for GetCaps
 	bool DdrawUseNativeResolution = false;		// Uses the current screen resolution for Dd7to9
 	DWORD DdrawClippedWidth = 0;				// Used to scaled Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawClippedHeight = 0;				// Used to scaled Direct3d9 to use this height when using Dd7to9
@@ -282,7 +290,7 @@ struct CONFIG
 	bool DisableLogging = false;				// Disables the logging file
 	DWORD SetSwapEffectShim = 0;				// Disables the call to d3d9.dll 'Direct3D9SetSwapEffectUpgradeShim' to switch present mode
 	DWORD CacheClipPlane = 0;					// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
-	DWORD EnvironmentMapCubeFix = 0;			// Fixes environment cube maps when no texture is applied, issue exists in d3d8
+	bool EnvironmentCubeMapFix = false;			// Fixes environment cube maps when no texture is applied, issue exists in d3d8
 	DWORD CustomDisplayWidth = 0;				// Custom resolution width when using LimitDisplayModeCount, resolution must be supported by video card and monitor
 	DWORD CustomDisplayHeight = 0;				// Custom resolution height when using LimitDisplayModeCount, resolution must be supported by video card and monitor
 	bool EnableDdrawWrapper = false;			// Enables the ddraw wrapper
@@ -296,11 +304,12 @@ struct CONFIG
 	bool FixHighFrequencyMouse = false;			// Gets the latest mouse status by merging the DirectInput buffer data
 	float MouseMovementFactor = 1.0f;			// Sets the mouse movement speed factor, requires enabling FixHighFrequencyMouse
 	DWORD MouseMovementPadding = 0;				// Adds extra mouse movement to overcome issues with input deadzone in some games, requires enabling FixHighFrequencyMouse
+	DWORD FixPerfCounterUptime = 0;				// Reduces uptime counters to prevent shlowdown in games
 	bool ForceDirect3D9On12 = false;			// Forces Direct3D9 to use CreateDirect3D9On12
 	bool ForceExclusiveFullscreen = false;		// Forces exclusive fullscreen mode in d3d9
 	bool ForceMixedVertexProcessing = false;	// Forces Mixed mode for vertex processing in d3d9
 	bool ForceSystemMemVertexCache = false;		// Forces System Memory caching for vertexes in d3d9
-	DWORD ForceSingleBeginEndScene = 0;			// Ensures that only a single EndScene/BeginScene pair are called per frame
+	bool ForceSingleBeginEndScene = false;		// Ensures that only a single EndScene/BeginScene pair are called per frame
 	bool FullScreen = false;					// Sets the main window to fullscreen
 	bool FullscreenWindowMode = false;			// Enables fullscreen windowed mode, requires EnableWindowMode
 	bool ForceTermination = false;				// Terminates application when main window closes
@@ -330,6 +339,7 @@ struct CONFIG
 	DWORD ShowFPSCounter = 0;					// Shows the FPS counter. 1 = top left; 2 = top right; 3 = bottom right; 4 = bottom left
 	DWORD SingleProcAffinity = 0;				// Sets the CPU affinity for this process
 	DWORD SetFullScreenLayer = 0;				// The layer to be selected for fullscreen, requires FullScreen
+	DWORD SetPOW2Caps = 0;						// Force caps change: 1 = force both, 2 = force D3DPTEXTURECAPS_NONPOW2CONDITIONAL, 3 = force D3DPTEXTURECAPS_POW2, 4 = remove both
 	DWORD AnisotropicFiltering = 0;				// Enable Anisotropic Filtering for d3d9
 	DWORD AntiAliasing = 0;						// Enable AntiAliasing for d3d9 CreateDevice
 	DWORD RealWrapperMode = 0;					// Internal wrapper mode

@@ -38,6 +38,8 @@ constexpr UINT MAX_LIGHTS = 8;          // Devices can have up to eight lights.
 #define D3DDEVINFOID_TEXTURING         3
 #endif
 
+typedef enum _DX_D3DDEVTYPE { D3DDEVTYPE_TNLHAL = (D3DDEVTYPE)(D3DDEVTYPE_HAL + 0x10) } DX_D3DDEVTYPE;
+
 typedef struct _D3DSTATE7 {
     union {
         D3DTRANSFORMSTATETYPE   dtstTransformStateType;
@@ -87,6 +89,10 @@ typedef struct _D3DDEVINFO_TEXTURING {
 
 #define D3DFVF_LVERTEX9 (D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1)
 
+#ifndef D3DFVF_TEXCOUNT
+#define D3DFVF_TEXCOUNT(fvf) (((fvf) >> D3DFVF_TEXCOUNT_SHIFT) & 0xF)
+#endif
+
 typedef struct {
 	FLOAT    x, y, z;
 	D3DCOLOR diffuse, specular;
@@ -133,11 +139,13 @@ void ConvertViewport(D3DVIEWPORT7& ViewPort7, const D3DVIEWPORT2& ViewPort2);
 void ConvertViewport(D3DVIEWPORT7& ViewPort, const D3DVIEWPORT7& ViewPort7);
 void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7);
 void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9);
-void ConvertVertices(D3DLVERTEX* lFVF, const D3DLVERTEX9* lFVF9, DWORD NumVertices);
-void ConvertVertices(D3DLVERTEX9* lFVF9, const D3DLVERTEX* lFVF, DWORD NumVertices);
+void ConvertLVertex(D3DLVERTEX* lFVF, const D3DLVERTEX9* lFVF9, DWORD NumVertices);
+void ConvertLVertex(D3DLVERTEX9* lFVF9, const D3DLVERTEX* lFVF, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
 bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);
 void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF);
 DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType);
+UINT GetFVFBlendCount(DWORD fvf);
+UINT GetVertexPositionSize(DWORD dwVertexTypeDesc);
 UINT GetVertexStride(DWORD dwVertexTypeDesc);
 UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);

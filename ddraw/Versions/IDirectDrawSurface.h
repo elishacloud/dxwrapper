@@ -4,7 +4,7 @@ class m_IDirectDrawSurface : public IDirectDrawSurface, public AddressLookupTabl
 {
 private:
 	m_IDirectDrawSurfaceX *ProxyInterface;
-	REFIID WrapperID = IID_IDirectDrawSurface;
+	const IID WrapperID = IID_IDirectDrawSurface;
 	const DWORD DirectXVersion = 1;
 	ULONG RefCount = 1;
 	const DWORD MipMapLevel;

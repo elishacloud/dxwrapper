@@ -7,8 +7,8 @@ class m_IDirectInput8 : public IDirectInput8A, public IDirectInput8W, public Add
 {
 private:
 	IDirectInput8W *ProxyInterface;
-	REFIID WrapperID;
-	REFIID WrapperDeviceID;
+	const IID WrapperID;
+	const IID WrapperDeviceID;
 
 	const std::chrono::seconds cacheDuration = std::chrono::seconds(Config.DeviceLookupCacheTime); // Cache duration in seconds
 

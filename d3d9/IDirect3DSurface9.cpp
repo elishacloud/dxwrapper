@@ -72,11 +72,18 @@ ULONG m_IDirect3DSurface9::Release(THIS)
 
 	ULONG ref = ProxyInterface->Release();
 
-	if (ref == 0 && Emu.pSurface)
+	if (ref == 0)
 	{
-        Emu.pSurface->UnlockRect();
-        Emu.pSurface->Release();
-        Emu.pSurface = nullptr;
+		if (Emu.pSurface)
+		{
+			Emu.pSurface->UnlockRect();
+			Emu.pSurface->Release();
+			Emu.pSurface = nullptr;
+		}
+
+		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
+
+		delete this;
     }
 
 	return ref;

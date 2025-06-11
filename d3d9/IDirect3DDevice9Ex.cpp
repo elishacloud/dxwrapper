@@ -32,7 +32,7 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if (riid == IID_IUnknown || riid == WrapperID)
+	if (riid == IID_IUnknown || riid == WrapperID || (Config.D3d9to9Ex && riid == IID_IDirect3DDevice9))
 	{
 		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
 
@@ -120,6 +120,7 @@ ULONG m_IDirect3DDevice9Ex::Release()
 		// Remove device details if no devices are using it
 		if (!MoreInstances)
 		{
+			HMONITOR hMonitor = SHARED.hMonitor;
 			for (auto it = DeviceDetailsMap.begin(); it != DeviceDetailsMap.end(); ++it)
 			{
 				if (it->first == DDKey)
@@ -127,6 +128,11 @@ ULONG m_IDirect3DDevice9Ex::Release()
 					DeviceDetailsMap.erase(it);
 					break;
 				}
+			}
+			// Reset display
+			if (Config.FullscreenWindowMode)
+			{
+				Utils::ResetDisplaySettings(hMonitor);
 			}
 		}
 	}
@@ -171,6 +177,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::GetWndProctStruct(SHARED.DeviceWindow);
 	if (WndDataStruct)
 	{
+		WndDataStruct->IsCreatingDevice = true;
 		WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
 	}
 
@@ -180,15 +187,22 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	bool ForceFullscreen = false;
 	if (m_pD3DEx)
 	{
-		ForceFullscreen = m_pD3DEx->TestResolution(D3DADAPTER_DEFAULT, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
+		ForceFullscreen = m_pD3DEx->TestResolution(SHARED.Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
+	}
+
+	// Check if display needs to be reset
+	bool IsSettingWindowMode = (pPresentationParameters->Windowed != FALSE);
+	bool IsWindowModeChanging = (SHARED.IsWindowMode != IsSettingWindowMode);
+	bool IsResolutionChanging = (SHARED.BufferWidth != (LONG)pPresentationParameters->BackBufferWidth || SHARED.BufferHeight != (LONG)pPresentationParameters->BackBufferHeight);
+	if ((IsWindowModeChanging && IsSettingWindowMode) || (Config.FullscreenWindowMode && IsResolutionChanging))
+	{
+		Utils::ResetDisplaySettings(SHARED.hMonitor);
 	}
 
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, true);
-
-	bool IsWindowMode = d3dpp.Windowed != FALSE;
+	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, IsWindowModeChanging || IsResolutionChanging);
 
 	// Test for Multisample
 	if (SHARED.DeviceMultiSampleFlag)
@@ -196,7 +210,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 		do {
 
 			// Update Present Parameter for Multisample
-			UpdatePresentParameterForMultisample(&d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
+			m_IDirect3D9Ex::UpdatePresentParameterForMultisample(&d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
 
 			// Reset device
 			hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
@@ -209,7 +223,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 
 			// Reset presentation parameters
 			CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-			UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
+			m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
 
 			// Reset device
 			hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
@@ -233,20 +247,25 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 
 	if (SUCCEEDED(hr))
 	{
-		GetFinalPresentParameter(&d3dpp, SHARED);
+		m_IDirect3D9Ex::GetFinalPresentParameter(&d3dpp, SHARED);
 
 		if (WndDataStruct && WndDataStruct->IsExclusiveMode)
 		{
 			d3dpp.Windowed = FALSE;
 		}
 
-		SHARED.IsWindowMode = IsWindowMode;
+		SHARED.IsWindowMode = IsSettingWindowMode;
 
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 
 		ClearVars(pPresentationParameters);
 
 		ReInitInterface();
+	}
+
+	if (WndDataStruct)
+	{
+		WndDataStruct->IsCreatingDevice = false;
 	}
 
 	return hr;
@@ -261,6 +280,15 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	{
+		D3DDISPLAYMODEEX FullscreenDisplayMode = {};
+
+		m_IDirect3D9Ex::GetFullscreenDisplayMode(*pPresentationParameters, FullscreenDisplayMode);
+
+		return ResetEx(pPresentationParameters, &FullscreenDisplayMode);
+	}
+
 	return ResetT<fReset>(nullptr, pPresentationParameters);
 }
 
@@ -268,7 +296,6 @@ HRESULT m_IDirect3DDevice9Ex::CallEndScene()
 {
 	// clear Begin/End Scene flags
 	SHARED.IsInScene = false;
-	SHARED.BeginSceneCalled = false;
 
 #ifdef ENABLE_DEBUGOVERLAY
 	if (Config.EnableImgui && DOverlay.Getd3d9Device() == ProxyInterface)
@@ -340,19 +367,19 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	bool ForceFullscreen = false;
 	if (m_pD3DEx)
 	{
-		ForceFullscreen = m_pD3DEx->TestResolution(D3DADAPTER_DEFAULT, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
+		ForceFullscreen = m_pD3DEx->TestResolution(SHARED.Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
 	}
 
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
+	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
 
 	// Test for Multisample
 	if (SHARED.DeviceMultiSampleFlag)
 	{
 		// Update Present Parameter for Multisample
-		UpdatePresentParameterForMultisample(&d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
+		m_IDirect3D9Ex::UpdatePresentParameterForMultisample(&d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
@@ -361,7 +388,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	if (FAILED(hr))
 	{
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, nullptr, SHARED, ForceFullscreen, false);
+		m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
@@ -426,6 +453,11 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	{
+		return CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, 0);
+	}
+
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Test for Multisample
@@ -484,6 +516,11 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	{
+		return CreateRenderTargetEx(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle, 0);
+	}
+
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Test for Multisample
@@ -519,6 +556,19 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 	if (!ppTexture)
 	{
 		return D3DERR_INVALIDCALL;
+	}
+
+	if (Config.D3d9to9Ex)
+	{
+		if (Pool == D3DPOOL_MANAGED)
+		{
+			Pool = D3DPOOL_DEFAULT;
+			Usage |= D3DUSAGE_DYNAMIC;
+		}
+		else if (Pool == D3DPOOL_DEFAULT && Usage == 0)
+		{
+			Usage = D3DUSAGE_DYNAMIC;
+		}
 	}
 
 	HRESULT hr = ProxyInterface->CreateTexture(Width, Height, Levels, Usage, Format, Pool, ppTexture, pSharedHandle);
@@ -606,8 +656,6 @@ HRESULT m_IDirect3DDevice9Ex::CreateStateBlock(THIS_ D3DSTATEBLOCKTYPE Type, IDi
 		if (Config.LimitStateBlocks)
 		{
 			SHARED.StateBlockTable.AddStateBlock(StateBlockX);
-
-			StateBlockX->SetDDKey(DDKey);
 		}
 
 		*ppSB = StateBlockX;
@@ -638,8 +686,6 @@ HRESULT m_IDirect3DDevice9Ex::EndStateBlock(THIS_ IDirect3DStateBlock9** ppSB)
 		if (Config.LimitStateBlocks)
 		{
 			SHARED.StateBlockTable.AddStateBlock(StateBlockX);
-
-			StateBlockX->SetDDKey(DDKey);
 		}
 
 		*ppSB = StateBlockX;
@@ -658,6 +704,22 @@ HRESULT m_IDirect3DDevice9Ex::GetClipStatus(D3DCLIPSTATUS9 *pClipStatus)
 HRESULT m_IDirect3DDevice9Ex::GetDisplayMode(THIS_ UINT iSwapChain, D3DDISPLAYMODE* pMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	{
+		D3DDISPLAYMODEEX* pModeEx = nullptr;
+		D3DDISPLAYMODEEX ModeEx = {};
+
+		if (pMode)
+		{
+			ModeToModeEx(*pMode, ModeEx);
+			pModeEx = &ModeEx;
+		}
+
+		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
+
+		return GetDisplayModeEx(iSwapChain, pModeEx, &Rotation);
+	}
 
 	return ProxyInterface->GetDisplayMode(iSwapChain, pMode);
 }
@@ -739,7 +801,7 @@ HRESULT m_IDirect3DDevice9Ex::SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3
 	if (SUCCEEDED(hr))
 	{
 		// Check if this is a texture stage transform
-		if (Config.EnvironmentMapCubeFix)
+		if (Config.EnvironmentCubeMapFix)
 		{
 			CheckTransformForCubeMap(State, pMatrix);
 		}
@@ -863,12 +925,58 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		return;
 	}
 
+	// Set render states
+	ProxyInterface->SetRenderState(D3DRS_LIGHTING, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_FOGENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ZENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+	ProxyInterface->SetRenderState(D3DRS_CLIPPING, FALSE);
+	ProxyInterface->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+
+	// Set texture states
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
+	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+
+	// Set sampler states
+	for (UINT x = 0; x < 2; x++)
+	{
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+		ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+	}
+
+	// Set viewport
+	D3DVIEWPORT9 Viewport = { 0, 0, static_cast<DWORD>(SHARED.BufferWidth), static_cast<DWORD>(SHARED.BufferHeight), 0.0f, 1.0f };
+	ProxyInterface->SetViewport(&Viewport);
+
+	// Set trasform
+	D3DMATRIX identityMatrix = {
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	};
+	ProxyInterface->SetTransform(D3DTS_WORLD, &identityMatrix);
+	ProxyInterface->SetTransform(D3DTS_VIEW, &identityMatrix);
+	ProxyInterface->SetTransform(D3DTS_PROJECTION, &identityMatrix);
+
 	// Clear render target
 	ProxyInterface->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
 
 	// Set texture
 	ProxyInterface->SetTexture(0, SHARED.ScreenCopyTexture);
 	ProxyInterface->SetTexture(1, SHARED.GammaLUTTexture);
+
+	// Clear textures
+	for (int x = 2; x < MAX_TEXTURE_STAGES; x++)
+	{
+		ProxyInterface->SetTexture(x, nullptr);
+	}
 
 	// Set shader
 	ProxyInterface->SetPixelShader(pShader);
@@ -905,7 +1013,7 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 
 void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 {
-	ScopedCriticalSection ThreadLock(&SHARED.d9cs);
+	ScopedCriticalSection ThreadLock(&SHARED.d9cs, RequirePresentHandling());
 
 	if (SHARED.DontReleaseResources)
 	{
@@ -989,9 +1097,6 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 
 	if (isReset)
 	{
-		// Clear all state blocks on reset
-		SHARED.StateBlockTable.ReleaseAllStateBlocks();
-
 		// Anisotropic Filtering
 		SHARED.isAnisotropySet = false;
 		SHARED.AnisotropyDisabledFlag = false;
@@ -1001,8 +1106,8 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 		SHARED.BeginSceneCalled = false;
 
 		// For environment map cube
-		std::fill(std::begin(SHARED.isTextureMapCube), std::end(SHARED.isTextureMapCube), false);
-		std::fill(std::begin(SHARED.isTransformMapCube), std::end(SHARED.isTransformMapCube), false);
+		std::fill(std::begin(SHARED.isTextureCubeMap), std::end(SHARED.isTextureCubeMap), false);
+		std::fill(std::begin(SHARED.isTransformCubeMap), std::end(SHARED.isTransformCubeMap), false);
 		std::fill(std::begin(SHARED.texCoordIndex), std::end(SHARED.texCoordIndex), 0);
 		std::fill(std::begin(SHARED.texTransformFlags), std::end(SHARED.texTransformFlags), 0);
 		SHARED.isBlankTextureUsed = false;
@@ -1183,7 +1288,6 @@ HRESULT m_IDirect3DDevice9Ex::LightEnable(DWORD LightIndex, BOOL bEnable)
 
 HRESULT m_IDirect3DDevice9Ex::SetLight(DWORD Index, CONST D3DLIGHT9 *pLight)
 {
-
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->SetLight(Index, pLight);
@@ -1306,7 +1410,7 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 {
 	bool CalledBeginScene = false;
 
-	if (SHARED.IsGammaSet || Config.ShowFPSCounter)
+	if (RequirePresentHandling())
 	{
 		ScopedCriticalSection ThreadLock(&SHARED.d9cs);
 		ScopedFlagSet AutoSet(SHARED.DontReleaseResources);
@@ -1314,6 +1418,7 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 		// Create state block
 		if (SHARED.pStateBlock || SUCCEEDED(ProxyInterface->CreateStateBlock(D3DSBT_ALL, &SHARED.pStateBlock)))
 		{
+			// Begin scene
 			if (!Config.ForceSingleBeginEndScene || !SHARED.BeginSceneCalled)
 			{
 				CalledBeginScene = true;
@@ -1323,90 +1428,48 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 			// Capture modified state
 			SHARED.pStateBlock->Capture();
 
-			// Set render states
-			ProxyInterface->SetRenderState(D3DRS_LIGHTING, FALSE);
-			ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
-			ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
-			ProxyInterface->SetRenderState(D3DRS_FOGENABLE, FALSE);
-			ProxyInterface->SetRenderState(D3DRS_ZENABLE, FALSE);
-			ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-			ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, FALSE);
-			ProxyInterface->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-			ProxyInterface->SetRenderState(D3DRS_CLIPPING, FALSE);
-
-			// Set texture states
-			ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-			ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-			ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
-			ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
-
-			// Set sampler states
-			for (UINT x = 0; x < 2; x++)
 			{
-				ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
-				ProxyInterface->SetSamplerState(x, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
-			}
+				// Backup depth stencil
+				ComPtr<IDirect3DSurface9> pOldDepthStencil;
+				ProxyInterface->GetDepthStencilSurface(pOldDepthStencil.GetAddressOf());
 
-			// Set viewport
-			D3DVIEWPORT9 Viewport = { 0, 0, static_cast<DWORD>(SHARED.BufferWidth), static_cast<DWORD>(SHARED.BufferHeight), 0.0f, 1.0f };
-			ProxyInterface->SetViewport(&Viewport);
-
-			// Set trasform
-			D3DMATRIX identityMatrix = {
-				1.0f, 0.0f, 0.0f, 0.0f,
-				0.0f, 1.0f, 0.0f, 0.0f,
-				0.0f, 0.0f, 1.0f, 0.0f,
-				0.0f, 0.0f, 0.0f, 1.0f
-			};
-			ProxyInterface->SetTransform(D3DTS_WORLD, &identityMatrix);
-			ProxyInterface->SetTransform(D3DTS_VIEW, &identityMatrix);
-			ProxyInterface->SetTransform(D3DTS_PROJECTION, &identityMatrix);
-
-			// Set shaders
-			ProxyInterface->SetPixelShader(nullptr);
-			ProxyInterface->SetVertexShader(nullptr);
-
-			// Set textures
-			for (int x = 0; x < 8; x++)
-			{
-				ProxyInterface->SetTexture(x, nullptr);
-			}
-
-			// Backup the current render target
-			ComPtr<IDirect3DSurface9> pOldRenderTarget;
-			if (SUCCEEDED(ProxyInterface->GetRenderTarget(0, pOldRenderTarget.GetAddressOf())))
-			{
-				ComPtr<IDirect3DSurface9> pBackBuffer;
-				if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))
+				// Set back buffer as render target
+				ComPtr<IDirect3DSurface9> pOldRenderTarget, pBackBuffer;
+				if (SUCCEEDED(ProxyInterface->GetRenderTarget(0, pOldRenderTarget.GetAddressOf())) &&
+					SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))
 				{
-					if (pOldRenderTarget.Get() != pBackBuffer.Get())
+					ProxyInterface->SetDepthStencilSurface(nullptr);
+					ProxyInterface->SetRenderTarget(0, pBackBuffer.Get());
+				}
+
+				// Apply brightness level
+				if (SHARED.IsGammaSet)
+				{
+					ApplyBrightnessLevel();
+				}
+
+				// Draw FPS counter to screen
+				if (Config.ShowFPSCounter)
+				{
+					RECT rect = { 0, 0, SHARED.BufferWidth, SHARED.BufferHeight };
+					if (SHARED.IsDirectDrawDevice && SHARED.IsWindowMode)
 					{
-						ProxyInterface->SetRenderTarget(0, pBackBuffer.Get());
+						GetClientRect(SHARED.DeviceWindow, &rect);
 					}
+					DrawFPS(static_cast<float>(SHARED.AverageFPSCounter), rect, Config.ShowFPSCounter);
 				}
-			}
 
-			// Apply brightness level
-			if (SHARED.IsGammaSet)
-			{
-				ApplyBrightnessLevel();
-			}
-
-			// Draw FPS counter to screen
-			if (Config.ShowFPSCounter)
-			{
-				RECT rect = { 0, 0, SHARED.BufferWidth, SHARED.BufferHeight };
-				if (SHARED.IsDirectDrawDevice && SHARED.IsWindowMode)
+				// Restore render target
+				if (pOldRenderTarget.Get())
 				{
-					GetClientRect(SHARED.DeviceWindow, &rect);
+					ProxyInterface->SetRenderTarget(0, pOldRenderTarget.Get());
 				}
-				DrawFPS(static_cast<float>(SHARED.AverageFPSCounter), rect, Config.ShowFPSCounter);
-			}
 
-			// Restore render target
-			if (pOldRenderTarget)
-			{
-				ProxyInterface->SetRenderTarget(0, pOldRenderTarget.Get());
+				// Restore depth stencil
+				if (pOldDepthStencil.Get())
+				{
+					ProxyInterface->SetDepthStencilSurface(pOldDepthStencil.Get());
+				}
 			}
 
 			// Apply state block
@@ -1418,6 +1481,7 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 	{
 		CallEndScene();
 	}
+	SHARED.BeginSceneCalled = false;
 
 	if (Config.LimitPerFrameFPS)
 	{
@@ -1431,6 +1495,11 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	{
+		return PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, 0);
+	}
 
 	ApplyPresentFixes();
 
@@ -1462,9 +1531,9 @@ void m_IDirect3DDevice9Ex::ApplyDrawFixes()
 	}
 
 	// Fix environment map cubes
-	if (Config.EnvironmentMapCubeFix)
+	if (Config.EnvironmentCubeMapFix)
 	{
-		SetEnvironmentMapCubeTexture();
+		SetEnvironmentCubeMapTexture();
 	}
 }
 
@@ -1639,6 +1708,15 @@ HRESULT m_IDirect3DDevice9Ex::GetTexture(DWORD Stage, IDirect3DBaseTexture9 **pp
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (Stage == 0 && SHARED.isBlankTextureUsed)
+	{
+		if (ppTexture)
+		{
+			*ppTexture = nullptr;
+		}
+		return D3D_OK;
+	}
+
 	HRESULT hr = ProxyInterface->GetTexture(Stage, ppTexture);
 
 	if (SUCCEEDED(hr) && ppTexture && *ppTexture)
@@ -1709,7 +1787,7 @@ void m_IDirect3DDevice9Ex::CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State,
 			}
 
 			// Store cube map detection result
-			SHARED.isTransformMapCube[stage] = isCubeMap;
+			SHARED.isTransformCubeMap[stage] = isCubeMap;
 		}
 	}
 }
@@ -1728,13 +1806,13 @@ bool m_IDirect3DDevice9Ex::CheckTextureStageForCubeMap() const
 	return false;
 }
 
-void m_IDirect3DDevice9Ex::SetEnvironmentMapCubeTexture()
+void m_IDirect3DDevice9Ex::SetEnvironmentCubeMapTexture()
 {
 	const bool isCubeMap = CheckTextureStageForCubeMap() ||
 		[&]() {
 		for (int i = 0; i < MAX_TEXTURE_STAGES; ++i)
 		{
-			if (SHARED.isTextureMapCube[i] || SHARED.isTransformMapCube[i])
+			if (SHARED.isTextureCubeMap[i] || SHARED.isTransformCubeMap[i])
 			{
 				return true;
 			}
@@ -1780,6 +1858,11 @@ void m_IDirect3DDevice9Ex::SetEnvironmentMapCubeTexture()
 		SHARED.isBlankTextureUsed = true;
 		ProxyInterface->SetTexture(0, SHARED.BlankTexture);
 	}
+	else if (!isCubeMap && SHARED.isBlankTextureUsed)
+	{
+		SHARED.isBlankTextureUsed = false;
+		ProxyInterface->SetTexture(0, nullptr);
+	}
 }
 
 HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTexture)
@@ -1824,7 +1907,7 @@ HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTe
 	{
 		if (Stage < MAX_TEXTURE_STAGES)
 		{
-			SHARED.isTextureMapCube[Stage] = isTexCube;
+			SHARED.isTextureCubeMap[Stage] = isTexCube;
 		}
 		if (Stage == 0)
 		{
@@ -2394,6 +2477,11 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurface(THIS_ UINT Width, UINT
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	{
+		return CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, 0);
+	}
+
 	HRESULT hr = ProxyInterface->CreateOffscreenPlainSurface(Width, Height, Format, Pool, ppSurface, pSharedHandle);
 
 	if (SUCCEEDED(hr))
@@ -2945,6 +3033,14 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (Config.D3d9to9Ex)
+	{
+		if (Pool == D3DPOOL_DEFAULT && Usage == 0)
+		{
+			Usage = D3DUSAGE_DYNAMIC;
+		}
+	}
+
 	HRESULT hr = ProxyInterfaceEx->CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, Usage);
 
 	if (SUCCEEDED(hr))
@@ -3028,7 +3124,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 // Runs when device is created and on every successful Reset()
 void m_IDirect3DDevice9Ex::ReInitInterface() const
 {
-	Utils::GetScreenSize(SHARED.DeviceWindow, SHARED.screenWidth, SHARED.screenHeight);
+	Utils::GetScreenSize(SHARED.hMonitor, SHARED.screenWidth, SHARED.screenHeight);
 
 	SHARED.IsGammaSet = false;
 	for (int i = 0; i < 256; ++i)
@@ -3041,6 +3137,16 @@ void m_IDirect3DDevice9Ex::ReInitInterface() const
 		SHARED.DefaultRampData.green[i] = value;
 		SHARED.DefaultRampData.blue[i] = value;
 	}
+}
+
+void m_IDirect3DDevice9Ex::ModeToModeEx(D3DDISPLAYMODE& Mode, D3DDISPLAYMODEEX& ModeEx)
+{
+	ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
+	ModeEx.Width = Mode.Width;
+	ModeEx.Height = Mode.Height;
+	ModeEx.RefreshRate = Mode.RefreshRate;
+	ModeEx.Format = Mode.Format;
+	ModeEx.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
 }
 
 void m_IDirect3DDevice9Ex::LimitFrameRate() const

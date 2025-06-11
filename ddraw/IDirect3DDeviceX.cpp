@@ -17,13 +17,6 @@
 #include "ddraw.h"
 #include "d3d9\d3d9External.h"
 
-namespace {
-	m_IDirect3DDevice* WrapperInterfaceBackup = nullptr;
-	m_IDirect3DDevice2* WrapperInterfaceBackup2 = nullptr;
-	m_IDirect3DDevice3* WrapperInterfaceBackup3 = nullptr;
-	m_IDirect3DDevice7* WrapperInterfaceBackup7 = nullptr;
-}
-
 // ******************************
 // IUnknown functions
 // ******************************
@@ -831,22 +824,28 @@ HRESULT m_IDirect3DDeviceX::AddViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check if assigning a viewport associated with this device
+		m_IDirect3DViewportX* lpViewportX = nullptr;
+		if (FAILED(lpDirect3DViewport->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpViewportX)))
 		{
-			m_IDirect3DViewportX* lpViewportX = nullptr;
-			if (SUCCEEDED(lpDirect3DViewport->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpViewportX)))
-			{
-				m_IDirect3DDeviceX* pViewPort3DDevice = lpViewportX->GetD3DDevice();
-				if (pViewPort3DDevice != this)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: Viewport's Direct3D device doesn't match current one: " << pViewPort3DDevice);
-				}
-			}
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get ViewportX interface!");
+			return DDERR_GENERIC;
 		}
+
+		// Associate device with the viewport
+		lpViewportX->AddD3DDevice(this);
 
 		AttachedViewports.push_back(lpDirect3DViewport);
 
 		lpDirect3DViewport->AddRef();
+
+		// The first version of the device doesn't have SetCurrentViewport()
+		if (ProxyDirectXVersion == 1)
+		{
+			if (AttachedViewports.size() == 1)
+			{
+				SetCurrentViewport(lpDirect3DViewport);
+			}
+		}
 
 		return D3D_OK;
 	}
@@ -880,6 +879,15 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 			return DDERR_INVALIDPARAMS;
 		}
 
+		m_IDirect3DViewportX* lpViewportX = nullptr;
+		if (FAILED(lpDirect3DViewport->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpViewportX)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get ViewportX interface!");
+			return DDERR_GENERIC;
+		}
+
+		lpViewportX->ClearD3DDevice(this);
+
 		bool ret = DeleteAttachedViewport(lpDirect3DViewport);
 
 		if (!ret)
@@ -887,12 +895,22 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// ToDo: if deleting the current material then invalidate the material
-
 		if (lpDirect3DViewport == lpCurrentViewport)
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: deleting active viewport!");
+
+			// Backup old viewport
+			m_IDirect3DViewportX* lpOldViewportX = lpCurrentViewportX;
+
+			// Set to null first
 			lpCurrentViewport = nullptr;
 			lpCurrentViewportX = nullptr;
+
+			// Clear old viewport data
+			if (lpOldViewportX)
+			{
+				lpOldViewportX->ClearCurrentViewport(this, true);
+			}
 		}
 
 		lpDirect3DViewport->Release();
@@ -928,7 +946,6 @@ HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport,
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-
 		*lplpDirect3DViewport = nullptr;
 
 		if (AttachedViewports.size() == 0)
@@ -961,6 +978,15 @@ HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport,
 		default:
 			return DDERR_INVALIDPARAMS;
 			break;
+		}
+
+		// The first version of the device doesn't have SetCurrentViewport()
+		if (DirectXVersion == 1)
+		{
+			if (*lplpDirect3DViewport)
+			{
+				SetCurrentViewport(*lplpDirect3DViewport);
+			}
 		}
 
 		return D3D_OK;
@@ -1186,6 +1212,8 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 			return DDERR_INVALIDOBJECT;
 		}
 
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 		// Set 3D Enabled
 		ddrawParent->Enable3D();
 
@@ -1235,6 +1263,8 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		{
 			return DDERR_INVALIDOBJECT;
 		}
+
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
 		// When this method succeeds, the scene has been rendered, and the device surface holds the rendered scene.
@@ -1362,15 +1392,6 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 			return DDERR_GENERIC;
 		}
 
-		// Check if assigning a viewport associated with this device
-		{
-			m_IDirect3DDeviceX* pViewPort3DDevice = lpViewportX->GetD3DDevice();
-			if (pViewPort3DDevice != this)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: Viewport's Direct3D device doesn't match current one: " << pViewPort3DDevice);
-			}
-		}
-
 		D3DVIEWPORT Viewport = {};
 		Viewport.dwSize = sizeof(D3DVIEWPORT);
 
@@ -1386,13 +1407,23 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 
 			if (SUCCEEDED(hr))
 			{
+				// Backup old viewport
+				m_IDirect3DViewportX* lpOldViewportX = lpCurrentViewportX;
+
+				// Set new viewport first
 				lpCurrentViewport = lpd3dViewport;
-
-				lpCurrentViewport->AddRef();
-
 				lpCurrentViewportX = lpViewportX;
 
-				lpCurrentViewportX->SetCurrentViewportActive(true, true, true);
+				// Clear old viewport data and apply new viewport data
+				if (lpOldViewportX != lpCurrentViewportX)
+				{
+					if (lpOldViewportX)
+					{
+						lpOldViewportX->ClearCurrentViewport(this, false);
+					}
+
+					lpCurrentViewportX->SetCurrentViewportActive(false, true, true);
+				}
 			}
 		}
 
@@ -1475,6 +1506,8 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 		{
 			return D3D_OK;
 		}
+
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		// dwFlags: Not currently used; set to 0.
 
@@ -2356,15 +2389,6 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 				m_IDirect3DMaterialX* pMaterialX = GetMaterial(dwLightState);
 				if (pMaterialX)
 				{
-					// Check if material associated with this device
-					{
-						m_IDirect3DDeviceX* pMaterial3DDevice = pMaterialX->GetD3DDevice();
-						if (pMaterial3DDevice != this)
-						{
-							LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: Material's Direct3D device doesn't match current one: " << pMaterial3DDevice);
-						}
-					}
-
 					if (FAILED(pMaterialX->GetMaterial(&Material)))
 					{
 						return DDERR_INVALIDPARAMS;
@@ -2713,6 +2737,11 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 
 	if (Config.Dd7to9)
 	{
+		if (dwVertexCount == 0)
+		{
+			return DD_OK; // Nothing to draw
+		}
+
 		if (!lpVertices)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -2738,12 +2767,12 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
 		// Update vertices for Direct3D9 (needs to be first)
-		UpdateVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
+		UpdateVertices(dwVertexTypeDesc, lpVertices, 0, dwVertexCount);
 
 		// Set fixed function vertex type
 		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
@@ -2792,21 +2821,26 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpVertices, DWORD dwVertexCount, LPWORD lpIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
+HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexTypeDesc, LPVOID lpVertices, DWORD dwVertexCount, LPWORD lpwIndices, DWORD dwIndexCount, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")" <<
 		" VertexType = " << Logging::hex(dptPrimitiveType) <<
 		" VertexDesc = " << Logging::hex(dwVertexTypeDesc) <<
 		" Vertices = " << lpVertices <<
 		" VertexCount = " << dwVertexCount <<
-		" Indices = " << lpIndices <<
+		" Indices = " << lpwIndices <<
 		" IndexCount = " << dwIndexCount <<
 		" Flags = " << Logging::hex(dwFlags) <<
 		" Version = " << DirectXVersion;
 
 	if (Config.Dd7to9)
 	{
-		if (!lpVertices || !lpIndices)
+		if (dwVertexCount == 0 || dwIndexCount == 0)
+		{
+			return DD_OK; // Nothing to draw
+		}
+
+		if (!lpVertices || !lpwIndices)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -2831,12 +2865,16 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
+		// Compute minimum and maximum vertex referenced by index
+		DWORD minVertex = 0, maxVertex = 0;
+		ComputeMinMaxVertex(lpwIndices, dwIndexCount, minVertex, maxVertex);
+
 		// Update vertices for Direct3D9 (needs to be first)
-		UpdateVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
+		UpdateVertices(dwVertexTypeDesc, lpVertices, minVertex, min(dwVertexCount, maxVertex) - minVertex);
 
 		// Handle PositionT
 		if (Config.DdrawConvertHomogeneousW && (dwVertexTypeDesc & 0x0E) == D3DFVF_XYZRHW)
@@ -2946,7 +2984,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		// Draw indexed primitive UP
-		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
+		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, min(dwVertexCount, maxVertex), GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
 		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -2974,11 +3012,11 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 	default:
 		return DDERR_GENERIC;
 	case 2:
-		return GetProxyInterfaceV2()->DrawIndexedPrimitive(dptPrimitiveType, (D3DVERTEXTYPE)dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, dwFlags);
+		return GetProxyInterfaceV2()->DrawIndexedPrimitive(dptPrimitiveType, (D3DVERTEXTYPE)dwVertexTypeDesc, lpVertices, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
 	case 3:
-		return GetProxyInterfaceV3()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, dwFlags);
+		return GetProxyInterfaceV3()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
 	case 7:
-		return GetProxyInterfaceV7()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpIndices, dwIndexCount, dwFlags);
+		return GetProxyInterfaceV7()->DrawIndexedPrimitive(dptPrimitiveType, dwVertexTypeDesc, lpVertices, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
 	}
 }
 
@@ -3160,8 +3198,74 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (dwVertexCount == 0)
+		{
+			return DD_OK; // Nothing to draw
+		}
+
+		if (!lpVertexArray)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (DirectXVersion == 2)
+		{
+			if (dwVertexTypeDesc != D3DVT_VERTEX && dwVertexTypeDesc != D3DVT_LVERTEX && dwVertexTypeDesc != D3DVT_TLVERTEX)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid Vertex type: " << dwVertexTypeDesc);
+				return D3DERR_INVALIDVERTEXTYPE;
+			}
+			dwVertexTypeDesc = ConvertVertexTypeToFVF((D3DVERTEXTYPE)dwVertexTypeDesc);
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_INVALIDOBJECT;
+		}
+
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
+
+		// Update vertices for Direct3D9 (needs to be first)
+		DWORD VertexStride = 0;
+		if (!InterleaveStridedVertexData(VertexCache, VertexStride, lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Set fixed function vertex type
+		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Handle dwFlags
+		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+		// Draw primitive UP
+		HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), VertexCache.data(), VertexStride);
+
+		// Handle dwFlags
+		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: 'DrawPrimitiveUP' call failed: " << (D3DERR)hr);
+		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
+
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -3199,8 +3303,78 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (dwVertexCount == 0 || dwIndexCount == 0)
+		{
+			return DD_OK; // Nothing to draw
+		}
+
+		if (!lpVertexArray || !lpwIndices)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (DirectXVersion == 2)
+		{
+			if (dwVertexTypeDesc != D3DVT_VERTEX && dwVertexTypeDesc != D3DVT_LVERTEX && dwVertexTypeDesc != D3DVT_TLVERTEX)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid Vertex type: " << dwVertexTypeDesc);
+				return D3DERR_INVALIDVERTEXTYPE;
+			}
+			dwVertexTypeDesc = ConvertVertexTypeToFVF((D3DVERTEXTYPE)dwVertexTypeDesc);
+		}
+
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_INVALIDOBJECT;
+		}
+
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
+
+		// Compute minimum and maximum vertex referenced by index
+		DWORD minVertex = 0, maxVertex = 0;
+		ComputeMinMaxVertex(lpwIndices, dwIndexCount, minVertex, maxVertex);
+
+		// Update vertices for Direct3D9 (needs to be first)
+		DWORD VertexStride = 0;
+		if (!InterleaveStridedVertexData(VertexCache, VertexStride, lpVertexArray, minVertex, min(dwVertexCount, maxVertex) - minVertex, dwVertexTypeDesc))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Set fixed function vertex type
+		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Handle dwFlags
+		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+		// Draw indexed primitive UP
+		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, min(dwVertexCount, maxVertex), GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, VertexCache.data(), VertexStride);
+
+		// Handle dwFlags
+		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
+
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: 'DrawIndexedPrimitiveUP' call failed: " << (D3DERR)hr);
+		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
+
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -3244,6 +3418,11 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 
 	if (Config.Dd7to9)
 	{
+		if (dwNumVertices == 0)
+		{
+			return DD_OK; // Nothing to draw
+		}
+
 		if (!lpd3dVertexBuffer)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -3259,7 +3438,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3343,6 +3522,11 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 
 	if (Config.Dd7to9)
 	{
+		if (dwNumVertices == 0 || dwIndexCount == 0)
+		{
+			return DD_OK; // Nothing to draw
+		}
+
 		if (!lpd3dVertexBuffer || !lpwIndices)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -3358,7 +3542,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedDDCriticalSection ThreadLockDD;
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3384,12 +3568,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(FVF));
 			return DDERR_INVALIDPARAMS;
-		}
-
-		// No operation to performed
-		if (dwIndexCount == 0)
-		{
-			return D3D_OK;
 		}
 
 		LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = ddrawParent->GetIndexBuffer(lpwIndices, dwIndexCount);
@@ -3789,6 +3967,10 @@ HRESULT m_IDirect3DDeviceX::ValidateDevice(LPDWORD lpdwPasses)
 			return DDERR_INVALIDOBJECT;
 		}
 
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
 		DWORD FVF, Size;
 		IDirect3DVertexBuffer9* vertexBuffer = ddrawParent->GetValidateDeviceVertexBuffer(FVF, Size);
 
@@ -3811,6 +3993,10 @@ HRESULT m_IDirect3DDeviceX::ValidateDevice(LPDWORD lpdwPasses)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: ValidateDevice() function failed: " << (DDERR)hr);
 		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
 
 		return hr;
 	}
@@ -3950,12 +4136,12 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 		DDPIXELFORMAT ddpfPixelFormat = {};
 		ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
-		bool IsDirectDraw8bit = (ddrawParent->GetDisplayBPP(nullptr) == 8);
+		bool IsDirectDraw8bit = (ddrawParent->GetDisplayBPP() == 8);
 
 		for (D3DFORMAT format : TextureList)
 		{
 			if (!IsUnsupportedFormat(format) && ((format == D3DFMT_P8 && IsDirectDraw8bit) ||
-				SUCCEEDED(d3d9Object->CheckDeviceFormat(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, format))))
+				SUCCEEDED(d3d9Object->CheckDeviceFormat(ddrawParent->GetAdapterIndex(), D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, 0, D3DRTYPE_TEXTURE, format))))
 			{
 				SetPixelDisplayFormat(format, ddpfPixelFormat);
 				if (lpd3dEnumPixelProc(&ddpfPixelFormat, lpArg) == DDENUMRET_CANCEL)
@@ -3993,12 +4179,17 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 			return DDERR_INVALIDOBJECT;
 		}
 
-		if ((dwFlags & D3DCLEAR_TARGET) && lpCurrentRenderTargetX)
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+		if (lpCurrentRenderTargetX)
 		{
 			lpCurrentRenderTargetX->PrepareRenderTarget();
-		}
 
-		ddrawParent->ReSetRenderTarget();
+			if (ddrawParent->GetRenderTargetSurface() != lpCurrentRenderTargetX)
+			{
+				ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+			}
+		}
 
 		return (*d3d9Device)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 	}
@@ -4149,6 +4340,9 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 
 		if (SUCCEEDED(hr))
 		{
+			// Store light in map
+			LightIndexMap7[dwLightIndex] = *lpLight;
+
 #ifdef ENABLE_DEBUGOVERLAY
 			if (Config.EnableImgui)
 			{
@@ -4323,6 +4517,8 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 		{
 			return DDERR_INVALIDOBJECT;
 		}
+
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
 
@@ -4682,16 +4878,9 @@ HRESULT m_IDirect3DDeviceX::GetInfo(DWORD dwDevInfoID, LPVOID pDevInfoStruct, DW
 
 void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 {
-	ScopedDDCriticalSection ThreadLockDD;
-
-	if (ddrawParent)
-	{
-		ddrawParent->SetD3DDevice(this);
-	}
-
 	if (D3DInterface)
 	{
-		D3DInterface->SetD3DDevice(this);
+		D3DInterface->AddD3DDevice(this);
 	}
 
 	if (Config.Dd7to9)
@@ -4727,8 +4916,6 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 		return;
 	}
 
-	ScopedDDCriticalSection ThreadLockDD;
-
 	if (CurrentRenderTarget)
 	{
 		lpCurrentRenderTargetX = nullptr;
@@ -4737,26 +4924,31 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 		CurrentRenderTarget = nullptr;
 	}
 
-	if (ddrawParent)
-	{
-		ddrawParent->ClearD3DDevice(this);
-	}
-
 	if (D3DInterface)
 	{
 		D3DInterface->ClearD3DDevice(this);
 	}
 
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, WrapperInterfaceBackup);
-	SaveInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2);
-	SaveInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3);
-	SaveInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7);
+	SaveInterfaceAddress(WrapperInterface);
+	SaveInterfaceAddress(WrapperInterface2);
+	SaveInterfaceAddress(WrapperInterface3);
+	SaveInterfaceAddress(WrapperInterface7);
 
 	// Clear ExecuteBuffers
 	for (auto& entry : ExecuteBufferList)
 	{
 		entry->ClearD3DDevice();
+	}
+
+	// Clear device from veiwports
+	for (auto& entry : AttachedViewports)
+	{
+		m_IDirect3DViewportX* lpViewportX = nullptr;
+		if (SUCCEEDED(entry->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpViewportX)))
+		{
+			lpViewportX->ClearD3DDevice(this);
+		}
 	}
 
 	ReleaseAllStateBlocks();
@@ -4799,16 +4991,36 @@ void* m_IDirect3DDeviceX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, WrapperInterfaceBackup, (LPDIRECT3DDEVICE)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface, (LPDIRECT3DDEVICE)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, WrapperInterfaceBackup2, (LPDIRECT3DDEVICE2)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface2, (LPDIRECT3DDEVICE2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, WrapperInterfaceBackup3, (LPDIRECT3DDEVICE3)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface3, (LPDIRECT3DDEVICE3)ProxyInterface, this);
 	case 7:
-		return GetInterfaceAddress(WrapperInterface7, WrapperInterfaceBackup7, (LPDIRECT3DDEVICE7)ProxyInterface, this);
+		return GetInterfaceAddress(WrapperInterface7, (LPDIRECT3DDEVICE7)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;
+}
+
+LPDIRECT3DDEVICE9* m_IDirect3DDeviceX::GetD3d9Device()
+{
+	CheckInterface(__FUNCTION__, true);
+
+	return d3d9Device;
+}
+
+bool m_IDirect3DDeviceX::DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
+{
+	auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
+		[=](auto pViewport) -> bool { return pViewport == ViewportX; });
+
+	if (it != std::end(AttachedViewports))
+	{
+		AttachedViewports.erase(it);
+		return true;
+	}
+	return false;
 }
 
 void m_IDirect3DDeviceX::ClearTextureHandle(D3DTEXTUREHANDLE tHandle)
@@ -4928,13 +5140,18 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 
 	if (SUCCEEDED(hr))
 	{
-		if (((LPD3DLIGHT2)lpLight)->dwSize == sizeof(D3DLIGHT2) && (((LPD3DLIGHT2)lpLight)->dwFlags & D3DLIGHT_ACTIVE) == NULL)
+		if (lpLight->dwSize == sizeof(D3DLIGHT2))
 		{
-			LightEnable(dwLightIndex, FALSE);
-		}
-		else
-		{
-			LightEnable(dwLightIndex, TRUE);
+			LPD3DLIGHT2 lpLight2 = reinterpret_cast<LPD3DLIGHT2>(lpLight);
+
+			if (lpLight2->dwFlags & D3DLIGHT_ACTIVE)
+			{
+				LightEnable(dwLightIndex, TRUE);
+			}
+			else
+			{
+				LightEnable(dwLightIndex, FALSE);
+			}
 		}
 	}
 
@@ -5050,21 +5267,6 @@ void m_IDirect3DDeviceX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 			SetTexture(x, (LPDIRECTDRAWSURFACE7)nullptr);
 			AttachedTexture[x] = nullptr;
 			CurrentTextureSurfaceX[x] = nullptr;
-		}
-	}
-}
-
-void m_IDirect3DDeviceX::SetDdrawParent(m_IDirectDrawX* ddraw)
-{
-	ddrawParent = ddraw;
-
-	// Store D3DDevice
-	if (ddrawParent)
-	{
-		ddrawParent->SetD3DDevice(this);
-		if (lpCurrentRenderTargetX)
-		{
-			ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
 		}
 	}
 }
@@ -5323,6 +5525,8 @@ void m_IDirect3DDeviceX::ClearD3D(m_IDirect3DX* lpD3D)
 
 HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState)
 {
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 	HRESULT hr = (*d3d9Device)->SetRenderState(dwRenderStateType, dwRenderState);
 
 	if (SUCCEEDED(hr) && (UINT)dwRenderStateType < MaxDeviceStates)
@@ -5336,6 +5540,8 @@ HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE dwRenderStateTyp
 
 HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value)
 {
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 	HRESULT hr = (*d3d9Device)->SetTextureStageState(Stage, Type, Value);
 
 	if (SUCCEEDED(hr) && Stage < MaxTextureStages && (UINT)Type < MaxDeviceStates)
@@ -5349,6 +5555,8 @@ HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 
 HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value)
 {
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 	HRESULT hr = (*d3d9Device)->SetSamplerState(Sampler, Type, Value);
 
 	if (SUCCEEDED(hr) && Sampler < MaxTextureStages && (UINT)Type < MaxSamplerStates)
@@ -5362,6 +5570,8 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 
 HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, CONST D3DLIGHT9* pLight)
 {
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 	HRESULT hr = (*d3d9Device)->SetLight(Index, pLight);
 
 	if (SUCCEEDED(hr) && Index < MAX_LIGHTS)
@@ -5378,6 +5588,8 @@ HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, CONST D3DLIGHT9* pLight)
 
 HRESULT m_IDirect3DDeviceX::LightD9Enable(DWORD Index, BOOL bEnable)
 {
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 	HRESULT hr = (*d3d9Device)->LightEnable(Index, bEnable);
 
 	if (SUCCEEDED(hr) && Index < MAX_LIGHTS)
@@ -5391,6 +5603,8 @@ HRESULT m_IDirect3DDeviceX::LightD9Enable(DWORD Index, BOOL bEnable)
 
 HRESULT m_IDirect3DDeviceX::SetD9Viewport(CONST D3DVIEWPORT9* pViewport)
 {
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 	HRESULT hr = (*d3d9Device)->SetViewport(pViewport);
 
 	if (SUCCEEDED(hr) && pViewport)
@@ -5404,6 +5618,8 @@ HRESULT m_IDirect3DDeviceX::SetD9Viewport(CONST D3DVIEWPORT9* pViewport)
 
 HRESULT m_IDirect3DDeviceX::SetD9Material(CONST D3DMATERIAL9* pMaterial)
 {
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 	HRESULT hr = (*d3d9Device)->SetMaterial(pMaterial);
 
 	if (SUCCEEDED(hr) && pMaterial)
@@ -5417,6 +5633,8 @@ HRESULT m_IDirect3DDeviceX::SetD9Material(CONST D3DMATERIAL9* pMaterial)
 
 HRESULT m_IDirect3DDeviceX::SetD9Transform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix)
 {
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 	HRESULT hr = (*d3d9Device)->SetTransform(State, pMatrix);
 
 	if (SUCCEEDED(hr) && pMatrix)
@@ -5613,30 +5831,6 @@ void m_IDirect3DDeviceX::SetDefaults()
 
 void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion)
 {
-	if (lpCurrentRenderTargetX)
-	{
-		lpCurrentRenderTargetX->PrepareRenderTarget();
-	}
-	if (ddrawParent)
-	{
-		ddrawParent->ReSetRenderTarget();
-	}
-
-	// Handle texture wrapping
-	if (rsTextureWrappingChanged)
-	{
-		DWORD RenderState = (rsTextureWrappingU ? D3DWRAP_U : 0) | (rsTextureWrappingV ? D3DWRAP_V : 0);
-		SetD9RenderState(D3DRS_WRAP0, RenderState);
-	}
-
-	// Handle anti-aliasing
-	if (rsAntiAliasChanged)
-	{
-		BOOL AntiAliasEnabled = (bool)((D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTDEPENDENT || (D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTINDEPENDENT);
-		SetD9RenderState(D3DRS_MULTISAMPLEANTIALIAS, AntiAliasEnabled);
-		rsAntiAliasChanged = false;
-	}
-
 	// Handle dwFlags
 	if (DirectXVersion < 7)
 	{
@@ -5659,6 +5853,45 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			//SetRenderState(D3DRENDERSTATE_EXTENTS, FALSE);
 		}
 	}
+
+	// Prepare render target surface
+	if (lpCurrentRenderTargetX)
+	{
+		lpCurrentRenderTargetX->PrepareRenderTarget();
+
+		if (ddrawParent->GetRenderTargetSurface() != lpCurrentRenderTargetX)
+		{
+			ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+		}
+
+		if (DeviceStates.RenderState[D3DRS_ZENABLE].Set)
+		{
+			(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, DeviceStates.RenderState[D3DRS_ZENABLE].State);
+		}
+	}
+
+	// Set viewport
+	if (DeviceStates.Viewport.Set)
+	{
+		(*d3d9Device)->SetViewport(&DeviceStates.Viewport.View);
+	}
+
+	// Handle texture wrapping
+	if (rsTextureWrappingChanged)
+	{
+		DWORD RenderState = (rsTextureWrappingU ? D3DWRAP_U : 0) | (rsTextureWrappingV ? D3DWRAP_V : 0);
+		SetD9RenderState(D3DRS_WRAP0, RenderState);
+		rsTextureWrappingChanged = false;
+	}
+
+	// Handle anti-aliasing
+	if (rsAntiAliasChanged)
+	{
+		BOOL AntiAliasEnabled = (bool)((D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTDEPENDENT || (D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTINDEPENDENT);
+		SetD9RenderState(D3DRS_MULTISAMPLEANTIALIAS, AntiAliasEnabled);
+		rsAntiAliasChanged = false;
+	}
+
 	if (Config.DdrawFixByteAlignment > 1)
 	{
 		for (UINT x = 0; x < MaxTextureStages; x++)
@@ -5675,6 +5908,16 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	}
 	for (UINT x = 0; x < MaxTextureStages; x++)
 	{
+		// Set textures
+		if (CurrentTextureSurfaceX[x])
+		{
+			IDirect3DTexture9* pTexture9 = CurrentTextureSurfaceX[x]->GetD3d9Texture();
+			if (pTexture9)
+			{
+				(*d3d9Device)->SetTexture(x, pTexture9);
+			}
+		}
+		// Generate MipMap levels
 		if (ssMipFilter[x] != D3DTEXF_NONE && CurrentTextureSurfaceX[x] && !CurrentTextureSurfaceX[x]->IsMipMapGenerated())
 		{
 			CurrentTextureSurfaceX[x]->GenerateMipMapLevels();
@@ -5759,6 +6002,59 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags
 	}
 }
 
+bool m_IDirect3DDeviceX::IsLightInUse(m_IDirect3DLight* pLightX)
+{
+	if (ProxyDirectXVersion != 7)
+	{
+		if (lpCurrentViewportX && lpCurrentViewportX->IsLightAttached(pLightX))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<D3DLIGHT7>& AttachedLightList)
+{
+	if (ProxyDirectXVersion == 7)
+	{
+		for (auto& entry : LightIndexMap7)
+		{
+			// Check if light is enabled
+			BOOL Enabled = FALSE;
+			if (SUCCEEDED(GetLightEnable(entry.first, &Enabled)) && Enabled)
+			{
+				AttachedLightList.push_back(entry.second);
+			}
+		}
+	}
+	else if (lpCurrentViewportX)
+	{
+		lpCurrentViewportX->GetEnabledLightList(AttachedLightList, this);
+	}
+}
+
+void m_IDirect3DDeviceX::ComputeMinMaxVertex(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& minVertex, DWORD& maxVertex)
+{
+	minVertex = 0;
+	maxVertex = 0;
+
+	if (!lpwIndices || dwIndexCount == 0) return;
+
+	minVertex = lpwIndices[0];
+	maxVertex = lpwIndices[0];
+
+	for (DWORD i = 1; i < dwIndexCount; ++i)
+	{
+		WORD idx = lpwIndices[i];
+		if (idx < minVertex) minVertex = idx;
+		if (idx > maxVertex) maxVertex = idx;
+	}
+
+	maxVertex += 1; // Make it exclusive like Direct3D9 expects
+}
+
 void m_IDirect3DDeviceX::ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount)
 {
 	if (dwVertexTypeDesc == 3)
@@ -5777,14 +6073,154 @@ void m_IDirect3DDeviceX::ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertice
 	}
 }
 
-void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount)
+void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwVertexCount)
 {
 	if (dwVertexTypeDesc == D3DFVF_LVERTEX)
 	{
-		VertexCache.resize(dwVertexCount * sizeof(D3DLVERTEX9));
-		ConvertVertices((D3DLVERTEX9*)VertexCache.data(), (D3DLVERTEX*)lpVertices, dwVertexCount);
+		VertexCache.resize((dwVertexStart + dwVertexCount) * sizeof(D3DLVERTEX9));
+		BYTE* base = static_cast<BYTE*>(VertexCache.data());
+		ConvertLVertex(reinterpret_cast<D3DLVERTEX9*>(base + (dwVertexStart * sizeof(D3DLVERTEX9))), reinterpret_cast<D3DLVERTEX*>(lpVertices), dwVertexCount);
 
 		dwVertexTypeDesc = D3DFVF_LVERTEX9;
 		lpVertices = VertexCache.data();
 	}
+}
+
+bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE>& outputBuffer, DWORD& dwVertexStride, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, DWORD dwVertexStart, DWORD dwVertexCount, DWORD& dwVertexTypeDesc)
+{
+	if (!sd)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: missing D3DDRAWPRIMITIVESTRIDEDDATA!");
+		return false;
+	}
+
+	if (dwVertexTypeDesc == D3DFVF_LVERTEX)
+	{
+		dwVertexTypeDesc = D3DFVF_LVERTEX9;
+	}
+
+	dwVertexStride = GetVertexStride(dwVertexTypeDesc);
+
+	bool hasPosition = (dwVertexTypeDesc & D3DFVF_POSITION_MASK);
+	bool hasNormal = (dwVertexTypeDesc & D3DFVF_NORMAL);
+	bool hasDiffuse = (dwVertexTypeDesc & D3DFVF_DIFFUSE);
+	bool hasSpecular = (dwVertexTypeDesc & D3DFVF_SPECULAR);
+	DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
+
+	if (texCount > D3DDP_MAXTEXCOORD)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: texCount " << texCount << " exceeds D3DDP_MAXTEXCOORD!");
+		return false;
+	}
+
+	// Check data and compute stride
+	DWORD stride = 0;
+	if (hasPosition)
+	{
+		if (!sd->position.lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: position data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		stride += sd->position.dwStride;
+	}
+	if (hasNormal)
+	{
+		if (!sd->normal.lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: normal data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		if (sd->normal.dwStride != sizeof(float) * 3)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: normal stride does not match: " << (sizeof(float) * 3) << " -> " << sd->normal.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		stride += sd->normal.dwStride;
+	}
+	if (hasDiffuse)
+	{
+		if (!sd->diffuse.lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: diffuse data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		if (sd->diffuse.dwStride != sizeof(D3DCOLOR))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: diffuse stride does not match: " << sizeof(D3DCOLOR) << " -> " << sd->diffuse.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		stride += sd->diffuse.dwStride;
+	}
+	if (hasSpecular)
+	{
+		if (!sd->specular.lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: specular data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		if (sd->specular.dwStride != sizeof(D3DCOLOR))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: specular stride does not match: " << sizeof(D3DCOLOR) << " -> " << sd->specular.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		stride += sd->specular.dwStride;
+	}
+	for (DWORD t = 0; t < texCount; ++t)
+	{
+		if (!sd->textureCoords[t].lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: textureCoords " << t << " data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		stride += sd->textureCoords[t].dwStride;
+	}
+
+	// Check if stride matches
+	if (stride != dwVertexStride)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: stride does not match: " << dwVertexStride << " -> " << stride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+		return false;
+	}
+
+	outputBuffer.resize(dwVertexStride * (dwVertexStart + dwVertexCount));
+
+	const BYTE* base = static_cast<const BYTE*>(outputBuffer.data());
+
+	for (DWORD i = 0; i < dwVertexCount; ++i)
+	{
+		BYTE* cursor = const_cast<BYTE*>(base) + (i + dwVertexStart) * dwVertexStride;
+
+		if (hasPosition)
+		{
+			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->position.lpvData) + (i + dwVertexStart) * sd->position.dwStride, sd->position.dwStride);
+			cursor += sd->position.dwStride;
+		}
+
+		if (hasNormal)
+		{
+			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->normal.lpvData) + (i + dwVertexStart) * sd->normal.dwStride, sd->normal.dwStride);
+			cursor += sd->normal.dwStride;
+		}
+
+		if (hasDiffuse)
+		{
+			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->diffuse.lpvData) + (i + dwVertexStart) * sd->diffuse.dwStride, sd->diffuse.dwStride);
+			cursor += sd->diffuse.dwStride;
+		}
+
+		if (hasSpecular)
+		{
+			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->specular.lpvData) + (i + dwVertexStart) * sd->specular.dwStride, sd->specular.dwStride);
+			cursor += sd->specular.dwStride;
+		}
+
+		for (DWORD t = 0; t < texCount; ++t)
+		{
+			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->textureCoords[t].lpvData) + (i + dwVertexStart) * sd->textureCoords[t].dwStride, sd->textureCoords[t].dwStride);
+			cursor += sd->textureCoords[t].dwStride;
+		}
+	}
+
+	return true;
 }

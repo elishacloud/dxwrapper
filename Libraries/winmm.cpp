@@ -21,9 +21,11 @@
 typedef MMRESULT(WINAPI *PFN_timeBeginPeriod)(UINT uPeriod);
 typedef MMRESULT(WINAPI *PFN_timeEndPeriod)(UINT uPeriod);
 typedef DWORD(WINAPI* PFN_timeGetTime)();
+typedef MMRESULT(WINAPI* PFN_timeGetSystemTime)(LPMMTIME pmmt, UINT cbmmt);
 PFN_timeBeginPeriod timeBeginPeriodPtr = nullptr;
 PFN_timeEndPeriod timeEndPeriodPtr = nullptr;
 PFN_timeGetTime timeGetTimePtr = nullptr;
+PFN_timeGetSystemTime timeGetSystemTimePtr = nullptr;
 HMODULE winmmModule = nullptr;
 
 void Loadwinmm()
@@ -40,9 +42,11 @@ void Loadwinmm()
 		timeBeginPeriodPtr = reinterpret_cast<PFN_timeBeginPeriod>(GetProcAddress(winmmModule, "timeBeginPeriod"));
 		timeEndPeriodPtr = reinterpret_cast<PFN_timeEndPeriod>(GetProcAddress(winmmModule, "timeEndPeriod"));
 		timeGetTimePtr = reinterpret_cast<PFN_timeGetTime>(GetProcAddress(winmmModule, "timeGetTime"));
+		timeGetSystemTimePtr = reinterpret_cast<PFN_timeGetSystemTime>(GetProcAddress(winmmModule, "timeGetSystemTime"));
 		if (!timeBeginPeriodPtr) Logging::Log() << "Failed to get 'timeBeginPeriod' ProcAddress of winmm.dll!";
 		if (!timeEndPeriodPtr) Logging::Log() << "Failed to get 'timeEndPeriod' ProcAddress of winmm.dll!";
 		if (!timeGetTimePtr) Logging::Log() << "Failed to get 'timeGetTime' ProcAddress of winmm.dll!";
+		if (!timeGetSystemTimePtr) Logging::Log() << "Failed to get 'timeGetSystemTime' ProcAddress of winmm.dll!";
 	}
 	else
 	{
@@ -87,4 +91,17 @@ DWORD timeGetTime()
 		return timeGetTimePtr();
 	}
 	return 0;
+}
+
+MMRESULT timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt)
+{
+	// Load module
+	Loadwinmm();
+
+	// Call function
+	if (timeGetSystemTimePtr)
+	{
+		return timeGetSystemTimePtr(pmmt, cbmmt);
+	}
+	return TIMERR_NOCANDO;
 }

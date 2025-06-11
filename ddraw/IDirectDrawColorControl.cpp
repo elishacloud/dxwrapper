@@ -16,10 +16,6 @@
 
 #include "ddraw.h"
 
-namespace {
-	m_IDirectDrawColorControl* WrapperInterfaceBackup = nullptr;
-}
-
 // ******************************
 // IUnknown functions
 // ******************************
@@ -98,7 +94,7 @@ ULONG m_IDirectDrawColorControl::Release()
 
 		if (ref == 0)
 		{
-			SaveInterfaceAddress(this, WrapperInterfaceBackup);
+			SaveInterfaceAddress(this);
 		}
 
 		return ref;
@@ -108,7 +104,7 @@ ULONG m_IDirectDrawColorControl::Release()
 
 	if (ref == 0)
 	{
-		SaveInterfaceAddress(this, WrapperInterfaceBackup);
+		SaveInterfaceAddress(this);
 	}
 
 	return ref;
@@ -163,14 +159,12 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 		// Present new color setting
 		if (ddrawParent)
 		{
-			ScopedDDCriticalSection ThreadLockDD;
-
 			ddrawParent->SetVsync();
 
 			m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 			if (lpDDSrcSurfaceX)
 			{
-				lpDDSrcSurfaceX->PresentSurface(false);
+				lpDDSrcSurfaceX->PresentSurface(false, false);
 			}
 		}
 
@@ -186,8 +180,6 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 
 void m_IDirectDrawColorControl::InitInterface()
 {
-	ScopedDDCriticalSection ThreadLockDD;
-
 	if (ddrawParent)
 	{
 		ddrawParent->SetColorControl(this);
@@ -212,8 +204,6 @@ void m_IDirectDrawColorControl::ReleaseInterface()
 		return;
 	}
 
-	ScopedDDCriticalSection ThreadLockDD;
-
 	if (ddrawParent)
 	{
 		ddrawParent->ClearColorControl(this);
@@ -222,11 +212,9 @@ void m_IDirectDrawColorControl::ReleaseInterface()
 
 m_IDirectDrawColorControl* m_IDirectDrawColorControl::CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent)
 {
-	m_IDirectDrawColorControl* Interface = nullptr;
-	if (WrapperInterfaceBackup)
+	m_IDirectDrawColorControl* Interface = InterfaceAddressCache<m_IDirectDrawColorControl>(nullptr);
+	if (Interface)
 	{
-		Interface = WrapperInterfaceBackup;
-		WrapperInterfaceBackup = nullptr;
 		Interface->SetProxy(aOriginal, NewParent);
 	}
 	else

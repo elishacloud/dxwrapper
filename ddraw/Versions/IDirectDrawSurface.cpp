@@ -168,7 +168,7 @@ HRESULT m_IDirectDrawSurface::GetBltStatus(DWORD a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetBltStatus(a);
+	return ProxyInterface->GetBltStatus(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface::GetCaps(LPDDSCAPS a)
@@ -314,7 +314,7 @@ HRESULT m_IDirectDrawSurface::ReleaseDC(HDC a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->ReleaseDC(a);
+	return ProxyInterface->ReleaseDC(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface::Restore()

@@ -11,7 +11,7 @@ class m_IAMMediaStream : public IAMMediaStream
 {
 private:
 	ULONG RefCount = 1;
-	REFIID WrapperID;
+	const IID WrapperID;
 
 public:
 	m_IAMMediaStream(REFIID riid) : WrapperID(riid)

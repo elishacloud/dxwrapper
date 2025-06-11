@@ -2,7 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="ddraw-testing.cpp" />
-    <ClCompile Include="Logging.cpp" />
     <ClCompile Include="..\External\Logging\Logging.cpp">
       <Filter>External\Logging</Filter>
     </ClCompile>
@@ -10,6 +9,8 @@
     <ClCompile Include="IDirectDrawSurface.cpp" />
     <ClCompile Include="IDirect3D.cpp" />
     <ClCompile Include="IDirect3DDevice.cpp" />
+    <ClCompile Include="EnumDisplaySettings.cpp" />
+    <ClCompile Include="Logging.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
@@ -21,10 +22,10 @@
     </ClInclude>
     <ClInclude Include="ddraw-testing.h" />
     <ClInclude Include="testing-harness.h" />
-    <ClInclude Include="Logging.h" />
     <ClInclude Include="..\External\Logging\Logging.h">
       <Filter>External\Logging</Filter>
     </ClInclude>
+    <ClInclude Include="Logging.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Include">

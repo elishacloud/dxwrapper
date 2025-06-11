@@ -16,10 +16,6 @@
 
 #include "ddraw.h"
 
-namespace {
-	m_IDirect3DExecuteBuffer* WrapperInterfaceBackup = nullptr;
-}
-
 // ******************************
 // IUnknown functions
 // ******************************
@@ -98,7 +94,7 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 
 		if (ref == 0)
 		{
-			SaveInterfaceAddress(this, WrapperInterfaceBackup);
+			SaveInterfaceAddress(this);
 		}
 
 		return ref;
@@ -108,7 +104,7 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 
 	if (ref == 0)
 	{
-		SaveInterfaceAddress(this, WrapperInterfaceBackup);
+		SaveInterfaceAddress(this);
 	}
 
 	return ref;
@@ -362,8 +358,6 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 
 void m_IDirect3DExecuteBuffer::InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc)
 {
-	ScopedDDCriticalSection ThreadLockDD;
-
 	if (D3DDeviceInterface)
 	{
 		D3DDeviceInterface->AddExecuteBuffer(this);
@@ -403,35 +397,10 @@ void m_IDirect3DExecuteBuffer::ReleaseInterface()
 		return;
 	}
 
-	ScopedDDCriticalSection ThreadLockDD;
-
 	if (D3DDeviceInterface)
 	{
 		D3DDeviceInterface->ClearExecuteBuffer(this);
 	}
-}
-
-m_IDirect3DExecuteBuffer* m_IDirect3DExecuteBuffer::CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc)
-{
-	m_IDirect3DExecuteBuffer* Interface = nullptr;
-	if (WrapperInterfaceBackup)
-	{
-		Interface = WrapperInterfaceBackup;
-		WrapperInterfaceBackup = nullptr;
-		Interface->SetProxy(aOriginal, NewD3DDInterface, lpDesc);
-	}
-	else
-	{
-		if (aOriginal)
-		{
-			Interface = new m_IDirect3DExecuteBuffer(aOriginal);
-		}
-		else
-		{
-			Interface = new m_IDirect3DExecuteBuffer(NewD3DDInterface, lpDesc);
-		}
-	}
-	return Interface;
 }
 
 HRESULT m_IDirect3DExecuteBuffer::GetBuffer(LPVOID* lplpData, D3DEXECUTEDATA& CurrentExecuteData, LPD3DSTATUS* lplpStatus)
@@ -643,4 +612,25 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExe
 	}
 
 	return DD_OK;
+}
+
+m_IDirect3DExecuteBuffer* m_IDirect3DExecuteBuffer::CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc)
+{
+	m_IDirect3DExecuteBuffer* Interface = InterfaceAddressCache<m_IDirect3DExecuteBuffer>(nullptr);
+	if (Interface)
+	{
+		Interface->SetProxy(aOriginal, NewD3DDInterface, lpDesc);
+	}
+	else
+	{
+		if (aOriginal)
+		{
+			Interface = new m_IDirect3DExecuteBuffer(aOriginal);
+		}
+		else
+		{
+			Interface = new m_IDirect3DExecuteBuffer(NewD3DDInterface, lpDesc);
+		}
+	}
+	return Interface;
 }

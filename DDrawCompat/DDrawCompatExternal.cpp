@@ -6,7 +6,6 @@
 #include "v0.2.1\DllMain.h"
 #include "v0.3.2\Dll\DllMain.h"
 
-#define DDrawCompatDefault Compat32
 #define DDrawCompatForDd7to9 Compat32
 
 #define INITIALIZE_WRAPPED_PROC(procName) \
@@ -55,12 +54,9 @@ namespace DDrawCompat
 #ifdef DDRAWCOMPAT_20
 		PREPARE_DDRAWCOMPAT(Compat20);
 #endif
-
-		// Default DDrawCompat version
-		RUN_PREPARE_DDRAWCOMPAT(DDrawCompatDefault);
 	}
 
-	bool RunStart(HINSTANCE hinstDLL, DWORD fdwReason)
+	static bool RunStart(HINSTANCE hinstDLL, DWORD fdwReason)
 	{
 		// Dd7to9 DDrawCompat version
 		if (Config.Dd7to9)
@@ -83,8 +79,7 @@ namespace DDrawCompat
 		START_DDRAWCOMPAT(Compat20);
 #endif
 
-		// Default DDrawCompat version
-		return (DDrawCompatDefault::DllMain_DDrawCompat(hinstDLL, fdwReason, nullptr) == TRUE);
+		return false;
 	}
 
 	bool IsDDrawEnabled = false;

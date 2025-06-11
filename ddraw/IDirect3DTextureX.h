@@ -13,7 +13,6 @@ private:
 	m_IDirect3DTexture2* WrapperInterface2 = nullptr;
 
 	// Convert to Direct3D9
-	m_IDirect3DDeviceX **D3DDeviceInterface = nullptr;
 	DWORD tHandle = 0;
 	struct {
 		m_IDirectDrawSurfaceX* Interface = nullptr;
@@ -58,7 +57,7 @@ public:
 
 		InitInterface(DirectXVersion);
 	}
-	m_IDirect3DTextureX(m_IDirect3DDeviceX **D3DDInterface, DWORD DirectXVersion, m_IDirectDrawSurfaceX *lpSurface, DWORD DXSurfaceVersion) : D3DDeviceInterface(D3DDInterface)
+	m_IDirect3DTextureX(DWORD DirectXVersion, m_IDirectDrawSurfaceX *lpSurface, DWORD DXSurfaceVersion)
 	{
 		ProxyDirectXVersion = (Config.Dd7to9) ? 9 : 7;
 
@@ -96,8 +95,6 @@ public:
 
 	// Handle functions
 	HRESULT m_IDirect3DTextureX::SetHandle(DWORD dwHandle);
-	void SetD3DDevice(m_IDirect3DDeviceX** D3DDevice) { D3DDeviceInterface = D3DDevice; }
-	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 
 	// Surface functions
 	m_IDirectDrawSurfaceX *GetSurface() const { return parent3DSurface.Interface; }

@@ -9,7 +9,7 @@ private:
 	ULONG RefCount2 = 0;
 	ULONG RefCount3 = 0;
 	ULONG RefCount7 = 0;
-	REFCLSID ClassID = IID_IUnknown;
+	const CLSID ClassID = IID_IUnknown;
 
 	// Store version wrappers
 	m_IDirect3DDevice* WrapperInterface = nullptr;
@@ -127,6 +127,7 @@ private:
 
 	// Light index map
 	std::unordered_map<DWORD, m_IDirect3DLight*> LightIndexMap;
+	std::unordered_map<DWORD, D3DLIGHT7> LightIndexMap7;
 
 	// ExecuteBuffer array
 	std::vector<m_IDirect3DExecuteBuffer*> ExecuteBufferList;
@@ -162,8 +163,9 @@ private:
 	void SetDefaults();
 	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
 	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
+	void ComputeMinMaxVertex(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& minVertex, DWORD& maxVertex);
 	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
-	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
+	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwVertexCount);
 
 	D3DMATRIX* GetMatrix(D3DMATRIXHANDLE MatrixHandle)
 	{
@@ -173,19 +175,6 @@ private:
 			return nullptr;
 		}
 		return &MatrixMap[MatrixHandle].m;
-	}
-
-	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
-	{
-		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
-			[=](auto pViewport) -> bool { return pViewport == ViewportX; });
-
-		if (it != std::end(AttachedViewports))
-		{
-			AttachedViewports.erase(it);
-			return true;
-		}
-		return false;
 	}
 
 	m_IDirect3DTextureX* GetTexture(D3DTEXTUREHANDLE TextureHandle)
@@ -358,6 +347,7 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 	bool IsDeviceInScene() const { return IsInScene; }
 	void SetParent3DSurface(m_IDirectDrawSurfaceX* lpSurfaceX, DWORD DxVersion) { parent3DSurface = { lpSurfaceX, DxVersion }; }
+	LPDIRECT3DDEVICE9* GetD3d9Device();
 
 	// ExecuteBuffer
 	void AddExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer);
@@ -365,6 +355,7 @@ public:
 
 	// Viewport functions
 	void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
+	m_IDirect3DViewportX* GetCurrentViewport() { return lpCurrentViewportX; }
 	bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
 	void ClearViewport(m_IDirect3DViewportX* lpViewportX);
 
@@ -382,6 +373,9 @@ public:
 		return false;
 	}
 
+	// Viewport vector function
+	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX);
+
 	// Texture handle function
 	void ClearTextureHandle(D3DTEXTUREHANDLE tHandle);
 	HRESULT SetTextureHandle(D3DTEXTUREHANDLE& tHandle, m_IDirect3DTextureX* pTextureX);
@@ -392,6 +386,8 @@ public:
 	bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == lsMaterialHandle); }
 
 	// Light index function
+	bool IsLightInUse(m_IDirect3DLight* pLightX);
+	void GetEnabledLightList(std::vector<D3DLIGHT7>& AttachedLightList);
 	void ClearLight(m_IDirect3DLight* lpLight);
 
 	// Functions handling the Direct3D parent interface
@@ -400,9 +396,12 @@ public:
 
 	// Functions handling the ddraw parent interface
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
-	void SetDdrawParent(m_IDirectDrawX* ddraw);
+	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw();
 	void BeforeResetDevice();
 	void AfterResetDevice();
 	void ReleaseAllStateBlocks();
+
+	// Static functions
+	static bool InterleaveStridedVertexData(std::vector<BYTE>& outputBuffer, DWORD& dwVertexStride, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, DWORD dwVertexStart, DWORD dwVertexCount, DWORD& dwVertexTypeDesc);
 };
