@@ -5568,10 +5568,6 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	(*d3d9Device)->GetViewport(&DefaultViewport);
 	if (DeviceStates.Viewport.Set)
 	{
-		D3DVIEWPORT9 viewport = {};
-		(*d3d9Device)->GetViewport(&viewport);
-		DeviceStates.Viewport.View.Width = viewport.Width;
-		DeviceStates.Viewport.View.Height = viewport.Height;
 		(*d3d9Device)->SetViewport(&DeviceStates.Viewport.View);
 	}
 

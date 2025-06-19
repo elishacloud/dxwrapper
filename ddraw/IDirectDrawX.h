@@ -81,6 +81,7 @@ private:
 	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
 	void RestoreD3DDeviceState();
 	void Clear3DFlagForAllSurfaces();
+	void MarkAllSurfacesDirty();
 	void ResetAllSurfaceDisplay();
 	void ReleaseD3D9IndexBuffer();
 	void ReleaseAllD9Resources(bool BackupData, bool ResetInterface);

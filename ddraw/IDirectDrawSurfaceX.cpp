@@ -2307,19 +2307,23 @@ HRESULT m_IDirectDrawSurfaceX::IsLost()
 
 			switch (ddrawParent->TestD3D9CooperativeLevel())
 			{
-			case D3DERR_DEVICELOST:
-				IsSurfaceLost = true;
-				return DD_OK;		// Native DriectDraw returns ok here, until surface is ready to be reset
-			case D3DERR_DEVICENOTRESET:
-				IsSurfaceLost = true;
-				return DDERR_SURFACELOST;
 			case D3D_OK:
 			case DDERR_NOEXCLUSIVEMODE:
-				if (IsSurfaceLost && !ComplexChild)	// Complex children don't get surface lost notice
+				if (IsSurfaceLost)
 				{
 					return DDERR_SURFACELOST;
 				}
 				return DD_OK;
+			case D3DERR_DEVICELOST:
+				MarkSurfaceLost();
+				return DD_OK;		// Native DriectDraw returns ok here, until surface is ready to be reset
+			case D3DERR_DEVICENOTRESET:
+				MarkSurfaceLost();
+				if (IsSurfaceLost)
+				{
+					return DDERR_SURFACELOST;
+				}
+				[[fallthrough]];
 			default:
 				return DDERR_WRONGMODE;
 			}
@@ -3956,7 +3960,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char* FunctionName, bool CheckD3DD
 	}
 
 	// Check if device is lost
-	if (CheckLostSurface && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY))
+	if (CheckLostSurface && CanSurfaceBeLost())
 	{
 		HRESULT hr = ddrawParent->TestD3D9CooperativeLevel();
 		switch (hr)
@@ -3975,6 +3979,11 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char* FunctionName, bool CheckD3DD
 		default:
 			LOG_LIMIT(100, FunctionName << " Error: TestCooperativeLevel = " << (D3DERR)hr);
 			return DDERR_WRONGMODE;
+		}
+
+		if (IsSurfaceLost && !LostDeviceBackup.empty())
+		{
+			return DDERR_SURFACELOST;
 		}
 	}
 
@@ -4211,7 +4220,7 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3d9Texture(bool InterfaceCheck)
 	if (InterfaceCheck)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true, true, true)))
+		if (FAILED(CheckInterface(__FUNCTION__, true, true, false)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: texture not setup!");
 			return nullptr;
@@ -5256,12 +5265,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	// Backup d3d9 surface texture
 	if (BackupData)
 	{
-		if (surface.HasData && (surface.Surface || surface.Texture) &&
+		if (!IsSurfaceLost && surface.HasData && (surface.Surface || surface.Texture) &&
 			!(surface.Usage & D3DUSAGE_DEPTHSTENCIL) && !IsDepthStencil() &&
 			(!ResetSurface || IsD9UsingVideoMemory()))
 		{
-			IsSurfaceLost = ResetSurface;
-
 			if (!IsUsingEmulation() && LostDeviceBackup.empty())
 			{
 				for (UINT Level = 0; Level < ((IsMipMapAutogen() || !MaxMipMapLevel) ? 1 : MaxMipMapLevel); Level++)
@@ -5305,7 +5312,13 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	// Release emulated surface if not backing up surface
 	else if (IsUsingEmulation())
 	{
+		LostDeviceBackup.clear();
 		ReleaseDCSurface();
+	}
+	// Clear backup
+	else
+	{
+		LostDeviceBackup.clear();
 	}
 
 	ReleaseD9AuxiliarySurfaces();
@@ -5830,6 +5843,26 @@ void m_IDirectDrawSurfaceX::ClearDirtyFlags()
 
 	// Reset scene ready
 	SceneReady = false;
+}
+
+bool m_IDirectDrawSurfaceX::CanSurfaceBeLost() const
+{
+	if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) && !IsSurfaceManaged() && IsD9UsingVideoMemory())
+	{
+		if (!ComplexChild)	// Complex children don't get surface lost notice
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void m_IDirectDrawSurfaceX::MarkSurfaceLost()
+{
+	if (CanSurfaceBeLost())
+	{
+		IsSurfaceLost = true;
+	}
 }
 
 bool m_IDirectDrawSurfaceX::CheckRectforSkipScene(RECT& DestRect)

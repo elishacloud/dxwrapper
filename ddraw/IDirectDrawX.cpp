@@ -86,6 +86,7 @@ namespace {
 	bool EnableWaitVsync = false;
 
 	// Direct3D9 Objects
+	bool IsDeviceLost = false;
 	LPDIRECT3D9 d3d9Object = nullptr;
 	LPDIRECT3DDEVICE9 d3d9Device = nullptr;
 	D3DPRESENT_PARAMETERS presParams = {};
@@ -2974,7 +2975,7 @@ bool m_IDirectDrawX::CheckD9Device(char* FunctionName)
 	{
 		for (int attempts = 0; attempts < 20; ++attempts)
 		{
-			if (d3d9Device->TestCooperativeLevel() != D3DERR_DEVICELOST)
+			if (TestD3D9CooperativeLevel() != D3DERR_DEVICELOST)
 			{
 				break;
 			}
@@ -3201,14 +3202,6 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 			ReleaseD9Device();
 			hr = CreateD9Device(__FUNCTION__);
 		}
-		else
-		{
-			// Reset render target
-			SetCurrentRenderTarget();
-
-			// Reset D3D device settings
-			RestoreD3DDeviceState();
-		}
 	}
 	// Release and recreate device
 	else
@@ -3220,7 +3213,16 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 
 	if (SUCCEEDED(hr))
 	{
+		IsDeviceLost = false;
 		WndProc::SwitchingResolution = false;
+		IsDeviceVerticesSet = false;
+		EnableWaitVsync = false;
+
+		// Set render target
+		SetCurrentRenderTarget();
+
+		// Reset D3D device settings
+		RestoreD3DDeviceState();
 	}
 
 	// Return
@@ -3531,6 +3533,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		}
 
 		// Reset flags after creating device
+		IsDeviceLost = false;
 		WndProc::SwitchingResolution = false;
 		LastUsedHWnd = hWnd;
 		IsDeviceVerticesSet = false;
@@ -3784,7 +3787,23 @@ HRESULT m_IDirectDrawX::TestD3D9CooperativeLevel()
 {
 	if (d3d9Device)
 	{
-		return d3d9Device->TestCooperativeLevel();
+		HRESULT hr = d3d9Device->TestCooperativeLevel();
+
+		if (hr == D3DERR_DEVICELOST || hr == D3DERR_DEVICENOTRESET)
+		{
+			if (!IsDeviceLost)
+			{
+				MarkAllSurfacesDirty();
+			}
+
+			IsDeviceLost = true;
+		}
+		else if (hr == DD_OK || hr == DDERR_NOEXCLUSIVEMODE)
+		{
+			IsDeviceLost = false;
+		}
+
+		return hr;
 	}
 
 	return DD_OK;
@@ -3931,6 +3950,19 @@ void m_IDirectDrawX::Clear3DFlagForAllSurfaces()
 		for (const auto& pSurface : pDDraw->SurfaceList)
 		{
 			pSurface.Interface->ClearUsing3DFlag();
+		}
+	}
+}
+
+void m_IDirectDrawX::MarkAllSurfacesDirty()
+{
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+	for (const auto& pDDraw : DDrawVector)
+	{
+		for (const auto& pSurface : pDDraw->SurfaceList)
+		{
+			pSurface.Interface->MarkSurfaceLost();
 		}
 	}
 }
