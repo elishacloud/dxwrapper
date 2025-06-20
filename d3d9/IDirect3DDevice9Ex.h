@@ -20,6 +20,7 @@ struct DEVICEDETAILS
 	}
 
 	// Window handle and size
+	DWORD ClientDirectXVersion = 0;
 	bool IsWindowMode = false;
 	bool IsDirectDrawDevice = false;
 	UINT Adapter = D3DADAPTER_DEFAULT;
@@ -158,7 +159,7 @@ private:
 public:
 	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, UINT Key) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID), DDKey(Key)
 	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID);
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID << " game interface v" << SHARED.ClientDirectXVersion);
 
 		if (WrapperID == IID_IDirect3DDevice9Ex)
 		{

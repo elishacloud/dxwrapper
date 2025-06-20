@@ -21,6 +21,7 @@
 #include "d3d9\d3d9External.h"
 #include "External\d3d8to9\source\d3d8to9.hpp"
 #include "External\d3d8to9\source\d3dx9.hpp"
+#include "IClassFactory\IClassFactory.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 #include "BuildNo.rc"
@@ -171,6 +172,18 @@ Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 	}
 
 	IDirect3D9 *const d3d = Direct3DCreate9(D3D_SDK_VERSION);
+
+	if (!d3d)
+	{
+		return nullptr;
+	}
+
+	// Set DirectX version
+	m_IDirect3D9Ex* D3DX = nullptr;
+	if (SUCCEEDED(d3d->QueryInterface(IID_GetInterfaceX, reinterpret_cast<LPVOID*>(&D3DX))))
+	{
+		D3DX->SetDirectXVersion(8);
+	}
 
 	return new Direct3D8(d3d);
 }

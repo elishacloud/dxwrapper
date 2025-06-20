@@ -138,6 +138,11 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 	if ((riid == GetWrapperType(DxVersion) && riid != IID_IDirectDraw3) || riid == IID_IUnknown)
 	{
+		if (ClientDirectXVersion < DxVersion)
+		{
+			ClientDirectXVersion = DxVersion;
+		}
+
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 
 		AddRef(DxVersion);
@@ -3241,6 +3246,13 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	// Get hwnd
 	HWND hWnd = GetHwnd();
 
+	// Set DirectX version
+	m_IDirect3D9Ex* D3DX = nullptr;
+	if (SUCCEEDED(d3d9Object->QueryInterface(IID_GetInterfaceX, reinterpret_cast<LPVOID*>(&D3DX))))
+	{
+		D3DX->SetDirectXVersion(ClientDirectXVersion);
+	}
+
 	// Hook WndProc before creating device
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
 	if (WndDataStruct)
@@ -3248,6 +3260,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		WndDataStruct->IsDirectDraw = true;
 		Device.NoWindowChanges = Device.NoWindowChanges || WndDataStruct->NoWindowChanges;
 		WndDataStruct->NoWindowChanges = Device.NoWindowChanges;
+		WndDataStruct->DirectXVersion = ClientDirectXVersion;
 	}
 
 	// Check if creating from another thread

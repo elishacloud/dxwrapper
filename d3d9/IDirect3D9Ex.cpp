@@ -36,6 +36,17 @@ HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return D3D_OK;
+	}
+
 	if (riid == IID_IUnknown || riid == WrapperID || (Config.D3d9to9Ex && riid == IID_IDirect3D9))
 	{
 		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
@@ -370,6 +381,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		WndDataStruct->IsCreatingDevice = true;
 		WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
 		DeviceDetails.IsDirectDrawDevice = WndDataStruct->IsDirectDraw;
+		WndDataStruct->DirectXVersion = ClientDirectXVersion;
 	}
 
 	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
@@ -390,6 +402,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	}
 
 	// Needs to be set before updating present parameters
+	DeviceDetails.ClientDirectXVersion = ClientDirectXVersion;
 	DeviceDetails.Adapter = Adapter;
 	DeviceDetails.DeviceType = DeviceType;
 	DeviceDetails.hMonitor = hMonitor;
@@ -657,6 +670,11 @@ HRESULT m_IDirect3D9Ex::GetAdapterLUID(THIS_ UINT Adapter, LUID * pLUID)
 	}
 
 	return ProxyInterfaceEx->GetAdapterLUID(Adapter, pLUID);
+}
+
+void m_IDirect3D9Ex::SetDirectXVersion(DWORD DxVersion)
+{
+	ClientDirectXVersion = DxVersion;
 }
 
 bool m_IDirect3D9Ex::TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD BackBufferHeight)

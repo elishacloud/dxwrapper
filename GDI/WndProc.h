@@ -15,6 +15,7 @@ namespace WndProc
 		std::atomic<bool> IsCreatingDevice = false;
 		std::atomic<bool> IsExclusiveMode = false;
 		std::atomic<bool> NoWindowChanges = false;
+		std::atomic<DWORD> DirectXVersion = 0;
 	};
 
 	extern bool SwitchingResolution;

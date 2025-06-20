@@ -5,6 +5,7 @@ class m_IDirect3D9Ex : public IDirect3D9Ex, public AddressLookupTableD3d9Object
 private:
 	LPDIRECT3D9 ProxyInterface;
 	LPDIRECT3D9EX ProxyInterfaceEx = nullptr;
+	DWORD ClientDirectXVersion = 9;
 	const IID WrapperID;
 
 	struct ENUM_ADAPTERS_CACHE {
@@ -81,6 +82,7 @@ public:
 	STDMETHOD(GetAdapterLUID)(THIS_ UINT Adapter, LUID * pLUID);
 
 	// Helper functions
+	void SetDirectXVersion(DWORD DxVersion);
 	bool TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD BackBufferHeight);
 
 	// Static functions
