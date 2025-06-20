@@ -87,6 +87,7 @@ namespace {
 
 	// Direct3D9 Objects
 	bool IsDeviceLost = false;
+	bool ReDrawNextPresent = false;
 	LPDIRECT3D9 d3d9Object = nullptr;
 	LPDIRECT3DDEVICE9 d3d9Device = nullptr;
 	D3DPRESENT_PARAMETERS presParams = {};
@@ -3810,6 +3811,7 @@ HRESULT m_IDirectDrawX::TestD3D9CooperativeLevel()
 		{
 			if (!IsDeviceLost)
 			{
+				ReDrawNextPresent = true;
 				MarkAllSurfacesDirty();
 			}
 
@@ -5293,11 +5295,13 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	// Redraw window if it has moved from its last location
 	HWND hWnd = GetHwnd();
 	RECT ClientRect = {};
-	if (presParams.Windowed && !ExclusiveMode && !IsIconic(hWnd) && GetWindowRect(hWnd, &ClientRect) && LastWindowRect.right > 0 && LastWindowRect.bottom > 0)
+	if (ReDrawNextPresent || (presParams.Windowed && !ExclusiveMode && !IsIconic(hWnd) && GetWindowRect(hWnd, &ClientRect) && LastWindowRect.right > 0 && LastWindowRect.bottom > 0))
 	{
-		if (ClientRect.left != LastWindowRect.left || ClientRect.top != LastWindowRect.top ||
-			ClientRect.right != LastWindowRect.right || ClientRect.bottom != LastWindowRect.bottom)
+		if (ReDrawNextPresent ||
+			(ClientRect.left != LastWindowRect.left || ClientRect.top != LastWindowRect.top ||
+			ClientRect.right != LastWindowRect.right || ClientRect.bottom != LastWindowRect.bottom))
 		{
+			ReDrawNextPresent = false;
 			RedrawWindow(hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 		}
 	}
