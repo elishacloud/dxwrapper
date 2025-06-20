@@ -3983,6 +3983,7 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char* FunctionName, bool CheckD3DD
 
 		if (IsSurfaceLost && !LostDeviceBackup.empty())
 		{
+			LOG_LIMIT(100, FunctionName << " Warning: surface is lost and there is no backup for it!");
 			return DDERR_SURFACELOST;
 		}
 	}

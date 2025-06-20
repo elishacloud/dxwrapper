@@ -2228,27 +2228,13 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 		case D3DERR_DRIVERINTERNALERROR:
 			return DDERR_WRONGMODE;
 		case D3DERR_DEVICELOST:
-			// Full-screen applications receive the DDERR_NOEXCLUSIVEMODE return value if they lose exclusive device access
-			if (ExclusiveMode)
-			{
-				HWND hWnd = GetHwnd();
-				if (IsWindow(hWnd) && (hWnd == GetForegroundWindow() || hWnd == GetFocus() || hWnd == GetActiveWindow()))
-				{
-					return DD_OK;
-				}
-				return DDERR_NOEXCLUSIVEMODE;
-			}
-			// Windowed applications(those that use the normal cooperative level) receive DDERR_EXCLUSIVEMODEALREADYSET if another application has taken exclusive device access
-			else
-			{
-				return DDERR_EXCLUSIVEMODEALREADYSET;
-			}
+			// Documentation: Full-screen applications receive the DDERR_NOEXCLUSIVEMODE return value if they lose exclusive device access
+			// Need to send DD_OK to prevent application hang on minimize
 		case D3DERR_DEVICENOTRESET:
 			//The TestCooperativeLevel method succeeds, returning DD_OK, if your application can restore its surfaces
 		case DDERR_NOEXCLUSIVEMODE:
 		case D3D_OK:
 		default:
-			WndProc::SwitchingResolution = false;
 			return DD_OK;
 		}
 	}
@@ -3820,6 +3806,7 @@ HRESULT m_IDirectDrawX::TestD3D9CooperativeLevel()
 		else if (hr == DD_OK || hr == DDERR_NOEXCLUSIVEMODE)
 		{
 			IsDeviceLost = false;
+			WndProc::SwitchingResolution = false;
 		}
 
 		return hr;
