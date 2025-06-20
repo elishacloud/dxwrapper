@@ -3202,6 +3202,19 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 			ReleaseD9Device();
 			hr = CreateD9Device(__FUNCTION__);
 		}
+		else
+		{
+			IsDeviceLost = false;
+			WndProc::SwitchingResolution = false;
+			IsDeviceVerticesSet = false;
+			EnableWaitVsync = false;
+
+			// Set render target
+			SetCurrentRenderTarget();
+
+			// Reset D3D device settings
+			RestoreD3DDeviceState();
+		}
 	}
 	// Release and recreate device
 	else
@@ -3209,20 +3222,6 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 		ReleaseAllD9Resources(true, false);
 		ReleaseD9Device();
 		hr = CreateD9Device(__FUNCTION__);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		IsDeviceLost = false;
-		WndProc::SwitchingResolution = false;
-		IsDeviceVerticesSet = false;
-		EnableWaitVsync = false;
-
-		// Set render target
-		SetCurrentRenderTarget();
-
-		// Reset D3D device settings
-		RestoreD3DDeviceState();
 	}
 
 	// Return

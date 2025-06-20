@@ -266,7 +266,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 {
 	if (Msg != WM_PAINT)
 	{
-		Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam;
+		Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd);
 	}
 
 	if (!AppWndProcInstance || !hWnd)
