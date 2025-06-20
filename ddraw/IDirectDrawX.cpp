@@ -2230,6 +2230,11 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 			// Full-screen applications receive the DDERR_NOEXCLUSIVEMODE return value if they lose exclusive device access
 			if (ExclusiveMode)
 			{
+				HWND hWnd = GetHwnd();
+				if (IsWindow(hWnd) && (hWnd == GetForegroundWindow() || hWnd == GetFocus() || hWnd == GetActiveWindow()))
+				{
+					return DD_OK;
+				}
 				return DDERR_NOEXCLUSIVEMODE;
 			}
 			// Windowed applications(those that use the normal cooperative level) receive DDERR_EXCLUSIVEMODEALREADYSET if another application has taken exclusive device access
