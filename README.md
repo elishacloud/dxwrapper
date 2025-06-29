@@ -126,7 +126,6 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [PixelShaderPalette](https://github.com/CnCNet/cnc-ddraw): Includes code from ddraw-cnc for a PixelShader that is used to view DirectDraw palette surfaces properly.
  - [SilentPatchFarCry](https://github.com/CookiePLMonster/SilentPatchFarCry): Includes code from SilentPatchFarCry to cache the clip plane in Direct3D 9.
  - [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader): Includes code for loading ASI plugins.
- - [WineD3D d3d8.dll](https://gitlab.winehq.org/wine/wine/-/tree/master/dlls/d3d8): Includes functions ValidatePixelShader and ValidateVertexShader.
 
 ### Development
 DxWrapper is written mostly in C++ using Microsoft Visual Studio 2022.
