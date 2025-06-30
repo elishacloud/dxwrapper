@@ -161,6 +161,14 @@ Portions of this project make use of code from the [imgui](https://github.com/oc
 >
 > THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#### MemoryModule by fancycode
+
+Portions of this project make use of code from the [MemoryModule](https://github.com/fancycode/MemoryModule) project by fancycode, which is licensed as follows:
+
+> Mozilla Public License Version 2.0
+>
+> For details see here: [LICENSE.txt](https://github.com/fancycode/MemoryModule/blob/master/LICENSE.txt)
+
 ### Credits
 DxWrapper uses code from several other projects. So to give credit where credit is due, below is a list of locations that source code was taken from:
 
