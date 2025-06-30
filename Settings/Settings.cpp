@@ -545,7 +545,7 @@ void CONFIG::Init()
 	strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), ".ini");
 
 	// Read defualt config file
-	char* szCfg = Read(configpath);
+	char* szCfg = ReadFileContent(configpath);
 
 	// Parce config file
 	if (szCfg)
@@ -562,7 +562,7 @@ void CONFIG::Init()
 		strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), ".ini");
 
 		// Open config file
-		szCfg = Read(configpath);
+		szCfg = ReadFileContent(configpath);
 
 		// Parce config file
 		if (szCfg)

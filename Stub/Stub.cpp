@@ -88,7 +88,7 @@ static void GetConfig(HMODULE hModule)
 	strcpy_s(strrchr(configname, '.'), MAX_PATH - strlen(configname), ".ini");
 
 	// Read config file
-	char* szCfg = Settings::Read(configname);
+	char* szCfg = Settings::ReadFileContent(configname);
 
 	// Parce config file
 	if (szCfg)

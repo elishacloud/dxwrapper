@@ -12,153 +12,156 @@
 *   2. Altered source versions must  be plainly  marked as such, and  must not be  misrepresented  as
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
-*
-* Code taken from source code found in Aqrit's ddwrapper
-* http://bitpatch.com/ddwrapper.html
 */
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
+#include <cstdio>
+#include <functional>
 #include "ReadParse.h"
+
+// Type alias for the callback used when parsing name/value pairs
+using NV = std::function<void(const char*, const char*)>;
 
 namespace Settings
 {
-	void EraseCppComments(char* str);
-	bool IsValidSettings(char* name, char* value);
-}
-
-// Reads szFileName from disk
-char* Settings::Read(char* szFileName)
-{
-	HANDLE hFile;
-	DWORD dwBytesToRead;
-	DWORD dwBytesRead;
-
-	char* szCfg = nullptr;
-	hFile = CreateFileA(szFileName, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (hFile != INVALID_HANDLE_VALUE)
+	// Reads entire contents of a file into a dynamically allocated buffer
+	char* ReadFileContent(const char* filename)
 	{
-		dwBytesToRead = GetFileSize(hFile, nullptr);
-		if ((dwBytesToRead != 0) && (dwBytesToRead != 0xFFFFFFFF))
+		if (!filename) return nullptr;
+
+		HANDLE file = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+		if (file == INVALID_HANDLE_VALUE)
 		{
-			szCfg = (char*)malloc(dwBytesToRead + 1); // +1 so a NULL terminator can be added
-			if (szCfg)
+			return nullptr;
+		}
+
+		DWORD fileSize = GetFileSize(file, nullptr);
+		if (fileSize == 0 || fileSize == INVALID_FILE_SIZE)
+		{
+			CloseHandle(file);
+			return nullptr;
+		}
+
+		char* buffer = static_cast<char*>(malloc(fileSize + 1)); // +1 for null terminator
+		if (!buffer)
+		{
+			CloseHandle(file);
+			return nullptr;
+		}
+
+		DWORD bytesRead = 0;
+		BOOL success = ReadFile(file, buffer, fileSize, &bytesRead, nullptr);
+		CloseHandle(file);
+
+		if (!success || bytesRead == 0)
+		{
+			free(buffer);
+			return nullptr;
+		}
+
+		buffer[bytesRead] = '\0';
+		return buffer;
+	}
+
+	// Returns true if a name and value pair are valid
+	static bool IsValidEntry(const char* name, const char* value)
+	{
+		if (!name || !value) return false;
+		if (!*name || !*value) return false;
+		if (_stricmp(value, "AUTO") == 0) return false;
+		return true;
+	}
+
+	// Strips C++ style comments from a text buffer in place
+	static void StripComments(char* text)
+	{
+		if (!text) return;
+
+		char* p = text;
+
+		while (true)
+		{
+			p = strchr(p, '/');
+			if (!p) break;
+
+			if (p[1] == '/')
 			{
-				if (ReadFile(hFile, szCfg, dwBytesToRead, &dwBytesRead, nullptr))
+				// Line comment: replace until newline
+				char* end = strchr(p, '\n');
+				if (!end) end = p + strlen(p);  // if no newline, go to end
+				while (p < end) *p++ = ' ';
+			}
+			else if (p[1] == '*')
+			{
+				// Block comment: replace until */
+				char* q = p + 2;
+				while (q[0] && !(q[0] == '*' && q[1] == '/'))
 				{
-					if (dwBytesRead != 0)
-					{
-						szCfg[dwBytesRead] = '\0'; // make txt file easy to deal with 
-					}
+					*q++ = ' ';
 				}
-				else
-				{
-					free(szCfg);
-					szCfg = nullptr;
-				}
+				if (q[0]) *q++ = ' ';
+				if (q[0]) *q++ = ' ';
+				while (p < q) *p++ = ' ';  // Overwrite the comment
 			}
-		}
-		CloseHandle(hFile);
-	}
-	return szCfg;
-}
-
-// Check if the values are valid
-bool Settings::IsValidSettings(char* name, char* value)
-{
-	if (!name || !value)
-	{
-		return false;
-	}
-	if (strlen(name) == 0 || strlen(value) == 0 ||
-		strlen(name) == ((size_t)(-1)) || strlen(value) == ((size_t)(-1)) ||
-		name[0] == '\0' || value[0] == '\0' ||
-		!_stricmp(value, "AUTO"))
-	{
-		return false;
-	}
-	return true;
-}
-
-// Commented text is replaced with a space character
-void Settings::EraseCppComments(char* str)
-{
-	while ((str = strchr(str, '/')) != 0)
-	{
-		if (str[1] == '/')
-		{
-			for (; ((*str != '\0') && (*str != '\n')); str++)
+			else
 			{
-				*str = '\x20';
+				// Not a comment, skip this '/'
+				++p;
 			}
-		}
-		else if (str[1] == '*')
-		{
-			for (; ((*str != '\0') && ((str[0] != '*') || (str[1] != '/'))); str++)
-			{
-				*str = '\x20';
-			}
-			if (*str)
-			{
-				*str++ = '\x20';
-				*str = '\x20';
-			}
-		}
-		if (*str)
-		{
-			str++;
-		}
-		else
-		{
-			break;
 		}
 	}
-}
 
-// [sections] are ignored
-// escape characters NOT support 
-// double quotes NOT suppoted
-// Name/value delimiter is an equal sign or colon 
-// whitespace is removed from before and after both the name and value
-// characters considered to be whitespace:
-//  0x20 - space
-//	0x09 - horizontal tab
-//	0x0D - carriage return
-void Settings::Parse(char* str, NV NameValueCallback)
-{
-	char *next_token = nullptr;
-	EraseCppComments(str);
-	for (str = strtok_s(str, "\n", &next_token); str; str = strtok_s(0, "\n", &next_token))
+	static void TrimWhitespace(char*& str)
 	{
-		if (*str == ';' || *str == '#')
+		if (!str || !*str) return;
+
+		// Trim leading whitespace
+		while (*str == ' ' || *str == '\t' || *str == '\r' || *str == '\n')
 		{
-			continue; // skip INI style comments ( must be at start of line )
+			++str;
 		}
-		char* rvalue = strchr(str, '=');
-		if (!rvalue)
+
+		// Trim trailing whitespace
+		size_t len = strlen(str);
+		while (len > 0 && (str[len - 1] == ' ' || str[len - 1] == '\t' || str[len - 1] == '\r' || str[len - 1] == '\n'))
 		{
-			rvalue = strchr(str, ':');
+			str[--len] = '\0';
 		}
-		if (rvalue)
+	}
+
+	// Parses a configuration file buffer and invokes callback for each name=value or name:value entry
+	void Parse(char* buffer, NV callback)
+	{
+		if (!buffer || !callback) return;
+
+		StripComments(buffer);
+
+		char* context = nullptr;
+		for (char* line = strtok_s(buffer, "\n", &context); line; line = strtok_s(nullptr, "\n", &context))
 		{
-			*rvalue++ = '\0'; // split left and right values
+			// Skip blank or comment lines
+			while (*line == ' ' || *line == '\t') ++line;
+			if (!*line || *line == ';' || *line == '#') continue;
 
-			rvalue = &rvalue[strspn(rvalue, "\x20\t\r")]; // skip beginning whitespace
-			for (char* end = strchr(rvalue, '\0'); (--end >= rvalue) && (*end == '\x20' || *end == '\t' || *end == '\r');)
-			{
-				*end = '\0';  // truncate ending whitespace
-			}
+			// Find first delimiter
+			char* eq = strchr(line, '=');
+			char* colon = strchr(line, ':');
+			char* delimiter = (!eq) ? colon : (!colon) ? eq : (eq < colon ? eq : colon);
+			if (!delimiter) continue;
 
-			char* lvalue = &str[strspn(str, "\x20\t\r")]; // skip beginning whitespace
-			for (char* end = strchr(lvalue, '\0'); (--end >= lvalue) && (*end == '\x20' || *end == '\t' || *end == '\r');)
-			{
-				*end = '\0';  // truncate ending whitespace
-			}
+			*delimiter = '\0';
+			char* name = line;
+			char* value = delimiter + 1;
 
-			if (*lvalue && *rvalue && IsValidSettings(lvalue, rvalue))
+			TrimWhitespace(name);
+			TrimWhitespace(value);
+
+			if (*name && *value && IsValidEntry(name, value))
 			{
-				NameValueCallback(lvalue, rvalue);
+				callback(name, value);
 			}
 		}
 	}
