@@ -432,6 +432,15 @@ HRESULT m_IDirect3DDevice9Ex::CreateCubeTexture(THIS_ UINT EdgeLength, UINT Leve
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (Config.D3d9to9Ex)
+	{
+		if (Pool == D3DPOOL_MANAGED)
+		{
+			Pool = D3DPOOL_DEFAULT;
+			Usage |= D3DUSAGE_DYNAMIC;
+		}
+	}
+
 	HRESULT hr = ProxyInterface->CreateCubeTexture(EdgeLength, Levels, Usage, Format, Pool, ppCubeTexture, pSharedHandle);
 
 	if (SUCCEEDED(hr))
@@ -493,6 +502,15 @@ HRESULT m_IDirect3DDevice9Ex::CreateIndexBuffer(THIS_ UINT Length, DWORD Usage, 
 	if (!ppIndexBuffer)
 	{
 		return D3DERR_INVALIDCALL;
+	}
+
+	if (Config.D3d9to9Ex)
+	{
+		if (Pool == D3DPOOL_MANAGED)
+		{
+			Pool = D3DPOOL_DEFAULT;
+			Usage |= D3DUSAGE_DYNAMIC;
+		}
 	}
 
 	HRESULT hr = ProxyInterface->CreateIndexBuffer(Length, Usage, Format, Pool, ppIndexBuffer, pSharedHandle);
@@ -565,10 +583,6 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 			Pool = D3DPOOL_DEFAULT;
 			Usage |= D3DUSAGE_DYNAMIC;
 		}
-		else if (Pool == D3DPOOL_DEFAULT && Usage == 0)
-		{
-			Usage = D3DUSAGE_DYNAMIC;
-		}
 	}
 
 	HRESULT hr = ProxyInterface->CreateTexture(Width, Height, Levels, Usage, Format, Pool, ppTexture, pSharedHandle);
@@ -598,6 +612,15 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexBuffer(THIS_ UINT Length, DWORD Usage,
 		Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 	}
 
+	if (Config.D3d9to9Ex)
+	{
+		if (Pool == D3DPOOL_MANAGED)
+		{
+			Pool = D3DPOOL_DEFAULT;
+			Usage |= D3DUSAGE_DYNAMIC;
+		}
+	}
+
 	HRESULT hr = ProxyInterface->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 
 	if (SUCCEEDED(hr))
@@ -617,6 +640,15 @@ HRESULT m_IDirect3DDevice9Ex::CreateVolumeTexture(THIS_ UINT Width, UINT Height,
 	if (!ppVolumeTexture)
 	{
 		return D3DERR_INVALIDCALL;
+	}
+
+	if (Config.D3d9to9Ex)
+	{
+		if (Pool == D3DPOOL_MANAGED)
+		{
+			Pool = D3DPOOL_DEFAULT;
+			Usage |= D3DUSAGE_DYNAMIC;
+		}
 	}
 
 	HRESULT hr = ProxyInterface->CreateVolumeTexture(Width, Height, Depth, Levels, Usage, Format, Pool, ppVolumeTexture, pSharedHandle);
