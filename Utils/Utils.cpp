@@ -13,9 +13,6 @@
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
 *
-* ASI plugin loader taken from source code found in Ultimate ASI Loader
-* https://github.com/ThirteenAG/Ultimate-ASI-Loader
-*
 * DDrawResolutionHack taken from source code found in LegacyD3DResolutionHack
 * https://github.com/UCyborg/LegacyD3DResolutionHack
 *
@@ -879,42 +876,51 @@ void Utils::InitializeASI(HMODULE hModule)
 // Find asi plugins to load
 void Utils::FindFiles(WIN32_FIND_DATA* fd)
 {
-	char dir[MAX_PATH] = { 0 };
-	GetCurrentDirectory(MAX_PATH, dir);
-
-	HANDLE asiFile = FindFirstFile("*.asi", fd);
-	if (asiFile != INVALID_HANDLE_VALUE)
+	char dir[MAX_PATH];
+	if (!GetCurrentDirectoryA(MAX_PATH, dir))
 	{
-		do {
-			if (!(fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-			{
-				auto pos = strlen(fd->cFileName);
-
-				if (fd->cFileName[pos - 4] == '.' &&
-					(fd->cFileName[pos - 3] == 'a' || fd->cFileName[pos - 3] == 'A') &&
-					(fd->cFileName[pos - 2] == 's' || fd->cFileName[pos - 2] == 'S') &&
-					(fd->cFileName[pos - 1] == 'i' || fd->cFileName[pos - 1] == 'I'))
-				{
-					char path[MAX_PATH] = { 0 };
-					sprintf_s(path, "%s\\%s", dir, fd->cFileName);
-
-					auto h = LoadLibrary(path);
-					SetCurrentDirectory(dir); //in case asi switched it
-
-					if (h)
-					{
-						AddHandleToVector(h, path);
-						InitializeASI(h);
-					}
-					else
-					{
-						Logging::LogFormat("Unable to load '%s'. Error: %d", fd->cFileName, GetLastError());
-					}
-				}
-			}
-		} while (FindNextFile(asiFile, fd));
-		FindClose(asiFile);
+		Logging::Log() << "Failed to get current directory.";
+		return;
 	}
+
+	HANDLE asiFile = FindFirstFileA("*.asi", fd);
+	if (asiFile == INVALID_HANDLE_VALUE)
+	{
+		return;
+	}
+
+	do {
+		// Skip directories
+		if (fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			continue;
+
+		const char* filename = fd->cFileName;
+		size_t len = strlen(filename);
+
+		// Check for ".asi" extension (case-insensitive)
+		if (len >= 4 && _stricmp(&filename[len - 4], ".asi") == 0)
+		{
+			char fullPath[MAX_PATH];
+			snprintf(fullPath, MAX_PATH, "%s\\%s", dir, filename);
+
+			HMODULE h = LoadLibraryA(fullPath);
+
+			// Ensure we're still in the original directory
+			SetCurrentDirectoryA(dir);
+
+			if (h)
+			{
+				AddHandleToVector(h, fullPath);
+				InitializeASI(h);
+			}
+			else
+			{
+				Logging::LogFormat("Unable to load '%s'. Error: %d", filename, GetLastError());
+			}
+		}
+	} while (FindNextFileA(asiFile, fd));
+
+	FindClose(asiFile);
 }
 
 // Load asi plugins
@@ -922,29 +928,48 @@ void Utils::LoadPlugins()
 {
 	Logging::Log() << "Loading ASI Plugins";
 
-	char oldDir[MAX_PATH] = { 0 }; // store the current directory
-	GetCurrentDirectory(MAX_PATH, oldDir);
+	char originalDir[MAX_PATH];
+	if (!GetCurrentDirectoryA(MAX_PATH, originalDir))
+	{
+		Logging::Log() << "Failed to get current directory.";
+		return;
+	}
 
-	char selfPath[MAX_PATH] = { 0 };
-	GetModuleFileName(hModule_dll, selfPath, MAX_PATH);
-	*strrchr(selfPath, '\\') = '\0';
-	SetCurrentDirectory(selfPath);
+	// Get directory of the DLL
+	char selfPath[MAX_PATH];
+	if (!GetModuleFileNameA(hModule_dll, selfPath, MAX_PATH))
+	{
+		Logging::Log() << "Failed to get module file name.";
+		return;
+	}
 
-	WIN32_FIND_DATA fd;
+	char baseDir[MAX_PATH];
+	strcpy_s(baseDir, selfPath);
+	char* lastSlash = strrchr(baseDir, '\\');
+	if (lastSlash) *lastSlash = '\0'; // remove the filename
+
+	WIN32_FIND_DATAA fd;
+
+	// Load from base directory
 	if (!Config.LoadFromScriptsOnly)
+	{
+		SetCurrentDirectoryA(baseDir);
 		FindFiles(&fd);
+	}
 
-	SetCurrentDirectory(selfPath);
+	// Load from subdirectories: scripts and plugins
+	const char* subDirs[] = { "scripts", "plugins" };
+	for (const auto& dir : subDirs)
+	{
+		char fullPath[MAX_PATH];
+		if (PathCombineA(fullPath, baseDir, dir) && SetCurrentDirectoryA(fullPath))
+		{
+			FindFiles(&fd);
+		}
+	}
 
-	if (SetCurrentDirectory("scripts\\"))
-		FindFiles(&fd);
-
-	SetCurrentDirectory(selfPath);
-
-	if (SetCurrentDirectory("plugins\\"))
-		FindFiles(&fd);
-
-	SetCurrentDirectory(oldDir); // Reset the current directory
+	// Restore original working directory
+	SetCurrentDirectoryA(originalDir);
 }
 
 // Unload all dll files loaded by the wrapper
