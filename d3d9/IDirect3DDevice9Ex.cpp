@@ -150,7 +150,7 @@ void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParamet
 	SHARED.isAnisotropySet = false;
 	SHARED.AnisotropyDisabledFlag = false;
 	SHARED.isClipPlaneSet = false;
-	SHARED.m_clipPlaneRenderState = 0;
+	SHARED.ClipPlaneRenderState = 0;
 }
 
 template <typename T>
@@ -774,7 +774,7 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 	// CacheClipPlane
 	if (SUCCEEDED(hr) && State == D3DRS_CLIPPLANEENABLE)
 	{
-		SHARED.m_clipPlaneRenderState = Value;
+		SHARED.ClipPlaneRenderState = Value;
 	}
 
 	return hr;
@@ -1115,10 +1115,10 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 
 		// For CacheClipPlane
 		SHARED.isClipPlaneSet = false;
-		SHARED.m_clipPlaneRenderState = 0;
+		SHARED.ClipPlaneRenderState = 0;
 		for (int i = 0; i < MAX_CLIP_PLANES; ++i)
 		{
-			std::fill(std::begin(SHARED.m_storedClipPlanes[i]), std::end(SHARED.m_storedClipPlanes[i]), 0.0f);
+			std::fill(std::begin(SHARED.StoredClipPlanes[i]), std::end(SHARED.StoredClipPlanes[i]), 0.0f);
 		}
 
 		// For gamma
@@ -1996,15 +1996,15 @@ HRESULT m_IDirect3DDevice9Ex::GetClipPlane(DWORD Index, float *pPlane)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// CacheClipPlane
-	if (Config.CacheClipPlane)
+	// CacheClipPlane if not using d3d8to9 (it already exists there)
+	if (Config.CacheClipPlane && SHARED.ClientDirectXVersion != 8)
 	{
 		if (!pPlane || Index >= MAX_CLIP_PLANES)
 		{
 			return D3DERR_INVALIDCALL;
 		}
 
-		memcpy(pPlane, SHARED.m_storedClipPlanes[Index], sizeof(SHARED.m_storedClipPlanes[0]));
+		memcpy(pPlane, SHARED.StoredClipPlanes[Index], sizeof(SHARED.StoredClipPlanes[0]));
 
 		return D3D_OK;
 	}
@@ -2016,8 +2016,8 @@ HRESULT m_IDirect3DDevice9Ex::SetClipPlane(DWORD Index, CONST float *pPlane)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// CacheClipPlane
-	if (Config.CacheClipPlane)
+	// CacheClipPlane if not using d3d8to9 (it already exists there)
+	if (Config.CacheClipPlane && SHARED.ClientDirectXVersion != 8)
 	{
 		if (!pPlane || Index >= MAX_CLIP_PLANES)
 		{
@@ -2026,7 +2026,7 @@ HRESULT m_IDirect3DDevice9Ex::SetClipPlane(DWORD Index, CONST float *pPlane)
 
 		SHARED.isClipPlaneSet = true;
 
-		memcpy(SHARED.m_storedClipPlanes[Index], pPlane, sizeof(SHARED.m_storedClipPlanes[0]));
+		memcpy(SHARED.StoredClipPlanes[Index], pPlane, sizeof(SHARED.StoredClipPlanes[0]));
 
 		return D3D_OK;
 	}
@@ -2040,11 +2040,11 @@ void m_IDirect3DDevice9Ex::ApplyClipPlanes()
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	DWORD index = 0;
-	for (const auto clipPlane : SHARED.m_storedClipPlanes)
+	for (const auto plane : SHARED.StoredClipPlanes)
 	{
-		if ((SHARED.m_clipPlaneRenderState & (1 << index)) != 0)
+		if ((SHARED.ClipPlaneRenderState & (1 << index)) != 0)
 		{
-			ProxyInterface->SetClipPlane(index, clipPlane);
+			ProxyInterface->SetClipPlane(index, plane);
 		}
 		index++;
 	}

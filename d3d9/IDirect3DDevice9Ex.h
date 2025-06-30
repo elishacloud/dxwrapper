@@ -85,8 +85,8 @@ struct DEVICEDETAILS
 
 	// For CacheClipPlane
 	bool isClipPlaneSet = false;
-	DWORD m_clipPlaneRenderState = 0;
-	float m_storedClipPlanes[MAX_CLIP_PLANES][4] = {};
+	DWORD ClipPlaneRenderState = 0;
+	float StoredClipPlanes[MAX_CLIP_PLANES][4] = {};
 
 	// For gamma
 	bool IsGammaSet = false;
