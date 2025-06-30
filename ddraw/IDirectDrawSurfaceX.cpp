@@ -12,10 +12,6 @@
 *   2. Altered source versions must  be plainly  marked as such, and  must not be  misrepresented  as
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
-*
-* Code initial taken from: https://github.com/strangebytes/diablo-ddrawwrapper
-*
-* Code to create emulated surface taken from: https://github.com/CnCNet/cnc-ddraw
 */
 
 #include "winmm.h"
