@@ -84,15 +84,19 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul
 IF NOT EXIST "$(TargetDir)dx7" mkdir "$(TargetDir)dx7" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)dx7\" &gt;nul
 call "$(ProjectDir)Resources\dx7-script.cmd" "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)dx7\dxwrapper.ini"
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)dx7\" &gt;nul
 IF NOT EXIST "$(TargetDir)dx8" mkdir "$(TargetDir)dx8" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)dx8\" &gt;nul
 call "$(ProjectDir)Resources\dx8-script.cmd" "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)dx8\dxwrapper.ini"
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)dx8\" &gt;nul
 IF NOT EXIST "$(TargetDir)dx9" mkdir "$(TargetDir)dx9" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)dx9\" &gt;nul
-call "$(ProjectDir)Resources\dx9-script.cmd" "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)dx9\dxwrapper.ini"</Command>
+call "$(ProjectDir)Resources\dx9-script.cmd" "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)dx9\dxwrapper.ini"
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)dx9\" &gt;nul</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; if not exist BuildNo.rc echo #define BUILD_NUMBER 0 &gt;BuildNo.rc"
@@ -135,7 +139,8 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
-copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul</Command>
+copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -163,7 +168,8 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
-copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul</Command>
+copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
