@@ -173,7 +173,6 @@ DxWrapper uses code from several other projects. So to give credit where credit 
  - [imgui](https://github.com/ocornut/imgui): Includes the imgui code from ocornut.
  - [LegacyD3DResolutionHack](https://github.com/UCyborg/LegacyD3DResolutionHack): Includes code from LegacyD3DResolutionHack to removes the artificial resolution limit from Direct3D 7 and below.
  - [MemoryModule](https://github.com/fancycode/MemoryModule): Includes code for loading libraries from memory.
- - [noser-sandbox](https://code.google.com/archive/p/noser-sandbox/source/default/source) Includes code in EnumDevices() used to order the device list.  You will find the extracted code in the Rayman2InputFix_DirectInputA.cpp file from the Rayman2InputFix project.
 
 ### Development
 DxWrapper is written mostly in C++ using Microsoft Visual Studio 2022.
