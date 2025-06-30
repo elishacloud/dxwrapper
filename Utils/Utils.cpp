@@ -15,9 +15,6 @@
 *
 * DDrawResolutionHack taken from source code found in LegacyD3DResolutionHack
 * https://github.com/UCyborg/LegacyD3DResolutionHack
-*
-* ReverseBits code taken from stanford.edu
-* http://graphics.stanford.edu/~seander/bithacks.html#ReverseParallel
 */
 
 #define WIN32_LEAN_AND_MEAN
@@ -1060,6 +1057,9 @@ void *Utils::memmem(const void *l, size_t l_len, const void *s, size_t s_len)
 // Reverse bit order
 DWORD Utils::ReverseBits(DWORD v)
 {
+	// Details about the ReverseBits algorthm can be seen from stanford.edu:
+	// http://graphics.stanford.edu/~seander/bithacks.html#ReverseParallel
+
 	v = ((v >> 1) & 0x55555555) | ((v & 0x55555555) << 1);	// swap odd and even bits
 	v = ((v >> 2) & 0x33333333) | ((v & 0x33333333) << 2);	// swap consecutive pairs
 	v = ((v >> 4) & 0x0F0F0F0F) | ((v & 0x0F0F0F0F) << 4);	// swap nibbles
