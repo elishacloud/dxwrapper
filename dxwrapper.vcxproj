@@ -579,8 +579,6 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClCompile Include="dinput8\InterfaceQuery.cpp" />
     <ClCompile Include="dinput\dinput.cpp" />
     <ClCompile Include="DirectShow\IAMMediaStream.cpp" />
-    <ClCompile Include="Disasm\cmdlist.c" />
-    <ClCompile Include="Disasm\Disasm.c" />
     <ClCompile Include="Dllmain\Dllmain.cpp" />
     <ClCompile Include="dsound\dsound.cpp" />
     <ClCompile Include="dsound\IDirectSound3DBuffer8.cpp" />
@@ -633,9 +631,9 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClCompile Include="External\dinputto8\Versions\IDirectInputDeviceW.cpp" />
     <ClCompile Include="External\dinputto8\Versions\IDirectInputW.cpp" />
     <ClCompile Include="External\Hooking.Patterns\Hooking.Patterns.cpp" />
+    <ClCompile Include="External\Hooking\Disasm.cpp" />
     <ClCompile Include="External\Hooking\Hook.cpp" />
     <ClCompile Include="External\Hooking\HotPatch.cpp" />
-    <ClCompile Include="External\Hooking\IATPatch.cpp" />
     <ClCompile Include="External\Logging\Logging.cpp" />
     <ClCompile Include="External\MemoryModule\MemoryModule.c" />
     <ClCompile Include="GDI\Comdlg32.cpp" />
@@ -1218,7 +1216,6 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClInclude Include="dinput8\IDirectInputEffect8.h" />
     <ClInclude Include="dinput\dinputExternal.h" />
     <ClInclude Include="DirectShow\IAMMediaStream.h" />
-    <ClInclude Include="Disasm\disasm.h" />
     <ClInclude Include="Dllmain\Dllmain.h" />
     <ClInclude Include="Dllmain\dxwrapper.h" />
     <ClInclude Include="Dllmain\Resource.h" />
@@ -1270,6 +1267,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClInclude Include="External\dinputto8\Versions\IDirectInputDeviceW.h" />
     <ClInclude Include="External\dinputto8\Versions\IDirectInputW.h" />
     <ClInclude Include="External\Hooking.Patterns\Hooking.Patterns.h" />
+    <ClInclude Include="External\Hooking\Disasm.h" />
     <ClInclude Include="External\Hooking\Hook.h" />
     <ClInclude Include="External\Logging\Logging.h" />
     <ClInclude Include="External\MemoryModule\MemoryModule.h" />

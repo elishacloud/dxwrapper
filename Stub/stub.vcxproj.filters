@@ -20,7 +20,7 @@
     <ClCompile Include="..\External\Hooking\HotPatch.cpp">
       <Filter>External\Hooking</Filter>
     </ClCompile>
-    <ClCompile Include="..\External\Hooking\IATPatch.cpp">
+    <ClCompile Include="..\External\Hooking\Disasm.cpp">
       <Filter>External\Hooking</Filter>
     </ClCompile>
   </ItemGroup>
@@ -100,6 +100,9 @@
     </ClInclude>
     <ClInclude Include="..\Wrappers\winspool.h">
       <Filter>Wrappers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\External\Hooking\Disasm.h">
+      <Filter>External\Hooking</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

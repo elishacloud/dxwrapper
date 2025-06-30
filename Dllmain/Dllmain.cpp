@@ -333,7 +333,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 		if (Config.HandleExceptions)
 		{
-			Utils::HookExceptionHandler();
+			Utils::SetCustomExceptionHandler();
 		}
 
 		// Hook CoCreateInstance
@@ -763,7 +763,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Unload exception handler
 		if (Config.HandleExceptions)
 		{
-			Utils::UnHookExceptionHandler();
+			Utils::RemoveCustomExceptionHandler();
 		}
 
 		// Remove the exception handler if it was added
