@@ -84,6 +84,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)" &gt;nul
 copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul
 IF NOT EXIST "$(TargetDir)dx7" mkdir "$(TargetDir)dx7" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)dx7\" &gt;nul
@@ -140,6 +141,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)" &gt;nul
 copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -169,6 +171,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)" &gt;nul
 copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
