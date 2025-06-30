@@ -93,7 +93,6 @@ namespace Utils
 	void GetScreenSize(HMONITOR hMonitor, volatile LONG &screenWidth, volatile LONG &screenHeight);
 	void GetScreenSize(HMONITOR hMonitor, int& screenWidth, int& screenHeight);
 	void GetScreenClientRect(HMONITOR hMonitor, RECT& workAreaOut);
-	HRESULT GetVideoRam(UINT AdapterNo, DWORD& TotalMemory);	// Adapters start numbering from '1', based on "Win32_VideoController" WMI class and "DeviceID" property.
 
 	// CPU Affinity
 	void SetProcessAffinity();

@@ -19,9 +19,6 @@
 * DDrawResolutionHack taken from source code found in LegacyD3DResolutionHack
 * https://github.com/UCyborg/LegacyD3DResolutionHack
 *
-* GetVideoRam taken from source code found in doom3.gpl
-* https://github.com/TTimo/doom3.gpl
-* 
 * ReverseBits code taken from stanford.edu
 * http://graphics.stanford.edu/~seander/bithacks.html#ReverseParallel
 */
@@ -1464,105 +1461,6 @@ inline static UINT GetValueFromString(wchar_t* str)
 		}
 	}
 	return num;
-}
-
-HRESULT Utils::GetVideoRam(UINT AdapterNo, DWORD& TotalMemory)
-{
-	struct ADLIST {
-		DWORD DeviceID = 0;
-		DWORD AdapterRAM = 0;
-	};
-	static std::vector<ADLIST> AdapterList;
-
-	if (AdapterList.size())
-	{
-		for (auto& entry : AdapterList)
-		{
-			if (entry.DeviceID == AdapterNo)
-			{
-				TotalMemory = entry.AdapterRAM;
-				return S_OK;
-			}
-		}
-		return E_FAIL;
-	}
-
-	HRESULT hr = E_FAIL;
-	HRESULT t_hr = E_FAIL;
-	IWbemLocator* pLoc = NULL;
-	IWbemServices* pSvc = NULL;
-	IEnumWbemClassObject* pEnumerator = NULL;
-	IWbemClassObject* pclsObj = NULL;
-	ULONG uReturn = 0;
-
-	HRESULT c_hr = CoInitializeEx(0, COINIT_MULTITHREADED);
-	bool AlreadyInitialized = (c_hr == S_FALSE || c_hr == RPC_E_CHANGED_MODE);
-	if ((SUCCEEDED(c_hr) || AlreadyInitialized) &&
-		SUCCEEDED(t_hr = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL)) &&
-		SUCCEEDED(t_hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID*)&pLoc)))
-	{
-		if (SUCCEEDED(t_hr = pLoc->ConnectServer(_bstr_t(L"root\\cimv2"), NULL, NULL, 0, NULL, 0, 0, &pSvc)))
-		{
-			if (SUCCEEDED(t_hr = CoSetProxyBlanket(pSvc, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE)) &&
-				SUCCEEDED(t_hr = pSvc->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_VideoController"), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator)))
-			{
-				while (pEnumerator)
-				{
-					t_hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
-					if (FAILED(t_hr) || 0 == uReturn)
-					{
-						break;
-					}
-
-					VARIANT varId = {};
-
-					t_hr = pclsObj->Get(L"DeviceID", 0, &varId, 0, 0);
-					if (SUCCEEDED(t_hr))
-					{
-						UINT DeviceID = GetValueFromString(varId.bstrVal);
-						VariantClear(&varId);
-
-						VARIANT vtTotalMemory = {};
-
-						t_hr = pclsObj->Get(L"AdapterRAM", 0, &vtTotalMemory, 0, 0);
-						if (SUCCEEDED(t_hr))
-						{
-							Logging::Log() << __FUNCTION__ << " Found Video Memory on adapter: " << vtTotalMemory.ulVal / (1024 * 1024) << "MBs on DeviceID: " << DeviceID;
-
-							ADLIST tmpItem = { DeviceID, vtTotalMemory.ulVal };
-							AdapterList.push_back(tmpItem);
-
-							// Check adapter number
-							if (AdapterNo == DeviceID)
-							{
-								TotalMemory = vtTotalMemory.ulVal;
-								hr = S_OK;
-							}
-							VariantClear(&vtTotalMemory);
-						}
-					}
-					pclsObj->Release();
-				}
-				pEnumerator->Release();
-			}
-			pSvc->Release();
-		}
-		pLoc->Release();
-	}
-	if (c_hr == S_OK)
-	{
-		CoUninitialize();
-	}
-	else if (AlreadyInitialized)
-	{
-		Logging::Log() << __FUNCTION__ << " Warning: CoInitializeEx() was already initialized: " << Logging::hex(hr);
-	}
-	else
-	{
-		Logging::Log() << __FUNCTION__ << " Error: CoInitializeEx() returned an error: " << Logging::hex(hr);
-	}
-
-	return hr;
 }
 
 // Wait for window actions
