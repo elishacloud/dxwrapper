@@ -5259,12 +5259,14 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	GetDCLevel[0] = nullptr;
 	IsInFlip = false;
 
+	const bool ShouldReleaseMainSurface = (!ResetSurface || IsD9UsingVideoMemory());
+
 	// Backup d3d9 surface texture
 	if (BackupData)
 	{
-		if (!IsSurfaceLost && surface.HasData && (surface.Surface || surface.Texture) &&
+		if ((surface.Surface || surface.Texture) && surface.HasData &&
 			!(surface.Usage & D3DUSAGE_DEPTHSTENCIL) && !IsDepthStencil() &&
-			(!ResetSurface || IsD9UsingVideoMemory()))
+			ShouldReleaseMainSurface)
 		{
 			if (!IsUsingEmulation() && LostDeviceBackup.empty())
 			{
@@ -5288,10 +5290,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 
 					size_t size = GetSurfaceSize(Desc.Format, Desc.Width, Desc.Height, LockRect.Pitch);
 
-					if (size)
+					DDBACKUP entry;
+					LostDeviceBackup.push_back(entry);
+					if (size && LockRect.pBits && LostDeviceBackup.size() > Level)
 					{
-						DDBACKUP entry;
-						LostDeviceBackup.push_back(entry);
 						LostDeviceBackup[Level].Format = Desc.Format;
 						LostDeviceBackup[Level].Width = Desc.Width;
 						LostDeviceBackup[Level].Height = Desc.Height;
@@ -5299,6 +5301,10 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 						LostDeviceBackup[Level].Bits.resize(size);
 
 						memcpy(LostDeviceBackup[Level].Bits.data(), LockRect.pBits, size);
+					}
+					else
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Error: mismatch in LostDeviceBackup data structure!");
 					}
 
 					UnLockD3d9Surface(Level);
@@ -5309,19 +5315,13 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	// Release emulated surface if not backing up surface
 	else if (IsUsingEmulation())
 	{
-		LostDeviceBackup.clear();
 		ReleaseDCSurface();
-	}
-	// Clear backup
-	else
-	{
-		LostDeviceBackup.clear();
 	}
 
 	ReleaseD9AuxiliarySurfaces();
 
 	// Release d3d9 3D surface
-	if (surface.Surface && (!ResetSurface || IsD9UsingVideoMemory() || IsDepthStencil()))
+	if (surface.Surface && ShouldReleaseMainSurface)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
 		ULONG ref = surface.Surface->Release();
@@ -5333,7 +5333,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	}
 
 	// Release d3d9 surface texture
-	if (surface.Texture && (!ResetSurface || IsD9UsingVideoMemory()))
+	if (surface.Texture && ShouldReleaseMainSurface)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 texture surface";
 		ULONG ref = surface.Texture->Release();
@@ -5344,19 +5344,18 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 		surface.Texture = nullptr;
 	}
 
-	// Reset shader flag
-	ShaderColorKey.IsSet = false;
-	primary.ShaderColorKey.IsSet = false;
-
-	// Reset display flags
-	if (ResetDisplayFlags && !ResetSurface)
+	// Clear display flags
+	if (!ResetSurface)
 	{
-		surfaceDesc2.dwFlags &= ~ResetDisplayFlags;
-		ClearUnusedValues(surfaceDesc2);
-	}
-	if (surfaceDesc2.dwFlags & DDSD_REFRESHRATE)
-	{
-		surfaceDesc2.dwRefreshRate = 0;
+		if (ResetDisplayFlags && !ResetSurface)
+		{
+			surfaceDesc2.dwFlags &= ~ResetDisplayFlags;
+			ClearUnusedValues(surfaceDesc2);
+		}
+		if (surfaceDesc2.dwFlags & DDSD_REFRESHRATE)
+		{
+			surfaceDesc2.dwRefreshRate = 0;
+		}
 	}
 }
 
