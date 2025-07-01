@@ -7,6 +7,7 @@
 #include "ReadParse.h"
 
 #define NOT_EXIST 0xFFFF
+#define MAX_ENV_VAR 0x7FFF
 
 #define VISIT_CONFIG_SETTINGS(visit) \
 	visit(AnisotropicFiltering) \
