@@ -1314,7 +1314,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				lpTargetSurface = lpNewTargetSurface;
 
 				// Stop looping when frontbuffer is found
-				if (lpTargetSurface == this || dwCaps & DDSCAPS_FRONTBUFFER)
+				if (!lpTargetSurface || lpTargetSurface == this || dwCaps & DDSCAPS_FRONTBUFFER)
 				{
 					break;
 				}
@@ -1972,7 +1972,7 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags, bool CheckOnly)
 			m_IDirectDrawSurfaceX* lpBackBuffer = nullptr;
 			for (auto& it : AttachedSurfaceMap)
 			{
-				if (it.second.pSurface->GetSurfaceCaps().dwCaps & DDSCAPS_BACKBUFFER)
+				if (it.second.pSurface->GetSurfaceCaps().dwCaps & DDSCAPS_FLIP)
 				{
 					lpBackBuffer = it.second.pSurface;
 					break;
@@ -5264,9 +5264,9 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	// Backup d3d9 surface texture
 	if (BackupData)
 	{
-		if ((surface.Surface || surface.Texture) && surface.HasData &&
-			!(surface.Usage & D3DUSAGE_DEPTHSTENCIL) && !IsDepthStencil() &&
-			ShouldReleaseMainSurface)
+		if ((surface.Surface || surface.Texture) &&
+			surface.HasData && ShouldReleaseMainSurface &&
+			!(IsDepthStencil() || (surface.Usage & D3DUSAGE_DEPTHSTENCIL)))
 		{
 			if (!IsUsingEmulation() && LostDeviceBackup.empty())
 			{
