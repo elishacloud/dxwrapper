@@ -9,39 +9,67 @@ Support via [PayPal](https://paypal.me/elishacloud) | [Patreon](https://patreon.
 DxWrapper is a .dll file designed to wrap DirectX files to fix compatibility issues in older games.  This project is primarily targeted at fixing issues with running games on Windows 10/11, by simply dropping .dll and .ini files into the game folder.  Its secondary purpose is to offer a single tool combining several projects into one.
 
 ### Features
-DxWrapper has many features including:
 
- - Integration of [DDrawCompat](https://github.com/narzoul/DDrawCompat/)
- - Configuring DDrawCompat options to improve compatibility
- - Conversion of DirectDraw 1-6 to DirectDraw 7
- - Conversion of Direct3D 1-6 to Direct3D 7
- - Conversion of DirectDraw 1-7 (ddraw.dll) to Direct3D 9 (d3d9.dll) using [Dd7to9](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion)
- - Conversion of Direct3D 1-7 (ddraw.dll) to Direct3D 9 (d3d9.dll) using [Dd7to9](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion)
- - Conversion of Direct3D 8 (d3d8.dll) to Direct3D 9 (d3d9.dll) using [d3d8to9](https://github.com/crosire/d3d8to9)
- - Conversion of DirectInput 1-7 (dinput.dll) to DirectInput 8 (dinput8.dll) using [dinputto8](https://github.com/elishacloud/dinputto8)
- - Includes [LegacyD3DResolutionHack](https://github.com/UCyborg/LegacyD3DResolutionHack) to remove the artificial resolution limit from Direct3D 1-7, which allows DirectDraw games to play at 4K resolution
- - Tweaking of Microsoft DirectSound function calls using [DSoundCtrl](http://www.bockholdt.com/dsc/)
- - Can cause DirectDraw 1-7, Direct3D 8 and Direct3D 9 games to run in windowed mode
- - Can limit frame rate of games using or converted to Direct3D 9
- - Can enable or disable vertical sync on games using or converted to Direct3D 9
- - Can set GraphicsHybridAdapter for Direct3D 9 on laptops with multiple graphics cards
- - Can enable Direct3D9On12 for Direct3D 9
- - Can set vertex processing and cache modes to fix performance in some Direct3D 9 games
- - Can remove scanlines from DirectDraw 1-7 games
- - Can disable MaximizedWindowedMode (fullscreen optimizations) for Direct3D 8 and 9 games
- - Can disable High DPI scaling to solve issues with some games
- - Can disable Microsoft Game Explorer (GameUX) to prevent rundll32.exe high CPU
- - Can disable audio pops and clicks caused by games clipping audio while sound is playing
- - ASI loader to load custom libraries with the file extension .asi into game processes using [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader)
- - Supports being loaded as an ASI plug-in
- - Adding AntiAliasing support into Direct3D 8 or 9 games even if the game does not support it
- - Hot patch memory support (update game memory at run time, can be used to remove CD/DVD checks or resolve graphics or other glitches)
- - Set single CPU affinity (some games have issues with multi-core CPUs)
- - Ability to set all 12 Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
- - Set game window to fullscreen (some games have fullscreen issues)
- - Handling in-game exceptions or crashes
- - Load custom .dll files into games
- - Run custom processes at game start-up
+DxWrapper includes a wide range of features:
+
+#### 🎮 Major Graphics Conversion and Enhancement
+- **DirectDraw/Direct3D 1–7 to Direct3D 9** conversion via [Dd7to9](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion)
+- **Direct3D 8 to Direct3D 9** conversion via [d3d8to9](https://github.com/crosire/d3d8to9)
+- **Direct3D 9 hooking** to intercept and enhance graphics calls
+- **DirectInput 1–7 to DirectInput 8** conversion via [dinputto8](https://github.com/elishacloud/dinputto8)
+- **DirectSound hooking** (`dsound.dll`), similar to [DSoundCtrl](http://www.bockholdt.com/dsc/), to enhance or fix audio
+- **[DDrawCompat](https://github.com/narzoul/DDrawCompat) integration** (v2.0, 2.1, 3.2) for improved compatibility with configurable options
+
+#### 🖥️ Resolution and Renderer Enhancements
+- **Resolution unlock** for Direct3D 1–7 using [LegacyD3DResolutionHack](https://github.com/UCyborg/LegacyD3DResolutionHack) — enables 4K and beyond
+- **Direct3D 9 to Direct3D9Ex** conversion for enhanced rendering performance
+- **Direct3D 9 to Direct3D 12** conversion via [D3D9On12](https://github.com/microsoft/D3D9On12)
+
+#### 🛠️ Rendering and Compatibility Fixes
+- **Clip plane caching** to fix issues in D3D9 games ([Far Cry example](https://houssemnasri.github.io/2018/07/07/farcry-d3d9-bug/))
+- **Environment cube map fixes** for broken textures ([issue example](https://github.com/elishacloud/dxwrapper/issues/136))
+- **Vertex processing mode override** to fix performance issues
+- **Scanline removal** from games that display them
+- **Interlacing removal** to improve visual quality
+
+#### 🧩 Rendering Enhancements (Forced Features)
+- **Force anti-aliasing** support in games that don't support it natively
+- **Force anisotropic filtering** in unsupported games
+- **Force vertical sync (VSync)** on or off
+- **Force windowed mode** in fullscreen-only games
+- **Force use of discrete GPU** (dGPU) via `GraphicsHybridAdapter` call
+- **Force single Begin/EndScene pair** per Present call (per Microsoft documentation)
+
+#### 🎛️ Frame and Timing Control
+- **FPS limiter** to prevent games from running too fast
+- **Performance counter patching** to fake uptime < 1 day (fixes long-uptime issues)
+- **Single CPU affinity** setting for multi-core compatibility issues
+- **Application Compatibility Toolkit settings override** for `DXPrimaryEmulation`:
+  - Includes: `LockEmulation`, `BltEmulation`, `ForceLockNoWindow`, `ForceBltNoWindow`, `LockColorkey`, `FullscreenWithDWM`, `DisableLockEmulation`, `EnableOverlays`, `DisableSurfaceLocks`, `RedirectPrimarySurfBlts`, `StripBorderStyle`, `DisableMaxWindowedMode`
+
+#### 📐 Compatibility and GDI Fixes
+- **GDI and DirectDraw mixing support** to improve 2D compatibility
+- **Pitch lock fix** for games with misaligned surfaces
+- **Disable Fullscreen Optimizations (MaximizedWindowedMode)** to resolve performance/stability issues
+- **Disable High DPI scaling** to fix UI scaling issues
+- **Disable Microsoft Game Explorer (GameUX)** to stop `rundll32.exe` CPU spikes
+- **Disable audio clipping** to eliminate pops and clicks during playback
+
+#### 🔧 Advanced Customization and Modding
+- **Hot-patch memory** in real time (e.g., remove CD checks or fix bugs)
+- **Set Windows version** seen by game (helps with OS compatibility)
+- **Handle in-game crashes** by patching problematic instructions (nop'ing offending code)
+- **Launch custom processes** when the game starts
+- **Load custom `.dll` files** into game processes
+- **ASI loader** to inject `.asi` plug-ins ([Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader) compatible)
+- **DxWrapper as an ASI plug-in** (can be loaded by other ASI loaders)
+
+#### 🧩 Miscellaneous Fixes and Tweaks
+- **Set game window to fullscreen** (if native fullscreen fails)
+- **Show FPS counter** in-game
+- **Filter input** when the game window loses focus (prevents input when other windows are active)
+- **Various compatibility flags and tweaks**, including:
+  - `DdrawEmulateSurface`, `DdrawEmulateLock`, `DdrawKeepAllInterfaceCache`, `DdrawLimitTextureFormats`, `DdrawLimitDisplayModeCount`, `LimitStateBlocks`, `SetPOW2Caps`
 
 ### Compatibility List for Games on Windows 10/11
 So far I have tested this with hundreds of games (many of which  don't otherwise work correctly) to get them running on Windows 10/11.  Most games will work, but some still have issues.  Check out the [Compatible Games wiki](https://github.com/elishacloud/dxwrapper/wiki/Compatible-Games) and the [Dd7to9 Supported Games wiki](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion#supported-2d-games-directdraw) for a list.
