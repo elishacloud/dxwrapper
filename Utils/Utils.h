@@ -30,6 +30,20 @@ namespace Utils
 	EXPORT_OUT_WRAPPED_PROC(timeGetTime, unused);
 	EXPORT_OUT_WRAPPED_PROC(timeGetSystemTime, unused);
 
+	struct ScopedThreadPriority
+	{
+	private:
+		HANDLE hThread = nullptr;
+		bool changed = false;
+		bool IsBasePriorityRegular = false;
+		ULONG originalPriority = 0;
+		ULONG basePriority = 0;
+
+	public:
+		ScopedThreadPriority();
+		~ScopedThreadPriority();
+	};
+
 	void Shell(const char*);
 	void DisableHighDPIScaling();
 	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);

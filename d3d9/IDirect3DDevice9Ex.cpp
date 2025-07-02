@@ -1535,6 +1535,8 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 
 	ApplyPresentFixes();
 
+	Utils::ScopedThreadPriority ThreadPriority;
+
 	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 
 	if (SUCCEEDED(hr))
@@ -2866,6 +2868,8 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	ApplyPresentFixes();
+
+	Utils::ScopedThreadPriority ThreadPriority;
 
 	HRESULT hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
 
