@@ -3439,9 +3439,7 @@ HRESULT m_IDirectDrawSurfaceX::PageLock(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		// Prevents a system-memory surface from being paged out while a bit block transfer (bitblt) operation
-		// that uses direct memory access (DMA) transfers to or from system memory is in progress.
-		// Not needed for d3d9 surfaces
+		// This method was not implemented in the IDirectDraw interface.
 		return DD_OK;
 	}
 
@@ -3454,8 +3452,7 @@ HRESULT m_IDirectDrawSurfaceX::PageUnlock(DWORD dwFlags)
 
 	if (Config.Dd7to9)
 	{
-		// Unlocks a system-memory surface, which then allows it to be paged out.
-		// Not needed for d3d9 surfaces
+		// This method was not implemented in the IDirectDraw interface.
 		return DD_OK;
 	}
 
