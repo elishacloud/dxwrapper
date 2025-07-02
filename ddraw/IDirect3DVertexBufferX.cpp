@@ -149,25 +149,15 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		}
 
 		// Non-implemented dwFlags:
-		// DDLOCK_WAIT & DDLOCK_SURFACEMEMORYPTR can be ignored safely
+		// DDLOCK_WAIT, DDLOCK_SURFACEMEMORYPTR and DDLOCK_WRITEONLY can be ignored safely
 
-		DWORD Flags = (dwFlags & (DDLOCK_READONLY | DDLOCK_DISCARDCONTENTS)) |
-			((dwFlags & D3DLOCK_NOSYSLOCK) ? D3DLOCK_NOSYSLOCK : 0) |
-			((dwFlags & DDLOCK_WRITEONLY) || (VBDesc.dwCaps & D3DVBCAPS_WRITEONLY) ? D3DLOCK_DISCARD : 0);
+		DWORD Flags = (dwFlags & (DDLOCK_READONLY | DDLOCK_DISCARDCONTENTS | DDLOCK_NOSYSLOCK));
 
 		void* pData = nullptr;
 		HRESULT hr = d3d9VertexBuffer->Lock(0, 0, &pData, Flags);
 		if (FAILED(hr) && (Flags & D3DLOCK_NOSYSLOCK))
 		{
 			hr = d3d9VertexBuffer->Lock(0, 0, &pData, Flags & ~D3DLOCK_NOSYSLOCK);
-		}
-		if (FAILED(hr) && (Flags & D3DLOCK_DISCARD))
-		{
-			hr = d3d9VertexBuffer->Lock(0, 0, &pData, Flags & ~D3DLOCK_DISCARD);
-		}
-		if (FAILED(hr) && (Flags & (D3DLOCK_NOSYSLOCK | D3DLOCK_DISCARD)) == (D3DLOCK_NOSYSLOCK | D3DLOCK_DISCARD))
-		{
-			hr = d3d9VertexBuffer->Lock(0, 0, &pData, Flags & ~(D3DLOCK_NOSYSLOCK | D3DLOCK_DISCARD));
 		}
 
 		if (FAILED(hr))
