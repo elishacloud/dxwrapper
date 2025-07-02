@@ -531,6 +531,27 @@ void CONFIG::Init()
 	// Set default settings
 	SetDefaultConfigSettings();
 
+	// Set settings from environment variables
+	if (LPCH p_envStrings = GetEnvironmentStrings(); p_envStrings)
+	{
+		const char* szEnvPrefix = "DXWRAPPER_";
+		char* szEnvVar = p_envStrings;
+		char szSetting[MAX_ENV_VAR] = {};
+
+		while (*szEnvVar)
+		{
+			if (!_strnicmp(szEnvVar, szEnvPrefix, strlen(szEnvPrefix)))
+			{
+				szEnvVar += strlen(szEnvPrefix);
+				strcpy_s(szSetting, MAX_ENV_VAR, szEnvVar);
+				Parse(szSetting, ParseCallback);
+			}
+			szEnvVar += strlen(szEnvVar) + 1;
+		}
+
+		FreeEnvironmentStrings(p_envStrings);
+	}
+
 	// Check for memory loading
 	if (_stricmp(p_wName, p_pName) == 0)
 	{
