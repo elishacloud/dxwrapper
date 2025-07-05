@@ -83,6 +83,13 @@ ULONG m_IDirect3DSurface9::Release(THIS)
 			}
 			Emu.pSurface = nullptr;
 		}
+
+		if (m_pDeviceEx->GetClientDXVersion() < 8)
+		{
+			m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
+
+			delete this;
+		}
     }
 
 	return ref;

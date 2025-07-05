@@ -331,6 +331,7 @@ public:
 	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
 	AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() const { return &SHARED.StateBlockTable; }
+	DWORD GetClientDXVersion() const { return SHARED.ClientDirectXVersion; }
 	REFIID GetIID() { return WrapperID; }
 
 	// Static functions
