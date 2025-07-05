@@ -33,6 +33,16 @@ public:
 	~m_IDirect3DSurface9()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		if (Emu.pSurface)
+		{
+			ULONG eref = Emu.pSurface->Release();
+			if (eref)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'Emu.pSurface' " << eref;
+			}
+			Emu.pSurface = nullptr;
+		}
 	}
 
 	/*** IUnknown methods ***/

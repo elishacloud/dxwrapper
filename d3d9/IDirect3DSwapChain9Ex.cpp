@@ -53,16 +53,7 @@ ULONG m_IDirect3DSwapChain9Ex::Release(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ULONG ref = ProxyInterface->Release();
-
-	if (ref == 0)
-	{
-		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
-
-		delete this;
-	}
-
-	return ref;
+	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirect3DSwapChain9Ex::Present(THIS_ CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion, DWORD dwFlags)

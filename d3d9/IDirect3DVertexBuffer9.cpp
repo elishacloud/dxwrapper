@@ -53,16 +53,7 @@ ULONG m_IDirect3DVertexBuffer9::Release(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ULONG ref = ProxyInterface->Release();
-
-	if (ref == 0)
-	{
-		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
-
-		delete this;
-	}
-
-	return ref;
+	return ProxyInterface->Release();
 }
 
 HRESULT m_IDirect3DVertexBuffer9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)

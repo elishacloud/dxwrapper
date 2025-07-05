@@ -76,14 +76,13 @@ ULONG m_IDirect3DSurface9::Release(THIS)
 	{
 		if (Emu.pSurface)
 		{
-			Emu.pSurface->UnlockRect();
-			Emu.pSurface->Release();
+			ULONG eref = Emu.pSurface->Release();
+			if (eref)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'Emu.pSurface' " << eref;
+			}
 			Emu.pSurface = nullptr;
 		}
-
-		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
-
-		delete this;
     }
 
 	return ref;
