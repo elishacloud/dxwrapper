@@ -67,7 +67,7 @@ public:
 	STDMETHOD(ReleaseDC)(THIS_ HDC hdc);
 
 	// Helper functions
-	LPDIRECT3DSURFACE9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DSURFACE9 GetProxyInterface() const { return ProxyInterface; }
 	LPDIRECT3DSURFACE9 GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags)
 	{
 		if (Desc.MultiSampleType && !(Desc.Usage & D3DUSAGE_DEPTHSTENCIL))
@@ -82,4 +82,5 @@ public:
 		return ProxyInterface;
 	}
 	HRESULT RestoreMultiSampleData();
+	void SetInterfaceValues(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };

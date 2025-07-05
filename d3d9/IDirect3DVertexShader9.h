@@ -29,5 +29,6 @@ public:
 	STDMETHOD(GetFunction)(THIS_ void* pData, UINT* pSizeOfData);
 
 	// Helper functions
-	LPDIRECT3DVERTEXSHADER9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DVERTEXSHADER9 GetProxyInterface() const { return ProxyInterface; }
+	void SetInterfaceValues(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };

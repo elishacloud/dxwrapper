@@ -32,5 +32,6 @@ public:
 	STDMETHOD(GetData)(THIS_ void* pData, DWORD dwSize, DWORD dwGetDataFlags);
 
 	// Helper functions
-	LPDIRECT3DQUERY9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DQUERY9 GetProxyInterface() const { return ProxyInterface; }
+	void SetInterfaceValues(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };

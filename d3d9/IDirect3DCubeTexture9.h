@@ -46,5 +46,6 @@ public:
 	STDMETHOD(AddDirtyRect)(THIS_ D3DCUBEMAP_FACES FaceType, CONST RECT* pDirtyRect);
 
 	// Helper functions
-	LPDIRECT3DCUBETEXTURE9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DCUBETEXTURE9 GetProxyInterface() const { return ProxyInterface; }
+	void SetInterfaceValues(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };

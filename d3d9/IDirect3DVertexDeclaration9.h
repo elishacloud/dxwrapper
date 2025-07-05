@@ -29,5 +29,6 @@ public:
 	STDMETHOD(GetDeclaration)(THIS_ D3DVERTEXELEMENT9* pElement, UINT* pNumElements);
 
 	// Helper functions
-	LPDIRECT3DVERTEXDECLARATION9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DVERTEXDECLARATION9 GetProxyInterface() const { return ProxyInterface; }
+	void SetInterfaceValues(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };

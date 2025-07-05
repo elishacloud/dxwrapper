@@ -38,5 +38,6 @@ public:
 	STDMETHOD(GetDesc)(THIS_ D3DVERTEXBUFFER_DESC *pDesc);
 
 	// Helper functions
-	LPDIRECT3DVERTEXBUFFER9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DVERTEXBUFFER9 GetProxyInterface() const { return ProxyInterface; }
+	void SetInterfaceValues(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };

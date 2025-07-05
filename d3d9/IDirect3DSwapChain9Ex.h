@@ -6,7 +6,7 @@ private:
 	LPDIRECT3DSWAPCHAIN9 ProxyInterface;
 	LPDIRECT3DSWAPCHAIN9EX ProxyInterfaceEx = nullptr;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
-	const IID WrapperID;
+	IID WrapperID;
 
 public:
 	m_IDirect3DSwapChain9Ex(LPDIRECT3DSWAPCHAIN9EX pSwapChain9, m_IDirect3DDevice9Ex* pDevice, REFIID DeviceID) : ProxyInterface(pSwapChain9), m_pDeviceEx(pDevice), WrapperID(DeviceID)
@@ -45,5 +45,17 @@ public:
 	STDMETHOD(GetDisplayModeEx)(THIS_ D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
 
 	// Helper functions
-	LPDIRECT3DSWAPCHAIN9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DSWAPCHAIN9 GetProxyInterface() const { return ProxyInterface; }
+	void SetInterfaceValues(m_IDirect3DDevice9Ex* Device, REFIID riid, void*) {
+		m_pDeviceEx = Device;
+		WrapperID == riid;
+		if (riid == IID_IDirect3DSwapChain9Ex)
+		{
+			ProxyInterfaceEx = reinterpret_cast<LPDIRECT3DSWAPCHAIN9EX>(ProxyInterface);
+		}
+		else
+		{
+			ProxyInterfaceEx = nullptr;
+		}
+	}
 };

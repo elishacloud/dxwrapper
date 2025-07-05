@@ -35,5 +35,6 @@ public:
 	STDMETHOD(UnlockBox)(THIS);
 
 	// Helper functions
-	LPDIRECT3DVOLUME9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DVOLUME9 GetProxyInterface() const { return ProxyInterface; }
+	void SetInterfaceValues(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };

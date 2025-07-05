@@ -31,5 +31,6 @@ public:
 	STDMETHOD(Apply)(THIS);
 
 	// Helper functions
-	LPDIRECT3DSTATEBLOCK9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DSTATEBLOCK9 GetProxyInterface() const { return ProxyInterface; }
+	void SetInterfaceValues(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; DDKey = NO_MAP_VALUE; }
 };

@@ -46,5 +46,6 @@ public:
 	STDMETHOD(AddDirtyRect)(THIS_ CONST RECT* pDirtyRect);
 
 	// Helper functions
-	LPDIRECT3DTEXTURE9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DTEXTURE9 GetProxyInterface() const { return ProxyInterface; }
+	void SetInterfaceValues(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };

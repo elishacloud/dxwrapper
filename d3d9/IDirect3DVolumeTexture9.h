@@ -46,5 +46,6 @@ public:
 	STDMETHOD(AddDirtyBox)(THIS_ CONST D3DBOX* pDirtyBox);
 
 	// Helper functions
-	LPDIRECT3DVOLUMETEXTURE9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DVOLUMETEXTURE9 GetProxyInterface() const { return ProxyInterface; }
+	void SetInterfaceValues(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };
