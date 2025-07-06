@@ -5343,18 +5343,16 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 		surface.Texture = nullptr;
 	}
 
-	// Clear display flags
-	if (!ResetSurface)
+	// Reset display flags
+	if (ResetDisplayFlags && !ResetSurface)
 	{
-		if (ResetDisplayFlags && !ResetSurface)
-		{
-			surfaceDesc2.dwFlags &= ~ResetDisplayFlags;
-			ClearUnusedValues(surfaceDesc2);
-		}
-		if (surfaceDesc2.dwFlags & DDSD_REFRESHRATE)
-		{
-			surfaceDesc2.dwRefreshRate = 0;
-		}
+		surfaceDesc2.dwFlags &= ~ResetDisplayFlags;
+		ClearUnusedValues(surfaceDesc2);
+	}
+
+	if (surfaceDesc2.dwFlags & DDSD_REFRESHRATE)
+	{
+		surfaceDesc2.dwRefreshRate = 0;
 	}
 }
 
