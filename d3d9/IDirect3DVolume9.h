@@ -12,6 +12,8 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
+		InitInterface(pDevice, WrapperID, nullptr);
+
 		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DVolume9()
@@ -36,5 +38,5 @@ public:
 
 	// Helper functions
 	LPDIRECT3DVOLUME9 GetProxyInterface() const { return ProxyInterface; }
-	void SetInterfaceValues(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
+	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };

@@ -158,7 +158,7 @@ T* AddressLookupTableD3d9::CreateFindAddress(void* Proxy, D* Device, REFIID riid
 	if (it != std::end(g_map[CacheIndex]))
 	{
 		T* addr = static_cast<T*>(it->second);
-		addr->SetInterfaceValues(Device, riid, Data);
+		addr->InitInterface(Device, riid, Data);
 		return addr;
 	}
 

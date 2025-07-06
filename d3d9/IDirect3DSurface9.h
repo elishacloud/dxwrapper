@@ -23,10 +23,7 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		if (FAILED(GetDesc(&Desc)))
-		{
-			LOG_LIMIT(3, __FUNCTION__ << " Failed to GetDesc()!" << this << ")");
-		}
+		InitInterface(pDevice, WrapperID, nullptr);
 
 		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
 	}
@@ -82,5 +79,22 @@ public:
 		return ProxyInterface;
 	}
 	HRESULT RestoreMultiSampleData();
-	void SetInterfaceValues(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
+	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) {
+		m_pDeviceEx = Device;
+
+		if (FAILED(GetDesc(&Desc)))
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Failed to GetDesc()!" << this << ")");
+		}
+
+		if (Emu.pSurface)
+		{
+			ULONG eref = Emu.pSurface->Release();
+			if (eref)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'Emu.pSurface' " << eref;
+			}
+			Emu.pSurface = nullptr;
+		}
+	}
 };

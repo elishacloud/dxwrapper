@@ -4,7 +4,7 @@ class m_IDirect3DSwapChain9Ex : public IDirect3DSwapChain9Ex, public AddressLook
 {
 private:
 	LPDIRECT3DSWAPCHAIN9 ProxyInterface;
-	LPDIRECT3DSWAPCHAIN9EX ProxyInterfaceEx = nullptr;
+	LPDIRECT3DSWAPCHAIN9EX ProxyInterfaceEx;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	IID WrapperID;
 
@@ -13,10 +13,7 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID);
 
-		if (WrapperID == IID_IDirect3DSwapChain9Ex)
-		{
-			ProxyInterfaceEx = pSwapChain9;
-		}
+		InitInterface(pDevice, WrapperID, nullptr);
 
 		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
 	}
@@ -46,7 +43,7 @@ public:
 
 	// Helper functions
 	LPDIRECT3DSWAPCHAIN9 GetProxyInterface() const { return ProxyInterface; }
-	void SetInterfaceValues(m_IDirect3DDevice9Ex* Device, REFIID riid, void*) {
+	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID riid, void*) {
 		m_pDeviceEx = Device;
 		WrapperID == riid;
 		if (riid == IID_IDirect3DSwapChain9Ex)
