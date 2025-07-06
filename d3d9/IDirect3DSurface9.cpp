@@ -184,7 +184,7 @@ m_IDirect3DSurface9* m_IDirect3DSurface9::m_GetNonMultiSampledSurface(const RECT
 		if (SUCCEEDED((Desc.Usage & D3DUSAGE_RENDERTARGET) ? m_pDeviceEx->GetProxyInterface()->CreateRenderTarget(Desc.Width, Desc.Height, Desc.Format, D3DMULTISAMPLE_NONE, 0, TRUE, (LPDIRECT3DSURFACE9*)&Emu.pSurface, nullptr) :
 			m_pDeviceEx->GetProxyInterface()->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, D3DPOOL_SYSTEMMEM, (LPDIRECT3DSURFACE9*)&Emu.pSurface, nullptr)))
 		{
-			Emu.pSurface = m_pDeviceEx->GetLookupTable()->CreateFindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(Emu.pSurface, m_pDeviceEx, IID_IDirect3DSurface9, nullptr);
+			Emu.pSurface = m_pDeviceEx->GetLookupTable()->FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(Emu.pSurface, m_pDeviceEx, IID_IDirect3DSurface9, nullptr);
 		}
 	}
 	if (Emu.pSurface)

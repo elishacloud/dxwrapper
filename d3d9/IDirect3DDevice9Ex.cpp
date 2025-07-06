@@ -409,11 +409,11 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 		{
 			(*ppSwapChain)->Release();
 
-			*ppSwapChain = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>((IDirect3DSwapChain9Ex*)pSwapChainQuery, this, IID_IDirect3DSwapChain9Ex, nullptr);
+			*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>((IDirect3DSwapChain9Ex*)pSwapChainQuery, this, IID_IDirect3DSwapChain9Ex, nullptr);
 		}
 		else
 		{
-			*ppSwapChain = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>((IDirect3DSwapChain9Ex*)*ppSwapChain, this, IID_IDirect3DSwapChain9, nullptr);
+			*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>((IDirect3DSwapChain9Ex*)*ppSwapChain, this, IID_IDirect3DSwapChain9, nullptr);
 		}
 
 		return D3D_OK;
@@ -445,7 +445,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateCubeTexture(THIS_ UINT EdgeLength, UINT Leve
 
 	if (SUCCEEDED(hr))
 	{
-		*ppCubeTexture = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppCubeTexture, this, IID_IDirect3DCubeTexture9, nullptr);
+		*ppCubeTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppCubeTexture, this, IID_IDirect3DCubeTexture9, nullptr);
 		return D3D_OK;
 	}
 
@@ -487,7 +487,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSurface = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 		return D3D_OK;
 	}
 
@@ -517,7 +517,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateIndexBuffer(THIS_ UINT Length, DWORD Usage, 
 
 	if (SUCCEEDED(hr))
 	{
-		*ppIndexBuffer = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DIndexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(*ppIndexBuffer, this, IID_IDirect3DIndexBuffer9, nullptr);
+		*ppIndexBuffer = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DIndexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(*ppIndexBuffer, this, IID_IDirect3DIndexBuffer9, nullptr);
 		return D3D_OK;
 	}
 
@@ -559,7 +559,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSurface = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 		return D3D_OK;
 	}
 
@@ -589,7 +589,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 
 	if (SUCCEEDED(hr))
 	{
-		*ppTexture = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DTexture9, nullptr);
+		*ppTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DTexture9, nullptr);
 		return D3D_OK;
 	}
 
@@ -625,7 +625,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexBuffer(THIS_ UINT Length, DWORD Usage,
 
 	if (SUCCEEDED(hr))
 	{
-		*ppVertexBuffer = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DVertexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(*ppVertexBuffer, this, IID_IDirect3DVertexBuffer9, nullptr);
+		*ppVertexBuffer = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(*ppVertexBuffer, this, IID_IDirect3DVertexBuffer9, nullptr);
 		return D3D_OK;
 	}
 
@@ -655,7 +655,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateVolumeTexture(THIS_ UINT Width, UINT Height,
 
 	if (SUCCEEDED(hr))
 	{
-		*ppVolumeTexture = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DVolumeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppVolumeTexture, this, IID_IDirect3DVolumeTexture9, nullptr);
+		*ppVolumeTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVolumeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppVolumeTexture, this, IID_IDirect3DVolumeTexture9, nullptr);
 		return D3D_OK;
 	}
 
@@ -683,7 +683,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateStateBlock(THIS_ D3DSTATEBLOCKTYPE Type, IDi
 
 	if (SUCCEEDED(hr))
 	{
-		m_IDirect3DStateBlock9* StateBlockX = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(*ppSB, this, IID_IDirect3DStateBlock9, nullptr);
+		m_IDirect3DStateBlock9* StateBlockX = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(*ppSB, this, IID_IDirect3DStateBlock9, nullptr);
 
 		if (Config.LimitStateBlocks)
 		{
@@ -1404,7 +1404,7 @@ HRESULT m_IDirect3DDevice9Ex::CreatePixelShader(THIS_ CONST DWORD* pFunction, ID
 
 	if (SUCCEEDED(hr))
 	{
-		*ppShader = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DPixelShader9, m_IDirect3DDevice9Ex, LPVOID>(*ppShader, this, IID_IDirect3DPixelShader9, nullptr);
+		*ppShader = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DPixelShader9, m_IDirect3DDevice9Ex, LPVOID>(*ppShader, this, IID_IDirect3DPixelShader9, nullptr);
 		return D3D_OK;
 	}
 
@@ -2118,7 +2118,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexShader(THIS_ CONST DWORD* pFunction, I
 
 	if (SUCCEEDED(hr))
 	{
-		*ppShader = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DVertexShader9, m_IDirect3DDevice9Ex, LPVOID>(*ppShader, this, IID_IDirect3DVertexShader9, nullptr);
+		*ppShader = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexShader9, m_IDirect3DDevice9Ex, LPVOID>(*ppShader, this, IID_IDirect3DVertexShader9, nullptr);
 		return D3D_OK;
 	}
 
@@ -2165,7 +2165,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateQuery(THIS_ D3DQUERYTYPE Type, IDirect3DQuer
 
 	if (SUCCEEDED(hr))
 	{
-		*ppQuery = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DQuery9, m_IDirect3DDevice9Ex, LPVOID>(*ppQuery, this, IID_IDirect3DQuery9, nullptr);
+		*ppQuery = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DQuery9, m_IDirect3DDevice9Ex, LPVOID>(*ppQuery, this, IID_IDirect3DQuery9, nullptr);
 		return D3D_OK;
 	}
 
@@ -2298,7 +2298,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexDeclaration(THIS_ CONST D3DVERTEXELEME
 
 	if (SUCCEEDED(hr))
 	{
-		*ppDecl = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DVertexDeclaration9, m_IDirect3DDevice9Ex, LPVOID>(*ppDecl, this, IID_IDirect3DVertexDeclaration9, nullptr);
+		*ppDecl = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexDeclaration9, m_IDirect3DDevice9Ex, LPVOID>(*ppDecl, this, IID_IDirect3DVertexDeclaration9, nullptr);
 		return D3D_OK;
 	}
 
@@ -2520,7 +2520,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurface(THIS_ UINT Width, UINT
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSurface = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 		return D3D_OK;
 	}
 
@@ -3046,7 +3046,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSurface = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 		return D3D_OK;
 	}
 
@@ -3081,7 +3081,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSurface = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 		return D3D_OK;
 	}
 
@@ -3124,7 +3124,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSurface = SHARED.ProxyAddressLookupTable9.CreateFindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 		return D3D_OK;
 	}
 

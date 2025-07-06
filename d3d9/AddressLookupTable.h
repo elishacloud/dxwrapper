@@ -20,7 +20,7 @@ public:
 	~AddressLookupTableD3d9();
 
 	template <typename T, typename D, typename L>
-	T* CreateFindAddress(void* Proxy, D* Device, REFIID riid, L Data);
+	T* FindCreateAddress(void* Proxy, D* Device, REFIID riid, L Data);
 
 	template <typename T, typename D, typename L>
 	T* FindAddress(void* Proxy, D* Device, REFIID riid, L Data);
