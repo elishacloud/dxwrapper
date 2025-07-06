@@ -4365,7 +4365,7 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 
 	if (Config.Dd7to9)
 	{
-		if (!dwBlockHandle || StateBlockTokens.find(dwBlockHandle) == StateBlockTokens.end())
+		if (dwBlockHandle == 0)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -4373,6 +4373,11 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 		if (IsRecordingState)
 		{
 			return DDERR_GENERIC;
+		}
+
+		if (StateBlockTokens.find(dwBlockHandle) == StateBlockTokens.end())
+		{
+			return D3D_OK;
 		}
 
 		return reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Apply();
@@ -4387,7 +4392,7 @@ HRESULT m_IDirect3DDeviceX::CaptureStateBlock(DWORD dwBlockHandle)
 
 	if (Config.Dd7to9)
 	{
-		if (!dwBlockHandle || StateBlockTokens.find(dwBlockHandle) == StateBlockTokens.end())
+		if (dwBlockHandle == 0)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -4395,6 +4400,11 @@ HRESULT m_IDirect3DDeviceX::CaptureStateBlock(DWORD dwBlockHandle)
 		if (IsRecordingState)
 		{
 			return DDERR_GENERIC;
+		}
+
+		if (StateBlockTokens.find(dwBlockHandle) == StateBlockTokens.end())
+		{
+			return D3D_OK;
 		}
 
 		return reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Capture();
@@ -4409,7 +4419,7 @@ HRESULT m_IDirect3DDeviceX::DeleteStateBlock(DWORD dwBlockHandle)
 
 	if (Config.Dd7to9)
 	{
-		if (!dwBlockHandle || StateBlockTokens.find(dwBlockHandle) == StateBlockTokens.end())
+		if (dwBlockHandle == 0)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -4417,6 +4427,11 @@ HRESULT m_IDirect3DDeviceX::DeleteStateBlock(DWORD dwBlockHandle)
 		if (IsRecordingState)
 		{
 			return DDERR_GENERIC;
+		}
+
+		if (StateBlockTokens.find(dwBlockHandle) == StateBlockTokens.end())
+		{
+			return D3D_OK;
 		}
 
 		reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Release();
