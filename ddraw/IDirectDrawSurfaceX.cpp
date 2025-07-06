@@ -2430,6 +2430,16 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			return c_hr;
 		}
 
+		// Check for zbuffer, just using emulated or fake surface for this
+		if ((IsDepthStencil() || (surface.Usage & D3DUSAGE_DEPTHSTENCIL)) &&
+			(lpDDSurfaceDesc2->dwFlags & (DDSD_LPSURFACE | DDSD_PITCH)) == (DDSD_LPSURFACE | DDSD_PITCH) &&
+			lpDDSurfaceDesc2->lpSurface && lpDDSurfaceDesc2->lPitch)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: attempting to lock zbuffer, which is not fully implemented!");
+			LockedLevel[0].IsLocked = true;
+			return DD_OK;
+		}
+
 		ScopedCriticalSection ThreadLock(GetCriticalSection());
 
 		LASTLOCK& LastLock = LockedLevel[MipMapLevel];
@@ -3038,6 +3048,14 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 		if (FAILED(c_hr))
 		{
 			return c_hr;
+		}
+
+		// Check for zbuffer, just using emulated or fake surface for this
+		if ((IsDepthStencil() || (surface.Usage & D3DUSAGE_DEPTHSTENCIL)) &&
+			LockedLevel[0].IsLocked)
+		{
+			LockedLevel[0].IsLocked = false;
+			return DD_OK;
 		}
 
 		// Check struct
