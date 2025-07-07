@@ -606,7 +606,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		// Check for existing device
 		if (!D3DDeviceList.empty())
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Direct3DDevice is already setup. Multiple Direct3DDevice's are not implemented!");
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3DDevice is already setup. Multiple Direct3DDevice's not fully implemented!");
 		}
 
 		m_IDirect3DDeviceX* Interface = new m_IDirect3DDeviceX(ddrawParent, this, lpDDS, rclsid, DirectXVersion);
