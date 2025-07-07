@@ -192,29 +192,36 @@ void Settings::SetValue(char* name, char* value, std::vector<std::string>* setti
 	std::string newString;
 	newString.assign(value);
 	// Trim whitespaces
-	newString = std::regex_replace(newString, std::regex("(^\\s*(.*\\S)\\s*$)|(^\\s*$)"), "$2");
-	if (newString.size() != 0)
+	newString = std::regex_replace(newString, std::regex("^\\s+|\\s+$"), "");
+
+	if (!newString.empty() && _stricmp(newString.c_str(), "auto") != 0)
 	{
 		setting->push_back(newString);
-	}
 #ifdef _DEBUG
-	Logging::Log() << name << " set to '" << setting->back().c_str() << "'";
+		Logging::Log() << name << " set to '" << setting->back().c_str() << "'";
 #else
-	UNREFERENCED_PARAMETER(name);
+		UNREFERENCED_PARAMETER(name);
 #endif
+	}
 }
 
-// Set value for string
+// Set value for strings
 void Settings::SetValue(char* name, char* value, std::string* setting)
 {
-	setting->assign(value);
+	std::string newString;
+	newString.assign(value);
 	// Trim whitespaces
-	*setting = std::regex_replace(*setting, std::regex("(^\\s*(.*\\S)\\s*$)|(^\\s*$)"), "$2");
+	newString = std::regex_replace(newString, std::regex("^\\s+|\\s+$"), "");
+
+	if (!newString.empty() && _stricmp(newString.c_str(), "auto") != 0)
+	{
+		setting->assign(newString);
 #ifdef _DEBUG
-	Logging::Log() << name << " set to '" << setting->c_str() << "'";
+		Logging::Log() << name << " set to '" << setting->c_str() << "'";
 #else
-	UNREFERENCED_PARAMETER(name);
+		UNREFERENCED_PARAMETER(name);
 #endif
+	}
 }
 
 // Set value for DWORD
