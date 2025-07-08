@@ -2432,6 +2432,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		// Check for zbuffer, just using emulated or fake surface for this
 		if ((IsDepthStencil() || (surface.Usage & D3DUSAGE_DEPTHSTENCIL)) &&
+			IsD9UsingVideoMemory() &&
 			(lpDDSurfaceDesc2->dwFlags & (DDSD_LPSURFACE | DDSD_PITCH)) == (DDSD_LPSURFACE | DDSD_PITCH) &&
 			lpDDSurfaceDesc2->lpSurface && lpDDSurfaceDesc2->lPitch)
 		{
@@ -3052,6 +3053,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 
 		// Check for zbuffer, just using emulated or fake surface for this
 		if ((IsDepthStencil() || (surface.Usage & D3DUSAGE_DEPTHSTENCIL)) &&
+			IsD9UsingVideoMemory() &&
 			LockedLevel[0].IsLocked)
 		{
 			LockedLevel[0].IsLocked = false;
