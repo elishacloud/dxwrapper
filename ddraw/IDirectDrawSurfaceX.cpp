@@ -429,6 +429,15 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 	if (Config.Dd7to9)
 	{
+		// All DDBLT_ALPHA flag values, Not currently implemented in DirectDraw.
+		DWORD AlphaFlags = dwFlags & (DDBLT_ALPHADEST | DDBLT_ALPHADESTCONSTOVERRIDE | DDBLT_ALPHADESTNEG | DDBLT_ALPHADESTSURFACEOVERRIDE |
+			DDBLT_ALPHASRC | DDBLT_ALPHASRCCONSTOVERRIDE | DDBLT_ALPHASRCNEG | DDBLT_ALPHASRCSURFACEOVERRIDE);
+		if (AlphaFlags)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: alpha flags not implemented: " << AlphaFlags);
+			return DDERR_NOALPHAHW;
+		}
+
 		// All DDBLT_ZBUFFER flag values: This method does not currently support z-aware bitblt operations. None of the flags beginning with "DDBLT_ZBUFFER" are supported in DirectDraw.
 		if (dwFlags & (DDBLT_ZBUFFER | DDBLT_ZBUFFERDESTCONSTOVERRIDE | DDBLT_ZBUFFERDESTOVERRIDE | DDBLT_ZBUFFERSRCCONSTOVERRIDE | DDBLT_ZBUFFERSRCOVERRIDE))
 		{
@@ -471,14 +480,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Raster operation Not Implemented " << Logging::hex(lpDDBltFx->dwROP));
 			return DDERR_NORASTEROPHW;
-		}
-
-		// All DDBLT_ALPHA flag values, Not currently implemented in DirectDraw.
-		DWORD AlphaFlags = dwFlags & (DDBLT_ALPHADEST | DDBLT_ALPHADESTCONSTOVERRIDE | DDBLT_ALPHADESTNEG | DDBLT_ALPHADESTSURFACEOVERRIDE | DDBLT_ALPHAEDGEBLEND |
-			DDBLT_ALPHASRC | DDBLT_ALPHASRCCONSTOVERRIDE | DDBLT_ALPHASRCNEG | DDBLT_ALPHASRCSURFACEOVERRIDE);
-		if (AlphaFlags)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: alpha flags not implemented: " << AlphaFlags);
 		}
 
 		// Get source mipmap level
