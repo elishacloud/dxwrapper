@@ -2431,15 +2431,13 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			return c_hr;
 		}
 
-		// Check for zbuffer, just using emulated or fake surface for this
-		if ((IsDepthStencil() || (surface.Usage & D3DUSAGE_DEPTHSTENCIL)) &&
-			IsD9UsingVideoMemory() &&
-			(lpDDSurfaceDesc2->dwFlags & (DDSD_LPSURFACE | DDSD_PITCH)) == (DDSD_LPSURFACE | DDSD_PITCH) &&
-			lpDDSurfaceDesc2->lpSurface && lpDDSurfaceDesc2->lPitch)
+		// Check for video memory zbuffers
+		if ((IsDepthStencil() || (surface.Usage & D3DUSAGE_DEPTHSTENCIL)) && IsD9UsingVideoMemory())
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: attempting to lock zbuffer, which is not fully implemented!");
-			LockedLevel[0].IsLocked = true;
-			return DD_OK;
+			lpDDSurfaceDesc2->dwFlags &= ~(DDSD_LPSURFACE | DDSD_PITCH);
+			lpDDSurfaceDesc2->lPitch = 0;
+			lpDDSurfaceDesc2->lpSurface = nullptr;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		ScopedCriticalSection ThreadLock(GetCriticalSection());
@@ -3050,15 +3048,6 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 		if (FAILED(c_hr))
 		{
 			return c_hr;
-		}
-
-		// Check for zbuffer, just using emulated or fake surface for this
-		if ((IsDepthStencil() || (surface.Usage & D3DUSAGE_DEPTHSTENCIL)) &&
-			IsD9UsingVideoMemory() &&
-			LockedLevel[0].IsLocked)
-		{
-			LockedLevel[0].IsLocked = false;
-			return DD_OK;
 		}
 
 		// Check struct
@@ -5090,11 +5079,14 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	if (IsChanged && (surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT))
 	{
 		m_IDirectDrawSurfaceX* lpAttachedSurfaceX = GetAttachedDepthStencil();
-		if (lpAttachedSurfaceX && (surfaceDesc2.dwWidth != lpAttachedSurfaceX->surfaceDesc2.dwWidth || surfaceDesc2.dwHeight != lpAttachedSurfaceX->surfaceDesc2.dwHeight))
+		if (lpAttachedSurfaceX && (surfaceDesc2.dwWidth != lpAttachedSurfaceX->surfaceDesc2.dwWidth ||
+			surfaceDesc2.dwHeight != lpAttachedSurfaceX->surfaceDesc2.dwHeight ||
+			(lpAttachedSurfaceX->surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)))
 		{
 			lpAttachedSurfaceX->ReleaseD9Surface(false, false);
 			lpAttachedSurfaceX->surfaceDesc2.dwWidth = surfaceDesc2.dwWidth;
 			lpAttachedSurfaceX->surfaceDesc2.dwHeight = surfaceDesc2.dwHeight;
+			lpAttachedSurfaceX->surfaceDesc2.ddsCaps.dwCaps = (lpAttachedSurfaceX->surfaceDesc2.ddsCaps.dwCaps & ~DDSCAPS_SYSTEMMEMORY) | DDSCAPS_VIDEOMEMORY | DDSCAPS_LOCALVIDMEM;
 			if (ddrawParent->GetRenderTargetSurface() == this)
 			{
 				ddrawParent->SetDepthStencilSurface(lpAttachedSurfaceX);
