@@ -1898,6 +1898,9 @@
     <ClInclude Include="External\Hooking\Disasm.h">
       <Filter>External\Hooking</Filter>
     </ClInclude>
+    <ClInclude Include="ddraw\Shaders\VertexFixUpShader.h">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
@@ -1915,6 +1918,9 @@
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
     <CustomBuild Include="ddraw\Shaders\GammaPixelShader.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ddraw\Shaders\VertexFixUpShader.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
   </ItemGroup>

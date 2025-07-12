@@ -24,6 +24,7 @@
 #include "Shaders\PaletteShader.h"
 #include "Shaders\ColorKeyShader.h"
 #include "Shaders\GammaPixelShader.h"
+#include "Shaders\VertexFixUpShader.h"
 
 namespace {
 	// Store a list of ddraw devices
@@ -94,6 +95,7 @@ namespace {
 	LPDIRECT3DPIXELSHADER9 palettePixelShader = nullptr;
 	LPDIRECT3DPIXELSHADER9 colorkeyPixelShader = nullptr;
 	LPDIRECT3DPIXELSHADER9 gammaPixelShader = nullptr;
+	LPDIRECT3DVERTEXSHADER9 fixupVertexShader = nullptr;
 	LPDIRECT3DVERTEXBUFFER9 validateDeviceVertexBuffer = nullptr;
 	LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = nullptr;
 
@@ -3004,7 +3006,7 @@ bool m_IDirectDrawX::CreatePaletteShader()
 
 LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetColorKeyShader()
 {
-	// Create pixel shaders
+	// Create pixel shader
 	if (d3d9Device && !colorkeyPixelShader)
 	{
 		d3d9Device->CreatePixelShader((DWORD*)ColorKeyPixelShaderSrc, &colorkeyPixelShader);
@@ -3014,12 +3016,22 @@ LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetColorKeyShader()
 
 LPDIRECT3DPIXELSHADER9 m_IDirectDrawX::GetGammaPixelShader()
 {
-	// Create pixel shaders
+	// Create pixel shader
 	if (d3d9Device && !gammaPixelShader)
 	{
 		d3d9Device->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &gammaPixelShader);
 	}
 	return gammaPixelShader;
+}
+
+LPDIRECT3DVERTEXSHADER9* m_IDirectDrawX::GetVertexFixupShader()
+{
+	// Create vertex shader
+	if (d3d9Device && !fixupVertexShader)
+	{
+		d3d9Device->CreateVertexShader((DWORD*)VertexFixUpShaderSrc, &fixupVertexShader);
+	}
+	return &fixupVertexShader;
 }
 
 LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size)
@@ -4137,6 +4149,18 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'gammaPixelShader' " << ref;
 		}
 		gammaPixelShader = nullptr;
+	}
+
+	// Release fixup vertex shader
+	if (fixupVertexShader)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 gamma pixel shader";
+		ULONG ref = fixupVertexShader->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'fixupVertexShader' " << ref;
+		}
+		fixupVertexShader = nullptr;
 	}
 }
 

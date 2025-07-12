@@ -26,6 +26,7 @@
 	visit(DDrawCompat32) \
 	visit(DDrawCompatDisableGDIHook) \
 	visit(DDrawCompatNoProcAffinity) \
+	visit(DdrawAlternatePixelCenter) \
 	visit(DdrawAutoFrameSkip) \
 	visit(DdrawClippedWidth) \
 	visit(DdrawClippedHeight) \
@@ -229,6 +230,7 @@ struct CONFIG
 	bool DDrawCompat32 = false;					// Enables DDrawCompat v0.3.2
 	bool DDrawCompatDisableGDIHook = false;		// Disables DDrawCompat GDI hooks
 	bool DDrawCompatNoProcAffinity = false;		// Disables DDrawCompat single processor affinity
+	bool DdrawAlternatePixelCenter = false;		// Enables alternate pixel center -0.5f vs 0.0
 	bool DdrawAutoFrameSkip = false;			// Automatically skips frames to reduce input lag
 	DWORD DdrawFixByteAlignment = false;		// Fixes lock with surfaces that have unaligned byte sizes, 1) just byte align, 2) byte align + D3DTEXF_NONE, 3) byte align + D3DTEXF_LINEAR
 	bool DdrawEnableByteAlignment = false;		// Disables 32bit / 64bit byte alignment

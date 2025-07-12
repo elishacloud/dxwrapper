@@ -179,8 +179,10 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 				*lpdwSize = VertexData.size();
 			}
 
-			// Should not need to copy from vertex buffer??
-			//ConvertLVertex((D3DLVERTEX*)VertexData.data(), (D3DLVERTEX9*)pData, VBDesc.dwNumVertices);
+			if (dwFlags & DDLOCK_DISCARDCONTENTS)
+			{
+				ZeroMemory(VertexData.data(), VertexData.size());
+			}
 		}
 		else
 		{

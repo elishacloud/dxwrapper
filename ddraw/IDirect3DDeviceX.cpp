@@ -5623,6 +5623,7 @@ void m_IDirect3DDeviceX::ClearDdraw()
 	ReleaseAllStateBlocks();
 	ddrawParent = nullptr;
 	colorkeyPixelShader = nullptr;
+	fixupVertexShader = nullptr;
 	d3d9Device = nullptr;
 }
 
@@ -5831,6 +5832,47 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			(*d3d9Device)->SetPixelShaderConstantF(1, DrawStates.highColorKey, 1);
 		}
 	}
+	if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && d3d9Device && *d3d9Device && ddrawParent)
+	{
+		const DWORD SupportedFvF = D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEXCOUNT_MASK;
+
+		const DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
+
+		if ((dwVertexTypeDesc & ~SupportedFvF) == 0 && texCount <= D3DDP_MAXTEXCOORD)
+		{
+			if (!fixupVertexShader || !*fixupVertexShader)
+			{
+				fixupVertexShader = ddrawParent->GetVertexFixupShader();
+			}
+			if (fixupVertexShader && *fixupVertexShader)
+			{
+				// Set FVF type
+				float fvfTypeF[4] = {
+					0.0f,
+					(dwVertexTypeDesc & D3DFVF_DIFFUSE) ? 1.0f : 0.0f,
+					(dwVertexTypeDesc & D3DFVF_SPECULAR) ? 1.0f : 0.0f,
+					(float)texCount
+				};
+				(*d3d9Device)->SetVertexShaderConstantF(1, fvfTypeF, 1);
+
+				// Set pixel center offset (-0.5 if AlternatePixelCenter is enabled)
+				float pixelOffset[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+				if (Config.DdrawAlternatePixelCenter)
+				{
+					pixelOffset[0] = -0.5f;
+					pixelOffset[1] = -0.5f;
+				}
+				(*d3d9Device)->SetVertexShaderConstantF(2, pixelOffset, 1);
+
+				// Set vertex shader
+				(*d3d9Device)->SetVertexShader(*fixupVertexShader);
+			}
+		}
+		else
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: unsupported FVF shader type: " << Logging::hex(dwVertexTypeDesc));
+		}
+	}
 }
 
 void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
@@ -5872,6 +5914,10 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags
 	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
 	{
 		(*d3d9Device)->SetPixelShader(nullptr);
+	}
+	if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && d3d9Device && *d3d9Device)
+	{
+		(*d3d9Device)->SetVertexShader(nullptr);
 	}
 }
 
@@ -5957,7 +6003,9 @@ void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVerti
 	{
 		VertexCache.resize((dwVertexStart + dwVertexCount) * sizeof(D3DLVERTEX9));
 		BYTE* base = static_cast<BYTE*>(VertexCache.data());
-		ConvertLVertex(reinterpret_cast<D3DLVERTEX9*>(base + (dwVertexStart * sizeof(D3DLVERTEX9))), reinterpret_cast<D3DLVERTEX*>(lpVertices), dwVertexCount);
+		ConvertLVertex(reinterpret_cast<D3DLVERTEX9*>(base + (dwVertexStart * sizeof(D3DLVERTEX9))),
+			reinterpret_cast<D3DLVERTEX*>((DWORD)lpVertices + (dwVertexStart * sizeof(D3DLVERTEX))),
+			dwVertexCount);
 
 		dwVertexTypeDesc = D3DFVF_LVERTEX9;
 		lpVertices = VertexCache.data();

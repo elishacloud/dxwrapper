@@ -22,6 +22,7 @@ private:
 	m_IDirect3DX* D3DInterface = nullptr;
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 	LPDIRECT3DPIXELSHADER9* colorkeyPixelShader = nullptr;
+	LPDIRECT3DVERTEXSHADER9* fixupVertexShader = nullptr;
 	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
 	m_IDirect3DViewportX* lpCurrentViewportX = nullptr;
 	struct {
