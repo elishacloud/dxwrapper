@@ -8262,6 +8262,7 @@ HRESULT m_IDirectDrawSurfaceX::LockD3d9Surface(D3DLOCKED_RECT* pLockedRect, RECT
 	// Lock surface texture
 	else if (surface.Texture)
 	{
+		Flags &= ~D3DLOCK_DONOTWAIT;
 		HRESULT hr = surface.Texture->LockRect(GetD3d9MipMapLevel(MipMapLevel), pLockedRect, pRect, Flags);
 		if (FAILED(hr) && (Flags & D3DLOCK_NOSYSLOCK))
 		{
