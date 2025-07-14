@@ -5834,43 +5834,23 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	}
 	if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && d3d9Device && *d3d9Device && ddrawParent)
 	{
-		const DWORD SupportedFvF = D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEXCOUNT_MASK;
-
-		const DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
-
-		if ((dwVertexTypeDesc & ~SupportedFvF) == 0 && texCount <= D3DDP_MAXTEXCOORD)
+		if (!fixupVertexShader || !*fixupVertexShader)
 		{
-			if (!fixupVertexShader || !*fixupVertexShader)
-			{
-				fixupVertexShader = ddrawParent->GetVertexFixupShader();
-			}
-			if (fixupVertexShader && *fixupVertexShader)
-			{
-				// Set FVF type
-				float fvfTypeF[4] = {
-					0.0f,
-					(dwVertexTypeDesc & D3DFVF_DIFFUSE) ? 1.0f : 0.0f,
-					(dwVertexTypeDesc & D3DFVF_SPECULAR) ? 1.0f : 0.0f,
-					(float)texCount
-				};
-				(*d3d9Device)->SetVertexShaderConstantF(1, fvfTypeF, 1);
-
-				// Set pixel center offset (-0.5 if AlternatePixelCenter is enabled)
-				float pixelOffset[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-				if (Config.DdrawAlternatePixelCenter)
-				{
-					pixelOffset[0] = -0.5f;
-					pixelOffset[1] = -0.5f;
-				}
-				(*d3d9Device)->SetVertexShaderConstantF(2, pixelOffset, 1);
-
-				// Set vertex shader
-				(*d3d9Device)->SetVertexShader(*fixupVertexShader);
-			}
+			fixupVertexShader = ddrawParent->GetVertexFixupShader();
 		}
-		else
+		if (fixupVertexShader && *fixupVertexShader)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: unsupported FVF shader type: " << Logging::hex(dwVertexTypeDesc));
+			// Set pixel center offset (-0.5 if AlternatePixelCenter is enabled)
+			float pixelOffset[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+			if (Config.DdrawAlternatePixelCenter)
+			{
+				pixelOffset[0] = -0.5f;
+				pixelOffset[1] = -0.5f;
+			}
+			(*d3d9Device)->SetVertexShaderConstantF(1, pixelOffset, 1);
+
+			// Set vertex shader
+			(*d3d9Device)->SetVertexShader(*fixupVertexShader);
 		}
 	}
 }

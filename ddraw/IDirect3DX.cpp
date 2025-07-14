@@ -946,7 +946,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 				char Desc[MAX_PATH] = {};
 				char Name[MAX_PATH] = {};
 
-				switch (Type)
+				switch ((DWORD)Type)
 				{
 				case D3DDEVTYPE_REF:
 					lpName = "RGB Emulation";
