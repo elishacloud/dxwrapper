@@ -535,7 +535,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9)
 	Desc7.wMaxVertexBlendMatrices = (WORD)min(Caps9.MaxVertexBlendMatrices, USHRT_MAX);
 
 	// Specific settings
-	if (Caps9.DeviceType == D3DDEVTYPE_REF)
+	if (Caps9.DeviceType == D3DDEVTYPE_REF || Caps9.DeviceType == D3DDEVTYPE_NULLREF)
 	{
 		Desc7.deviceGUID = IID_IDirect3DRGBDevice;
 		Desc7.dwDevCaps &= ~(D3DDEVCAPS_HWTRANSFORMANDLIGHT | D3DDEVCAPS_HWRASTERIZATION);

@@ -34,6 +34,7 @@ private:
 		D3DCAPS9 HAL = {};
 	};
 	std::vector<DUALCAP9> Cap9Cache;
+	DWORD dwDeviceZBufferBitDepthCache = 0;
 
 	// Light array
 	std::vector<m_IDirect3DLight*> LightList;
