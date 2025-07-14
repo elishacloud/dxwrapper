@@ -141,6 +141,9 @@ private:
 	// Vector temporary buffer cache
 	std::vector<BYTE> VertexCache;
 
+	// The data used for rendering Homogeneous
+	CONVERTHOMOGENEOUS ConvertHomogeneous;
+
 	// Viewport array
 	std::vector<LPDIRECT3DVIEWPORT3> AttachedViewports;
 
