@@ -935,7 +935,14 @@ DWORD ComputePitch(D3DFORMAT Format, DWORD Width, DWORD Height)
 	}
 	else
 	{
-		return ((((Width * GetBitCount(Format)) + 31) & ~31) >> 3);	// Use Surface Stride for pitch
+		DWORD Pitch = ((((Width * GetBitCount(Format)) + 31) & ~31) >> 3);	// Use Surface Stride for pitch
+
+		if (Config.D3d9to9Ex && Pitch < 128)
+		{
+			return 128;
+		}
+
+		return Pitch;
 	}
 }
 

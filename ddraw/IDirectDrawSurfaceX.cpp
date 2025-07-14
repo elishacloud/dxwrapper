@@ -2483,7 +2483,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Convert flags to d3d9
 		DWORD Flags = (dwFlags & (D3DLOCK_READONLY | D3DLOCK_NOOVERWRITE)) |
 			((dwFlags & D3DLOCK_NOSYSLOCK) ? D3DLOCK_NOSYSLOCK : 0) |
-			(!LockWait ? D3DLOCK_DONOTWAIT : 0) |
+			(!LockWait && !surface.Texture ? D3DLOCK_DONOTWAIT : 0) |
 			((dwFlags & DDLOCK_NODIRTYUPDATE) ? D3DLOCK_NO_DIRTY_UPDATE : 0);
 
 		// Check if the scene needs to be presented
@@ -8262,7 +8262,6 @@ HRESULT m_IDirectDrawSurfaceX::LockD3d9Surface(D3DLOCKED_RECT* pLockedRect, RECT
 	// Lock surface texture
 	else if (surface.Texture)
 	{
-		Flags &= ~D3DLOCK_DONOTWAIT;
 		HRESULT hr = surface.Texture->LockRect(GetD3d9MipMapLevel(MipMapLevel), pLockedRect, pRect, Flags);
 		if (FAILED(hr) && (Flags & D3DLOCK_NOSYSLOCK))
 		{
