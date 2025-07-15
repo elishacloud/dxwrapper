@@ -5832,7 +5832,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			(*d3d9Device)->SetPixelShaderConstantF(1, DrawStates.highColorKey, 1);
 		}
 	}
-	if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && d3d9Device && *d3d9Device && ddrawParent)
+	/*if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && d3d9Device && *d3d9Device && ddrawParent)
 	{
 		if (!fixupVertexShader || !*fixupVertexShader)
 		{
@@ -5852,7 +5852,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			// Set vertex shader
 			(*d3d9Device)->SetVertexShader(*fixupVertexShader);
 		}
-	}
+	}*/
 }
 
 void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
@@ -5895,10 +5895,10 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags
 	{
 		(*d3d9Device)->SetPixelShader(nullptr);
 	}
-	if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && d3d9Device && *d3d9Device)
+	/*if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && d3d9Device && *d3d9Device)
 	{
 		(*d3d9Device)->SetVertexShader(nullptr);
-	}
+	}*/
 }
 
 bool m_IDirect3DDeviceX::IsLightInUse(m_IDirect3DLight* pLightX)
