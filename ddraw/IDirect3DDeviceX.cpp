@@ -2771,7 +2771,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		// Draw indexed primitive UP
-		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, min(dwVertexCount, maxVertex), GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
+		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwIndexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
 		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -3021,7 +3021,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 
 		// Update vertices for Direct3D9 (needs to be first)
 		DWORD VertexStride = 0;
-		if (!InterleaveStridedVertexData(VertexCache, VertexStride, lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc))
+		if (!InterleaveStridedVertexData(VertexCache, VertexStride, lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc, true))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
 			return DDERR_INVALIDPARAMS;
@@ -3130,7 +3130,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 
 		// Update vertices for Direct3D9 (needs to be first)
 		DWORD VertexStride = 0;
-		if (!InterleaveStridedVertexData(VertexCache, VertexStride, lpVertexArray, minVertex, min(dwVertexCount, maxVertex) - minVertex, dwVertexTypeDesc))
+		if (!InterleaveStridedVertexData(VertexCache, VertexStride, lpVertexArray, minVertex, min(dwVertexCount, maxVertex) - minVertex, dwVertexTypeDesc, true))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
 			return DDERR_INVALIDPARAMS;
@@ -3147,7 +3147,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		// Draw indexed primitive UP
-		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, min(dwVertexCount, maxVertex), GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, VertexCache.data(), VertexStride);
+		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwIndexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, VertexCache.data(), VertexStride);
 
 		// Handle dwFlags
 		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -3374,7 +3374,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		SetDrawStates(FVF, dwFlags, DirectXVersion);
 
 		// Draw primitive
-		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitive(dptPrimitiveType, dwStartVertex, 0, dwNumVertices, 0, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount));
+		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitive(dptPrimitiveType, dwStartVertex, 0, dwIndexCount, 0, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount));
 
 		// Handle dwFlags
 		RestoreDrawStates(FVF, dwFlags, DirectXVersion);
@@ -5977,22 +5977,22 @@ void m_IDirect3DDeviceX::ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertice
 	}
 }
 
-void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwVertexCount)
+void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwNumVertices)
 {
 	if (dwVertexTypeDesc == D3DFVF_LVERTEX)
 	{
-		VertexCache.resize((dwVertexStart + dwVertexCount) * sizeof(D3DLVERTEX9));
+		VertexCache.resize((dwVertexStart + dwNumVertices) * sizeof(D3DLVERTEX9));
 		BYTE* base = static_cast<BYTE*>(VertexCache.data());
 		ConvertLVertex(reinterpret_cast<D3DLVERTEX9*>(base + (dwVertexStart * sizeof(D3DLVERTEX9))),
 			reinterpret_cast<D3DLVERTEX*>((DWORD)lpVertices + (dwVertexStart * sizeof(D3DLVERTEX))),
-			dwVertexCount);
+			dwNumVertices);
 
 		dwVertexTypeDesc = D3DFVF_LVERTEX9;
 		lpVertices = VertexCache.data();
 	}
 }
 
-bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE>& outputBuffer, DWORD& dwVertexStride, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, DWORD dwVertexStart, DWORD dwVertexCount, DWORD& dwVertexTypeDesc)
+bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE>& outputBuffer, DWORD& dwVertexStride, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, DWORD dwVertexStart, DWORD dwNumVertices, DWORD& dwVertexTypeDesc, bool FixUpFixUpVertices)
 {
 	if (!sd)
 	{
@@ -6000,7 +6000,7 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE>& outputBu
 		return false;
 	}
 
-	if (dwVertexTypeDesc == D3DFVF_LVERTEX)
+	if (FixUpFixUpVertices && dwVertexTypeDesc == D3DFVF_LVERTEX)
 	{
 		dwVertexTypeDesc = D3DFVF_LVERTEX9;
 	}
@@ -6008,6 +6008,7 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE>& outputBu
 	dwVertexStride = GetVertexStride(dwVertexTypeDesc);
 
 	bool hasPosition = (dwVertexTypeDesc & D3DFVF_POSITION_MASK);
+	bool hasReserved = (dwVertexTypeDesc & D3DFVF_RESERVED1);
 	bool hasNormal = (dwVertexTypeDesc & D3DFVF_NORMAL);
 	bool hasDiffuse = (dwVertexTypeDesc & D3DFVF_DIFFUSE);
 	bool hasSpecular = (dwVertexTypeDesc & D3DFVF_SPECULAR);
@@ -6089,11 +6090,11 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE>& outputBu
 		return false;
 	}
 
-	outputBuffer.resize(dwVertexStride * (dwVertexStart + dwVertexCount));
+	outputBuffer.resize(dwVertexStride * (dwVertexStart + dwNumVertices));
 
 	const BYTE* base = static_cast<const BYTE*>(outputBuffer.data());
 
-	for (DWORD i = 0; i < dwVertexCount; ++i)
+	for (DWORD i = 0; i < dwNumVertices; ++i)
 	{
 		BYTE* cursor = const_cast<BYTE*>(base) + (i + dwVertexStart) * dwVertexStride;
 
@@ -6101,6 +6102,11 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE>& outputBu
 		{
 			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->position.lpvData) + (i + dwVertexStart) * sd->position.dwStride, sd->position.dwStride);
 			cursor += sd->position.dwStride;
+		}
+
+		if (hasReserved)
+		{
+			cursor += sizeof(DWORD);
 		}
 
 		if (hasNormal)

@@ -21,9 +21,11 @@ private:
 	// Vertex buffer desc
 	D3DVERTEXBUFFERDESC VBDesc = {};
 	D3DVERTEXBUFFER_DESC d3d9VBDesc = {};
+	DWORD VBSize = 0;
 
 	// Vector buffer data
 	std::vector<BYTE> VertexData;
+	bool IsVBEmulated = false;
 	void* LastLockAddr = nullptr;
 	DWORD LastLockFlags = 0;
 

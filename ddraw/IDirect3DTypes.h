@@ -113,6 +113,13 @@ typedef struct _D3DDEVINFO_TEXTURING {
 #define D3DFVF_TEXCOUNT(fvf) (((fvf) >> D3DFVF_TEXCOUNT_SHIFT) & 0xF)
 #endif
 
+#define D3DFVF_TEXCOORDSIZE_ALL (0xFFFF0000) // bits 16-31 cover up to 8 texture stage format sizes
+
+struct XYZ
+{
+    float x, y, z;
+};
+
 typedef struct {
 	FLOAT    x, y, z;
 	D3DCOLOR diffuse, specular;
@@ -135,6 +142,8 @@ typedef enum _D3DSURFACETYPE {
     D3DTYPE_DEPTHSTENCIL = 4
 } D3DSURFACETYPE;
 
+#define CLAMP(val,zmin,zmax) (max((zmin),min((zmax),(val))))
+
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light);
 void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7);
 void ConvertMaterial(D3DMATERIAL7& Material7, const D3DMATERIAL& Material);
@@ -154,6 +163,7 @@ bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);
 void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF);
 DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType);
 UINT GetFVFBlendCount(DWORD fvf);
-UINT GetVertexPositionSize(DWORD dwVertexTypeDesc);
+UINT GetVertexPositionStride(DWORD dwVertexTypeDesc);
+UINT GetVertexTextureStride(DWORD dwVertexTypeDesc);
 UINT GetVertexStride(DWORD dwVertexTypeDesc);
 UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);

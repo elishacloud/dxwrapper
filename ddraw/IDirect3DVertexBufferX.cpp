@@ -153,6 +153,23 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 
 		DWORD Flags = (dwFlags & (DDLOCK_READONLY | DDLOCK_DISCARDCONTENTS | DDLOCK_NOSYSLOCK));
 
+		// Handle emulated readonly
+		if (IsVBEmulated && (Flags & D3DLOCK_READONLY))
+		{
+			LastLockAddr = nullptr;
+			LastLockFlags = Flags;
+
+			*lplpData = VertexData.data();
+
+			if (lpdwSize)
+			{
+				*lpdwSize = VBSize;
+			}
+
+			return D3D_OK;
+		}
+
+		// Lock vertex
 		void* pData = nullptr;
 		HRESULT hr = d3d9VertexBuffer->Lock(0, 0, &pData, Flags);
 		if (FAILED(hr) && (Flags & D3DLOCK_NOSYSLOCK))
@@ -169,19 +186,19 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		LastLockAddr = pData;
 		LastLockFlags = Flags;
 
-		// Handle D3DFVF_LVERTEX
-		if (VBDesc.dwFVF == D3DFVF_LVERTEX)
+		// Handle emulated vertex
+		if (IsVBEmulated)
 		{
 			*lplpData = VertexData.data();
 
 			if (lpdwSize)
 			{
-				*lpdwSize = VertexData.size();
+				*lpdwSize = VBSize;
 			}
 
 			if (dwFlags & DDLOCK_DISCARDCONTENTS)
 			{
-				ZeroMemory(VertexData.data(), VertexData.size());
+				ZeroMemory(VertexData.data(), VBSize);
 			}
 		}
 		else
@@ -212,10 +229,27 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 			return DDERR_GENERIC;
 		}
 
-		// Handle D3DFVF_LVERTEX
-		if (VBDesc.dwFVF == D3DFVF_LVERTEX && LastLockAddr && !(LastLockFlags & DDLOCK_READONLY))
+		// Handle emulated readonly
+		if (IsVBEmulated && (LastLockFlags & D3DLOCK_READONLY))
 		{
-			ConvertLVertex((D3DLVERTEX9*)LastLockAddr, (D3DLVERTEX*)VertexData.data(), VBDesc.dwNumVertices);
+			LastLockAddr = nullptr;
+			LastLockFlags = 0;
+
+			return D3D_OK;
+		}
+
+		// Handle emulated vertex
+		if (IsVBEmulated && LastLockAddr)
+		{
+			if (VBDesc.dwFVF == D3DFVF_LVERTEX)
+			{
+				ConvertLVertex((D3DLVERTEX9*)LastLockAddr, (D3DLVERTEX*)VertexData.data(), VBDesc.dwNumVertices);
+			}
+			else
+			{
+				DWORD stride = GetVertexStride(VBDesc.dwFVF);
+				memcpy(LastLockAddr, VertexData.data(), VBDesc.dwNumVertices * stride);
+			}
 		}
 
 		HRESULT hr = d3d9VertexBuffer->Unlock();
@@ -227,6 +261,7 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 		}
 		
 		LastLockAddr = nullptr;
+		LastLockFlags = 0;
 
 		return D3D_OK;
 	}
@@ -279,12 +314,12 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 #endif
 
 		// Get FVF
-		DWORD dwSrcVertexTypeDesc = pSrcVertexBufferX->GetFVF9();
+		DWORD dwSrcVertexTypeDesc = pSrcVertexBufferX->VBDesc.dwFVF;
 
 		void* pSrcVertices = nullptr;
 
 		// Lock the source vertex buffer
-		if (FAILED(d3d9SrcVertexBuffer->Lock(0, 0, &pSrcVertices, D3DLOCK_READONLY)))
+		if (FAILED(pSrcVertexBufferX->Lock(D3DLOCK_READONLY, &pSrcVertices, 0)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock source vertex");
 			return DDERR_GENERIC;
@@ -305,7 +340,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		// Unlock the source vertex buffer
 		if (pSrcVertices)
 		{
-			d3d9SrcVertexBuffer->Unlock();
+			pSrcVertexBufferX->Unlock();
 		}
 
 #ifdef ENABLE_PROFILING
@@ -411,7 +446,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 		std::vector<BYTE> VertexCache;
 
 		// Process strided data
-		if (!m_IDirect3DDeviceX::InterleaveStridedVertexData(VertexCache, VertexStride, lpVertexArray, dwSrcIndex, dwCount, dwVertexTypeDesc))
+		if (!m_IDirect3DDeviceX::InterleaveStridedVertexData(VertexCache, VertexStride, lpVertexArray, dwSrcIndex, dwCount, dwVertexTypeDesc, false))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
 			return DDERR_INVALIDPARAMS;
@@ -556,6 +591,7 @@ HRESULT m_IDirect3DVertexBufferX::CreateD3D9VertexBuffer()
 
 	// ToDo: implement D3DVBCAPS_OPTIMIZED
 
+	VBSize = GetVertexStride(VBDesc.dwFVF) * VBDesc.dwNumVertices;
 	d3d9VBDesc.FVF = (VBDesc.dwFVF == D3DFVF_LVERTEX) ? D3DFVF_LVERTEX9 : VBDesc.dwFVF;
 	d3d9VBDesc.Size = GetVertexStride(d3d9VBDesc.FVF) * VBDesc.dwNumVertices;
 	d3d9VBDesc.Usage = D3DUSAGE_DYNAMIC |
@@ -572,16 +608,19 @@ HRESULT m_IDirect3DVertexBufferX::CreateD3D9VertexBuffer()
 		return DDERR_GENERIC;
 	}
 
-	if (VBDesc.dwFVF == D3DFVF_LVERTEX)
-	{
-		VertexData.resize(LVERTEX_SIZE * VBDesc.dwNumVertices);
-	}
-	else if (VertexData.size() == d3d9VBDesc.Size)
+	IsVBEmulated = (VBDesc.dwFVF == D3DFVF_LVERTEX);
+
+	if (IsVBEmulated)
 	{
 		// ToDo: restore vertex buffer data
+		if (VertexData.size() < d3d9VBDesc.Size)
+		{
+			VertexData.resize(d3d9VBDesc.Size);
+		}
 	}
 
 	LastLockAddr = nullptr;
+	LastLockFlags = 0;
 
 	return D3D_OK;
 }
@@ -651,12 +690,8 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 
 	// Get and verify FVF
 	DWORD SrcFVF = dwSrcVertexTypeDesc;
-	DWORD DestFVF = GetFVF9();
-	if (FAILED((*d3d9Device)->SetFVF(SrcFVF)) || FAILED((*d3d9Device)->SetFVF(DestFVF)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: could not set vertex declaration: " << Logging::hex(SrcFVF) << " -> " << Logging::hex(DestFVF));
-		return D3DERR_INVALIDVERTEXTYPE;
-	}
+	DWORD DestFVF = VBDesc.dwFVF;
+
 	UINT SrcStride = GetVertexStride(SrcFVF);
 	UINT DestStride = GetVertexStride(DestFVF);
 
@@ -689,8 +724,8 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_EXTENTS' not handled!");
 	}
 
-	DWORD SrcPosSize = GetVertexPositionSize(SrcFVF);
-	DWORD DestPosSize = GetVertexPositionSize(DestFVF);
+	DWORD SrcPosSize = GetVertexPositionStride(SrcFVF);
+	DWORD DestPosSize = GetVertexPositionStride(DestFVF);
 
 	DWORD SrcBlendCount = GetFVFBlendCount(SrcFVF);
 	DWORD DestBlendCount = GetFVFBlendCount(DestFVF);
@@ -706,6 +741,10 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	if (IsLight)
 	{
 		DWORD offset = DestPosSize;
+		if (DestFVF & D3DFVF_RESERVED1)
+		{
+			offset += sizeof(DWORD);
+		}
 		if (DestFVF & D3DFVF_NORMAL)
 		{
 			NormalDestOffset = offset;
@@ -766,10 +805,8 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	void* pSrcVertices = lpSrcBuffer;
 	void* pDestVertices = nullptr;
 
-	LPDIRECT3DVERTEXBUFFER9 d3d9DestVertexBuffer = d3d9VertexBuffer;
-
 	// Lock the destination vertex buffer
-	if (FAILED(d3d9DestVertexBuffer->Lock(0, 0, &pDestVertices, 0)))
+	if (FAILED(Lock(0, &pDestVertices, 0)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock destination vertex");
 		return DDERR_GENERIC;
@@ -889,19 +926,10 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 		pDestVertex += DestStride;
 	}
 
-	// Handle D3DFVF_LVERTEX
-	if (VBDesc.dwFVF == D3DFVF_LVERTEX)
-	{
-		BYTE* pDestData = VertexData.data() + (dwDestIndex * LVERTEX_SIZE);
-		BYTE* pSrcData = reinterpret_cast<BYTE*>(pDestVertices)+(dwDestIndex * DestStride);		// Destination vertex is the source for this copy
-
-		ConvertLVertex(reinterpret_cast<D3DLVERTEX*>(pDestData), reinterpret_cast<D3DLVERTEX9*>(pSrcData), dwCount);
-	}
-
 	// Unlock the destination vertex buffer
 	if (pDestVertices)
 	{
-		d3d9DestVertexBuffer->Unlock();
+		Unlock();
 	}
 
 	return DD_OK;

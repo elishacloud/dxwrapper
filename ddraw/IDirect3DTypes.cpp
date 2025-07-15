@@ -801,6 +801,20 @@ void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWO
 		break;
 	}
 
+	// Reserved
+	if (DestFVF & D3DFVF_RESERVED1)
+	{
+		if (SrcFVF & D3DFVF_RESERVED1)
+		{
+			SrcOffset += sizeof(DWORD);
+		}
+		DestOffset += sizeof(DWORD);
+	}
+	else if (SrcFVF & D3DFVF_RESERVED1)
+	{
+		SrcOffset += sizeof(DWORD);
+	}
+
 	// Normal
 	if (DestFVF & D3DFVF_NORMAL)
 	{
@@ -931,7 +945,7 @@ UINT GetFVFBlendCount(DWORD fvf)
 	}
 }
 
-UINT GetVertexPositionSize(DWORD dwVertexTypeDesc)
+UINT GetVertexPositionStride(DWORD dwVertexTypeDesc)
 {
 	const DWORD dwVertexPositionType = (dwVertexTypeDesc & D3DFVF_POSITION_MASK);
 
@@ -942,8 +956,39 @@ UINT GetVertexPositionSize(DWORD dwVertexTypeDesc)
 		((dwVertexPositionType == D3DFVF_XYZB2) ? sizeof(float) * 5 : 0) +
 		((dwVertexPositionType == D3DFVF_XYZB3) ? sizeof(float) * 6 : 0) +
 		((dwVertexPositionType == D3DFVF_XYZB4) ? sizeof(float) * 6 + sizeof(DWORD) : 0) +
-		((dwVertexPositionType == D3DFVF_XYZB5) ? sizeof(float) * 7 + sizeof(DWORD) : 0) +
-		((dwVertexTypeDesc & D3DFVF_XYZW & ~D3DFVF_XYZ) ? sizeof(float) : 0);
+		((dwVertexPositionType == D3DFVF_XYZB5) ? sizeof(float) * 7 + sizeof(DWORD) : 0);
+}
+
+UINT GetVertexTextureStride(DWORD dwVertexTypeDesc)
+{
+	const DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
+
+	if (texCount > D3DDP_MAXTEXCOORD)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: texCount " << texCount << " exceeds D3DDP_MAXTEXCOORD!");
+		return 0;
+	}
+
+	// Compute tex stride
+	DWORD texStride = 0;
+	for (DWORD i = 0; i < texCount; ++i)
+	{
+		DWORD formatBits = (dwVertexTypeDesc >> (16 + i * 2)) & 0x3;
+		DWORD floatCount;
+
+		switch (formatBits)
+		{
+		case D3DFVF_TEXTUREFORMAT1: floatCount = 1; break;
+		case D3DFVF_TEXTUREFORMAT2: floatCount = 2; break; // default
+		case D3DFVF_TEXTUREFORMAT3: floatCount = 3; break;
+		case D3DFVF_TEXTUREFORMAT4: floatCount = 4; break;
+		default: floatCount = 2; break; // fallback to default
+		}
+
+		texStride += sizeof(float) * floatCount;
+	}
+
+	return texStride;
 }
 
 UINT GetVertexStride(DWORD dwVertexTypeDesc)
@@ -959,26 +1004,19 @@ UINT GetVertexStride(DWORD dwVertexTypeDesc)
 	// #define D3DFVF_RESERVED2        0x6000  // 2 reserved bits (DX9)
 
 	// Check for unsupported vertex types
-	const DWORD UnSupportedVertexTypes = dwVertexTypeDesc & ~(D3DFVF_POSITION_MASK_9 | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEXCOUNT_MASK);
+	const DWORD UnSupportedVertexTypes = dwVertexTypeDesc & ~(D3DFVF_POSITION_MASK_9 | D3DFVF_RESERVED1 | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEXCOUNT_MASK | D3DFVF_TEXCOORDSIZE_ALL);
 	if (UnSupportedVertexTypes)
 	{
 		LOG_LIMIT(100, __FUNCTION__ " Warning: Unsupported FVF type: " << Logging::hex(UnSupportedVertexTypes));
 	}
 
-	const DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
-
-	if (texCount > D3DDP_MAXTEXCOORD)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: texCount " << texCount << " exceeds D3DDP_MAXTEXCOORD!");
-		return 0;
-	}
-
 	return
-		GetVertexPositionSize(dwVertexTypeDesc) +
+		GetVertexPositionStride(dwVertexTypeDesc) +
+		((dwVertexTypeDesc & D3DFVF_RESERVED1) ? sizeof(DWORD) : 0) +
 		((dwVertexTypeDesc & D3DFVF_NORMAL) ? sizeof(float) * 3 : 0) +
 		((dwVertexTypeDesc & D3DFVF_DIFFUSE) ? sizeof(D3DCOLOR) : 0) +
 		((dwVertexTypeDesc & D3DFVF_SPECULAR) ? sizeof(D3DCOLOR) : 0) +
-		(texCount * sizeof(float) * 2);
+		GetVertexTextureStride(dwVertexTypeDesc);
 }
 
 UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount)
