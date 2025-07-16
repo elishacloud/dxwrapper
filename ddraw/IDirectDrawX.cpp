@@ -3486,7 +3486,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 					m_IDirect3D9Ex::AdjustWindow(hMon, hWnd, Width, Height, false, false, true);
 
-					SetWindowLong(hWnd, GWL_STYLE, lStyle & ~(WS_BORDER | WS_DLGFRAME | WS_THICKFRAME));
+					SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_BORDER);
 					SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 				}
 				else
