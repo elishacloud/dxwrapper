@@ -24,7 +24,7 @@ private:
 	DWORD VBSize = 0;
 
 	// Vector buffer data
-	std::vector<BYTE> VertexData;
+	std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexData;
 	bool IsVBEmulated = false;
 	void* LastLockAddr = nullptr;
 	DWORD LastLockFlags = 0;

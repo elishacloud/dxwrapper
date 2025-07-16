@@ -249,6 +249,11 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 			{
 				DWORD stride = GetVertexStride(VBDesc.dwFVF);
 				memcpy(LastLockAddr, VertexData.data(), VBDesc.dwNumVertices * stride);
+
+				if (Config.DdrawClampVertexZDepth && (VBDesc.dwFVF & D3DFVF_XYZRHW))
+				{
+					ClampVertices(VertexData.data(), stride, VBDesc.dwNumVertices);
+				}
 			}
 		}
 
@@ -443,7 +448,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 		// Setup vars
 		DWORD VertexStride = 0;
 		DWORD dwVertexTypeDesc = GetFVF9();
-		std::vector<BYTE> VertexCache;
+		std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexCache;
 
 		// Process strided data
 		if (!m_IDirect3DDeviceX::InterleaveStridedVertexData(VertexCache, VertexStride, lpVertexArray, dwSrcIndex, dwCount, dwVertexTypeDesc, false))
@@ -608,7 +613,7 @@ HRESULT m_IDirect3DVertexBufferX::CreateD3D9VertexBuffer()
 		return DDERR_GENERIC;
 	}
 
-	IsVBEmulated = (VBDesc.dwFVF == D3DFVF_LVERTEX);
+	IsVBEmulated = (VBDesc.dwFVF == D3DFVF_LVERTEX) || (Config.DdrawClampVertexZDepth && (VBDesc.dwFVF && D3DFVF_XYZRHW));
 
 	if (IsVBEmulated)
 	{
@@ -644,7 +649,6 @@ void m_IDirect3DVertexBufferX::ReleaseD9Buffer(bool BackupData, bool ResetBuffer
 	if (BackupData && VBDesc.dwFVF != D3DFVF_LVERTEX)
 	{
 		// ToDo: backup vertex buffer data
-		//VertexData.resize(d3d9VBDesc.Size);
 	}
 
 	if (!ResetBuffer || d3d9VBDesc.Pool == D3DPOOL_DEFAULT)

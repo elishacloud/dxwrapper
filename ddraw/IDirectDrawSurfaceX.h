@@ -46,8 +46,8 @@ private:
 		bool bEvenScanlines = false;
 		bool bOddScanlines = false;
 		DWORD ScanlineWidth = 0;
-		std::vector<BYTE> EvenScanLine;
-		std::vector<BYTE> OddScanLine;
+		std::vector<BYTE, aligned_allocator<BYTE, 4>> EvenScanLine;
+		std::vector<BYTE, aligned_allocator<BYTE, 4>> OddScanLine;
 	};
 
 	// Mipmap struct
@@ -92,7 +92,7 @@ private:
 	struct DDRAWEMULATELOCK
 	{
 		bool Locked = false;
-		std::vector<byte> Mem;
+		std::vector<BYTE, aligned_allocator<BYTE, 4>> Mem;
 		void* Addr = nullptr;
 		DWORD Pitch = 0;
 		DWORD NewPitch = 0;
@@ -107,7 +107,7 @@ private:
 		DWORD Width = 0;
 		DWORD Height = 0;
 		DWORD Pitch = 0;
-		std::vector<byte> Bits;
+		std::vector<BYTE, aligned_allocator<BYTE, 4>> Bits;
 	};
 
 	// Store a list of attached surfaces
@@ -224,7 +224,7 @@ private:
 	bool WasBitAlignLocked = false;
 	DDRAWEMULATELOCK EmuLock;							// For aligning bits after a lock for games that hard code the pitch
 	REMOVESCANLINE EmuScanLine;							// For removal an restoration of scanlines
-	std::vector<byte> ByteArray;						// Memory used for coping from one surface to the same surface
+	std::vector<BYTE, aligned_allocator<BYTE, 4>> ByteArray;						// Memory used for coping from one surface to the same surface
 	std::vector<DDBACKUP> LostDeviceBackup;				// Memory used for backing up the surfaceTexture
 	COLORKEY ShaderColorKey;							// Used to store color key array for shader
 	SURFACECREATE ShouldEmulate = SC_NOT_CREATED;		// Used to help determine if surface should be emulated

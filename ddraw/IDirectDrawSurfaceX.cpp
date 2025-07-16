@@ -24,7 +24,7 @@ namespace {
 	constexpr DWORD SurfaceWaitTimeoutMS = 4;
 
 	// Used for dummy mipmaps
-	std::vector<BYTE> dummySurface;
+	std::vector<BYTE, aligned_allocator<BYTE, 4>> dummySurface;
 
 	// Used to allow presenting non-primary surfaces in case the primary surface present fails
 	bool dirtyFlag = false;

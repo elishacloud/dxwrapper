@@ -5174,7 +5174,7 @@ void m_IDirect3DDeviceX::CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& Dest
 HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD pointCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
 {
 	// Define vertices and setup vector
-	std::vector<BYTE> vertices;
+	std::vector<BYTE, aligned_allocator<BYTE, 4>> vertices;
 	vertices.resize(sizeof(D3DTLVERTEX) * pointCount);
 	BYTE* verticesData = vertices.data();
 	DWORD verticesCount = 0;
@@ -5205,7 +5205,7 @@ HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD pointCount, D
 HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
 {
 	// Define vertices and setup vector
-	std::vector<BYTE> vertices;
+	std::vector<BYTE, aligned_allocator<BYTE, 4>> vertices;
 	vertices.resize(sizeof(D3DTLVERTEX) * lineCount * 2);
 	BYTE* verticesData = vertices.data();
 	DWORD verticesCount = 0;
@@ -5252,7 +5252,7 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD tria
 		BufferSize = sizeof(D3DTLVERTEX) * max(Count, MaxCount);
 	}
 
-	std::vector<BYTE> vertices;
+	std::vector<BYTE, aligned_allocator<BYTE, 4>> vertices;
 	vertices.resize(BufferSize);
 	BYTE* verticesData = vertices.data();
 	DWORD verticesCount = 0;
@@ -5982,17 +5982,28 @@ void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVerti
 	if (dwVertexTypeDesc == D3DFVF_LVERTEX)
 	{
 		VertexCache.resize((dwVertexStart + dwNumVertices) * sizeof(D3DLVERTEX9));
-		BYTE* base = static_cast<BYTE*>(VertexCache.data());
-		ConvertLVertex(reinterpret_cast<D3DLVERTEX9*>(base + (dwVertexStart * sizeof(D3DLVERTEX9))),
+		ConvertLVertex(reinterpret_cast<D3DLVERTEX9*>(VertexCache.data() + (dwVertexStart * sizeof(D3DLVERTEX9))),
 			reinterpret_cast<D3DLVERTEX*>((DWORD)lpVertices + (dwVertexStart * sizeof(D3DLVERTEX))),
 			dwNumVertices);
 
 		dwVertexTypeDesc = D3DFVF_LVERTEX9;
 		lpVertices = VertexCache.data();
 	}
+	else if (Config.DdrawClampVertexZDepth && (dwVertexTypeDesc & D3DFVF_XYZRHW))
+	{
+		DWORD stride = GetVertexStride(dwVertexTypeDesc);
+		VertexCache.resize((dwVertexStart + dwNumVertices) * stride);
+		memcpy(reinterpret_cast<void*>(VertexCache.data() + (dwVertexStart * stride)),
+			reinterpret_cast<void*>((DWORD)lpVertices + (dwVertexStart * stride)),
+			dwNumVertices * stride);
+
+		ClampVertices(VertexCache.data(), stride, dwNumVertices);
+
+		lpVertices = VertexCache.data();
+	}
 }
 
-bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE>& outputBuffer, DWORD& dwVertexStride, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, DWORD dwVertexStart, DWORD dwNumVertices, DWORD& dwVertexTypeDesc, bool FixUpFixUpVertices)
+bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, DWORD& dwVertexStride, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, DWORD dwVertexStart, DWORD dwNumVertices, DWORD& dwVertexTypeDesc, bool FixUpFixUpVertices)
 {
 	if (!sd)
 	{

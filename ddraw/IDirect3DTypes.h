@@ -160,6 +160,7 @@ void ConvertLVertex(D3DLVERTEX* lFVF, const D3DLVERTEX9* lFVF9, DWORD NumVertice
 void ConvertLVertex(D3DLVERTEX9* lFVF9, const D3DLVERTEX* lFVF, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
 bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);
+void ClampVertices(BYTE* pVertexData, DWORD Stride, DWORD dwNumVertices);
 void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF);
 DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType);
 UINT GetFVFBlendCount(DWORD fvf);

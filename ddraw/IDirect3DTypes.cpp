@@ -727,6 +727,56 @@ bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType)
 	}
 }
 
+const int o0_0f = 0x00000000; // float(0.0f) as int
+const int o1_0f = 0x3F800000; // float(1.0f) as int
+struct XYZ_16 { int x, y, z, w; };
+struct XYZ_20 { int x, y, z, w; DWORD a[1]; };
+struct XYZ_24 { int x, y, z, w; DWORD a[2]; };
+struct XYZ_28 { int x, y, z, w; DWORD a[3]; };
+struct XYZ_32 {	int x, y, z, w; DWORD a[4]; };
+struct XYZ_36 { int x, y, z, w; DWORD a[5]; };
+struct XYZ_40 { int x, y, z, w; DWORD a[6]; };
+struct XYZ_44 { int x, y, z, w; DWORD a[7]; };
+struct XYZ_48 { int x, y, z, w; DWORD a[8]; };
+struct XYZ_52 { int x, y, z, w; DWORD a[9]; };
+struct XYZ_56 { int x, y, z, w; DWORD a[10]; };
+struct XYZ_60 { int x, y, z, w; DWORD a[11]; };
+struct XYZ_64 { int x, y, z, w; DWORD a[12]; };
+
+template <typename T>
+void ClampVerticesX(T* pDestVertex, DWORD dwNumVertices)
+{
+	for (DWORD x = 0; x < dwNumVertices; x++)
+	{
+		pDestVertex[x].z = min(pDestVertex[x].z, o1_0f);
+	}
+}
+
+void ClampVertices(BYTE* pVertexData, DWORD Stride, DWORD dwNumVertices)
+{
+	if (!Config.DdrawClampVertexZDepth)
+	{
+		return;
+	}
+	if (Stride == 16) ClampVerticesX(reinterpret_cast<XYZ_16*>(pVertexData), dwNumVertices);
+	else if (Stride == 20) ClampVerticesX(reinterpret_cast<XYZ_20*>(pVertexData), dwNumVertices);
+	else if (Stride == 24) ClampVerticesX(reinterpret_cast<XYZ_24*>(pVertexData), dwNumVertices);
+	else if (Stride == 28) ClampVerticesX(reinterpret_cast<XYZ_28*>(pVertexData), dwNumVertices);
+	else if (Stride == 32) ClampVerticesX(reinterpret_cast<XYZ_32*>(pVertexData), dwNumVertices);
+	else if (Stride == 36) ClampVerticesX(reinterpret_cast<XYZ_36*>(pVertexData), dwNumVertices);
+	else if (Stride == 40) ClampVerticesX(reinterpret_cast<XYZ_40*>(pVertexData), dwNumVertices);
+	else if (Stride == 44) ClampVerticesX(reinterpret_cast<XYZ_44*>(pVertexData), dwNumVertices);
+	else if (Stride == 48) ClampVerticesX(reinterpret_cast<XYZ_48*>(pVertexData), dwNumVertices);
+	else if (Stride == 52) ClampVerticesX(reinterpret_cast<XYZ_52*>(pVertexData), dwNumVertices);
+	else if (Stride == 56) ClampVerticesX(reinterpret_cast<XYZ_56*>(pVertexData), dwNumVertices);
+	else if (Stride == 60) ClampVerticesX(reinterpret_cast<XYZ_60*>(pVertexData), dwNumVertices);
+	else if (Stride == 64) ClampVerticesX(reinterpret_cast<XYZ_64*>(pVertexData), dwNumVertices);
+	else
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Vertex buffer stride not supported: " << Stride);
+	}
+}
+
 void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF)
 {
 	DWORD SrcOffset = 0;

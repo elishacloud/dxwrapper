@@ -139,7 +139,7 @@ private:
 	std::vector<m_IDirect3DExecuteBuffer*> ExecuteBufferList;
 
 	// Vector temporary buffer cache
-	std::vector<BYTE> VertexCache;
+	std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexCache;
 
 	// Viewport array
 	std::vector<LPDIRECT3DVIEWPORT3> AttachedViewports;
@@ -408,5 +408,5 @@ public:
 	void ReleaseAllStateBlocks();
 
 	// Static functions
-	static bool InterleaveStridedVertexData(std::vector<BYTE>& outputBuffer, DWORD& dwVertexStride, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, DWORD dwVertexStart, DWORD dwNumVertices, DWORD& dwVertexTypeDesc, bool FixUpFixUpVertices);
+	static bool InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, DWORD& dwVertexStride, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, DWORD dwVertexStart, DWORD dwNumVertices, DWORD& dwVertexTypeDesc, bool FixUpFixUpVertices);
 };
