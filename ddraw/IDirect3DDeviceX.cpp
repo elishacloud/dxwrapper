@@ -2771,7 +2771,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		// Draw indexed primitive UP
-		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, min(dwVertexCount, maxVertex), GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
+		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
 		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -3147,7 +3147,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		// Draw indexed primitive UP
-		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, min(dwVertexCount, maxVertex), GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, VertexCache.data(), VertexStride);
+		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, VertexCache.data(), VertexStride);
 
 		// Handle dwFlags
 		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);

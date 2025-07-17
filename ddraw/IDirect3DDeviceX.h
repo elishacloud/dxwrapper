@@ -34,15 +34,15 @@ private:
 	std::chrono::steady_clock::time_point sceneTime;
 #endif
 
+	struct LIGHTENABLE {
+		BOOL Enable = FALSE;
+		D3DLIGHT9 Light = {};
+	};
 	struct {
 		struct {
 			bool Set = false;
 			DWORD State = 0;
 		} RenderState[MaxDeviceStates], TextureState[MaxTextureStages][MaxTextureStageStates], SamplerState[MaxTextureStages][MaxSamplerStates];
-		struct LIGHTENABLE {
-			BOOL Enable = FALSE;
-			D3DLIGHT9 Light = {};
-		};
 		std::unordered_map<DWORD, LIGHTENABLE> Lights;
 		struct {
 			bool Set = false;
