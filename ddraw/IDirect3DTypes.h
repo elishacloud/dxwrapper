@@ -9,7 +9,6 @@ constexpr UINT MaxTextureStageStates = 33;  // Devices have up to 33 types.
 constexpr UINT MaxSamplerStates = 14;	    // Devices can have up to 14 sampler states.
 constexpr UINT MaxTextureStages = 8;	    // Devices can have up to eight set textures.
 constexpr UINT MaxClipPlaneIndex = 6;       // Devices can have up to six clip planes.
-constexpr UINT MAX_LIGHTS = 8;              // Devices can have up to eight lights.
 
 #define D3DSTATE D3DSTATE7
 

@@ -39,14 +39,11 @@ private:
 			bool Set = false;
 			DWORD State = 0;
 		} RenderState[MaxDeviceStates], TextureState[MaxTextureStages][MaxTextureStageStates], SamplerState[MaxTextureStages][MaxSamplerStates];
-		struct {
-			bool Set = false;
-			D3DLIGHT9 Light = {};
-		} Lights[MAX_LIGHTS];
-		struct {
-			bool Set = false;
+		struct LIGHTENABLE {
 			BOOL Enable = FALSE;
-		} LightEnabled[MAX_LIGHTS];
+			D3DLIGHT9 Light = {};
+		};
+		std::unordered_map<DWORD, LIGHTENABLE> Lights;
 		struct {
 			bool Set = false;
 			float Plane[4] = {};
@@ -143,7 +140,6 @@ private:
 
 	// Light index map
 	std::unordered_map<DWORD, m_IDirect3DLight*> LightIndexMap;
-	std::unordered_map<DWORD, D3DLIGHT7> LightIndexMap7;
 
 	// ExecuteBuffer array
 	std::vector<m_IDirect3DExecuteBuffer*> ExecuteBufferList;
