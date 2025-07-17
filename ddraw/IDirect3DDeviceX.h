@@ -38,7 +38,7 @@ private:
 		struct {
 			bool Set = false;
 			DWORD State = 0;
-		} RenderState[MaxDeviceStates], TextureState[MaxTextureStages][MaxDeviceStates], SamplerState[MaxTextureStages][MaxSamplerStates];
+		} RenderState[MaxDeviceStates], TextureState[MaxTextureStages][MaxTextureStageStates], SamplerState[MaxTextureStages][MaxSamplerStates];
 		struct {
 			bool Set = false;
 			D3DLIGHT9 Light = {};
@@ -47,6 +47,10 @@ private:
 			bool Set = false;
 			BOOL Enable = FALSE;
 		} LightEnabled[MAX_LIGHTS];
+		struct {
+			bool Set = false;
+			float Plane[4] = {};
+		} ClipPlane[MaxClipPlaneIndex];
 		struct {
 			bool Set = false;
 			D3DVIEWPORT9 View = {};
@@ -62,6 +66,12 @@ private:
 		} Material = {};
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
 	} DeviceStates;
+
+	struct {
+		std::unordered_map<D3DRENDERSTATETYPE, DWORD> RenderState;
+		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> TextureState[MaxTextureStages];
+		std::unordered_map<D3DSAMPLERSTATETYPE, DWORD> SamplerState[MaxTextureStages];
+	} Batch;
 
 	struct {
 		DWORD rsClipping = 0;
@@ -153,14 +163,25 @@ private:
 	HRESULT DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 	HRESULT DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD triangleCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 
-	HRESULT SetD9RenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState);
+	HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue);
+	HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
+	HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue);
 	HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
+	HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue);
 	HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
-	HRESULT SetD9Light(DWORD Index, CONST D3DLIGHT9* pLight);
-	HRESULT LightD9Enable(DWORD Index, BOOL bEnable);
-	HRESULT SetD9Viewport(CONST D3DVIEWPORT9* pViewport);
-	HRESULT SetD9Material(CONST D3DMATERIAL9* pMaterial);
-	HRESULT SetD9Transform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix);
+	HRESULT GetD9Light(DWORD Index, D3DLIGHT9* lpLight);
+	HRESULT SetD9Light(DWORD Index, const D3DLIGHT9* lpLight);
+	HRESULT GetD9LightEnable(DWORD Index, LPBOOL lpEnable);
+	HRESULT D9LightEnable(DWORD Index, BOOL Enable);
+	HRESULT GetD9ClipPlane(DWORD Index, float* lpPlane);
+	HRESULT SetD9ClipPlane(DWORD Index, const float* lpPlane);
+	HRESULT GetD9Viewport(D3DVIEWPORT9* lpViewport);
+	HRESULT SetD9Viewport(const D3DVIEWPORT9* lpViewport);
+	HRESULT GetD9Material(D3DMATERIAL9* lpMaterial);
+	HRESULT SetD9Material(const D3DMATERIAL9* lpMaterial);
+	HRESULT GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* lpMatrix);
+	HRESULT SetD9Transform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* lpMatrix);
+	HRESULT D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* pMatrix);
 
 	HRESULT RestoreStates();
 	void SetDefaults();
