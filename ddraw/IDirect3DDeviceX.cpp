@@ -2813,120 +2813,36 @@ HRESULT m_IDirect3DDeviceX::SetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 
 	if (Config.Dd7to9)
 	{
-		// D3DCLIPSTATUS_EXTENTS2 flag cannot be combined with D3DCLIPSTATUS_EXTENTS3.
-		if (!lpD3DClipStatus || (lpD3DClipStatus->dwFlags & (D3DCLIPSTATUS_EXTENTS2 | D3DCLIPSTATUS_EXTENTS3)) == (D3DCLIPSTATUS_EXTENTS2 | D3DCLIPSTATUS_EXTENTS3))
+		if (!lpD3DClipStatus || !(lpD3DClipStatus->dwFlags & (D3DCLIPSTATUS_STATUS | D3DCLIPSTATUS_EXTENTS2 | D3DCLIPSTATUS_EXTENTS3)))
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// D3DCLIPSTATUS_EXTENTS3 is Not currently implemented in DirectDraw.
-		if (lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_EXTENTS3)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: only clip status flag is supported. Using unsupported dwFlags combination: " << Logging::hex(lpD3DClipStatus->dwFlags));
-			return DDERR_INVALIDPARAMS;
-		}
-		else if (lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_EXTENTS2)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Extents 2D flag Not Implemented: " << *lpD3DClipStatus);
-			D3DClipStatus = *lpD3DClipStatus;
-		}
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: clip status is not fully supported.");
 
-		// For now just save clip status
+		D3DClipStatus.dwFlags = lpD3DClipStatus->dwFlags & (D3DCLIPSTATUS_STATUS | D3DCLIPSTATUS_EXTENTS2 | D3DCLIPSTATUS_EXTENTS3);
+
+		// Status
 		if (lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_STATUS)
 		{
-			D3DClipStatus = *lpD3DClipStatus;
-			D3DClipStatus.dwFlags = D3DCLIPSTATUS_STATUS;
-			D3DClipStatus.dwStatus = 0;
-			return D3D_OK;
+			D3DClipStatus.dwStatus = lpD3DClipStatus->dwStatus;
 		}
 
-		// ToDo: set clip status from dwStatus
-
-		// ToDo: check the D3DRENDERSTATE_EXTENTS flag and use that to enable or disable extents clip planes
-		// The default setting for this state, FALSE, disables extent updates. Applications that intend to use the
-		// IDirect3DDevice7::GetClipStatus and IDirect3DDevice7::SetClipStatus methods to manipulate the viewport extents
-		// can enable extents updates by setting D3DRENDERSTATE_EXTENTS to TRUE.
-
-		// Check for device interface
-		/*if (FAILED(CheckInterface(__FUNCTION__, true)))
+		// Extents 2-D
+		if (lpD3DClipStatus->dwFlags & (D3DCLIPSTATUS_EXTENTS2 | D3DCLIPSTATUS_EXTENTS3))
 		{
-			return DDERR_INVALIDOBJECT;
+			D3DClipStatus.minx = lpD3DClipStatus->minx;
+			D3DClipStatus.maxx = lpD3DClipStatus->maxx;
+			D3DClipStatus.miny = lpD3DClipStatus->miny;
+			D3DClipStatus.maxy = lpD3DClipStatus->maxy;
 		}
 
-		// Calculate the center of the bounding box
-		float centerX = (lpD3DClipStatus->minx + lpD3DClipStatus->maxx) * 0.5f;
-		float centerY = (lpD3DClipStatus->miny + lpD3DClipStatus->maxy) * 0.5f;
-		float centerZ = (lpD3DClipStatus->minz + lpD3DClipStatus->maxz) * 0.5f;
-
-		// Calculate the extents (half-width, half-height, and half-depth) of the bounding box
-		float halfWidth = (lpD3DClipStatus->maxx - lpD3DClipStatus->minx) * 0.5f;
-		float halfHeight = (lpD3DClipStatus->maxy - lpD3DClipStatus->miny) * 0.5f;
-		float halfDepth = (lpD3DClipStatus->maxz - lpD3DClipStatus->minz) * 0.5f;
-
-		// Calculate the front clipping plane coefficients
-		float frontNormalX = -1.0f; // Clipping towards the negative X direction
-		float frontNormalY = 0.0f;
-		float frontNormalZ = 0.0f;
-		float frontDistance = centerX - halfWidth;
-
-		float frontClipPlane[4] = { frontNormalX, frontNormalY, frontNormalZ, frontDistance };
-
-		// Calculate the back clipping plane coefficients
-		float backNormalX = 1.0f; // Clipping towards the positive X direction
-		float backNormalY = 0.0f;
-		float backNormalZ = 0.0f;
-		float backDistance = -(centerX + halfWidth);
-
-		float backClipPlane[4] = { backNormalX, backNormalY, backNormalZ, backDistance };
-
-		// Calculate the top clipping plane coefficients
-		float topNormalX = 0.0f;
-		float topNormalY = 1.0f; // Clipping towards the positive Y direction
-		float topNormalZ = 0.0f;
-		float topDistance = -(centerY + halfHeight);
-
-		float topClipPlane[4] = { topNormalX, topNormalY, topNormalZ, topDistance };
-
-		// Calculate the bottom clipping plane coefficients
-		float bottomNormalX = 0.0f;
-		float bottomNormalY = -1.0f; // Clipping towards the negative Y direction
-		float bottomNormalZ = 0.0f;
-		float bottomDistance = centerY - halfHeight;
-
-		float bottomClipPlane[4] = { bottomNormalX, bottomNormalY, bottomNormalZ, bottomDistance };
-
-		// Calculate the near clipping plane coefficients
-		float nearNormalX = 0.0f;
-		float nearNormalY = 0.0f;
-		float nearNormalZ = -1.0f; // Clipping towards the negative Z direction
-		float nearDistance = centerZ - halfDepth;
-
-		float nearClipPlane[4] = { nearNormalX, nearNormalY, nearNormalZ, nearDistance };
-
-		// Calculate the far clipping plane coefficients
-		float farNormalX = 0.0f;
-		float farNormalY = 0.0f;
-		float farNormalZ = 1.0f; // Clipping towards the positive Z direction
-		float farDistance = -(centerZ + halfDepth);
-
-		float farClipPlane[4] = { farNormalX, farNormalY, farNormalZ, farDistance };
-
-		// Set the clip planes
-		int x = 0;
-		for (auto clipPlane : { frontClipPlane, backClipPlane, topClipPlane, bottomClipPlane, nearClipPlane, farClipPlane })
+		// Extents 3-D
+		if (lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_EXTENTS3)
 		{
-			HRESULT hr = (*d3d9Device)->SetClipPlane(x, clipPlane);
-			if (FAILED(hr))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: 'SetClipPlane' call failed: " << (D3DERR)hr <<
-					" call: { " << clipPlane[0] << ", " << clipPlane[1] << ", " << clipPlane[2] << ", " << clipPlane[3] << "}");
-				return hr;
-			}
-			x++;
+			D3DClipStatus.minz = lpD3DClipStatus->minz;
+			D3DClipStatus.maxz = lpD3DClipStatus->maxz;
 		}
-
-		// To enable a clipping plane, set the corresponding bit in the DWORD value applied to the D3DRS_CLIPPLANEENABLE render state.
-		SetD9RenderState(D3DRS_CLIPPLANEENABLE, D3DCLIPPLANE0 | D3DCLIPPLANE1 | D3DCLIPPLANE2 | D3DCLIPPLANE3 | D3DCLIPPLANE4 | D3DCLIPPLANE5);*/
 
 		return D3D_OK;
 	}
@@ -2955,6 +2871,8 @@ HRESULT m_IDirect3DDeviceX::GetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: clip status is not fully supported.");
 
 		*lpD3DClipStatus = D3DClipStatus;
 

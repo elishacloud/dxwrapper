@@ -87,8 +87,8 @@ private:
 
 	bool IsInScene = false;
 
-	// Last clip status
-	D3DCLIPSTATUS D3DClipStatus;
+	// Default clip status
+	D3DCLIPSTATUS D3DClipStatus { D3DCLIPSTATUS_STATUS, D3DSTATUS_DEFAULT, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
 	// Light states
 	DWORD lsMaterialHandle;
