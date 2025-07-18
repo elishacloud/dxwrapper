@@ -163,7 +163,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 
 			if (lpdwSize)
 			{
-				*lpdwSize = VBSize;
+				*lpdwSize = VB.Size;
 			}
 
 			return D3D_OK;
@@ -193,12 +193,12 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 
 			if (lpdwSize)
 			{
-				*lpdwSize = VBSize;
+				*lpdwSize = VB.Size;
 			}
 
 			if (dwFlags & DDLOCK_DISCARDCONTENTS)
 			{
-				ZeroMemory(VertexData.data(), VBSize);
+				ZeroMemory(VertexData.data(), VB.Size);
 			}
 		}
 		else
@@ -207,7 +207,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 
 			if (lpdwSize)
 			{
-				*lpdwSize = d3d9VBDesc.Size;
+				*lpdwSize = VB.Size;
 			}
 		}
 
@@ -241,18 +241,18 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 		// Handle emulated vertex
 		if (IsVBEmulated && LastLockAddr)
 		{
-			if (VBDesc.dwFVF == D3DFVF_LVERTEX)
+			if (VB.Desc.dwFVF == D3DFVF_LVERTEX)
 			{
-				ConvertLVertex((D3DLVERTEX9*)LastLockAddr, (D3DLVERTEX*)VertexData.data(), VBDesc.dwNumVertices);
+				ConvertLVertex((D3DLVERTEX9*)LastLockAddr, (D3DLVERTEX*)VertexData.data(), VB.Desc.dwNumVertices);
 			}
 			else
 			{
-				DWORD stride = GetVertexStride(VBDesc.dwFVF);
-				memcpy(LastLockAddr, VertexData.data(), VBDesc.dwNumVertices * stride);
+				DWORD stride = GetVertexStride(VB.Desc.dwFVF);
+				memcpy(LastLockAddr, VertexData.data(), VB.Desc.dwNumVertices * stride);
 
-				if (Config.DdrawClampVertexZDepth && (VBDesc.dwFVF & D3DFVF_XYZRHW))
+				if (Config.DdrawClampVertexZDepth && (VB.Desc.dwFVF & D3DFVF_XYZRHW))
 				{
-					ClampVertices(VertexData.data(), stride, VBDesc.dwNumVertices);
+					ClampVertices(VertexData.data(), stride, VB.Desc.dwNumVertices);
 				}
 			}
 		}
@@ -319,7 +319,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 #endif
 
 		// Get FVF
-		DWORD dwSrcVertexTypeDesc = pSrcVertexBufferX->VBDesc.dwFVF;
+		DWORD dwSrcVertexTypeDesc = pSrcVertexBufferX->VB.Desc.dwFVF;
 
 		void* pSrcVertices = nullptr;
 
@@ -331,7 +331,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		}
 
 		// Check the dwSrcIndex and dwCount to make sure they won't cause an overload
-		DWORD SrcNumVertices = pSrcVertexBufferX->VBDesc.dwNumVertices;
+		DWORD SrcNumVertices = pSrcVertexBufferX->VB.Desc.dwNumVertices;
 		if (dwSrcIndex > SrcNumVertices)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: source vertex index is too large: " <<
@@ -378,16 +378,16 @@ HRESULT m_IDirect3DVertexBufferX::GetVertexBufferDesc(LPD3DVERTEXBUFFERDESC lpVB
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (VBDesc.dwSize != sizeof(D3DVERTEXBUFFERDESC))
+		if (VB.Desc.dwSize != sizeof(D3DVERTEXBUFFERDESC))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid vertex buffer desc: " << VBDesc);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid vertex buffer desc: " << VB.Desc);
 			return DDERR_GENERIC;
 		}
 
 		lpVBDesc->dwSize = sizeof(D3DVERTEXBUFFERDESC);
-		lpVBDesc->dwCaps = VBDesc.dwCaps;
-		lpVBDesc->dwFVF = VBDesc.dwFVF;
-		lpVBDesc->dwNumVertices = VBDesc.dwNumVertices;
+		lpVBDesc->dwCaps = VB.Desc.dwCaps;
+		lpVBDesc->dwFVF = VB.Desc.dwFVF;
+		lpVBDesc->dwNumVertices = VB.Desc.dwNumVertices;
 
 		return D3D_OK;
 	}
@@ -447,7 +447,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 
 		// Setup vars
 		DWORD VertexStride = 0;
-		DWORD dwVertexTypeDesc = GetFVF9();
+		DWORD dwVertexTypeDesc = VB.Desc.dwFVF;
 		std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexCache;
 
 		// Process strided data
@@ -596,31 +596,32 @@ HRESULT m_IDirect3DVertexBufferX::CreateD3D9VertexBuffer()
 
 	// ToDo: implement D3DVBCAPS_OPTIMIZED
 
-	VBSize = GetVertexStride(VBDesc.dwFVF) * VBDesc.dwNumVertices;
-	d3d9VBDesc.FVF = (VBDesc.dwFVF == D3DFVF_LVERTEX) ? D3DFVF_LVERTEX9 : VBDesc.dwFVF;
-	d3d9VBDesc.Size = GetVertexStride(d3d9VBDesc.FVF) * VBDesc.dwNumVertices;
+	d3d9VBDesc.FVF = (VB.Desc.dwFVF == D3DFVF_LVERTEX) ? D3DFVF_LVERTEX9 : VB.Desc.dwFVF;
+	d3d9VBDesc.Size = GetVertexStride(d3d9VBDesc.FVF) * VB.Desc.dwNumVertices;
 	d3d9VBDesc.Usage = D3DUSAGE_DYNAMIC |
-		((VBDesc.dwCaps & D3DVBCAPS_WRITEONLY) ? D3DUSAGE_WRITEONLY : 0) |
-		((VBDesc.dwCaps & D3DVBCAPS_DONOTCLIP) ? D3DUSAGE_DONOTCLIP : 0);
-	d3d9VBDesc.Pool = (VBDesc.dwCaps & D3DVBCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_DEFAULT;
+		((VB.Desc.dwCaps & D3DVBCAPS_WRITEONLY) ? D3DUSAGE_WRITEONLY : 0) |
+		((VB.Desc.dwCaps & D3DVBCAPS_DONOTCLIP) ? D3DUSAGE_DONOTCLIP : 0);
+	d3d9VBDesc.Pool = (VB.Desc.dwCaps & D3DVBCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_DEFAULT;
 
 	HRESULT hr = (*d3d9Device)->CreateVertexBuffer(d3d9VBDesc.Size, d3d9VBDesc.Usage, d3d9VBDesc.FVF, d3d9VBDesc.Pool, &d3d9VertexBuffer, nullptr);
 	if (FAILED(hr))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create vertex buffer: " << (D3DERR)hr <<
 			" Length: " << d3d9VBDesc.Size << " Usage: " << Logging::hex(d3d9VBDesc.Usage) << " FVF: " << Logging::hex(d3d9VBDesc.FVF) << " Pool: " << Logging::hex(d3d9VBDesc.Pool) <<
-			VBDesc);
+			VB.Desc);
 		return DDERR_GENERIC;
 	}
 
-	IsVBEmulated = (VBDesc.dwFVF == D3DFVF_LVERTEX) || (Config.DdrawClampVertexZDepth && (VBDesc.dwFVF && D3DFVF_XYZRHW));
+	VB.Size = GetVertexStride(VB.Desc.dwFVF) * VB.Desc.dwNumVertices;
+
+	IsVBEmulated = (VB.Desc.dwFVF == D3DFVF_LVERTEX) || (Config.DdrawClampVertexZDepth && (VB.Desc.dwFVF && D3DFVF_XYZRHW));
 
 	if (IsVBEmulated)
 	{
 		// ToDo: restore vertex buffer data
-		if (VertexData.size() < d3d9VBDesc.Size)
+		if (VertexData.size() < VB.Size)
 		{
-			VertexData.resize(d3d9VBDesc.Size);
+			VertexData.resize(VB.Size);
 		}
 	}
 
@@ -646,7 +647,7 @@ void m_IDirect3DVertexBufferX::ReleaseD3D9VertexBuffer()
 
 void m_IDirect3DVertexBufferX::ReleaseD9Buffer(bool BackupData, bool ResetBuffer)
 {
-	if (BackupData && VBDesc.dwFVF != D3DFVF_LVERTEX)
+	if (BackupData && VB.Desc.dwFVF != D3DFVF_LVERTEX)
 	{
 		// ToDo: backup vertex buffer data
 	}
@@ -684,7 +685,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	}
 
 	// Check the dwDestIndex and dwCount to make sure they won't cause an overload
-	DWORD DestNumVertices = VBDesc.dwNumVertices;
+	DWORD DestNumVertices = VB.Desc.dwNumVertices;
 	if (dwDestIndex > DestNumVertices)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: destination vertex index is too large: " << DestNumVertices << " -> " << dwDestIndex);
@@ -694,7 +695,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 
 	// Get and verify FVF
 	DWORD SrcFVF = dwSrcVertexTypeDesc;
-	DWORD DestFVF = VBDesc.dwFVF;
+	DWORD DestFVF = VB.Desc.dwFVF;
 
 	UINT SrcStride = GetVertexStride(SrcFVF);
 	UINT DestStride = GetVertexStride(DestFVF);

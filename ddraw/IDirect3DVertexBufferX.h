@@ -19,9 +19,11 @@ private:
 	LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = nullptr;
 
 	// Vertex buffer desc
-	D3DVERTEXBUFFERDESC VBDesc = {};
+	struct {
+		D3DVERTEXBUFFERDESC Desc = {};
+		DWORD Size = 0;
+	} VB;
 	D3DVERTEXBUFFER_DESC d3d9VBDesc = {};
-	DWORD VBSize = 0;
 
 	// Vector buffer data
 	std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexData;
@@ -85,10 +87,10 @@ public:
 
 		if (lpVBDesc)
 		{
-			VBDesc.dwSize = sizeof(D3DVERTEXBUFFERDESC);
-			VBDesc.dwCaps = lpVBDesc->dwCaps;
-			VBDesc.dwFVF = lpVBDesc->dwFVF;
-			VBDesc.dwNumVertices = lpVBDesc->dwNumVertices;
+			VB.Desc.dwSize = sizeof(D3DVERTEXBUFFERDESC);
+			VB.Desc.dwCaps = lpVBDesc->dwCaps;
+			VB.Desc.dwFVF = lpVBDesc->dwFVF;
+			VB.Desc.dwNumVertices = lpVBDesc->dwNumVertices;
 		}
 		d3d9VBDesc.Type = D3DRTYPE_VERTEXBUFFER;
 
