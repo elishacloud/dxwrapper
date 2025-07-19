@@ -731,12 +731,6 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	DWORD SrcPosSize = GetVertexPositionStride(SrcFVF);
 	DWORD DestPosSize = GetVertexPositionStride(DestFVF);
 
-	DWORD SrcBlendCount = GetBlendCount(SrcFVF);
-	DWORD DestBlendCount = GetBlendCount(DestFVF);
-
-	DWORD SrcBlendOffset = (SrcPosFVF == D3DFVF_XYZRHW) ? 4 * sizeof(float) : 3 * sizeof(float);
-	DWORD DestBlendOffset = (DestPosFVF == D3DFVF_XYZRHW) ? 4 * sizeof(float) : 3 * sizeof(float);
-
 	DWORD NormalSrcOffset = 0;
 	DWORD NormalDestOffset = 0;
 	DWORD DiffuseOffset = 0;
@@ -745,14 +739,14 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	if (IsLight)
 	{
 		DWORD offset = DestPosSize;
+		if (DestFVF & D3DFVF_RESERVED1)
+		{
+			offset += sizeof(DWORD);
+		}
 		if (DestFVF & D3DFVF_NORMAL)
 		{
 			NormalDestOffset = offset;
 			offset += 3 * sizeof(float);
-		}
-		if (DestFVF & D3DFVF_RESERVED1)
-		{
-			offset += sizeof(DWORD);
 		}
 		if (DestFVF & D3DFVF_DIFFUSE)
 		{
@@ -820,16 +814,22 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	BYTE* pDestVertex = (BYTE*)pDestVertices + (dwDestIndex * DestStride);
 
 	// Copy vertex data
-	bool ShouldConvertVertex = false;
+	bool SimpleVertexCopy = false;
+	bool ComplexConvertVertex = false;
+	bool TransformVertices = (DestPosFVF == D3DFVF_XYZRHW && SrcPosFVF != D3DFVF_XYZRHW);
 	if (!DoNotCopyData)
 	{
-		if (SrcFVF == DestFVF)
+		if (SrcFVF == DestFVF || ((SrcFVF & ~(D3DFVF_XYZ | D3DFVF_RESERVED1)) == (DestFVF & ~D3DFVF_XYZRHW) && SrcStride == DestStride))
 		{
 			memcpy(pDestVertex, pSrcVertex, dwCount * DestStride);
 		}
+		else if (TransformVertices && (SrcFVF & ~D3DFVF_POSITION_MASK) == (DestFVF & ~D3DFVF_XYZRHW))
+		{
+			SimpleVertexCopy = true;
+		}
 		else
 		{
-			ShouldConvertVertex = true;
+			ComplexConvertVertex = true;
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: manually converting vertices may be slower: " << Logging::hex(SrcFVF) << " -> " << Logging::hex(DestFVF));
 		}
 	}
@@ -837,86 +837,41 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	for (UINT i = 0; i < dwCount; ++i)
 	{
 		// Convert and copy vertex data
-		if (ShouldConvertVertex)
+		if (SimpleVertexCopy)
 		{
+			// Copy vertex excluding position
+			memcpy(pDestVertex + DestPosSize, pSrcVertex + SrcPosSize, DestStride - DestPosSize);
+		}
+		else if (ComplexConvertVertex)
+		{
+			// Converts full vertex data
 			ConvertVertex(pDestVertex, DestFVF, pSrcVertex, SrcFVF);
 		}
 
-		D3DXVECTOR3& SrcVertex3 = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex);
-		D3DXVECTOR4& SrcVertex4 = *reinterpret_cast<D3DXVECTOR4*>(pSrcVertex);
-		D3DXVECTOR3& DestVertex3 = *reinterpret_cast<D3DXVECTOR3*>(pDestVertex);
-		D3DXVECTOR4& DestVertex4 = *reinterpret_cast<D3DXVECTOR4*>(pDestVertex);
-
 		// Apply the transformation to the position
-		if (DestPosFVF == D3DFVF_XYZ)
+		if (TransformVertices)
 		{
-			D3DXVec3TransformCoord(&DestVertex3, &SrcVertex3, &matWorldViewProj);
-		}
-		else if (DestPosFVF == D3DFVF_XYZW)
-		{
-			if (SrcPosFVF == D3DFVF_XYZW)
-			{
-				D3DXVec4Transform(&DestVertex4, &SrcVertex4, &matWorldViewProj);
-			}
-			else // D3DFVF_XYZ and other formats
-			{
-				D3DXVec3TransformCoord(&DestVertex3, &SrcVertex3, &matWorldViewProj);
-				DestVertex4.w = 1.0f;
-			}
-		}
-		else if (DestPosFVF == D3DFVF_XYZRHW)
-		{
-			float& DestVertex_RHW = *(float*)(pDestVertex + 3 * sizeof(float));
+			D3DXVECTOR3& src = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex);
+			D3DXVECTOR4& dst = *reinterpret_cast<D3DXVECTOR4*>(pDestVertex);
 
-			switch (SrcPosFVF)
-			{
-			case D3DFVF_XYZW:
-			{
-				D3DXVec4Transform(&DestVertex4, &SrcVertex4, &matWorldViewProj);
-				if (DestVertex4.w != 0.0f)
-				{
-					DestVertex3.x = DestVertex4.x / DestVertex4.w;
-					DestVertex3.y = DestVertex4.y / DestVertex4.w;
-					DestVertex3.z = DestVertex4.z / DestVertex4.w;
-					DestVertex_RHW = 1.0f / DestVertex4.w; // RHW
-				}
-				break;
-			}
-			case D3DFVF_XYZRHW:
-			{
-				// Just copy XYZ and RHW directly — no transform
-				DestVertex4 = SrcVertex4;
-				break;
-			}
-			default: // Assume untransformed
-				D3DXVec3TransformCoord(&DestVertex3, &SrcVertex3, &matWorldViewProj);
-				DestVertex_RHW = 1.0f; // RHW = 1.0 as fallback
-				break;
-			}
-		}
-		else
-		{
-			// Fallback: bone-blended formats etc. Just transform position
-			D3DXVec3TransformCoord(&DestVertex3, &SrcVertex3, &matWorldViewProj);
+			// Transform vertices
+			D3DXVECTOR4 pos(src.x, src.y, src.z, 1.0f);
+			D3DXVECTOR4 result;
+			D3DXVec4Transform(&result, &pos, &matWorldViewProj);
 
-			// Copy over multimatrix vertex blending operation weighting (beta) values
-			if (DestBlendCount)
-			{
-				if (SrcBlendCount < DestBlendCount)
-				{
-					ZeroMemory(pDestVertex + DestBlendOffset, DestBlendCount * sizeof(float));
-				}
-				if (SrcBlendCount)
-				{
-					memcpy(pDestVertex + DestBlendOffset, pSrcVertex + SrcBlendOffset, min(SrcBlendCount, DestBlendCount) * sizeof(float));
-				}
-			}
+			// Make sure result.w doesn't equal 0 to avoid divide by zero
+			result.w = result.w == 0.0f ? result.w = FLT_EPSILON : result.w;
+
+			dst.x = result.x / result.w;
+			dst.y = result.y / result.w;
+			dst.z = result.z / result.w;
+			dst.w = 1.0f / result.w;
 		}
 
 		// Perform lighting if required
 		if (IsLight)
 		{
-			D3DXVECTOR3 Pos = *reinterpret_cast<const D3DXVECTOR3*>(pDestVertex);
+			D3DXVECTOR3 Pos = *reinterpret_cast<const D3DXVECTOR3*>(pSrcVertex);
 			D3DXVECTOR3 Normal = NormalSrcOffset ?
 				*reinterpret_cast<const D3DXVECTOR3*>(pSrcVertex + NormalSrcOffset) :
 				*reinterpret_cast<const D3DXVECTOR3*>(pDestVertex + NormalDestOffset);

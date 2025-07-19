@@ -861,6 +861,20 @@ void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWO
 	// Update destination offset for Position
 	DestOffset += GetVertexPositionStride(DestPosFVF);
 
+	// Reserved
+	if (DestFVF & D3DFVF_RESERVED1)
+	{
+		if (SrcFVF & D3DFVF_RESERVED1)
+		{
+			SrcOffset += sizeof(DWORD);
+		}
+		DestOffset += sizeof(DWORD);
+	}
+	else if (SrcFVF & D3DFVF_RESERVED1)
+	{
+		SrcOffset += sizeof(DWORD);
+	}
+
 	// Normal
 	if (DestFVF & D3DFVF_NORMAL)
 	{
@@ -874,20 +888,6 @@ void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWO
 	else if (SrcFVF & D3DFVF_NORMAL)
 	{
 		SrcOffset += sizeof(D3DXVECTOR3);
-	}
-
-	// Reserved
-	if (DestFVF & D3DFVF_RESERVED1)
-	{
-		if (SrcFVF & D3DFVF_RESERVED1)
-		{
-			SrcOffset += sizeof(DWORD);
-		}
-		DestOffset += sizeof(DWORD);
-	}
-	else if (SrcFVF & D3DFVF_RESERVED1)
-	{
-		SrcOffset += sizeof(DWORD);
 	}
 
 	// Diffuse color
@@ -983,6 +983,12 @@ bool IsValidFVF(DWORD dwVertexTypeDesc)
 
 	// Reject reserved/invalid bits (only allow known FVF bits)
 	if (dwVertexTypeDesc & ~D3DFVF_SUPPORTED_BIT_MASK)
+	{
+		return false;
+	}
+
+	// Reject if XYZRHW and reserved1 or normal are set
+	if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && (dwVertexTypeDesc & (D3DFVF_RESERVED1 | D3DFVF_NORMAL)))
 	{
 		return false;
 	}
@@ -1087,8 +1093,8 @@ UINT GetVertexStride(DWORD dwVertexTypeDesc)
 
 	return
 		GetVertexPositionStride(dwVertexTypeDesc) +
-		((dwVertexTypeDesc & D3DFVF_NORMAL) ? sizeof(float) * 3 : 0) +
 		((dwVertexTypeDesc & D3DFVF_RESERVED1) ? sizeof(DWORD) : 0) +
+		((dwVertexTypeDesc & D3DFVF_NORMAL) ? sizeof(float) * 3 : 0) +
 		((dwVertexTypeDesc & D3DFVF_DIFFUSE) ? sizeof(D3DCOLOR) : 0) +
 		((dwVertexTypeDesc & D3DFVF_SPECULAR) ? sizeof(D3DCOLOR) : 0) +
 		GetVertexTextureStride(dwVertexTypeDesc);

@@ -6262,8 +6262,8 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_a
 	DWORD Stride = GetVertexStride(dwVertexTypeDesc);
 
 	bool hasPosition = (dwVertexTypeDesc & D3DFVF_POSITION_MASK);
-	bool hasNormal = (dwVertexTypeDesc & D3DFVF_NORMAL);
 	bool hasReserved = (dwVertexTypeDesc & D3DFVF_RESERVED1);
+	bool hasNormal = (dwVertexTypeDesc & D3DFVF_NORMAL);
 	bool hasDiffuse = (dwVertexTypeDesc & D3DFVF_DIFFUSE);
 	bool hasSpecular = (dwVertexTypeDesc & D3DFVF_SPECULAR);
 	DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
@@ -6349,9 +6349,9 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_a
 
 	BYTE* cursor = outputBuffer.data() + dwVertexStart * Stride;
 	BYTE* posCursor = reinterpret_cast<BYTE*>(sd->position.lpvData) + dwVertexStart * sd->position.dwStride;
-	BYTE* normalCursor = reinterpret_cast<BYTE*>(sd->normal.lpvData) + dwVertexStart * sd->normal.dwStride;
-	BYTE* diffCursor = reinterpret_cast<BYTE*>(sd->diffuse.lpvData) + dwVertexStart * sd->diffuse.dwStride;
-	BYTE* specCursor = reinterpret_cast<BYTE*>(sd->specular.lpvData) + dwVertexStart * sd->specular.dwStride;
+	const D3DXVECTOR3* normalCursor = reinterpret_cast<D3DXVECTOR3*>(sd->normal.lpvData) + dwVertexStart * sd->normal.dwStride;
+	const D3DCOLOR* diffCursor = reinterpret_cast<D3DCOLOR*>(sd->diffuse.lpvData) + dwVertexStart * sd->diffuse.dwStride;
+	const D3DCOLOR* specCursor = reinterpret_cast<D3DCOLOR*>(sd->specular.lpvData) + dwVertexStart * sd->specular.dwStride;
 	BYTE* texCursor[D3DDP_MAXTEXCOORD] = {};
 	for (DWORD t = 0; t < texCount; ++t)
 	{
@@ -6367,30 +6367,27 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_a
 			posCursor += sd->position.dwStride;
 		}
 
-		if (hasNormal)
-		{
-			*(D3DXVECTOR3*)cursor = *(D3DXVECTOR3*)normalCursor;
-			cursor += sizeof(D3DXVECTOR3);
-			normalCursor += sd->normal.dwStride;
-		}
-
 		if (hasReserved)
 		{
 			cursor += sizeof(DWORD);
 		}
 
+		if (hasNormal)
+		{
+			*(D3DXVECTOR3*)cursor = normalCursor[i];
+			cursor += sizeof(D3DXVECTOR3);
+		}
+
 		if (hasDiffuse)
 		{
-			*(D3DCOLOR*)cursor = *(D3DCOLOR*)diffCursor;
+			*(D3DCOLOR*)cursor = diffCursor[i];
 			cursor += sizeof(D3DCOLOR);
-			diffCursor += sd->diffuse.dwStride;
 		}
 
 		if (hasSpecular)
 		{
-			*(D3DCOLOR*)cursor = *(D3DCOLOR*)specCursor;
+			*(D3DCOLOR*)cursor = specCursor[i];
 			cursor += sizeof(D3DCOLOR);
-			specCursor += sd->specular.dwStride;
 		}
 
 		for (DWORD t = 0; t < texCount; ++t)

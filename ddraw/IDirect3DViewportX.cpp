@@ -329,6 +329,9 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 			D3DXVECTOR4 result;
 			D3DXVec4Transform(&result, &pos, &matWorldViewProj);
 
+			// Make sure result.w doesn't equal 0 to avoid divide by zero
+			result.w = result.w == 0.0f ? result.w = FLT_EPSILON : result.w;
+
 			dst.sx = result.x / result.w;
 			dst.sy = result.y / result.w;
 			dst.sz = result.z / result.w;
