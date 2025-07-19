@@ -702,9 +702,11 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	DWORD SrcPosFVF = (SrcFVF & D3DFVF_POSITION_MASK);
 	DWORD DestPosFVF = (DestFVF & D3DFVF_POSITION_MASK);
 
-	if (SrcPosFVF == D3DFVF_XYZRHW && DestPosFVF != D3DFVF_XYZRHW)
+	// Processing the vertices in a vertex buffer applies the current transformation matrices for the device, and can optionally apply vertex operations
+	// such as lighting, generating clip flags, and updating extents
+	if (SrcPosFVF == D3DFVF_XYZRHW || DestPosFVF != D3DFVF_XYZRHW)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid FVF conversion: Cannot convert from D3DFVF_XYZRHW to non-RHW format: " << Logging::hex(SrcFVF) << " -> " << Logging::hex(DestFVF));
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid FVF conversion: Cannot transform from D3DFVF_XYZRHW or to non-D3DFVF_XYZRHW format: " << Logging::hex(SrcFVF) << " -> " << Logging::hex(DestFVF));
 		return D3DERR_INVALIDVERTEXTYPE;
 	}
 
@@ -816,14 +818,13 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	// Copy vertex data
 	bool SimpleVertexCopy = false;
 	bool ComplexConvertVertex = false;
-	bool TransformVertices = (DestPosFVF == D3DFVF_XYZRHW && SrcPosFVF != D3DFVF_XYZRHW);
 	if (!DoNotCopyData)
 	{
 		if (SrcFVF == DestFVF || ((SrcFVF & ~(D3DFVF_XYZ | D3DFVF_RESERVED1)) == (DestFVF & ~D3DFVF_XYZRHW) && SrcStride == DestStride))
 		{
 			memcpy(pDestVertex, pSrcVertex, dwCount * DestStride);
 		}
-		else if (TransformVertices && (SrcFVF & ~D3DFVF_POSITION_MASK) == (DestFVF & ~D3DFVF_XYZRHW))
+		else if ((SrcFVF & ~D3DFVF_POSITION_MASK) == (DestFVF & ~D3DFVF_XYZRHW))
 		{
 			SimpleVertexCopy = true;
 		}
@@ -849,24 +850,21 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 		}
 
 		// Apply the transformation to the position
-		if (TransformVertices)
-		{
-			D3DXVECTOR3& src = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex);
-			D3DXVECTOR4& dst = *reinterpret_cast<D3DXVECTOR4*>(pDestVertex);
+		D3DXVECTOR3& src = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex);
+		D3DXVECTOR4& dst = *reinterpret_cast<D3DXVECTOR4*>(pDestVertex);
 
-			// Transform vertices
-			D3DXVECTOR4 pos(src.x, src.y, src.z, 1.0f);
-			D3DXVECTOR4 result;
-			D3DXVec4Transform(&result, &pos, &matWorldViewProj);
+		// Transform vertices
+		D3DXVECTOR4 pos(src.x, src.y, src.z, 1.0f);
+		D3DXVECTOR4 result;
+		D3DXVec4Transform(&result, &pos, &matWorldViewProj);
 
-			// Make sure result.w doesn't equal 0 to avoid divide by zero
-			result.w = result.w == 0.0f ? result.w = FLT_EPSILON : result.w;
+		// Make sure result.w doesn't equal 0 to avoid divide by zero
+		result.w = result.w == 0.0f ? result.w = FLT_EPSILON : result.w;
 
-			dst.x = result.x / result.w;
-			dst.y = result.y / result.w;
-			dst.z = result.z / result.w;
-			dst.w = 1.0f / result.w;
-		}
+		dst.x = result.x / result.w;
+		dst.y = result.y / result.w;
+		dst.z = result.z / result.w;
+		dst.w = 1.0f / result.w;
 
 		// Perform lighting if required
 		if (IsLight)
