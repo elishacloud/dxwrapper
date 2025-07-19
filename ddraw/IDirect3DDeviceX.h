@@ -183,7 +183,6 @@ private:
 	void SetDefaults();
 	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
 	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
-	void ComputeMinMaxVertex(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& minVertex, DWORD& maxVertex);
 	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
 	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwNumVertices);
 
@@ -425,5 +424,5 @@ public:
 	void ReleaseAllStateBlocks();
 
 	// Static functions
-	static bool InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, DWORD& dwVertexStride, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, DWORD dwVertexStart, DWORD dwNumVertices, DWORD& dwVertexTypeDesc, bool FixUpFixUpVertices);
+	static bool InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, const DWORD dwVertexStart, const DWORD dwNumVertices, const DWORD dwVertexTypeDesc);
 };

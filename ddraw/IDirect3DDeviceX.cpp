@@ -2753,12 +2753,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
-		// Compute minimum and maximum vertex referenced by index
-		DWORD minVertex = 0, maxVertex = 0;
-		ComputeMinMaxVertex(lpwIndices, dwIndexCount, minVertex, maxVertex);
-
 		// Update vertices for Direct3D9 (needs to be first)
-		UpdateVertices(dwVertexTypeDesc, lpVertices, minVertex, min(dwVertexCount, maxVertex) - minVertex);
+		UpdateVertices(dwVertexTypeDesc, lpVertices, 0, dwVertexCount);
 
 		// Set fixed function vertex type
 		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
@@ -2937,9 +2933,11 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
+		// Update vertex desc type (FVF) before interleaving
+		dwVertexTypeDesc = dwVertexTypeDesc == D3DFVF_LVERTEX ? D3DFVF_LVERTEX9 : dwVertexTypeDesc;
+
 		// Update vertices for Direct3D9 (needs to be first)
-		DWORD VertexStride = 0;
-		if (!InterleaveStridedVertexData(VertexCache, VertexStride, lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc, true))
+		if (!InterleaveStridedVertexData(VertexCache, lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
 			return DDERR_INVALIDPARAMS;
@@ -2956,7 +2954,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		// Draw primitive UP
-		HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), VertexCache.data(), VertexStride);
+		HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), VertexCache.data(), GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
 		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -3042,17 +3040,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
-		// Compute minimum and maximum vertex referenced by index
-		DWORD minVertex = 0, maxVertex = 0;
-		ComputeMinMaxVertex(lpwIndices, dwIndexCount, minVertex, maxVertex);
-
-		// Update vertices for Direct3D9 (needs to be first)
-		DWORD VertexStride = 0;
-		if (!InterleaveStridedVertexData(VertexCache, VertexStride, lpVertexArray, minVertex, min(dwVertexCount, maxVertex) - minVertex, dwVertexTypeDesc, true))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
-			return DDERR_INVALIDPARAMS;
-		}
+		// Update vertex desc type (FVF) before interleaving
+		dwVertexTypeDesc = dwVertexTypeDesc == D3DFVF_LVERTEX ? D3DFVF_LVERTEX9 : dwVertexTypeDesc;
 
 		// Set fixed function vertex type
 		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
@@ -3061,11 +3050,18 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Update vertices for Direct3D9 (needs to be first)
+		if (!InterleaveStridedVertexData(VertexCache, lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Handle dwFlags
 		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		// Draw indexed primitive UP
-		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, VertexCache.data(), VertexStride);
+		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, VertexCache.data(), GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
 		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
@@ -6211,26 +6207,6 @@ void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLigh
 	}
 }
 
-void m_IDirect3DDeviceX::ComputeMinMaxVertex(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& minVertex, DWORD& maxVertex)
-{
-	minVertex = 0;
-	maxVertex = 0;
-
-	if (!lpwIndices || dwIndexCount == 0) return;
-
-	minVertex = lpwIndices[0];
-	maxVertex = lpwIndices[0];
-
-	for (DWORD i = 1; i < dwIndexCount; ++i)
-	{
-		WORD idx = lpwIndices[i];
-		if (idx < minVertex) minVertex = idx;
-		if (idx > maxVertex) maxVertex = idx;
-	}
-
-	maxVertex += 1; // Make it exclusive like Direct3D9 expects
-}
-
 void m_IDirect3DDeviceX::ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount)
 {
 	if (dwVertexTypeDesc == 3)
@@ -6275,7 +6251,7 @@ void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVerti
 	}
 }
 
-bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, DWORD& dwVertexStride, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, DWORD dwVertexStart, DWORD dwNumVertices, DWORD& dwVertexTypeDesc, bool FixUpFixUpVertices)
+bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, const DWORD dwVertexStart, const DWORD dwNumVertices, const DWORD dwVertexTypeDesc)
 {
 	if (!sd)
 	{
@@ -6283,16 +6259,11 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_a
 		return false;
 	}
 
-	if (FixUpFixUpVertices && dwVertexTypeDesc == D3DFVF_LVERTEX)
-	{
-		dwVertexTypeDesc = D3DFVF_LVERTEX9;
-	}
-
-	dwVertexStride = GetVertexStride(dwVertexTypeDesc);
+	DWORD Stride = GetVertexStride(dwVertexTypeDesc);
 
 	bool hasPosition = (dwVertexTypeDesc & D3DFVF_POSITION_MASK);
-	bool hasReserved = (dwVertexTypeDesc & D3DFVF_RESERVED1);
 	bool hasNormal = (dwVertexTypeDesc & D3DFVF_NORMAL);
+	bool hasReserved = (dwVertexTypeDesc & D3DFVF_RESERVED1);
 	bool hasDiffuse = (dwVertexTypeDesc & D3DFVF_DIFFUSE);
 	bool hasSpecular = (dwVertexTypeDesc & D3DFVF_SPECULAR);
 	DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
@@ -6303,8 +6274,10 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_a
 		return false;
 	}
 
+	UINT posStride = GetVertexPositionStride(dwVertexTypeDesc);
+	UINT texStride[D3DDP_MAXTEXCOORD] = {};
+
 	// Check data and compute stride
-	DWORD stride = 0;
 	if (hasPosition)
 	{
 		if (!sd->position.lpvData)
@@ -6312,7 +6285,11 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_a
 			LOG_LIMIT(100, __FUNCTION__ << " Error: position data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
 			return false;
 		}
-		stride += sd->position.dwStride;
+		if (sd->position.dwStride != posStride)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: position stride does not match: " << posStride << " -> " << sd->position.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
 	}
 	if (hasNormal)
 	{
@@ -6321,12 +6298,11 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_a
 			LOG_LIMIT(100, __FUNCTION__ << " Error: normal data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
 			return false;
 		}
-		if (sd->normal.dwStride != sizeof(float) * 3)
+		if (sd->normal.dwStride != sizeof(D3DXVECTOR3))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: normal stride does not match: " << (sizeof(float) * 3) << " -> " << sd->normal.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+			LOG_LIMIT(100, __FUNCTION__ << " Error: normal stride does not match: " << sizeof(D3DXVECTOR3) << " -> " << sd->normal.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
 			return false;
 		}
-		stride += sd->normal.dwStride;
 	}
 	if (hasDiffuse)
 	{
@@ -6340,7 +6316,6 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_a
 			LOG_LIMIT(100, __FUNCTION__ << " Error: diffuse stride does not match: " << sizeof(D3DCOLOR) << " -> " << sd->diffuse.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
 			return false;
 		}
-		stride += sd->diffuse.dwStride;
 	}
 	if (hasSpecular)
 	{
@@ -6354,7 +6329,6 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_a
 			LOG_LIMIT(100, __FUNCTION__ << " Error: specular stride does not match: " << sizeof(D3DCOLOR) << " -> " << sd->specular.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
 			return false;
 		}
-		stride += sd->specular.dwStride;
 	}
 	for (DWORD t = 0; t < texCount; ++t)
 	{
@@ -6363,28 +6337,41 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_a
 			LOG_LIMIT(100, __FUNCTION__ << " Error: textureCoords " << t << " data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
 			return false;
 		}
-		stride += sd->textureCoords[t].dwStride;
+		texStride[t] = GetTexStride(dwVertexTypeDesc, t);
+		if (sd->textureCoords[t].dwStride != texStride[t])
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: specular stride does not match: " << texStride[t] << " -> " << sd->textureCoords[t].dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
 	}
 
-	// Check if stride matches
-	if (stride != dwVertexStride)
+	outputBuffer.resize((dwVertexStart + dwNumVertices) * Stride);
+
+	BYTE* cursor = outputBuffer.data() + dwVertexStart * Stride;
+	BYTE* posCursor = reinterpret_cast<BYTE*>(sd->position.lpvData) + dwVertexStart * sd->position.dwStride;
+	BYTE* normalCursor = reinterpret_cast<BYTE*>(sd->normal.lpvData) + dwVertexStart * sd->normal.dwStride;
+	BYTE* diffCursor = reinterpret_cast<BYTE*>(sd->diffuse.lpvData) + dwVertexStart * sd->diffuse.dwStride;
+	BYTE* specCursor = reinterpret_cast<BYTE*>(sd->specular.lpvData) + dwVertexStart * sd->specular.dwStride;
+	BYTE* texCursor[D3DDP_MAXTEXCOORD] = {};
+	for (DWORD t = 0; t < texCount; ++t)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: stride does not match: " << dwVertexStride << " -> " << stride << " FVF: " << Logging::hex(dwVertexTypeDesc));
-		return false;
+		texCursor[t] = reinterpret_cast<BYTE*>(sd->textureCoords[t].lpvData) + dwVertexStart * sd->textureCoords[t].dwStride;
 	}
-
-	outputBuffer.resize(dwVertexStride * (dwVertexStart + dwNumVertices));
-
-	const BYTE* base = static_cast<const BYTE*>(outputBuffer.data());
 
 	for (DWORD i = 0; i < dwNumVertices; ++i)
 	{
-		BYTE* cursor = const_cast<BYTE*>(base) + (i + dwVertexStart) * dwVertexStride;
-
 		if (hasPosition)
 		{
-			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->position.lpvData) + (i + dwVertexStart) * sd->position.dwStride, sd->position.dwStride);
-			cursor += sd->position.dwStride;
+			memcpy(cursor, posCursor, posStride);
+			cursor += posStride;
+			posCursor += sd->position.dwStride;
+		}
+
+		if (hasNormal)
+		{
+			*(D3DXVECTOR3*)cursor = *(D3DXVECTOR3*)normalCursor;
+			cursor += sizeof(D3DXVECTOR3);
+			normalCursor += sd->normal.dwStride;
 		}
 
 		if (hasReserved)
@@ -6392,28 +6379,25 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_a
 			cursor += sizeof(DWORD);
 		}
 
-		if (hasNormal)
-		{
-			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->normal.lpvData) + (i + dwVertexStart) * sd->normal.dwStride, sd->normal.dwStride);
-			cursor += sd->normal.dwStride;
-		}
-
 		if (hasDiffuse)
 		{
-			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->diffuse.lpvData) + (i + dwVertexStart) * sd->diffuse.dwStride, sd->diffuse.dwStride);
-			cursor += sd->diffuse.dwStride;
+			*(D3DCOLOR*)cursor = *(D3DCOLOR*)diffCursor;
+			cursor += sizeof(D3DCOLOR);
+			diffCursor += sd->diffuse.dwStride;
 		}
 
 		if (hasSpecular)
 		{
-			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->specular.lpvData) + (i + dwVertexStart) * sd->specular.dwStride, sd->specular.dwStride);
-			cursor += sd->specular.dwStride;
+			*(D3DCOLOR*)cursor = *(D3DCOLOR*)specCursor;
+			cursor += sizeof(D3DCOLOR);
+			specCursor += sd->specular.dwStride;
 		}
 
 		for (DWORD t = 0; t < texCount; ++t)
 		{
-			memcpy(cursor, reinterpret_cast<const BYTE*>(sd->textureCoords[t].lpvData) + (i + dwVertexStart) * sd->textureCoords[t].dwStride, sd->textureCoords[t].dwStride);
-			cursor += sd->textureCoords[t].dwStride;
+			memcpy(cursor, texCursor[t], texStride[t]);
+			cursor += texStride[t];
+			texCursor[t] += sd->textureCoords[t].dwStride;
 		}
 	}
 

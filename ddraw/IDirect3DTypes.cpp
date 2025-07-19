@@ -730,18 +730,44 @@ bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType)
 const int o0_0f = 0x00000000; // float(0.0f) as int
 const int o1_0f = 0x3F800000; // float(1.0f) as int
 struct XYZ_16 { int x, y, z, w; };
-struct XYZ_20 { int x, y, z, w; DWORD a[1]; };
-struct XYZ_24 { int x, y, z, w; DWORD a[2]; };
-struct XYZ_28 { int x, y, z, w; DWORD a[3]; };
-struct XYZ_32 {	int x, y, z, w; DWORD a[4]; };
-struct XYZ_36 { int x, y, z, w; DWORD a[5]; };
-struct XYZ_40 { int x, y, z, w; DWORD a[6]; };
-struct XYZ_44 { int x, y, z, w; DWORD a[7]; };
-struct XYZ_48 { int x, y, z, w; DWORD a[8]; };
-struct XYZ_52 { int x, y, z, w; DWORD a[9]; };
-struct XYZ_56 { int x, y, z, w; DWORD a[10]; };
-struct XYZ_60 { int x, y, z, w; DWORD a[11]; };
-struct XYZ_64 { int x, y, z, w; DWORD a[12]; };
+
+#define DEFINE_XYZ_STRUCT(size) \
+	struct XYZ_##size { int x, y, z, w; DWORD a[((size - 16) / 4)]; };
+
+DEFINE_XYZ_STRUCT(20)
+DEFINE_XYZ_STRUCT(24)
+DEFINE_XYZ_STRUCT(28)
+DEFINE_XYZ_STRUCT(32)
+DEFINE_XYZ_STRUCT(36)
+DEFINE_XYZ_STRUCT(40)
+DEFINE_XYZ_STRUCT(44)
+DEFINE_XYZ_STRUCT(48)
+DEFINE_XYZ_STRUCT(52)
+DEFINE_XYZ_STRUCT(56)
+DEFINE_XYZ_STRUCT(60)
+DEFINE_XYZ_STRUCT(64)
+DEFINE_XYZ_STRUCT(68)
+DEFINE_XYZ_STRUCT(72)
+DEFINE_XYZ_STRUCT(76)
+DEFINE_XYZ_STRUCT(80)
+DEFINE_XYZ_STRUCT(84)
+DEFINE_XYZ_STRUCT(88)
+DEFINE_XYZ_STRUCT(92)
+DEFINE_XYZ_STRUCT(96)
+DEFINE_XYZ_STRUCT(100)
+DEFINE_XYZ_STRUCT(104)
+DEFINE_XYZ_STRUCT(108)
+DEFINE_XYZ_STRUCT(112)
+DEFINE_XYZ_STRUCT(116)
+DEFINE_XYZ_STRUCT(120)
+DEFINE_XYZ_STRUCT(124)
+DEFINE_XYZ_STRUCT(128)
+DEFINE_XYZ_STRUCT(132)
+DEFINE_XYZ_STRUCT(136)
+DEFINE_XYZ_STRUCT(140)
+DEFINE_XYZ_STRUCT(144)
+DEFINE_XYZ_STRUCT(148)
+DEFINE_XYZ_STRUCT(152)
 
 template <typename T>
 void ClampVerticesX(T* pDestVertex, DWORD dwNumVertices)
@@ -771,6 +797,28 @@ void ClampVertices(BYTE* pVertexData, DWORD Stride, DWORD dwNumVertices)
 	else if (Stride == 56) ClampVerticesX(reinterpret_cast<XYZ_56*>(pVertexData), dwNumVertices);
 	else if (Stride == 60) ClampVerticesX(reinterpret_cast<XYZ_60*>(pVertexData), dwNumVertices);
 	else if (Stride == 64) ClampVerticesX(reinterpret_cast<XYZ_64*>(pVertexData), dwNumVertices);
+	else if (Stride == 68) ClampVerticesX(reinterpret_cast<XYZ_68*>(pVertexData), dwNumVertices);
+	else if (Stride == 72) ClampVerticesX(reinterpret_cast<XYZ_72*>(pVertexData), dwNumVertices);
+	else if (Stride == 76) ClampVerticesX(reinterpret_cast<XYZ_76*>(pVertexData), dwNumVertices);
+	else if (Stride == 80) ClampVerticesX(reinterpret_cast<XYZ_80*>(pVertexData), dwNumVertices);
+	else if (Stride == 84) ClampVerticesX(reinterpret_cast<XYZ_84*>(pVertexData), dwNumVertices);
+	else if (Stride == 88) ClampVerticesX(reinterpret_cast<XYZ_88*>(pVertexData), dwNumVertices);
+	else if (Stride == 92) ClampVerticesX(reinterpret_cast<XYZ_92*>(pVertexData), dwNumVertices);
+	else if (Stride == 96) ClampVerticesX(reinterpret_cast<XYZ_96*>(pVertexData), dwNumVertices);
+	else if (Stride == 100) ClampVerticesX(reinterpret_cast<XYZ_100*>(pVertexData), dwNumVertices);
+	else if (Stride == 104) ClampVerticesX(reinterpret_cast<XYZ_104*>(pVertexData), dwNumVertices);
+	else if (Stride == 108) ClampVerticesX(reinterpret_cast<XYZ_108*>(pVertexData), dwNumVertices);
+	else if (Stride == 112) ClampVerticesX(reinterpret_cast<XYZ_112*>(pVertexData), dwNumVertices);
+	else if (Stride == 116) ClampVerticesX(reinterpret_cast<XYZ_116*>(pVertexData), dwNumVertices);
+	else if (Stride == 120) ClampVerticesX(reinterpret_cast<XYZ_120*>(pVertexData), dwNumVertices);
+	else if (Stride == 124) ClampVerticesX(reinterpret_cast<XYZ_124*>(pVertexData), dwNumVertices);
+	else if (Stride == 128) ClampVerticesX(reinterpret_cast<XYZ_128*>(pVertexData), dwNumVertices);
+	else if (Stride == 132) ClampVerticesX(reinterpret_cast<XYZ_132*>(pVertexData), dwNumVertices);
+	else if (Stride == 136) ClampVerticesX(reinterpret_cast<XYZ_136*>(pVertexData), dwNumVertices);
+	else if (Stride == 140) ClampVerticesX(reinterpret_cast<XYZ_140*>(pVertexData), dwNumVertices);
+	else if (Stride == 144) ClampVerticesX(reinterpret_cast<XYZ_144*>(pVertexData), dwNumVertices);
+	else if (Stride == 148) ClampVerticesX(reinterpret_cast<XYZ_148*>(pVertexData), dwNumVertices);
+	else if (Stride == 152) ClampVerticesX(reinterpret_cast<XYZ_152*>(pVertexData), dwNumVertices);
 	else
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Vertex buffer stride not supported: " << Stride);
@@ -782,73 +830,50 @@ void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWO
 	DWORD SrcOffset = 0;
 	DWORD DestOffset = 0;
 
+	DWORD SrcPosFVF = (SrcFVF & D3DFVF_POSITION_MASK);
+	DWORD DestPosFVF = (DestFVF & D3DFVF_POSITION_MASK);
+
+	// Get number of blending weights
+	DWORD SrcNumBlending = GetBlendCount(SrcPosFVF);
+	DWORD DestNumBlending = GetBlendCount(DestPosFVF);
+
 	// Copy Position XYZ
-	*(D3DXVECTOR3*)pDestVertex = *(D3DXVECTOR3*)pSrcVertex;
-	DestOffset += 3 * sizeof(float);
+	if (SrcPosFVF && DestPosFVF)
+	{
+		*(D3DXVECTOR3*)pDestVertex = *(D3DXVECTOR3*)pSrcVertex;
+	}
+
+	// Copy Position RHW
+	if (DestPosFVF == D3DFVF_XYZRHW && DestPosFVF == SrcPosFVF)
+	{
+		*(float*)(pDestVertex + sizeof(D3DXVECTOR3)) = *(float*)(pSrcVertex + sizeof(D3DXVECTOR3));
+	}
+
+	// Copy matching blending weights
+	if (SrcNumBlending && DestNumBlending)
+	{
+		memcpy(pDestVertex + sizeof(D3DXVECTOR3), pSrcVertex + sizeof(D3DXVECTOR3), min(SrcNumBlending, DestNumBlending) * sizeof(float));
+	}
 
 	// Update source offset for Position
-	SrcOffset += 3 * sizeof(float);
+	SrcOffset += GetVertexPositionStride(SrcPosFVF);
 
-	// Copy Position data (XYZW, XYZRHW, etc.)
-	switch (DestFVF & D3DFVF_POSITION_MASK_9)
-	{
-	case D3DFVF_XYZW:
-	case D3DFVF_XYZRHW:
-		if ((DestFVF & D3DFVF_POSITION_MASK_9) == (SrcFVF & D3DFVF_POSITION_MASK_9))
-		{
-			*(float*)(pDestVertex + DestOffset) = *(float*)(pSrcVertex + SrcOffset);
-		}
-		DestOffset += sizeof(float);
-		break;
-	case D3DFVF_XYZB1:
-	case D3DFVF_XYZB2:
-	case D3DFVF_XYZB3:
-	case D3DFVF_XYZB4:
-	case D3DFVF_XYZB5:
-	{
-		// Get number of blending weights
-		DWORD SrcNumBlending =
-			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB1 ? 1 :
-			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB2 ? 2 :
-			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB3 ? 3 :
-			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB4 ? 4 :
-			(SrcFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB5 ? 5 : 0;
-		DWORD DestNumBlending =
-			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB1 ? 1 :
-			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB2 ? 2 :
-			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB3 ? 3 :
-			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB4 ? 4 :
-			(DestFVF & D3DFVF_POSITION_MASK_9) == D3DFVF_XYZB5 ? 5 : 0;
-		// Copy matching blending weights
-		for (UINT x = 0; x < min(SrcNumBlending, DestNumBlending); x++)
-		{
-			*(float*)(pDestVertex + DestOffset + x * sizeof(float)) = *(float*)(pSrcVertex + SrcOffset + x * sizeof(float));
-		}
-		DestOffset += DestNumBlending * sizeof(float);
-		break;
-	}
-	}
+	// Update destination offset for Position
+	DestOffset += GetVertexPositionStride(DestPosFVF);
 
-	// Update source offset for Position data
-	switch (SrcFVF & D3DFVF_POSITION_MASK_9)
+	// Normal
+	if (DestFVF & D3DFVF_NORMAL)
 	{
-	case D3DFVF_XYZW:
-	case D3DFVF_XYZRHW:
-	case D3DFVF_XYZB1:
-		SrcOffset += sizeof(float);
-		break;
-	case D3DFVF_XYZB2:
-		SrcOffset += 2 * sizeof(float);
-		break;
-	case D3DFVF_XYZB3:
-		SrcOffset += 3 * sizeof(float);
-		break;
-	case D3DFVF_XYZB4:
-		SrcOffset += 4 * sizeof(float);
-		break;
-	case D3DFVF_XYZB5:
-		SrcOffset += 5 * sizeof(float);
-		break;
+		if (SrcFVF & D3DFVF_NORMAL)
+		{
+			*(D3DXVECTOR3*)(pDestVertex + DestOffset) = *(D3DXVECTOR3*)(pSrcVertex + SrcOffset);
+			SrcOffset += sizeof(D3DXVECTOR3);
+		}
+		DestOffset += sizeof(D3DXVECTOR3);
+	}
+	else if (SrcFVF & D3DFVF_NORMAL)
+	{
+		SrcOffset += sizeof(D3DXVECTOR3);
 	}
 
 	// Reserved
@@ -865,49 +890,19 @@ void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWO
 		SrcOffset += sizeof(DWORD);
 	}
 
-	// Normal
-	if (DestFVF & D3DFVF_NORMAL)
-	{
-		if (SrcFVF & D3DFVF_NORMAL)
-		{
-			*(D3DXVECTOR3*)(pDestVertex + DestOffset) = *(D3DXVECTOR3*)(pSrcVertex + SrcOffset);
-			SrcOffset += 3 * sizeof(float);
-		}
-		DestOffset += 3 * sizeof(float);
-	}
-	else if (SrcFVF & D3DFVF_NORMAL)
-	{
-		SrcOffset += 3 * sizeof(float);
-	}
-
-	// Point Size
-	if (DestFVF & D3DFVF_PSIZE)
-	{
-		if (SrcFVF & D3DFVF_PSIZE)
-		{
-			*(float*)(pDestVertex + DestOffset) = *(float*)(pSrcVertex + SrcOffset);
-			SrcOffset += sizeof(float);
-		}
-		DestOffset += sizeof(float);
-	}
-	else if (SrcFVF & D3DFVF_PSIZE)
-	{
-		SrcOffset += sizeof(float);
-	}
-
 	// Diffuse color
 	if (DestFVF & D3DFVF_DIFFUSE)
 	{
 		if (SrcFVF & D3DFVF_DIFFUSE)
 		{
-			*(DWORD*)(pDestVertex + DestOffset) = *(DWORD*)(pSrcVertex + SrcOffset);
-			SrcOffset += sizeof(DWORD);
+			*(D3DCOLOR*)(pDestVertex + DestOffset) = *(D3DCOLOR*)(pSrcVertex + SrcOffset);
+			SrcOffset += sizeof(D3DCOLOR);
 		}
-		DestOffset += sizeof(DWORD);
+		DestOffset += sizeof(D3DCOLOR);
 	}
 	else if (SrcFVF & D3DFVF_DIFFUSE)
 	{
-		SrcOffset += sizeof(DWORD);
+		SrcOffset += sizeof(D3DCOLOR);
 	}
 
 	// Specular color
@@ -915,54 +910,49 @@ void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWO
 	{
 		if (SrcFVF & D3DFVF_SPECULAR)
 		{
-			*(DWORD*)(pDestVertex + DestOffset) = *(DWORD*)(pSrcVertex + SrcOffset);
-			SrcOffset += sizeof(DWORD);
+			*(D3DCOLOR*)(pDestVertex + DestOffset) = *(D3DCOLOR*)(pSrcVertex + SrcOffset);
+			SrcOffset += sizeof(D3DCOLOR);
 		}
-		DestOffset += sizeof(DWORD);
+		DestOffset += sizeof(D3DCOLOR);
 	}
 	else if (SrcFVF & D3DFVF_SPECULAR)
 	{
-		SrcOffset += sizeof(DWORD);
+		SrcOffset += sizeof(D3DCOLOR);
 	}
 
 	// Texture coordinates
-	int SrcNumTexCoords = (SrcFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
-	int DestNumTexCoords = (DestFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+	int SrcNumTexCoords = D3DFVF_TEXCOUNT(SrcFVF);
+	int DestNumTexCoords = D3DFVF_TEXCOUNT(DestFVF);
+
+	if (SrcNumTexCoords > D3DDP_MAXTEXCOORD || DestNumTexCoords > D3DDP_MAXTEXCOORD)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: texCount " << SrcNumTexCoords << " -> " << DestNumTexCoords << " exceeds D3DDP_MAXTEXCOORD!");
+		return;
+	}
+
 	int y = 0;
 	for (int x = 0; x < DestNumTexCoords; x++)
 	{
-		// Get number of destination texture coordinates
-		int DestCord = (DestFVF & (D3DFVF_TEXCOORDSIZE1(x) | D3DFVF_TEXCOORDSIZE2(x) | D3DFVF_TEXCOORDSIZE3(x) | D3DFVF_TEXCOORDSIZE4(x)));
-		int DestSize =
-			DestCord == D3DFVF_TEXCOORDSIZE1(x) ? 1 :
-			DestCord == D3DFVF_TEXCOORDSIZE2(x) ? 2 :
-			DestCord == D3DFVF_TEXCOORDSIZE3(x) ? 3 :
-			DestCord == D3DFVF_TEXCOORDSIZE4(x) ? 4 : 0;
+		int DestTexStride = GetTexStride(DestFVF, x);
+
 		// Find matching source texture coordinates
 		while (y < SrcNumTexCoords)
 		{
-			int SrcCord = (SrcFVF & (D3DFVF_TEXCOORDSIZE1(y) | D3DFVF_TEXCOORDSIZE2(y) | D3DFVF_TEXCOORDSIZE3(y) | D3DFVF_TEXCOORDSIZE4(y)));
-			int SrcSize =
-				SrcCord == D3DFVF_TEXCOORDSIZE1(y) ? 1 :
-				SrcCord == D3DFVF_TEXCOORDSIZE2(y) ? 2 :
-				SrcCord == D3DFVF_TEXCOORDSIZE3(y) ? 3 :
-				SrcCord == D3DFVF_TEXCOORDSIZE4(y) ? 4 : 0;
+			int SrcTexStride = GetTexStride(SrcFVF, y);
+
 			// Copy matching texture coordinates
-			if (SrcSize && DestSize == SrcSize)
+			if (DestTexStride && DestTexStride == SrcTexStride)
 			{
-				for (int i = 0; i < SrcSize; i++)
-				{
-					*(float*)(pDestVertex + DestOffset + i * sizeof(float)) = *(float*)(pSrcVertex + SrcOffset + i * sizeof(float));
-				}
-				SrcOffset += SrcSize * sizeof(float);
+				memcpy(pDestVertex + DestOffset, pSrcVertex + SrcOffset, DestTexStride);
+				SrcOffset += SrcTexStride;
 				y++;
 				break;
 			}
-			SrcOffset += SrcSize * sizeof(float);
+			SrcOffset += SrcTexStride;
 			y++;
 		}
 		// Increase destination offset
-		DestOffset += DestSize * sizeof(float);
+		DestOffset += DestTexStride;
 	}
 }
 
@@ -980,33 +970,80 @@ DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType)
 	return 0;
 }
 
-UINT GetFVFBlendCount(DWORD fvf)
+bool IsValidFVF(DWORD dwVertexTypeDesc)
 {
-	const DWORD blendMask = D3DFVF_POSITION_MASK;
-	switch (fvf & blendMask)
+	// Must specify position format
+	DWORD posType = dwVertexTypeDesc & D3DFVF_POSITION_MASK;
+	if (posType != D3DFVF_XYZ &&
+		posType != D3DFVF_XYZRHW &&
+		(posType < D3DFVF_XYZB1 || posType > D3DFVF_XYZB5))
 	{
-	case D3DFVF_XYZ:       return 0;
-	case D3DFVF_XYZB1:     return 1;
-	case D3DFVF_XYZB2:     return 2;
-	case D3DFVF_XYZB3:     return 3;
-	case D3DFVF_XYZB4:     return 4;
-	case D3DFVF_XYZB5:     return 5;
-	default:               return 0;
+		return false;
 	}
+
+	// Reject reserved/invalid bits (only allow known FVF bits)
+	if (dwVertexTypeDesc & ~D3DFVF_SUPPORTED_BIT_MASK)
+	{
+		return false;
+	}
+
+	// Validate texture count is 0–8
+	DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
+	if (texCount > D3DDP_MAXTEXCOORD)
+	{
+		return false;
+	}
+
+	// Validate each texture coordinate size
+	for (DWORD t = 0; t < texCount; ++t)
+	{
+		DWORD sizeFlag = (dwVertexTypeDesc >> (16 + t * 2)) & 0x3;
+		if (sizeFlag > 3) return false;
+	}
+
+	return true;
+}
+
+UINT GetBlendCount(DWORD dwVertexTypeDesc)
+{
+	switch (dwVertexTypeDesc & D3DFVF_POSITION_MASK)
+	{
+	case D3DFVF_XYZB1:   return 1;
+	case D3DFVF_XYZB2:   return 2;
+	case D3DFVF_XYZB3:   return 3;
+	case D3DFVF_XYZB4:   return 4;
+	case D3DFVF_XYZB5:   return 5;
+	}
+	return 0;
 }
 
 UINT GetVertexPositionStride(DWORD dwVertexTypeDesc)
 {
-	const DWORD dwVertexPositionType = (dwVertexTypeDesc & D3DFVF_POSITION_MASK);
+	switch (dwVertexTypeDesc & D3DFVF_POSITION_MASK)
+	{
+	case D3DFVF_XYZ:     return sizeof(float) * 3;
+	case D3DFVF_XYZRHW:  return sizeof(float) * 4;
+	case D3DFVF_XYZB1:   return sizeof(float) * 4;
+	case D3DFVF_XYZB2:   return sizeof(float) * 5;
+	case D3DFVF_XYZB3:   return sizeof(float) * 6;
+	case D3DFVF_XYZB4:   return sizeof(float) * 6 + sizeof(DWORD);
+	case D3DFVF_XYZB5:   return sizeof(float) * 7 + sizeof(DWORD);
+	}
+	return 0;
+}
 
-	return
-		((dwVertexPositionType == D3DFVF_XYZ) ? sizeof(float) * 3 : 0) +
-		((dwVertexPositionType == D3DFVF_XYZRHW) ? sizeof(float) * 4 : 0) +
-		((dwVertexPositionType == D3DFVF_XYZB1) ? sizeof(float) * 4 : 0) +
-		((dwVertexPositionType == D3DFVF_XYZB2) ? sizeof(float) * 5 : 0) +
-		((dwVertexPositionType == D3DFVF_XYZB3) ? sizeof(float) * 6 : 0) +
-		((dwVertexPositionType == D3DFVF_XYZB4) ? sizeof(float) * 6 + sizeof(DWORD) : 0) +
-		((dwVertexPositionType == D3DFVF_XYZB5) ? sizeof(float) * 7 + sizeof(DWORD) : 0);
+UINT GetTexStride(DWORD dwVertexTypeDesc, DWORD t)
+{
+	DWORD sizeFlag = (dwVertexTypeDesc >> (16 + t * 2)) & 0x3;
+
+	switch (sizeFlag)
+	{
+	default:
+	case 0:   return sizeof(float) * 2;
+	case 1:   return sizeof(float) * 1;
+	case 2:   return sizeof(float) * 3;
+	case 3:   return sizeof(float) * 4;
+	}
 }
 
 UINT GetVertexTextureStride(DWORD dwVertexTypeDesc)
@@ -1021,21 +1058,9 @@ UINT GetVertexTextureStride(DWORD dwVertexTypeDesc)
 
 	// Compute tex stride
 	DWORD texStride = 0;
-	for (DWORD i = 0; i < texCount; ++i)
+	for (DWORD t = 0; t < texCount; ++t)
 	{
-		DWORD formatBits = (dwVertexTypeDesc >> (16 + i * 2)) & 0x3;
-		DWORD floatCount;
-
-		switch (formatBits)
-		{
-		case D3DFVF_TEXTUREFORMAT1: floatCount = 1; break;
-		case D3DFVF_TEXTUREFORMAT2: floatCount = 2; break; // default
-		case D3DFVF_TEXTUREFORMAT3: floatCount = 3; break;
-		case D3DFVF_TEXTUREFORMAT4: floatCount = 4; break;
-		default: floatCount = 2; break; // fallback to default
-		}
-
-		texStride += sizeof(float) * floatCount;
+		texStride += GetTexStride(dwVertexTypeDesc, t);
 	}
 
 	return texStride;
@@ -1054,7 +1079,7 @@ UINT GetVertexStride(DWORD dwVertexTypeDesc)
 	// #define D3DFVF_RESERVED2        0x6000  // 2 reserved bits (DX9)
 
 	// Check for unsupported vertex types
-	const DWORD UnSupportedVertexTypes = dwVertexTypeDesc & ~(D3DFVF_POSITION_MASK_9 | D3DFVF_RESERVED1 | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEXCOUNT_MASK | D3DFVF_TEXCOORDSIZE_ALL);
+	const DWORD UnSupportedVertexTypes = dwVertexTypeDesc & ~D3DFVF_SUPPORTED_BIT_MASK;
 	if (UnSupportedVertexTypes)
 	{
 		LOG_LIMIT(100, __FUNCTION__ " Warning: Unsupported FVF type: " << Logging::hex(UnSupportedVertexTypes));
@@ -1062,8 +1087,8 @@ UINT GetVertexStride(DWORD dwVertexTypeDesc)
 
 	return
 		GetVertexPositionStride(dwVertexTypeDesc) +
-		((dwVertexTypeDesc & D3DFVF_RESERVED1) ? sizeof(DWORD) : 0) +
 		((dwVertexTypeDesc & D3DFVF_NORMAL) ? sizeof(float) * 3 : 0) +
+		((dwVertexTypeDesc & D3DFVF_RESERVED1) ? sizeof(DWORD) : 0) +
 		((dwVertexTypeDesc & D3DFVF_DIFFUSE) ? sizeof(D3DCOLOR) : 0) +
 		((dwVertexTypeDesc & D3DFVF_SPECULAR) ? sizeof(D3DCOLOR) : 0) +
 		GetVertexTextureStride(dwVertexTypeDesc);

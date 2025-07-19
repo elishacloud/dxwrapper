@@ -713,7 +713,7 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 		}
 
 		// Check FVF format
-		if (!lpVBDesc->dwFVF || (lpVBDesc->dwFVF != D3DFVF_LVERTEX && (lpVBDesc->dwFVF & ~(D3DFVF_POSITION_MASK | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEXCOUNT_MASK))))
+		if (!IsValidFVF(lpVBDesc->dwFVF))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid or unsupported vertex buffer FVF: " << Logging::hex(lpVBDesc->dwFVF));
 			return D3DERR_INVALIDVERTEXFORMAT;

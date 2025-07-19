@@ -105,7 +105,7 @@ typedef struct _D3DDEVINFO_TEXTURING {
 #define D3DFVF_RESERVED2        0xf000  // 4 reserved bits
 #define D3DFVF_RESERVED2_9      0x6000  // 2 reserved bits
 #undef D3DFVF_POSITION_MASK
-#define D3DFVF_POSITION_MASK    0x00e
+#define D3DFVF_POSITION_MASK    0x00E
 #define D3DFVF_POSITION_MASK_9  0x400E
 
 #define D3DFVF_LVERTEX9 (D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1)
@@ -115,6 +115,15 @@ typedef struct _D3DDEVINFO_TEXTURING {
 #endif
 
 #define D3DFVF_TEXCOORDSIZE_ALL (0xFFFF0000) // bits 16-31 cover up to 8 texture stage format sizes
+
+#define D3DFVF_SUPPORTED_BIT_MASK \
+    (D3DFVF_POSITION_MASK | \
+    D3DFVF_NORMAL | \
+    D3DFVF_RESERVED1 | \
+    D3DFVF_DIFFUSE | \
+    D3DFVF_SPECULAR | \
+    D3DFVF_TEXCOUNT_MASK | \
+    D3DFVF_TEXCOORDSIZE_ALL)
 
 struct XYZ
 {
@@ -164,8 +173,10 @@ bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);
 void ClampVertices(BYTE* pVertexData, DWORD Stride, DWORD dwNumVertices);
 void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF);
 DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType);
-UINT GetFVFBlendCount(DWORD fvf);
+bool IsValidFVF(DWORD dwVertexTypeDesc);
+UINT GetBlendCount(DWORD dwVertexTypeDesc);
 UINT GetVertexPositionStride(DWORD dwVertexTypeDesc);
+UINT GetTexStride(DWORD dwVertexTypeDesc, DWORD t);
 UINT GetVertexTextureStride(DWORD dwVertexTypeDesc);
 UINT GetVertexStride(DWORD dwVertexTypeDesc);
 UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);

@@ -446,12 +446,11 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 #endif
 
 		// Setup vars
-		DWORD VertexStride = 0;
 		DWORD dwVertexTypeDesc = VB.Desc.dwFVF;
 		std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexCache;
 
 		// Process strided data
-		if (!m_IDirect3DDeviceX::InterleaveStridedVertexData(VertexCache, VertexStride, lpVertexArray, dwSrcIndex, dwCount, dwVertexTypeDesc, false))
+		if (!m_IDirect3DDeviceX::InterleaveStridedVertexData(VertexCache, lpVertexArray, dwSrcIndex, dwCount, dwVertexTypeDesc))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
 			return DDERR_INVALIDPARAMS;
@@ -700,8 +699,8 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	UINT SrcStride = GetVertexStride(SrcFVF);
 	UINT DestStride = GetVertexStride(DestFVF);
 
-	DWORD SrcPosFVF = (SrcFVF & D3DFVF_POSITION_MASK_9);
-	DWORD DestPosFVF = (DestFVF & D3DFVF_POSITION_MASK_9);
+	DWORD SrcPosFVF = (SrcFVF & D3DFVF_POSITION_MASK);
+	DWORD DestPosFVF = (DestFVF & D3DFVF_POSITION_MASK);
 
 	if (SrcPosFVF == D3DFVF_XYZRHW && DestPosFVF != D3DFVF_XYZRHW)
 	{
@@ -732,8 +731,8 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	DWORD SrcPosSize = GetVertexPositionStride(SrcFVF);
 	DWORD DestPosSize = GetVertexPositionStride(DestFVF);
 
-	DWORD SrcBlendCount = GetFVFBlendCount(SrcFVF);
-	DWORD DestBlendCount = GetFVFBlendCount(DestFVF);
+	DWORD SrcBlendCount = GetBlendCount(SrcFVF);
+	DWORD DestBlendCount = GetBlendCount(DestFVF);
 
 	DWORD SrcBlendOffset = (SrcPosFVF == D3DFVF_XYZRHW) ? 4 * sizeof(float) : 3 * sizeof(float);
 	DWORD DestBlendOffset = (DestPosFVF == D3DFVF_XYZRHW) ? 4 * sizeof(float) : 3 * sizeof(float);
@@ -746,14 +745,14 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	if (IsLight)
 	{
 		DWORD offset = DestPosSize;
-		if (DestFVF & D3DFVF_RESERVED1)
-		{
-			offset += sizeof(DWORD);
-		}
 		if (DestFVF & D3DFVF_NORMAL)
 		{
 			NormalDestOffset = offset;
 			offset += 3 * sizeof(float);
+		}
+		if (DestFVF & D3DFVF_RESERVED1)
+		{
+			offset += sizeof(DWORD);
 		}
 		if (DestFVF & D3DFVF_DIFFUSE)
 		{
@@ -820,16 +819,25 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	BYTE* pSrcVertex = (BYTE*)pSrcVertices + (dwSrcIndex * SrcStride);
 	BYTE* pDestVertex = (BYTE*)pDestVertices + (dwDestIndex * DestStride);
 
-	// Copy all data
-	if (SrcFVF == DestFVF && !DoNotCopyData)
+	// Copy vertex data
+	bool ShouldConvertVertex = false;
+	if (!DoNotCopyData)
 	{
-		memcpy(pDestVertex, pSrcVertex, DestStride * dwCount);
+		if (SrcFVF == DestFVF)
+		{
+			memcpy(pDestVertex, pSrcVertex, dwCount * DestStride);
+		}
+		else
+		{
+			ShouldConvertVertex = true;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: manually converting vertices may be slower: " << Logging::hex(SrcFVF) << " -> " << Logging::hex(DestFVF));
+		}
 	}
 
 	for (UINT i = 0; i < dwCount; ++i)
 	{
-		// Convert and copy all vertex data
-		if (SrcFVF != DestFVF && !DoNotCopyData)
+		// Convert and copy vertex data
+		if (ShouldConvertVertex)
 		{
 			ConvertVertex(pDestVertex, DestFVF, pSrcVertex, SrcFVF);
 		}
