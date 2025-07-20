@@ -15,9 +15,6 @@
 *
 * SetAppCompatData code created based on information from here:
 * http://web.archive.org/web/20170418171908/http://www.blitzbasic.com/Community/posts.php?topic=99477
-*
-* D3DParseUnknownCommand created from source code found in ReactOS
-* https://doxygen.reactos.org/d3/d02/dll_2directx_2ddraw_2main_8c.html#af9a1eb1ced046770ad6f79838cc8517d
 */
 
 #include "ddraw.h"
@@ -133,38 +130,42 @@ HRESULT WINAPI dd_D3DParseUnknownCommand(LPVOID lpCmd, LPVOID *lpRetCmd)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		LPD3DHAL_DP2COMMAND dp2command = (LPD3DHAL_DP2COMMAND)lpCmd;
+		const auto* command = static_cast<const D3DHAL_DP2COMMAND*>(lpCmd);
+		const BYTE opcode = command->bCommand;
+		const WORD count = command->wStateCount;
 
-		/* check for valid command, only 3 commands are valid */
-		switch (dp2command->bCommand)
+		const BYTE* base = reinterpret_cast<const BYTE*>(lpCmd);
+		size_t advance = 0;
+
+		switch (opcode)
 		{
 		case D3DDP2OP_VIEWPORTINFO:
-			*lpRetCmd = (LPVOID)((DWORD)lpCmd + (dp2command->wStateCount * sizeof(D3DHAL_DP2VIEWPORTINFO)) + sizeof(D3DHAL_DP2COMMAND));
+			advance = sizeof(D3DHAL_DP2COMMAND) + count * sizeof(D3DHAL_DP2VIEWPORTINFO);
 			break;
 
 		case D3DDP2OP_WINFO:
-			*lpRetCmd = (LPVOID)((DWORD)lpCmd + (dp2command->wStateCount * sizeof(D3DHAL_DP2WINFO)) + sizeof(D3DHAL_DP2COMMAND));
+			advance = sizeof(D3DHAL_DP2COMMAND) + count * sizeof(D3DHAL_DP2WINFO);
 			break;
 
-		case 0x0d: /* Undocumented in MSDN */
-			*lpRetCmd = (LPVOID)((DWORD)lpCmd + (dp2command->wStateCount * dp2command->bReserved) + sizeof(D3DHAL_DP2COMMAND));
+		case 0x0D: // Undocumented command
+			advance = sizeof(D3DHAL_DP2COMMAND) + count * command->bReserved;
 			break;
 
-		default:   /* set the error code */
-			if ((dp2command->bCommand <= D3DDP2OP_INDEXEDTRIANGLELIST) || // dp2command->bCommand  <= with 0 to 3
-				(dp2command->bCommand == D3DDP2OP_RENDERSTATE) ||  // dp2command->bCommand  == with 8
-				(dp2command->bCommand >= D3DDP2OP_LINELIST))  // dp2command->bCommand  >= with 15 to 255
+		default:
+			// Command ranges based on original logic
+			if (opcode <= D3DDP2OP_INDEXEDTRIANGLELIST ||
+				opcode == D3DDP2OP_RENDERSTATE ||
+				opcode >= D3DDP2OP_LINELIST)
 			{
-				/* set error code for command 0 to 3, 8 and 15 to 255 */
 				return DDERR_INVALIDPARAMS;
 			}
 			else
 			{
-				/* set error code for 4 - 7, 9 - 12, 14  */
 				return D3DERR_COMMAND_UNPARSED;
 			}
 		}
 
+		*lpRetCmd = const_cast<BYTE*>(base + advance);
 		return DD_OK;
 	}
 

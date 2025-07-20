@@ -22,6 +22,7 @@ private:
 	m_IDirect3DX* D3DInterface = nullptr;
 	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
 	LPDIRECT3DPIXELSHADER9* colorkeyPixelShader = nullptr;
+	LPDIRECT3DVERTEXSHADER9* fixupVertexShader = nullptr;
 	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
 	m_IDirect3DViewportX* lpCurrentViewportX = nullptr;
 	struct {
@@ -33,22 +34,28 @@ private:
 	std::chrono::steady_clock::time_point sceneTime;
 #endif
 
+	struct LIGHTENABLE {
+		BOOL Enable = FALSE;
+		D3DLIGHT9 Light = {};
+	};
 	struct {
 		struct {
 			bool Set = false;
 			DWORD State = 0;
-		} RenderState[MaxDeviceStates], TextureState[MaxTextureStages][MaxDeviceStates], SamplerState[MaxTextureStages][MaxSamplerStates];
+		} RenderState[MaxDeviceStates], TextureState[MaxTextureStages][MaxTextureStageStates], SamplerState[MaxTextureStages][MaxSamplerStates];
+		std::unordered_map<DWORD, LIGHTENABLE> Lights;
 		struct {
 			bool Set = false;
-			D3DLIGHT9 Light = {};
-		} Lights[MAX_LIGHTS];
-		struct {
-			bool Set = false;
-			BOOL Enable = FALSE;
-		} LightEnabled[MAX_LIGHTS];
+			float Plane[4] = {};
+		} ClipPlane[MaxClipPlaneIndex];
 		struct {
 			bool Set = false;
 			D3DVIEWPORT9 View = {};
+			bool UseViewportScale = false;
+			D3DVALUE dvScaleX = 0.0f;
+			D3DVALUE dvScaleY = 0.0f;
+			D3DVALUE dvMaxX = 0.0f;
+			D3DVALUE dvMaxY = 0.0f;
 		} Viewport;
 		struct {
 			bool Set = false;
@@ -56,6 +63,12 @@ private:
 		} Material = {};
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
 	} DeviceStates;
+
+	struct {
+		std::unordered_map<D3DRENDERSTATETYPE, DWORD> RenderState;
+		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> TextureState[MaxTextureStages];
+		std::unordered_map<D3DSAMPLERSTATETYPE, DWORD> SamplerState[MaxTextureStages];
+	} Batch;
 
 	struct {
 		DWORD rsClipping = 0;
@@ -74,8 +87,8 @@ private:
 
 	bool IsInScene = false;
 
-	// Last clip status
-	D3DCLIPSTATUS D3DClipStatus;
+	// Default clip status
+	D3DCLIPSTATUS D3DClipStatus { D3DCLIPSTATUS_STATUS, D3DSTATUS_DEFAULT, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
 
 	// Light states
 	DWORD lsMaterialHandle;
@@ -127,13 +140,12 @@ private:
 
 	// Light index map
 	std::unordered_map<DWORD, m_IDirect3DLight*> LightIndexMap;
-	std::unordered_map<DWORD, D3DLIGHT7> LightIndexMap7;
 
 	// ExecuteBuffer array
 	std::vector<m_IDirect3DExecuteBuffer*> ExecuteBufferList;
 
 	// Vector temporary buffer cache
-	std::vector<BYTE> VertexCache;
+	std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexCache;
 
 	// The data used for rendering Homogeneous
 	CONVERTHOMOGENEOUS ConvertHomogeneous;
@@ -150,22 +162,32 @@ private:
 	HRESULT DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 	HRESULT DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD triangleCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 
-	HRESULT SetD9RenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD dwRenderState);
+	HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue);
+	HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
+	HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue);
 	HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
+	HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue);
 	HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
-	HRESULT SetD9Light(DWORD Index, CONST D3DLIGHT9* pLight);
-	HRESULT LightD9Enable(DWORD Index, BOOL bEnable);
-	HRESULT SetD9Viewport(CONST D3DVIEWPORT9* pViewport);
-	HRESULT SetD9Material(CONST D3DMATERIAL9* pMaterial);
-	HRESULT SetD9Transform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix);
+	HRESULT GetD9Light(DWORD Index, D3DLIGHT9* lpLight);
+	HRESULT SetD9Light(DWORD Index, const D3DLIGHT9* lpLight);
+	HRESULT GetD9LightEnable(DWORD Index, LPBOOL lpEnable);
+	HRESULT D9LightEnable(DWORD Index, BOOL Enable);
+	HRESULT GetD9ClipPlane(DWORD Index, float* lpPlane);
+	HRESULT SetD9ClipPlane(DWORD Index, const float* lpPlane);
+	HRESULT GetD9Viewport(D3DVIEWPORT9* lpViewport);
+	HRESULT SetD9Viewport(const D3DVIEWPORT9* lpViewport);
+	HRESULT GetD9Material(D3DMATERIAL9* lpMaterial);
+	HRESULT SetD9Material(const D3DMATERIAL9* lpMaterial);
+	HRESULT GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* lpMatrix);
+	HRESULT SetD9Transform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* lpMatrix);
+	HRESULT D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* pMatrix);
 
 	HRESULT RestoreStates();
 	void SetDefaults();
 	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
 	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
-	void ComputeMinMaxVertex(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& minVertex, DWORD& maxVertex);
 	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
-	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwVertexCount);
+	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwNumVertices);
 
 	D3DMATRIX* GetMatrix(D3DMATRIXHANDLE MatrixHandle)
 	{
@@ -374,6 +396,8 @@ public:
 	}
 
 	// Viewport vector function
+	HRESULT SetViewport(LPD3DVIEWPORT lpViewport);
+	HRESULT SetViewport(LPD3DVIEWPORT2 lpViewport);
 	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX);
 
 	// Texture handle function
@@ -387,7 +411,7 @@ public:
 
 	// Light index function
 	bool IsLightInUse(m_IDirect3DLight* pLightX);
-	void GetEnabledLightList(std::vector<D3DLIGHT7>& AttachedLightList);
+	void GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLightList);
 	void ClearLight(m_IDirect3DLight* lpLight);
 
 	// Functions handling the Direct3D parent interface
@@ -403,5 +427,5 @@ public:
 	void ReleaseAllStateBlocks();
 
 	// Static functions
-	static bool InterleaveStridedVertexData(std::vector<BYTE>& outputBuffer, DWORD& dwVertexStride, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, DWORD dwVertexStart, DWORD dwVertexCount, DWORD& dwVertexTypeDesc);
+	static bool InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, const DWORD dwVertexStart, const DWORD dwNumVertices, const DWORD dwVertexTypeDesc);
 };

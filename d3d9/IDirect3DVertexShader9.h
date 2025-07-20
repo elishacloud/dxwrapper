@@ -12,6 +12,8 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
+		InitInterface(pDevice, WrapperID, nullptr);
+
 		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DVertexShader9()
@@ -29,5 +31,6 @@ public:
 	STDMETHOD(GetFunction)(THIS_ void* pData, UINT* pSizeOfData);
 
 	// Helper functions
-	LPDIRECT3DVERTEXSHADER9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DVERTEXSHADER9 GetProxyInterface() const { return ProxyInterface; }
+	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };

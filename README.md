@@ -9,39 +9,67 @@ Support via [PayPal](https://paypal.me/elishacloud) | [Patreon](https://patreon.
 DxWrapper is a .dll file designed to wrap DirectX files to fix compatibility issues in older games.  This project is primarily targeted at fixing issues with running games on Windows 10/11, by simply dropping .dll and .ini files into the game folder.  Its secondary purpose is to offer a single tool combining several projects into one.
 
 ### Features
-DxWrapper has many features including:
 
- - Integration of [DDrawCompat](https://github.com/narzoul/DDrawCompat/)
- - Configuring DDrawCompat options to improve compatibility
- - Conversion of DirectDraw 1-6 to DirectDraw 7
- - Conversion of Direct3D 1-6 to Direct3D 7
- - Conversion of DirectDraw 1-7 (ddraw.dll) to Direct3D 9 (d3d9.dll) using [Dd7to9](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion)
- - Conversion of Direct3D 1-7 (ddraw.dll) to Direct3D 9 (d3d9.dll) using [Dd7to9](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion)
- - Conversion of Direct3D 8 (d3d8.dll) to Direct3D 9 (d3d9.dll) using [d3d8to9](https://github.com/crosire/d3d8to9)
- - Conversion of DirectInput 1-7 (dinput.dll) to DirectInput 8 (dinput8.dll) using [dinputto8](https://github.com/elishacloud/dinputto8)
- - Includes [LegacyD3DResolutionHack](https://github.com/UCyborg/LegacyD3DResolutionHack) to remove the artificial resolution limit from Direct3D 1-7, which allows DirectDraw games to play at 4K resolution
- - Tweaking of Microsoft DirectSound function calls using [DSoundCtrl](http://www.bockholdt.com/dsc/)
- - Can cause DirectDraw 1-7, Direct3D 8 and Direct3D 9 games to run in windowed mode
- - Can limit frame rate of games using or converted to Direct3D 9
- - Can enable or disable vertical sync on games using or converted to Direct3D 9
- - Can set GraphicsHybridAdapter for Direct3D 9 on laptops with multiple graphics cards
- - Can enable Direct3D9On12 for Direct3D 9
- - Can set vertex processing and cache modes to fix performance in some Direct3D 9 games
- - Can remove scanlines from DirectDraw 1-7 games
- - Can disable MaximizedWindowedMode (fullscreen optimizations) for Direct3D 8 and 9 games
- - Can disable High DPI scaling to solve issues with some games
- - Can disable Microsoft Game Explorer (GameUX) to prevent rundll32.exe high CPU
- - Can disable audio pops and clicks caused by games clipping audio while sound is playing
- - ASI loader to load custom libraries with the file extension .asi into game processes using [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader)
- - Supports being loaded as an ASI plug-in
- - Adding AntiAliasing support into Direct3D 8 or 9 games even if the game does not support it
- - Hot patch memory support (update game memory at run time, can be used to remove CD/DVD checks or resolve graphics or other glitches)
- - Set single CPU affinity (some games have issues with multi-core CPUs)
- - Ability to set all 12 Application Compatibility Toolkit options for DXPrimaryEmulation using SetAppCompatData API
- - Set game window to fullscreen (some games have fullscreen issues)
- - Handling in-game exceptions or crashes
- - Load custom .dll files into games
- - Run custom processes at game start-up
+DxWrapper includes a wide range of features:
+
+#### 🎮 Major Graphics Conversion and Enhancement
+- **DirectDraw/Direct3D 1–7 to Direct3D 9** conversion via [Dd7to9](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion)
+- **Direct3D 8 to Direct3D 9** conversion via [d3d8to9](https://github.com/crosire/d3d8to9)
+- **Direct3D 9 hooking** to intercept and enhance graphics calls
+- **DirectInput 1–7 to DirectInput 8** conversion via [dinputto8](https://github.com/elishacloud/dinputto8)
+- **DirectSound hooking** (`dsound.dll`), similar to [DSoundCtrl](http://www.bockholdt.com/dsc/), to enhance or fix audio
+- **[DDrawCompat](https://github.com/narzoul/DDrawCompat) integration** (v2.0, 2.1, 3.2) for improved compatibility with configurable options
+
+#### 🖥️ Resolution and Renderer Enhancements
+- **Resolution unlock** for Direct3D 1–7 using [LegacyD3DResolutionHack](https://github.com/UCyborg/LegacyD3DResolutionHack) — enables 4K and beyond
+- **Direct3D 9 to Direct3D9Ex** conversion for enhanced rendering performance
+- **Direct3D 9 to Direct3D 12** conversion via [D3D9On12](https://github.com/microsoft/D3D9On12)
+
+#### 🛠️ Rendering and Compatibility Fixes
+- **Clip plane caching** to fix issues in D3D9 games ([Far Cry example](https://houssemnasri.github.io/2018/07/07/farcry-d3d9-bug/))
+- **Environment cube map fixes** for broken textures ([issue example](https://github.com/elishacloud/dxwrapper/issues/136))
+- **Vertex processing mode override** to fix performance issues
+- **Scanline removal** from games that display them
+- **Interlacing removal** to improve visual quality
+
+#### 🧩 Rendering Enhancements (Forced Features)
+- **Force anti-aliasing** support in games that don't support it natively
+- **Force anisotropic filtering** in unsupported games
+- **Force vertical sync (VSync)** on or off
+- **Force windowed mode** in fullscreen-only games
+- **Force use of discrete GPU** (dGPU) via `GraphicsHybridAdapter` call
+- **Force single Begin/EndScene pair** per Present call (per Microsoft documentation)
+
+#### 🎛️ Frame and Timing Control
+- **FPS limiter** to prevent games from running too fast
+- **Performance counter patching** to fake uptime < 1 day (fixes long-uptime issues)
+- **Single CPU affinity** setting for multi-core compatibility issues
+- **Application Compatibility Toolkit settings override** for `DXPrimaryEmulation`:
+  - Includes: `LockEmulation`, `BltEmulation`, `ForceLockNoWindow`, `ForceBltNoWindow`, `LockColorkey`, `FullscreenWithDWM`, `DisableLockEmulation`, `EnableOverlays`, `DisableSurfaceLocks`, `RedirectPrimarySurfBlts`, `StripBorderStyle`, `DisableMaxWindowedMode`
+
+#### 📐 Compatibility and GDI Fixes
+- **GDI and DirectDraw mixing support** to improve 2D compatibility
+- **Pitch lock fix** for games with misaligned surfaces
+- **Disable Fullscreen Optimizations (MaximizedWindowedMode)** to resolve performance/stability issues
+- **Disable High DPI scaling** to fix UI scaling issues
+- **Disable Microsoft Game Explorer (GameUX)** to stop `rundll32.exe` CPU spikes
+- **Disable audio clipping** to eliminate pops and clicks during playback
+
+#### 🔧 Advanced Customization and Modding
+- **Hot-patch memory** in real time (e.g., remove CD checks or fix bugs)
+- **Set Windows version** seen by game (helps with OS compatibility)
+- **Handle in-game crashes** by patching problematic instructions (nop'ing offending code)
+- **Launch custom processes** when the game starts
+- **Load custom `.dll` files** into game processes
+- **ASI loader** to inject `.asi` plug-ins ([Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader) compatible)
+- **DxWrapper as an ASI plug-in** (can be loaded by other ASI loaders)
+
+#### 🧩 Miscellaneous Fixes and Tweaks
+- **Set game window to fullscreen** (if native fullscreen fails)
+- **Show FPS counter** in-game
+- **Filter input** when the game window loses focus (prevents input when other windows are active)
+- **Various compatibility flags and tweaks**, including:
+  - `DdrawEmulateSurface`, `DdrawEmulateLock`, `DdrawKeepAllInterfaceCache`, `DdrawLimitTextureFormats`, `DdrawLimitDisplayModeCount`, `LimitStateBlocks`, `SetPOW2Caps`
 
 ### Compatibility List for Games on Windows 10/11
 So far I have tested this with hundreds of games (many of which  don't otherwise work correctly) to get them running on Windows 10/11.  Most games will work, but some still have issues.  Check out the [Compatible Games wiki](https://github.com/elishacloud/dxwrapper/wiki/Compatible-Games) and the [Dd7to9 Supported Games wiki](https://github.com/elishacloud/dxwrapper/wiki/DirectDraw-to-Direct3D9-Conversion#supported-2d-games-directdraw) for a list.
@@ -96,37 +124,91 @@ DxWrapper can wrap the following dlls:
  - wsock32.dll
 
 ### License
+
 Copyright (C) 2025 Elisha Riedlinger
 
 This software is provided 'as-is', without any express or implied warranty. In no event will the author(s) be held liable for any damages arising from the use of this software. Permission is granted to anyone to use this software for any purpose, including commercial applications, and to alter it and redistribute it freely, subject to the following restrictions:
 
-1. The origin of this software must not be misrepresented; you must not claim that you wrote the original software. If you use this software in a product, an acknowledgment in the product documentation would be appreciated but is not required.
-2. Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.
-3. This notice may not be removed or altered from any source distribution.
+1. The origin of this software must not be misrepresented; you must not claim that you wrote the original software. If you use this software in a product, an acknowledgment in the product documentation would be appreciated but is not required.  
+2. Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.  
+3. This notice may not be removed or altered from any source distribution.  
+
+### Third-Party Licenses
+
+#### d3d8to9 by Patrick Mours
+
+Portions of this project make use of code from the [d3d8to9](https://github.com/crosire/d3d8to9) project by Patrick Mours, which is licensed as follows:
+
+> Copyright (C) 2015 Patrick Mours.  
+> All rights reserved.  
+>
+> Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:  
+>
+> - Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.  
+> - Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.  
+>
+> THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+#### Detours & DirectXMath by Microsoft
+
+Portions of this project make use of code from the [detours](https://github.com/microsoft/Detours) and [DirectXMath](https://github.com/microsoft/DirectXMath) projects by Microsoft, which is licensed as follows:
+
+> Copyright (c) Microsoft Corporation.
+>
+> MIT License
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+#### Hooking.Patterns by ThirteenAG
+
+Portions of this project make use of code from the [Hooking.Patterns](https://github.com/ThirteenAG/Hooking.Patterns) project by ThirteenAG, which is licensed as follows:
+
+> Copyright (c) 2014 Bas Timmer/NTAuthority et al.
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+#### imgui by ocornut
+
+Portions of this project make use of code from the [imgui](https://github.com/ocornut/imgui) project by ocornut, which is licensed as follows:
+
+> The MIT License (MIT)
+>
+> Copyright (c) 2014-2025 Omar Cornut
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+#### MemoryModule by fancycode
+
+Portions of this project make use of code from the [MemoryModule](https://github.com/fancycode/MemoryModule) project by fancycode, which is licensed as follows:
+
+> Mozilla Public License Version 2.0
+>
+> For details see here: [LICENSE.txt](https://github.com/fancycode/MemoryModule/blob/master/LICENSE.txt)
 
 ### Credits
 DxWrapper uses code from several other projects. So to give credit where credit is due, below is a list of locations that source code was taken from:
 
  - [AppCompatData](http://www.mojolabs.nz/posts.php?topic=99477): Used comments from blitzbasic.com to build the feature to configure the DirectDraw AppCompatData settings.
- - [Aqrit's ddwrapper](http://bitpatch.com/ddwrapper.html): Includes code to read the ini config file.
- - [cnc-ddraw](https://github.com/CnCNet/cnc-ddraw): Includes code to create emulated surface device context.
  - [d3d8to9](https://github.com/crosire/d3d8to9): Includes the full Direct3D 8 to Direct3D 9 code.
- - [D3DParseUnknownCommand](https://doxygen.reactos.org/d3/d02/dll_2directx_2ddraw_2main_8c.html#af9a1eb1ced046770ad6f79838cc8517d): Includes code for DirectDraw D3DParseUnknownCommand from source code found in ReactOS.
  - [DDrawCompat](https://github.com/narzoul/DDrawCompat/): Includes the full DDrawCompat v0.2.0b, v0.2.1 and v0.3.2 and for API hooking.
- - [doom3.gpl](https://github.com/TTimo/doom3.gpl): Includes code to get video memory.
- - [diablo-ddrawwrapper](https://github.com/strangebytes/diablo-ddrawwrapper): Includes some code for converting ddraw to Direct3D.
- - [DSoundCtrl](https://github.com/nRaecheR/DirectSoundControl): Includes the full DirectSoundControl code.
- - [DxWnd](https://sourceforge.net/projects/dxwnd/): Includes code from DxWnd for proxy loading (init.cpp) and exception handling.
- - [GetComputerManufacturer](http://www.rohitab.com/discuss/topic/35915-win32-api-to-get-system-information/): Includes code from rohitab.com to get the computer vendor and model.
- - [GetFileVersionInfo ](https://stackoverflow.com/a/940743): Includes code from stackoverflow.com for getting the version of a PE file.
- - [GetPPID](https://gist.github.com/mattn/253013/d47b90159cf8ffa4d92448614b748aa1d235ebe4): Includes Code taken from [mattn](https://gist.github.com/mattn) GitHub project to get the parent process PID.
+ - [detours](https://github.com/microsoft/Detours): Includes the Microsoft's detours.
+ - [DirectXMath](https://github.com/microsoft/DirectXMath): Includes the Microsoft's DirectXMath.
+ - [Hooking.Patterns](https://github.com/ThirteenAG/Hooking.Patterns): Includes code from ThirteenAG's Hooking.Patterns.
+ - [imgui](https://github.com/ocornut/imgui): Includes the imgui code from ocornut.
  - [LegacyD3DResolutionHack](https://github.com/UCyborg/LegacyD3DResolutionHack): Includes code from LegacyD3DResolutionHack to removes the artificial resolution limit from Direct3D 7 and below.
  - [MemoryModule](https://github.com/fancycode/MemoryModule): Includes code for loading libraries from memory.
- - [OllyDbg](http://www.ollydbg.de/): Includes the full cmdlist.c and disasm.c (disasm.dll) code used for exception handling.
- - [PixelShaderPalette](https://github.com/CnCNet/cnc-ddraw): Includes code from ddraw-cnc for a PixelShader that is used to view DirectDraw palette surfaces properly.
- - [SilentPatchFarCry](https://github.com/CookiePLMonster/SilentPatchFarCry): Includes code from SilentPatchFarCry to cache the clip plane in Direct3D 9.
- - [Ultimate ASI Loader](https://github.com/ThirteenAG/Ultimate-ASI-Loader): Includes code for loading ASI plugins.
- - [WineD3D d3d8.dll](https://gitlab.winehq.org/wine/wine/-/tree/master/dlls/d3d8): Includes functions ValidatePixelShader and ValidateVertexShader.
 
 ### Development
 DxWrapper is written mostly in C++ using Microsoft Visual Studio 2022.

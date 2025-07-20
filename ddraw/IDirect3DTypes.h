@@ -4,10 +4,11 @@
 #define DX3DTYPE_H
 #endif
 
-constexpr UINT MaxDeviceStates = 255;	// Devices can have up to 255 states.
-constexpr UINT MaxSamplerStates = 14;	// Devices can have up to 14 sampler states.
-constexpr UINT MaxTextureStages = 8;	// Devices can have up to eight set textures.
-constexpr UINT MAX_LIGHTS = 8;          // Devices can have up to eight lights.
+constexpr UINT MaxDeviceStates = 256;	    // Devices can have up to 256 states.
+constexpr UINT MaxTextureStageStates = 33;  // Devices have up to 33 types.
+constexpr UINT MaxSamplerStates = 14;	    // Devices can have up to 14 sampler states.
+constexpr UINT MaxTextureStages = 8;	    // Devices can have up to eight set textures.
+constexpr UINT MaxClipPlaneIndex = 6;       // Devices can have up to six clip planes.
 
 #define D3DSTATE D3DSTATE7
 
@@ -52,6 +53,26 @@ typedef struct _D3DSTATE7 {
     };
 } D3DSTATE7, * LPD3DSTATE7;
 
+typedef struct _DXLIGHT7 {
+    /* D3DLIGHT7 Begin */
+    D3DLIGHTTYPE    dltType;
+    D3DCOLORVALUE   dcvDiffuse;
+    D3DCOLORVALUE   dcvSpecular;
+    D3DCOLORVALUE   dcvAmbient;
+    D3DVECTOR       dvPosition;
+    D3DVECTOR       dvDirection;
+    D3DVALUE        dvRange;
+    D3DVALUE        dvFalloff;
+    D3DVALUE        dvAttenuation0;
+    D3DVALUE        dvAttenuation1;
+    D3DVALUE        dvAttenuation2;
+    D3DVALUE        dvTheta;
+    D3DVALUE        dvPhi;
+    /* D3DLIGHT7 End */
+    DWORD           dwFlags;        // D3DLIGHT2 flags
+    DWORD           dwLightVersion; // D3DLIGHT version (1, 2 or 7)
+} DXLIGHT7;
+
 typedef struct _D3DDEVINFO_TEXTUREMANAGER {
     BOOL    bThrashing;             // Thrashing status. TRUE if thrashing occurred during the last frame, or FALSE otherwise.
     DWORD   dwNumEvicts;            // Number of textures that were removed during the last frame.
@@ -84,7 +105,7 @@ typedef struct _D3DDEVINFO_TEXTURING {
 #define D3DFVF_RESERVED2        0xf000  // 4 reserved bits
 #define D3DFVF_RESERVED2_9      0x6000  // 2 reserved bits
 #undef D3DFVF_POSITION_MASK
-#define D3DFVF_POSITION_MASK    0x00e
+#define D3DFVF_POSITION_MASK    0x00E
 #define D3DFVF_POSITION_MASK_9  0x400E
 
 #define D3DFVF_LVERTEX9 (D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1)
@@ -92,6 +113,22 @@ typedef struct _D3DDEVINFO_TEXTURING {
 #ifndef D3DFVF_TEXCOUNT
 #define D3DFVF_TEXCOUNT(fvf) (((fvf) >> D3DFVF_TEXCOUNT_SHIFT) & 0xF)
 #endif
+
+#define D3DFVF_TEXCOORDSIZE_ALL (0xFFFF0000) // bits 16-31 cover up to 8 texture stage format sizes
+
+#define D3DFVF_SUPPORTED_BIT_MASK \
+    (D3DFVF_POSITION_MASK | \
+    D3DFVF_RESERVED1 | \
+    D3DFVF_NORMAL | \
+    D3DFVF_DIFFUSE | \
+    D3DFVF_SPECULAR | \
+    D3DFVF_TEXCOUNT_MASK | \
+    D3DFVF_TEXCOORDSIZE_ALL)
+
+struct XYZ
+{
+    float x, y, z;
+};
 
 typedef struct {
 	FLOAT    x, y, z;
@@ -127,6 +164,8 @@ struct CONVERTHOMOGENEOUS
     float ToWorld_GameCameraPitch = 0.0f;
 };
 
+#define CLAMP(val,zmin,zmax) (max((zmin),min((zmax),(val))))
+
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light);
 void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7);
 void ConvertMaterial(D3DMATERIAL7& Material7, const D3DMATERIAL& Material);
@@ -143,9 +182,13 @@ void ConvertLVertex(D3DLVERTEX* lFVF, const D3DLVERTEX9* lFVF9, DWORD NumVertice
 void ConvertLVertex(D3DLVERTEX9* lFVF9, const D3DLVERTEX* lFVF, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
 bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);
+void ClampVertices(BYTE* pVertexData, DWORD Stride, DWORD dwNumVertices);
 void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF);
 DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType);
-UINT GetFVFBlendCount(DWORD fvf);
-UINT GetVertexPositionSize(DWORD dwVertexTypeDesc);
+bool IsValidFVF(DWORD dwVertexTypeDesc);
+UINT GetBlendCount(DWORD dwVertexTypeDesc);
+UINT GetVertexPositionStride(DWORD dwVertexTypeDesc);
+UINT GetTexStride(DWORD dwVertexTypeDesc, DWORD t);
+UINT GetVertexTextureStride(DWORD dwVertexTypeDesc);
 UINT GetVertexStride(DWORD dwVertexTypeDesc);
 UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);

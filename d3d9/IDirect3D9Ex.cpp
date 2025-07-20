@@ -36,6 +36,17 @@ HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return D3D_OK;
+	}
+
 	if (riid == IID_IUnknown || riid == WrapperID || (Config.D3d9to9Ex && riid == IID_IDirect3D9))
 	{
 		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
@@ -370,6 +381,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		WndDataStruct->IsCreatingDevice = true;
 		WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
 		DeviceDetails.IsDirectDrawDevice = WndDataStruct->IsDirectDraw;
+		WndDataStruct->DirectXVersion = ClientDirectXVersion;
 	}
 
 	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
@@ -390,6 +402,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	}
 
 	// Needs to be set before updating present parameters
+	DeviceDetails.ClientDirectXVersion = ClientDirectXVersion;
 	DeviceDetails.Adapter = Adapter;
 	DeviceDetails.DeviceType = DeviceType;
 	DeviceDetails.hMonitor = hMonitor;
@@ -657,6 +670,11 @@ HRESULT m_IDirect3D9Ex::GetAdapterLUID(THIS_ UINT Adapter, LUID * pLUID)
 	}
 
 	return ProxyInterfaceEx->GetAdapterLUID(Adapter, pLUID);
+}
+
+void m_IDirect3D9Ex::SetDirectXVersion(DWORD DxVersion)
+{
+	ClientDirectXVersion = DxVersion;
 }
 
 bool m_IDirect3D9Ex::TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD BackBufferHeight)
@@ -969,17 +987,21 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		// Get border style and size
 		LONG lBorderStyle = lStyle;
 		int borderWidth = 0, borderHeight = 0;
-		if (Config.WindowModeBorder && !FullscreenWindowMode)
+		if (Config.EnableWindowMode && Config.WindowModeBorder && !FullscreenWindowMode)
 		{
-			// Apply windowed border to popup window (without adding sysmenu)
-			if (lBorderStyle & (WS_POPUP | WS_BORDER))
+			// Apply windowed border to popup and child window
+			if (lBorderStyle & (WS_POPUP | WS_CHILD | WS_BORDER))
 			{
-				lBorderStyle |= ((WS_POPUPWINDOW | WS_CAPTION) & ~WS_SYSMENU);
+				lBorderStyle |= (WS_BORDER | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+				if (!(lBorderStyle & WS_CHILD))
+				{
+					lBorderStyle |= WS_POPUP;
+				}
 			}
-			// Apply windowed border to other window types (without adding sysmenu)
+			// Apply windowed border to other window types
 			else
 			{
-				lBorderStyle |= (WS_OVERLAPPEDWINDOW & ~WS_SYSMENU);
+				lBorderStyle |= WS_OVERLAPPEDWINDOW;
 			}
 
 			// Get window size with border
@@ -1000,15 +1022,24 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		clientHeightOverlap = screenClientHeight < windowHeight + borderHeight;
 
 		// Update style
-		if (Config.WindowModeBorder && !FullscreenWindowMode && !clientWidthOverlap && !clientHeightOverlap)
+		if (Config.EnableWindowMode)
 		{
 			// Apply window border
-			lStyle = lBorderStyle;
+			if (Config.WindowModeBorder && !FullscreenWindowMode && !clientWidthOverlap && !clientHeightOverlap)
+			{
+				lStyle = lBorderStyle;
+			}
+			// Remove window border
+			else
+			{
+				lStyle &= ~(WS_CAPTION | WS_BORDER | WS_THICKFRAME | WS_DLGFRAME);
+			}
 		}
+		// Used when ddraw exclusive mode fails and switches to fullscreen windowed mode
 		else
 		{
-			// Remove window border (without removing sysmenu)
-			lStyle &= ~((WS_OVERLAPPEDWINDOW | WS_BORDER | WS_DLGFRAME) & ~WS_SYSMENU);
+			// Remove window border only
+			lStyle &= ~WS_BORDER;
 		}
 
 		// Set style if it needs to change

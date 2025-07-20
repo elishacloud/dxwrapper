@@ -26,6 +26,9 @@
     <ClCompile Include="..\Libraries\winmm.cpp">
       <Filter>Libraries</Filter>
     </ClCompile>
+    <ClCompile Include="..\External\Hooking\Disasm.cpp">
+      <Filter>Hooking</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Libraries">
@@ -65,6 +68,9 @@
     </ClInclude>
     <ClInclude Include="..\Libraries\winmm.h">
       <Filter>Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="..\External\Hooking\Disasm.h">
+      <Filter>Hooking</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

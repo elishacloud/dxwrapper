@@ -12,6 +12,8 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
+		InitInterface(pDevice, WrapperID, nullptr);
+
 		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DVolumeTexture9()
@@ -46,5 +48,6 @@ public:
 	STDMETHOD(AddDirtyBox)(THIS_ CONST D3DBOX* pDirtyBox);
 
 	// Helper functions
-	LPDIRECT3DVOLUMETEXTURE9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DVOLUMETEXTURE9 GetProxyInterface() const { return ProxyInterface; }
+	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };

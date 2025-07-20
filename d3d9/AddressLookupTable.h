@@ -19,6 +19,19 @@ public:
 	explicit AddressLookupTableD3d9();
 	~AddressLookupTableD3d9();
 
+	template <typename T, typename D, typename L>
+	T* FindCreateAddress(void* Proxy, D* Device, REFIID riid, L Data);
+
+	template <typename T, typename D, typename L>
+	T* FindAddress(void* Proxy, D* Device, REFIID riid, L Data);
+
+	template <typename T>
+	void SaveAddress(T* Wrapper, void* Proxy);
+
+	template <typename T>
+	void DeleteAddress(T* Wrapper);
+
+private:
 	template <typename T>
 	struct AddressCacheIndex { static constexpr UINT CacheIndex = 0; };
 
@@ -58,16 +71,6 @@ public:
 	template <typename T, typename D, typename L>
 	T* CreateInterface(T* Proxy, D* Device, REFIID riid, L Data);
 
-	template <typename T, typename D, typename L>
-	T* FindAddress(void* Proxy, D* Device, REFIID riid, L Data);
-
-	template <typename T>
-	void SaveAddress(T* Wrapper, void* Proxy);
-
-	template <typename T>
-	void DeleteAddress(T* Wrapper);
-
-private:
 	bool ConstructorFlag = false;
 	std::unordered_map<void*, class AddressLookupTableD3d9Object*> g_map[MaxIndex];
 };

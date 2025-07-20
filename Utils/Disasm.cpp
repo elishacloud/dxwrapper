@@ -12,126 +12,89 @@
 *   2. Altered source versions must  be plainly  marked as such, and  must not be  misrepresented  as
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
-*
-* Exception handling code taken from source code found in DxWnd v2.03.99
-* https://sourceforge.net/projects/dxwnd/
 */
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-extern "C"
-{
-#include "Disasm\disasm.h"
-}
 #include "Utils.h"
+#include "External\Hooking\Disasm.h"
 #include "External\Hooking\Hook.h"
 #include "Logging\Logging.h"
 
-typedef LPTOP_LEVEL_EXCEPTION_FILTER(WINAPI* PFN_SetUnhandledExceptionFilter)(LPTOP_LEVEL_EXCEPTION_FILTER);
-
 namespace Utils
 {
-	LPTOP_LEVEL_EXCEPTION_FILTER pOriginalSetUnhandledExceptionFilter = SetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)EXCEPTION_CONTINUE_EXECUTION);
-	PFN_SetUnhandledExceptionFilter pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(SetUnhandledExceptionFilter);
+	static LPTOP_LEVEL_EXCEPTION_FILTER g_previousFilter = nullptr;
 
-	// Function declarations
-	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
-	LPTOP_LEVEL_EXCEPTION_FILTER WINAPI extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER);
+	// Forward declarations
+	LONG WINAPI CustomUnhandledExceptionFilter(LPEXCEPTION_POINTERS exceptionInfo);
+	void SetCustomExceptionHandler();
+	void RemoveCustomExceptionHandler();
 }
 
-// Add filter for UnhandledExceptionFilter used by the exception handler to catch exceptions
-LONG WINAPI Utils::myUnhandledExceptionFilter(LPEXCEPTION_POINTERS ExceptionInfo)
+LONG WINAPI Utils::CustomUnhandledExceptionFilter(LPEXCEPTION_POINTERS exceptionInfo)
 {
-	char moduleName[MAX_PATH];
-	GetModuleFromAddress(ExceptionInfo->ExceptionRecord->ExceptionAddress, moduleName, MAX_PATH);
+	void* faultAddr = exceptionInfo->ExceptionRecord->ExceptionAddress;
+	DWORD code = exceptionInfo->ExceptionRecord->ExceptionCode;
 
-	Logging::Log() << "UnhandledExceptionFilter: exception" << std::showbase << std::hex <<
-		" code=" << ExceptionInfo->ExceptionRecord->ExceptionCode <<
-		" flags=" << ExceptionInfo->ExceptionRecord->ExceptionFlags <<
-		" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress << std::dec << std::noshowbase <<
-		" module=" << moduleName;
+	Logging::Log() << __FUNCTION__ << " Exception caught at address: " << faultAddr << ", code: 0x" << Logging::hex(code);
 
-	DWORD oldprot;
-	PVOID target = ExceptionInfo->ExceptionRecord->ExceptionAddress;
-	switch (ExceptionInfo->ExceptionRecord->ExceptionCode)
+	// Simulate instruction patching (NOP fill) for specific exceptions
+	switch (code)
 	{
-	case 0xc0000094: // IDIV reg (Ultim@te Race Pro)
-	case 0xc0000095: // DIV by 0 (divide overflow) exception (SonicR)
-	case 0xc0000096: // CLI Priviliged instruction exception (Resident Evil), FB (Asterix & Obelix)
-	case 0xc000001d: // FEMMS (eXpendable)
-	case 0xc0000005: // Memory exception (Tie Fighter)
+	case 0xC0000094: // Divide by zero
+	case 0xC0000095: // Integer overflow
+	case 0xC0000096: // Privileged instruction
+	case 0xC000001D: // Illegal instruction
+	case 0xC0000005: // Access violation
 	{
-		int cmdlen;
-		t_disasm da;
-		Preparedisasm();
-		if (!VirtualProtect(target, 10, PAGE_READWRITE, &oldprot))
+		// Use your custom disassembler to get the instruction length
+		unsigned instrLen = Disasm::getInstructionLength(faultAddr);
+		if (instrLen == 0 || instrLen > 15) // Sanity check
 		{
-			return EXCEPTION_CONTINUE_SEARCH; // error condition
+			Logging::Log() << __FUNCTION__ << " Invalid instruction length, skipping patch.";
+			return EXCEPTION_CONTINUE_SEARCH;
 		}
-		cmdlen = Disasm((BYTE*)target, 10, 0, &da, 0, nullptr, nullptr);
-		Logging::Log() << "UnhandledExceptionFilter: NOP opcode=" << std::showbase << std::hex << *(BYTE*)target << std::dec << std::noshowbase << " len=" << cmdlen;
-		memset((BYTE*)target, 0x90, cmdlen);
-		VirtualProtect(target, 10, oldprot, &oldprot);
-		HANDLE hCurrentProcess = GetCurrentProcess();
-		if (!FlushInstructionCache(hCurrentProcess, target, cmdlen))
+
+		DWORD oldProtect = 0;
+		if (VirtualProtect(faultAddr, instrLen, PAGE_EXECUTE_READWRITE, &oldProtect))
 		{
-			Logging::Log() << "UnhandledExceptionFilter: FlushInstructionCache ERROR target=" << std::showbase << std::hex << target << std::dec << std::noshowbase << ", err=" << GetLastError();
+			memset(faultAddr, 0x90, instrLen); // Patch with NOPs
+			VirtualProtect(faultAddr, instrLen, oldProtect, &oldProtect);
+			FlushInstructionCache(GetCurrentProcess(), faultAddr, instrLen);
+
+			exceptionInfo->ContextRecord->Eip += instrLen;
+			Logging::Log() << __FUNCTION__ << " Patched instruction with NOPs, continuing execution.";
+			return EXCEPTION_CONTINUE_EXECUTION;
 		}
-		CloseHandle(hCurrentProcess);
-		// skip replaced opcode
-		ExceptionInfo->ContextRecord->Eip += cmdlen; // skip ahead op-code length
-		return EXCEPTION_CONTINUE_EXECUTION;
+		else
+		{
+			Logging::Log() << __FUNCTION__ << " VirtualProtect failed, error=" << GetLastError();
+		}
+		break;
 	}
-	break;
-	default:
-		return EXCEPTION_CONTINUE_SEARCH;
 	}
+
+	return EXCEPTION_CONTINUE_SEARCH;
 }
 
-// Add filter for SetUnhandledExceptionFilter used by the exception handler to catch exceptions
-LPTOP_LEVEL_EXCEPTION_FILTER WINAPI Utils::extSetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter)
+void Utils::SetCustomExceptionHandler()
 {
-#ifdef _DEBUG
-	Logging::Log() << "SetUnhandledExceptionFilter: lpExceptionFilter=" << lpTopLevelExceptionFilter;
-#else
-	UNREFERENCED_PARAMETER(lpTopLevelExceptionFilter);
-#endif
-	extern LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
-	return pSetUnhandledExceptionFilter(myUnhandledExceptionFilter);
+	Logging::Log() << "Installing custom unhandled exception filter...";
+
+	// Save previous filter
+	g_previousFilter = SetUnhandledExceptionFilter(CustomUnhandledExceptionFilter);
+
+	// Optionally suppress error popups
+	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
 }
 
-// Sets the exception handler by hooking UnhandledExceptionFilter
-void Utils::HookExceptionHandler(void)
+void Utils::RemoveCustomExceptionHandler()
 {
-	void* tmp;
+	Logging::Log() << "Removing custom unhandled exception filter...";
 
-	Logging::Log() << "Set exception handler";
-	HMODULE dll = GetModuleHandleA("kernel32.dll");
-	if (!dll)
-	{
-		Logging::Log() << "Failed to load kernel32.dll!";
-		return;
-	}
-	// override default exception handler, if any....
-	LONG WINAPI myUnhandledExceptionFilter(LPEXCEPTION_POINTERS);
-	tmp = Hook::HotPatch(UnhandledExceptionFilter, "UnhandledExceptionFilter", myUnhandledExceptionFilter);
-	// so far, no need to save the previous handler, but anyway...
-	tmp = Hook::HotPatch(SetUnhandledExceptionFilter, "SetUnhandledExceptionFilter", extSetUnhandledExceptionFilter);
-	if (tmp)
-	{
-		pSetUnhandledExceptionFilter = reinterpret_cast<PFN_SetUnhandledExceptionFilter>(tmp);
-	}
+	// Restore previous filter
+	SetUnhandledExceptionFilter(g_previousFilter);
 
-	SetErrorMode(SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX | SEM_FAILCRITICALERRORS);
-	pSetUnhandledExceptionFilter((LPTOP_LEVEL_EXCEPTION_FILTER)myUnhandledExceptionFilter);
-	Logging::Log() << "Finished setting exception handler";
-}
-
-// Unhooks the exception handler
-void Utils::UnHookExceptionHandler(void)
-{
-	Logging::Log() << "Unloading exception handlers";
+	// Restore default error mode
 	SetErrorMode(0);
-	SetUnhandledExceptionFilter(pOriginalSetUnhandledExceptionFilter);
-	Finishdisasm();
 }

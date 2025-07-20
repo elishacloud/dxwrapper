@@ -5,6 +5,7 @@ class m_IDirectDrawX : public IUnknown, public AddressLookupTableDdrawObject
 private:
 	IDirectDraw7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
+	DWORD ClientDirectXVersion;
 	ULONG RefCount1 = 0;
 	ULONG RefCount2 = 0;
 	ULONG RefCount3 = 0;
@@ -81,6 +82,7 @@ private:
 	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
 	void RestoreD3DDeviceState();
 	void Clear3DFlagForAllSurfaces();
+	void MarkAllSurfacesDirty();
 	void ResetAllSurfaceDisplay();
 	void ReleaseD3D9IndexBuffer();
 	void ReleaseAllD9Resources(bool BackupData, bool ResetInterface);
@@ -123,6 +125,8 @@ public:
 	{
 		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
 
+		ClientDirectXVersion = DirectXVersion;
+
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
@@ -141,6 +145,8 @@ public:
 	m_IDirectDrawX(DWORD DirectXVersion, UINT Adapter, bool IsEx) : AdapterIndex(Adapter), IsUsingEx(IsEx)
 	{
 		ProxyDirectXVersion = 9;
+
+		ClientDirectXVersion = DirectXVersion;
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
@@ -221,6 +227,7 @@ public:
 	LPDIRECT3DDEVICE9 *GetDirectD9Device();
 	bool CreatePaletteShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
+	LPDIRECT3DVERTEXSHADER9* GetVertexFixupShader();
 	LPDIRECT3DVERTEXBUFFER9 GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
 	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels) const;

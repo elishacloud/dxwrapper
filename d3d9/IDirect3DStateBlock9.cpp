@@ -59,9 +59,12 @@ ULONG m_IDirect3DStateBlock9::Release(THIS)
 	{
 		m_pDeviceEx->GetStateBlockTable()->RemoveStateBlock(this);
 
-		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
+		if (Config.LimitStateBlocks || m_pDeviceEx->GetClientDXVersion() < 8)
+		{
+			m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
 
-		delete this;
+			delete this;
+		}
 	}
 
 	return ref;

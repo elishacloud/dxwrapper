@@ -266,7 +266,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 {
 	if (Msg != WM_PAINT)
 	{
-		Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam;
+		Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd);
 	}
 
 	if (!AppWndProcInstance || !hWnd)
@@ -305,7 +305,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			switch (Msg)
 			{
 			case WM_ACTIVATE:
-				return NULL;
+				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
 		}
 		// Some games hang when attempting to paint while iconic
@@ -313,9 +313,16 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			switch (Msg)
 			{
+			case WM_ACTIVATE:
+				// Some games require filtering this when iconic, other games require this message to see when the window is activated
+				if (pDataStruct->DirectXVersion > 4)
+				{
+					break;
+				}
+				[[fallthrough]];
 			case WM_PAINT:
 			case WM_SYNCPAINT:
-				return NULL;
+				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
 		}
 		// Handle cases where monitor gets disconnected during resolution change
@@ -331,16 +338,11 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		switch (Msg)
 		{
 		case WM_NCACTIVATE:
-			if (pDataStruct->IsDirectDraw)
-			{
-				return TRUE;
-			}
-			break;
 		case WM_ACTIVATE:
 		case WM_ACTIVATEAPP:
 			if (pDataStruct->IsDirectDraw)
 			{
-				return NULL;
+				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
 			break;
 		case WM_STYLECHANGING:
@@ -353,7 +355,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		case WM_WINDOWPOSCHANGED:
 			if (pDataStruct->IsCreatingDevice)
 			{
-				return NULL;
+				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
 			break;
 		}

@@ -54,6 +54,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\External\Hooking\Disasm.cpp" />
     <ClCompile Include="..\External\Hooking\Hook.cpp" />
     <ClCompile Include="..\External\Hooking\HotPatch.cpp" />
     <ClCompile Include="..\External\MemoryModule\MemoryModule.c" />
@@ -65,6 +66,7 @@
     <ClCompile Include="MakeShader.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\External\Hooking\Disasm.h" />
     <ClInclude Include="..\External\Hooking\Hook.h" />
     <ClInclude Include="..\External\MemoryModule\MemoryModule.h" />
     <ClInclude Include="..\Libraries\d3dx9.h" />

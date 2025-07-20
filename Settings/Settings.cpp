@@ -192,29 +192,36 @@ void Settings::SetValue(char* name, char* value, std::vector<std::string>* setti
 	std::string newString;
 	newString.assign(value);
 	// Trim whitespaces
-	newString = std::regex_replace(newString, std::regex("(^\\s*(.*\\S)\\s*$)|(^\\s*$)"), "$2");
-	if (newString.size() != 0)
+	newString = std::regex_replace(newString, std::regex("^\\s+|\\s+$"), "");
+
+	if (!newString.empty() && _stricmp(newString.c_str(), "auto") != 0)
 	{
 		setting->push_back(newString);
-	}
 #ifdef _DEBUG
-	Logging::Log() << name << " set to '" << setting->back().c_str() << "'";
+		Logging::Log() << name << " set to '" << setting->back().c_str() << "'";
 #else
-	UNREFERENCED_PARAMETER(name);
+		UNREFERENCED_PARAMETER(name);
 #endif
+	}
 }
 
-// Set value for string
+// Set value for strings
 void Settings::SetValue(char* name, char* value, std::string* setting)
 {
-	setting->assign(value);
+	std::string newString;
+	newString.assign(value);
 	// Trim whitespaces
-	*setting = std::regex_replace(*setting, std::regex("(^\\s*(.*\\S)\\s*$)|(^\\s*$)"), "$2");
+	newString = std::regex_replace(newString, std::regex("^\\s+|\\s+$"), "");
+
+	if (!newString.empty() && _stricmp(newString.c_str(), "auto") != 0)
+	{
+		setting->assign(newString);
 #ifdef _DEBUG
-	Logging::Log() << name << " set to '" << setting->c_str() << "'";
+		Logging::Log() << name << " set to '" << setting->c_str() << "'";
 #else
-	UNREFERENCED_PARAMETER(name);
+		UNREFERENCED_PARAMETER(name);
 #endif
+	}
 }
 
 // Set value for DWORD
@@ -534,6 +541,27 @@ void CONFIG::Init()
 	// Set default settings
 	SetDefaultConfigSettings();
 
+	// Set settings from environment variables
+	if (LPCH p_envStrings = GetEnvironmentStrings(); p_envStrings)
+	{
+		const char* szEnvPrefix = "DXWRAPPER_";
+		char* szEnvVar = p_envStrings;
+		char szSetting[MAX_ENV_VAR] = {};
+
+		while (*szEnvVar)
+		{
+			if (!_strnicmp(szEnvVar, szEnvPrefix, strlen(szEnvPrefix)))
+			{
+				szEnvVar += strlen(szEnvPrefix);
+				strcpy_s(szSetting, MAX_ENV_VAR, szEnvVar);
+				Parse(szSetting, ParseCallback);
+			}
+			szEnvVar += strlen(szEnvVar) + 1;
+		}
+
+		FreeEnvironmentStrings(p_envStrings);
+	}
+
 	// Check for memory loading
 	if (_stricmp(p_wName, p_pName) == 0)
 	{
@@ -548,7 +576,7 @@ void CONFIG::Init()
 	strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), ".ini");
 
 	// Read defualt config file
-	char* szCfg = Read(configpath);
+	char* szCfg = ReadFileContent(configpath);
 
 	// Parce config file
 	if (szCfg)
@@ -565,7 +593,7 @@ void CONFIG::Init()
 		strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), ".ini");
 
 		// Open config file
-		szCfg = Read(configpath);
+		szCfg = ReadFileContent(configpath);
 
 		// Parce config file
 		if (szCfg)

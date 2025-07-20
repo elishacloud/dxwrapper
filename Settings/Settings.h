@@ -7,6 +7,7 @@
 #include "ReadParse.h"
 
 #define NOT_EXIST 0xFFFF
+#define MAX_ENV_VAR 0x7FFF
 
 #define VISIT_CONFIG_SETTINGS(visit) \
 	visit(AnisotropicFiltering) \
@@ -25,7 +26,9 @@
 	visit(DDrawCompat32) \
 	visit(DDrawCompatDisableGDIHook) \
 	visit(DDrawCompatNoProcAffinity) \
+	visit(DdrawAlternatePixelCenter) \
 	visit(DdrawAutoFrameSkip) \
+	visit(DdrawClampVertexZDepth) \
 	visit(DdrawClippedWidth) \
 	visit(DdrawClippedHeight) \
 	visit(DdrawCustomWidth) \
@@ -236,6 +239,8 @@ struct CONFIG
 	bool DDrawCompat32 = false;					// Enables DDrawCompat v0.3.2
 	bool DDrawCompatDisableGDIHook = false;		// Disables DDrawCompat GDI hooks
 	bool DDrawCompatNoProcAffinity = false;		// Disables DDrawCompat single processor affinity
+	bool DdrawAlternatePixelCenter = false;		// Enables alternate pixel center -0.5f vs 0.0
+	bool DdrawClampVertexZDepth = false;		// Clamps the z depth in vertex buffer to a max of 1.0f
 	bool DdrawAutoFrameSkip = false;			// Automatically skips frames to reduce input lag
 	DWORD DdrawFixByteAlignment = false;		// Fixes lock with surfaces that have unaligned byte sizes, 1) just byte align, 2) byte align + D3DTEXF_NONE, 3) byte align + D3DTEXF_LINEAR
 	bool DdrawEnableByteAlignment = false;		// Disables 32bit / 64bit byte alignment

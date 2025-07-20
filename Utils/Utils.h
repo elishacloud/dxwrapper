@@ -30,6 +30,20 @@ namespace Utils
 	EXPORT_OUT_WRAPPED_PROC(timeGetTime, unused);
 	EXPORT_OUT_WRAPPED_PROC(timeGetSystemTime, unused);
 
+	struct ScopedThreadPriority
+	{
+	private:
+		HANDLE hThread = nullptr;
+		bool changed = false;
+		bool IsBasePriorityRegular = false;
+		ULONG originalPriority = 0;
+		ULONG basePriority = 0;
+
+	public:
+		ScopedThreadPriority();
+		~ScopedThreadPriority();
+	};
+
 	void Shell(const char*);
 	void DisableHighDPIScaling();
 	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);
@@ -49,8 +63,8 @@ namespace Utils
 	ULONGLONG WINAPI kernel_GetTickCount64();
 	DWORD WINAPI winmm_timeGetTime();
 	MMRESULT WINAPI winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt);
-	void HookExceptionHandler();
-	void UnHookExceptionHandler();
+	void SetCustomExceptionHandler();
+	void RemoveCustomExceptionHandler();
 	LONG WINAPI Vectored_Exception_Handler(EXCEPTION_POINTERS* ExceptionInfo);
 	void AddHandleToVector(HMODULE dll, const char *name);
 	HMODULE LoadLibrary(const char *dllname, bool EnableLogging = false);
@@ -93,7 +107,6 @@ namespace Utils
 	void GetScreenSize(HMONITOR hMonitor, volatile LONG &screenWidth, volatile LONG &screenHeight);
 	void GetScreenSize(HMONITOR hMonitor, int& screenWidth, int& screenHeight);
 	void GetScreenClientRect(HMONITOR hMonitor, RECT& workAreaOut);
-	HRESULT GetVideoRam(UINT AdapterNo, DWORD& TotalMemory);	// Adapters start numbering from '1', based on "Win32_VideoController" WMI class and "DeviceID" property.
 
 	// CPU Affinity
 	void SetProcessAffinity();

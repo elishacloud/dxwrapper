@@ -61,9 +61,23 @@ namespace Utils
 	HANDLE g_hStopEvent = nullptr;
 
 	// Function declarations
+	void GetNtThreadFunctions(NtQueryInformationThreadFunc& queryFn, NtSetInformationThreadFunc& setFn);
 	DWORD GetCoresUsedByProcess();
 	DWORD_PTR GetCPUMask();
 	DWORD WINAPI PriorityFixThreadProc(LPVOID);
+}
+
+// Static accessor for NtQueryInformationThread / NtSetInformationThread
+void Utils::GetNtThreadFunctions(NtQueryInformationThreadFunc& queryFn, NtSetInformationThreadFunc& setFn)
+{
+	static HMODULE hNtDll = GetModuleHandleA("ntdll.dll");
+	static NtQueryInformationThreadFunc cachedQueryFn =
+		reinterpret_cast<NtQueryInformationThreadFunc>(GetProcAddress(hNtDll, "NtQueryInformationThread"));
+	static NtSetInformationThreadFunc cachedSetFn =
+		reinterpret_cast<NtSetInformationThreadFunc>(GetProcAddress(hNtDll, "NtSetInformationThread"));
+
+	queryFn = cachedQueryFn;
+	setFn = cachedSetFn;
 }
 
 // Check the number CPU cores is being used by the process
@@ -208,15 +222,7 @@ DWORD WINAPI Utils::PriorityFixThreadProc(LPVOID)
 
 void Utils::StartPriorityMonitor()
 {
-	if (!g_ntQueryInformationThread || !g_ntSetInformationThread)
-	{
-		HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
-		if (ntdll)
-		{
-			g_ntQueryInformationThread = (NtQueryInformationThreadFunc)GetProcAddress(ntdll, "NtQueryInformationThread");
-			g_ntSetInformationThread = (NtSetInformationThreadFunc)GetProcAddress(ntdll, "NtSetInformationThread");
-		}
-	}
+	GetNtThreadFunctions(g_ntQueryInformationThread, g_ntSetInformationThread);
 
 	if (!g_ntQueryInformationThread || !g_ntSetInformationThread)
 	{
@@ -247,5 +253,59 @@ void Utils::StopPriorityMonitor()
 		}
 		CloseHandle(g_hStopEvent);
 		g_hStopEvent = nullptr;
+	}
+}
+
+static bool IsRegularPriority(LONG Priority)
+{
+	return (Priority == THREAD_PRIORITY_LOWEST ||
+		Priority == THREAD_PRIORITY_BELOW_NORMAL ||
+		Priority == THREAD_PRIORITY_NORMAL ||
+		Priority == THREAD_PRIORITY_ABOVE_NORMAL ||
+		Priority == THREAD_PRIORITY_HIGHEST);
+}
+
+Utils::ScopedThreadPriority::ScopedThreadPriority()
+{
+	NtQueryInformationThreadFunc NtQueryInformationThread = nullptr;
+	NtSetInformationThreadFunc NtSetInformationThread = nullptr;
+	GetNtThreadFunctions(NtQueryInformationThread, NtSetInformationThread);
+
+	if (!NtQueryInformationThread || !NtSetInformationThread)
+	{
+		return;
+	}
+
+	hThread = GetCurrentThread();
+
+	// Query base and current priority
+	THREAD_BASIC_INFORMATION tbi = {};
+	if (NT_SUCCESS(NtQueryInformationThread(hThread, 0 /*ThreadBasicInformation*/, &tbi, sizeof(tbi), nullptr)))
+	{
+		originalPriority = tbi.Priority;
+		basePriority = tbi.BasePriority;
+
+		IsBasePriorityRegular = IsRegularPriority(basePriority);
+
+		// Only adjust if base is in the normal range and current priority is not highest
+		if (IsBasePriorityRegular && originalPriority != THREAD_PRIORITY_HIGHEST)
+		{
+			if (SetThreadPriority(hThread, THREAD_PRIORITY_HIGHEST))
+			{
+				changed = true;
+			}
+		}
+	}
+}
+
+Utils::ScopedThreadPriority::~ScopedThreadPriority()
+{
+	UINT currentPriority = GetThreadPriority(hThread);
+
+	// Restore if thread was boosted and the thread is still at the boosted value or the current priority is non-regular
+	if ((changed && currentPriority == THREAD_PRIORITY_HIGHEST) ||
+		(IsBasePriorityRegular && !IsRegularPriority(currentPriority)))
+	{
+		SetThreadPriority(hThread, basePriority);
 	}
 }

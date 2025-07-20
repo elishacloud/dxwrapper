@@ -55,7 +55,7 @@ ULONG m_IDirect3DVolumeTexture9::Release(THIS)
 
 	ULONG ref = ProxyInterface->Release();
 
-	if (ref == 0)
+	if (ref == 0 && m_pDeviceEx->GetClientDXVersion() < 8)
 	{
 		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
 

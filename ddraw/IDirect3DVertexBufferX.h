@@ -19,11 +19,15 @@ private:
 	LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = nullptr;
 
 	// Vertex buffer desc
-	D3DVERTEXBUFFERDESC VBDesc = {};
+	struct {
+		D3DVERTEXBUFFERDESC Desc = {};
+		DWORD Size = 0;
+	} VB;
 	D3DVERTEXBUFFER_DESC d3d9VBDesc = {};
 
 	// Vector buffer data
-	std::vector<BYTE> VertexData;
+	std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexData;
+	bool IsVBEmulated = false;
 	void* LastLockAddr = nullptr;
 	DWORD LastLockFlags = 0;
 
@@ -83,10 +87,10 @@ public:
 
 		if (lpVBDesc)
 		{
-			VBDesc.dwSize = sizeof(D3DVERTEXBUFFERDESC);
-			VBDesc.dwCaps = lpVBDesc->dwCaps;
-			VBDesc.dwFVF = lpVBDesc->dwFVF;
-			VBDesc.dwNumVertices = lpVBDesc->dwNumVertices;
+			VB.Desc.dwSize = sizeof(D3DVERTEXBUFFERDESC);
+			VB.Desc.dwCaps = lpVBDesc->dwCaps;
+			VB.Desc.dwFVF = lpVBDesc->dwFVF;
+			VB.Desc.dwNumVertices = lpVBDesc->dwNumVertices;
 		}
 		d3d9VBDesc.Type = D3DRTYPE_VERTEXBUFFER;
 
@@ -132,5 +136,5 @@ public:
 	DWORD GetFVF9() const { return d3d9VBDesc.FVF; };
 
 	// Static functions
-	static void ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& outSpecular, const D3DXVECTOR3& Position, const D3DXVECTOR3& Normal, const std::vector<D3DLIGHT7>& cachedLights, const D3DXMATRIX& matWorldView, const D3DMATRIX& matWorld, const D3DMATRIX& matView, const D3DMATERIAL7& mat, bool UseMaterial);
+	static void ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& outSpecular, const D3DXVECTOR3& Position, const D3DXVECTOR3& Normal, const std::vector<DXLIGHT7>& cachedLights, const D3DXMATRIX& matWorldView, const D3DMATRIX& matWorld, const D3DMATRIX& matView, const D3DMATERIAL7& mat, bool UseMaterial);
 };

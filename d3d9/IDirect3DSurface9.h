@@ -23,16 +23,23 @@ public:
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		if (FAILED(GetDesc(&Desc)))
-		{
-			LOG_LIMIT(3, __FUNCTION__ << " Failed to GetDesc()!" << this << ")");
-		}
+		InitInterface(pDevice, WrapperID, nullptr);
 
 		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DSurface9()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		if (Emu.pSurface)
+		{
+			ULONG eref = Emu.pSurface->Release();
+			if (eref)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'Emu.pSurface' " << eref;
+			}
+			Emu.pSurface = nullptr;
+		}
 	}
 
 	/*** IUnknown methods ***/
@@ -57,7 +64,7 @@ public:
 	STDMETHOD(ReleaseDC)(THIS_ HDC hdc);
 
 	// Helper functions
-	LPDIRECT3DSURFACE9 GetProxyInterface() { return ProxyInterface; }
+	LPDIRECT3DSURFACE9 GetProxyInterface() const { return ProxyInterface; }
 	LPDIRECT3DSURFACE9 GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags)
 	{
 		if (Desc.MultiSampleType && !(Desc.Usage & D3DUSAGE_DEPTHSTENCIL))
@@ -72,4 +79,22 @@ public:
 		return ProxyInterface;
 	}
 	HRESULT RestoreMultiSampleData();
+	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) {
+		m_pDeviceEx = Device;
+
+		if (FAILED(GetDesc(&Desc)))
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Failed to GetDesc()!" << this << ")");
+		}
+
+		if (Emu.pSurface)
+		{
+			ULONG eref = Emu.pSurface->Release();
+			if (eref)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'Emu.pSurface' " << eref;
+			}
+			Emu.pSurface = nullptr;
+		}
+	}
 };

@@ -4,9 +4,6 @@
     <Filter Include="DDrawCompat">
       <UniqueIdentifier>{bf6f3d22-aab2-413e-af84-ee52035f125f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Disasm">
-      <UniqueIdentifier>{2768b966-6a71-4031-9b49-a1b7dec51afb}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Libraries">
       <UniqueIdentifier>{9fc26822-b540-4070-82bc-320a8ccaec4c}</UniqueIdentifier>
     </Filter>
@@ -108,12 +105,6 @@
     </ClCompile>
     <ClCompile Include="libraries\winmm.cpp">
       <Filter>Libraries</Filter>
-    </ClCompile>
-    <ClCompile Include="Disasm\cmdlist.c">
-      <Filter>Disasm</Filter>
-    </ClCompile>
-    <ClCompile Include="Disasm\Disasm.c">
-      <Filter>Disasm</Filter>
     </ClCompile>
     <ClCompile Include="Dllmain\Dllmain.cpp">
       <Filter>Dllmain</Filter>
@@ -491,9 +482,6 @@
       <Filter>External\Hooking</Filter>
     </ClCompile>
     <ClCompile Include="External\Hooking\HotPatch.cpp">
-      <Filter>External\Hooking</Filter>
-    </ClCompile>
-    <ClCompile Include="External\Hooking\IATPatch.cpp">
       <Filter>External\Hooking</Filter>
     </ClCompile>
     <ClCompile Include="d3d8\d3d8.cpp">
@@ -898,6 +886,9 @@
     <ClCompile Include="Utils\CPUAffinity.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="External\Hooking\Disasm.cpp">
+      <Filter>External\Hooking</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -919,9 +910,6 @@
     </ClInclude>
     <ClInclude Include="libraries\winmm.h">
       <Filter>Libraries</Filter>
-    </ClInclude>
-    <ClInclude Include="Disasm\disasm.h">
-      <Filter>Disasm</Filter>
     </ClInclude>
     <ClInclude Include="Dllmain\Dllmain.h">
       <Filter>Dllmain</Filter>
@@ -1907,6 +1895,12 @@
     <ClInclude Include="d3d9\d3d9Shared.h">
       <Filter>d3d9</Filter>
     </ClInclude>
+    <ClInclude Include="External\Hooking\Disasm.h">
+      <Filter>External\Hooking</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Shaders\VertexFixUpShader.h">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
@@ -1924,6 +1918,9 @@
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
     <CustomBuild Include="ddraw\Shaders\GammaPixelShader.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ddraw\Shaders\VertexFixUpShader.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
   </ItemGroup>

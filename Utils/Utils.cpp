@@ -13,17 +13,8 @@
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
 *
-* ASI plugin loader taken from source code found in Ultimate ASI Loader
-* https://github.com/ThirteenAG/Ultimate-ASI-Loader
-*
 * DDrawResolutionHack taken from source code found in LegacyD3DResolutionHack
 * https://github.com/UCyborg/LegacyD3DResolutionHack
-*
-* GetVideoRam taken from source code found in doom3.gpl
-* https://github.com/TTimo/doom3.gpl
-* 
-* ReverseBits code taken from stanford.edu
-* http://graphics.stanford.edu/~seander/bithacks.html#ReverseParallel
 */
 
 #define WIN32_LEAN_AND_MEAN
@@ -882,42 +873,51 @@ void Utils::InitializeASI(HMODULE hModule)
 // Find asi plugins to load
 void Utils::FindFiles(WIN32_FIND_DATA* fd)
 {
-	char dir[MAX_PATH] = { 0 };
-	GetCurrentDirectory(MAX_PATH, dir);
-
-	HANDLE asiFile = FindFirstFile("*.asi", fd);
-	if (asiFile != INVALID_HANDLE_VALUE)
+	char dir[MAX_PATH];
+	if (!GetCurrentDirectoryA(MAX_PATH, dir))
 	{
-		do {
-			if (!(fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-			{
-				auto pos = strlen(fd->cFileName);
-
-				if (fd->cFileName[pos - 4] == '.' &&
-					(fd->cFileName[pos - 3] == 'a' || fd->cFileName[pos - 3] == 'A') &&
-					(fd->cFileName[pos - 2] == 's' || fd->cFileName[pos - 2] == 'S') &&
-					(fd->cFileName[pos - 1] == 'i' || fd->cFileName[pos - 1] == 'I'))
-				{
-					char path[MAX_PATH] = { 0 };
-					sprintf_s(path, "%s\\%s", dir, fd->cFileName);
-
-					auto h = LoadLibrary(path);
-					SetCurrentDirectory(dir); //in case asi switched it
-
-					if (h)
-					{
-						AddHandleToVector(h, path);
-						InitializeASI(h);
-					}
-					else
-					{
-						Logging::LogFormat("Unable to load '%s'. Error: %d", fd->cFileName, GetLastError());
-					}
-				}
-			}
-		} while (FindNextFile(asiFile, fd));
-		FindClose(asiFile);
+		Logging::Log() << "Failed to get current directory.";
+		return;
 	}
+
+	HANDLE asiFile = FindFirstFileA("*.asi", fd);
+	if (asiFile == INVALID_HANDLE_VALUE)
+	{
+		return;
+	}
+
+	do {
+		// Skip directories
+		if (fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			continue;
+
+		const char* filename = fd->cFileName;
+		size_t len = strlen(filename);
+
+		// Check for ".asi" extension (case-insensitive)
+		if (len >= 4 && _stricmp(&filename[len - 4], ".asi") == 0)
+		{
+			char fullPath[MAX_PATH];
+			snprintf(fullPath, MAX_PATH, "%s\\%s", dir, filename);
+
+			HMODULE h = LoadLibraryA(fullPath);
+
+			// Ensure we're still in the original directory
+			SetCurrentDirectoryA(dir);
+
+			if (h)
+			{
+				AddHandleToVector(h, fullPath);
+				InitializeASI(h);
+			}
+			else
+			{
+				Logging::LogFormat("Unable to load '%s'. Error: %d", filename, GetLastError());
+			}
+		}
+	} while (FindNextFileA(asiFile, fd));
+
+	FindClose(asiFile);
 }
 
 // Load asi plugins
@@ -925,29 +925,48 @@ void Utils::LoadPlugins()
 {
 	Logging::Log() << "Loading ASI Plugins";
 
-	char oldDir[MAX_PATH] = { 0 }; // store the current directory
-	GetCurrentDirectory(MAX_PATH, oldDir);
+	char originalDir[MAX_PATH];
+	if (!GetCurrentDirectoryA(MAX_PATH, originalDir))
+	{
+		Logging::Log() << "Failed to get current directory.";
+		return;
+	}
 
-	char selfPath[MAX_PATH] = { 0 };
-	GetModuleFileName(hModule_dll, selfPath, MAX_PATH);
-	*strrchr(selfPath, '\\') = '\0';
-	SetCurrentDirectory(selfPath);
+	// Get directory of the DLL
+	char selfPath[MAX_PATH];
+	if (!GetModuleFileNameA(hModule_dll, selfPath, MAX_PATH))
+	{
+		Logging::Log() << "Failed to get module file name.";
+		return;
+	}
 
-	WIN32_FIND_DATA fd;
+	char baseDir[MAX_PATH];
+	strcpy_s(baseDir, selfPath);
+	char* lastSlash = strrchr(baseDir, '\\');
+	if (lastSlash) *lastSlash = '\0'; // remove the filename
+
+	WIN32_FIND_DATAA fd;
+
+	// Load from base directory
 	if (!Config.LoadFromScriptsOnly)
+	{
+		SetCurrentDirectoryA(baseDir);
 		FindFiles(&fd);
+	}
 
-	SetCurrentDirectory(selfPath);
+	// Load from subdirectories: scripts and plugins
+	const char* subDirs[] = { "scripts", "plugins" };
+	for (const auto& dir : subDirs)
+	{
+		char fullPath[MAX_PATH];
+		if (PathCombineA(fullPath, baseDir, dir) && SetCurrentDirectoryA(fullPath))
+		{
+			FindFiles(&fd);
+		}
+	}
 
-	if (SetCurrentDirectory("scripts\\"))
-		FindFiles(&fd);
-
-	SetCurrentDirectory(selfPath);
-
-	if (SetCurrentDirectory("plugins\\"))
-		FindFiles(&fd);
-
-	SetCurrentDirectory(oldDir); // Reset the current directory
+	// Restore original working directory
+	SetCurrentDirectoryA(originalDir);
 }
 
 // Unload all dll files loaded by the wrapper
@@ -1038,6 +1057,9 @@ void *Utils::memmem(const void *l, size_t l_len, const void *s, size_t s_len)
 // Reverse bit order
 DWORD Utils::ReverseBits(DWORD v)
 {
+	// Details about the ReverseBits algorthm can be seen from stanford.edu:
+	// http://graphics.stanford.edu/~seander/bithacks.html#ReverseParallel
+
 	v = ((v >> 1) & 0x55555555) | ((v & 0x55555555) << 1);	// swap odd and even bits
 	v = ((v >> 2) & 0x33333333) | ((v & 0x33333333) << 2);	// swap consecutive pairs
 	v = ((v >> 4) & 0x0F0F0F0F) | ((v & 0x0F0F0F0F) << 4);	// swap nibbles
@@ -1464,105 +1486,6 @@ inline static UINT GetValueFromString(wchar_t* str)
 		}
 	}
 	return num;
-}
-
-HRESULT Utils::GetVideoRam(UINT AdapterNo, DWORD& TotalMemory)
-{
-	struct ADLIST {
-		DWORD DeviceID = 0;
-		DWORD AdapterRAM = 0;
-	};
-	static std::vector<ADLIST> AdapterList;
-
-	if (AdapterList.size())
-	{
-		for (auto& entry : AdapterList)
-		{
-			if (entry.DeviceID == AdapterNo)
-			{
-				TotalMemory = entry.AdapterRAM;
-				return S_OK;
-			}
-		}
-		return E_FAIL;
-	}
-
-	HRESULT hr = E_FAIL;
-	HRESULT t_hr = E_FAIL;
-	IWbemLocator* pLoc = NULL;
-	IWbemServices* pSvc = NULL;
-	IEnumWbemClassObject* pEnumerator = NULL;
-	IWbemClassObject* pclsObj = NULL;
-	ULONG uReturn = 0;
-
-	HRESULT c_hr = CoInitializeEx(0, COINIT_MULTITHREADED);
-	bool AlreadyInitialized = (c_hr == S_FALSE || c_hr == RPC_E_CHANGED_MODE);
-	if ((SUCCEEDED(c_hr) || AlreadyInitialized) &&
-		SUCCEEDED(t_hr = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE, NULL)) &&
-		SUCCEEDED(t_hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID*)&pLoc)))
-	{
-		if (SUCCEEDED(t_hr = pLoc->ConnectServer(_bstr_t(L"root\\cimv2"), NULL, NULL, 0, NULL, 0, 0, &pSvc)))
-		{
-			if (SUCCEEDED(t_hr = CoSetProxyBlanket(pSvc, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE)) &&
-				SUCCEEDED(t_hr = pSvc->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_VideoController"), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator)))
-			{
-				while (pEnumerator)
-				{
-					t_hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
-					if (FAILED(t_hr) || 0 == uReturn)
-					{
-						break;
-					}
-
-					VARIANT varId = {};
-
-					t_hr = pclsObj->Get(L"DeviceID", 0, &varId, 0, 0);
-					if (SUCCEEDED(t_hr))
-					{
-						UINT DeviceID = GetValueFromString(varId.bstrVal);
-						VariantClear(&varId);
-
-						VARIANT vtTotalMemory = {};
-
-						t_hr = pclsObj->Get(L"AdapterRAM", 0, &vtTotalMemory, 0, 0);
-						if (SUCCEEDED(t_hr))
-						{
-							Logging::Log() << __FUNCTION__ << " Found Video Memory on adapter: " << vtTotalMemory.ulVal / (1024 * 1024) << "MBs on DeviceID: " << DeviceID;
-
-							ADLIST tmpItem = { DeviceID, vtTotalMemory.ulVal };
-							AdapterList.push_back(tmpItem);
-
-							// Check adapter number
-							if (AdapterNo == DeviceID)
-							{
-								TotalMemory = vtTotalMemory.ulVal;
-								hr = S_OK;
-							}
-							VariantClear(&vtTotalMemory);
-						}
-					}
-					pclsObj->Release();
-				}
-				pEnumerator->Release();
-			}
-			pSvc->Release();
-		}
-		pLoc->Release();
-	}
-	if (c_hr == S_OK)
-	{
-		CoUninitialize();
-	}
-	else if (AlreadyInitialized)
-	{
-		Logging::Log() << __FUNCTION__ << " Warning: CoInitializeEx() was already initialized: " << Logging::hex(hr);
-	}
-	else
-	{
-		Logging::Log() << __FUNCTION__ << " Error: CoInitializeEx() returned an error: " << Logging::hex(hr);
-	}
-
-	return hr;
 }
 
 // Wait for window actions

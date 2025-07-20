@@ -76,14 +76,20 @@ ULONG m_IDirect3DSurface9::Release(THIS)
 	{
 		if (Emu.pSurface)
 		{
-			Emu.pSurface->UnlockRect();
-			Emu.pSurface->Release();
+			ULONG eref = Emu.pSurface->Release();
+			if (eref)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'Emu.pSurface' " << eref;
+			}
 			Emu.pSurface = nullptr;
 		}
 
-		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
+		if (m_pDeviceEx->GetClientDXVersion() < 8)
+		{
+			m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
 
-		delete this;
+			delete this;
+		}
     }
 
 	return ref;
@@ -178,7 +184,7 @@ m_IDirect3DSurface9* m_IDirect3DSurface9::m_GetNonMultiSampledSurface(const RECT
 		if (SUCCEEDED((Desc.Usage & D3DUSAGE_RENDERTARGET) ? m_pDeviceEx->GetProxyInterface()->CreateRenderTarget(Desc.Width, Desc.Height, Desc.Format, D3DMULTISAMPLE_NONE, 0, TRUE, (LPDIRECT3DSURFACE9*)&Emu.pSurface, nullptr) :
 			m_pDeviceEx->GetProxyInterface()->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, D3DPOOL_SYSTEMMEM, (LPDIRECT3DSURFACE9*)&Emu.pSurface, nullptr)))
 		{
-			Emu.pSurface = new m_IDirect3DSurface9(Emu.pSurface, m_pDeviceEx);
+			Emu.pSurface = m_pDeviceEx->GetLookupTable()->FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(Emu.pSurface, m_pDeviceEx, IID_IDirect3DSurface9, nullptr);
 		}
 	}
 	if (Emu.pSurface)

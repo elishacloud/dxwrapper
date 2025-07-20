@@ -35,10 +35,10 @@ CONFIG Config;
 bool Wrapper::ValidProcAddress(FARPROC) { return false; }
 
 // Function to compile HLSL file
-bool CompileShader(const wchar_t* hlslFile, LPD3DXBUFFER* compiledShader)
+bool CompileShader(const wchar_t* hlslFile, LPD3DXBUFFER* compiledShader, LPCSTR pFunctionName, LPCSTR pProfile)
 {
     LPD3DXBUFFER errorMessages = nullptr;
-    HRESULT hr = D3DXCompileShaderFromFileW(hlslFile, nullptr, nullptr, "main", "ps_2_0", 0, compiledShader, &errorMessages, nullptr);
+    HRESULT hr = D3DXCompileShaderFromFileW(hlslFile, nullptr, nullptr, pFunctionName, pProfile, 0, compiledShader, &errorMessages, nullptr);
 
     if (FAILED(hr))
     {
@@ -138,21 +138,23 @@ bool GenerateHeaderFile(const char* hlslFileName, LPD3DXBUFFER compiledShader, c
 // Main function
 int main(int argc, char* argv[])
 {
-    if (argc != 3)
+    if (argc != 5)
     {
-        std::cerr << "Usage: " << argv[0] << " <HLSL file path> <Byte array variable name>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <HLSL file path> <entry point> <shader model> <Byte array variable name>" << std::endl;
         return 1;
     }
 
     const char* hlslFileName = argv[1];
-    const char* byteArrayName = argv[2];
+    const char* entryPoint = argv[2];
+    const char* shaderModel = argv[3];
+    const char* byteArrayName = argv[4];
 
     std::wstring wHlslFileName;
     wHlslFileName.assign(hlslFileName, hlslFileName + strlen(hlslFileName));
 
     LPD3DXBUFFER compiledShader = nullptr;
 
-    if (!CompileShader(wHlslFileName.c_str(), &compiledShader))
+    if (!CompileShader(wHlslFileName.c_str(), &compiledShader, entryPoint, shaderModel))
     {
         std::cout << "Failed to compile shader." << std::endl;
         return 1;

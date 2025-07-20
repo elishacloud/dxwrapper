@@ -84,15 +84,20 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)" &gt;nul
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul
 IF NOT EXIST "$(TargetDir)dx7" mkdir "$(TargetDir)dx7" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)dx7\" &gt;nul
 call "$(ProjectDir)Resources\dx7-script.cmd" "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)dx7\dxwrapper.ini"
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)dx7\" &gt;nul
 IF NOT EXIST "$(TargetDir)dx8" mkdir "$(TargetDir)dx8" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)dx8\" &gt;nul
 call "$(ProjectDir)Resources\dx8-script.cmd" "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)dx8\dxwrapper.ini"
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)dx8\" &gt;nul
 IF NOT EXIST "$(TargetDir)dx9" mkdir "$(TargetDir)dx9" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)dx9\" &gt;nul
-call "$(ProjectDir)Resources\dx9-script.cmd" "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)dx9\dxwrapper.ini"</Command>
+call "$(ProjectDir)Resources\dx9-script.cmd" "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)dx9\dxwrapper.ini"
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)dx9\" &gt;nul</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>cmd /q /c "cd /D ""$(ProjectDir)Dllmain\"" &amp;&amp; if not exist BuildNo.rc echo #define BUILD_NUMBER 0 &gt;BuildNo.rc"
@@ -135,7 +140,9 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
-copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul</Command>
+copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)" &gt;nul
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -163,7 +170,9 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\" &gt;nul
 copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\$(TargetName).asi" &gt;nul
 copy /Y "$(ProjectDir)Settings\AllSettings.ini" "$(TargetDir)Build\" &gt;nul
-copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul</Command>
+copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &gt;nul
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)" &gt;nul
+copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -579,8 +588,6 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClCompile Include="dinput8\InterfaceQuery.cpp" />
     <ClCompile Include="dinput\dinput.cpp" />
     <ClCompile Include="DirectShow\IAMMediaStream.cpp" />
-    <ClCompile Include="Disasm\cmdlist.c" />
-    <ClCompile Include="Disasm\Disasm.c" />
     <ClCompile Include="Dllmain\Dllmain.cpp" />
     <ClCompile Include="dsound\dsound.cpp" />
     <ClCompile Include="dsound\IDirectSound3DBuffer8.cpp" />
@@ -633,9 +640,9 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClCompile Include="External\dinputto8\Versions\IDirectInputDeviceW.cpp" />
     <ClCompile Include="External\dinputto8\Versions\IDirectInputW.cpp" />
     <ClCompile Include="External\Hooking.Patterns\Hooking.Patterns.cpp" />
+    <ClCompile Include="External\Hooking\Disasm.cpp" />
     <ClCompile Include="External\Hooking\Hook.cpp" />
     <ClCompile Include="External\Hooking\HotPatch.cpp" />
-    <ClCompile Include="External\Hooking\IATPatch.cpp" />
     <ClCompile Include="External\Logging\Logging.cpp" />
     <ClCompile Include="External\MemoryModule\MemoryModule.c" />
     <ClCompile Include="GDI\Comdlg32.cpp" />
@@ -1183,6 +1190,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClInclude Include="ddraw\Shaders\ColorKeyShader.h" />
     <ClInclude Include="ddraw\Shaders\GammaPixelShader.h" />
     <ClInclude Include="ddraw\Shaders\PaletteShader.h" />
+    <ClInclude Include="ddraw\Shaders\VertexFixUpShader.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D2.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D3.h" />
@@ -1218,7 +1226,6 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClInclude Include="dinput8\IDirectInputEffect8.h" />
     <ClInclude Include="dinput\dinputExternal.h" />
     <ClInclude Include="DirectShow\IAMMediaStream.h" />
-    <ClInclude Include="Disasm\disasm.h" />
     <ClInclude Include="Dllmain\Dllmain.h" />
     <ClInclude Include="Dllmain\dxwrapper.h" />
     <ClInclude Include="Dllmain\Resource.h" />
@@ -1270,6 +1277,7 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
     <ClInclude Include="External\dinputto8\Versions\IDirectInputDeviceW.h" />
     <ClInclude Include="External\dinputto8\Versions\IDirectInputW.h" />
     <ClInclude Include="External\Hooking.Patterns\Hooking.Patterns.h" />
+    <ClInclude Include="External\Hooking\Disasm.h" />
     <ClInclude Include="External\Hooking\Hook.h" />
     <ClInclude Include="External\Logging\Logging.h" />
     <ClInclude Include="External\MemoryModule\MemoryModule.h" />
@@ -1320,24 +1328,30 @@ copy /Y "$(ProjectDir)Settings\Settings.ini" "$(TargetDir)Build\dxwrapper.ini" &
   <ItemGroup>
     <CustomBuild Include="ddraw\Shaders\ColorKeyShader.hlsl">
       <FileType>Document</FileType>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" ColorKeyShader.hlsl ColorKeyPixelShaderSrc"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" ColorKeyShader.hlsl main ps_2_0 ColorKeyPixelShaderSrc"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\ColorKeyShader.h</Outputs>
     </CustomBuild>
     <CustomBuild Include="ddraw\Shaders\PaletteShader.hlsl">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" PaletteShader.hlsl PalettePixelShaderSrc"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" PaletteShader.hlsl main ps_2_0 PalettePixelShaderSrc"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\PaletteShader.h</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="ddraw\Shaders\GammaPixelShader.hlsl">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" GammaPixelShader.hlsl GammaPixelShaderSrc"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" GammaPixelShader.hlsl main ps_2_0 GammaPixelShaderSrc"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\GammaPixelShader.h</Outputs>
+      <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="ddraw\Shaders\VertexFixUpShader.hlsl">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" VertexFixUpShader.hlsl main vs_2_0 VertexFixUpShaderSrc"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\VertexFixUpShader.h</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
     </CustomBuild>
   </ItemGroup>

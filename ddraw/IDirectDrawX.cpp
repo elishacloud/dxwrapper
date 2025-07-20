@@ -12,8 +12,6 @@
 *   2. Altered source versions must  be plainly  marked as such, and  must not be  misrepresented  as
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
-*
-* Code taken from: https://github.com/strangebytes/diablo-ddrawwrapper
 */
 
 #include "ddraw.h"
@@ -26,6 +24,7 @@
 #include "Shaders\PaletteShader.h"
 #include "Shaders\ColorKeyShader.h"
 #include "Shaders\GammaPixelShader.h"
+#include "Shaders\VertexFixUpShader.h"
 
 namespace {
 	// Store a list of ddraw devices
@@ -86,6 +85,8 @@ namespace {
 	bool EnableWaitVsync = false;
 
 	// Direct3D9 Objects
+	bool IsDeviceLost = false;
+	bool ReDrawNextPresent = false;
 	LPDIRECT3D9 d3d9Object = nullptr;
 	LPDIRECT3DDEVICE9 d3d9Device = nullptr;
 	D3DPRESENT_PARAMETERS presParams = {};
@@ -94,6 +95,7 @@ namespace {
 	LPDIRECT3DPIXELSHADER9 palettePixelShader = nullptr;
 	LPDIRECT3DPIXELSHADER9 colorkeyPixelShader = nullptr;
 	LPDIRECT3DPIXELSHADER9 gammaPixelShader = nullptr;
+	LPDIRECT3DVERTEXSHADER9 fixupVertexShader = nullptr;
 	LPDIRECT3DVERTEXBUFFER9 validateDeviceVertexBuffer = nullptr;
 	LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = nullptr;
 
@@ -137,6 +139,11 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 	if ((riid == GetWrapperType(DxVersion) && riid != IID_IDirectDraw3) || riid == IID_IUnknown)
 	{
+		if (ClientDirectXVersion < DxVersion)
+		{
+			ClientDirectXVersion = DxVersion;
+		}
+
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 
 		AddRef(DxVersion);
@@ -2221,22 +2228,13 @@ HRESULT m_IDirectDrawX::TestCooperativeLevel()
 		case D3DERR_DRIVERINTERNALERROR:
 			return DDERR_WRONGMODE;
 		case D3DERR_DEVICELOST:
-			// Full-screen applications receive the DDERR_NOEXCLUSIVEMODE return value if they lose exclusive device access
-			if (ExclusiveMode)
-			{
-				return DDERR_NOEXCLUSIVEMODE;
-			}
-			// Windowed applications(those that use the normal cooperative level) receive DDERR_EXCLUSIVEMODEALREADYSET if another application has taken exclusive device access
-			else
-			{
-				return DDERR_EXCLUSIVEMODEALREADYSET;
-			}
+			// Documentation: Full-screen applications receive the DDERR_NOEXCLUSIVEMODE return value if they lose exclusive device access
+			// Need to send DD_OK to prevent application hang on minimize
 		case D3DERR_DEVICENOTRESET:
 			//The TestCooperativeLevel method succeeds, returning DD_OK, if your application can restore its surfaces
 		case DDERR_NOEXCLUSIVEMODE:
 		case D3D_OK:
 		default:
-			WndProc::SwitchingResolution = false;
 			return DD_OK;
 		}
 	}
@@ -2974,7 +2972,7 @@ bool m_IDirectDrawX::CheckD9Device(char* FunctionName)
 	{
 		for (int attempts = 0; attempts < 20; ++attempts)
 		{
-			if (d3d9Device->TestCooperativeLevel() != D3DERR_DEVICELOST)
+			if (TestD3D9CooperativeLevel() != D3DERR_DEVICELOST)
 			{
 				break;
 			}
@@ -3008,7 +3006,7 @@ bool m_IDirectDrawX::CreatePaletteShader()
 
 LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetColorKeyShader()
 {
-	// Create pixel shaders
+	// Create pixel shader
 	if (d3d9Device && !colorkeyPixelShader)
 	{
 		d3d9Device->CreatePixelShader((DWORD*)ColorKeyPixelShaderSrc, &colorkeyPixelShader);
@@ -3018,12 +3016,22 @@ LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetColorKeyShader()
 
 LPDIRECT3DPIXELSHADER9 m_IDirectDrawX::GetGammaPixelShader()
 {
-	// Create pixel shaders
+	// Create pixel shader
 	if (d3d9Device && !gammaPixelShader)
 	{
 		d3d9Device->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &gammaPixelShader);
 	}
 	return gammaPixelShader;
+}
+
+LPDIRECT3DVERTEXSHADER9* m_IDirectDrawX::GetVertexFixupShader()
+{
+	// Create vertex shader
+	if (d3d9Device && !fixupVertexShader)
+	{
+		d3d9Device->CreateVertexShader((DWORD*)VertexFixUpShaderSrc, &fixupVertexShader);
+	}
+	return &fixupVertexShader;
 }
 
 LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size)
@@ -3203,7 +3211,12 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 		}
 		else
 		{
-			// Reset render target
+			IsDeviceLost = false;
+			WndProc::SwitchingResolution = false;
+			IsDeviceVerticesSet = false;
+			EnableWaitVsync = false;
+
+			// Set render target
 			SetCurrentRenderTarget();
 
 			// Reset D3D device settings
@@ -3216,11 +3229,6 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 		ReleaseAllD9Resources(true, false);
 		ReleaseD9Device();
 		hr = CreateD9Device(__FUNCTION__);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		WndProc::SwitchingResolution = false;
 	}
 
 	// Return
@@ -3240,6 +3248,13 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	// Get hwnd
 	HWND hWnd = GetHwnd();
 
+	// Set DirectX version
+	m_IDirect3D9Ex* D3DX = nullptr;
+	if (SUCCEEDED(d3d9Object->QueryInterface(IID_GetInterfaceX, reinterpret_cast<LPVOID*>(&D3DX))))
+	{
+		D3DX->SetDirectXVersion(ClientDirectXVersion);
+	}
+
 	// Hook WndProc before creating device
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
 	if (WndDataStruct)
@@ -3247,6 +3262,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		WndDataStruct->IsDirectDraw = true;
 		Device.NoWindowChanges = Device.NoWindowChanges || WndDataStruct->NoWindowChanges;
 		WndDataStruct->NoWindowChanges = Device.NoWindowChanges;
+		WndDataStruct->DirectXVersion = ClientDirectXVersion;
 	}
 
 	// Check if creating from another thread
@@ -3388,7 +3404,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		}
 
 		// Set behavior flags
-		BehaviorFlags = (d3dcaps.VertexProcessingCaps ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
+		BehaviorFlags = ((d3dcaps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
 			(Device.FPUPreserve ? D3DCREATE_FPU_PRESERVE : 0) |
 			D3DCREATE_MULTITHREADED;
 
@@ -3470,7 +3486,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 					m_IDirect3D9Ex::AdjustWindow(hMon, hWnd, Width, Height, false, false, true);
 
-					SetWindowLong(hWnd, GWL_STYLE, lStyle & ~(WS_BORDER | WS_DLGFRAME | WS_THICKFRAME));
+					SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_BORDER);
 					SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 				}
 				else
@@ -3531,6 +3547,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		}
 
 		// Reset flags after creating device
+		IsDeviceLost = false;
 		WndProc::SwitchingResolution = false;
 		LastUsedHWnd = hWnd;
 		IsDeviceVerticesSet = false;
@@ -3784,7 +3801,25 @@ HRESULT m_IDirectDrawX::TestD3D9CooperativeLevel()
 {
 	if (d3d9Device)
 	{
-		return d3d9Device->TestCooperativeLevel();
+		HRESULT hr = d3d9Device->TestCooperativeLevel();
+
+		if (hr == D3DERR_DEVICELOST || hr == D3DERR_DEVICENOTRESET)
+		{
+			if (!IsDeviceLost)
+			{
+				ReDrawNextPresent = true;
+				MarkAllSurfacesDirty();
+			}
+
+			IsDeviceLost = true;
+		}
+		else if (hr == DD_OK || hr == DDERR_NOEXCLUSIVEMODE)
+		{
+			IsDeviceLost = false;
+			WndProc::SwitchingResolution = false;
+		}
+
+		return hr;
 	}
 
 	return DD_OK;
@@ -3931,6 +3966,19 @@ void m_IDirectDrawX::Clear3DFlagForAllSurfaces()
 		for (const auto& pSurface : pDDraw->SurfaceList)
 		{
 			pSurface.Interface->ClearUsing3DFlag();
+		}
+	}
+}
+
+void m_IDirectDrawX::MarkAllSurfacesDirty()
+{
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+	for (const auto& pDDraw : DDrawVector)
+	{
+		for (const auto& pSurface : pDDraw->SurfaceList)
+		{
+			pSurface.Interface->MarkSurfaceLost();
 		}
 	}
 }
@@ -4101,6 +4149,18 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'gammaPixelShader' " << ref;
 		}
 		gammaPixelShader = nullptr;
+	}
+
+	// Release fixup vertex shader
+	if (fixupVertexShader)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 gamma pixel shader";
+		ULONG ref = fixupVertexShader->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'fixupVertexShader' " << ref;
+		}
+		fixupVertexShader = nullptr;
 	}
 }
 
@@ -5244,11 +5304,13 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	// Redraw window if it has moved from its last location
 	HWND hWnd = GetHwnd();
 	RECT ClientRect = {};
-	if (presParams.Windowed && !ExclusiveMode && !IsIconic(hWnd) && GetWindowRect(hWnd, &ClientRect) && LastWindowRect.right > 0 && LastWindowRect.bottom > 0)
+	if (ReDrawNextPresent || (presParams.Windowed && !ExclusiveMode && !IsIconic(hWnd) && GetWindowRect(hWnd, &ClientRect) && LastWindowRect.right > 0 && LastWindowRect.bottom > 0))
 	{
-		if (ClientRect.left != LastWindowRect.left || ClientRect.top != LastWindowRect.top ||
-			ClientRect.right != LastWindowRect.right || ClientRect.bottom != LastWindowRect.bottom)
+		if (ReDrawNextPresent ||
+			(ClientRect.left != LastWindowRect.left || ClientRect.top != LastWindowRect.top ||
+			ClientRect.right != LastWindowRect.right || ClientRect.bottom != LastWindowRect.bottom))
 		{
+			ReDrawNextPresent = false;
 			RedrawWindow(hWnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 		}
 	}

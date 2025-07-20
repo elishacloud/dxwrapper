@@ -150,7 +150,7 @@ void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParamet
 	SHARED.isAnisotropySet = false;
 	SHARED.AnisotropyDisabledFlag = false;
 	SHARED.isClipPlaneSet = false;
-	SHARED.m_clipPlaneRenderState = 0;
+	SHARED.ClipPlaneRenderState = 0;
 }
 
 template <typename T>
@@ -409,11 +409,11 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 		{
 			(*ppSwapChain)->Release();
 
-			*ppSwapChain = new m_IDirect3DSwapChain9Ex((IDirect3DSwapChain9Ex*)pSwapChainQuery, this, IID_IDirect3DSwapChain9Ex);
+			*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>((IDirect3DSwapChain9Ex*)pSwapChainQuery, this, IID_IDirect3DSwapChain9Ex, nullptr);
 		}
 		else
 		{
-			*ppSwapChain = new m_IDirect3DSwapChain9Ex((IDirect3DSwapChain9Ex*)*ppSwapChain, this, IID_IDirect3DSwapChain9);
+			*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>((IDirect3DSwapChain9Ex*)*ppSwapChain, this, IID_IDirect3DSwapChain9, nullptr);
 		}
 
 		return D3D_OK;
@@ -432,11 +432,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateCubeTexture(THIS_ UINT EdgeLength, UINT Leve
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (Config.D3d9to9Ex)
+	{
+		if (Pool == D3DPOOL_MANAGED)
+		{
+			Pool = D3DPOOL_DEFAULT;
+			Usage |= D3DUSAGE_DYNAMIC;
+		}
+	}
+
 	HRESULT hr = ProxyInterface->CreateCubeTexture(EdgeLength, Levels, Usage, Format, Pool, ppCubeTexture, pSharedHandle);
 
 	if (SUCCEEDED(hr))
 	{
-		*ppCubeTexture = new m_IDirect3DCubeTexture9(*ppCubeTexture, this);
+		*ppCubeTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppCubeTexture, this, IID_IDirect3DCubeTexture9, nullptr);
 		return D3D_OK;
 	}
 
@@ -478,7 +487,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 		return D3D_OK;
 	}
 
@@ -495,11 +504,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateIndexBuffer(THIS_ UINT Length, DWORD Usage, 
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (Config.D3d9to9Ex)
+	{
+		if (Pool == D3DPOOL_MANAGED)
+		{
+			Pool = D3DPOOL_DEFAULT;
+			Usage |= D3DUSAGE_DYNAMIC;
+		}
+	}
+
 	HRESULT hr = ProxyInterface->CreateIndexBuffer(Length, Usage, Format, Pool, ppIndexBuffer, pSharedHandle);
 
 	if (SUCCEEDED(hr))
 	{
-		*ppIndexBuffer = new m_IDirect3DIndexBuffer9(*ppIndexBuffer, this);
+		*ppIndexBuffer = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DIndexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(*ppIndexBuffer, this, IID_IDirect3DIndexBuffer9, nullptr);
 		return D3D_OK;
 	}
 
@@ -541,7 +559,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 		return D3D_OK;
 	}
 
@@ -565,17 +583,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 			Pool = D3DPOOL_DEFAULT;
 			Usage |= D3DUSAGE_DYNAMIC;
 		}
-		else if (Pool == D3DPOOL_DEFAULT && Usage == 0)
-		{
-			Usage = D3DUSAGE_DYNAMIC;
-		}
 	}
 
 	HRESULT hr = ProxyInterface->CreateTexture(Width, Height, Levels, Usage, Format, Pool, ppTexture, pSharedHandle);
 
 	if (SUCCEEDED(hr))
 	{
-		*ppTexture = new m_IDirect3DTexture9(*ppTexture, this);
+		*ppTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DTexture9, nullptr);
 		return D3D_OK;
 	}
 
@@ -598,11 +612,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexBuffer(THIS_ UINT Length, DWORD Usage,
 		Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 	}
 
+	if (Config.D3d9to9Ex)
+	{
+		if (Pool == D3DPOOL_MANAGED)
+		{
+			Pool = D3DPOOL_DEFAULT;
+			Usage |= D3DUSAGE_DYNAMIC;
+		}
+	}
+
 	HRESULT hr = ProxyInterface->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 
 	if (SUCCEEDED(hr))
 	{
-		*ppVertexBuffer = new m_IDirect3DVertexBuffer9(*ppVertexBuffer, this);
+		*ppVertexBuffer = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(*ppVertexBuffer, this, IID_IDirect3DVertexBuffer9, nullptr);
 		return D3D_OK;
 	}
 
@@ -619,11 +642,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateVolumeTexture(THIS_ UINT Width, UINT Height,
 		return D3DERR_INVALIDCALL;
 	}
 
+	if (Config.D3d9to9Ex)
+	{
+		if (Pool == D3DPOOL_MANAGED)
+		{
+			Pool = D3DPOOL_DEFAULT;
+			Usage |= D3DUSAGE_DYNAMIC;
+		}
+	}
+
 	HRESULT hr = ProxyInterface->CreateVolumeTexture(Width, Height, Depth, Levels, Usage, Format, Pool, ppVolumeTexture, pSharedHandle);
 
 	if (SUCCEEDED(hr))
 	{
-		*ppVolumeTexture = new m_IDirect3DVolumeTexture9(*ppVolumeTexture, this);
+		*ppVolumeTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVolumeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppVolumeTexture, this, IID_IDirect3DVolumeTexture9, nullptr);
 		return D3D_OK;
 	}
 
@@ -651,7 +683,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateStateBlock(THIS_ D3DSTATEBLOCKTYPE Type, IDi
 
 	if (SUCCEEDED(hr))
 	{
-		m_IDirect3DStateBlock9* StateBlockX = new m_IDirect3DStateBlock9(*ppSB, this);
+		m_IDirect3DStateBlock9* StateBlockX = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(*ppSB, this, IID_IDirect3DStateBlock9, nullptr);
 
 		if (Config.LimitStateBlocks)
 		{
@@ -774,7 +806,7 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 	// CacheClipPlane
 	if (SUCCEEDED(hr) && State == D3DRS_CLIPPLANEENABLE)
 	{
-		SHARED.m_clipPlaneRenderState = Value;
+		SHARED.ClipPlaneRenderState = Value;
 	}
 
 	return hr;
@@ -1115,10 +1147,10 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 
 		// For CacheClipPlane
 		SHARED.isClipPlaneSet = false;
-		SHARED.m_clipPlaneRenderState = 0;
+		SHARED.ClipPlaneRenderState = 0;
 		for (int i = 0; i < MAX_CLIP_PLANES; ++i)
 		{
-			std::fill(std::begin(SHARED.m_storedClipPlanes[i]), std::end(SHARED.m_storedClipPlanes[i]), 0.0f);
+			std::fill(std::begin(SHARED.StoredClipPlanes[i]), std::end(SHARED.StoredClipPlanes[i]), 0.0f);
 		}
 
 		// For gamma
@@ -1372,7 +1404,7 @@ HRESULT m_IDirect3DDevice9Ex::CreatePixelShader(THIS_ CONST DWORD* pFunction, ID
 
 	if (SUCCEEDED(hr))
 	{
-		*ppShader = new m_IDirect3DPixelShader9(*ppShader, this);
+		*ppShader = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DPixelShader9, m_IDirect3DDevice9Ex, LPVOID>(*ppShader, this, IID_IDirect3DPixelShader9, nullptr);
 		return D3D_OK;
 	}
 
@@ -1502,6 +1534,8 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 	}
 
 	ApplyPresentFixes();
+
+	Utils::ScopedThreadPriority ThreadPriority;
 
 	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 
@@ -1996,15 +2030,15 @@ HRESULT m_IDirect3DDevice9Ex::GetClipPlane(DWORD Index, float *pPlane)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// CacheClipPlane
-	if (Config.CacheClipPlane)
+	// CacheClipPlane if not using d3d8to9 (it already exists there)
+	if (Config.CacheClipPlane && SHARED.ClientDirectXVersion != 8)
 	{
 		if (!pPlane || Index >= MAX_CLIP_PLANES)
 		{
 			return D3DERR_INVALIDCALL;
 		}
 
-		memcpy(pPlane, SHARED.m_storedClipPlanes[Index], sizeof(SHARED.m_storedClipPlanes[0]));
+		memcpy(pPlane, SHARED.StoredClipPlanes[Index], sizeof(SHARED.StoredClipPlanes[0]));
 
 		return D3D_OK;
 	}
@@ -2016,8 +2050,8 @@ HRESULT m_IDirect3DDevice9Ex::SetClipPlane(DWORD Index, CONST float *pPlane)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	// CacheClipPlane
-	if (Config.CacheClipPlane)
+	// CacheClipPlane if not using d3d8to9 (it already exists there)
+	if (Config.CacheClipPlane && SHARED.ClientDirectXVersion != 8)
 	{
 		if (!pPlane || Index >= MAX_CLIP_PLANES)
 		{
@@ -2026,7 +2060,7 @@ HRESULT m_IDirect3DDevice9Ex::SetClipPlane(DWORD Index, CONST float *pPlane)
 
 		SHARED.isClipPlaneSet = true;
 
-		memcpy(SHARED.m_storedClipPlanes[Index], pPlane, sizeof(SHARED.m_storedClipPlanes[0]));
+		memcpy(SHARED.StoredClipPlanes[Index], pPlane, sizeof(SHARED.StoredClipPlanes[0]));
 
 		return D3D_OK;
 	}
@@ -2040,11 +2074,11 @@ void m_IDirect3DDevice9Ex::ApplyClipPlanes()
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	DWORD index = 0;
-	for (const auto clipPlane : SHARED.m_storedClipPlanes)
+	for (const auto plane : SHARED.StoredClipPlanes)
 	{
-		if ((SHARED.m_clipPlaneRenderState & (1 << index)) != 0)
+		if ((SHARED.ClipPlaneRenderState & (1 << index)) != 0)
 		{
-			ProxyInterface->SetClipPlane(index, clipPlane);
+			ProxyInterface->SetClipPlane(index, plane);
 		}
 		index++;
 	}
@@ -2084,7 +2118,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexShader(THIS_ CONST DWORD* pFunction, I
 
 	if (SUCCEEDED(hr))
 	{
-		*ppShader = new m_IDirect3DVertexShader9(*ppShader, this);
+		*ppShader = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexShader9, m_IDirect3DDevice9Ex, LPVOID>(*ppShader, this, IID_IDirect3DVertexShader9, nullptr);
 		return D3D_OK;
 	}
 
@@ -2131,7 +2165,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateQuery(THIS_ D3DQUERYTYPE Type, IDirect3DQuer
 
 	if (SUCCEEDED(hr))
 	{
-		*ppQuery = new m_IDirect3DQuery9(*ppQuery, this);
+		*ppQuery = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DQuery9, m_IDirect3DDevice9Ex, LPVOID>(*ppQuery, this, IID_IDirect3DQuery9, nullptr);
 		return D3D_OK;
 	}
 
@@ -2264,7 +2298,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexDeclaration(THIS_ CONST D3DVERTEXELEME
 
 	if (SUCCEEDED(hr))
 	{
-		*ppDecl = new m_IDirect3DVertexDeclaration9(*ppDecl, this);
+		*ppDecl = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexDeclaration9, m_IDirect3DDevice9Ex, LPVOID>(*ppDecl, this, IID_IDirect3DVertexDeclaration9, nullptr);
 		return D3D_OK;
 	}
 
@@ -2486,7 +2520,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurface(THIS_ UINT Width, UINT
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 		return D3D_OK;
 	}
 
@@ -2835,6 +2869,8 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 
 	ApplyPresentFixes();
 
+	Utils::ScopedThreadPriority ThreadPriority;
+
 	HRESULT hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
 
 	if (SUCCEEDED(hr))
@@ -3010,7 +3046,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 		return D3D_OK;
 	}
 
@@ -3045,7 +3081,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 		return D3D_OK;
 	}
 
@@ -3088,7 +3124,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 
 	if (SUCCEEDED(hr))
 	{
-		*ppSurface = new m_IDirect3DSurface9(*ppSurface, this);
+		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 		return D3D_OK;
 	}
 

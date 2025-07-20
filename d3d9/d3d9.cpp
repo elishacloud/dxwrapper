@@ -12,8 +12,6 @@
 *   2. Altered source versions must  be plainly  marked as such, and  must not be  misrepresented  as
 *      being the original software.
 *   3. This notice may not be removed or altered from any source distribution.
-* 
-* Code for 'Direct3D9SetSwapEffectUpgradeShim' taken from here:  https://github.com/crosire/reshade/commit/3fe0b050706fb9f3510ed48d619cad71f7cb28f2
 */
 
 #include "d3d9.h"
@@ -26,7 +24,7 @@ namespace D3d9Wrapper
 
 using namespace D3d9Wrapper;
 
-HMODULE GetSystemD3d9()
+static HMODULE GetSystemD3d9()
 {
 	static HMODULE h_d3d9 = nullptr;
 
@@ -42,7 +40,7 @@ HMODULE GetSystemD3d9()
 	return h_d3d9;
 }
 
-FARPROC GetD3d9UnnamedOrdinal(WORD Ordinal)
+static FARPROC GetD3d9UnnamedOrdinal(WORD Ordinal)
 {
 	FARPROC proc = nullptr;
 
@@ -164,7 +162,7 @@ void WINAPI d9_D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName)
 	return D3DPERF_SetRegion(col, wszName);
 }
 
-void WINAPI Direct3D9ForceHybridEnumeration(UINT Mode)
+static void WINAPI Direct3D9ForceHybridEnumeration(UINT Mode)
 {
 	const WORD Ordinal = 16;
 
@@ -195,6 +193,9 @@ void WINAPI Direct3D9ForceHybridEnumeration(UINT Mode)
 
 void WINAPI Direct3D9SetSwapEffectUpgradeShim(int Unknown)
 {
+	// Details about the 'Direct3D9SetSwapEffectUpgradeShim' function taken from here:
+	// https://github.com/crosire/reshade/commit/3fe0b050706fb9f3510ed48d619cad71f7cb28f2
+
 	const WORD Ordinal = 18;
 
 	static FARPROC proc = nullptr;
@@ -222,7 +223,7 @@ void WINAPI Direct3D9SetSwapEffectUpgradeShim(int Unknown)
 	reinterpret_cast<decltype(&Direct3D9SetSwapEffectUpgradeShim)>(proc)(Unknown);
 }
 
-void WINAPI Direct3D9DisableMaximizedWindowedMode()
+static void WINAPI Direct3D9DisableMaximizedWindowedMode()
 {
 	static FARPROC proc = nullptr;
 

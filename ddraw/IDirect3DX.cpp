@@ -14,10 +14,23 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#include <objbase.h>
 #include "ddraw.h"
 #include "Utils\Utils.h"
 
 namespace {
+	struct ZFormatEntry
+	{
+		DWORD bitDepthFlag;
+		std::initializer_list<D3DFORMAT> formats;
+	};
+
+	const ZFormatEntry zFormats[] = {
+		{ DDBD_16, { D3DFMT_D16, D3DFMT_D15S1 } },
+		{ DDBD_24, { D3DFMT_D24S8, D3DFMT_D24X8, D3DFMT_D24X4S4 } },
+		{ DDBD_32, { D3DFMT_D32 } },
+	};
+
 	bool GetD3DPath = true;
 	char D3DImPath[MAX_PATH] = { '\0' };
 	char D3DIm700Path[MAX_PATH] = { '\0' };
@@ -606,7 +619,7 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		// Check for existing device
 		if (!D3DDeviceList.empty())
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Direct3DDevice is already setup. Multiple Direct3DDevice's are not implemented!");
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3DDevice is already setup. Multiple Direct3DDevice's not fully implemented!");
 		}
 
 		m_IDirect3DDeviceX* Interface = new m_IDirect3DDeviceX(ddrawParent, this, lpDDS, rclsid, DirectXVersion);
@@ -700,7 +713,7 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 		}
 
 		// Check FVF format
-		if (!lpVBDesc->dwFVF || (lpVBDesc->dwFVF != D3DFVF_LVERTEX && (lpVBDesc->dwFVF & ~(D3DFVF_POSITION_MASK | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEXCOUNT_MASK))))
+		if (!IsValidFVF(lpVBDesc->dwFVF))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid or unsupported vertex buffer FVF: " << Logging::hex(lpVBDesc->dwFVF));
 			return D3DERR_INVALIDVERTEXFORMAT;
@@ -788,7 +801,7 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 		IDirect3D9* d3d9Object = ddrawParent->GetDirectD9Object();
 
 		if (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DMMXDevice || riidDevice == IID_IDirect3DRefDevice ||
-			riidDevice == IID_IDirect3DHALDevice || riidDevice == IID_IDirect3DTnLHalDevice)
+			riidDevice == IID_IDirect3DHALDevice || riidDevice == IID_IDirect3DTnLHalDevice || riidDevice == GUID_NULL)
 		{
 			D3DDEVICEDESC7 Desc7 = {};
 			D3DCAPS9 Caps9;
@@ -799,39 +812,26 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 				D3DDEVTYPE_NULLREF;
 
 			ConvertDeviceDesc(Desc7, Caps9);
+			Desc7.dwDeviceZBufferBitDepth = dwDeviceZBufferBitDepthCache;
 
 			DDPIXELFORMAT PixelFormat = {};
 			PixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
-			// Handle 16bit zBuffer
-			if (Desc7.dwDeviceZBufferBitDepth & DDBD_16)
+			// Send supported formats to callback function
+			for (const auto& entry : zFormats)
 			{
-				for (D3DFORMAT Format : { D3DFMT_D16, D3DFMT_D15S1 })
+				if (Desc7.dwDeviceZBufferBitDepth & entry.bitDepthFlag)
 				{
-					if (SUCCEEDED(d3d9Object->CheckDeviceFormat(ddrawParent->GetAdapterIndex(), D3DDEVTYPE_HAL, D9DisplayFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, Format)))
+					for (const auto& Format : entry.formats)
 					{
-						SetPixelDisplayFormat(Format, PixelFormat);
-
-						if (PixelFormat.dwFlags && lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
+						if (SUCCEEDED(d3d9Object->CheckDeviceFormat(ddrawParent->GetAdapterIndex(), D3DDEVTYPE_HAL, D9DisplayFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, Format)))
 						{
-							return D3D_OK;
-						}
-					}
-				}
-			}
+							SetPixelDisplayFormat(Format, PixelFormat);
 
-			// Handle 32bit zBuffer
-			if (Desc7.dwDeviceZBufferBitDepth & DDBD_32)
-			{
-				for (D3DFORMAT Format : { D3DFMT_D32, D3DFMT_D24S8, D3DFMT_D24X8, D3DFMT_D24X4S4 })
-				{
-					if (SUCCEEDED(d3d9Object->CheckDeviceFormat(ddrawParent->GetAdapterIndex(), D3DDEVTYPE_HAL, D9DisplayFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, Format)))
-					{
-						SetPixelDisplayFormat(Format, PixelFormat);
-
-						if (PixelFormat.dwFlags && lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
-						{
-							return D3D_OK;
+							if (PixelFormat.dwFlags && lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
+							{
+								return D3D_OK;
+							}
 						}
 					}
 				}
@@ -924,16 +924,16 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 		// Loop through all adapters
 		for (auto& entry : Cap9Cache)
 		{
-			for (int x = 0; x < 3; x++)
+			for (D3DDEVTYPE Type : { D3DDEVTYPE_REF, D3DDEVTYPE_HAL, (D3DDEVTYPE)D3DDEVTYPE_TNLHAL })
 			{
 				// Get Device Caps
-				D3DCAPS9 Caps9 = (x == 0) ? entry.REF : entry.HAL;
-				D3DDEVTYPE Type = (x == 0) ? D3DDEVTYPE_REF : (x == 1) ? D3DDEVTYPE_HAL : (D3DDEVTYPE)D3DDEVTYPE_TNLHAL;
+				D3DCAPS9 Caps9 = (Type == D3DDEVTYPE_REF) ? entry.REF : entry.HAL;
 
 				// Convert device desc
 				D3DDEVICEDESC7 DeviceDesc7;
 				Caps9.DeviceType = Type;
 				ConvertDeviceDesc(DeviceDesc7, Caps9);
+				DeviceDesc7.dwDeviceZBufferBitDepth = dwDeviceZBufferBitDepthCache;
 
 				GUID deviceGUID = DeviceDesc7.deviceGUID;
 				LPSTR lpDescription = nullptr, lpName = nullptr;
@@ -1109,6 +1109,21 @@ void m_IDirect3DX::GetCap9Cache()
 					if (SUCCEEDED(d3d9Object->GetDeviceCaps(i, D3DDEVTYPE_REF, &DCaps9.REF)) && SUCCEEDED(d3d9Object->GetDeviceCaps(i, D3DDEVTYPE_HAL, &DCaps9.HAL)))
 					{
 						Cap9Cache.push_back(DCaps9);
+					}
+				}
+			}
+
+			dwDeviceZBufferBitDepthCache = 0;
+
+			// Get supported zbuffer format bit depth
+			for (const auto& entry : zFormats)
+			{
+				for (const auto& Format : entry.formats)
+				{
+					if (SUCCEEDED(d3d9Object->CheckDeviceFormat(ddrawParent->GetAdapterIndex(), D3DDEVTYPE_HAL, D9DisplayFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, Format)))
+					{
+						dwDeviceZBufferBitDepthCache |= entry.bitDepthFlag;
+						break;
 					}
 				}
 			}

@@ -220,12 +220,6 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (lpData->dvScaleX != 0 || lpData->dvScaleY != 0 || lpData->dvMaxX != 0 || lpData->dvMaxY != 0)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'Scale homogeneous' Not Implemented: " <<
-				" ScaleX: " << lpData->dvScaleX << " ScaleY: " << lpData->dvScaleY << " MaxX: " << lpData->dvMaxX << " MaxY: " << lpData->dvMaxY);
-		}
-
 		IsViewPortSet = true;
 
 		vData = *lpData;
@@ -334,6 +328,9 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 			D3DXVECTOR4 pos(src.x, src.y, src.z, 1.0f);
 			D3DXVECTOR4 result;
 			D3DXVec4Transform(&result, &pos, &matWorldViewProj);
+
+			// Make sure result.w doesn't equal 0 to avoid divide by zero
+			result.w = result.w == 0.0f ? result.w = FLT_EPSILON : result.w;
 
 			dst.sx = result.x / result.w;
 			dst.sy = result.y / result.w;
@@ -459,7 +456,7 @@ HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA
 		}
 
 		// Cache light data once
-		std::vector<D3DLIGHT7> cachedLights;
+		std::vector<DXLIGHT7> cachedLights;
 		GetEnabledLightList(cachedLights, pDirect3DDeviceX);
 
 		if (cachedLights.empty())
@@ -823,12 +820,6 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (lpData->dvClipWidth != 0 || lpData->dvClipHeight != 0 || lpData->dvClipX != 0 || lpData->dvClipY != 0)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'clip volume' Not Implemented: " <<
-				lpData->dvClipWidth << "x" << lpData->dvClipHeight << " X: " << lpData->dvClipX << " Y: " << lpData->dvClipY);
-		}
-
 		IsViewPort2Set = true;
 
 		vData2 = *lpData;
@@ -1055,16 +1046,16 @@ void m_IDirect3DViewportX::SetCurrentViewportActive(bool SetViewPortData, bool S
 		{
 			if (SetViewPortData && (IsViewPortSet || IsViewPort2Set))
 			{
-				D3DVIEWPORT7 Viewport7 = {};
+				HRESULT hr;
 				if (IsViewPort2Set)
 				{
-					ConvertViewport(Viewport7, vData2);
+					hr = D3DDevice->SetViewport(&vData2);
 				}
 				else
 				{
-					ConvertViewport(Viewport7, vData);
+					hr = D3DDevice->SetViewport(&vData);
 				}
-				if (FAILED(D3DDevice->SetViewport(&Viewport7)))
+				if (FAILED(hr))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set viewport data!");
 				}
@@ -1137,7 +1128,7 @@ void m_IDirect3DViewportX::ClearCurrentViewport(m_IDirect3DDeviceX* pDirect3DDev
 	}
 }
 
-void m_IDirect3DViewportX::GetEnabledLightList(std::vector<D3DLIGHT7>& AttachedLightList, m_IDirect3DDeviceX* pDirect3DDeviceX)
+void m_IDirect3DViewportX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLightList, m_IDirect3DDeviceX* pDirect3DDeviceX)
 {
 	if (!pDirect3DDeviceX)
 	{
@@ -1155,10 +1146,12 @@ void m_IDirect3DViewportX::GetEnabledLightList(std::vector<D3DLIGHT7>& AttachedL
 			// Check if light is enabled
 			if (Light2.dwFlags & D3DLIGHT_ACTIVE)
 			{
-				D3DLIGHT7 Light7;
-				ConvertLight(Light7, *reinterpret_cast<LPD3DLIGHT>(&Light2));
+				DXLIGHT7 DxLight7 = {};
+				ConvertLight(*reinterpret_cast<LPD3DLIGHT7>(&DxLight7), *reinterpret_cast<LPD3DLIGHT>(&Light2));
+				DxLight7.dwLightVersion = 2;
+				DxLight7.dwFlags = Light2.dwFlags;
 
-				AttachedLightList.push_back(Light7);
+				AttachedLightList.push_back(DxLight7);
 			}
 		}
 	}

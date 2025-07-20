@@ -20,6 +20,7 @@ struct DEVICEDETAILS
 	}
 
 	// Window handle and size
+	DWORD ClientDirectXVersion = 0;
 	bool IsWindowMode = false;
 	bool IsDirectDrawDevice = false;
 	UINT Adapter = D3DADAPTER_DEFAULT;
@@ -84,8 +85,8 @@ struct DEVICEDETAILS
 
 	// For CacheClipPlane
 	bool isClipPlaneSet = false;
-	DWORD m_clipPlaneRenderState = 0;
-	float m_storedClipPlanes[MAX_CLIP_PLANES][4] = {};
+	DWORD ClipPlaneRenderState = 0;
+	float StoredClipPlanes[MAX_CLIP_PLANES][4] = {};
 
 	// For gamma
 	bool IsGammaSet = false;
@@ -158,7 +159,7 @@ private:
 public:
 	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, UINT Key) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID), DDKey(Key)
 	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID);
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID << " game interface v" << SHARED.ClientDirectXVersion);
 
 		if (WrapperID == IID_IDirect3DDevice9Ex)
 		{
@@ -330,6 +331,7 @@ public:
 	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
 	AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() const { return &SHARED.StateBlockTable; }
+	DWORD GetClientDXVersion() const { return SHARED.ClientDirectXVersion; }
 	REFIID GetIID() { return WrapperID; }
 
 	// Static functions
