@@ -7247,12 +7247,24 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 	// Handle video memory copy
 	if (!DepthFill && pSourceSurface->surface.Pool == D3DPOOL_DEFAULT && surface.Pool == D3DPOOL_DEFAULT)
 	{
+		bool InScene = ddrawParent->IsInScene();
+		if (InScene)
+		{
+			(*d3d9Device)->EndScene();
+		}
+
 		HRESULT hr = (*d3d9Device)->StretchRect(pSourceSurface->surface.Surface, nullptr, surface.Surface, nullptr, D3DTEXF_NONE);
 
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not copy depth buffer: " << pSourceSurface->surfaceDesc2.ddsCaps << " -> " << surfaceDesc2.ddsCaps << " " <<
 				pSourceSurface->surface.Format << " -> " << surface.Format << " " << (D3DERR)hr);
+			hr = DDERR_GENERIC;
+		}
+
+		if (InScene)
+		{
+			(*d3d9Device)->BeginScene();
 		}
 
 		return hr;
@@ -7292,7 +7304,6 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to fill depth buffer: " << (DDERR)hr);
-			return hr;
 		}
 	}
 	// Copy depth stencil
