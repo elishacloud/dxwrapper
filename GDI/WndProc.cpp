@@ -304,6 +304,13 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			switch (Msg)
 			{
+			case WM_ACTIVATEAPP:
+				// Some games don't properly handle app activate in exclusive mode
+				if (!pDataStruct->IsExclusiveMode)
+				{
+					break;
+				}
+				[[fallthrough]];
 			case WM_ACTIVATE:
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
