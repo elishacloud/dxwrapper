@@ -333,7 +333,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	}
 
 	// Filter some messages while forcing windowed mode
-	if (Config.EnableWindowMode && pDataStruct->IsDirect3D9 && pDataStruct->IsExclusiveMode)
+	if (Config.EnableWindowMode && (pDataStruct->IsDirectDraw || pDataStruct->IsDirect3D9) && pDataStruct->IsExclusiveMode)
 	{
 		switch (Msg)
 		{

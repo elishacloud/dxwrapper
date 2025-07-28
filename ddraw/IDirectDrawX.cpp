@@ -3262,6 +3262,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		WndDataStruct->IsDirectDraw = true;
 		Device.NoWindowChanges = Device.NoWindowChanges || WndDataStruct->NoWindowChanges;
 		WndDataStruct->NoWindowChanges = Device.NoWindowChanges;
+		WndDataStruct->IsExclusiveMode = ExclusiveMode;
 		WndDataStruct->DirectXVersion = ClientDirectXVersion;
 	}
 
@@ -3272,6 +3273,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		LOG_LIMIT(100, __FUNCTION__ << " " << FunctionName << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
 
 		SendMessage(hWnd, WM_APP_CREATE_D3D9_DEVICE, (WPARAM)this, WM_MAKE_KEY(hWnd, this));
+
+		Sleep(0);
 
 		return d3d9Device ? DD_OK : DDERR_GENERIC;
 	}
@@ -3412,21 +3415,28 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
 			" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
 
+		// Check if there are any device changes
+		if (d3d9Device &&
+			presParamsBackup.BackBufferWidth == presParams.BackBufferWidth &&
+			presParamsBackup.BackBufferHeight == presParams.BackBufferHeight &&
+			presParamsBackup.Windowed == presParams.Windowed &&
+			presParamsBackup.hDeviceWindow == presParams.hDeviceWindow &&
+			presParamsBackup.FullScreen_RefreshRateInHz == presParams.FullScreen_RefreshRateInHz &&
+			LastBehaviorFlags == BehaviorFlags)
+		{
+			hr = DD_OK;
+			break;
+		}
+
+		// Mark as creating device
+		if (WndDataStruct)
+		{
+			WndDataStruct->IsCreatingDevice = true;
+		}
+
 		// Check if existing device exists
 		if (d3d9Device)
 		{
-			// Check if there are any device changes
-			if (presParamsBackup.BackBufferWidth == presParams.BackBufferWidth &&
-				presParamsBackup.BackBufferHeight == presParams.BackBufferHeight &&
-				presParamsBackup.Windowed == presParams.Windowed &&
-				presParamsBackup.hDeviceWindow == presParams.hDeviceWindow &&
-				presParamsBackup.FullScreen_RefreshRateInHz == presParams.FullScreen_RefreshRateInHz &&
-				LastBehaviorFlags == BehaviorFlags)
-			{
-				hr = DD_OK;
-				break;
-			}
-
 			// Check if device needs to be reset
 			hr = TestD3D9CooperativeLevel();
 			if ((hr == D3D_OK || hr == DDERR_NOEXCLUSIVEMODE || hr == D3DERR_DEVICENOTRESET) &&
@@ -3534,6 +3544,12 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 					SetWindowFullScreen::FullScreen(hm, hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
 				}
 			}
+		}
+
+		// Unmark as creating device
+		if (WndDataStruct)
+		{
+			WndDataStruct->IsCreatingDevice = false;
 		}
 
 		if (FAILED(hr))
