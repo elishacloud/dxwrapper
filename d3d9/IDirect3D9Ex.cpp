@@ -378,10 +378,14 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	if (WndDataStruct)
 	{
 		WndDataStruct->IsDirect3D9 = true;
-		WndDataStruct->IsCreatingDevice = true;
-		WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
+		if (!WndDataStruct->IsDirectDraw)
+		{
+			// Already set by DirectDraw
+			WndDataStruct->IsCreatingDevice = true;
+			WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
+			WndDataStruct->DirectXVersion = ClientDirectXVersion;
+		}
 		DeviceDetails.IsDirectDrawDevice = WndDataStruct->IsDirectDraw;
-		WndDataStruct->DirectXVersion = ClientDirectXVersion;
 	}
 
 	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
@@ -489,8 +493,9 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	}
 
 	// Update WndProc after creating device
-	if (WndDataStruct)
+	if (WndDataStruct && !WndDataStruct->IsDirectDraw)
 	{
+		// Already set by DirectDraw
 		WndDataStruct->IsCreatingDevice = false;
 	}
 

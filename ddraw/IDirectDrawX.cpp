@@ -1675,7 +1675,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 			// Set windowed mode
 			DisplayMode.SetBy = this;
-			Device.IsWindowed = (!ExclusiveMode || FullScreenWindowed || Config.EnableWindowMode);
+			Device.IsWindowed = (!ExclusiveMode || FullScreenWindowed);
 
 			// Check if just marking as non-exclusive
 			bool MarkingUnexclusive = (hWnd && Exclusive.hWnd == hWnd && dwFlags == DDSCL_NORMAL);
