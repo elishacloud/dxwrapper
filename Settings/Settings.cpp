@@ -17,6 +17,7 @@
 #include <regex>
 #include <algorithm>
 #include "Settings.h"
+#include "Libraries\ScopeGuard.h"
 #include "External\Hooking.Patterns\Hooking.Patterns.h"
 #include "Dllmain\Dllmain.h"
 #include "Wrappers\wrapper.h"
@@ -516,23 +517,23 @@ void CONFIG::Init()
 	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)Settings::ClearConfigSettings, &hModule);
 
 	// Declare variables
-	char p_wName[MAX_PATH] = {};
-	char p_pName[MAX_PATH] = {};
+	HeapBuffer<char> p_wName(MAX_PATH);
+	HeapBuffer<char> p_pName(MAX_PATH);
 
 	// Get module name
-	char wrappername[MAX_PATH] = { 0 };
-	GetModuleFileName(hModule, wrappername, MAX_PATH);
-	if (strrchr(wrappername, '\\'))
+	HeapBuffer<char> wrappername(MAX_PATH);
+	GetModuleFileName(hModule, wrappername.data(), MAX_PATH);
+	if (strrchr(wrappername.data(), '\\'))
 	{
-		strcpy_s(p_wName, MAX_PATH, strrchr(wrappername, '\\') + 1);
+		strcpy_s(p_wName.data(), MAX_PATH, strrchr(wrappername.data(), '\\') + 1);
 	}
 
 	// Get process name
-	char processname[MAX_PATH] = { 0 };
-	GetModuleFileName(nullptr, processname, MAX_PATH);
-	if (strrchr(processname, '\\'))
+	HeapBuffer<char> processname(MAX_PATH);
+	GetModuleFileName(nullptr, processname.data(), MAX_PATH);
+	if (strrchr(processname.data(), '\\'))
 	{
-		strcpy_s(p_pName, MAX_PATH, strrchr(processname, '\\') + 1);
+		strcpy_s(p_pName.data(), MAX_PATH, strrchr(processname.data(), '\\') + 1);
 	}
 
 	// Set default settings
@@ -543,15 +544,15 @@ void CONFIG::Init()
 	{
 		const char* szEnvPrefix = "DXWRAPPER_";
 		char* szEnvVar = p_envStrings;
-		char szSetting[MAX_ENV_VAR] = {};
+		HeapBuffer<char> szSetting(MAX_ENV_VAR);
 
 		while (*szEnvVar)
 		{
 			if (!_strnicmp(szEnvVar, szEnvPrefix, strlen(szEnvPrefix)))
 			{
 				szEnvVar += strlen(szEnvPrefix);
-				strcpy_s(szSetting, MAX_ENV_VAR, szEnvVar);
-				Parse(szSetting, ParseCallback);
+				strcpy_s(szSetting.data(), MAX_ENV_VAR, szEnvVar);
+				Parse(szSetting.data(), ParseCallback);
 			}
 			szEnvVar += strlen(szEnvVar) + 1;
 		}
@@ -560,16 +561,16 @@ void CONFIG::Init()
 	}
 
 	// Check for memory loading
-	if (_stricmp(p_wName, p_pName) == 0)
+	if (_stricmp(p_wName.data(), p_pName.data()) == 0)
 	{
-		strcpy_s(wrappername, MAX_PATH, processname);
-		strcpy_s(strrchr(wrappername, '\\'), MAX_PATH - strlen(wrappername), "\\dxwrapper.dll");
+		strcpy_s(wrappername.data(), MAX_PATH, processname.data());
+		strcpy_s(strrchr(wrappername.data(), '\\'), MAX_PATH - strlen(wrappername.data()), "\\dxwrapper.dll");
 	}
 
 	// Get config path to include process name
-	strcpy_s(configpath, MAX_PATH, wrappername);
+	strcpy_s(configpath, MAX_PATH, wrappername.data());
 	strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), "-");
-	strcat_s(configpath, MAX_PATH, p_pName);
+	strcat_s(configpath, MAX_PATH, p_pName.data());
 	strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), ".ini");
 
 	// Read defualt config file
@@ -586,7 +587,7 @@ void CONFIG::Init()
 	else
 	{
 		// Get config file path
-		strcpy_s(configpath, MAX_PATH, wrappername);
+		strcpy_s(configpath, MAX_PATH, wrappername.data());
 		strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), ".ini");
 
 		// Open config file
@@ -602,13 +603,13 @@ void CONFIG::Init()
 	}
 
 	// Set module name
-	if (_stricmp(p_wName, p_pName) == 0)
+	if (_stricmp(p_wName.data(), p_pName.data()) == 0)
 	{
 		WrapperName.assign("dxwrapper.dll");
 	}
 	else
 	{
-		WrapperName.assign(p_wName);
+		WrapperName.assign(p_wName.data());
 		std::transform(WrapperName.begin(), WrapperName.end(), WrapperName.begin(),
 			[](char c) {return static_cast<char>(::tolower(c)); });
 	}
@@ -638,8 +639,8 @@ void CONFIG::Init()
 	// Check if process should be excluded or not included
 	// if so, then clear all settings (disable everything)
 	ProcessExcluded = false;
-	if ((ExcludeProcess.size() != 0 && IfStringExistsInList(p_pName, ExcludeProcess, false)) ||
-		(IncludeProcess.size() != 0 && !IfStringExistsInList(p_pName, IncludeProcess, false)))
+	if ((ExcludeProcess.size() != 0 && IfStringExistsInList(p_pName.data(), ExcludeProcess, false)) ||
+		(IncludeProcess.size() != 0 && !IfStringExistsInList(p_pName.data(), IncludeProcess, false)))
 	{
 		ProcessExcluded = true;
 	}
