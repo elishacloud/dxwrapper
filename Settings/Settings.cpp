@@ -812,7 +812,7 @@ void CONFIG::SetConfig()
 	// Set unset options
 	CacheClipPlane = (CacheClipPlane != 0);
 	DdrawResolutionHack = (DdrawResolutionHack != 0);
-	FixPerfCounterUptime = (FixPerfCounterUptime != 0);
-	LimitStateBlocks = !IsSet(LimitStateBlocks) ? (Dd7to9 || D3d8to9) : LimitStateBlocks;
+	FixPerfCounterUptime = (FixPerfCounterUptime != NOT_EXIST) ? FixPerfCounterUptime : 1;
+	LimitStateBlocks = (LimitStateBlocks != NOT_EXIST) ? LimitStateBlocks : (Dd7to9 || D3d8to9);
 	WindowModeGammaShader = (WindowModeGammaShader != 0);
 }

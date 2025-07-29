@@ -634,7 +634,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.FixPerfCounterUptime && Utils::InitUpTimeOffsets())
 		{
 			using namespace GdiWrapper;
-			HMODULE winmm = LoadLibrary("winmm.dll");
 			if (kernel32)
 			{
 				Utils::QueryPerformanceFrequency_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "QueryPerformanceFrequency"), "QueryPerformanceFrequency", Utils::kernel_QueryPerformanceFrequency);
@@ -644,11 +643,15 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Utils::GetTickCount64_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetTickCount64"), "GetTickCount64", Utils::kernel_GetTickCount64);
 #endif
 			}
-			if (winmm)
+			if (Config.FixPerfCounterUptime == 2)
 			{
-				Logging::Log() << "Installing winmm hooks";
-				Utils::timeGetTime_out = (FARPROC)Hook::HotPatch(GetProcAddress(winmm, "timeGetTime"), "timeGetTime", Utils::winmm_timeGetTime);
-				Utils::timeGetSystemTime_out = (FARPROC)Hook::HotPatch(GetProcAddress(winmm, "timeGetSystemTime"), "timeGetSystemTime", Utils::winmm_timeGetSystemTime);
+				HMODULE winmm = LoadLibrary("winmm.dll");
+				if (winmm)
+				{
+					Logging::Log() << "Installing winmm hooks";
+					Utils::timeGetTime_out = (FARPROC)Hook::HotPatch(GetProcAddress(winmm, "timeGetTime"), "timeGetTime", Utils::winmm_timeGetTime);
+					Utils::timeGetSystemTime_out = (FARPROC)Hook::HotPatch(GetProcAddress(winmm, "timeGetSystemTime"), "timeGetSystemTime", Utils::winmm_timeGetSystemTime);
+				}
 			}
 		}
 

@@ -293,7 +293,7 @@ struct CONFIG
 	bool FixHighFrequencyMouse = false;			// Gets the latest mouse status by merging the DirectInput buffer data
 	float MouseMovementFactor = 1.0f;			// Sets the mouse movement speed factor, requires enabling FixHighFrequencyMouse
 	DWORD MouseMovementPadding = 0;				// Adds extra mouse movement to overcome issues with input deadzone in some games, requires enabling FixHighFrequencyMouse
-	DWORD FixPerfCounterUptime = 0;				// Reduces uptime counters to prevent shlowdown in games
+	DWORD FixPerfCounterUptime = 0;				// Reduces uptime counters to prevent shlowdown; 1 = QPC and GetTickCount only, 2 = QPC, GetTickCount plus winmm timeGetTime and timeGetSystemTime
 	bool ForceDirect3D9On12 = false;			// Forces Direct3D9 to use CreateDirect3D9On12
 	bool ForceExclusiveFullscreen = false;		// Forces exclusive fullscreen mode in d3d9
 	bool ForceMixedVertexProcessing = false;	// Forces Mixed mode for vertex processing in d3d9
