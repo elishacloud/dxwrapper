@@ -162,6 +162,9 @@
 	visit(StripBorderStyle) \
 	visit(DisableMaxWindowedMode)
 
+// Enables both QPC/GetTickCount as well as winmm perf counter fixes
+#define PERF_WINMM_FIX 2
+
 typedef unsigned char byte;
 
 struct MEMORYINFO						// Used for hot patching memory

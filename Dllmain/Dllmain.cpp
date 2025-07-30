@@ -643,7 +643,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Utils::GetTickCount64_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetTickCount64"), "GetTickCount64", Utils::kernel_GetTickCount64);
 #endif
 			}
-			if (Config.FixPerfCounterUptime == 2)
+			if (Config.FixPerfCounterUptime == PERF_WINMM_FIX)
 			{
 				HMODULE winmm = LoadLibrary("winmm.dll");
 				if (winmm)
