@@ -1543,12 +1543,7 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 
 	ApplyPrePresentFixes();
 
-	HRESULT hr;
-	{
-		Utils::ScopedThreadPriority ThreadPriority;
-
-		hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
-	}
+	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 
 	if (SUCCEEDED(hr))
 	{
@@ -2877,12 +2872,7 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 
 	ApplyPrePresentFixes();
 
-	HRESULT hr;
-	{
-		Utils::ScopedThreadPriority ThreadPriority;
-
-		hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
-	}
+	HRESULT hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
 
 	if (SUCCEEDED(hr))
 	{
