@@ -115,7 +115,8 @@ private:
 	UINT DDKey;
 
 	void ApplyDrawFixes();
-	void ApplyPresentFixes();
+	void ApplyPrePresentFixes();
+	void ApplyPostPresentFixes();
 
 	HRESULT CallBeginScene();
 	HRESULT CallEndScene();

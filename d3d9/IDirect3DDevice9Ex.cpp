@@ -1438,7 +1438,7 @@ HRESULT m_IDirect3DDevice9Ex::SetPixelShader(THIS_ IDirect3DPixelShader9* pShade
 	return ProxyInterface->SetPixelShader(pShader);
 }
 
-void m_IDirect3DDevice9Ex::ApplyPresentFixes()
+void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 {
 	bool CalledBeginScene = false;
 
@@ -1515,13 +1515,21 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 	}
 	SHARED.BeginSceneCalled = false;
 
+	// Check FPU state before presenting
+	Utils::ResetInvalidFPUState();
+}
+
+void m_IDirect3DDevice9Ex::ApplyPostPresentFixes()
+{
 	if (Config.LimitPerFrameFPS)
 	{
 		LimitFrameRate();
 	}
 
-	// Check FPU state before presenting
-	Utils::ResetInvalidFPUState();
+	if (Config.ShowFPSCounter || Config.EnableImgui)
+	{
+		CalculateFPS();
+	}
 }
 
 HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
@@ -1533,18 +1541,18 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 		return PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, 0);
 	}
 
-	ApplyPresentFixes();
+	ApplyPrePresentFixes();
 
-	Utils::ScopedThreadPriority ThreadPriority;
+	HRESULT hr;
+	{
+		Utils::ScopedThreadPriority ThreadPriority;
 
-	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+		hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
+	}
 
 	if (SUCCEEDED(hr))
 	{
-		if (Config.ShowFPSCounter || Config.EnableImgui)
-		{
-			CalculateFPS();
-		}
+		ApplyPostPresentFixes();
 	}
 
 	return hr;
@@ -2867,18 +2875,18 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ApplyPresentFixes();
+	ApplyPrePresentFixes();
 
-	Utils::ScopedThreadPriority ThreadPriority;
+	HRESULT hr;
+	{
+		Utils::ScopedThreadPriority ThreadPriority;
 
-	HRESULT hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+		hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
+	}
 
 	if (SUCCEEDED(hr))
 	{
-		if (Config.ShowFPSCounter || Config.EnableImgui)
-		{
-			CalculateFPS();
-		}
+		ApplyPostPresentFixes();
 	}
 
 	return hr;
