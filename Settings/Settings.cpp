@@ -470,7 +470,6 @@ void Settings::SetDefaultConfigSettings()
 {
 	// Set value to check if it exists in the ini file
 	Config.EnableD3d9Wrapper = NOT_EXIST;
-	Config.FixPerfCounterUptime = NOT_EXIST;
 	Config.DdrawHookSystem32 = NOT_EXIST;
 	Config.D3d8HookSystem32 = NOT_EXIST;
 	Config.D3d9HookSystem32 = NOT_EXIST;
@@ -813,7 +812,6 @@ void CONFIG::SetConfig()
 	// Set unset options
 	CacheClipPlane = (CacheClipPlane != 0);
 	DdrawResolutionHack = (DdrawResolutionHack != 0);
-	FixPerfCounterUptime = (FixPerfCounterUptime != NOT_EXIST) ? FixPerfCounterUptime : 1;
 	LimitStateBlocks = (LimitStateBlocks != NOT_EXIST) ? LimitStateBlocks : (Dd7to9 || D3d8to9);
 	WindowModeGammaShader = (WindowModeGammaShader != 0);
 }

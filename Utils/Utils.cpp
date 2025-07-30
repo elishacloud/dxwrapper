@@ -539,19 +539,15 @@ bool Utils::InitUpTimeOffsets()
 	uint64_t ms_qpc = (qpc.QuadPart * 1000ULL) / freq.QuadPart;
 
 	MMTIME mmt = {};
-	DWORD tmt = 0;
-
-	if (Config.FixPerfCounterUptime == PERF_WINMM_FIX)
+	mmt.wType = TIME_MS;
+	if (timeGetSystemTime(&mmt, sizeof(mmt)) != MMSYSERR_NOERROR || mmt.wType != TIME_MS)
 	{
-		mmt.wType = TIME_MS;
-		if (timeGetSystemTime(&mmt, sizeof(mmt)) != MMSYSERR_NOERROR || mmt.wType != TIME_MS)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: timeGetSystemTime failed!";
+		Logging::Log() << __FUNCTION__ << " Error: timeGetSystemTime failed!";
 
-			return false;
-		}
-		tmt = timeGetTime();
+		return false;
 	}
+
+	DWORD tmt = timeGetTime();
 
 	DWORD gtc = GetTickCount();
 #if (_WIN32_WINNT >= 0x0502)
@@ -567,11 +563,8 @@ bool Utils::InitUpTimeOffsets()
 #if (_WIN32_WINNT >= 0x0502)
 	SubtractTimeInMS_gtc64 = gtc64 - remainderTimeMS;
 #endif
-	if (Config.FixPerfCounterUptime == PERF_WINMM_FIX)
-	{
-		SubtractTimeInMS_tmt = static_cast<DWORD>(tmt - remainderTimeMS);
-		SubtractTimeInMS_mmt = static_cast<DWORD>(mmt.u.ms - remainderTimeMS);
-	}
+	SubtractTimeInMS_tmt = static_cast<DWORD>(tmt - remainderTimeMS);
+	SubtractTimeInMS_mmt = static_cast<DWORD>(mmt.u.ms - remainderTimeMS);
 	SubtractTimeInTicks_qpc = (timeInMS * freq.QuadPart) / 1000ULL;
 
 	PerformanceFrequency_real = freq.QuadPart;
