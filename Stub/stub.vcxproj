@@ -67,7 +67,7 @@
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\$(ProjectName)\</ObjectFileName>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(ProjectDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -107,7 +107,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\wsock32.dll" &gt
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\$(ProjectName)\</ObjectFileName>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(ProjectDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -155,7 +155,7 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)dx9\d3d9.dll" &gt;nul</Comm
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\$(ProjectName)\</ObjectFileName>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(ProjectDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0501;_USING_V110_SDK71_;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -197,8 +197,8 @@ copy /Y "$(TargetDir)$(TargetName).dll" "$(TargetDir)Build\Stub\wsock32.dll" &gt
     <ClCompile Include="..\External\Hooking\Disasm.cpp" />
     <ClCompile Include="..\External\Hooking\Hook.cpp" />
     <ClCompile Include="..\External\Hooking\HotPatch.cpp" />
-    <ClCompile Include="..\External\MemoryModule\MemoryModule.c" />
     <ClCompile Include="..\Settings\ReadParse.cpp" />
+    <ClCompile Include="..\Utils\MemoryModule.cpp" />
     <ClCompile Include="..\Wrappers\wrapper.cpp" />
     <ClCompile Include="d3d8.cpp" />
     <ClCompile Include="ddraw.cpp" />

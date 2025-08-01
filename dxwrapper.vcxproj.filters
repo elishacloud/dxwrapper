@@ -889,6 +889,9 @@
     <ClCompile Include="External\Hooking\Disasm.cpp">
       <Filter>External\Hooking</Filter>
     </ClCompile>
+    <ClCompile Include="Utils\MemoryModule.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">

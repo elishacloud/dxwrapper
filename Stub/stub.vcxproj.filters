@@ -5,9 +5,6 @@
     <ClCompile Include="..\Wrappers\wrapper.cpp">
       <Filter>Wrappers</Filter>
     </ClCompile>
-    <ClCompile Include="..\External\MemoryModule\MemoryModule.c">
-      <Filter>External\MemoryModule</Filter>
-    </ClCompile>
     <ClCompile Include="..\Settings\ReadParse.cpp">
       <Filter>Settings</Filter>
     </ClCompile>
@@ -22,6 +19,9 @@
     </ClCompile>
     <ClCompile Include="..\External\Hooking\Disasm.cpp">
       <Filter>External\Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Utils\MemoryModule.cpp">
+      <Filter>External\MemoryModule</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
