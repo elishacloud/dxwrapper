@@ -558,31 +558,21 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9)
 	}
 }
 
-void ConvertLVertex(D3DLVERTEX* lFVF, const D3DLVERTEX9* lFVF9, DWORD NumVertices)
+void ConvertLVertex(DXLVERTEX7* lFVF7, const DXLVERTEX9* lFVF9, DWORD NumVertices)
 {
 	for (UINT x = 0; x < NumVertices; x++)
 	{
-		lFVF[x].x = lFVF9[x].x;
-		lFVF[x].y = lFVF9[x].y;
-		lFVF[x].z = lFVF9[x].z;
-		lFVF[x].color = lFVF9[x].diffuse;
-		lFVF[x].specular = lFVF9[x].specular;
-		lFVF[x].tu = lFVF9[x].tu;
-		lFVF[x].tv = lFVF9[x].tv;
+		lFVF7[x].xyz = lFVF9[x].xyz;
+		lFVF7[x].ctuv = lFVF9[x].ctuv;
 	}
 }
 
-void ConvertLVertex(D3DLVERTEX9* lFVF9, const D3DLVERTEX* lFVF, DWORD NumVertices)
+void ConvertLVertex(DXLVERTEX9* lFVF9, const DXLVERTEX7* lFVF7, DWORD NumVertices)
 {
 	for (UINT x = 0; x < NumVertices; x++)
 	{
-		lFVF9[x].x = lFVF[x].x;
-		lFVF9[x].y = lFVF[x].y;
-		lFVF9[x].z = lFVF[x].z;
-		lFVF9[x].diffuse = lFVF[x].color;
-		lFVF9[x].specular = lFVF[x].specular;
-		lFVF9[x].tu = lFVF[x].tu;
-		lFVF9[x].tv = lFVF[x].tv;
+		lFVF9[x].xyz = lFVF7[x].xyz;
+		lFVF9[x].ctuv = lFVF7[x].ctuv;
 	}
 }
 

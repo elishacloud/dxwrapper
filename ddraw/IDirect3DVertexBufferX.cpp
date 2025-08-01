@@ -243,7 +243,7 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 		{
 			if (VB.Desc.dwFVF == D3DFVF_LVERTEX)
 			{
-				ConvertLVertex((D3DLVERTEX9*)LastLockAddr, (D3DLVERTEX*)VertexData.data(), VB.Desc.dwNumVertices);
+				ConvertLVertex((DXLVERTEX9*)LastLockAddr, (DXLVERTEX7*)VertexData.data(), VB.Desc.dwNumVertices);
 			}
 			else
 			{

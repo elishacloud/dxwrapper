@@ -130,6 +130,23 @@ struct XYZ
     float x, y, z;
 };
 
+struct CTUV
+{
+    D3DCOLOR diffuse, specular;
+    float    tu, tv;
+};
+
+typedef struct {
+    XYZ xyz;
+    DWORD dwReserved;
+    CTUV ctuv;
+} DXLVERTEX7, * LPDXLVERTEX7;
+
+typedef struct {
+    XYZ xyz;
+    CTUV ctuv;
+} DXLVERTEX9, * LPDXLVERTEX9;
+
 typedef struct {
 	FLOAT    x, y, z;
 	D3DCOLOR diffuse, specular;
@@ -166,8 +183,8 @@ void ConvertViewport(D3DVIEWPORT7& ViewPort7, const D3DVIEWPORT2& ViewPort2);
 void ConvertViewport(D3DVIEWPORT7& ViewPort, const D3DVIEWPORT7& ViewPort7);
 void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7);
 void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9);
-void ConvertLVertex(D3DLVERTEX* lFVF, const D3DLVERTEX9* lFVF9, DWORD NumVertices);
-void ConvertLVertex(D3DLVERTEX9* lFVF9, const D3DLVERTEX* lFVF, DWORD NumVertices);
+void ConvertLVertex(DXLVERTEX7* lFVF7, const DXLVERTEX9* lFVF9, DWORD NumVertices);
+void ConvertLVertex(DXLVERTEX9* lFVF9, const DXLVERTEX7* lFVF7, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
 bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);
 void ClampVertices(BYTE* pVertexData, DWORD Stride, DWORD dwNumVertices);

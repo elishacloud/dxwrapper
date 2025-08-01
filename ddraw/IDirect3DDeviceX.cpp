@@ -6169,9 +6169,9 @@ void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVerti
 {
 	if (dwVertexTypeDesc == D3DFVF_LVERTEX)
 	{
-		VertexCache.resize((dwVertexStart + dwNumVertices) * sizeof(D3DLVERTEX9));
-		ConvertLVertex(reinterpret_cast<D3DLVERTEX9*>(VertexCache.data() + (dwVertexStart * sizeof(D3DLVERTEX9))),
-			reinterpret_cast<D3DLVERTEX*>((DWORD)lpVertices + (dwVertexStart * sizeof(D3DLVERTEX))),
+		VertexCache.resize((dwVertexStart + dwNumVertices) * sizeof(DXLVERTEX9));
+		ConvertLVertex(reinterpret_cast<DXLVERTEX9*>(VertexCache.data() + (dwVertexStart * sizeof(DXLVERTEX9))),
+			reinterpret_cast<DXLVERTEX7*>((DWORD)lpVertices + (dwVertexStart * sizeof(DXLVERTEX7))),
 			dwNumVertices);
 
 		dwVertexTypeDesc = D3DFVF_LVERTEX9;
@@ -6298,43 +6298,208 @@ bool m_IDirect3DDeviceX::InterleaveStridedVertexData(std::vector<BYTE, aligned_a
 		texCursor[t] = reinterpret_cast<BYTE*>(sd->textureCoords[t].lpvData) + dwVertexStart * sd->textureCoords[t].dwStride;
 	}
 
-	for (DWORD i = 0; i < dwNumVertices; ++i)
+	if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_DIFFUSE))
 	{
-		if (hasPosition)
+		for (DWORD i = 0; i < dwNumVertices; ++i)
 		{
-			memcpy(cursor, posCursor, posStride);
-			cursor += posStride;
-			posCursor += sd->position.dwStride;
-		}
-
-		if (hasReserved)
-		{
-			cursor += sizeof(DWORD);
-		}
-
-		if (hasNormal)
-		{
-			*(D3DXVECTOR3*)cursor = normalCursor[i];
+			// Position
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)posCursor)[i];
 			cursor += sizeof(D3DXVECTOR3);
-		}
 
-		if (hasDiffuse)
-		{
+			// Diffuse
 			*(D3DCOLOR*)cursor = diffCursor[i];
 			cursor += sizeof(D3DCOLOR);
 		}
-
-		if (hasSpecular)
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_TEX1))
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
 		{
+			// Position
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1))
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Normal
+			*(D3DXVECTOR3*)cursor = normalCursor[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1))
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Diffuse
+			*(D3DCOLOR*)cursor = diffCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZRHW | D3DFVF_TEX1))
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR4*)cursor = ((D3DXVECTOR4*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR4);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1))
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR4*)cursor = ((D3DXVECTOR4*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR4);
+
+			// Diffuse
+			*(D3DCOLOR*)cursor = diffCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_RESERVED1 | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1))
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Reserved
+			cursor += sizeof(DWORD);
+
+			// Diffuse
+			*(D3DCOLOR*)cursor = diffCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Specular
 			*(D3DCOLOR*)cursor = specCursor[i];
 			cursor += sizeof(D3DCOLOR);
-		}
 
-		for (DWORD t = 0; t < texCount; ++t)
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1))
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
 		{
-			memcpy(cursor, texCursor[t], texStride[t]);
-			cursor += texStride[t];
-			texCursor[t] += sd->textureCoords[t].dwStride;
+			// Position
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Diffuse
+			*(D3DCOLOR*)cursor = diffCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Specular
+			*(D3DCOLOR*)cursor = specCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1))
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Normal
+			*(D3DXVECTOR3*)cursor = normalCursor[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Diffuse
+			*(D3DCOLOR*)cursor = diffCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Specular
+			*(D3DCOLOR*)cursor = specCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Non-optimized vertex interleaving. FVF: " << Logging::hex(dwVertexTypeDesc));
+
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			if (hasPosition)
+			{
+				memcpy(cursor, posCursor, posStride);
+				cursor += posStride;
+				posCursor += sd->position.dwStride;
+			}
+
+			if (hasReserved)
+			{
+				cursor += sizeof(DWORD);
+			}
+
+			if (hasNormal)
+			{
+				*(D3DXVECTOR3*)cursor = normalCursor[i];
+				cursor += sizeof(D3DXVECTOR3);
+			}
+
+			if (hasDiffuse)
+			{
+				*(D3DCOLOR*)cursor = diffCursor[i];
+				cursor += sizeof(D3DCOLOR);
+			}
+
+			if (hasSpecular)
+			{
+				*(D3DCOLOR*)cursor = specCursor[i];
+				cursor += sizeof(D3DCOLOR);
+			}
+
+			for (DWORD t = 0; t < texCount; ++t)
+			{
+				memcpy(cursor, texCursor[t], texStride[t]);
+				cursor += texStride[t];
+				texCursor[t] += sd->textureCoords[t].dwStride;
+			}
 		}
 	}
 
