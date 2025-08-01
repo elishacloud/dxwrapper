@@ -7245,7 +7245,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 	// Handle video memory copy
 	if (!DepthFill && pSourceSurface->surface.Pool == D3DPOOL_DEFAULT && surface.Pool == D3DPOOL_DEFAULT)
 	{
-		bool InScene = ddrawParent->IsInScene();
+		/*bool InScene = ddrawParent->IsInScene();
 		if (InScene)
 		{
 			(*d3d9Device)->EndScene();
@@ -7265,7 +7265,11 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 			(*d3d9Device)->BeginScene();
 		}
 
-		return hr;
+		return hr;*/
+
+		// Just return not supported for now
+		LOG_LIMIT(100, __FUNCTION__ << " Error: video memory zbuffer Blt not implemented!");
+		return DDERR_NOZBUFFERHW;
 	}
 
 	bool IsUsingCurrentZBuffer =
