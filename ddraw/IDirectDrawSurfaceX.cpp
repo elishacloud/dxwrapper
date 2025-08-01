@@ -2976,8 +2976,6 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 			return DD_OK;
 		}
 
-		ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
-
 		// If palette exists increament ref
 		if (lpDDPalette)
 		{
@@ -7270,8 +7268,6 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		return hr;
 	}
 
-	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
-
 	bool IsUsingCurrentZBuffer =
 		(ddrawParent->GetDepthStencilSurface() != this && ddrawParent->GetDepthStencilSurface() != GetAttachedDepthStencil());
 
@@ -7666,8 +7662,6 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRect)
 	HRESULT hr = DD_OK;
 
 	do {
-		ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
-
 		// Set new palette data
 		UpdatePaletteData();
 
@@ -8010,8 +8004,6 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	const PALETTEENTRY* NewPaletteEntry = nullptr;
 	const RGBQUAD* NewRGBPalette = nullptr;
 
-	ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
-
 	// Get palette data
 	if (attachedPalette)
 	{
@@ -8035,8 +8027,14 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 		}
 	}
 
+	bool IsPrimaryPaletteUpdated = (primary.PaletteTexture && NewPaletteEntry && primary.LastPaletteUSN != NewPaletteUSN);
+	bool IsEmulatedPaletteUpdated = (IsUsingEmulation() && NewRGBPalette && surface.emu->LastPaletteUSN != NewPaletteUSN);
+	bool IsPaletteDataUpdated = (NewPaletteEntry && surface.LastPaletteUSN != NewPaletteUSN);
+
+	ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection(), IsPrimaryPaletteUpdated || IsEmulatedPaletteUpdated || IsPaletteDataUpdated);
+
 	// Add palette data to texture
-	if (primary.PaletteTexture && NewPaletteEntry && primary.LastPaletteUSN != NewPaletteUSN)
+	if (IsPrimaryPaletteUpdated)
 	{
 		// Get palette display context surface
 		ComPtr<IDirect3DSurface9> paletteSurface;
@@ -8053,7 +8051,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	}
 
 	// Set color palette for emulation device context
-	if (IsUsingEmulation() && NewRGBPalette && surface.emu->LastPaletteUSN != NewPaletteUSN)
+	if (IsEmulatedPaletteUpdated)
 	{
 		SetDIBColorTable(surface.emu->DC, 0, MaxPaletteSize, NewRGBPalette);
 		SetDIBColorTable(surface.emu->GameDC, 0, MaxPaletteSize, NewRGBPalette);
@@ -8061,7 +8059,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 	}
 
 	// Set new palette data
-	if (NewPaletteEntry && surface.LastPaletteUSN != NewPaletteUSN)
+	if (IsPaletteDataUpdated)
 	{
 		surface.IsPaletteDirty = true;
 		surface.LastPaletteUSN = NewPaletteUSN;
