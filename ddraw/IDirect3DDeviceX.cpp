@@ -1273,6 +1273,8 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
 			if (!PrimarySurface || FAILED(PrimarySurface->GetFlipStatus(DDGFS_CANFLIP, true)) || PrimarySurface == ddrawParent->GetRenderTargetSurface() || !PrimarySurface->IsRenderTarget())
 			{
+				ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 				ddrawParent->PresentScene(nullptr);
 			}
 		}
@@ -1517,6 +1519,8 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface wrapper!");
 			return DDERR_INVALIDPARAMS;
 		}
+
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		HRESULT hr = ddrawParent->SetRenderTargetSurface(lpDDSrcSurfaceX);
 
@@ -2645,6 +2649,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
 		// Update vertices for Direct3D9 (needs to be first)
@@ -2740,6 +2746,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
+
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -2919,6 +2927,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
 		// Update vertex desc type (FVF) before interleaving
@@ -3024,6 +3034,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
 		// Update vertex desc type (FVF) before interleaving
@@ -3124,6 +3136,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
+
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3226,6 +3240,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
+
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3654,6 +3670,8 @@ HRESULT m_IDirect3DDeviceX::ValidateDevice(LPDWORD lpdwPasses)
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 		DWORD FVF, Size;
 		IDirect3DVertexBuffer9* vertexBuffer = ddrawParent->GetValidateDeviceVertexBuffer(FVF, Size);
 
@@ -3861,6 +3879,8 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 		{
 			return DDERR_INVALIDOBJECT;
 		}
+
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		if (lpCurrentRenderTargetX)
 		{
@@ -5294,10 +5314,11 @@ HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Val
 		return DDERR_INVALIDPARAMS;
 	}
 
-	Batch.RenderState[State] = Value;
-
-	DeviceStates.RenderState[State].Set = true;
-	DeviceStates.RenderState[State].State = Value;
+	if (SUCCEEDED((*d3d9Device)->SetRenderState(State, Value)))
+	{
+		DeviceStates.RenderState[State].Set = true;
+		DeviceStates.RenderState[State].State = Value;
+	}
 
 	return D3D_OK;
 }
@@ -5334,10 +5355,11 @@ HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 		return DDERR_INVALIDPARAMS;
 	}
 
-	Batch.TextureState[Stage][Type] = Value;
-
-	DeviceStates.TextureState[Stage][Type].Set = true;
-	DeviceStates.TextureState[Stage][Type].State = Value;
+	if (SUCCEEDED((*d3d9Device)->SetTextureStageState(Stage, Type, Value)))
+	{
+		DeviceStates.TextureState[Stage][Type].Set = true;
+		DeviceStates.TextureState[Stage][Type].State = Value;
+	}
 
 	return D3D_OK;
 }
@@ -5374,10 +5396,11 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 		return DDERR_INVALIDPARAMS;
 	}
 
-	Batch.SamplerState[Sampler][Type] = Value;
-
-	DeviceStates.SamplerState[Sampler][Type].Set = true;
-	DeviceStates.SamplerState[Sampler][Type].State = Value;
+	if (SUCCEEDED((*d3d9Device)->SetSamplerState(Sampler, Type, Value)))
+	{
+		DeviceStates.SamplerState[Sampler][Type].Set = true;
+		DeviceStates.SamplerState[Sampler][Type].State = Value;
+	}
 
 	return D3D_OK;
 }
@@ -5884,36 +5907,6 @@ void m_IDirect3DDeviceX::SetDefaults()
 
 void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion)
 {
-	// Handle batched states
-	if (Config.Dd7to9)
-	{
-		// Render State
-		for (auto& entry : Batch.RenderState)
-		{
-			(*d3d9Device)->SetRenderState(entry.first, entry.second);
-		}
-		Batch.RenderState.clear();
-
-		// Texture State
-		for (int Stage = 0; Stage < MaxTextureStages; Stage++)
-		{
-			for (auto& entry : Batch.TextureState[Stage])
-			{
-				(*d3d9Device)->SetTextureStageState(Stage, entry.first, entry.second);
-			}
-			Batch.TextureState[Stage].clear();
-		}
-
-		// Sampler State
-		for (int Sampler = 0; Sampler < MaxTextureStages; Sampler++)
-		{
-			for (auto& entry : Batch.SamplerState[Sampler])
-			{
-				(*d3d9Device)->SetSamplerState(Sampler, entry.first, entry.second);
-			}
-			Batch.SamplerState[Sampler].clear();
-		}
-	}
 	// Handle dwFlags
 	if (DirectXVersion < 7)
 	{

@@ -2976,6 +2976,8 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 			return DD_OK;
 		}
 
+		ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
+
 		// If palette exists increament ref
 		if (lpDDPalette)
 		{
@@ -7272,6 +7274,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		return DDERR_NOZBUFFERHW;
 	}
 
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 	bool IsUsingCurrentZBuffer =
 		(ddrawParent->GetDepthStencilSurface() != this && ddrawParent->GetDepthStencilSurface() != GetAttachedDepthStencil());
 
@@ -7666,6 +7670,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRect)
 	HRESULT hr = DD_OK;
 
 	do {
+		ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
+
 		// Set new palette data
 		UpdatePaletteData();
 

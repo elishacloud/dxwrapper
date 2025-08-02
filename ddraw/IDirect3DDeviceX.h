@@ -65,12 +65,6 @@ private:
 	} DeviceStates;
 
 	struct {
-		std::unordered_map<D3DRENDERSTATETYPE, DWORD> RenderState;
-		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> TextureState[MaxTextureStages];
-		std::unordered_map<D3DSAMPLERSTATETYPE, DWORD> SamplerState[MaxTextureStages];
-	} Batch;
-
-	struct {
 		DWORD rsClipping = 0;
 		DWORD rsLighting = 0;
 		DWORD rsExtents = 0;
