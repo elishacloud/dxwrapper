@@ -78,6 +78,13 @@ namespace {
 	std::chrono::steady_clock::time_point presentTime;
 #endif
 
+	struct DX_INDEX_BUFFER {
+		const DWORD MaxSize;
+		DWORD Size = 0;
+		LPDIRECT3DINDEXBUFFER9 Buffer = nullptr;
+		DX_INDEX_BUFFER(DWORD MaxSize) : MaxSize(MaxSize) {}
+	};
+
 	// Preset from another thread
 	PRESENTTHREAD PresentThread;
 
@@ -97,12 +104,23 @@ namespace {
 	LPDIRECT3DPIXELSHADER9 gammaPixelShader = nullptr;
 	LPDIRECT3DVERTEXSHADER9 fixupVertexShader = nullptr;
 	LPDIRECT3DVERTEXBUFFER9 validateDeviceVertexBuffer = nullptr;
-	LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = nullptr;
+	DX_INDEX_BUFFER IndexBuffer[] = {
+		DX_INDEX_BUFFER(64),
+		DX_INDEX_BUFFER(128),
+		DX_INDEX_BUFFER(256),
+		DX_INDEX_BUFFER(512),
+		DX_INDEX_BUFFER(1024),
+		DX_INDEX_BUFFER(2048),
+		DX_INDEX_BUFFER(4096),
+		DX_INDEX_BUFFER(8192),
+		DX_INDEX_BUFFER(16384),
+		DX_INDEX_BUFFER(32768),
+		DX_INDEX_BUFFER(65536)
+	};
 
 	TLVERTEX DeviceVertices[4];
 	bool IsDeviceVerticesSet = false;
 	bool UsingShader32f = false;
-	DWORD IndexBufferSize = 0;
 	DWORD BehaviorFlags = 0;
 	HWND hFocusWindow = nullptr;
 	DWORD FocusWindowThreadID = 0;
@@ -3080,6 +3098,18 @@ LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetValidateDeviceVertexBuffer(DWORD& FVF
 
 LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount)
 {
+	for (auto& entry : IndexBuffer)
+	{
+		if (dwIndexCount <= entry.MaxSize)
+		{
+			return GetIndexBufferX(lpwIndices, dwIndexCount, entry.Size, entry.Buffer);
+		}
+	}
+	return nullptr;
+}
+
+LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBufferX(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& IndexBufferSize, LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer)
+{
 	if (!lpwIndices)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: nullptr Indices!");
@@ -3097,7 +3127,7 @@ LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBuffer(LPWORD lpwIndices, DWORD d
 	HRESULT hr = D3D_OK;
 	if (!d3d9IndexBuffer || NewIndexSize > IndexBufferSize)
 	{
-		ReleaseD3D9IndexBuffer();
+		ReleaseD3D9IndexBuffer(d3d9IndexBuffer, IndexBufferSize);
 		// Create in video memory and then use discard when locking to improve system performance
 		hr = d3d9Device->CreateIndexBuffer(NewIndexSize, D3DUSAGE_DYNAMIC, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &d3d9IndexBuffer, nullptr);
 	}
@@ -4012,7 +4042,7 @@ void m_IDirectDrawX::ResetAllSurfaceDisplay()
 	}
 }
 
-void m_IDirectDrawX::ReleaseD3D9IndexBuffer()
+void m_IDirectDrawX::ReleaseD3D9IndexBuffer(LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer, DWORD& IndexBufferSize)
 {
 	// Release index buffer
 	if (d3d9IndexBuffer)
@@ -4118,9 +4148,9 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 	}
 
 	// Release index buffer
-	if (!ResetInterface)
+	for (auto& entry : IndexBuffer)
 	{
-		ReleaseD3D9IndexBuffer();
+		ReleaseD3D9IndexBuffer(entry.Buffer, entry.Size);
 	}
 
 	// Release palette pixel shader
