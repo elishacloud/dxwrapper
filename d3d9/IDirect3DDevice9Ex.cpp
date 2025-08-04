@@ -32,6 +32,23 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+	*ppvObj = nullptr;
+
+	if (riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return D3D_OK;
+	}
+	if (riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return D3D_OK;
+	}
+
 	if (riid == IID_IUnknown || riid == WrapperID || (Config.D3d9to9Ex && riid == IID_IDirect3DDevice9))
 	{
 		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
@@ -52,10 +69,7 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: disabling unsupported interface: " << riid);
 
-		if (ppvObj)
-		{
-			*ppvObj = nullptr;
-		}
+		*ppvObj = nullptr;
 
 		return E_NOINTERFACE;
 	}

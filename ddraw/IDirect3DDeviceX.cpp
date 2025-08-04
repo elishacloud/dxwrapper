@@ -1225,6 +1225,8 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 			Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr;
 			sceneTime = std::chrono::high_resolution_clock::now();
 #endif
+
+			PrepDevice();
 		}
 
 		return hr;
@@ -4279,6 +4281,8 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 			return D3D_OK;
 		}
 
+		PrepDevice();
+
 		HRESULT hr = reinterpret_cast<IDirect3DStateBlock9*>(dwBlockHandle)->Apply();
 
 		if (SUCCEEDED(hr))
@@ -5305,19 +5309,10 @@ HRESULT m_IDirect3DDeviceX::GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD l
 	if (DeviceStates.RenderState[State].Set)
 	{
 		*lpValue = DeviceStates.RenderState[State].State;
-	}
-	else
-	{
-		*lpValue = 0;
-
-		if (SUCCEEDED((*d3d9Device)->GetRenderState(State, lpValue)))
-		{
-			DeviceStates.RenderState[State].Set = true;
-			DeviceStates.RenderState[State].State = *lpValue;
-		}
+		return D3D_OK;
 	}
 
-	return D3D_OK;
+	return (*d3d9Device)->GetRenderState(State, lpValue);
 }
 
 HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value)
@@ -5346,19 +5341,10 @@ HRESULT m_IDirect3DDeviceX::GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 	if (DeviceStates.TextureState[Stage][Type].Set)
 	{
 		*lpValue = DeviceStates.TextureState[Stage][Type].State;
-	}
-	else
-	{
-		*lpValue = 0;
-
-		if (SUCCEEDED((*d3d9Device)->GetTextureStageState(Stage, Type, lpValue)))
-		{
-			DeviceStates.TextureState[Stage][Type].Set = true;
-			DeviceStates.TextureState[Stage][Type].State = *lpValue;
-		}
+		return D3D_OK;
 	}
 
-	return D3D_OK;
+	return (*d3d9Device)->GetTextureStageState(Stage, Type, lpValue);
 }
 
 HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value)
@@ -5387,19 +5373,10 @@ HRESULT m_IDirect3DDeviceX::GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 	if (DeviceStates.SamplerState[Sampler][Type].Set)
 	{
 		*lpValue = DeviceStates.SamplerState[Sampler][Type].State;
-	}
-	else
-	{
-		*lpValue = 0;
-
-		if (SUCCEEDED((*d3d9Device)->GetSamplerState(Sampler, Type, lpValue)))
-		{
-			DeviceStates.SamplerState[Sampler][Type].Set = true;
-			DeviceStates.SamplerState[Sampler][Type].State = *lpValue;
-		}
+		return D3D_OK;
 	}
 
-	return D3D_OK;
+	return(*d3d9Device)->GetSamplerState(Sampler, Type, lpValue);
 }
 
 HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value)
@@ -5430,20 +5407,10 @@ HRESULT m_IDirect3DDeviceX::GetD9Light(DWORD Index, D3DLIGHT9* lpLight)
 	if (it != DeviceStates.Lights.end())
 	{
 		*lpLight = it->second.Light;
-	}
-	else
-	{
-		HRESULT hr = (*d3d9Device)->GetLight(Index, lpLight);
-
-		if (SUCCEEDED(hr))
-		{
-			DeviceStates.Lights[Index].Light = *lpLight;
-		}
-
-		return hr;
+		return D3D_OK;
 	}
 
-	return D3D_OK;
+	return (*d3d9Device)->GetLight(Index, lpLight);
 }
 
 HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT9* lpLight)
@@ -5487,20 +5454,10 @@ HRESULT m_IDirect3DDeviceX::GetD9LightEnable(DWORD Index, LPBOOL lpEnable)
 	if (it != DeviceStates.Lights.end())
 	{
 		*lpEnable = it->second.Enable;
-	}
-	else
-	{
-		HRESULT hr = (*d3d9Device)->GetLightEnable(Index, lpEnable);
-
-		if (SUCCEEDED(hr))
-		{
-			DeviceStates.Lights[Index].Enable = *lpEnable;
-		}
-
-		return hr;
+		return D3D_OK;
 	}
 
-	return D3D_OK;
+	return (*d3d9Device)->GetLightEnable(Index, lpEnable);
 }
 
 HRESULT m_IDirect3DDeviceX::D9LightEnable(DWORD Index, BOOL Enable)
@@ -5525,21 +5482,10 @@ HRESULT m_IDirect3DDeviceX::GetD9ClipPlane(DWORD Index, float* lpPlane)
 	if (DeviceStates.ClipPlane[Index].Set)
 	{
 		memcpy(lpPlane, DeviceStates.ClipPlane[Index].Plane, sizeof(DeviceStates.ClipPlane[Index].Plane));
-	}
-	else
-	{
-		HRESULT hr = (*d3d9Device)->GetClipPlane(Index, lpPlane);
-
-		if (SUCCEEDED(hr))
-		{
-			DeviceStates.ClipPlane[Index].Set = true;
-			memcpy(DeviceStates.ClipPlane[Index].Plane, lpPlane, sizeof(DeviceStates.ClipPlane[Index].Plane));
-		}
-
-		return hr;
+		return D3D_OK;
 	}
 
-	return D3D_OK;
+	return (*d3d9Device)->GetClipPlane(Index, lpPlane);
 }
 
 HRESULT m_IDirect3DDeviceX::SetD9ClipPlane(DWORD Index, const float* lpPlane)
@@ -5570,21 +5516,10 @@ HRESULT m_IDirect3DDeviceX::GetD9Viewport(D3DVIEWPORT9* lpViewport)
 	if (DeviceStates.Viewport.Set)
 	{
 		*lpViewport = DeviceStates.Viewport.View;
-	}
-	else
-	{
-		HRESULT hr = (*d3d9Device)->GetViewport(lpViewport);
-
-		if (SUCCEEDED(hr))
-		{
-			DeviceStates.Viewport.Set = true;
-			DeviceStates.Viewport.View = *lpViewport;
-		}
-
-		return hr;
+		return D3D_OK;
 	}
 
-	return D3D_OK;
+	return (*d3d9Device)->GetViewport(lpViewport);
 }
 
 HRESULT m_IDirect3DDeviceX::SetD9Viewport(const D3DVIEWPORT9* lpViewport)
@@ -5615,21 +5550,10 @@ HRESULT m_IDirect3DDeviceX::GetD9Material(D3DMATERIAL9* lpMaterial)
 	if (DeviceStates.Material.Set)
 	{
 		*lpMaterial = DeviceStates.Material.Material;
-	}
-	else
-	{
-		HRESULT hr = (*d3d9Device)->GetMaterial(lpMaterial);
-
-		if (SUCCEEDED(hr))
-		{
-			DeviceStates.Material.Set = true;
-			DeviceStates.Material.Material = *lpMaterial;
-		}
-
-		return hr;
+		return D3D_OK;
 	}
 
-	return D3D_OK;
+	return (*d3d9Device)->GetMaterial(lpMaterial);
 }
 
 HRESULT m_IDirect3DDeviceX::SetD9Material(const D3DMATERIAL9* lpMaterial)
@@ -5662,20 +5586,10 @@ HRESULT m_IDirect3DDeviceX::GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRI
 	if (it != DeviceStates.Matrix.end())
 	{
 		*lpMatrix = it->second;
-	}
-	else
-	{
-		HRESULT hr = (*d3d9Device)->GetTransform(State, lpMatrix);
-
-		if (SUCCEEDED(hr))
-		{
-			DeviceStates.Matrix[State] = *lpMatrix;
-		}
-
-		return hr;
+		return D3D_OK;
 	}
 
-	return D3D_OK;
+	return (*d3d9Device)->GetTransform(State, lpMatrix);
 }
 
 HRESULT m_IDirect3DDeviceX::SetD9Transform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* lpMatrix)
@@ -5739,13 +5653,7 @@ HRESULT m_IDirect3DDeviceX::D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, con
 
 void m_IDirect3DDeviceX::PrepDevice()
 {
-	if (ddrawParent && ddrawParent->GetLastDrawDevice() != (DWORD)this)
-	{
-		ddrawParent->SetLastDrawDevice((DWORD)this);
-		ddrawParent->ApplyStateBlock();
-		RestoreStates();
-	}
-	else if (RequiresStateRestore)
+	if (ddrawParent && (RequiresStateRestore || ddrawParent->GetLastDrawDevice() != (DWORD)this))
 	{
 		RestoreStates();
 	}
@@ -5759,6 +5667,13 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 		Logging::Log() << __FUNCTION__ " Error: Failed to restore the device state!";
 		return DDERR_GENERIC;
 	}
+
+	// Reset vars
+	RequiresStateRestore = false;
+	ddrawParent->SetLastDrawDevice((DWORD)this);
+
+	// Reset device state
+	ddrawParent->ApplyStateBlock();
 
 	// Restore render states
 	for (UINT x = 0; x < MaxDeviceStates; x++)
@@ -5826,24 +5741,6 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	{
 		(*d3d9Device)->SetTransform(entry.first, &entry.second);
 	}
-
-	// Prepare render target surface
-	if (lpCurrentRenderTargetX)
-	{
-		lpCurrentRenderTargetX->PrepareRenderTarget();
-
-		if (ddrawParent->GetRenderTargetSurface() != lpCurrentRenderTargetX)
-		{
-			ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
-		}
-
-		if (DeviceStates.RenderState[D3DRS_ZENABLE].Set)
-		{
-			(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, DeviceStates.RenderState[D3DRS_ZENABLE].State);
-		}
-	}
-
-	RequiresStateRestore = false;
 
 	return D3D_OK;
 }
@@ -6052,6 +5949,22 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			// ToDo: fix Extents see SetRenderState() implementation
 			//GetRenderState(D3DRENDERSTATE_EXTENTS, &DrawStates.rsExtents);
 			//SetRenderState(D3DRENDERSTATE_EXTENTS, FALSE);
+		}
+	}
+
+	// Prepare render target surface
+	if (lpCurrentRenderTargetX)
+	{
+		lpCurrentRenderTargetX->PrepareRenderTarget();
+
+		if (ddrawParent->GetRenderTargetSurface() != lpCurrentRenderTargetX)
+		{
+			ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+		}
+
+		if (DeviceStates.RenderState[D3DRS_ZENABLE].Set)
+		{
+			(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, DeviceStates.RenderState[D3DRS_ZENABLE].State);
 		}
 	}
 

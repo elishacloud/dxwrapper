@@ -3263,9 +3263,6 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 			IsDeviceVerticesSet = false;
 			EnableWaitVsync = false;
 
-			// Create default state block
-			CreateStateBlock();
-
 			// Set render target
 			SetCurrentRenderTarget();
 
@@ -3713,7 +3710,15 @@ void m_IDirectDrawX::CreateStateBlock()
 {
 	if (d3d9Device && !DefaultStateBlock)
 	{
-		d3d9Device->CreateStateBlock(D3DSBT_ALL, &DefaultStateBlock);
+		LPDIRECT3DDEVICE9 pDevice9 = nullptr;
+		if (SUCCEEDED(d3d9Device->QueryInterface(IID_GetRealInterface, (LPVOID*)&pDevice9)))
+		{
+			pDevice9->CreateStateBlock(D3DSBT_ALL, &DefaultStateBlock);
+		}
+		else
+		{
+			d3d9Device->CreateStateBlock(D3DSBT_ALL, &DefaultStateBlock);
+		}
 	}
 }
 
@@ -4161,15 +4166,18 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 	}
 
 	// Release default state block
-	if (DefaultStateBlock)
+	if (!ResetInterface)
 	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 default state block";
-		ULONG ref = DefaultStateBlock->Release();
-		if (ref)
+		if (DefaultStateBlock)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'DefaultStateBlock' " << ref;
+			Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 default state block";
+			ULONG ref = DefaultStateBlock->Release();
+			if (ref)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'DefaultStateBlock' " << ref;
+			}
+			DefaultStateBlock = nullptr;
 		}
-		DefaultStateBlock = nullptr;
 	}
 
 	// Release gamma texture
