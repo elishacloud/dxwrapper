@@ -88,15 +88,13 @@ namespace {
 	// Preset from another thread
 	PRESENTTHREAD PresentThread;
 
-	// Direct3D9 flags
-	bool EnableWaitVsync = false;
-
 	// Direct3D9 Objects
 	bool IsDeviceLost = false;
 	bool ReDrawNextPresent = false;
 	LPDIRECT3D9 d3d9Object = nullptr;
 	LPDIRECT3DDEVICE9 d3d9Device = nullptr;
 	D3DPRESENT_PARAMETERS presParams = {};
+	LPDIRECT3DSTATEBLOCK9 DefaultStateBlock = nullptr;
 	LPDIRECT3DTEXTURE9 GammaLUTTexture = nullptr;
 	LPDIRECT3DTEXTURE9 ScreenCopyTexture = nullptr;
 	LPDIRECT3DPIXELSHADER9 palettePixelShader = nullptr;
@@ -118,12 +116,15 @@ namespace {
 		DX_INDEX_BUFFER(65536)
 	};
 
-	TLVERTEX DeviceVertices[4];
-	bool IsDeviceVerticesSet = false;
+	// Direct3D9 flags
+	bool EnableWaitVsync = false;
 	bool UsingShader32f = false;
+	bool IsDeviceVerticesSet = false;
+	TLVERTEX DeviceVertices[4];
 	DWORD BehaviorFlags = 0;
 	HWND hFocusWindow = nullptr;
 	DWORD FocusWindowThreadID = 0;
+	DWORD LastDrawDevice = 0;
 
 	std::unordered_map<HWND, m_IDirectDrawX*> g_hookmap;
 }
@@ -2952,6 +2953,22 @@ void m_IDirectDrawX::ClearD3DDevice()
 	SetRenderTargetSurface(nullptr);
 
 	Clear3DFlagForAllSurfaces();
+
+	// Flag all ddraw devices
+	for (const auto& pDDraw : DDrawVector)
+	{
+		DWORD x = 0;
+		while (pDDraw->D3DInterface)
+		{
+			m_IDirect3DDeviceX* D3DDeviceX = pDDraw->D3DInterface->GetNextD3DDevice(x++);
+
+			if (!D3DDeviceX)
+			{
+				break;
+			}
+			D3DDeviceX->BeforeResetDevice();
+		}
+	}
 }
 
 bool m_IDirectDrawX::IsInScene()
@@ -3245,6 +3262,9 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 			WndProc::SwitchingResolution = false;
 			IsDeviceVerticesSet = false;
 			EnableWaitVsync = false;
+
+			// Create default state block
+			CreateStateBlock();
 
 			// Set render target
 			SetCurrentRenderTarget();
@@ -3603,6 +3623,9 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Create dummy memory (2x larger)
 		m_IDirectDrawSurfaceX::SizeDummySurface(presParams.BackBufferWidth * presParams.BackBufferHeight * 4 * 2);
 
+		// Create default state block
+		CreateStateBlock();
+
 		// Set render target
 		SetCurrentRenderTarget();
 
@@ -3684,6 +3707,32 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 	// Return result
 	return hr;
+}
+
+void m_IDirectDrawX::CreateStateBlock()
+{
+	if (d3d9Device && !DefaultStateBlock)
+	{
+		d3d9Device->CreateStateBlock(D3DSBT_ALL, &DefaultStateBlock);
+	}
+}
+
+void m_IDirectDrawX::ApplyStateBlock()
+{
+	if (DefaultStateBlock)
+	{
+		DefaultStateBlock->Apply();
+	}
+}
+
+DWORD m_IDirectDrawX::GetLastDrawDevice()
+{
+	return LastDrawDevice;
+}
+
+void m_IDirectDrawX::SetLastDrawDevice(DWORD DrawDevice)
+{
+	LastDrawDevice = DrawDevice;
 }
 
 void m_IDirectDrawX::UpdateVertices(DWORD Width, DWORD Height)
@@ -4111,6 +4160,18 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 		}
 	}
 
+	// Release default state block
+	if (DefaultStateBlock)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 default state block";
+		ULONG ref = DefaultStateBlock->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'DefaultStateBlock' " << ref;
+		}
+		DefaultStateBlock = nullptr;
+	}
+
 	// Release gamma texture
 	if (GammaLUTTexture)
 	{
@@ -4348,6 +4409,20 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 			pDDraw->PrimarySurface = nullptr;
 			ClipperHWnd = nullptr;
 			DisplayPixelFormat = {};
+		}
+		if (lpSurfaceX == pDDraw->RenderTargetSurface || lpSurfaceX == pDDraw->DepthStencilSurface)
+		{
+			DWORD x = 0;
+			while (pDDraw->D3DInterface)
+			{
+				m_IDirect3DDeviceX* D3DDeviceX = pDDraw->D3DInterface->GetNextD3DDevice(x++);
+
+				if (!D3DDeviceX)
+				{
+					break;
+				}
+				D3DDeviceX->BeforeResetDevice();
+			}
 		}
 		if (lpSurfaceX == pDDraw->RenderTargetSurface)
 		{

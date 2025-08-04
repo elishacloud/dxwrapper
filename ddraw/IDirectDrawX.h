@@ -245,9 +245,15 @@ public:
 	HDC GetDC();
 	DWORD GetDisplayBPP();
 	bool IsExclusiveMode();
+	DWORD GetLastDrawDevice();
+	void SetLastDrawDevice(DWORD DrawDevice);
 	void GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, DWORD& RefreshRate);
 	void GetViewportResolution(DWORD& Width, DWORD& Height);
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
+
+	// State block functions
+	void CreateStateBlock();
+	void ApplyStateBlock();
 
 	// Surface vector functions
 	void AddReleasedSurface(m_IDirectDrawSurfaceX* lpSurfaceX);

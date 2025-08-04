@@ -77,8 +77,8 @@ private:
 		float highColorKey[4] = {};
 	} DrawStates;
 
+	bool RequiresStateRestore = false;
 	bool bSetDefaults = true;
-
 	bool IsInScene = false;
 
 	// Default clip status
@@ -173,7 +173,9 @@ private:
 	HRESULT SetD9Transform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* lpMatrix);
 	HRESULT D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* pMatrix);
 
+	void PrepDevice();
 	HRESULT RestoreStates();
+	void CollectStates();
 	void SetDefaults();
 	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
 	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
