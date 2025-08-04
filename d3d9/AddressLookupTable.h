@@ -83,6 +83,8 @@ private:
 public:
 	~StateBlockCache();
 
+	size_t size() { return stateBlocks.size(); }
+	m_IDirect3DStateBlock9* back() { return stateBlocks.back(); }
 	void AddStateBlock(m_IDirect3DStateBlock9* stateBlock);
 	void RemoveStateBlock(m_IDirect3DStateBlock9* stateBlock);
 };

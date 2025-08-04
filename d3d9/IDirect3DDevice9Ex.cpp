@@ -139,6 +139,12 @@ ULONG m_IDirect3DDevice9Ex::Release()
 			{
 				if (it->first == DDKey)
 				{
+					while (SHARED.DeletedStateBlocks.size())
+					{
+						m_IDirect3DStateBlock9* Interface = SHARED.DeletedStateBlocks.back();
+						SHARED.DeletedStateBlocks.RemoveStateBlock(Interface);
+						Interface->DeleteMe();
+					}
 					DeviceDetailsMap.erase(it);
 					break;
 				}
@@ -677,6 +683,26 @@ HRESULT m_IDirect3DDevice9Ex::CreateVolumeTexture(THIS_ UINT Width, UINT Height,
 	return hr;
 }
 
+m_IDirect3DStateBlock9* m_IDirect3DDevice9Ex::GetCreateStateBlock(IDirect3DStateBlock9* pSB)
+{
+	m_IDirect3DStateBlock9* StateBlockX = nullptr;
+
+	if (SHARED.DeletedStateBlocks.size())
+	{
+		StateBlockX = SHARED.DeletedStateBlocks.back();
+		SHARED.DeletedStateBlocks.RemoveStateBlock(StateBlockX);
+
+		StateBlockX->SetProxyAddress(pSB);
+		StateBlockX->InitInterface(this, IID_IDirect3DStateBlock9, nullptr);
+	}
+	else
+	{
+		StateBlockX = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(pSB, this, IID_IDirect3DStateBlock9, nullptr);
+	}
+
+	return StateBlockX;
+}
+
 HRESULT m_IDirect3DDevice9Ex::BeginStateBlock()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -697,7 +723,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateStateBlock(THIS_ D3DSTATEBLOCKTYPE Type, IDi
 
 	if (SUCCEEDED(hr))
 	{
-		m_IDirect3DStateBlock9* StateBlockX = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(*ppSB, this, IID_IDirect3DStateBlock9, nullptr);
+		m_IDirect3DStateBlock9* StateBlockX = GetCreateStateBlock(*ppSB);
 
 		if (Config.LimitStateBlocks)
 		{
@@ -727,7 +753,7 @@ HRESULT m_IDirect3DDevice9Ex::EndStateBlock(THIS_ IDirect3DStateBlock9** ppSB)
 
 	if (SUCCEEDED(hr))
 	{
-		m_IDirect3DStateBlock9* StateBlockX = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(*ppSB, this, IID_IDirect3DStateBlock9, nullptr);
+		m_IDirect3DStateBlock9* StateBlockX = GetCreateStateBlock(*ppSB);
 
 		if (Config.LimitStateBlocks)
 		{

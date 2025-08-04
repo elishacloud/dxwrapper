@@ -38,6 +38,8 @@ struct DEVICEDETAILS
 
 	StateBlockCache StateBlockTable;
 
+	StateBlockCache DeletedStateBlocks;
+
 	D3DCAPS9 Caps = {};
 
 	// Begin/End Scene
@@ -332,6 +334,8 @@ public:
 	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
 	AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() const { return &SHARED.StateBlockTable; }
+	StateBlockCache* GetDeletedStateBlock() const { return &SHARED.DeletedStateBlocks; }
+	m_IDirect3DStateBlock9* GetCreateStateBlock(IDirect3DStateBlock9* pSB);
 	DWORD GetClientDXVersion() const { return SHARED.ClientDirectXVersion; }
 	REFIID GetIID() { return WrapperID; }
 
