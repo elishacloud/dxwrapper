@@ -514,6 +514,19 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			lpDDSrcSurfaceX = this;
 		}
 
+		// Fix empty rects
+		RECT SrcRect = {}, DestRect = {};
+		if (lpSrcRect && lpSrcRect->left == 0 && lpSrcRect->right == 0 && lpSrcRect->top == 0 && lpSrcRect->bottom == 0 && lpDestRect)
+		{
+			SrcRect = { 0, 0, lpDestRect->right - lpDestRect->left, lpDestRect->bottom - lpDestRect->top };
+			lpSrcRect = &SrcRect;
+		}
+		if (lpDestRect && lpDestRect->left == 0 && lpDestRect->right == 0 && lpDestRect->top == 0 && lpDestRect->bottom == 0 && lpSrcRect)
+		{
+			DestRect = { 0, 0, lpSrcRect->right - lpSrcRect->left, lpSrcRect->bottom - lpSrcRect->top };
+			lpDestRect = &DestRect;
+		}
+
 		// Check for device interface
 		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
 		HRESULT s_hr = (lpDDSrcSurfaceX == this) ? c_hr : lpDDSrcSurfaceX->CheckInterface(__FUNCTION__, true, true, true);
@@ -670,6 +683,28 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			}
 
 		} while (false);
+
+		// Check invalid rect
+		if (hr == DDERR_INVALIDRECT)
+		{
+			if (ShouldPresentToWindow(true) &&
+				(!lpSrcRect || (lpSrcRect->left < lpSrcRect->right && lpSrcRect->top < lpSrcRect->bottom)) &&
+				(!lpDestRect || (lpDestRect->left < lpDestRect->right && lpDestRect->top < lpDestRect->bottom)))
+			{
+				hr = DD_OK;
+			}
+			else
+			{
+				if (lpDDSrcSurface)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpSrcRect << " -> " << lpDestRect);
+				}
+				else
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpSrcRect);
+				}
+			}
+		}
 
 		// Check if surface was busy
 		if (!BltWait && (hr == DDERR_SURFACEBUSY || IsLockedFromOtherThread(MipMapLevel) || lpDDSrcSurfaceX->IsLockedFromOtherThread(MipMapLevel)))
@@ -6226,7 +6261,6 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 	RECT DestRect = {};
 	if (!CheckCoordinates(DestRect, pRect, &Desc2))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid rect: " << pRect);
 		return DDERR_INVALIDRECT;
 	}
 
@@ -6597,7 +6631,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	// Check rect and do clipping
 	if (!pSourceSurface->CheckCoordinates(SrcRect, &SrcRect, &SrcDesc2) || !CheckCoordinates(DestRect, &DestRect, &DestDesc2))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << pSourceRect << " -> " << pDestRect);
 		return DDERR_INVALIDRECT;
 	}
 
@@ -7130,7 +7163,6 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 	RECT SrcRect = {}, DestRect = {};
 	if (!pSourceSurface->CheckCoordinates(SrcRect, pSourceRect, &pSourceSurface->surfaceDesc2) || !CheckCoordinates(DestRect, pDestRect, &surfaceDesc2))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << pSourceRect << " -> " << pDestRect);
 		return DDERR_INVALIDRECT;
 	}
 
