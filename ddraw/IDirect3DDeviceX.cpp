@@ -5687,7 +5687,7 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	// Restore texture states
 	for (UINT y = 0; y < MaxTextureStages; y++)
 	{
-		for (UINT x = 0; x < MaxDeviceStates; x++)
+		for (UINT x = 0; x < MaxTextureStageStates; x++)
 		{
 			if (DeviceStates.TextureState[y][x].Set)
 			{
@@ -5759,7 +5759,7 @@ void m_IDirect3DDeviceX::CollectStates()
 	// Restore texture states
 	for (UINT y = 0; y < MaxTextureStages; y++)
 	{
-		for (UINT x = 0; x < MaxDeviceStates; x++)
+		for (UINT x = 0; x < MaxTextureStageStates; x++)
 		{
 			if (DeviceStates.TextureState[y][x].Set)
 			{
