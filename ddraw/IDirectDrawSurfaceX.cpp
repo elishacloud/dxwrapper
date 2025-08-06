@@ -3160,7 +3160,10 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 				HRESULT ret = UnLockD3d9Surface(MipMapLevel);
 				if (FAILED(ret))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock surface texture");
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock surface texture." <<
+						" Rect = " << lpRect <<
+						" MipMapLevel = " << MipMapLevel <<
+						" hr = " << (DDERR)ret);
 					hr = (ret == DDERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
 						IsLost() == DDERR_SURFACELOST ? DDERR_SURFACELOST : DDERR_GENERIC;
 					break;
