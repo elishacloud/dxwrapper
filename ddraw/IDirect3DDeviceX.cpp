@@ -5834,8 +5834,6 @@ void m_IDirect3DDeviceX::AfterResetDevice()
 {
 	// Get default viewport
 	(*d3d9Device)->GetViewport(&DefaultViewport);
-
-	RestoreStates();
 }
 
 void m_IDirect3DDeviceX::ClearDdraw()

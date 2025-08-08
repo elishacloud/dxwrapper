@@ -767,6 +767,28 @@ std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd)
 		<< dd.dwReserved4;
 }
 
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT7& vp)
+{
+	return Logging::LogStruct(os)
+		<< vp.dwX
+		<< vp.dwY
+		<< vp.dwWidth
+		<< vp.dwHeight
+		<< vp.dvMinZ
+		<< vp.dvMaxZ;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT9& vp)
+{
+	return Logging::LogStruct(os)
+		<< vp.X
+		<< vp.Y
+		<< vp.Width
+		<< vp.Height
+		<< vp.MinZ
+		<< vp.MaxZ;
+}
+
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp)
 {
 	return Logging::LogStruct(os)

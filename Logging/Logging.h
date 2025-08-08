@@ -58,12 +58,14 @@ std::ostream& operator<<(std::ostream& os, const D3DTRANSFORMCAPS& tc);
 std::ostream& operator<<(std::ostream& os, const D3DLIGHTINGCAPS& lc);
 std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC& dd);
 std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd);
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT7& vp);
 #endif
 #ifdef _d3d9TYPES_H_
 std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format);
 std::ostream& operator<<(std::ostream& os, const D3DRESOURCETYPE& Resource);
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp);
 std::ostream& operator<<(std::ostream& os, const D3DSURFACE_DESC& desc);
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT9& vp);
 #endif
 #ifdef GUID_DEFINED
 std::ostream& operator<<(std::ostream& os, REFIID riid);
