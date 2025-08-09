@@ -91,6 +91,7 @@ namespace {
 	// Direct3D9 Objects
 	bool IsDeviceLost = false;
 	bool ReDrawNextPresent = false;
+	bool CopyGDISurface = false;
 	LPDIRECT3D9 d3d9Object = nullptr;
 	LPDIRECT3DDEVICE9 d3d9Device = nullptr;
 	D3DPRESENT_PARAMETERS presParams = {};
@@ -2814,6 +2815,15 @@ HMONITOR m_IDirectDrawX::GetHMonitor()
 	return nullptr;
 }
 
+HWND m_IDirectDrawX::GetPresentationHwnd()
+{
+	if (IsWindow(presParams.hDeviceWindow))
+	{
+		return presParams.hDeviceWindow;
+	}
+	return GetHwnd();
+}
+
 HWND m_IDirectDrawX::GetHwnd()
 {
 	if (DisplayMode.hWnd)
@@ -3263,6 +3273,13 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 			IsDeviceVerticesSet = false;
 			EnableWaitVsync = false;
 
+			// Copy GDI data to back buffer
+			if (PrimarySurface && !presParams.Windowed)
+			{
+				PrimarySurface->CopyGDIToPrimaryAndBackbuffer();
+			}
+			CopyGDISurface = false;
+
 			// Create default state block
 			CreateStateBlock();
 
@@ -3623,6 +3640,14 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Create dummy memory (2x larger)
 		m_IDirectDrawSurfaceX::SizeDummySurface(presParams.BackBufferWidth * presParams.BackBufferHeight * 4 * 2);
 
+		// Copy GDI data to back buffer
+		if (CopyGDISurface && PrimarySurface && !presParams.Windowed)
+		{
+			PrimarySurface->CopyGDIToPrimaryAndBackbuffer();
+		}
+		CopyGDISurface = false;
+
+
 		// Create default state block
 		CreateStateBlock();
 
@@ -3911,6 +3936,7 @@ HRESULT m_IDirectDrawX::TestD3D9CooperativeLevel()
 			if (!IsDeviceLost)
 			{
 				ReDrawNextPresent = true;
+				CopyGDISurface = true;
 				MarkAllSurfacesDirty();
 			}
 

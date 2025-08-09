@@ -1311,61 +1311,14 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 		// Create flip list
 		std::vector<m_IDirectDrawSurfaceX*> FlipList;
-		FlipList.push_back(this);
-
-		// If SurfaceTargetOverride then use that surface
-		if (lpDDSurfaceTargetOverride)
+		c_hr = GetFlipList(FlipList, lpDDSurfaceTargetOverride);
+		if (FAILED(c_hr))
 		{
-			m_IDirectDrawSurfaceX* lpTargetSurface = nullptr;
-
-			lpDDSurfaceTargetOverride->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpTargetSurface);
-
-			// Check backbuffer
-			HRESULT hr = CheckBackBufferForFlip(lpTargetSurface);
-			if (FAILED(hr))
-			{
-				return hr;
-			}
-
-			FlipList.push_back(lpTargetSurface);
+			return c_hr;
 		}
-		// Get list for all attached surfaces
-		else
+		if (FlipList.size() < 2)
 		{
-			m_IDirectDrawSurfaceX* lpTargetSurface = this;
-			do {
-				DWORD dwCaps = 0;
-				m_IDirectDrawSurfaceX* lpNewTargetSurface = nullptr;
-
-				// Loop through each surface
-				for (auto& it : lpTargetSurface->AttachedSurfaceMap)
-				{
-					dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
-					if (dwCaps & DDSCAPS_FLIP)
-					{
-						lpNewTargetSurface = it.second.pSurface;
-						break;
-					}
-				}
-				lpTargetSurface = lpNewTargetSurface;
-
-				// Stop looping when frontbuffer is found
-				if (!lpTargetSurface || lpTargetSurface == this || dwCaps & DDSCAPS_FRONTBUFFER)
-				{
-					break;
-				}
-
-				// Check backbuffer
-				HRESULT hr = CheckBackBufferForFlip(lpTargetSurface);
-				if (FAILED(hr))
-				{
-					return hr;
-				}
-
-				// Add target surface to list
-				FlipList.push_back(lpTargetSurface);
-
-			} while (true);
+			return DDERR_NOTFLIPPABLE;
 		}
 
 		// Lambda function to check if any surface is busy
@@ -1989,7 +1942,7 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags, bool CheckOnly)
 		}
 
 		// Check if device interface is lost
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, false, false);
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
 		if (FAILED(c_hr))
 		{
 			return c_hr;
@@ -2004,27 +1957,30 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags, bool CheckOnly)
 				return DDERR_WASSTILLDRAWING;
 			}
 
-			// Get backbuffer
-			m_IDirectDrawSurfaceX* lpBackBuffer = nullptr;
-			for (auto& it : AttachedSurfaceMap)
-			{
-				if (it.second.pSurface->GetSurfaceCaps().dwCaps & DDSCAPS_FLIP)
-				{
-					lpBackBuffer = it.second.pSurface;
-					break;
-				}
-			}
+			// Create flip list
+			std::vector<m_IDirectDrawSurfaceX*> FlipList;
+			HRESULT hr = GetFlipList(FlipList, nullptr);
 
 			// Check if there is a backbuffer
-			if (!lpBackBuffer)
+			if (FlipList.size() < 2)
 			{
 				return DDERR_INVALIDSURFACETYPE;
 			}
 
 			// Check if surface is busy
-			if (IsSurfaceBusy() || lpBackBuffer->IsSurfaceBusy())
+			if (IsSurfaceBusy())
 			{
 				return DDERR_SURFACEBUSY;
+			}
+			if (FAILED(hr))
+			{
+				for (auto& entry : FlipList)
+				{
+					if (entry->IsSurfaceBusy())
+					{
+						return DDERR_SURFACEBUSY;
+					}
+				}
 			}
 			return DD_OK;
 		}
@@ -7772,6 +7728,131 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRect)
 	} while (false);
 
 	return hr;
+}
+
+HRESULT m_IDirectDrawSurfaceX::GetFlipList(std::vector<m_IDirectDrawSurfaceX*>& FlipList, LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride)
+{
+	FlipList.push_back(this);
+
+	// If SurfaceTargetOverride then use that surface
+	if (lpDDSurfaceTargetOverride)
+	{
+		m_IDirectDrawSurfaceX* lpTargetSurface = nullptr;
+
+		lpDDSurfaceTargetOverride->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpTargetSurface);
+
+		// Check backbuffer
+		HRESULT hr = CheckBackBufferForFlip(lpTargetSurface);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+
+		FlipList.push_back(lpTargetSurface);
+	}
+	// Get list for all attached surfaces
+	else
+	{
+		m_IDirectDrawSurfaceX* lpTargetSurface = this;
+		do {
+			DWORD dwCaps = 0;
+			m_IDirectDrawSurfaceX* lpNewTargetSurface = nullptr;
+
+			// Loop through each surface
+			for (auto& it : lpTargetSurface->AttachedSurfaceMap)
+			{
+				dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
+				if (dwCaps & DDSCAPS_FLIP)
+				{
+					lpNewTargetSurface = it.second.pSurface;
+					break;
+				}
+			}
+			lpTargetSurface = lpNewTargetSurface;
+
+			// Stop looping when frontbuffer is found
+			if (!lpTargetSurface || lpTargetSurface == this || dwCaps & DDSCAPS_FRONTBUFFER)
+			{
+				break;
+			}
+
+			// Check backbuffer
+			HRESULT hr = CheckBackBufferForFlip(lpTargetSurface);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+
+			// Add target surface to list
+			FlipList.push_back(lpTargetSurface);
+
+		} while (true);
+	}
+
+	return DD_OK;
+}
+
+void m_IDirectDrawSurfaceX::CopyGDIToPrimaryAndBackbuffer()
+{
+	if (Config.D3d9to9Ex || Config.EnableWindowMode)
+	{
+		return;
+	}
+
+	// Check for device interface
+	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, false);
+	if (FAILED(c_hr))
+	{
+		return;
+	}
+
+	// Create flip list
+	std::vector<m_IDirectDrawSurfaceX*> FlipList;
+	if (FAILED(GetFlipList(FlipList, nullptr)))
+	{
+		return;
+	}
+
+	HWND hWnd = ddrawParent->GetPresentationHwnd();
+	if (!IsWindow(hWnd) || IsIconic(hWnd))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to copy from GDI after device lost!";
+		return;
+	}
+
+	HDC hdcWindow = ::GetDC(nullptr);
+	if (!hdcWindow)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Failed to get DC after device lost!";
+		return;
+	}
+
+	for (auto& entry : FlipList)
+	{
+		IDirect3DSurface9* pSurface = entry->Get3DSurface();
+		if (!pSurface)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to get primary surface after device lost!";
+			break;
+		}
+
+		HDC hdcSurface = nullptr;
+		if (FAILED(pSurface->GetDC(&hdcSurface)))
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to get DC from surface after device lost!";
+			break;
+		}
+
+		if (!BitBlt(hdcSurface, 0, 0, surface.Width, surface.Height, hdcWindow, 0, 0, SRCCOPY))
+		{
+			Logging::Log() << __FUNCTION__ << " Error: Failed to BitBlt GDI to surface after device lost!";
+		}
+		entry->LostDeviceBackup.clear();
+
+		pSurface->ReleaseDC(hdcSurface);
+	}
+
+	::ReleaseDC(hWnd, hdcWindow);
 }
 
 HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceFromGDI(LPRECT lpDestRect)

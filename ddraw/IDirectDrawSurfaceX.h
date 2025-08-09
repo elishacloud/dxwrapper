@@ -310,6 +310,7 @@ private:
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool WasAttachedSurfaceAdded(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX);
+	HRESULT GetFlipList(std::vector<m_IDirectDrawSurfaceX*>& FlipList, LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride);
 
 	// Copying surface textures
 	void SetRenderTargetShadow();
@@ -549,6 +550,9 @@ public:
 
 	// For texture loading
 	HRESULT Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDestPoint, LPDIRECTDRAWSURFACE7 lpSrcTex, LPRECT lprcSrcRect, DWORD dwFlags);
+
+	// For Presenting
+	void CopyGDIToPrimaryAndBackbuffer();
 
 	// For Present checking
 	bool ShouldReadFromGDI() const { return (Config.DdrawReadFromGDI && IsPrimarySurface() && IsUsingEmulation() && !Using3D); }
