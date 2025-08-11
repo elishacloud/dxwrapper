@@ -326,8 +326,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 				{
 					CallWndProc(pWndProc, hWnd, Msg, WA_ACTIVE, NULL);
 					CallWndProc(nullptr, hWnd, WM_SYSCOMMAND, SC_RESTORE, NULL);
-					SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0,
-						SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOSENDCHANGING);
+					SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
 					SetForegroundWindow(hWnd);
 					return 0;
 				}
