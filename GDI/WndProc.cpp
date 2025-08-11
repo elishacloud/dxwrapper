@@ -321,6 +321,16 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			switch (Msg)
 			{
 			case WM_ACTIVATE:
+				// Tell Windows & game to fully restore
+				if (LOWORD(wParam) == WA_ACTIVE || LOWORD(wParam) == WA_CLICKACTIVE)
+				{
+					CallWndProc(pWndProc, hWnd, Msg, WA_ACTIVE, NULL);
+					CallWndProc(nullptr, hWnd, WM_SYSCOMMAND, SC_RESTORE, NULL);
+					SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0,
+						SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOSENDCHANGING);
+					SetForegroundWindow(hWnd);
+					return 0;
+				}
 				// Some games require filtering this when iconic, other games require this message to see when the window is activated
 				if (pDataStruct->DirectXVersion > 4)
 				{
