@@ -111,18 +111,18 @@ HRESULT m_IDirect3DSwapChain9Ex::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
 
 	if (Config.D3d9to9Ex && ProxyInterfaceEx)
 	{
-		D3DDISPLAYMODEEX* pModeEx = nullptr;
 		D3DDISPLAYMODEEX ModeEx = {};
-
-		if (pMode)
-		{
-			m_IDirect3DDevice9Ex::ModeToModeEx(*pMode, ModeEx);
-			pModeEx = &ModeEx;
-		}
-
+		ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
 		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
 
-		return GetDisplayModeEx(pModeEx, &Rotation);
+		HRESULT result = GetDisplayModeEx(&ModeEx, &Rotation);
+		if (result != D3D_OK || !pMode)
+		{
+			return D3DERR_INVALIDCALL;
+		}
+
+		m_IDirect3DDevice9Ex::ModeExToMode(ModeEx, *pMode);
+		return D3D_OK;
 	}
 
 	return ProxyInterface->GetDisplayMode(pMode);
