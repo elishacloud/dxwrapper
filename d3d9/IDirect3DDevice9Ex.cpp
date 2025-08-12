@@ -779,18 +779,23 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayMode(THIS_ UINT iSwapChain, D3DDISPLAYMO
 
 	if (Config.D3d9to9Ex && ProxyInterfaceEx)
 	{
-		D3DDISPLAYMODEEX* pModeEx = nullptr;
-		D3DDISPLAYMODEEX ModeEx = {};
-
-		if (pMode)
+		if (!pMode)
 		{
-			ModeToModeEx(*pMode, ModeEx);
-			pModeEx = &ModeEx;
+			return D3DERR_INVALIDCALL;
 		}
 
+		D3DDISPLAYMODEEX ModeEx = {};
+		ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
 		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
 
-		return GetDisplayModeEx(iSwapChain, pModeEx, &Rotation);
+		HRESULT hr = GetDisplayModeEx(iSwapChain, &ModeEx, &Rotation);
+
+		if (SUCCEEDED(hr))
+		{
+			ModeExToMode(ModeEx, *pMode);
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->GetDisplayMode(iSwapChain, pMode);
@@ -3213,14 +3218,12 @@ void m_IDirect3DDevice9Ex::ReInitInterface() const
 	}
 }
 
-void m_IDirect3DDevice9Ex::ModeToModeEx(D3DDISPLAYMODE& Mode, D3DDISPLAYMODEEX& ModeEx)
+void m_IDirect3DDevice9Ex::ModeExToMode(D3DDISPLAYMODEEX& ModeEx, D3DDISPLAYMODE& Mode)
 {
-	ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
-	ModeEx.Width = Mode.Width;
-	ModeEx.Height = Mode.Height;
-	ModeEx.RefreshRate = Mode.RefreshRate;
-	ModeEx.Format = Mode.Format;
-	ModeEx.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
+	Mode.Width = ModeEx.Width;
+	Mode.Height = ModeEx.Height;
+	Mode.RefreshRate = ModeEx.RefreshRate;
+	Mode.Format = ModeEx.Format;
 }
 
 void m_IDirect3DDevice9Ex::LimitFrameRate() const

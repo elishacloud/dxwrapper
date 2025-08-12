@@ -340,6 +340,6 @@ public:
 	REFIID GetIID() { return WrapperID; }
 
 	// Static functions
-	static void m_IDirect3DDevice9Ex::ModeToModeEx(D3DDISPLAYMODE& Mode, D3DDISPLAYMODEEX& ModeEx);
+	static void m_IDirect3DDevice9Ex::ModeExToMode(D3DDISPLAYMODEEX& ModeEx, D3DDISPLAYMODE& Mode);
 };
 #undef SHARED
