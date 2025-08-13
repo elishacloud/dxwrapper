@@ -23,6 +23,8 @@ void WINAPI d9_D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName);
 void WINAPI Direct3D9SetSwapEffectUpgradeShim(int Unknown);
 IDirect3D9* WINAPI d9_Direct3DCreate9(UINT SDKVersion);
 HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppD3D);
+IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries);
+HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries, IDirect3D9Ex** ppOutputInterface);
 
 class m_IDirect3D9Ex
 {

@@ -23,6 +23,3 @@ typedef struct _D3D9ON12_ARGS
 	UINT NumQueues;
 	UINT NodeMask;
 } D3D9ON12_ARGS;
-
-IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries);
-HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries, IDirect3D9Ex** ppOutputInterface);
