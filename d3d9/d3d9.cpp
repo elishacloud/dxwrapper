@@ -398,6 +398,23 @@ IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverr
 		Direct3D9DisableMaximizedWindowedMode();
 	}
 
+	if (Config.D3d9to9Ex)
+	{
+		DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9On12ExProc, Direct3DCreate9On12Ex, Direct3DCreate9On12Ex_out);
+
+		if (Direct3DCreate9On12Ex)
+		{
+			IDirect3D9Ex* pD3D9Ex = nullptr;
+
+			LOG_LIMIT(3, "Redirecting 'Direct3DCreate9On12Ex' ...");
+
+			if (SUCCEEDED(Direct3DCreate9On12Ex(SDKVersion, pOverrideList, NumOverrideEntries, &pD3D9Ex)))
+			{
+				return new m_IDirect3D9Ex(pD3D9Ex, IID_IDirect3D9Ex);
+			}
+		}
+	}
+
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9On12' ...");
 
 	if (Config.ForceDirect3D9On12 && pOverrideList)
