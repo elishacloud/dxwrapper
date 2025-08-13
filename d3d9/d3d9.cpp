@@ -398,6 +398,11 @@ IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverr
 		Direct3D9DisableMaximizedWindowedMode();
 	}
 
+	if (Config.ForceDirect3D9On12 && pOverrideList)
+	{
+		pOverrideList->Enable9On12 = TRUE;
+	}
+
 	if (Config.D3d9to9Ex)
 	{
 		DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9On12ExProc, Direct3DCreate9On12Ex, Direct3DCreate9On12Ex_out);
@@ -416,11 +421,6 @@ IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverr
 	}
 
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9On12' ...");
-
-	if (Config.ForceDirect3D9On12 && pOverrideList)
-	{
-		pOverrideList->Enable9On12 = TRUE;
-	}
 
 	// Create new d3d9 object
 	IDirect3D9* pD3D9 = Direct3DCreate9On12(SDKVersion, pOverrideList, NumOverrideEntries);
@@ -455,12 +455,12 @@ HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrid
 		Direct3D9DisableMaximizedWindowedMode();
 	}
 
-	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9On12Ex' ...");
-
 	if (Config.ForceDirect3D9On12 && pOverrideList)
 	{
 		pOverrideList->Enable9On12 = TRUE;
 	}
+
+	LOG_LIMIT(3, "Redirecting 'Direct3DCreate9On12Ex' ...");
 
 	HRESULT hr = Direct3DCreate9On12Ex(SDKVersion, pOverrideList, NumOverrideEntries, ppOutputInterface);
 
