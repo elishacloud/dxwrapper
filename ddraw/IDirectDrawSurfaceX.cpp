@@ -3586,6 +3586,8 @@ HRESULT m_IDirectDrawSurfaceX::SetPrivateData(REFGUID guidTag, LPVOID lpData, DW
 			return c_hr;
 		}
 
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: private data may not be preserved!");
+
 		if (surface.Surface)
 		{
 			return surface.Surface->SetPrivateData(guidTag, lpData, cbSize, dwFlags);
