@@ -1814,6 +1814,8 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			GetD9RenderState(D3DRS_DEPTHBIAS, lpdwRenderState);
 			*lpdwRenderState = static_cast<DWORD>(*reinterpret_cast<const FLOAT*>(lpdwRenderState) * -200000.0f);
 			return D3D_OK;
+		case D3DRENDERSTATE_ANISOTROPY:			// 49
+			return GetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_MAXANISOTROPY, lpdwRenderState);
 		case D3DRENDERSTATE_FLUSHBATCH:			// 50
 			*lpdwRenderState = 0;
 			return D3D_OK;
@@ -1897,6 +1899,76 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
 			return DDERR_INVALIDOBJECT;
+		}
+
+		// Ignore some render states
+		if (ProxyDirectXVersion == 1)	// DX2/3
+		{
+			if ((dwRenderStateType > 39 && dwRenderStateType < 64)	// 40-63
+				|| dwRenderStateType > 95)							// 96-256
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: ignoring undocumented DX3 Render state: " << dwRenderStateType);
+				return D3D_OK;
+			}
+		}
+		else if (ProxyDirectXVersion == 2)	// DX5
+		{
+			if ((dwRenderStateType > 49 && dwRenderStateType < 64)	// 50-63
+				|| dwRenderStateType > 95)							// 96-256
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: ignoring undocumented DX5 Render state: " << dwRenderStateType);
+				return D3D_OK;
+			}
+		}
+		else if (ProxyDirectXVersion == 3)	// DX6
+		{
+			if ((dwRenderStateType > 60 && dwRenderStateType < 64)	// 61-63
+				|| dwRenderStateType > 135)							// 136-256
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: ignoring undocumented DX6 Render state: " << dwRenderStateType);
+				return D3D_OK;
+			}
+		}
+		else if (ProxyDirectXVersion == 7)	// DX7
+		{
+			switch ((DWORD)dwRenderStateType)
+			{
+			case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
+			case D3DRENDERSTATE_TEXTUREADDRESS:		// 3
+			case D3DRENDERSTATE_WRAPU:				// 5
+			case D3DRENDERSTATE_WRAPV:				// 6
+			case D3DRENDERSTATE_MONOENABLE:			// 11
+			case D3DRENDERSTATE_ROP2:				// 12
+			case D3DRENDERSTATE_PLANEMASK:			// 13
+			case D3DRENDERSTATE_TEXTUREMAG:			// 17
+			case D3DRENDERSTATE_TEXTUREMIN:			// 18
+			case D3DRENDERSTATE_TEXTUREMAPBLEND:	// 21
+			case D3DRENDERSTATE_SUBPIXEL:			// 31
+			case D3DRENDERSTATE_SUBPIXELX:			// 32
+			case D3DRENDERSTATE_STIPPLEENABLE:		// 39
+			case D3DRENDERSTATE_OLDALPHABLENDENABLE:// 42
+			case D3DRENDERSTATE_BORDERCOLOR:		// 43
+			case D3DRENDERSTATE_TEXTUREADDRESSU:	// 44
+			case D3DRENDERSTATE_TEXTUREADDRESSV:	// 45
+			case D3DRENDERSTATE_MIPMAPLODBIAS:		// 46
+			case D3DRENDERSTATE_ANISOTROPY:			// 49
+			case D3DRENDERSTATE_FLUSHBATCH:			// 50
+			case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:			// 51
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: ignoring undocumented DX7 Render state: " << dwRenderStateType);
+				return D3D_OK;
+			}
+			if ((dwRenderStateType > 60 && dwRenderStateType < 128)	// 61-127
+				|| dwRenderStateType == 149							// 149
+				|| dwRenderStateType == 150							// 150
+				|| dwRenderStateType > 152)							// 153-256
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: ignoring undocumented DX7 Render state: " << dwRenderStateType);
+				return D3D_OK;
+			}
+		}
+		else
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: undocumented DX version: " << ProxyDirectXVersion);
 		}
 
 		switch ((DWORD)dwRenderStateType)
@@ -2206,6 +2278,8 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			dwRenderStateType = D3DRS_DEPTHBIAS;
 			break;
 		}
+		case D3DRENDERSTATE_ANISOTROPY:			// 49
+			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_MAXANISOTROPY, dwRenderState);
 		case D3DRENDERSTATE_FLUSHBATCH:			// 50
 			if (dwRenderState != FALSE)
 			{
@@ -2623,7 +2697,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 	{
 		if (dwVertexCount == 0)
 		{
-			return DD_OK; // Nothing to draw
+			return D3D_OK; // Nothing to draw
 		}
 
 		if (!lpVertices)
@@ -2721,7 +2795,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 	{
 		if (dwVertexCount == 0 || dwIndexCount == 0)
 		{
-			return DD_OK; // Nothing to draw
+			return D3D_OK; // Nothing to draw
 		}
 
 		if (!lpVertices || !lpwIndices)
@@ -2901,7 +2975,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 	{
 		if (dwVertexCount == 0)
 		{
-			return DD_OK; // Nothing to draw
+			return D3D_OK; // Nothing to draw
 		}
 
 		if (!lpVertexArray)
@@ -3008,7 +3082,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 	{
 		if (dwVertexCount == 0 || dwIndexCount == 0)
 		{
-			return DD_OK; // Nothing to draw
+			return D3D_OK; // Nothing to draw
 		}
 
 		if (!lpVertexArray || !lpwIndices)
@@ -3121,7 +3195,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 	{
 		if (dwNumVertices == 0)
 		{
-			return DD_OK; // Nothing to draw
+			return D3D_OK; // Nothing to draw
 		}
 
 		if (!lpd3dVertexBuffer)
@@ -3225,7 +3299,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 	{
 		if (dwNumVertices == 0 || dwIndexCount == 0)
 		{
-			return DD_OK; // Nothing to draw
+			return D3D_OK; // Nothing to draw
 		}
 
 		if (!lpd3dVertexBuffer || !lpwIndices)
@@ -5881,6 +5955,7 @@ void m_IDirect3DDeviceX::SetDefaults()
 	rsAntiAliasChanged = true;
 	rsAntiAlias = D3DANTIALIAS_NONE;
 	rsEdgeAntiAlias = FALSE;
+	rsTexturePerspective = (ProxyDirectXVersion > 2 ? TRUE : FALSE);
 	rsTextureWrappingChanged = false;
 	rsTextureWrappingU = FALSE;
 	rsTextureWrappingV = FALSE;
@@ -5889,7 +5964,7 @@ void m_IDirect3DDeviceX::SetDefaults()
 	rsAlphaBlendEnabled = FALSE;
 	rsSrcBlend = 0;
 	rsDestBlend = 0;
-	rsColorKeyEnabled = FALSE;
+	rsColorKeyEnabled = (ProxyDirectXVersion == 1 ? TRUE : FALSE);
 
 	// Set DirectDraw defaults
 	SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 0);
@@ -5899,22 +5974,8 @@ void m_IDirect3DDeviceX::SetDefaults()
 	SetTextureStageState(5, D3DTSS_TEXCOORDINDEX, 0);
 	SetTextureStageState(6, D3DTSS_TEXCOORDINDEX, 0);
 
-	DWORD DirectXVersion =
-		WrapperInterface ? 1 :
-		WrapperInterface2 ? 2 :
-		WrapperInterface3 ? 3 : 7;
-
-	// Set color key defaults (for interface v1)
-	if (DirectXVersion == 1)
-	{
-		rsColorKeyEnabled = true;
-	}
-
-	// For the IDirect3DDevice3 interface, the default value is TRUE. For earlier interfaces, the default is FALSE.
-	rsTexturePerspective = (DirectXVersion > 2);
-
 	// Set texture blend defaults (for interface v1, v2 and v3)
-	if (DirectXVersion < 7)
+	if (ProxyDirectXVersion < 7)
 	{
 		SetRenderState(D3DRENDERSTATE_TEXTUREMAPBLEND, D3DTBLEND_MODULATE);
 	}
