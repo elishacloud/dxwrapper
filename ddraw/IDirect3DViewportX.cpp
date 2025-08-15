@@ -202,7 +202,7 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 			return D3DERR_VIEWPORTHASNODEVICE;
 		}
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return ProxyInterface->GetViewport(lpData);
@@ -249,7 +249,7 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 	{
 		if (dwVertexCount == 0)
 		{
-			return DD_OK;
+			return D3D_OK;
 		}
 
 		if (!lpData || !lpData->lpIn || !lpData->lpOut)
@@ -369,10 +369,10 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 		}
 
 #ifdef ENABLE_PROFILING
-		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)DD_OK << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)D3D_OK << " Timing = " << Logging::GetTimeLapseInMS(startTime);
 #endif
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return ProxyInterface->TransformVertices(dwVertexCount, lpData, dwFlags, lpOffscreen);
@@ -392,7 +392,7 @@ HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA
 
 		if (dwElementCount == 0)
 		{
-			return DD_OK;
+			return D3D_OK;
 		}
 
 		if (!lpData || !lpData->lpIn || !lpData->lpOut)
@@ -483,10 +483,10 @@ HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA
 		}
 
 #ifdef ENABLE_PROFILING
-		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)DD_OK << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)D3D_OK << " Timing = " << Logging::GetTimeLapseInMS(startTime);
 #endif
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return ProxyInterface->LightElements(dwElementCount, lpData);
@@ -802,7 +802,7 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 			return D3DERR_VIEWPORTHASNODEVICE;
 		}
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	return ProxyInterface->GetViewport2(lpData);
@@ -877,7 +877,7 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
 
 		pBackgroundDepthSurfaceX = lpSurfaceX;
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	if (lpDDS)
@@ -907,7 +907,7 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4* lplpDDS,
 
 		if (!pBackgroundDepthSurfaceX)
 		{
-			return DD_OK;
+			return D3D_OK;
 		}
 
 		*lplpDDS = reinterpret_cast<LPDIRECTDRAWSURFACE4>(pBackgroundDepthSurfaceX->GetWrapperInterfaceX(DirectXVersion));
@@ -917,7 +917,7 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4* lplpDDS,
 			*lpValid = TRUE;
 		}
 
-		return DD_OK;
+		return D3D_OK;
 	}
 
 	HRESULT hr = ProxyInterface->GetBackgroundDepth2(lplpDDS, lpValid);

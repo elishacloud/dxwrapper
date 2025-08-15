@@ -35,16 +35,16 @@ private:
 	std::chrono::steady_clock::time_point sceneTime;
 #endif
 
-	struct LIGHTENABLE {
-		BOOL Enable = FALSE;
-		D3DLIGHT9 Light = {};
-	};
 	struct {
 		struct {
 			bool Set = false;
 			DWORD State = 0;
 		} RenderState[MaxDeviceStates], TextureStageState[MaxTextureStages][MaxTextureStageStates], SamplerState[MaxTextureStages][MaxSamplerStates];
-		std::unordered_map<DWORD, LIGHTENABLE> Lights;
+		struct {
+			bool Set = false;
+			BOOL Enable = FALSE;
+			D3DLIGHT9 Light = {};
+		} Lights[MaxActiveLights];
 		struct {
 			bool Set = false;
 			float Plane[4] = {};
@@ -83,7 +83,7 @@ private:
 	bool IsInScene = false;
 
 	// Default clip status
-	D3DCLIPSTATUS D3DClipStatus { D3DCLIPSTATUS_STATUS, D3DSTATUS_DEFAULT, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+	D3DCLIPSTATUS D3DClipStatus = ClipStatusDefault;
 
 	// Light states
 	DWORD lsMaterialHandle;
@@ -110,8 +110,9 @@ private:
 	std::unordered_set<DWORD> StateBlockTokens;
 
 	// Default settings
-	D3DVIEWPORT9 DefaultViewport = {};
-	D3DMATERIAL9 DefaultMaterial = {};
+	DWORD MaxLights = MaxActiveLights;
+	D3DCAPS9 Caps9 = {};
+	D3DVIEWPORT9 ViewportDefault = {};
 
 	// Render target
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
@@ -375,7 +376,7 @@ public:
 	void ClearExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer);
 
 	// Viewport functions
-	void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
+	void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = ViewportDefault; }
 	m_IDirect3DViewportX* GetCurrentViewport() { return lpCurrentViewportX; }
 	bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
 	void ClearViewport(m_IDirect3DViewportX* lpViewportX);

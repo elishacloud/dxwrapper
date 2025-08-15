@@ -283,7 +283,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		// Check if there are no vertices to process
 		if (dwCount == 0)
 		{
-			return DD_OK;
+			return D3D_OK;
 		}
 
 		// Always include the D3DVOP_TRANSFORM flag in the dwVertexOp parameter. If you do not, the method fails, returning DDERR_INVALIDPARAMS.
@@ -426,7 +426,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 		// Check if there are no vertices to process
 		if (dwCount == 0)
 		{
-			return DD_OK;
+			return D3D_OK;
 		}
 
 		// Always include the D3DVOP_TRANSFORM flag in the dwVertexOp parameter. If you do not, the method fails, returning DDERR_INVALIDPARAMS.
@@ -661,7 +661,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 {
 	if (dwCount == 0)
 	{
-		return DD_OK;	// No vertices to process
+		return D3D_OK;	// No vertices to process
 	}
 
 	if (!lpSrcBuffer)
@@ -898,7 +898,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 		Unlock();
 	}
 
-	return DD_OK;
+	return D3D_OK;
 }
 
 void m_IDirect3DVertexBufferX::ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& outSpecular, const D3DXVECTOR3& Position, const D3DXVECTOR3& Normal, const std::vector<DXLIGHT7>& cachedLights, const D3DXMATRIX& matWorldView, const D3DMATRIX& matWorld, const D3DMATRIX& matView, const D3DMATERIAL7& mat, bool UseMaterial)

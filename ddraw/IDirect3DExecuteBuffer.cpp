@@ -611,7 +611,7 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExe
 		}
 	}
 
-	return DD_OK;
+	return D3D_OK;
 }
 
 m_IDirect3DExecuteBuffer* m_IDirect3DExecuteBuffer::CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc)

@@ -58,6 +58,22 @@ constexpr DWORD SamplerStateDefault[MaxTextureStages][MaxSamplerStates] = {
 	{ Z, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, },
 };
 
+constexpr D3DCLIPSTATUS ClipStatusDefault {
+	D3DCLIPSTATUS_STATUS, D3DSTATUS_DEFAULT, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f
+};
+
+constexpr float ClipPlaneDefault[4] {
+	0.0f, 0.0f, 0.0f, 0.0f
+};
+
+constexpr D3DMATERIAL9 MaterialDefault = {
+	{ 0.0f, 0.0f, 0.0f, 1.0f }, // Diffuse (RGBA)
+	{ 0.0f, 0.0f, 0.0f, 1.0f }, // Ambient (RGBA)
+	{ 0.0f, 0.0f, 0.0f, 0.0f }, // Specular (RGBA)
+	{ 0.0f, 0.0f, 0.0f, 0.0f }, // Emissive (RGBA)
+	0.0f                        // Power (specular exponent)
+};
+
 constexpr D3DMATRIX IdentityMatrixDefault = {
 	1.0f, 0.0f, 0.0f, 0.0f,
 	0.0f, 1.0f, 0.0f, 0.0f,

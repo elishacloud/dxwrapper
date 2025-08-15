@@ -9,6 +9,7 @@ constexpr UINT MaxTextureStageStates = 33;  // Devices have up to 33 types.
 constexpr UINT MaxSamplerStates = 14;	    // Devices can have up to 14 sampler states.
 constexpr UINT MaxTextureStages = 8;	    // Devices can have up to eight set textures.
 constexpr UINT MaxClipPlaneIndex = 6;       // Devices can have up to six clip planes.
+constexpr UINT MaxActiveLights = 32;        // Devices can have up to 32 lights.
 
 #include "IDirect3DTypesDefault.h"
 
@@ -126,6 +127,11 @@ typedef struct _D3DDEVINFO_TEXTURING {
     D3DFVF_SPECULAR | \
     D3DFVF_TEXCOUNT_MASK | \
     D3DFVF_TEXCOORDSIZE_ALL)
+
+struct CLIPPLANE
+{
+    float Plane[4] = { 0.0f };
+};
 
 struct XYZ
 {

@@ -3812,16 +3812,9 @@ HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC7 lpD3DDevDesc)
 			return DDERR_INVALIDOBJECT;
 		}
 
-		D3DCAPS9 Caps9 = {};
+		ConvertDeviceDesc(*lpD3DDevDesc, Caps9);
 
-		HRESULT hr = (*d3d9Device)->GetDeviceCaps(&Caps9);
-
-		if (SUCCEEDED(hr))
-		{
-			ConvertDeviceDesc(*lpD3DDevDesc, Caps9);
-		}
-
-		return hr;
+		return D3D_OK;
 	}
 
 	return GetProxyInterfaceV7()->GetCaps(lpD3DDevDesc);
@@ -4354,6 +4347,8 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 		{
 			return D3D_OK;
 		}
+
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		PrepDevice();
 
@@ -4907,18 +4902,20 @@ void m_IDirect3DDeviceX::ClearLight(m_IDirect3DLight* lpLight)
 	{
 		if (it->second == lpLight)
 		{
-			// Disable light before removing
-			LightEnable(it->first, FALSE);
-
-			// Remove from device state
-			auto entry = DeviceStates.Lights.find(it->first);
-			if (entry != DeviceStates.Lights.end())
-			{
-				DeviceStates.Lights.erase(entry);
-			}
+			DWORD Index = it->first;
 
 			// Remove entry from map
 			it = LightIndexMap.erase(it);
+
+			if (Index < MaxLights)
+			{
+				// Disable light
+				D9LightEnable(Index, FALSE);
+
+				// Clear light value
+				DeviceStates.Lights[Index].Set = false;
+				DeviceStates.Lights[Index].Enable = FALSE;
+			}
 		}
 		else
 		{
@@ -5474,16 +5471,14 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 
 HRESULT m_IDirect3DDeviceX::GetD9Light(DWORD Index, D3DLIGHT9* lpLight) const
 {
-	if (!lpLight)
+	if (!lpLight || Index >= MaxLights)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
 
-	auto it = DeviceStates.Lights.find(Index);
-
-	if (it != DeviceStates.Lights.end())
+	if (DeviceStates.Lights[Index].Set)
 	{
-		*lpLight = it->second.Light;
+		*lpLight = DeviceStates.Lights[Index].Light;
 		return D3D_OK;
 	}
 
@@ -5492,7 +5487,7 @@ HRESULT m_IDirect3DDeviceX::GetD9Light(DWORD Index, D3DLIGHT9* lpLight) const
 
 HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT9* lpLight)
 {
-	if (!lpLight)
+	if (!lpLight || Index >= MaxLights)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -5521,16 +5516,14 @@ HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT9* lpLight)
 
 HRESULT m_IDirect3DDeviceX::GetD9LightEnable(DWORD Index, LPBOOL lpEnable) const
 {
-	if (!lpEnable)
+	if (!lpEnable || Index >= MaxLights)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
 
-	auto it = DeviceStates.Lights.find(Index);
-
-	if (it != DeviceStates.Lights.end())
+	if (DeviceStates.Lights[Index].Set)
 	{
-		*lpEnable = it->second.Enable;
+		*lpEnable = DeviceStates.Lights[Index].Enable;
 		return D3D_OK;
 	}
 
@@ -5540,6 +5533,11 @@ HRESULT m_IDirect3DDeviceX::GetD9LightEnable(DWORD Index, LPBOOL lpEnable) const
 
 HRESULT m_IDirect3DDeviceX::D9LightEnable(DWORD Index, BOOL Enable)
 {
+	if (Index >= MaxLights)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
 	HRESULT hr = (*d3d9Device)->LightEnable(Index, Enable);
 
 	if (SUCCEEDED(hr))
@@ -5559,11 +5557,11 @@ HRESULT m_IDirect3DDeviceX::GetD9ClipPlane(DWORD Index, float* lpPlane) const
 
 	if (DeviceStates.ClipPlane[Index].Set)
 	{
-		memcpy(lpPlane, DeviceStates.ClipPlane[Index].Plane, sizeof(DeviceStates.ClipPlane[Index].Plane));
+		*(CLIPPLANE*)lpPlane = *(CLIPPLANE*)&DeviceStates.ClipPlane[Index].Plane;
 		return D3D_OK;
 	}
 
-	memset(lpPlane, 0, sizeof(float) * 4);
+	*(CLIPPLANE*)lpPlane = *(CLIPPLANE*)&ClipPlaneDefault;
 	return D3D_OK;
 }
 
@@ -5579,7 +5577,7 @@ HRESULT m_IDirect3DDeviceX::SetD9ClipPlane(DWORD Index, const float* lpPlane)
 	if (SUCCEEDED(hr))
 	{
 		DeviceStates.ClipPlane[Index].Set = true;
-		memcpy(DeviceStates.ClipPlane[Index].Plane, lpPlane, sizeof(DeviceStates.ClipPlane[Index].Plane));
+		*(CLIPPLANE*)&DeviceStates.ClipPlane[Index].Plane = *(CLIPPLANE*)lpPlane;
 	}
 
 	return hr;
@@ -5598,7 +5596,7 @@ HRESULT m_IDirect3DDeviceX::GetD9Viewport(D3DVIEWPORT9* lpViewport) const
 		return D3D_OK;
 	}
 
-	*lpViewport = DefaultViewport;
+	*lpViewport = ViewportDefault;
 	return D3D_OK;
 }
 
@@ -5633,7 +5631,7 @@ HRESULT m_IDirect3DDeviceX::GetD9Material(D3DMATERIAL9* lpMaterial) const
 		return D3D_OK;
 	}
 
-	*lpMaterial = DefaultMaterial;
+	*lpMaterial = MaterialDefault;
 	return D3D_OK;
 }
 
@@ -5791,10 +5789,13 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	}
 
 	// Restore lights
-	for (auto& entry : DeviceStates.Lights)
+	for (UINT x = 0; x < MaxLights; x++)
 	{
-		(*d3d9Device)->SetLight(entry.first, &entry.second.Light);
-		(*d3d9Device)->LightEnable(entry.first, entry.second.Enable);
+		if (DeviceStates.Lights[x].Set)
+		{
+			(*d3d9Device)->SetLight(x, &DeviceStates.Lights[x].Light);
+			(*d3d9Device)->LightEnable(x, DeviceStates.Lights[x].Enable);
+		}
 	}
 
 	// Restore clip planes
@@ -5863,10 +5864,13 @@ void m_IDirect3DDeviceX::CollectStates()
 	}
 
 	// Restore lights
-	for (auto& entry : DeviceStates.Lights)
+	for (UINT x = 0; x < MaxLights; x++)
 	{
-		(*d3d9Device)->GetLight(entry.first, &entry.second.Light);
-		(*d3d9Device)->GetLightEnable(entry.first, &entry.second.Enable);
+		if (DeviceStates.Lights[x].Set)
+		{
+			(*d3d9Device)->GetLight(x, &DeviceStates.Lights[x].Light);
+			(*d3d9Device)->GetLightEnable(x, &DeviceStates.Lights[x].Enable);
+		}
 	}
 
 	// Restore clip planes
@@ -5915,8 +5919,7 @@ void m_IDirect3DDeviceX::BeforeResetDevice()
 void m_IDirect3DDeviceX::AfterResetDevice()
 {
 	// Get defaults
-	(*d3d9Device)->GetViewport(&DefaultViewport);
-	(*d3d9Device)->GetMaterial(&DefaultMaterial);
+	(*d3d9Device)->GetViewport(&ViewportDefault);
 }
 
 void m_IDirect3DDeviceX::ClearDdraw()
@@ -5955,7 +5958,7 @@ void m_IDirect3DDeviceX::SetDefaults()
 	IsRecordingState = false;
 
 	// Clip status
-	D3DClipStatus = {};
+	D3DClipStatus = ClipStatusDefault;
 
 	// Light states
 	lsMaterialHandle = NULL;
@@ -5990,7 +5993,9 @@ void m_IDirect3DDeviceX::SetDefaults()
 	}
 
 	// Get default structures
-	(*d3d9Device)->GetViewport(&DefaultViewport);
+	(*d3d9Device)->GetDeviceCaps(&Caps9);
+	MaxLights = min(MaxActiveLights, Caps9.MaxActiveLights);
+	(*d3d9Device)->GetViewport(&ViewportDefault);
 }
 
 void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion)
@@ -6210,13 +6215,12 @@ void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLigh
 {
 	if (ClientDirectXVersion == 7)
 	{
-		for (auto& entry : DeviceStates.Lights)
+		for (UINT x = 0; x < MaxLights; x++)
 		{
-			// Check if light is enabled
-			if (entry.second.Enable)
+			if (DeviceStates.Lights[x].Set && DeviceStates.Lights[x].Enable)
 			{
 				DXLIGHT7 DxLight7 = {};
-				*reinterpret_cast<D3DLIGHT9*>(&DxLight7) = entry.second.Light;
+				*reinterpret_cast<D3DLIGHT9*>(&DxLight7) = DeviceStates.Lights[x].Light;
 				DxLight7.dwLightVersion = 7;
 				DxLight7.dwFlags = 0;
 
