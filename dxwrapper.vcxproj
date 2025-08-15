@@ -1174,6 +1174,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="ddraw\IDirect3DMaterialX.h" />
     <ClInclude Include="ddraw\IDirect3DTextureX.h" />
     <ClInclude Include="ddraw\IDirect3DTypes.h" />
+    <ClInclude Include="ddraw\IDirect3DTypesDefault.h" />
     <ClInclude Include="ddraw\IDirect3DVertexBufferX.h" />
     <ClInclude Include="ddraw\IDirect3DViewportX.h" />
     <ClInclude Include="ddraw\IDirect3DX.h" />

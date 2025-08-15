@@ -527,11 +527,11 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9)
 	Desc7.dvGuardBandRight = Caps9.GuardBandRight;
 	Desc7.dvGuardBandBottom = Caps9.GuardBandBottom;
 	Desc7.dvExtentsAdjust = Caps9.ExtentsAdjust;
-	Desc7.wMaxTextureBlendStages = (WORD)min(Caps9.MaxTextureBlendStages, USHRT_MAX);
-	Desc7.wMaxSimultaneousTextures = (WORD)min(Caps9.MaxSimultaneousTextures, USHRT_MAX);
+	Desc7.wMaxTextureBlendStages = (WORD)min(Caps9.MaxTextureBlendStages, MaxTextureStages);
+	Desc7.wMaxSimultaneousTextures = (WORD)min(Caps9.MaxSimultaneousTextures, MaxTextureStages);
 	Desc7.dwMaxActiveLights = Caps9.MaxActiveLights;
 	Desc7.dvMaxVertexW = Caps9.MaxVertexW;
-	Desc7.wMaxUserClipPlanes = (WORD)min(Caps9.MaxUserClipPlanes, USHRT_MAX);
+	Desc7.wMaxUserClipPlanes = (WORD)min(Caps9.MaxUserClipPlanes, MaxClipPlaneIndex);
 	Desc7.wMaxVertexBlendMatrices = (WORD)min(Caps9.MaxVertexBlendMatrices, USHRT_MAX);
 
 	// Specific settings

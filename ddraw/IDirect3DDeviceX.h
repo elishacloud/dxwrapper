@@ -5,6 +5,7 @@ class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 private:
 	IDirect3DDevice7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
+	DWORD ClientDirectXVersion;
 	ULONG RefCount1 = 0;
 	ULONG RefCount2 = 0;
 	ULONG RefCount3 = 0;
@@ -42,7 +43,7 @@ private:
 		struct {
 			bool Set = false;
 			DWORD State = 0;
-		} RenderState[MaxDeviceStates], TextureState[MaxTextureStages][MaxTextureStageStates], SamplerState[MaxTextureStages][MaxSamplerStates];
+		} RenderState[MaxDeviceStates], TextureStageState[MaxTextureStages][MaxTextureStageStates], SamplerState[MaxTextureStages][MaxSamplerStates];
 		std::unordered_map<DWORD, LIGHTENABLE> Lights;
 		struct {
 			bool Set = false;
@@ -110,6 +111,7 @@ private:
 
 	// Default settings
 	D3DVIEWPORT9 DefaultViewport = {};
+	D3DMATERIAL9 DefaultMaterial = {};
 
 	// Render target
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
@@ -153,23 +155,23 @@ private:
 	HRESULT DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 	HRESULT DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD triangleCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 
-	HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue);
+	HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue) const;
 	HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
-	HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue);
+	HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue) const;
 	HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
-	HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue);
+	HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue) const;
 	HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
-	HRESULT GetD9Light(DWORD Index, D3DLIGHT9* lpLight);
+	HRESULT GetD9Light(DWORD Index, D3DLIGHT9* lpLight) const;
 	HRESULT SetD9Light(DWORD Index, const D3DLIGHT9* lpLight);
-	HRESULT GetD9LightEnable(DWORD Index, LPBOOL lpEnable);
+	HRESULT GetD9LightEnable(DWORD Index, LPBOOL lpEnable) const;
 	HRESULT D9LightEnable(DWORD Index, BOOL Enable);
-	HRESULT GetD9ClipPlane(DWORD Index, float* lpPlane);
+	HRESULT GetD9ClipPlane(DWORD Index, float* lpPlane) const;
 	HRESULT SetD9ClipPlane(DWORD Index, const float* lpPlane);
-	HRESULT GetD9Viewport(D3DVIEWPORT9* lpViewport);
+	HRESULT GetD9Viewport(D3DVIEWPORT9* lpViewport) const;
 	HRESULT SetD9Viewport(const D3DVIEWPORT9* lpViewport);
-	HRESULT GetD9Material(D3DMATERIAL9* lpMaterial);
+	HRESULT GetD9Material(D3DMATERIAL9* lpMaterial) const;
 	HRESULT SetD9Material(const D3DMATERIAL9* lpMaterial);
-	HRESULT GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* lpMatrix);
+	HRESULT GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* lpMatrix) const;
 	HRESULT SetD9Transform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* lpMatrix);
 	HRESULT D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* pMatrix);
 
@@ -241,6 +243,8 @@ public:
 	{
 		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
 
+		ClientDirectXVersion = DirectXVersion;
+
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
@@ -260,6 +264,8 @@ public:
 		ddrawParent(lpDdraw), D3DInterface(lpD3D), CurrentRenderTarget(pRenderTarget), ClassID(rclsid)
 	{
 		ProxyDirectXVersion = 9;
+
+		ClientDirectXVersion = DirectXVersion;
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 

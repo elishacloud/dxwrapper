@@ -856,9 +856,6 @@
     <ClCompile Include="GDI\User32.cpp">
       <Filter>GDI</Filter>
     </ClCompile>
-    <ClCompile Include="External\MemoryModule\MemoryModule.c">
-      <Filter>External\MemoryModule</Filter>
-    </ClCompile>
     <ClCompile Include="D3DDDI\d3dddi.cpp">
       <Filter>d3dddi</Filter>
     </ClCompile>
@@ -1903,6 +1900,9 @@
     </ClInclude>
     <ClInclude Include="ddraw\Shaders\VertexFixUpShader.h">
       <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\IDirect3DTypesDefault.h">
+      <Filter>ddraw</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -10,6 +10,8 @@ constexpr UINT MaxSamplerStates = 14;	    // Devices can have up to 14 sampler s
 constexpr UINT MaxTextureStages = 8;	    // Devices can have up to eight set textures.
 constexpr UINT MaxClipPlaneIndex = 6;       // Devices can have up to six clip planes.
 
+#include "IDirect3DTypesDefault.h"
+
 #define D3DSTATE D3DSTATE7
 
 #define D3DDP_FORCE_DWORD               0x0000001Fl
