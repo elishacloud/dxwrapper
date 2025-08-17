@@ -180,15 +180,21 @@ typedef enum _D3DSURFACETYPE {
 #define CLAMP(val,zmin,zmax) (max((zmin),min((zmax),(val))))
 
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light);
+D3DLIGHT9 FixLight(const D3DLIGHT9& Light);
+CLIPPLANE FixClipPlane(const CLIPPLANE& Plane);
 void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7);
 void ConvertMaterial(D3DMATERIAL7& Material7, const D3DMATERIAL& Material);
-void ConvertViewport(D3DVIEWPORT& ViewPort, const D3DVIEWPORT2& ViewPort2);
-void ConvertViewport(D3DVIEWPORT2& ViewPort2, const D3DVIEWPORT& ViewPort);
-void ConvertViewport(D3DVIEWPORT& ViewPort, const D3DVIEWPORT7& ViewPort7);
-void ConvertViewport(D3DVIEWPORT2& ViewPort2, const D3DVIEWPORT7& ViewPort7);
-void ConvertViewport(D3DVIEWPORT7& ViewPort7, const D3DVIEWPORT& ViewPort);
-void ConvertViewport(D3DVIEWPORT7& ViewPort7, const D3DVIEWPORT2& ViewPort2);
-void ConvertViewport(D3DVIEWPORT7& ViewPort, const D3DVIEWPORT7& ViewPort7);
+D3DMATERIAL9 FixMaterial(const D3DMATERIAL9& Material);
+void ConvertViewport(D3DVIEWPORT& Viewport, const D3DVIEWPORT2& Viewport2);
+void ConvertViewport(D3DVIEWPORT2& Viewport2, const D3DVIEWPORT& Viewport);
+void ConvertViewport(D3DVIEWPORT& Viewport, const D3DVIEWPORT7& Viewport7);
+void ConvertViewport(D3DVIEWPORT2& Viewport2, const D3DVIEWPORT7& Viewport7);
+void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT& Viewport);
+void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT2& Viewport2);
+void ConvertViewport(D3DVIEWPORT7& Viewport, const D3DVIEWPORT7& Viewport7);
+D3DVIEWPORT9 FixViewport(const D3DVIEWPORT9& Viewport);
+bool IsValidTransformState(D3DTRANSFORMSTATETYPE State);
+D3DMATRIX FixMatrix(const D3DMATRIX& Matrix, D3DTRANSFORMSTATETYPE State, D3DVIEWPORT Viewport, bool ScaleMatrix);
 void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7);
 void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9);
 void ConvertLVertex(DXLVERTEX7* lFVF7, const DXLVERTEX9* lFVF9, DWORD NumVertices);

@@ -44,19 +44,16 @@ private:
 			bool Set = false;
 			BOOL Enable = FALSE;
 			D3DLIGHT9 Light = {};
-		} Lights[MaxActiveLights];
+		} Light[MaxActiveLights];
 		struct {
 			bool Set = false;
-			float Plane[4] = {};
+			CLIPPLANE Plane = {};
 		} ClipPlane[MaxClipPlaneIndex];
 		struct {
 			bool Set = false;
 			D3DVIEWPORT9 View = {};
+			D3DVIEWPORT ViewportScale = {};
 			bool UseViewportScale = false;
-			D3DVALUE dvScaleX = 0.0f;
-			D3DVALUE dvScaleY = 0.0f;
-			D3DVALUE dvMaxX = 0.0f;
-			D3DVALUE dvMaxY = 0.0f;
 		} Viewport;
 		struct {
 			bool Set = false;
@@ -64,6 +61,17 @@ private:
 		} Material = {};
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
 	} DeviceStates;
+
+	struct {
+		std::unordered_map<D3DRENDERSTATETYPE, DWORD> RenderState;
+		std::unordered_map<DWORD, DWORD> TextureStageState;
+		std::unordered_map<DWORD, DWORD> SamplerState;
+		std::unordered_map<DWORD, D3DLIGHT9> Light;
+		std::unordered_map<DWORD, BOOL> LightEnable;
+		std::unordered_map<DWORD, CLIPPLANE> ClipPlane;
+		struct { bool Set = false; } Material;
+		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
+	} BatchStates;
 
 	struct {
 		DWORD rsClipping = 0;
