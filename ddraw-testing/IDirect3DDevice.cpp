@@ -39,18 +39,10 @@ void TestExecuteBuffer(DDType* pDDraw, D3DDType* pDirect3DDevice)
 }
 
 template <typename D3DDType>
-void TestRenderState(D3DDType* pDevice, const DWORD DefaultValue[], const DWORD Unchangeable[], size_t ArraySize)
+void TestRenderState(D3DDType* pDevice, const DWORD DefaultValue[], const DWORD Unchangeable[], size_t ArraySize, DWORD DirectXVersion)
 {
     for (UINT x = 0; x < D3D_MAXRENDERSTATES; x++)
     {
-        DWORD rsValue = 0;
-        pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
-
-        if (rsValue != DefaultValue[x])
-        {
-            LOG_TEST_RESULT(x, "Failed to get correct Render State. Error: ", rsValue, DefaultValue[x]);
-        }
-
         bool ChangeValue = true;
         for (UINT y = 0; y < ArraySize; y++)
         {
@@ -59,13 +51,44 @@ void TestRenderState(D3DDType* pDevice, const DWORD DefaultValue[], const DWORD 
                 ChangeValue = false;
             }
         }
+        bool ShouldCallFail = (!ChangeValue && !(x > 0 && x < D3D_MAXRENDERSTATES && DirectXVersion < 7));
+
+        DWORD rsValue = 0;
+        HRESULT hr = pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
+        if (ShouldCallFail)
+        {
+            if (hr != DDERR_INVALIDPARAMS)
+            {
+                LOG_TEST_RESULT(x, "Failed return value when trying to get -1- Render State. Error: ", (DDERR)hr, (DDERR)DDERR_INVALIDPARAMS);
+            }
+        }
+        else
+        {
+            if (hr != DD_OK)
+            {
+                LOG_TEST_RESULT(x, "Failed return value when trying to get -1- Render State. Error: ", (DDERR)hr, (DDERR)DD_OK);
+            }
+        }
+
+        if (rsValue != DefaultValue[x])
+        {
+            LOG_TEST_RESULT(x, "Failed to get correct Render State. Error: ", rsValue, DefaultValue[x]);
+        }
 
         if (ChangeValue)
         {
             // Enable setting
             DWORD NewValue = FALSE;
-            pDevice->SetRenderState((D3DRENDERSTATETYPE)x, NewValue);
-            pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
+            hr = pDevice->SetRenderState((D3DRENDERSTATETYPE)x, NewValue);
+            if (hr != DD_OK)
+            {
+                LOG_TEST_RESULT(x, "Failed return value when trying to set -2- Render State. Error: ", (DDERR)hr, (DDERR)DD_OK);
+            }
+            hr = pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
+            if (hr != DD_OK)
+            {
+                LOG_TEST_RESULT(x, "Failed return value when trying to get -2- Render State. Error: ", (DDERR)hr, (DDERR)DD_OK);
+            }
 
             if (rsValue != NewValue)
             {
@@ -74,8 +97,16 @@ void TestRenderState(D3DDType* pDevice, const DWORD DefaultValue[], const DWORD 
 
             // Disable setting
             NewValue = TRUE;
-            pDevice->SetRenderState((D3DRENDERSTATETYPE)x, NewValue);
-            pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
+            hr = pDevice->SetRenderState((D3DRENDERSTATETYPE)x, NewValue);
+            if (hr != DD_OK)
+            {
+                LOG_TEST_RESULT(x, "Failed return value when trying to set -3- Render State. Error: ", (DDERR)hr, (DDERR)DD_OK);
+            }
+            hr = pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
+            if (hr != DD_OK)
+            {
+                LOG_TEST_RESULT(x, "Failed return value when trying to set -3- Render State. Error: ", (DDERR)hr, (DDERR)DD_OK);
+            }
 
             if (rsValue != NewValue)
             {
@@ -86,8 +117,26 @@ void TestRenderState(D3DDType* pDevice, const DWORD DefaultValue[], const DWORD 
         else
         {
             DWORD NewValue = rsValue ? FALSE : TRUE;
-            pDevice->SetRenderState((D3DRENDERSTATETYPE)x, NewValue);
-            pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
+            hr = pDevice->SetRenderState((D3DRENDERSTATETYPE)x, NewValue);
+            if (hr != DDERR_INVALIDPARAMS)
+            {
+                LOG_TEST_RESULT(x, "Failed return value when trying to set -4- Render State. Error: ", (DDERR)hr, (DDERR)DDERR_INVALIDPARAMS);
+            }
+            hr = pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
+            if (ShouldCallFail)
+            {
+                if (hr != DDERR_INVALIDPARAMS)
+                {
+                    LOG_TEST_RESULT(x, "Failed return value when trying to get -4- Render State. Error: ", (DDERR)hr, (DDERR)DDERR_INVALIDPARAMS);
+                }
+            }
+            else
+            {
+                if (hr != DD_OK)
+                {
+                    LOG_TEST_RESULT(x, "Failed return value when trying to get -4- Render State. Error: ", (DDERR)hr, (DDERR)DD_OK);
+                }
+            }
 
             if (rsValue == NewValue)
             {
@@ -219,7 +268,7 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
 
         if (SUCCEEDED(hr))
         {
-            TestRenderState<IDirect3DDevice2>(pD3DDevice1, DefaultRenderTargetDX5, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]));
+            TestRenderState<IDirect3DDevice2>(pD3DDevice1, DefaultRenderTargetDX5, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), 2);
         }
     }
     else if constexpr (std::is_same_v<D3DType, IDirect3D3>)
@@ -228,7 +277,7 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
 
         if (SUCCEEDED(hr))
         {
-            TestRenderState<IDirect3DDevice3>(pD3DDevice1, DefaultRenderTargetDX6, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]));
+            TestRenderState<IDirect3DDevice3>(pD3DDevice1, DefaultRenderTargetDX6, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), 3);
         }
     }
     else if constexpr (std::is_same_v<D3DType, IDirect3D7>)
@@ -237,7 +286,7 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
 
         if (SUCCEEDED(hr))
         {
-            TestRenderState<IDirect3DDevice7>(pD3DDevice1, DefaultRenderTargetDX7, UnchangeableRenderTargetDX7, sizeof(UnchangeableRenderTargetDX7) / sizeof(UnchangeableRenderTargetDX7[0]));
+            TestRenderState<IDirect3DDevice7>(pD3DDevice1, DefaultRenderTargetDX7, UnchangeableRenderTargetDX7, sizeof(UnchangeableRenderTargetDX7) / sizeof(UnchangeableRenderTargetDX7[0]), 7);
         }
     }
 

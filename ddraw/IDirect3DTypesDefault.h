@@ -1,5 +1,11 @@
 #pragma once
 
+constexpr UINT MaxTextureStageStates = 33;  // Devices have up to 33 types.
+constexpr UINT MaxSamplerStates = 14;	    // Devices can have up to 14 sampler states.
+constexpr UINT MaxTextureStages = 8;	    // Devices can have up to eight set textures.
+constexpr UINT MaxClipPlaneIndex = 6;       // Devices can have up to six clip planes.
+constexpr UINT MaxActiveLights = 32;        // Devices can have up to 32 lights.
+
 namespace {
 	// 0xFFFFFFFF
 	constexpr DWORD Z = (DWORD)-1;
@@ -7,7 +13,7 @@ namespace {
 	constexpr DWORD I = 0x3F800000;
 }
 
-constexpr DWORD RenderStateDefault[D3D_MAXRENDERSTATES] = {
+constexpr DWORD DefaultRenderState[D3D_MAXRENDERSTATES] = {
 	Z, Z, Z, Z, 1, 1, 1, 1, 3, 2,
 	0, 0, 0, 0, 1, 0, 1, 1, 1, 2,
 	1, 1, 3, 4, 0, 8, 0, 0, 0, 0,
@@ -36,7 +42,7 @@ constexpr DWORD RenderStateDefault[D3D_MAXRENDERSTATES] = {
 	Z, Z, Z, Z, Z, Z,
 };
 
-constexpr DWORD TextureStageStateDefault[MaxTextureStages][MaxTextureStageStates] = {
+constexpr DWORD DefaultTextureStageState[MaxTextureStages][MaxTextureStageStates] = {
 	{ Z, 4, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, },
 	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, },
 	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, },
@@ -47,7 +53,7 @@ constexpr DWORD TextureStageStateDefault[MaxTextureStages][MaxTextureStageStates
 	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, }
 };
 
-constexpr DWORD SamplerStateDefault[MaxTextureStages][MaxSamplerStates] = {
+constexpr DWORD DefaultSamplerState[MaxTextureStages][MaxSamplerStates] = {
 	{ Z, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, },
 	{ Z, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, },
 	{ Z, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, },
@@ -58,15 +64,15 @@ constexpr DWORD SamplerStateDefault[MaxTextureStages][MaxSamplerStates] = {
 	{ Z, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, },
 };
 
-constexpr D3DCLIPSTATUS ClipStatusDefault {
+constexpr D3DCLIPSTATUS DefaultClipStatus {
 	D3DCLIPSTATUS_STATUS, D3DSTATUS_DEFAULT, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f
 };
 
-constexpr float ClipPlaneDefault[4] {
+constexpr float DefaultClipPlane[4] {
 	0.0f, 0.0f, 0.0f, 0.0f
 };
 
-constexpr D3DMATERIAL9 MaterialDefault = {
+constexpr D3DMATERIAL9 DefaultMaterial = {
 	{ 0.0f, 0.0f, 0.0f, 1.0f }, // Diffuse (RGBA)
 	{ 0.0f, 0.0f, 0.0f, 1.0f }, // Ambient (RGBA)
 	{ 0.0f, 0.0f, 0.0f, 0.0f }, // Specular (RGBA)
@@ -74,7 +80,7 @@ constexpr D3DMATERIAL9 MaterialDefault = {
 	0.0f                        // Power (specular exponent)
 };
 
-constexpr D3DMATRIX IdentityMatrixDefault = {
+constexpr D3DMATRIX DefaultIdentityMatrix = {
 	1.0f, 0.0f, 0.0f, 0.0f,
 	0.0f, 1.0f, 0.0f, 0.0f,
 	0.0f, 0.0f, 1.0f, 0.0f,

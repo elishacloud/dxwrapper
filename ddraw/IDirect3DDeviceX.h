@@ -91,7 +91,7 @@ private:
 	bool IsInScene = false;
 
 	// Default clip status
-	D3DCLIPSTATUS D3DClipStatus = ClipStatusDefault;
+	D3DCLIPSTATUS D3DClipStatus = DefaultClipStatus;
 
 	// Light states
 	DWORD lsMaterialHandle;
@@ -143,7 +143,7 @@ private:
 	// Default settings
 	DWORD MaxLights = MaxActiveLights;
 	D3DCAPS9 Caps9 = {};
-	D3DVIEWPORT9 ViewportDefault = {};
+	D3DVIEWPORT9 DefaultViewport = {};
 
 	// Render target
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
@@ -407,7 +407,7 @@ public:
 	void ClearExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer);
 
 	// Viewport functions
-	void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = ViewportDefault; }
+	void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
 	m_IDirect3DViewportX* GetCurrentViewport() { return lpCurrentViewportX; }
 	bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
 	void ClearViewport(m_IDirect3DViewportX* lpViewportX);

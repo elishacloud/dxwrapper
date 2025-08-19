@@ -1741,14 +1741,27 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 		if (!IsValidRenderState(dwRenderStateType, *lpdwRenderState, ClientDirectXVersion))
 		{
-			return D3D_OK;
+			if (dwRenderStateType > 0 && dwRenderStateType < D3D_MAXRENDERSTATES && ClientDirectXVersion < 7)
+			{
+				return DD_OK;
+			}
+			else
+			{
+				return DDERR_INVALIDPARAMS;
+			}
 		}
 
-		if (dwRenderStateType > 95 && dwRenderStateType < D3D_MAXRENDERSTATES &&
-			(dwRenderStateType < 128 || IsOutOfRangeRenderState(dwRenderStateType, ClientDirectXVersion)))
+		if (dwRenderStateType > 95 && (dwRenderStateType < 128 || IsOutOfRangeRenderState(dwRenderStateType, ClientDirectXVersion)))
 		{
-			*lpdwRenderState = rsUnUsed96[dwRenderStateType - 96];
-			return D3D_OK;
+			if (dwRenderStateType < D3D_MAXRENDERSTATES)
+			{
+				*lpdwRenderState = rsUnUsed96[dwRenderStateType - 96];
+				return D3D_OK;
+			}
+			else
+			{
+				return DDERR_INVALIDPARAMS;
+			}
 		}
 
 		switch ((DWORD)dwRenderStateType)
@@ -1923,14 +1936,20 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 		if (DWORD Value; !IsValidRenderState(dwRenderStateType, Value, ClientDirectXVersion))
 		{
-			return D3D_OK;
+			return DDERR_INVALIDPARAMS;
 		}
 
-		if (dwRenderStateType > 95 && dwRenderStateType < D3D_MAXRENDERSTATES &&
-			(dwRenderStateType < 128 || IsOutOfRangeRenderState(dwRenderStateType, ClientDirectXVersion)))
+		if (dwRenderStateType > 95 && (dwRenderStateType < 128 || IsOutOfRangeRenderState(dwRenderStateType, ClientDirectXVersion)))
 		{
-			rsUnUsed96[dwRenderStateType - 96] = dwRenderState;
-			return D3D_OK;
+			if (dwRenderStateType < D3D_MAXRENDERSTATES)
+			{
+				rsUnUsed96[dwRenderStateType - 96] = dwRenderState;
+				return D3D_OK;
+			}
+			else
+			{
+				return DDERR_INVALIDPARAMS;
+			}
 		}
 
 		switch ((DWORD)dwRenderStateType)
@@ -5325,7 +5344,7 @@ HRESULT m_IDirect3DDeviceX::GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD l
 	}
 	else
 	{
-		*lpValue = RenderStateDefault[State];
+		*lpValue = DefaultRenderState[State];
 	}
 
 	return D3D_OK;
@@ -5340,7 +5359,7 @@ HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Val
 
 	BatchStates.RenderState[State] = Value;
 
-	DeviceStates.RenderState[State].Set = (RenderStateDefault[State] != Value);
+	DeviceStates.RenderState[State].Set = (DefaultRenderState[State] != Value);
 	DeviceStates.RenderState[State].State = Value;
 
 	return D3D_OK;
@@ -5359,7 +5378,7 @@ HRESULT m_IDirect3DDeviceX::GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 	}
 	else
 	{
-		*lpValue = TextureStageStateDefault[Stage][Type];
+		*lpValue = DefaultTextureStageState[Stage][Type];
 	}
 
 	return D3D_OK;
@@ -5374,7 +5393,7 @@ HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 
 	BatchStates.TextureStageState[(Stage << 16) | Type] = Value;
 
-	DeviceStates.TextureStageState[Stage][Type].Set = (TextureStageStateDefault[Stage][Type] != Value);
+	DeviceStates.TextureStageState[Stage][Type].Set = (DefaultTextureStageState[Stage][Type] != Value);
 	DeviceStates.TextureStageState[Stage][Type].State = Value;
 
 	return D3D_OK;
@@ -5393,7 +5412,7 @@ HRESULT m_IDirect3DDeviceX::GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 	}
 	else
 	{
-		*lpValue = SamplerStateDefault[Sampler][Type];
+		*lpValue = DefaultSamplerState[Sampler][Type];
 	}
 
 	return D3D_OK;
@@ -5408,7 +5427,7 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 
 	BatchStates.SamplerState[(Sampler << 16) | Type] = Value;
 
-	DeviceStates.SamplerState[Sampler][Type].Set = (SamplerStateDefault[Sampler][Type] != Value);
+	DeviceStates.SamplerState[Sampler][Type].Set = (DefaultSamplerState[Sampler][Type] != Value);
 	DeviceStates.SamplerState[Sampler][Type].State = Value;
 
 	return D3D_OK;
@@ -5491,7 +5510,7 @@ HRESULT m_IDirect3DDeviceX::GetD9ClipPlane(DWORD Index, float* lpPlane) const
 	}
 	else
 	{
-		*(CLIPPLANE*)lpPlane = *(CLIPPLANE*)&ClipPlaneDefault;
+		*(CLIPPLANE*)lpPlane = *(CLIPPLANE*)&DefaultClipPlane;
 	}
 
 	return D3D_OK;
@@ -5525,7 +5544,7 @@ HRESULT m_IDirect3DDeviceX::GetD9Viewport(D3DVIEWPORT9* lpViewport) const
 	}
 	else
 	{
-		*lpViewport = ViewportDefault;
+		*lpViewport = DefaultViewport;
 	}
 
 	return D3D_OK;
@@ -5557,7 +5576,7 @@ HRESULT m_IDirect3DDeviceX::GetD9Material(D3DMATERIAL9* lpMaterial) const
 	}
 	else
 	{
-		*lpMaterial = MaterialDefault;
+		*lpMaterial = DefaultMaterial;
 	}
 
 	return D3D_OK;
@@ -5593,7 +5612,7 @@ HRESULT m_IDirect3DDeviceX::GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRI
 	}
 	else
 	{
-		*lpMatrix = IdentityMatrixDefault;
+		*lpMatrix = DefaultIdentityMatrix;
 	}
 
 	return D3D_OK;
@@ -5873,12 +5892,12 @@ void m_IDirect3DDeviceX::BeforeResetDevice()
 void m_IDirect3DDeviceX::AfterResetDevice()
 {
 	// Get defaults
-	(*d3d9Device)->GetViewport(&ViewportDefault);
+	(*d3d9Device)->GetViewport(&DefaultViewport);
 
 	// If viewport isn't set then set to default
 	if (!DeviceStates.Viewport.Set)
 	{
-		DeviceStates.Viewport.View = ViewportDefault;
+		DeviceStates.Viewport.View = DefaultViewport;
 	}
 }
 
@@ -5918,7 +5937,7 @@ void m_IDirect3DDeviceX::SetDefaults()
 	IsRecordingState = false;
 
 	// Clip status
-	D3DClipStatus = ClipStatusDefault;
+	D3DClipStatus = DefaultClipStatus;
 
 	// Light states
 	lsMaterialHandle = NULL;
@@ -5977,11 +5996,11 @@ void m_IDirect3DDeviceX::SetDefaults()
 
 	// Get default structures
 	(*d3d9Device)->GetDeviceCaps(&Caps9);
-	(*d3d9Device)->GetViewport(&ViewportDefault);
+	(*d3d9Device)->GetViewport(&DefaultViewport);
 
 	// Set defaults
 	MaxLights = min(MaxActiveLights, Caps9.MaxActiveLights);
-	DeviceStates.Viewport.View = ViewportDefault;
+	DeviceStates.Viewport.View = DefaultViewport;
 }
 
 void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion)
