@@ -39,7 +39,7 @@ private:
 		struct {
 			bool Set = false;
 			DWORD State = 0;
-		} RenderState[D3D_MAXRENDERSTATES], TextureStageState[MaxTextureStages][MaxTextureStageStates], SamplerState[MaxTextureStages][MaxSamplerStates];
+		} RenderState[D3D_MAXRENDERSTATES], TextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates], SamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE];
 		struct {
 			bool Set = false;
 			BOOL Enable = FALSE;
@@ -80,8 +80,8 @@ private:
 		DWORD rsAlphaTestEnable = 0;
 		DWORD rsAlphaFunc = 0;
 		DWORD rsAlphaRef = 0;
-		DWORD ssMinFilter[MaxTextureStages] = {};
-		DWORD ssMagFilter[MaxTextureStages] = {};
+		DWORD ssMinFilter[D3DHAL_TSS_MAXSTAGES] = {};
+		DWORD ssMagFilter[D3DHAL_TSS_MAXSTAGES] = {};
 		float lowColorKey[4] = {};
 		float highColorKey[4] = {};
 	} DrawStates;
@@ -134,7 +134,11 @@ private:
 	DWORD rsExtents;
 	DWORD rsColorKeyBlendEnabled;
 	DWORD rsUnUsed96[160];
-	DWORD ssMipFilter[MaxTextureStages] = {};
+	DWORD ssStage0[MaxTextureStageStates];
+	DWORD ssAddress[D3DHAL_TSS_MAXSTAGES];
+	DWORD ssMagFilter[D3DHAL_TSS_MAXSTAGES];
+	DWORD ssMipFilter[D3DHAL_TSS_MAXSTAGES];
+	DWORD ssUnUsed[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates];
 
 	// Handle state blocks
 	bool IsRecordingState = false;
@@ -150,8 +154,8 @@ private:
 	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
 
 	// SetTexture array
-	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[MaxTextureStages] = {};
-	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureStages] = {};
+	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[D3DHAL_TSS_MAXSTAGES] = {};
+	LPDIRECTDRAWSURFACE7 AttachedTexture[D3DHAL_TSS_MAXSTAGES] = {};
 
 	// Texture handle map
 	std::unordered_map<D3DTEXTUREHANDLE, m_IDirect3DTextureX*> TextureHandleMap;
@@ -187,6 +191,7 @@ private:
 	HRESULT DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 	HRESULT DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD triangleCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 
+	HRESULT SetTextureHandle(DWORD TexHandle);
 	HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue) const;
 	HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
 	HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue) const;

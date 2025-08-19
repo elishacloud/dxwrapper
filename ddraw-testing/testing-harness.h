@@ -16,6 +16,8 @@
 		} \
 	}
 
+constexpr UINT MaxTextureStageStates = 33;  // Devices have up to 33 types.
+
 namespace {
 	// 0xFFFFFFFF
 	constexpr DWORD Z = (DWORD)-1;
@@ -29,6 +31,26 @@ constexpr DWORD UnchangeableRenderTargetDX7[] = { 1, 3, 5, 6, 11, 12, 13, 17, 18
 constexpr DWORD DefaultRenderTargetDX5[D3D_MAXRENDERSTATES] = { 0, 0, 0, 1, 0, 0, 0, 1, 3, 2, 0, 0, 13, Z, 1, 0, 1, 1, 1, 2, 1, 2, 3, 4, 0, 8, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, I, I, 0, 0, 0, Z, 0, 1, 1, 0, 0, 0, 1, Z, Z, 0, 1, 1, 1, 8, 0, Z, Z, Z, Z, Z, Z, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, 0, 0, 0, 0, 0, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z };
 constexpr DWORD DefaultRenderTargetDX6[D3D_MAXRENDERSTATES] = { 0, 0, 0, 1, 1, 0, 0, 1, 3, 2, 0, 0, 13, Z, 1, 0, 1, 1, 1, 2, 1, 2, 3, 4, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, I, I, 0, 0, 0, Z, 0, 1, 1, 0, 0, 0, 1, Z, Z, 0, 1, 1, 1, 8, 0, Z, Z, Z, Z, Z, Z, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, 0, 0, 0, 0, 0, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z };
 constexpr DWORD DefaultRenderTargetDX7[D3D_MAXRENDERSTATES] = { Z, 0, Z, 0, 1, 0, 0, 1, 3, 2, 0, 0,  0, 0, 1, 0, 1, 0, 0, 2, 1, 0, 3, 4, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, I, I, 0, Z, 0, Z, 0, 0, 0, 0, 0, 0, 0, Z, 0, 0, 1, 1, 1, 8, 0, Z, Z, Z, Z, Z, Z, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 2, 0, 0, Z, Z, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z };
+
+constexpr DWORD DefaultTextureStageStateDX6[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates] = {
+	{ Z, 4, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z }};
+
+constexpr DWORD DefaultTextureStageStateDX7[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates] = {
+	{ Z, 4, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z }};
 
 constexpr DWORD vDDraw1 = 0;
 constexpr DWORD vDDraw2 = 1;

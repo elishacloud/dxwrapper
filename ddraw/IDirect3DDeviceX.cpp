@@ -257,7 +257,7 @@ HRESULT m_IDirect3DDeviceX::SwapTextureHandles(LPDIRECT3DTEXTURE2 lpD3DTex1, LPD
 		// If texture handle is set then use new texture
 		if (rsTextureHandle == TexHandle1 || rsTextureHandle == TexHandle2)
 		{
-			SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, rsTextureHandle);
+			SetTextureHandle(rsTextureHandle);
 		}
 
 		return D3D_OK;
@@ -1960,28 +1960,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
 		{
 			rsTextureHandle = dwRenderState;
-			if (dwRenderState == NULL)
-			{
-				return SetTexture(0, (LPDIRECT3DTEXTURE2)nullptr);
-			}
-			m_IDirect3DTextureX* pTextureX = GetTexture(dwRenderState);
-			if (pTextureX)
-			{
-				IDirect3DTexture2* lpTexture = (IDirect3DTexture2*)pTextureX->GetWrapperInterfaceX(0);
-				if (!lpTexture)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture address!");
-					return DDERR_INVALIDPARAMS;
-				}
-
-				return SetTexture(0, lpTexture);
-			}
-			else
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture handle!");
-				return SetTexture(0, (LPDIRECT3DTEXTURE2)nullptr);
-			}
-			return D3D_OK;
+			return SetTextureHandle(dwRenderState);
 		}
 		case D3DRENDERSTATE_ANTIALIAS:			// 2
 			rsAntiAliasChanged = true;
@@ -1989,7 +1968,8 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			return D3D_OK;
 		case D3DRENDERSTATE_TEXTUREADDRESS:		// 3
 			rsTextureAddress = dwRenderState;
-			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESS, dwRenderState);
+			SetD9SamplerState(0, D3DSAMP_ADDRESSU, dwRenderState);
+			return SetD9SamplerState(0, D3DSAMP_ADDRESSV, dwRenderState);
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:	// 4
 			if (dwRenderState != rsTexturePerspective)
 			{
@@ -2051,23 +2031,18 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			{
 			case D3DFILTER_NEAREST:
 			case D3DFILTER_LINEAR:
-				ssMipFilter[0] = D3DTEXF_NONE;
 				SetD9SamplerState(0, D3DSAMP_MINFILTER, dwRenderState);
 				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
 			case D3DFILTER_MIPNEAREST:
-				ssMipFilter[0] = D3DTEXF_POINT;
 				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
 				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_POINT);
 			case D3DFILTER_MIPLINEAR:
-				ssMipFilter[0] = D3DTEXF_POINT;
 				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
 				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_POINT);
 			case D3DFILTER_LINEARMIPNEAREST:
-				ssMipFilter[0] = D3DTEXF_LINEAR;
 				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
 				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
 			case D3DFILTER_LINEARMIPLINEAR:
-				ssMipFilter[0] = D3DTEXF_LINEAR;
 				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
 				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
 			default:
@@ -2223,13 +2198,13 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			return D3D_OK;
 		case D3DRENDERSTATE_TEXTUREADDRESSU:	// 44
 			rsTextureAddressU = dwRenderState;
-			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESSU, dwRenderState);
+			return SetD9SamplerState(0, D3DSAMP_ADDRESSU, dwRenderState);
 		case D3DRENDERSTATE_TEXTUREADDRESSV:	// 45
 			rsTextureAddressV = dwRenderState;
-			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_ADDRESSV, dwRenderState);
+			return SetD9SamplerState(0, D3DSAMP_ADDRESSV, dwRenderState);
 		case D3DRENDERSTATE_MIPMAPLODBIAS:		// 46
 			rsMipMapLobBias = dwRenderState;
-			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_MIPMAPLODBIAS, dwRenderState);
+			return SetD9SamplerState(0, D3DSAMP_MIPMAPLODBIAS, dwRenderState);
 		case D3DRENDERSTATE_ZBIAS:				// 47
 		{
 			rsZBias = dwRenderState;
@@ -2240,7 +2215,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		}
 		case D3DRENDERSTATE_ANISOTROPY:			// 49
 			rsAnisotropy = dwRenderState;
-			return SetTextureStageState(0, (D3DTEXTURESTAGESTATETYPE)D3DTSS_MAXANISOTROPY, dwRenderState);
+			return SetD9SamplerState(0, D3DSAMP_MAXANISOTROPY, dwRenderState);
 		case D3DRENDERSTATE_FLUSHBATCH:			// 50
 			rsFlushBatch = dwRenderState;
 			if (dwRenderState != FALSE)
@@ -2351,25 +2326,25 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 			*lpdwLightState = lsMaterialHandle;
 			return D3D_OK;
 		case D3DLIGHTSTATE_AMBIENT:
-			RenderState = D3DRENDERSTATE_AMBIENT;
+			RenderState = D3DRS_AMBIENT;
 			break;
 		case D3DLIGHTSTATE_COLORMODEL:
 			*lpdwLightState = D3DCOLOR_RGB;
 			return D3D_OK;
 		case D3DLIGHTSTATE_FOGMODE:
-			RenderState = D3DRENDERSTATE_FOGVERTEXMODE;
+			RenderState = D3DRS_FOGVERTEXMODE;
 			break;
 		case D3DLIGHTSTATE_FOGSTART:
-			RenderState = D3DRENDERSTATE_FOGSTART;
+			RenderState = D3DRS_FOGSTART;
 			break;
 		case D3DLIGHTSTATE_FOGEND:
-			RenderState = D3DRENDERSTATE_FOGEND;
+			RenderState = D3DRS_FOGEND;
 			break;
 		case D3DLIGHTSTATE_FOGDENSITY:
-			RenderState = D3DRENDERSTATE_FOGDENSITY;
+			RenderState = D3DRS_FOGDENSITY;
 			break;
 		case D3DLIGHTSTATE_COLORVERTEX:
-			RenderState = D3DRENDERSTATE_COLORVERTEX;
+			RenderState = D3DRS_COLORVERTEX;
 			break;
 		default:
 			break;
@@ -2381,7 +2356,7 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 			return DDERR_INVALIDPARAMS;
 		}
 
-		return GetRenderState(RenderState, lpdwLightState);
+		return GetD9RenderState(RenderState, lpdwLightState);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -2437,13 +2412,13 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 
 			if (Material.hTexture)
 			{
-				SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, Material.hTexture);
+				SetTextureHandle(Material.hTexture);
 			}
 
 			return D3D_OK;
 		}
 		case D3DLIGHTSTATE_AMBIENT:
-			RenderState = D3DRENDERSTATE_AMBIENT;
+			RenderState = D3DRS_AMBIENT;
 			break;
 		case D3DLIGHTSTATE_COLORMODEL:
 			if (dwLightState != D3DCOLOR_RGB)
@@ -2452,19 +2427,19 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 			}
 			return D3D_OK;
 		case D3DLIGHTSTATE_FOGMODE:
-			RenderState = D3DRENDERSTATE_FOGVERTEXMODE;
+			RenderState = D3DRS_FOGVERTEXMODE;
 			break;
 		case D3DLIGHTSTATE_FOGSTART:
-			RenderState = D3DRENDERSTATE_FOGSTART;
+			RenderState = D3DRS_FOGSTART;
 			break;
 		case D3DLIGHTSTATE_FOGEND:
-			RenderState = D3DRENDERSTATE_FOGEND;
+			RenderState = D3DRS_FOGEND;
 			break;
 		case D3DLIGHTSTATE_FOGDENSITY:
-			RenderState = D3DRENDERSTATE_FOGDENSITY;
+			RenderState = D3DRS_FOGDENSITY;
 			break;
 		case D3DLIGHTSTATE_COLORVERTEX:
-			RenderState = D3DRENDERSTATE_COLORVERTEX;
+			RenderState = D3DRS_COLORVERTEX;
 			break;
 		default:
 			break;
@@ -2476,7 +2451,7 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 			return DDERR_INVALIDPARAMS;
 		}
 
-		return SetRenderState(RenderState, dwLightState);
+		return SetD9RenderState(RenderState, dwLightState);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -3405,7 +3380,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2* lplpTe
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpTexture || dwStage >= MaxTextureStages)
+		if (!lplpTexture || dwStage >= D3DHAL_TSS_MAXSTAGES)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -3461,7 +3436,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTextu
 
 	if (Config.Dd7to9)
 	{
-		if (dwStage >= MaxTextureStages)
+		if (dwStage >= D3DHAL_TSS_MAXSTAGES)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -3514,25 +3489,42 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 			return DDERR_INVALIDOBJECT;
 		}
 
-		switch ((DWORD)dwState)
+		if (dwStage >= D3DHAL_TSS_MAXSTAGES || dwState == 0
+			|| (ClientDirectXVersion == 3 && dwState > 23)
+			|| (ClientDirectXVersion == 7 && dwState > 24))
 		{
-		case D3DTSS_ADDRESS:
-		{
-			DWORD ValueU = 0, ValueV = 0;
-			GetD9SamplerState(dwStage, D3DSAMP_ADDRESSU, &ValueU);
-			GetD9SamplerState(dwStage, D3DSAMP_ADDRESSV, &ValueV);
-			if (ValueU == ValueV)
+			if (dwStage < D3DHAL_TSS_MAXSTAGES && (DWORD)dwState < MaxTextureStageStates)
 			{
-				*lpdwValue = ValueU;
-				return D3D_OK;
+				*lpdwValue = ssUnUsed[dwStage][dwState];
 			}
-			else
+			return DD_OK;
+		}
+
+		// Special handling for stage 0 with some types because they are shared by a RenderTarget state
+		if (dwStage == 0)
+		{
+			switch ((DWORD)dwState)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: AddressU and AddressV don't match");
-				*lpdwValue = 0;
+			case D3DTSS_COLOROP:
+			case D3DTSS_COLORARG1:
+			case D3DTSS_COLORARG2:
+			case D3DTSS_ALPHAOP:
+			case D3DTSS_ALPHAARG1:
+			case D3DTSS_ALPHAARG2:
+			case D3DTSS_ADDRESSU:
+			case D3DTSS_ADDRESSV:
+			case D3DTSS_MIPMAPLODBIAS:
+			case D3DTSS_MAXANISOTROPY:
+				*lpdwValue = ssStage0[dwState];
 				return D3D_OK;
 			}
 		}
+
+		switch ((DWORD)dwState)
+		{
+		case D3DTSS_ADDRESS:
+			*lpdwValue = ssAddress[dwStage];
+			return D3D_OK;
 		case D3DTSS_ADDRESSU:
 			return GetD9SamplerState(dwStage, D3DSAMP_ADDRESSU, lpdwValue);
 		case D3DTSS_ADDRESSV:
@@ -3542,37 +3534,13 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		case D3DTSS_BORDERCOLOR:
 			return GetD9SamplerState(dwStage, D3DSAMP_BORDERCOLOR, lpdwValue);
 		case D3DTSS_MAGFILTER:
-		{
-			HRESULT hr = GetD9SamplerState(dwStage, D3DSAMP_MAGFILTER, lpdwValue);
-			if (SUCCEEDED(hr) && *lpdwValue == D3DTEXF_ANISOTROPIC)
-			{
-				*lpdwValue = D3DTFG_ANISOTROPIC;
-			}
-			return hr;
-		}
+			*lpdwValue = ssMagFilter[dwStage];
+			return D3D_OK;
 		case D3DTSS_MINFILTER:
 			return GetD9SamplerState(dwStage, D3DSAMP_MINFILTER, lpdwValue);
 		case D3DTSS_MIPFILTER:
-		{
-			HRESULT hr = GetD9SamplerState(dwStage, D3DSAMP_MIPFILTER, lpdwValue);
-			if (SUCCEEDED(hr))
-			{
-				switch (*lpdwValue)
-				{
-				default:
-				case D3DTEXF_NONE:
-					*lpdwValue = D3DTFP_NONE;
-					break;
-				case D3DTEXF_POINT:
-					*lpdwValue = D3DTFP_POINT;
-					break;
-				case D3DTEXF_LINEAR:
-					*lpdwValue = D3DTFP_LINEAR;
-					break;
-				}
-			}
-			return hr;
-		}
+			*lpdwValue = ssMipFilter[dwStage];
+			return D3D_OK;
 		case D3DTSS_MIPMAPLODBIAS:
 			return GetD9SamplerState(dwStage, D3DSAMP_MIPMAPLODBIAS, lpdwValue);
 		case D3DTSS_MAXMIPLEVEL:
@@ -3608,7 +3576,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 
 	if (Config.Dd7to9)
 	{
-		if (dwStage >= MaxTextureStages)
+		if (dwStage >= D3DHAL_TSS_MAXSTAGES)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -3619,9 +3587,40 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 			return DDERR_INVALIDOBJECT;
 		}
 
+		if (dwStage >= D3DHAL_TSS_MAXSTAGES || dwState == 0
+			|| (ClientDirectXVersion == 3 && dwState > 23)
+			|| (ClientDirectXVersion == 7 && dwState > 24))
+		{
+			if (dwStage < D3DHAL_TSS_MAXSTAGES && (DWORD)dwState < MaxTextureStageStates)
+			{
+				ssUnUsed[dwStage][dwState] = dwValue;
+			}
+			return DD_OK;
+		}
+
+		// Special handling for stage 0 with some types because they are shared by a RenderTarget state
+		if (dwStage == 0)
+		{
+			switch ((DWORD)dwState)
+			{
+			case D3DTSS_COLOROP:
+			case D3DTSS_COLORARG1:
+			case D3DTSS_COLORARG2:
+			case D3DTSS_ALPHAOP:
+			case D3DTSS_ALPHAARG1:
+			case D3DTSS_ALPHAARG2:
+			case D3DTSS_ADDRESSU:
+			case D3DTSS_ADDRESSV:
+			case D3DTSS_MIPMAPLODBIAS:
+			case D3DTSS_MAXANISOTROPY:
+				ssStage0[dwState] = dwValue;
+			}
+		}
+
 		switch ((DWORD)dwState)
 		{
 		case D3DTSS_ADDRESS:
+			ssAddress[dwStage] = dwValue;
 			SetD9SamplerState(dwStage, D3DSAMP_ADDRESSU, dwValue);
 			return SetD9SamplerState(dwStage, D3DSAMP_ADDRESSV, dwValue);
 		case D3DTSS_ADDRESSU:
@@ -3633,31 +3632,11 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		case D3DTSS_BORDERCOLOR:
 			return SetD9SamplerState(dwStage, D3DSAMP_BORDERCOLOR, dwValue);
 		case D3DTSS_MAGFILTER:
-			if (dwValue == D3DTFG_ANISOTROPIC)
-			{
-				dwValue = D3DTEXF_ANISOTROPIC;
-			}
-			else if (dwValue == D3DTFG_FLATCUBIC || dwValue == D3DTFG_GAUSSIANCUBIC)
-			{
-				dwValue = D3DTEXF_LINEAR;
-			}
+			ssMagFilter[dwStage] = dwValue;
 			return SetD9SamplerState(dwStage, D3DSAMP_MAGFILTER, dwValue);
 		case D3DTSS_MINFILTER:
 			return SetD9SamplerState(dwStage, D3DSAMP_MINFILTER, dwValue);
 		case D3DTSS_MIPFILTER:
-			switch (dwValue)
-			{
-			default:
-			case D3DTFP_NONE:
-				dwValue = D3DTEXF_NONE;
-				break;
-			case D3DTFP_POINT:
-				dwValue = D3DTEXF_POINT;
-				break;
-			case D3DTFP_LINEAR:
-				dwValue = D3DTEXF_LINEAR;
-				break;
-			}
 			ssMipFilter[dwStage] = dwValue;
 			return SetD9SamplerState(dwStage, D3DSAMP_MIPFILTER, dwValue);
 		case D3DTSS_MIPMAPLODBIAS:
@@ -4205,7 +4184,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpTexture || dwStage >= MaxTextureStages)
+		if (!lplpTexture || dwStage >= D3DHAL_TSS_MAXSTAGES)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -4241,7 +4220,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 
 	if (Config.Dd7to9)
 	{
-		if (dwStage >= MaxTextureStages)
+		if (dwStage >= D3DHAL_TSS_MAXSTAGES)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -4832,7 +4811,7 @@ void m_IDirect3DDeviceX::ClearTextureHandle(D3DTEXTUREHANDLE tHandle)
 		// If texture handle is set then clear it
 		if (rsTextureHandle == tHandle)
 		{
-			SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, 0);
+			SetTexture(0, (LPDIRECT3DTEXTURE2)nullptr);
 		}
 	}
 }
@@ -5054,7 +5033,7 @@ HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL lpMaterial)
 
 	if (lpMaterial->hTexture)
 	{
-		SetRenderState(D3DRENDERSTATE_TEXTUREHANDLE, lpMaterial->hTexture);
+		SetTextureHandle(lpMaterial->hTexture);
 	}
 
 	return D3D_OK;
@@ -5068,7 +5047,7 @@ void m_IDirect3DDeviceX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 		lpCurrentRenderTargetX = nullptr;
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: clearing current render target!");
 	}
-	for (UINT x = 0; x < MaxTextureStages; x++)
+	for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 	{
 		if (CurrentTextureSurfaceX[x] == lpSurfaceX)
 		{
@@ -5331,6 +5310,32 @@ void m_IDirect3DDeviceX::ClearD3D(m_IDirect3DX* lpD3D)
 	D3DInterface = nullptr;
 }
 
+HRESULT m_IDirect3DDeviceX::SetTextureHandle(DWORD TexHandle)
+{
+	if (TexHandle == NULL)
+	{
+		return SetTexture(0, (LPDIRECT3DTEXTURE2)nullptr);
+	}
+	m_IDirect3DTextureX* pTextureX = GetTexture(TexHandle);
+	if (pTextureX)
+	{
+		IDirect3DTexture2* lpTexture = (IDirect3DTexture2*)pTextureX->GetWrapperInterfaceX(0);
+		if (!lpTexture)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture address!");
+			return D3D_OK;
+		}
+
+		return SetTexture(0, lpTexture);
+	}
+	else
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture handle!");
+		return SetTexture(0, (LPDIRECT3DTEXTURE2)nullptr);
+	}
+	return D3D_OK;
+}
+
 HRESULT m_IDirect3DDeviceX::GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue) const
 {
 	if (!lpValue || (UINT)State >= D3D_MAXRENDERSTATES)
@@ -5367,7 +5372,7 @@ HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Val
 
 HRESULT m_IDirect3DDeviceX::GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue) const
 {
-	if (!lpValue || Stage >= MaxTextureStages || (UINT)Type >= MaxTextureStageStates)
+	if (!lpValue || Stage >= D3DHAL_TSS_MAXSTAGES || (UINT)Type >= MaxTextureStageStates)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -5386,7 +5391,7 @@ HRESULT m_IDirect3DDeviceX::GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 
 HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value)
 {
-	if (Stage >= MaxTextureStages || (UINT)Type >= MaxTextureStageStates)
+	if (Stage >= D3DHAL_TSS_MAXSTAGES || (UINT)Type >= MaxTextureStageStates)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -5401,7 +5406,7 @@ HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 
 HRESULT m_IDirect3DDeviceX::GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue) const
 {
-	if (!lpValue || Sampler >= MaxTextureStages || (UINT)Type >= MaxSamplerStates)
+	if (!lpValue || Sampler >= D3DHAL_TSS_MAXSTAGES || (UINT)Type >= D3DHAL_TEXTURESTATEBUF_SIZE)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -5420,10 +5425,12 @@ HRESULT m_IDirect3DDeviceX::GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 
 HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value)
 {
-	if (Sampler >= MaxTextureStages || (UINT)Type >= MaxSamplerStates)
+	if (Sampler >= D3DHAL_TSS_MAXSTAGES || (UINT)Type >= D3DHAL_TEXTURESTATEBUF_SIZE)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
+
+	Value = FixSamplerState(Type, Value);
 
 	BatchStates.SamplerState[(Sampler << 16) | Type] = Value;
 
@@ -5734,7 +5741,7 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	}
 
 	// Restore texture states
-	for (UINT y = 0; y < MaxTextureStages; y++)
+	for (UINT y = 0; y < D3DHAL_TSS_MAXSTAGES; y++)
 	{
 		for (UINT x = 0; x < MaxTextureStageStates; x++)
 		{
@@ -5746,9 +5753,9 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	}
 
 	// Restore sampler states
-	for (UINT y = 0; y < MaxTextureStages; y++)
+	for (UINT y = 0; y < D3DHAL_TSS_MAXSTAGES; y++)
 	{
-		for (UINT x = 0; x < MaxSamplerStates; x++)
+		for (UINT x = 0; x < D3DHAL_TEXTURESTATEBUF_SIZE; x++)
 		{
 			if (DeviceStates.SamplerState[y][x].Set)
 			{
@@ -5813,7 +5820,7 @@ void m_IDirect3DDeviceX::CollectStates()
 	}
 
 	// Restore texture states
-	for (UINT y = 0; y < MaxTextureStages; y++)
+	for (UINT y = 0; y < D3DHAL_TSS_MAXSTAGES; y++)
 	{
 		for (UINT x = 0; x < MaxTextureStageStates; x++)
 		{
@@ -5825,9 +5832,9 @@ void m_IDirect3DDeviceX::CollectStates()
 	}
 
 	// Restore sampler states
-	for (UINT y = 0; y < MaxTextureStages; y++)
+	for (UINT y = 0; y < D3DHAL_TSS_MAXSTAGES; y++)
 	{
-		for (UINT x = 0; x < MaxSamplerStates; x++)
+		for (UINT x = 0; x < D3DHAL_TEXTURESTATEBUF_SIZE; x++)
 		{
 			if (DeviceStates.SamplerState[y][x].Set)
 			{
@@ -5980,18 +5987,28 @@ void m_IDirect3DDeviceX::SetDefaults()
 	rsExtents = (ClientDirectXVersion > 2 ? FALSE : TRUE);
 	rsColorKeyBlendEnabled = FALSE;
 	memset(rsUnUsed96, 0xFFFFFFFF, sizeof(rsUnUsed96));
+	std::fill(std::begin(ssStage0), std::end(ssStage0), 1);
+	ssStage0[D3DTSS_COLOROP] = D3DTOP_MODULATE;
+	ssStage0[D3DTSS_COLORARG1] = D3DTA_TEXTURE;
+	ssStage0[D3DTSS_ALPHAOP] = D3DTOP_SELECTARG1;
+	ssStage0[D3DTSS_ALPHAARG1] = D3DTA_TEXTURE;
+	ssStage0[D3DTSS_MIPMAPLODBIAS] = D3DTA_DIFFUSE;
+	std::fill(std::begin(ssAddress), std::end(ssAddress), 1);
+	std::fill(std::begin(ssMagFilter), std::end(ssMagFilter), 1);
+	std::fill(std::begin(ssMipFilter), std::end(ssMipFilter), 1);
+	memset(ssUnUsed, 0xFFFFFFFF, sizeof(ssUnUsed));
 
 	// Set DirectDraw defaults
-	SetTextureStageState(1, D3DTSS_TEXCOORDINDEX, 0);
-	SetTextureStageState(2, D3DTSS_TEXCOORDINDEX, 0);
-	SetTextureStageState(3, D3DTSS_TEXCOORDINDEX, 0);
-	SetTextureStageState(4, D3DTSS_TEXCOORDINDEX, 0);
-	SetTextureStageState(5, D3DTSS_TEXCOORDINDEX, 0);
-	SetTextureStageState(6, D3DTSS_TEXCOORDINDEX, 0);
+	SetD9TextureStageState(1, D3DTSS_TEXCOORDINDEX, 0);
+	SetD9TextureStageState(2, D3DTSS_TEXCOORDINDEX, 0);
+	SetD9TextureStageState(3, D3DTSS_TEXCOORDINDEX, 0);
+	SetD9TextureStageState(4, D3DTSS_TEXCOORDINDEX, 0);
+	SetD9TextureStageState(5, D3DTSS_TEXCOORDINDEX, 0);
+	SetD9TextureStageState(6, D3DTSS_TEXCOORDINDEX, 0);
 
 	if (ClientDirectXVersion < 3)
 	{
-		SetRenderState(D3DRENDERSTATE_SPECULARENABLE, TRUE);
+		SetD9RenderState(D3DRS_SPECULARENABLE, TRUE);
 	}
 
 	// Get default structures
@@ -6067,7 +6084,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 
 	if (Config.DdrawFixByteAlignment > 1)
 	{
-		for (UINT x = 0; x < MaxTextureStages; x++)
+		for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 		{
 			if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
 			{
@@ -6079,7 +6096,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			}
 		}
 	}
-	for (UINT x = 0; x < MaxTextureStages; x++)
+	for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 	{
 		// Set textures
 		if (CurrentTextureSurfaceX[x])
@@ -6103,7 +6120,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	if (rsColorKeyEnabled)
 	{
 		// Check for color key alpha texture
-		for (UINT x = 0; x < MaxTextureStages; x++)
+		for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 		{
 			if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->IsColorKeyTexture() && CurrentTextureSurfaceX[x]->GetD3d9DrawTexture())
 			{
@@ -6179,7 +6196,7 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags
 	}
 	if (Config.DdrawFixByteAlignment > 1)
 	{
-		for (UINT x = 0; x < MaxTextureStages; x++)
+		for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 		{
 			if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
 			{

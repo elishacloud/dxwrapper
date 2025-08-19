@@ -1,8 +1,6 @@
 #pragma once
 
-constexpr UINT MaxTextureStageStates = 33;  // Devices have up to 33 types.
-constexpr UINT MaxSamplerStates = 14;	    // Devices can have up to 14 sampler states.
-constexpr UINT MaxTextureStages = 8;	    // Devices can have up to eight set textures.
+constexpr UINT MaxTextureStageStates = 33;  // Devices have up to 33 stage states.
 constexpr UINT MaxClipPlaneIndex = 6;       // Devices can have up to six clip planes.
 constexpr UINT MaxActiveLights = 32;        // Devices can have up to 32 lights.
 
@@ -42,7 +40,7 @@ constexpr DWORD DefaultRenderState[D3D_MAXRENDERSTATES] = {
 	Z, Z, Z, Z, Z, Z,
 };
 
-constexpr DWORD DefaultTextureStageState[MaxTextureStages][MaxTextureStageStates] = {
+constexpr DWORD DefaultTextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates] = {
 	{ Z, 4, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, },
 	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, },
 	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, },
@@ -53,7 +51,7 @@ constexpr DWORD DefaultTextureStageState[MaxTextureStages][MaxTextureStageStates
 	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, }
 };
 
-constexpr DWORD DefaultSamplerState[MaxTextureStages][MaxSamplerStates] = {
+constexpr DWORD DefaultSamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE] = {
 	{ Z, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, },
 	{ Z, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, },
 	{ Z, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, },

@@ -399,6 +399,35 @@ bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectX
 	return false;
 }
 
+DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value)
+{
+	if (Type == D3DSAMP_MAGFILTER)
+	{
+		if (Value == D3DTFG_ANISOTROPIC)
+		{
+			return D3DTEXF_ANISOTROPIC;
+		}
+		else if (Value == D3DTFG_FLATCUBIC || Value == D3DTFG_GAUSSIANCUBIC)
+		{
+			return D3DTEXF_LINEAR;
+		}
+	}
+	if (Type == D3DSAMP_MIPFILTER)
+	{
+		switch (Value)
+		{
+		default:
+		case D3DTFP_NONE:
+			return D3DTEXF_NONE;
+		case D3DTFP_POINT:
+			return D3DTEXF_POINT;
+		case D3DTFP_LINEAR:
+			return D3DTEXF_LINEAR;
+		}
+	}
+	return Value;
+}
+
 bool IsValidTransformState(D3DTRANSFORMSTATETYPE State)
 {
 	switch ((DWORD)State)
@@ -787,8 +816,8 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9)
 	Desc7.dvGuardBandRight = Caps9.GuardBandRight;
 	Desc7.dvGuardBandBottom = Caps9.GuardBandBottom;
 	Desc7.dvExtentsAdjust = Caps9.ExtentsAdjust;
-	Desc7.wMaxTextureBlendStages = (WORD)min(Caps9.MaxTextureBlendStages, MaxTextureStages);
-	Desc7.wMaxSimultaneousTextures = (WORD)min(Caps9.MaxSimultaneousTextures, MaxTextureStages);
+	Desc7.wMaxTextureBlendStages = (WORD)min(Caps9.MaxTextureBlendStages, D3DHAL_TSS_MAXSTAGES);
+	Desc7.wMaxSimultaneousTextures = (WORD)min(Caps9.MaxSimultaneousTextures, D3DHAL_TSS_MAXSTAGES);
 	Desc7.dwMaxActiveLights = min(Caps9.MaxActiveLights, MaxActiveLights);
 	Desc7.dvMaxVertexW = Caps9.MaxVertexW;
 	Desc7.wMaxUserClipPlanes = (WORD)min(Caps9.MaxUserClipPlanes, MaxClipPlaneIndex);

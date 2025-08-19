@@ -146,6 +146,63 @@ void TestRenderState(D3DDType* pDevice, const DWORD DefaultValue[], const DWORD 
     }
 }
 
+template <typename D3DDType>
+void TestTextureStageState(D3DDType* pDevice, const DWORD(*DefaultValue)[MaxTextureStageStates])
+{
+    for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
+    {
+        for (UINT y = 0; y < MaxTextureStageStates; y++)
+        {
+            DWORD ssValue = 0;
+            HRESULT hr = pDevice->GetTextureStageState(x, (D3DTEXTURESTAGESTATETYPE)y, &ssValue);
+
+            if (hr != DD_OK)
+            {
+                LOG_TEST_RESULT(y, "Failed return when trying to get -1- Texture State Stage " << x << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
+            }
+
+            if (ssValue != DefaultValue[x][y])
+            {
+                LOG_TEST_RESULT(y, "Failed to get correct Texture State Stage " << x << ". Error: ", ssValue, DefaultValue[x][y]);
+            }
+
+            DWORD NewValue = FALSE;
+            hr = pDevice->SetTextureStageState(x, (D3DTEXTURESTAGESTATETYPE)y, NewValue);
+            if (hr != DD_OK)
+            {
+                LOG_TEST_RESULT(y, "Failed return when trying to get -2- Texture State Stage " << x << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
+            }
+            hr = pDevice->GetTextureStageState(x, (D3DTEXTURESTAGESTATETYPE)y, &ssValue);
+            if (hr != DD_OK)
+            {
+                LOG_TEST_RESULT(y, "Failed return when trying to set -2- Texture State Stage " << x << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
+            }
+
+            if (ssValue != NewValue)
+            {
+                LOG_TEST_RESULT(y, "Failed to set Texture State Stage " << x << " to FALSE. Error: ", ssValue, NewValue);
+            }
+
+            NewValue = TRUE;
+            hr = pDevice->SetTextureStageState(x, (D3DTEXTURESTAGESTATETYPE)y, NewValue);
+            if (hr != DD_OK)
+            {
+                LOG_TEST_RESULT(y, "Failed return when trying to get -3- Texture State Stage " << x << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
+            }
+            hr = pDevice->GetTextureStageState(x, (D3DTEXTURESTAGESTATETYPE)y, &ssValue);
+            if (hr != DD_OK)
+            {
+                LOG_TEST_RESULT(y, "Failed return when trying to set -3- Texture State Stage " << x << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
+            }
+
+            if (ssValue != NewValue)
+            {
+                LOG_TEST_RESULT(y, "Failed to set Texture State Stage " << x << " to TRUE. Error: ", ssValue, NewValue);
+            }
+        }
+    }
+}
+
 template <typename DDType, typename DSType, typename DSDesc, typename D3DType, typename D3DDType>
 void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
 {
@@ -278,6 +335,7 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
         if (SUCCEEDED(hr))
         {
             TestRenderState<IDirect3DDevice3>(pD3DDevice1, DefaultRenderTargetDX6, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), 3);
+            TestTextureStageState<IDirect3DDevice3>(pD3DDevice1, DefaultTextureStageStateDX6);
         }
     }
     else if constexpr (std::is_same_v<D3DType, IDirect3D7>)
@@ -287,6 +345,7 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
         if (SUCCEEDED(hr))
         {
             TestRenderState<IDirect3DDevice7>(pD3DDevice1, DefaultRenderTargetDX7, UnchangeableRenderTargetDX7, sizeof(UnchangeableRenderTargetDX7) / sizeof(UnchangeableRenderTargetDX7[0]), 7);
+            TestTextureStageState<IDirect3DDevice7>(pD3DDevice1, DefaultTextureStageStateDX7);
         }
     }
 
