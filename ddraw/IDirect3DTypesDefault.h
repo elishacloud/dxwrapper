@@ -7,7 +7,7 @@ namespace {
 	constexpr DWORD I = 0x3F800000;
 }
 
-constexpr DWORD RenderStateDefault[MaxDeviceStates] = {
+constexpr DWORD RenderStateDefault[D3D_MAXRENDERSTATES] = {
 	Z, Z, Z, Z, 1, 1, 1, 1, 3, 2,
 	0, 0, 0, 0, 1, 0, 1, 1, 1, 2,
 	1, 1, 3, 4, 0, 8, 0, 0, 0, 0,
@@ -27,7 +27,7 @@ constexpr DWORD RenderStateDefault[MaxDeviceStates] = {
 	Z, Z, Z, Z, Z, Z, Z, Z, Z, Z,
 	Z, Z, Z, Z, Z, Z, Z, Z, Z, Z,
 	Z, Z, Z, Z, Z, Z, Z, Z, Z, Z,
-	Z, Z, Z, Z, Z, Z, Z, Z, Z, Z,
+	Z, Z, Z, Z, Z, 0, Z, Z, Z, Z,
 	Z, Z, Z, Z, Z, Z, Z, Z, Z, Z,
 	Z, Z, Z, Z, Z, Z, Z, Z, Z, Z,
 	Z, Z, Z, Z, Z, Z, Z, Z, Z, Z,

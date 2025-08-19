@@ -4,7 +4,6 @@
 #define DX3DTYPE_H
 #endif
 
-constexpr UINT MaxDeviceStates = 256;	    // Devices can have up to 256 states.
 constexpr UINT MaxTextureStageStates = 33;  // Devices have up to 33 types.
 constexpr UINT MaxSamplerStates = 14;	    // Devices can have up to 14 sampler states.
 constexpr UINT MaxTextureStages = 8;	    // Devices can have up to eight set textures.
@@ -14,6 +13,8 @@ constexpr UINT MaxActiveLights = 32;        // Devices can have up to 32 lights.
 #include "IDirect3DTypesDefault.h"
 
 #define D3DSTATE D3DSTATE7
+
+#define D3DRENDERSTATE_NONE 0
 
 #define D3DDP_FORCE_DWORD               0x0000001Fl
 #define D3DDP_DXW_COLORKEYENABLE        0x00000020l
@@ -193,6 +194,8 @@ void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT& Viewport);
 void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT2& Viewport2);
 void ConvertViewport(D3DVIEWPORT7& Viewport, const D3DVIEWPORT7& Viewport7);
 D3DVIEWPORT9 FixViewport(const D3DVIEWPORT9& Viewport);
+bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD& Value, DWORD DirectXVersion);
+bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
 bool IsValidTransformState(D3DTRANSFORMSTATETYPE State);
 D3DMATRIX FixMatrix(const D3DMATRIX& Matrix, D3DTRANSFORMSTATETYPE State, D3DVIEWPORT Viewport, bool ScaleMatrix);
 void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7);
@@ -200,7 +203,6 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9);
 void ConvertLVertex(DXLVERTEX7* lFVF7, const DXLVERTEX9* lFVF9, DWORD NumVertices);
 void ConvertLVertex(DXLVERTEX9* lFVF9, const DXLVERTEX7* lFVF7, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
-bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType);
 void ClampVertices(BYTE* pVertexData, DWORD Stride, DWORD dwNumVertices);
 void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF);
 DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType);

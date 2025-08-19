@@ -311,6 +311,94 @@ D3DVIEWPORT9 FixViewport(const D3DVIEWPORT9& Viewport)
 	return result;
 }
 
+bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD& Value, DWORD DirectXVersion)
+{
+	if (dwRenderStateType >= D3D_MAXRENDERSTATES)
+	{
+		Value = 0;
+		return false;
+	}
+
+	if (DirectXVersion == 1)	// IDirect3D (DX 2 & 3)
+	{
+		if (dwRenderStateType == 0									// 0
+			|| (dwRenderStateType > 39 && dwRenderStateType < 64)	// 40-63
+			|| dwRenderStateType > 95)								// 96-256
+		{
+			return false;
+		}
+	}
+	else if (DirectXVersion < 7)	// IDirect3D 2 & 3 (DX 5 & 6)
+	{
+		switch ((DWORD)dwRenderStateType)
+		{
+		case D3DRENDERSTATE_NONE:				// 0
+			Value = 0;
+			return false;
+		case D3DRENDERSTATE_FLUSHBATCH:			// 50
+			Value = (DWORD)-1;
+			return false;
+		}
+	}
+	else if (DirectXVersion == 7)	// IDirect3D 7 (DX 7)
+	{
+		switch ((DWORD)dwRenderStateType)
+		{
+		case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
+		case D3DRENDERSTATE_TEXTUREADDRESS:		// 3
+		case D3DRENDERSTATE_WRAPU:				// 5
+		case D3DRENDERSTATE_WRAPV:				// 6
+		case D3DRENDERSTATE_MONOENABLE:			// 11
+		case D3DRENDERSTATE_ROP2:				// 12
+		case D3DRENDERSTATE_PLANEMASK:			// 13
+		case D3DRENDERSTATE_TEXTUREMAG:			// 17
+		case D3DRENDERSTATE_TEXTUREMIN:			// 18
+		case D3DRENDERSTATE_TEXTUREMAPBLEND:	// 21
+		case D3DRENDERSTATE_SUBPIXEL:			// 31
+		case D3DRENDERSTATE_SUBPIXELX:			// 32
+		case D3DRENDERSTATE_STIPPLEENABLE:		// 39
+		case D3DRENDERSTATE_BORDERCOLOR:		// 43
+		case D3DRENDERSTATE_TEXTUREADDRESSU:	// 44
+		case D3DRENDERSTATE_TEXTUREADDRESSV:	// 45
+		case D3DRENDERSTATE_MIPMAPLODBIAS:		// 46
+		case D3DRENDERSTATE_ANISOTROPY:			// 49
+		case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:			// 51
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: ignoring undocumented DX7 Render state: " << dwRenderStateType);
+			Value = 0;
+			return false;
+		}
+		if (dwRenderStateType > 63 && dwRenderStateType < 96)	// 64-95
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: ignoring undocumented DX7 Render state: " << dwRenderStateType);
+			Value = 0;
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion)
+{
+	switch (DirectXVersion)
+	{
+	case 2:
+	case 3:
+		if (dwRenderStateType > 135)
+		{
+			return true;
+		}
+		break;
+	case 7:
+		if (dwRenderStateType == 149 || dwRenderStateType == 150 || dwRenderStateType > 152)
+		{
+			return true;
+		}
+		break;
+	}
+	return false;
+}
+
 bool IsValidTransformState(D3DTRANSFORMSTATETYPE State)
 {
 	switch ((DWORD)State)
@@ -770,119 +858,6 @@ bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState)
 	case D3DTSS_ALPHAARG0:
 	case D3DTSS_RESULTARG:
 	case D3DTSS_CONSTANT:
-		return true;
-	default:
-		return false;
-	}
-}
-
-bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType)
-{
-	switch ((DWORD)dwRenderStateType)
-	{
-	case D3DRS_ZENABLE:
-	case D3DRS_FILLMODE:
-	case D3DRS_SHADEMODE:
-	case D3DRS_ZWRITEENABLE:
-	case D3DRS_ALPHATESTENABLE:
-	case D3DRS_LASTPIXEL:
-	case D3DRS_SRCBLEND:
-	case D3DRS_DESTBLEND:
-	case D3DRS_CULLMODE:
-	case D3DRS_ZFUNC:
-	case D3DRS_ALPHAREF:
-	case D3DRS_ALPHAFUNC:
-	case D3DRS_DITHERENABLE:
-	case D3DRS_ALPHABLENDENABLE:
-	case D3DRS_FOGENABLE:
-	case D3DRS_SPECULARENABLE:
-	case D3DRS_FOGCOLOR:
-	case D3DRS_FOGTABLEMODE:
-	case D3DRS_FOGSTART:
-	case D3DRS_FOGEND:
-	case D3DRS_FOGDENSITY:
-	case D3DRS_RANGEFOGENABLE:
-	case D3DRS_STENCILENABLE:
-	case D3DRS_STENCILFAIL:
-	case D3DRS_STENCILZFAIL:
-	case D3DRS_STENCILPASS:
-	case D3DRS_STENCILFUNC:
-	case D3DRS_STENCILREF:
-	case D3DRS_STENCILMASK:
-	case D3DRS_STENCILWRITEMASK:
-	case D3DRS_TEXTUREFACTOR:
-	case D3DRS_WRAP0:
-	case D3DRS_WRAP1:
-	case D3DRS_WRAP2:
-	case D3DRS_WRAP3:
-	case D3DRS_WRAP4:
-	case D3DRS_WRAP5:
-	case D3DRS_WRAP6:
-	case D3DRS_WRAP7:
-	case D3DRS_CLIPPING:
-	case D3DRS_LIGHTING:
-	case D3DRS_AMBIENT:
-	case D3DRS_FOGVERTEXMODE:
-	case D3DRS_COLORVERTEX:
-	case D3DRS_LOCALVIEWER:
-	case D3DRS_NORMALIZENORMALS:
-	case D3DRS_DIFFUSEMATERIALSOURCE:
-	case D3DRS_SPECULARMATERIALSOURCE:
-	case D3DRS_AMBIENTMATERIALSOURCE:
-	case D3DRS_EMISSIVEMATERIALSOURCE:
-	case D3DRS_VERTEXBLEND:
-	case D3DRS_CLIPPLANEENABLE:
-	case D3DRS_POINTSIZE:
-	case D3DRS_POINTSIZE_MIN:
-	case D3DRS_POINTSPRITEENABLE:
-	case D3DRS_POINTSCALEENABLE:
-	case D3DRS_POINTSCALE_A:
-	case D3DRS_POINTSCALE_B:
-	case D3DRS_POINTSCALE_C:
-	case D3DRS_MULTISAMPLEANTIALIAS:
-	case D3DRS_MULTISAMPLEMASK:
-	case D3DRS_PATCHEDGESTYLE:
-	case D3DRS_DEBUGMONITORTOKEN:
-	case D3DRS_POINTSIZE_MAX:
-	case D3DRS_INDEXEDVERTEXBLENDENABLE:
-	case D3DRS_COLORWRITEENABLE:
-	case D3DRS_TWEENFACTOR:
-	case D3DRS_BLENDOP:
-	case D3DRS_POSITIONDEGREE:
-	case D3DRS_NORMALDEGREE:
-	case D3DRS_SCISSORTESTENABLE:
-	case D3DRS_SLOPESCALEDEPTHBIAS:
-	case D3DRS_ANTIALIASEDLINEENABLE:
-	case D3DRS_MINTESSELLATIONLEVEL:
-	case D3DRS_MAXTESSELLATIONLEVEL:
-	case D3DRS_ADAPTIVETESS_X:
-	case D3DRS_ADAPTIVETESS_Y:
-	case D3DRS_ADAPTIVETESS_Z:
-	case D3DRS_ADAPTIVETESS_W:
-	case D3DRS_ENABLEADAPTIVETESSELLATION:
-	case D3DRS_TWOSIDEDSTENCILMODE:
-	case D3DRS_CCW_STENCILFAIL:
-	case D3DRS_CCW_STENCILZFAIL:
-	case D3DRS_CCW_STENCILPASS:
-	case D3DRS_CCW_STENCILFUNC:
-	case D3DRS_COLORWRITEENABLE1:
-	case D3DRS_COLORWRITEENABLE2:
-	case D3DRS_COLORWRITEENABLE3:
-	case D3DRS_BLENDFACTOR:
-	case D3DRS_SRGBWRITEENABLE:
-	case D3DRS_DEPTHBIAS:
-	case D3DRS_WRAP8:
-	case D3DRS_WRAP9:
-	case D3DRS_WRAP10:
-	case D3DRS_WRAP11:
-	case D3DRS_WRAP12:
-	case D3DRS_WRAP13:
-	case D3DRS_WRAP14:
-	case D3DRS_WRAP15:
-	case D3DRS_SEPARATEALPHABLENDENABLE:
-	case D3DRS_SRCBLENDALPHA:
-	case D3DRS_DESTBLENDALPHA:
-	case D3DRS_BLENDOPALPHA:
 		return true;
 	default:
 		return false;

@@ -3,7 +3,7 @@
 class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
-	IDirect3DDevice7 *ProxyInterface = nullptr;
+	IDirect3DDevice7* ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
 	DWORD ClientDirectXVersion;
 	ULONG RefCount1 = 0;
@@ -19,9 +19,9 @@ private:
 	m_IDirect3DDevice7* WrapperInterface7 = nullptr;
 
 	// Convert to Direct3D9
-	m_IDirectDrawX *ddrawParent = nullptr;
+	m_IDirectDrawX* ddrawParent = nullptr;
 	m_IDirect3DX* D3DInterface = nullptr;
-	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
+	LPDIRECT3DDEVICE9* d3d9Device = nullptr;
 	LPDIRECT3DPIXELSHADER9* colorkeyPixelShader = nullptr;
 	LPDIRECT3DVERTEXSHADER9* fixupVertexShader = nullptr;
 	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
@@ -39,7 +39,7 @@ private:
 		struct {
 			bool Set = false;
 			DWORD State = 0;
-		} RenderState[MaxDeviceStates], TextureStageState[MaxTextureStages][MaxTextureStageStates], SamplerState[MaxTextureStages][MaxSamplerStates];
+		} RenderState[D3D_MAXRENDERSTATES], TextureStageState[MaxTextureStages][MaxTextureStageStates], SamplerState[MaxTextureStages][MaxSamplerStates];
 		struct {
 			bool Set = false;
 			BOOL Enable = FALSE;
@@ -97,20 +97,43 @@ private:
 	DWORD lsMaterialHandle;
 
 	// Render states
+	DWORD rsNone;
+	DWORD rsTextureHandle;
 	bool rsAntiAliasChanged;
 	DWORD rsAntiAlias;
+	DWORD rsTextureAddress;
 	DWORD rsTexturePerspective;
 	DWORD rsEdgeAntiAlias;
-	bool rsTextureWrappingChanged;
-	DWORD rsTextureWrappingU;
-	DWORD rsTextureWrappingV;
-	DWORD rsTextureHandle;
+	bool rsWrapChanged;
+	DWORD rsWrapU;
+	DWORD rsWrapV;
+	DWORD rsLinePattern;
+	DWORD rsMonoEnable;
+	DWORD rsROP2;
+	DWORD rsPlaneMask;
+	DWORD rsTextureMag;
 	DWORD rsTextureMin;
 	DWORD rsTextureMapBlend;
-	DWORD rsAlphaBlendEnabled;
-	DWORD rsSrcBlend;
-	DWORD rsDestBlend;
+	DWORD rsZVisible;
+	DWORD rsSubPixel;
+	DWORD rsSubPixelX;
+	DWORD rsStippledAlpha;
+	DWORD rsStippleEnable;
 	DWORD rsColorKeyEnabled;
+	DWORD rsOldAlphaEnabled;
+	DWORD rsBorderColor;
+	DWORD rsTextureAddressU;
+	DWORD rsTextureAddressV;
+	DWORD rsMipMapLobBias;
+	DWORD rsZBias;
+	DWORD rsAnisotropy;
+	DWORD rsFlushBatch;
+	DWORD rsTranslucentSortIndependent;
+	DWORD rsUnUsed61To63[3];
+	DWORD rsStipplePattern[32];
+	DWORD rsExtents;
+	DWORD rsColorKeyBlendEnabled;
+	DWORD rsUnUsed96[160];
 	DWORD ssMipFilter[MaxTextureStages] = {};
 
 	// Handle state blocks

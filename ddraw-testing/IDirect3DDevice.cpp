@@ -38,6 +38,65 @@ void TestExecuteBuffer(DDType* pDDraw, D3DDType* pDirect3DDevice)
     LOG_TEST_RESULT(TestID, "After ExecuteBuffer release. Direct3DDevice Ref count: ", GetRefCount(pDirect3DDevice), GetResults<DDType>(TestID));
 }
 
+template <typename D3DDType>
+void TestRenderState(D3DDType* pDevice, const DWORD DefaultValue[], const DWORD Unchangeable[], size_t ArraySize)
+{
+    for (UINT x = 0; x < D3D_MAXRENDERSTATES; x++)
+    {
+        DWORD rsValue = 0;
+        pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
+
+        if (rsValue != DefaultValue[x])
+        {
+            LOG_TEST_RESULT(x, "Failed to get correct Render State. Error: ", rsValue, DefaultValue[x]);
+        }
+
+        bool ChangeValue = true;
+        for (UINT y = 0; y < ArraySize; y++)
+        {
+            if (Unchangeable[y] == x)
+            {
+                ChangeValue = false;
+            }
+        }
+
+        if (ChangeValue)
+        {
+            // Enable setting
+            DWORD NewValue = FALSE;
+            pDevice->SetRenderState((D3DRENDERSTATETYPE)x, NewValue);
+            pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
+
+            if (rsValue != NewValue)
+            {
+                LOG_TEST_RESULT(x, "Failed to set Render State to FALSE. Error: ", rsValue, NewValue);
+            }
+
+            // Disable setting
+            NewValue = TRUE;
+            pDevice->SetRenderState((D3DRENDERSTATETYPE)x, NewValue);
+            pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
+
+            if (rsValue != NewValue)
+            {
+                LOG_TEST_RESULT(x, "Failed to set Render State to TRUE. Error: ", rsValue, NewValue);
+            }
+        }
+        // Check if setting can be modified
+        else
+        {
+            DWORD NewValue = rsValue ? FALSE : TRUE;
+            pDevice->SetRenderState((D3DRENDERSTATETYPE)x, NewValue);
+            pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
+
+            if (rsValue == NewValue)
+            {
+                LOG_TEST_RESULT(x, "Failed! Render State shouldn't be able to be changed. Error: ", rsValue, NewValue);
+            }
+        }
+    }
+}
+
 template <typename DDType, typename DSType, typename DSDesc, typename D3DType, typename D3DDType>
 void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
 {
@@ -157,14 +216,29 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
     else if constexpr (std::is_same_v<D3DType, IDirect3D2>)
     {
         hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1);
+
+        if (SUCCEEDED(hr))
+        {
+            TestRenderState<IDirect3DDevice2>(pD3DDevice1, DefaultRenderTargetDX5, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]));
+        }
     }
     else if constexpr (std::is_same_v<D3DType, IDirect3D3>)
     {
         hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1, nullptr);
+
+        if (SUCCEEDED(hr))
+        {
+            TestRenderState<IDirect3DDevice3>(pD3DDevice1, DefaultRenderTargetDX6, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]));
+        }
     }
     else if constexpr (std::is_same_v<D3DType, IDirect3D7>)
     {
         hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1);
+
+        if (SUCCEEDED(hr))
+        {
+            TestRenderState<IDirect3DDevice7>(pD3DDevice1, DefaultRenderTargetDX7, UnchangeableRenderTargetDX7, sizeof(UnchangeableRenderTargetDX7) / sizeof(UnchangeableRenderTargetDX7[0]));
+        }
     }
 
     // ****  803  ****
