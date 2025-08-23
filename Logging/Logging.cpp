@@ -789,6 +789,24 @@ std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT9& vp)
 		<< vp.MaxZ;
 }
 
+std::ostream& operator<<(std::ostream& os, const D3DLIGHT9& data)
+{
+	return Logging::LogStruct(os)
+		<< data.Type
+		<< data.Diffuse
+		<< data.Specular
+		<< data.Ambient
+		<< data.Position
+		<< data.Direction
+		<< data.Range
+		<< data.Falloff
+		<< data.Attenuation0
+		<< data.Attenuation1
+		<< data.Attenuation2
+		<< data.Theta
+		<< data.Phi;
+}
+
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp)
 {
 	return Logging::LogStruct(os)

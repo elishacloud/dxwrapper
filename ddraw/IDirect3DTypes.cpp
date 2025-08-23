@@ -37,7 +37,11 @@ void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 	Light7.dltType = Light.dltType;
 	Light7.dcvDiffuse = Light.dcvColor;
 	Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 0.0f };
-	Light7.dcvAmbient = { 0.0f, 0.0f, 0.0f, 0.0f };
+	const float scale = 0.5f;
+	Light7.dcvAmbient.r = Light.dcvColor.r * scale;
+	Light7.dcvAmbient.g = Light.dcvColor.g * scale;
+	Light7.dcvAmbient.b = Light.dcvColor.b * scale;
+	Light7.dcvAmbient.a = Light.dcvColor.a;
 	Light7.dvPosition = Light.dvPosition;
 	Light7.dvDirection = Light.dvDirection;
 	Light7.dvRange = Light.dvRange;
@@ -70,12 +74,19 @@ D3DLIGHT9 FixLight(const D3DLIGHT9& Light)
 	}
 
 	// Clamp range
-	if (result.Range < 0.0f) result.Range = 0.0f;
+	if (result.Range <= 0.0f)
+	{
+		result.Range = D3DLIGHT_RANGE_MAX; // ~1e9f, DX9's max
+	}
 
 	// Attenuation must be non-negative
 	if (result.Attenuation0 < 0.0f) result.Attenuation0 = 1.0f;
 	if (result.Attenuation1 < 0.0f) result.Attenuation1 = 0.0f;
 	if (result.Attenuation2 < 0.0f) result.Attenuation2 = 0.0f;
+	if (result.Attenuation0 == 0.0f && result.Attenuation1 == 0.0f && result.Attenuation2 == 0.0f)
+	{
+		result.Attenuation0 = 1.0f;
+	}
 
 	// Make spot light work more like it did in Direct3D7
 	if (result.Type == D3DLIGHT_SPOT)
@@ -92,7 +103,7 @@ D3DLIGHT9 FixLight(const D3DLIGHT9& Light)
 	result.Phi = CLAMP(result.Phi, 0.0f, D3DX_PI);
 	if (result.Theta > result.Phi) std::swap(result.Theta, result.Phi);
 
-	// Falloff
+	// Falloff must be >= 0
 	if (result.Falloff < 0.0f) result.Falloff = 0.0f;
 
 	return result;

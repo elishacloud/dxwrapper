@@ -4046,7 +4046,7 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 			return DDERR_INVALIDOBJECT;
 		}
 
-		HRESULT hr = SetD9Light(dwLightIndex, reinterpret_cast<D3DLIGHT9*>(lpLight));
+		HRESULT hr = SetD9Light(dwLightIndex, lpLight);
 
 		if (SUCCEEDED(hr))
 		{
@@ -4081,7 +4081,7 @@ HRESULT m_IDirect3DDeviceX::GetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 			return DDERR_INVALIDOBJECT;
 		}
 
-		return GetD9Light(dwLightIndex, reinterpret_cast<D3DLIGHT9*>(lpLight));
+		return GetD9Light(dwLightIndex, lpLight);
 	}
 
 	return GetProxyInterfaceV7()->GetLight(dwLightIndex, lpLight);
@@ -4926,6 +4926,14 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 					break;
 				}
 			}
+			for (auto& entry : DeviceStates.Light)
+			{
+				if (entry.first == x)
+				{
+					Flag = false;
+					break;
+				}
+			}
 			if (x != 0 && Flag)
 			{
 				dwLightIndex = x;
@@ -5451,7 +5459,6 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 	}
 
 	Value = FixSamplerState(Type, Value);
-
 	BatchStates.SamplerState[(Sampler << 16) | Type] = Value;
 
 	DeviceStates.SamplerState[Sampler][Type].Set = (DefaultSamplerState[Sampler][Type] != Value);
@@ -5460,7 +5467,7 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::GetD9Light(DWORD Index, D3DLIGHT9* lpLight) const
+HRESULT m_IDirect3DDeviceX::GetD9Light(DWORD Index, D3DLIGHT7* lpLight) const
 {
 	if (!lpLight)
 	{
@@ -5468,27 +5475,28 @@ HRESULT m_IDirect3DDeviceX::GetD9Light(DWORD Index, D3DLIGHT9* lpLight) const
 	}
 
 	auto it = DeviceStates.Light.find(Index);
-
 	if (it != DeviceStates.Light.end() && it->second.Set)
 	{
-		*lpLight = it->second.Light;
+		*lpLight = it->second.Light7;
 		return D3D_OK;
 	}
 
 	return DDERR_INVALIDPARAMS;
 }
 
-HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT9* lpLight)
+HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT7* lpLight)
 {
 	if (!lpLight)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
 
-	BatchStates.Light[Index] = FixLight(*(D3DLIGHT9*)lpLight);
+	D3DLIGHT9 Light = FixLight(*(D3DLIGHT9*)lpLight);
+	BatchStates.Light[Index] = Light;
 
 	DeviceStates.Light[Index].Set = true;
-	DeviceStates.Light[Index].Light = BatchStates.Light[Index];
+	DeviceStates.Light[Index].Light7 = *lpLight;
+	DeviceStates.Light[Index].Light9 = Light;
 
 	return D3D_OK;
 }
@@ -5501,7 +5509,6 @@ HRESULT m_IDirect3DDeviceX::GetD9LightEnable(DWORD Index, LPBOOL lpEnable) const
 	}
 
 	auto it = DeviceStates.Light.find(Index);
-
 	if (it != DeviceStates.Light.end())
 	{
 		*lpEnable = it->second.Enable;
@@ -5549,10 +5556,11 @@ HRESULT m_IDirect3DDeviceX::SetD9ClipPlane(DWORD Index, const float* lpPlane)
 		return DDERR_INVALIDPARAMS;
 	}
 
-	BatchStates.ClipPlane[Index] = FixClipPlane(*(CLIPPLANE*)lpPlane);
+	CLIPPLANE Plane = FixClipPlane(*(CLIPPLANE*)lpPlane);
+	BatchStates.ClipPlane[Index] = Plane;
 
 	DeviceStates.ClipPlane[Index].Set = true;
-	DeviceStates.ClipPlane[Index].Plane = BatchStates.ClipPlane[Index];
+	DeviceStates.ClipPlane[Index].Plane = Plane;
 
 	return D3D_OK;
 }
@@ -5631,7 +5639,6 @@ HRESULT m_IDirect3DDeviceX::GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRI
 	}
 
 	auto it = DeviceStates.Matrix.find(State);
-
 	if (it != DeviceStates.Matrix.end())
 	{
 		*lpMatrix = it->second;
@@ -5788,7 +5795,7 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	{
 		if (entry.second.Set)
 		{
-			(*d3d9Device)->SetLight(entry.first, &entry.second.Light);
+			(*d3d9Device)->SetLight(entry.first, &entry.second.Light9);
 		}
 		if (entry.second.Enable)
 		{
@@ -5867,7 +5874,7 @@ void m_IDirect3DDeviceX::CollectStates()
 	{
 		if (entry.second.Set)
 		{
-			(*d3d9Device)->GetLight(entry.first, &entry.second.Light);
+			(*d3d9Device)->GetLight(entry.first, &entry.second.Light9);
 		}
 		(*d3d9Device)->GetLightEnable(entry.first, &entry.second.Enable);
 	}
@@ -6261,7 +6268,7 @@ void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLigh
 			if (entry.second.Set && entry.second.Enable)
 			{
 				DXLIGHT7 DxLight7 = {};
-				*reinterpret_cast<D3DLIGHT9*>(&DxLight7) = entry.second.Light;
+				*reinterpret_cast<D3DLIGHT9*>(&DxLight7) = entry.second.Light9;
 				DxLight7.dwLightVersion = 7;
 				DxLight7.dwFlags = 0;
 

@@ -66,6 +66,7 @@ std::ostream& operator<<(std::ostream& os, const D3DRESOURCETYPE& Resource);
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp);
 std::ostream& operator<<(std::ostream& os, const D3DSURFACE_DESC& desc);
 std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT9& vp);
+std::ostream& operator<<(std::ostream& os, const D3DLIGHT9& data);
 #endif
 #ifdef GUID_DEFINED
 std::ostream& operator<<(std::ostream& os, REFIID riid);

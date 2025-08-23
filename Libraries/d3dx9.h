@@ -112,12 +112,14 @@ using LPD3DXBUFFER = ID3DXBuffer*;
 using ID3DXInclude = ID3DInclude;
 using LPD3DXINCLUDE = ID3DXInclude*;
 
-typedef struct D3DXCOLOR {
-	FLOAT r;
-	FLOAT g;
-	FLOAT b;
-	FLOAT a;
-} D3DXCOLOR, * LPD3DXCOLOR;
+struct D3DXCOLOR {
+	FLOAT r, g, b, a;
+
+	D3DXCOLOR() : r(0), g(0), b(0), a(0) {}
+	D3DXCOLOR(FLOAT _r, FLOAT _g, FLOAT _b, FLOAT _a)
+		: r(_r), g(_g), b(_b), a(_a) {
+	}
+};
 
 // Define the D3DXVECTOR2 structure
 typedef struct D3DXVECTOR2

@@ -38,7 +38,8 @@ private:
 	struct LIGHTENABLE {
 		bool Set = false;
 		BOOL Enable = FALSE;
-		D3DLIGHT9 Light = {};
+		D3DLIGHT7 Light7 = {};
+		D3DLIGHT9 Light9 = {};
 	};
 	struct {
 		struct {
@@ -198,8 +199,8 @@ private:
 	HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
 	HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue) const;
 	HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
-	HRESULT GetD9Light(DWORD Index, D3DLIGHT9* lpLight) const;
-	HRESULT SetD9Light(DWORD Index, const D3DLIGHT9* lpLight);
+	HRESULT GetD9Light(DWORD Index, D3DLIGHT7* lpLight) const;
+	HRESULT SetD9Light(DWORD Index, const D3DLIGHT7* lpLight);
 	HRESULT GetD9LightEnable(DWORD Index, LPBOOL lpEnable) const;
 	HRESULT D9LightEnable(DWORD Index, BOOL Enable);
 	HRESULT GetD9ClipPlane(DWORD Index, float* lpPlane) const;
