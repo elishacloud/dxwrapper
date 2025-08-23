@@ -35,16 +35,17 @@ private:
 	std::chrono::steady_clock::time_point sceneTime;
 #endif
 
+	struct LIGHTENABLE {
+		bool Set = false;
+		BOOL Enable = FALSE;
+		D3DLIGHT9 Light = {};
+	};
 	struct {
 		struct {
 			bool Set = false;
 			DWORD State = 0;
 		} RenderState[D3D_MAXRENDERSTATES], TextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates], SamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE];
-		struct {
-			bool Set = false;
-			BOOL Enable = FALSE;
-			D3DLIGHT9 Light = {};
-		} Light[MaxActiveLights];
+		std::unordered_map<DWORD, LIGHTENABLE> Light;
 		struct {
 			bool Set = false;
 			CLIPPLANE Plane = {};
@@ -145,7 +146,6 @@ private:
 	std::unordered_set<DWORD> StateBlockTokens;
 
 	// Default settings
-	DWORD MaxLights = MaxActiveLights;
 	D3DCAPS9 Caps9 = {};
 	D3DVIEWPORT9 DefaultViewport = {};
 

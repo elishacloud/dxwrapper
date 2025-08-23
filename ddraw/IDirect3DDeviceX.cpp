@@ -4848,14 +4848,34 @@ void m_IDirect3DDeviceX::ClearLight(m_IDirect3DLight* lpLight)
 			// Remove entry from map
 			it = LightIndexMap.erase(it);
 
-			if (Index < MaxLights)
-			{
-				// Disable light
-				D9LightEnable(Index, FALSE);
+			// Disable light
+			D9LightEnable(Index, FALSE);
 
-				// Clear light value
-				DeviceStates.Light[Index].Set = false;
-				DeviceStates.Light[Index].Enable = FALSE;
+			// Clear device states
+			{
+				auto entry = DeviceStates.Light.find(Index);
+				if (entry != DeviceStates.Light.end())
+				{
+					DeviceStates.Light.erase(entry);
+				}
+			}
+
+			// Clear batch state light
+			{
+				auto entry = BatchStates.Light.find(Index);
+				if (entry != BatchStates.Light.end())
+				{
+					BatchStates.Light.erase(entry);
+				}
+			}
+
+			// Clear batch state light enable
+			{
+				auto entry = BatchStates.LightEnable.find(Index);
+				if (entry != BatchStates.LightEnable.end())
+				{
+					BatchStates.LightEnable.erase(entry);
+				}
 			}
 		}
 		else
@@ -4880,7 +4900,7 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 
 	ConvertLight(Light7, *lpLight);
 
-	DWORD dwLightIndex = MaxLights;
+	DWORD dwLightIndex = MaxActiveLights;
 
 	// Check if Light exists in the map
 	for (auto& entry : LightIndexMap)
@@ -4893,9 +4913,9 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 	}
 
 	// Create index and add light to the map
-	if (dwLightIndex == MaxLights)
+	if (dwLightIndex == MaxActiveLights)
 	{
-		for (BYTE x = 0; x < MaxLights; x++)
+		for (BYTE x = 0; x < MaxActiveLights; x++)
 		{
 			bool Flag = true;
 			for (auto& entry : LightIndexMap)
@@ -4914,7 +4934,7 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 		}
 	}
 
-	if (dwLightIndex >= MaxLights)
+	if (dwLightIndex >= MaxActiveLights)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to find an available Light Index");
 		return DDERR_INVALIDPARAMS;
@@ -5442,14 +5462,16 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 
 HRESULT m_IDirect3DDeviceX::GetD9Light(DWORD Index, D3DLIGHT9* lpLight) const
 {
-	if (!lpLight || Index >= MaxLights)
+	if (!lpLight)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (DeviceStates.Light[Index].Set)
+	auto it = DeviceStates.Light.find(Index);
+
+	if (it != DeviceStates.Light.end() && it->second.Set)
 	{
-		*lpLight = DeviceStates.Light[Index].Light;
+		*lpLight = it->second.Light;
 		return D3D_OK;
 	}
 
@@ -5458,7 +5480,7 @@ HRESULT m_IDirect3DDeviceX::GetD9Light(DWORD Index, D3DLIGHT9* lpLight) const
 
 HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT9* lpLight)
 {
-	if (!lpLight || Index >= MaxLights)
+	if (!lpLight)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -5473,14 +5495,16 @@ HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT9* lpLight)
 
 HRESULT m_IDirect3DDeviceX::GetD9LightEnable(DWORD Index, LPBOOL lpEnable) const
 {
-	if (!lpEnable || Index >= MaxLights)
+	if (!lpEnable)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (DeviceStates.Light[Index].Set)
+	auto it = DeviceStates.Light.find(Index);
+
+	if (it != DeviceStates.Light.end())
 	{
-		*lpEnable = DeviceStates.Light[Index].Enable;
+		*lpEnable = it->second.Enable;
 	}
 	else
 	{
@@ -5492,11 +5516,6 @@ HRESULT m_IDirect3DDeviceX::GetD9LightEnable(DWORD Index, LPBOOL lpEnable) const
 
 HRESULT m_IDirect3DDeviceX::D9LightEnable(DWORD Index, BOOL Enable)
 {
-	if (Index >= MaxLights)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
 	BatchStates.LightEnable[Index] = Enable;
 
 	DeviceStates.Light[Index].Enable = Enable;
@@ -5765,15 +5784,15 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	}
 
 	// Restore lights
-	for (UINT x = 0; x < MaxLights; x++)
+	for (auto& entry : DeviceStates.Light)
 	{
-		if (DeviceStates.Light[x].Set)
+		if (entry.second.Set)
 		{
-			(*d3d9Device)->SetLight(x, &DeviceStates.Light[x].Light);
+			(*d3d9Device)->SetLight(entry.first, &entry.second.Light);
 		}
-		if (DeviceStates.Light[x].Enable)
+		if (entry.second.Enable)
 		{
-			(*d3d9Device)->LightEnable(x, DeviceStates.Light[x].Enable);
+			(*d3d9Device)->LightEnable(entry.first, entry.second.Enable);
 		}
 	}
 
@@ -5844,13 +5863,13 @@ void m_IDirect3DDeviceX::CollectStates()
 	}
 
 	// Restore lights
-	for (UINT x = 0; x < MaxLights; x++)
+	for (auto& entry : DeviceStates.Light)
 	{
-		if (DeviceStates.Light[x].Set)
+		if (entry.second.Set)
 		{
-			(*d3d9Device)->GetLight(x, &DeviceStates.Light[x].Light);
-			(*d3d9Device)->GetLightEnable(x, &DeviceStates.Light[x].Enable);
+			(*d3d9Device)->GetLight(entry.first, &entry.second.Light);
 		}
+		(*d3d9Device)->GetLightEnable(entry.first, &entry.second.Enable);
 	}
 
 	// Restore clip planes
@@ -6016,7 +6035,6 @@ void m_IDirect3DDeviceX::SetDefaults()
 	(*d3d9Device)->GetViewport(&DefaultViewport);
 
 	// Set defaults
-	MaxLights = min(MaxActiveLights, Caps9.MaxActiveLights);
 	DeviceStates.Viewport.View = DefaultViewport;
 }
 
@@ -6238,12 +6256,12 @@ void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLigh
 {
 	if (ClientDirectXVersion == 7)
 	{
-		for (UINT x = 0; x < MaxLights; x++)
+		for (auto& entry : DeviceStates.Light)
 		{
-			if (DeviceStates.Light[x].Set && DeviceStates.Light[x].Enable)
+			if (entry.second.Set && entry.second.Enable)
 			{
 				DXLIGHT7 DxLight7 = {};
-				*reinterpret_cast<D3DLIGHT9*>(&DxLight7) = DeviceStates.Light[x].Light;
+				*reinterpret_cast<D3DLIGHT9*>(&DxLight7) = entry.second.Light;
 				DxLight7.dwLightVersion = 7;
 				DxLight7.dwFlags = 0;
 

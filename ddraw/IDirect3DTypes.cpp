@@ -53,10 +53,26 @@ D3DLIGHT9 FixLight(const D3DLIGHT9& Light)
 {
 	D3DLIGHT9 result = Light;
 
-	// Range
+	// Normalize direction for directional/spot lights
+	if (result.Type == D3DLIGHT_DIRECTIONAL || result.Type == D3DLIGHT_SPOT)
+	{
+		D3DXVECTOR3& Direction = *(D3DXVECTOR3*)&result.Direction;
+		float len = D3DXVec3Length(&Direction);
+		if (len > 0.0f)
+		{
+			Direction /= len;
+		}
+		else
+		{
+			// fallback
+			Direction = D3DXVECTOR3(0, 0, 1);
+		}
+	}
+
+	// Clamp range
 	if (result.Range < 0.0f) result.Range = 0.0f;
 
-	// Attenuation
+	// Attenuation must be non-negative
 	if (result.Attenuation0 < 0.0f) result.Attenuation0 = 1.0f;
 	if (result.Attenuation1 < 0.0f) result.Attenuation1 = 0.0f;
 	if (result.Attenuation2 < 0.0f) result.Attenuation2 = 0.0f;
@@ -72,10 +88,8 @@ D3DLIGHT9 FixLight(const D3DLIGHT9& Light)
 	}
 
 	// Spotlight angles
-	if (result.Theta < 0.0f) result.Theta = 0.0f;
-	if (result.Theta > D3DX_PI) result.Theta = D3DX_PI;
-	if (result.Phi < 0.0f) result.Phi = 0.0f;
-	if (result.Phi > D3DX_PI) result.Phi = D3DX_PI;
+	result.Theta = CLAMP(result.Theta, 0.0f, D3DX_PI);
+	result.Phi = CLAMP(result.Phi, 0.0f, D3DX_PI);
 	if (result.Theta > result.Phi) std::swap(result.Theta, result.Phi);
 
 	// Falloff
