@@ -872,12 +872,6 @@ void m_IDirect3D9Ex::UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS*
 	pPresentationParameters->Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 	pPresentationParameters->SwapEffect = D3DSWAPEFFECT_DISCARD;
 
-	if (!pPresentationParameters->EnableAutoDepthStencil)
-	{
-		pPresentationParameters->EnableAutoDepthStencil = true;
-		pPresentationParameters->AutoDepthStencilFormat = D3DFMT_D24S8;
-	}
-
 	pPresentationParameters->BackBufferCount = (pPresentationParameters->BackBufferCount) ? pPresentationParameters->BackBufferCount : 1;
 }
 
