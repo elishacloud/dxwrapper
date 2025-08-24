@@ -6025,12 +6025,10 @@ void m_IDirect3DDeviceX::SetDefaults()
 	memset(ssUnUsed, 0xFFFFFFFF, sizeof(ssUnUsed));
 
 	// Set DirectDraw defaults
-	SetD9TextureStageState(1, D3DTSS_TEXCOORDINDEX, 0);
-	SetD9TextureStageState(2, D3DTSS_TEXCOORDINDEX, 0);
-	SetD9TextureStageState(3, D3DTSS_TEXCOORDINDEX, 0);
-	SetD9TextureStageState(4, D3DTSS_TEXCOORDINDEX, 0);
-	SetD9TextureStageState(5, D3DTSS_TEXCOORDINDEX, 0);
-	SetD9TextureStageState(6, D3DTSS_TEXCOORDINDEX, 0);
+	for (UINT x = 1; x < D3DHAL_TSS_MAXSTAGES; x++)
+	{
+		SetD9TextureStageState(x, D3DTSS_TEXCOORDINDEX, 0);
+	}
 
 	if (ClientDirectXVersion < 3)
 	{

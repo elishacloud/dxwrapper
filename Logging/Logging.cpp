@@ -510,6 +510,7 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd)
 		<< sd.ddsCaps
 		<< sd.dwTextureStage;
 }
+
 std::ostream& operator<<(std::ostream& os, const D3DCOLORVALUE& data)
 {
 	return Logging::LogStruct(os)
@@ -805,6 +806,16 @@ std::ostream& operator<<(std::ostream& os, const D3DLIGHT9& data)
 		<< data.Attenuation2
 		<< data.Theta
 		<< data.Phi;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DMATERIAL9& data)
+{
+	return Logging::LogStruct(os)
+		<< data.Diffuse
+		<< data.Ambient
+		<< data.Specular
+		<< data.Emissive
+		<< data.Power;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp)
