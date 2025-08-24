@@ -20,7 +20,12 @@ typedef enum _DIERR {} DIERR;
 typedef enum _DSERR {} DSERR;
 typedef enum _WMMSG {} WMMSG;
 
-struct FLOAT4 { float m[4]; };
+struct FLOAT4 {
+    union {
+        float m[4];
+        float Plane[4];
+    };
+};
 
 std::ostream& operator<<(std::ostream& os, const FLOAT4& data);
 std::ostream& operator<<(std::ostream& os, const DDFOURCC& dwFourCC);

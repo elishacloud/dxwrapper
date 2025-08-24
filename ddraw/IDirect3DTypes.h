@@ -123,11 +123,6 @@ typedef struct _D3DDEVINFO_TEXTURING {
     D3DFVF_TEXCOUNT_MASK | \
     D3DFVF_TEXCOORDSIZE_ALL)
 
-struct CLIPPLANE
-{
-    float Plane[4] = { 0.0f };
-};
-
 struct XYZ
 {
     float x, y, z;
@@ -176,7 +171,7 @@ typedef enum _D3DSURFACETYPE {
 
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light);
 D3DLIGHT9 FixLight(const D3DLIGHT9& Light);
-CLIPPLANE FixClipPlane(const CLIPPLANE& Plane);
+FLOAT4 FixClipPlane(const FLOAT4& Plane);
 void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7);
 void ConvertMaterial(D3DMATERIAL7& Material7, const D3DMATERIAL& Material);
 D3DMATERIAL9 FixMaterial(const D3DMATERIAL9& Material);

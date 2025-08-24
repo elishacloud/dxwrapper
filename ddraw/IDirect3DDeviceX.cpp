@@ -5539,11 +5539,11 @@ HRESULT m_IDirect3DDeviceX::GetD9ClipPlane(DWORD Index, float* lpPlane) const
 
 	if (DeviceStates.ClipPlane[Index].Set)
 	{
-		*(CLIPPLANE*)lpPlane = DeviceStates.ClipPlane[Index].Plane;
+		*(FLOAT4*)lpPlane = DeviceStates.ClipPlane[Index].Plane;
 	}
 	else
 	{
-		*(CLIPPLANE*)lpPlane = *(CLIPPLANE*)&DefaultClipPlane;
+		*(FLOAT4*)lpPlane = *(FLOAT4*)&DefaultClipPlane;
 	}
 
 	return D3D_OK;
@@ -5556,7 +5556,7 @@ HRESULT m_IDirect3DDeviceX::SetD9ClipPlane(DWORD Index, const float* lpPlane)
 		return DDERR_INVALIDPARAMS;
 	}
 
-	CLIPPLANE Plane = FixClipPlane(*(CLIPPLANE*)lpPlane);
+	FLOAT4 Plane = FixClipPlane(*(FLOAT4*)lpPlane);
 	BatchStates.ClipPlane[Index] = Plane;
 
 	DeviceStates.ClipPlane[Index].Set = true;

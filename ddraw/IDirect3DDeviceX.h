@@ -49,7 +49,7 @@ private:
 		std::unordered_map<DWORD, LIGHTENABLE> Light;
 		struct {
 			bool Set = false;
-			CLIPPLANE Plane = {};
+			FLOAT4 Plane = {};
 		} ClipPlane[MaxClipPlaneIndex];
 		struct {
 			bool Set = false;
@@ -70,7 +70,7 @@ private:
 		std::unordered_map<DWORD, DWORD> SamplerState;
 		std::unordered_map<DWORD, D3DLIGHT9> Light;
 		std::unordered_map<DWORD, BOOL> LightEnable;
-		std::unordered_map<DWORD, CLIPPLANE> ClipPlane;
+		std::unordered_map<DWORD, FLOAT4> ClipPlane;
 		struct { bool Set = false; } Material;
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
 	} BatchStates;

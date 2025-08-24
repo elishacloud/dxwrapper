@@ -109,9 +109,9 @@ D3DLIGHT9 FixLight(const D3DLIGHT9& Light)
 	return result;
 }
 
-CLIPPLANE FixClipPlane(const CLIPPLANE& Plane)
+FLOAT4 FixClipPlane(const FLOAT4& Plane)
 {
-	CLIPPLANE result = Plane;
+	FLOAT4 result = Plane;
 
 	constexpr float BIG = 1e10f; // large enough to be 'effectively infinite' in most scenes
 	for (int i = 0; i < 4; ++i)
