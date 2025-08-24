@@ -76,6 +76,15 @@ void Logging::InitLog()
 	Open(wrappername);
 }
 
+std::ostream& operator<<(std::ostream& os, const FLOAT4& data)
+{
+	return Logging::LogStruct(os)
+		<< data.m[0]
+		<< data.m[1]
+		<< data.m[2]
+		<< data.m[3];
+}
+
 std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format)
 {
 	switch ((DWORD)format)
@@ -816,6 +825,15 @@ std::ostream& operator<<(std::ostream& os, const D3DMATERIAL9& data)
 		<< data.Specular
 		<< data.Emissive
 		<< data.Power;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DMATRIX& data)
+{
+	return Logging::LogStruct(os)
+		<< *(FLOAT4*)&data.m[0]
+		<< *(FLOAT4*)&data.m[1]
+		<< *(FLOAT4*)&data.m[2]
+		<< *(FLOAT4*)&data.m[3];
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp)

@@ -20,6 +20,9 @@ typedef enum _DIERR {} DIERR;
 typedef enum _DSERR {} DSERR;
 typedef enum _WMMSG {} WMMSG;
 
+struct FLOAT4 { float m[4]; };
+
+std::ostream& operator<<(std::ostream& os, const FLOAT4& data);
 std::ostream& operator<<(std::ostream& os, const DDFOURCC& dwFourCC);
 std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode);
 std::ostream& operator<<(std::ostream& os, const D3DERR& ErrCode);
@@ -68,6 +71,7 @@ std::ostream& operator<<(std::ostream& os, const D3DSURFACE_DESC& desc);
 std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT9& vp);
 std::ostream& operator<<(std::ostream& os, const D3DLIGHT9& data);
 std::ostream& operator<<(std::ostream& os, const D3DMATERIAL9& data);
+std::ostream& operator<<(std::ostream& os, const D3DMATRIX& data);
 #endif
 #ifdef GUID_DEFINED
 std::ostream& operator<<(std::ostream& os, REFIID riid);
