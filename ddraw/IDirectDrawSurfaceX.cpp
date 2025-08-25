@@ -7272,19 +7272,50 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 	bool IsUsingCurrentZBuffer =
 		(ddrawParent->GetDepthStencilSurface() != this && ddrawParent->GetDepthStencilSurface() != GetAttachedDepthStencil());
 
-	// Get depth stencil
+	// Set new depth stencil
 	ComPtr<IDirect3DSurface9> pDepthStencil = nullptr;
 	if (!IsUsingCurrentZBuffer)
 	{
-		(*d3d9Device)->GetDepthStencilSurface(pDepthStencil.GetAddressOf());
+		HRESULT hr = (*d3d9Device)->GetDepthStencilSurface(pDepthStencil.GetAddressOf());
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get depth buffer: " << (DDERR)hr);
+			return DDERR_GENERIC;
+		}
 
-		// Set new depth stencil
-		HRESULT hr = (*d3d9Device)->SetDepthStencilSurface(surface.Surface);
+		hr = (*d3d9Device)->SetDepthStencilSurface(surface.Surface);
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set depth buffer: " << (DDERR)hr);
-			return hr;
+			return DDERR_GENERIC;
 		}
+	}
+
+	// Query surface sizes
+	ComPtr<IDirect3DSurface9> pRenderTarget;
+	D3DSURFACE_DESC rtDesc = {}, dsDesc = {};
+	surface.Surface->GetDesc(&dsDesc);
+
+	if (SUCCEEDED((*d3d9Device)->GetRenderTarget(0, pRenderTarget.GetAddressOf())))
+	{
+		pRenderTarget->GetDesc(&rtDesc);
+	}
+
+	// Check for mismatch
+	if (rtDesc.Width != dsDesc.Width || rtDesc.Height != dsDesc.Height)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: render target (" << rtDesc.Width << "x" << rtDesc.Height
+			<< ") and depth buffer (" << dsDesc.Width << "x" << dsDesc.Height << ") dimensions do not match!");
+	}
+
+	// Get current viewport
+	D3DVIEWPORT9 Viewport = {};
+	(*d3d9Device)->GetViewport(&Viewport);
+
+	// Set new viewport
+	{
+		D3DVIEWPORT9 NewViewport = { 0, 0, dsDesc.Width, dsDesc.Height, 0.0f, 1.0f };
+		(*d3d9Device)->SetViewport(&NewViewport);
 	}
 
 	HRESULT hr = DD_OK;
@@ -7319,6 +7350,9 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 			break;
 		}
 	}
+
+	// Reset viewport
+	(*d3d9Device)->SetViewport(&Viewport);
 
 	// Reset depth stencil
 	if (!IsUsingCurrentZBuffer)
