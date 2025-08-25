@@ -1760,6 +1760,7 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			}
 			else
 			{
+				*lpdwRenderState = (DWORD)-1;
 				return DDERR_INVALIDPARAMS;
 			}
 		}
@@ -2319,6 +2320,13 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			*lpdwLightState = 0;
+			return DDERR_INVALIDOBJECT;
+		}
+
 		D3DRENDERSTATETYPE RenderState = (D3DRENDERSTATETYPE)0;
 		switch (dwLightStateType)
 		{
@@ -2353,6 +2361,7 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 		if (!RenderState)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: unknown LightStateType: " << dwLightStateType);
+			*lpdwLightState = (DWORD)-1;
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -2377,6 +2386,12 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 
 	if (Config.Dd7to9)
 	{
+		// Check for device interface
+		if (FAILED(CheckInterface(__FUNCTION__, true)))
+		{
+			return DDERR_INVALIDOBJECT;
+		}
+
 		D3DRENDERSTATETYPE RenderState = (D3DRENDERSTATETYPE)0;
 		switch (dwLightStateType)
 		{
@@ -2536,12 +2551,13 @@ HRESULT m_IDirect3DDeviceX::GetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 	{
 		if (!lpD3DMatrix)
 		{
-			return  DDERR_INVALIDPARAMS;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
+			*lpD3DMatrix = {};
 			return DDERR_INVALIDOBJECT;
 		}
 
@@ -3486,6 +3502,7 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
+			*lpdwValue = 0;
 			return DDERR_INVALIDOBJECT;
 		}
 
@@ -3496,6 +3513,10 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 			if (dwStage < D3DHAL_TSS_MAXSTAGES && (DWORD)dwState < MaxTextureStageStates)
 			{
 				*lpdwValue = ssUnUsed[dwStage][dwState];
+			}
+			else
+			{
+				*lpdwValue = (DWORD)-1;
 			}
 			return DD_OK;
 		}
@@ -3967,6 +3988,7 @@ HRESULT m_IDirect3DDeviceX::GetViewport(LPD3DVIEWPORT7 lpViewport)
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
+			*lpViewport = {};
 			return DDERR_INVALIDOBJECT;
 		}
 
@@ -5366,8 +5388,13 @@ HRESULT m_IDirect3DDeviceX::SetTextureHandle(DWORD TexHandle)
 
 HRESULT m_IDirect3DDeviceX::GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue) const
 {
-	if (!lpValue || (UINT)State >= D3D_MAXRENDERSTATES)
+	if (!lpValue)
 	{
+		return DDERR_INVALIDPARAMS;
+	}
+	if ((UINT)State >= D3D_MAXRENDERSTATES)
+	{
+		*lpValue = (DWORD)-1;
 		return DDERR_INVALIDPARAMS;
 	}
 
@@ -5400,8 +5427,13 @@ HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Val
 
 HRESULT m_IDirect3DDeviceX::GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue) const
 {
-	if (!lpValue || Stage >= D3DHAL_TSS_MAXSTAGES || (UINT)Type >= MaxTextureStageStates)
+	if (!lpValue)
 	{
+		return DDERR_INVALIDPARAMS;
+	}
+	if (Stage >= D3DHAL_TSS_MAXSTAGES || (UINT)Type >= MaxTextureStageStates)
+	{
+		*lpValue = (DWORD)-1;
 		return DDERR_INVALIDPARAMS;
 	}
 
@@ -5434,8 +5466,13 @@ HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 
 HRESULT m_IDirect3DDeviceX::GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue) const
 {
-	if (!lpValue || Sampler >= D3DHAL_TSS_MAXSTAGES || (UINT)Type >= D3DHAL_TEXTURESTATEBUF_SIZE)
+	if (!lpValue)
 	{
+		return DDERR_INVALIDPARAMS;
+	}
+	if (Sampler >= D3DHAL_TSS_MAXSTAGES || (UINT)Type >= D3DHAL_TEXTURESTATEBUF_SIZE)
+	{
+		*lpValue = (DWORD)-1;
 		return DDERR_INVALIDPARAMS;
 	}
 
@@ -5532,8 +5569,13 @@ HRESULT m_IDirect3DDeviceX::D9LightEnable(DWORD Index, BOOL Enable)
 
 HRESULT m_IDirect3DDeviceX::GetD9ClipPlane(DWORD Index, float* lpPlane) const
 {
-	if (!lpPlane || Index >= MaxClipPlaneIndex)
+	if (!lpPlane)
 	{
+		return DDERR_INVALIDPARAMS;
+	}
+	if (Index >= MaxClipPlaneIndex)
+	{
+		*(FLOAT4*)lpPlane = {};
 		return DDERR_INVALIDPARAMS;
 	}
 
@@ -5633,8 +5675,13 @@ HRESULT m_IDirect3DDeviceX::SetD9Material(const D3DMATERIAL9* lpMaterial)
 
 HRESULT m_IDirect3DDeviceX::GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* lpMatrix) const
 {
-	if (!lpMatrix || !IsValidTransformState(State))
+	if (!lpMatrix)
 	{
+		return DDERR_INVALIDPARAMS;
+	}
+	if (!IsValidTransformState(State))
+	{
+		*lpMatrix = {};
 		return DDERR_INVALIDPARAMS;
 	}
 
