@@ -5598,11 +5598,10 @@ HRESULT m_IDirect3DDeviceX::SetD9ClipPlane(DWORD Index, const float* lpPlane)
 		return DDERR_INVALIDPARAMS;
 	}
 
-	FLOAT4 Plane = FixClipPlane(*(FLOAT4*)lpPlane);
-	BatchStates.ClipPlane[Index] = Plane;
+	BatchStates.ClipPlane[Index] = *(FLOAT4*)lpPlane;
 
 	DeviceStates.ClipPlane[Index].Set = true;
-	DeviceStates.ClipPlane[Index].Plane = Plane;
+	DeviceStates.ClipPlane[Index].Plane = *(FLOAT4*)lpPlane;
 
 	return D3D_OK;
 }
@@ -5634,7 +5633,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Viewport(const D3DVIEWPORT9* lpViewport)
 	}
 
 	DeviceStates.Viewport.Set = true;
-	DeviceStates.Viewport.View = FixViewport(*lpViewport);
+	DeviceStates.Viewport.View = *lpViewport;
 
 	return D3D_OK;
 }
@@ -5668,7 +5667,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Material(const D3DMATERIAL9* lpMaterial)
 	BatchStates.Material.Set = true;
 
 	DeviceStates.Material.Set = true;
-	DeviceStates.Material.Material = FixMaterial(*lpMaterial);
+	DeviceStates.Material.Material = *lpMaterial;
 
 	return D3D_OK;
 }

@@ -171,10 +171,8 @@ typedef enum _D3DSURFACETYPE {
 
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light);
 D3DLIGHT9 FixLight(const D3DLIGHT9& Light);
-FLOAT4 FixClipPlane(const FLOAT4& Plane);
 void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7);
 void ConvertMaterial(D3DMATERIAL7& Material7, const D3DMATERIAL& Material);
-D3DMATERIAL9 FixMaterial(const D3DMATERIAL9& Material);
 void ConvertViewport(D3DVIEWPORT& Viewport, const D3DVIEWPORT2& Viewport2);
 void ConvertViewport(D3DVIEWPORT2& Viewport2, const D3DVIEWPORT& Viewport);
 void ConvertViewport(D3DVIEWPORT& Viewport, const D3DVIEWPORT7& Viewport7);
@@ -182,7 +180,6 @@ void ConvertViewport(D3DVIEWPORT2& Viewport2, const D3DVIEWPORT7& Viewport7);
 void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT& Viewport);
 void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT2& Viewport2);
 void ConvertViewport(D3DVIEWPORT7& Viewport, const D3DVIEWPORT7& Viewport7);
-D3DVIEWPORT9 FixViewport(const D3DVIEWPORT9& Viewport);
 bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD& Value, DWORD DirectXVersion);
 bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
 DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value);

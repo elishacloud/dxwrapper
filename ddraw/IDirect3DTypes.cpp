@@ -17,15 +17,6 @@
 #include "ddraw.h"
 #include "d3d9\d3d9External.h"
 
-static inline float SafeFloat(float v, float defaultValue = 0.0f)
-{
-	if (std::isnan(v) || !std::isfinite(v))
-	{
-		return defaultValue;
-	}
-	return v;
-}
-
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 {
 	if (Light.dwSize != sizeof(D3DLIGHT) && Light.dwSize != sizeof(D3DLIGHT2))
@@ -57,37 +48,6 @@ D3DLIGHT9 FixLight(const D3DLIGHT9& Light)
 {
 	D3DLIGHT9 result = Light;
 
-	// Normalize direction for directional/spot lights
-	if (result.Type == D3DLIGHT_DIRECTIONAL || result.Type == D3DLIGHT_SPOT)
-	{
-		D3DXVECTOR3& Direction = *(D3DXVECTOR3*)&result.Direction;
-		float len = D3DXVec3Length(&Direction);
-		if (len > 0.0f)
-		{
-			Direction /= len;
-		}
-		else
-		{
-			// fallback
-			Direction = D3DXVECTOR3(0, 0, 1);
-		}
-	}
-
-	// Clamp range
-	if (result.Range <= 0.0f)
-	{
-		result.Range = D3DLIGHT_RANGE_MAX; // ~1e9f, DX9's max
-	}
-
-	// Attenuation must be non-negative
-	if (result.Attenuation0 < 0.0f) result.Attenuation0 = 1.0f;
-	if (result.Attenuation1 < 0.0f) result.Attenuation1 = 0.0f;
-	if (result.Attenuation2 < 0.0f) result.Attenuation2 = 0.0f;
-	if (result.Attenuation0 == 0.0f && result.Attenuation1 == 0.0f && result.Attenuation2 == 0.0f)
-	{
-		result.Attenuation0 = 1.0f;
-	}
-
 	// Make spot light work more like it did in Direct3D7
 	if (result.Type == D3DLIGHT_SPOT)
 	{
@@ -95,35 +55,6 @@ D3DLIGHT9 FixLight(const D3DLIGHT9& Light)
 		if (result.Theta <= result.Phi)
 		{
 			result.Theta /= 1.75f;
-		}
-	}
-
-	// Spotlight angles
-	result.Theta = CLAMP(result.Theta, 0.0f, D3DX_PI);
-	result.Phi = CLAMP(result.Phi, 0.0f, D3DX_PI);
-	if (result.Theta > result.Phi) std::swap(result.Theta, result.Phi);
-
-	// Falloff must be >= 0
-	if (result.Falloff < 0.0f) result.Falloff = 0.0f;
-
-	return result;
-}
-
-FLOAT4 FixClipPlane(const FLOAT4& Plane)
-{
-	FLOAT4 result = Plane;
-
-	constexpr float BIG = 1e10f; // large enough to be 'effectively infinite' in most scenes
-	for (int i = 0; i < 4; ++i)
-	{
-		if (std::isnan(result.Plane[i]))
-		{
-			result.Plane[i] = 0.0f; // safest default
-		}
-		else if (!std::isfinite(result.Plane[i]))
-		{
-			// Replace +/-infinity with large finite value of same sign
-			result.Plane[i] = (result.Plane[i] > 0.0f ? BIG : -BIG);
 		}
 	}
 
@@ -158,37 +89,6 @@ void ConvertMaterial(D3DMATERIAL7& Material7, const D3DMATERIAL& Material)
 	Material7.dcvSpecular = Material.dcvSpecular;
 	Material7.dcvEmissive = Material.dcvEmissive;
 	Material7.dvPower = Material.dvPower;
-}
-
-D3DMATERIAL9 FixMaterial(const D3DMATERIAL9& Material)
-{
-	D3DMATERIAL9 result = Material;
-
-	// Sanitize all RGBA components
-	result.Diffuse.r = SafeFloat(result.Diffuse.r, 1.0f);
-	result.Diffuse.g = SafeFloat(result.Diffuse.g, 1.0f);
-	result.Diffuse.b = SafeFloat(result.Diffuse.b, 1.0f);
-	result.Diffuse.a = SafeFloat(result.Diffuse.a, 1.0f);
-
-	result.Ambient.r = SafeFloat(result.Ambient.r, result.Diffuse.r);
-	result.Ambient.g = SafeFloat(result.Ambient.g, result.Diffuse.g);
-	result.Ambient.b = SafeFloat(result.Ambient.b, result.Diffuse.b);
-	result.Ambient.a = SafeFloat(result.Ambient.a, result.Diffuse.a);
-
-	result.Specular.r = SafeFloat(result.Specular.r, 0.0f);
-	result.Specular.g = SafeFloat(result.Specular.g, 0.0f);
-	result.Specular.b = SafeFloat(result.Specular.b, 0.0f);
-	result.Specular.a = SafeFloat(result.Specular.a, 0.0f);
-
-	result.Emissive.r = SafeFloat(result.Emissive.r, 0.0f);
-	result.Emissive.g = SafeFloat(result.Emissive.g, 0.0f);
-	result.Emissive.b = SafeFloat(result.Emissive.b, 0.0f);
-	result.Emissive.a = SafeFloat(result.Emissive.a, 0.0f);
-
-	// Power should be >= 0, and a sane upper bound to avoid overflow
-	result.Power = CLAMP(SafeFloat(result.Power, 0.0f), 0.0f, 128.0f);
-
-	return result;
 }
 
 void ConvertViewport(D3DVIEWPORT& Viewport, const D3DVIEWPORT2& Viewport2)
@@ -315,25 +215,6 @@ void ConvertViewport(D3DVIEWPORT7& Viewport, const D3DVIEWPORT7& Viewport7)
 	Viewport.dwHeight = Viewport7.dwHeight;
 	Viewport.dvMinZ = Viewport7.dvMinZ;
 	Viewport.dvMaxZ = Viewport7.dvMaxZ;
-}
-
-D3DVIEWPORT9 FixViewport(const D3DVIEWPORT9& Viewport)
-{
-	D3DVIEWPORT9 result = Viewport;
-
-	// Clamp to [0, 1]
-	if (result.MinZ < 0.0f) result.MinZ = 0.0f;
-	if (result.MinZ > 1.0f) result.MinZ = 1.0f;
-	if (result.MaxZ < 0.0f) result.MaxZ = 0.0f;
-	if (result.MaxZ > 1.0f) result.MaxZ = 1.0f;
-
-	// Swap if reversed
-	if (result.MinZ > result.MaxZ)
-	{
-		std::swap(result.MinZ, result.MaxZ);
-	}
-
-	return result;
 }
 
 bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD& Value, DWORD DirectXVersion)
@@ -483,17 +364,6 @@ bool IsValidTransformState(D3DTRANSFORMSTATETYPE State)
 D3DMATRIX FixMatrix(const D3DMATRIX& Matrix, D3DTRANSFORMSTATETYPE State, D3DVIEWPORT Viewport, bool ScaleMatrix)
 {
 	D3DMATRIX result = Matrix;
-
-	float* values = reinterpret_cast<float*>(&result);
-	const int count = sizeof(D3DMATRIX) / sizeof(float);
-
-	for (int i = 0; i < count; ++i)
-	{
-		if (!std::isfinite(values[i]))
-		{
-			values[i] = 0.0f; // replace NaN/inf with 0.0f
-		}
-	}
 
 	if (ScaleMatrix && State == D3DTS_PROJECTION)
 	{
