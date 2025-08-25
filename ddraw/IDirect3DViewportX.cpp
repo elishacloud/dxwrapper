@@ -335,6 +335,7 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 			dst.sx = result.x / result.w;
 			dst.sy = result.y / result.w;
 			dst.sz = result.z / result.w;
+			dst.sz = Config.DdrawClampVertexZDepth ? min(dst.sz, 1.0f) : dst.sz;
 			dst.rhw = 1.0f / result.w;
 
 			dst.color = src.color;

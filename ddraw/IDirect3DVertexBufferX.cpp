@@ -864,6 +864,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 		dst.x = result.x / result.w;
 		dst.y = result.y / result.w;
 		dst.z = result.z / result.w;
+		dst.z = Config.DdrawClampVertexZDepth ? min(dst.z, 1.0f) : dst.z;
 		dst.w = 1.0f / result.w;
 
 		// Perform lighting if required
