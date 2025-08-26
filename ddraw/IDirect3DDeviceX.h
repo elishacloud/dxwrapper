@@ -120,6 +120,10 @@ private:
 	DWORD rsSubPixel;
 	DWORD rsSubPixelX;
 	DWORD rsStippledAlpha;
+	DWORD rsFogMode;
+	DWORD rsFogStart;
+	DWORD rsFogEnd;
+	DWORD rsFogDensity;
 	DWORD rsStippleEnable;
 	DWORD rsColorKeyEnabled;
 	DWORD rsOldAlphaEnabled;
@@ -134,8 +138,10 @@ private:
 	DWORD rsUnUsed61To63[3];
 	DWORD rsStipplePattern[32];
 	DWORD rsExtents;
+	DWORD rsColorVertex;
 	DWORD rsColorKeyBlendEnabled;
 	DWORD rsUnUsed96[160];
+	DWORD lsColorState[MaxLightStates];
 	DWORD ssStage0[MaxTextureStageStates];
 	DWORD ssAddress[D3DHAL_TSS_MAXSTAGES];
 	DWORD ssMagFilter[D3DHAL_TSS_MAXSTAGES];

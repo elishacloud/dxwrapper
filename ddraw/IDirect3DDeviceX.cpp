@@ -1743,7 +1743,7 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		{
 			if (dwRenderStateType > 0 && dwRenderStateType < D3D_MAXRENDERSTATES && ClientDirectXVersion < 7)
 			{
-				return DD_OK;
+				return D3D_OK;
 			}
 			else
 			{
@@ -1821,6 +1821,18 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			return D3D_OK;
 		case D3DRENDERSTATE_STIPPLEDALPHA:		// 33
 			*lpdwRenderState = rsStippledAlpha;
+			return D3D_OK;
+		case D3DRENDERSTATE_FOGTABLEMODE:		// 35
+			*lpdwRenderState = rsFogMode;
+			return D3D_OK;
+		case D3DRENDERSTATE_FOGSTART:			// 36
+			*lpdwRenderState = rsFogStart;
+			return D3D_OK;
+		case D3DRENDERSTATE_FOGEND:				// 37
+			*lpdwRenderState = rsFogEnd;
+			return D3D_OK;
+		case D3DRENDERSTATE_FOGDENSITY:			// 38
+			*lpdwRenderState = rsFogDensity;
 			return D3D_OK;
 		case D3DRENDERSTATE_STIPPLEENABLE:		// 39
 			*lpdwRenderState = rsStippleEnable;
@@ -1900,6 +1912,9 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_EXTENTS:			// 138
 			// ToDo: use this to report on clip plane extents set by SetClipStatus()
 			*lpdwRenderState = rsExtents;
+			return D3D_OK;
+		case D3DRENDERSTATE_COLORVERTEX:		// 141
+			*lpdwRenderState = rsColorVertex;
 			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYBLENDENABLE:// 144
 			*lpdwRenderState = rsColorKeyBlendEnabled;
@@ -2169,6 +2184,18 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented! " << dwRenderState);
 			}
 			return D3D_OK;
+		case D3DRENDERSTATE_FOGTABLEMODE:		// 35
+			rsFogMode = dwRenderState;
+			break;
+		case D3DRENDERSTATE_FOGSTART:			// 36
+			rsFogStart = dwRenderState;
+			break;
+		case D3DRENDERSTATE_FOGEND:				// 37
+			rsFogEnd = dwRenderState;
+			break;
+		case D3DRENDERSTATE_FOGDENSITY:			// 38
+			rsFogDensity = dwRenderState;
+			break;
 		case D3DRENDERSTATE_STIPPLEENABLE:		// 39
 			rsStippleEnable = dwRenderState;
 			if (dwRenderState != FALSE)
@@ -2282,6 +2309,9 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented! " << dwRenderState);
 			}
 			return D3D_OK;
+		case D3DRENDERSTATE_COLORVERTEX:		// 141
+			rsColorVertex = dwRenderState;
+			break;
 		case D3DRENDERSTATE_COLORKEYBLENDENABLE:// 144
 			rsColorKeyBlendEnabled = dwRenderState;
 			if (dwRenderState != FALSE)
@@ -2327,6 +2357,15 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 			return DDERR_INVALIDOBJECT;
 		}
 
+		if (dwLightStateType == 0
+			|| (ClientDirectXVersion == 2 && dwLightStateType > 7)
+			|| (ClientDirectXVersion == 3 && dwLightStateType > 8))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: unknown LightStateType: " << dwLightStateType);
+			*lpdwLightState = 0;
+			return DDERR_INVALIDPARAMS;
+		}
+
 		D3DRENDERSTATETYPE RenderState = (D3DRENDERSTATETYPE)0;
 		switch (dwLightStateType)
 		{
@@ -2334,38 +2373,21 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 			*lpdwLightState = lsMaterialHandle;
 			return D3D_OK;
 		case D3DLIGHTSTATE_AMBIENT:
-			RenderState = D3DRS_AMBIENT;
-			break;
 		case D3DLIGHTSTATE_COLORMODEL:
-			*lpdwLightState = D3DCOLOR_RGB;
-			return D3D_OK;
 		case D3DLIGHTSTATE_FOGMODE:
-			RenderState = D3DRS_FOGVERTEXMODE;
-			break;
 		case D3DLIGHTSTATE_FOGSTART:
-			RenderState = D3DRS_FOGSTART;
-			break;
 		case D3DLIGHTSTATE_FOGEND:
-			RenderState = D3DRS_FOGEND;
-			break;
 		case D3DLIGHTSTATE_FOGDENSITY:
-			RenderState = D3DRS_FOGDENSITY;
-			break;
 		case D3DLIGHTSTATE_COLORVERTEX:
-			RenderState = D3DRS_COLORVERTEX;
-			break;
+			*lpdwLightState = lsColorState[dwLightStateType];
+			return D3D_OK;
 		default:
 			break;
 		}
 
-		if (!RenderState)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: unknown LightStateType: " << dwLightStateType);
-			*lpdwLightState = (DWORD)-1;
-			return DDERR_INVALIDPARAMS;
-		}
-
-		return GetD9RenderState(RenderState, lpdwLightState);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: unknown LightStateType: " << dwLightStateType);
+		*lpdwLightState = 0;
+		return DDERR_INVALIDPARAMS;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -2390,6 +2412,14 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 		if (FAILED(CheckInterface(__FUNCTION__, true)))
 		{
 			return DDERR_INVALIDOBJECT;
+		}
+
+		if (dwLightStateType == 0
+			|| (ClientDirectXVersion == 2 && dwLightStateType > 7)
+			|| (ClientDirectXVersion == 3 && dwLightStateType > 8))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: unknown LightStateType: " << dwLightStateType);
+			return DDERR_INVALIDPARAMS;
 		}
 
 		D3DRENDERSTATETYPE RenderState = (D3DRENDERSTATETYPE)0;
@@ -2434,36 +2464,37 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 		}
 		case D3DLIGHTSTATE_AMBIENT:
 			RenderState = D3DRS_AMBIENT;
+			lsColorState[dwLightStateType] = dwLightState;
 			break;
 		case D3DLIGHTSTATE_COLORMODEL:
 			if (dwLightState != D3DCOLOR_RGB)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DLIGHTSTATE_COLORMODEL' not implemented! " << dwLightState);
 			}
+			lsColorState[dwLightStateType] = dwLightState;
 			return D3D_OK;
 		case D3DLIGHTSTATE_FOGMODE:
 			RenderState = D3DRS_FOGVERTEXMODE;
+			lsColorState[dwLightStateType] = dwLightState;
 			break;
 		case D3DLIGHTSTATE_FOGSTART:
 			RenderState = D3DRS_FOGSTART;
+			lsColorState[dwLightStateType] = dwLightState;
 			break;
 		case D3DLIGHTSTATE_FOGEND:
 			RenderState = D3DRS_FOGEND;
+			lsColorState[dwLightStateType] = dwLightState;
 			break;
 		case D3DLIGHTSTATE_FOGDENSITY:
 			RenderState = D3DRS_FOGDENSITY;
+			lsColorState[dwLightStateType] = dwLightState;
 			break;
 		case D3DLIGHTSTATE_COLORVERTEX:
 			RenderState = D3DRS_COLORVERTEX;
+			lsColorState[dwLightStateType] = dwLightState;
 			break;
 		default:
 			break;
-		}
-
-		if (!RenderState)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: unknown LightStateType: " << dwLightStateType);
-			return DDERR_INVALIDPARAMS;
 		}
 
 		return SetD9RenderState(RenderState, dwLightState);
@@ -3518,7 +3549,7 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 			{
 				*lpdwValue = (DWORD)-1;
 			}
-			return DD_OK;
+			return D3D_OK;
 		}
 
 		// Special handling for stage 0 with some types because they are shared by a RenderTarget state
@@ -3616,7 +3647,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 			{
 				ssUnUsed[dwStage][dwState] = dwValue;
 			}
-			return DD_OK;
+			return D3D_OK;
 		}
 
 		// Special handling for stage 0 with some types because they are shared by a RenderTarget state
@@ -6043,6 +6074,10 @@ void m_IDirect3DDeviceX::SetDefaults()
 	rsSubPixel = FALSE;
 	rsSubPixelX = FALSE;
 	rsStippledAlpha = FALSE;
+	rsFogMode = D3DFOG_NONE;
+	rsFogStart = 0;
+	rsFogEnd = 0x3F800000;	// 1.0f
+	rsFogDensity = 0x3F800000;	// 1.0f
 	rsStippleEnable = FALSE;
 	rsColorKeyEnabled = (ClientDirectXVersion == 1 ? TRUE : FALSE);
 	rsOldAlphaEnabled = (DWORD)-1;
@@ -6057,8 +6092,11 @@ void m_IDirect3DDeviceX::SetDefaults()
 	memset(rsUnUsed61To63, 0xFFFFFFFF, sizeof(rsUnUsed61To63));
 	memset(rsStipplePattern, 0, sizeof(rsStipplePattern));
 	rsExtents = (ClientDirectXVersion > 2 ? FALSE : TRUE);
+	rsColorVertex = TRUE;
 	rsColorKeyBlendEnabled = FALSE;
 	memset(rsUnUsed96, 0xFFFFFFFF, sizeof(rsUnUsed96));
+	memset(lsColorState, 0, sizeof(lsColorState));
+	lsColorState[D3DLIGHTSTATE_COLORVERTEX] = (ClientDirectXVersion == 3 ? TRUE : FALSE);
 	std::fill(std::begin(ssStage0), std::end(ssStage0), 1);
 	ssStage0[D3DTSS_COLOROP] = D3DTOP_MODULATE;
 	ssStage0[D3DTSS_COLORARG1] = D3DTA_TEXTURE;
@@ -6079,6 +6117,16 @@ void m_IDirect3DDeviceX::SetDefaults()
 	if (ClientDirectXVersion < 3)
 	{
 		SetD9RenderState(D3DRS_SPECULARENABLE, TRUE);
+	}
+
+	{
+		float Value = 1.0f;
+		SetD9RenderState(D3DRS_FOGSTART, *(DWORD*)&Value);
+		Value = 100.0f;
+		SetD9RenderState(D3DRS_FOGEND, *(DWORD*)&Value);
+		Value = 1.0f;
+		SetD9RenderState(D3DRS_FOGDENSITY, *(DWORD*)&Value);
+		SetD9RenderState(D3DRS_COLORVERTEX, TRUE);
 	}
 
 	// Get default structures

@@ -16,6 +16,7 @@
 		} \
 	}
 
+constexpr UINT MaxLightStates = 10;  // Devices have up to 10 types.
 constexpr UINT MaxTextureStageStates = 33;  // Devices have up to 33 types.
 
 namespace {
@@ -25,7 +26,10 @@ namespace {
 	constexpr DWORD I = 0x3F800000;
 }
 
-// RenderTarget defaults for native DirectDraw
+// Defaults for native DirectDraw
+constexpr DWORD DefaultLightStateDX5[MaxLightStates] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+constexpr DWORD DefaultLightStateDX6[MaxLightStates] = { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 };
+
 constexpr DWORD UnchangeableRenderTarget[] = { 0, 50 };
 constexpr DWORD UnchangeableRenderTargetDX7[] = { 1, 3, 5, 6, 11, 12, 13, 17, 18, 21, 31, 32, 39, 43, 44, 45, 46, 49, 51, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95 };
 constexpr DWORD DefaultRenderTargetDX5[D3D_MAXRENDERSTATES] = { 0, 0, 0, 1, 0, 0, 0, 1, 3, 2, 0, 0, 13, Z, 1, 0, 1, 1, 1, 2, 1, 2, 3, 4, 0, 8, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, I, I, 0, 0, 0, Z, 0, 1, 1, 0, 0, 0, 1, Z, Z, 0, 1, 1, 1, 8, 0, Z, Z, Z, Z, Z, Z, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, 0, 0, 0, 0, 0, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z };

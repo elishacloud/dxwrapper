@@ -203,6 +203,80 @@ void TestTextureStageState(D3DDType* pDevice, const DWORD(*DefaultValue)[MaxText
     }
 }
 
+template <typename D3DDType>
+void TestLightState(D3DDType* pDevice, const DWORD DefaultValue[], DWORD MaxLightState)
+{
+    for (UINT x = 0; x < MaxLightStates; x++)
+    {
+        DWORD ssValue = 0;
+        HRESULT hr = pDevice->GetLightState((D3DLIGHTSTATETYPE)x, &ssValue);
+
+        if (ssValue != DefaultValue[x])
+        {
+            LOG_TEST_RESULT(x, "Failed to get correct Light State. Error: ", ssValue, DefaultValue[x]);
+        }
+
+        if (x == 0 || x > MaxLightState)
+        {
+            if (hr != DDERR_INVALIDPARAMS)
+            {
+                LOG_TEST_RESULT(x, "Failed return when trying to get Light State. Error: ", (DDERR)hr, (DDERR)DDERR_INVALIDPARAMS);
+            }
+            continue;   // Don't set value if failed to get value
+        }
+        if (hr != DD_OK)
+        {
+            LOG_TEST_RESULT(x, "Failed return when trying to get Light State. Error: ", (DDERR)hr, (DDERR)DD_OK);
+        }
+
+        // Setting an invalid material will cause crash
+        if (x == D3DLIGHTSTATE_MATERIAL)
+        {
+            continue;
+        }
+
+        DWORD NewValue = TRUE;
+        hr = pDevice->SetLightState((D3DLIGHTSTATETYPE)x, NewValue);
+
+        if (hr != DD_OK)
+        {
+            LOG_TEST_RESULT(x, "Failed return when trying to Set -1- Light State to TRUE. Error: ", (DDERR)hr, (DDERR)DD_OK);
+        }
+
+        hr = pDevice->GetLightState((D3DLIGHTSTATETYPE)x, &ssValue);
+
+        if (hr != DD_OK)
+        {
+            LOG_TEST_RESULT(x, "Failed return when trying to Get -1- Light State. Error: ", (DDERR)hr, (DDERR)DD_OK);
+        }
+
+        if (ssValue != NewValue)
+        {
+            LOG_TEST_RESULT(x, "Failed to set correct -1- Light State. Error: ", ssValue, NewValue);
+        }
+
+        NewValue = FALSE;
+        hr = pDevice->SetLightState((D3DLIGHTSTATETYPE)x, NewValue);
+
+        if (hr != DD_OK)
+        {
+            LOG_TEST_RESULT(x, "Failed return when trying to Set -2- Light State to FALSE. Error: ", (DDERR)hr, (DDERR)DD_OK);
+        }
+
+        hr = pDevice->GetLightState((D3DLIGHTSTATETYPE)x, &ssValue);
+
+        if (hr != DD_OK)
+        {
+            LOG_TEST_RESULT(x, "Failed return when trying to Get -1- Light State. Error: ", (DDERR)hr, (DDERR)DD_OK);
+        }
+
+        if (ssValue != NewValue)
+        {
+            LOG_TEST_RESULT(x, "Failed to set correct -2- Light State. Error: ", ssValue, NewValue);
+        }
+    }
+}
+
 template <typename DDType, typename DSType, typename DSDesc, typename D3DType, typename D3DDType>
 void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
 {
@@ -326,6 +400,7 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
         if (SUCCEEDED(hr))
         {
             TestRenderState<IDirect3DDevice2>(pD3DDevice1, DefaultRenderTargetDX5, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), 2);
+            TestLightState<IDirect3DDevice2>(pD3DDevice1, DefaultLightStateDX5, 7);
         }
     }
     else if constexpr (std::is_same_v<D3DType, IDirect3D3>)
@@ -336,6 +411,7 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
         {
             TestRenderState<IDirect3DDevice3>(pD3DDevice1, DefaultRenderTargetDX6, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), 3);
             TestTextureStageState<IDirect3DDevice3>(pD3DDevice1, DefaultTextureStageStateDX6);
+            TestLightState<IDirect3DDevice3>(pD3DDevice1, DefaultLightStateDX6, 8);
         }
     }
     else if constexpr (std::is_same_v<D3DType, IDirect3D7>)

@@ -3,6 +3,7 @@
 constexpr UINT MaxTextureStageStates = 33;  // Devices have up to 33 stage states.
 constexpr UINT MaxClipPlaneIndex = 6;       // Devices can have up to six clip planes.
 constexpr UINT MaxActiveLights = 32;        // Devices can have up to 32 lights.
+constexpr UINT MaxLightStates = 10;         // Devices have up to 10 types.
 
 namespace {
 	// 0xFFFFFFFF
