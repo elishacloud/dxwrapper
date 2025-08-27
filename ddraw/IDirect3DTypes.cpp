@@ -309,14 +309,14 @@ bool OverloadedD9RenderState(D3DRENDERSTATETYPE dwRenderStateType)
 {
 	switch (dwRenderStateType)
 	{
-	case D3DRS_FOGTABLEMODE:
-	case D3DRS_FOGSTART:
-	case D3DRS_FOGEND:
-	case D3DRS_FOGDENSITY:
-	case D3DRS_AMBIENT:
-	case D3DRS_FOGVERTEXMODE:
-	case D3DRS_COLORVERTEX:
-	case D3DRS_DEPTHBIAS:
+	case D3DRS_FOGTABLEMODE:	// 35
+	case D3DRS_FOGSTART:		// 36
+	case D3DRS_FOGEND:			// 37
+	case D3DRS_FOGDENSITY:		// 38
+	case D3DRS_AMBIENT:			// 139
+	case D3DRS_FOGVERTEXMODE:	// 140
+	case D3DRS_COLORVERTEX:		// 141
+	case D3DRS_DEPTHBIAS:		// 195
 		return true;
 	}
 	return false;
