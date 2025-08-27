@@ -2964,22 +2964,6 @@ void m_IDirectDrawX::ClearD3DDevice()
 	SetRenderTargetSurface(nullptr);
 
 	Clear3DFlagForAllSurfaces();
-
-	// Flag all ddraw devices
-	for (const auto& pDDraw : DDrawVector)
-	{
-		DWORD x = 0;
-		while (pDDraw->D3DInterface)
-		{
-			m_IDirect3DDeviceX* D3DDeviceX = pDDraw->D3DInterface->GetNextD3DDevice(x++);
-
-			if (!D3DDeviceX)
-			{
-				break;
-			}
-			D3DDeviceX->BeforeResetDevice();
-		}
-	}
 }
 
 bool m_IDirectDrawX::IsInScene()
@@ -4176,23 +4160,6 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 		pDDraw->ReleasedSurfaceList.clear();
 	}
 
-	// Release all state blocks from all ddraw devices
-	for (const auto& pDDraw : DDrawVector)
-	{
-		DWORD x = 0;
-		while (pDDraw->D3DInterface)
-		{
-			m_IDirect3DDeviceX* D3DDeviceX = pDDraw->D3DInterface->GetNextD3DDevice(x++);
-
-			if (!D3DDeviceX)
-			{
-				break;
-			}
-			D3DDeviceX->BeforeResetDevice();
-			D3DDeviceX->ReleaseAllStateBlocks();
-		}
-	}
-
 	// Release all vertex buffers from all ddraw devices
 	for (const auto& pDDraw : DDrawVector)
 	{
@@ -4451,20 +4418,6 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 			pDDraw->PrimarySurface = nullptr;
 			ClipperHWnd = nullptr;
 			DisplayPixelFormat = {};
-		}
-		if (lpSurfaceX == pDDraw->RenderTargetSurface || lpSurfaceX == pDDraw->DepthStencilSurface)
-		{
-			DWORD x = 0;
-			while (pDDraw->D3DInterface)
-			{
-				m_IDirect3DDeviceX* D3DDeviceX = pDDraw->D3DInterface->GetNextD3DDevice(x++);
-
-				if (!D3DDeviceX)
-				{
-					break;
-				}
-				D3DDeviceX->BeforeResetDevice();
-			}
 		}
 		if (lpSurfaceX == pDDraw->RenderTargetSurface)
 		{

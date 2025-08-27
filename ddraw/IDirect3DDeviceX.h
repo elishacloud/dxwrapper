@@ -35,36 +35,37 @@ private:
 	std::chrono::steady_clock::time_point sceneTime;
 #endif
 
-	struct LIGHTENABLE {
+	struct STATESTRUCT {
 		bool Set = false;
-		BOOL Enable = FALSE;
-		D3DLIGHT9 Light = {};
+		DWORD State = (DWORD)-1;
 	};
-	struct {
-		struct {
-			bool Set = false;
-			DWORD State = (DWORD)-1;
-		} RenderState[D3D_MAXRENDERSTATES], TextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates], SamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE];
-		std::unordered_map<DWORD, LIGHTENABLE> Light;
-		struct {
-			bool Set = false;
-			FLOAT4 Plane = {};
-		} ClipPlane[MaxClipPlaneIndex];
-		struct {
-			bool Set = false;
-			D3DVIEWPORT9 View = {};
-			D3DVIEWPORT ViewportScale = {};
-			bool UseViewportScale = false;
-		} Viewport;
-		struct {
-			bool Set = false;
-			D3DMATERIAL9 Material = {};
-		} Material = {};
+	struct CLIPPLANESTRUCT {
+		bool Set = false;
+		FLOAT4 Plane = {};
+	};
+	struct VIEWPORTSTRUCT {
+		bool Set = false;
+		D3DVIEWPORT9 View = {};
+		D3DVIEWPORT ViewportScale = {};
+		bool UseViewportScale = false;
+	};
+	struct MATERIALSTRUCT {
+		bool Set = false;
+		D3DMATERIAL9 Material = {};
+	};
+	struct DEVICESTATE {
+		STATESTRUCT RenderState[D3D_MAXRENDERSTATES], TextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates], SamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE];
+		CLIPPLANESTRUCT ClipPlane[MaxClipPlaneIndex];
+		VIEWPORTSTRUCT Viewport;
+		MATERIALSTRUCT Material = {};
+		std::unordered_map<DWORD, D3DLIGHT9> Light;
+		std::unordered_map<DWORD, BOOL> LightEnable;
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
 		std::unordered_map<D3DRENDERSTATETYPE, DWORD> rsMap;
 		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> tsMap0;
 		std::unordered_map<D3DLIGHTSTATETYPE, DWORD> lsMap;
-	} DeviceStates;
+	};
+	DEVICESTATE DeviceStates;
 
 	struct {
 		std::unordered_map<D3DRENDERSTATETYPE, DWORD> RenderState;
@@ -75,7 +76,53 @@ private:
 		std::unordered_map<DWORD, FLOAT4> ClipPlane;
 		struct { bool Set = false; } Material;
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
+
+		void clear()
+		{
+			RenderState.clear();
+			for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
+			{
+				TextureStageState[x].clear();
+				SamplerState[x].clear();
+			}
+			Light.clear();
+			LightEnable.clear();
+			ClipPlane.clear();
+			Material.Set = false;
+			Matrix.clear();
+		}
 	} BatchStates;
+
+	struct RECORDSTATE {
+		std::unordered_map<D3DRENDERSTATETYPE, DWORD> RenderState;
+		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> TextureStageState[D3DHAL_TSS_MAXSTAGES];
+		std::unordered_map<D3DSAMPLERSTATETYPE, DWORD> SamplerState[D3DHAL_TSS_MAXSTAGES];
+		std::unordered_map<DWORD, D3DLIGHT9> Light;
+		std::unordered_map<DWORD, BOOL> LightEnable;
+		std::unordered_map<DWORD, FLOAT4> ClipPlane;
+		std::unordered_map<DWORD, D3DVIEWPORT9> Viewport;
+		std::unordered_map<DWORD, D3DMATERIAL9> Material;
+		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
+		std::unordered_map<D3DRENDERSTATETYPE, DWORD> rsMap;
+		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> tsMap0;
+	};
+
+	struct PIXELSTATE {
+		STATESTRUCT TextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates];
+		STATESTRUCT SamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE];
+		std::unordered_map<D3DRENDERSTATETYPE, STATESTRUCT> RenderState;
+		std::unordered_map<D3DRENDERSTATETYPE, DWORD> rsMap;
+		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> tsMap0;
+	};
+
+	struct VERTEXSTATE {
+		CLIPPLANESTRUCT ClipPlane[MaxClipPlaneIndex];
+		std::unordered_map<D3DRENDERSTATETYPE, STATESTRUCT> RenderState;
+		std::unordered_map<D3DTEXTURESTAGESTATETYPE, STATESTRUCT> TextureStageState[D3DHAL_TSS_MAXSTAGES];
+		std::unordered_map<DWORD, BOOL> LightEnable;
+		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
+		std::unordered_map<D3DRENDERSTATETYPE, DWORD> rsMap;
+	};
 
 	struct {
 		DWORD rsClipping = 0;
@@ -107,8 +154,43 @@ private:
 	D3DCLIPSTATUS D3DClipStatus = DefaultClipStatus;
 
 	// Handle state blocks
-	bool IsRecordingState = false;
-	std::unordered_set<DWORD> StateBlockTokens;
+	struct STATEBLOCKDATA {
+		D3DSTATEBLOCKTYPE Type = D3DSBT_ALL;
+		std::optional<RECORDSTATE> RecordState;
+		std::optional<PIXELSTATE> PixelState;
+		std::optional<VERTEXSTATE> VertexState;
+		std::optional<DEVICESTATE> FullState;
+	};
+	struct {
+		bool IsRecording = false;
+		DWORD RecordingToken = 0;
+		DWORD LastTokenUsed = ((DWORD)this << 8 | (DWORD)this >> 8);
+		std::vector<DWORD> Tokens;
+		std::unordered_map<DWORD, STATEBLOCKDATA> Data;
+
+		DWORD CreateToken(D3DSTATEBLOCKTYPE Type)
+		{
+			if (Config.LimitStateBlocks && Data.size() > MAX_STATE_BLOCKS)
+			{
+				DeleteToken(Tokens.front());
+			}
+			LastTokenUsed++;
+			DWORD NewToken = LastTokenUsed;
+			Tokens.push_back(NewToken);
+			Data[NewToken].Type = Type;
+			return NewToken;
+		}
+
+		void DeleteToken(DWORD Token)
+		{
+			auto it = std::find(Tokens.begin(), Tokens.end(), Token);
+			if (it != Tokens.end())
+			{
+				Tokens.erase(it);
+			}
+			Data.erase(Token);
+		}
+	} StateBlock;
 
 	// Default settings
 	D3DCAPS9 Caps9 = {};
@@ -158,15 +240,14 @@ private:
 
 	HRESULT SetTextureHandle(DWORD TexHandle);
 	HRESULT SetMaterialHandle(DWORD MatHandle);
-	HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue) const;
-	void SetRenderStateMap(D3DRENDERSTATETYPE State, DWORD Value);
-	HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
-	HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue) const;
-	void SetTextureStageStateMap(D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
-	HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
-	HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue) const;
-	HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
-	void SetLightStateMap(D3DLIGHTSTATETYPE State, DWORD Value);
+	inline HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue) const;
+	inline void SetRenderStateMap(D3DRENDERSTATETYPE State, DWORD Value);
+	inline HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
+	inline HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue) const;
+	inline void SetTextureStageStateMap(D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
+	inline HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
+	inline HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue) const;
+	inline HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
 	HRESULT GetD9Light(DWORD Index, D3DLIGHT9* lpLight) const;
 	HRESULT SetD9Light(DWORD Index, const D3DLIGHT9* lpLight);
 	HRESULT GetD9LightEnable(DWORD Index, LPBOOL lpEnable) const;
@@ -183,7 +264,6 @@ private:
 
 	void PrepDevice();
 	HRESULT RestoreStates();
-	void CollectStates();
 	void SetDefaults();
 	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
 	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
@@ -427,9 +507,7 @@ public:
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw();
-	void BeforeResetDevice();
 	void AfterResetDevice();
-	void ReleaseAllStateBlocks();
 
 	// Static functions
 	static bool InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, const DWORD dwVertexStart, const DWORD dwNumVertices, const DWORD dwVertexTypeDesc);
