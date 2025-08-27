@@ -5621,6 +5621,21 @@ HRESULT m_IDirect3DDeviceX::SetD9Viewport(const D3DVIEWPORT9* lpViewport)
 		return DDERR_INVALIDPARAMS;
 	}
 
+	if (lpCurrentRenderTargetX)
+	{
+		DDSURFACEDESC2 Desc2 = {};
+		Desc2.dwSize = sizeof(Desc2);
+		if (SUCCEEDED(lpCurrentRenderTargetX->GetSurfaceDesc2(&Desc2, 0, 7)))
+		{
+			if (lpViewport->X + lpViewport->Width > Desc2.dwWidth || lpViewport->Y + lpViewport->Height > Desc2.dwHeight)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid viewport size: " << lpViewport->X << "x" << lpViewport->Y << " " <<
+					lpViewport->Width << "x" << lpViewport->Height << " " << Desc2.dwWidth << "x" << Desc2.dwHeight);
+				return DDERR_INVALIDPARAMS;
+			}
+		}
+	}
+
 	DeviceStates.Viewport.Set = true;
 	DeviceStates.Viewport.View = *lpViewport;
 
