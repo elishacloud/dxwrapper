@@ -8,7 +8,7 @@
 
 #define D3DSTATE D3DSTATE7
 
-#define D3DRENDERSTATE_NONE 0
+#define D3DRENDERSTATE_NONE (D3DRENDERSTATETYPE)0
 
 #define D3DDP_FORCE_DWORD               0x0000001Fl
 #define D3DDP_DXW_COLORKEYENABLE        0x00000020l
@@ -182,6 +182,7 @@ void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT2& Viewport2);
 void ConvertViewport(D3DVIEWPORT7& Viewport, const D3DVIEWPORT7& Viewport7);
 bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD& Value, DWORD DirectXVersion);
 bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
+bool OverloadedD9RenderState(D3DRENDERSTATETYPE dwRenderStateType);
 DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value);
 bool IsValidTransformState(D3DTRANSFORMSTATETYPE State);
 D3DMATRIX FixMatrix(const D3DMATRIX& Matrix, D3DTRANSFORMSTATETYPE State, D3DVIEWPORT Viewport, bool ScaleMatrix);

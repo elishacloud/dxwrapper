@@ -253,7 +253,8 @@ public:
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
 
 	// State block functions
-	void CreateStateBlock();
+	void GetDefaultStates();
+	void GetDefaultViewport(D3DVIEWPORT9* pViewport);
 	void ApplyStateBlock();
 
 	// Surface vector functions

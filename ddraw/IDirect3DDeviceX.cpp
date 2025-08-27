@@ -1743,10 +1743,12 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		{
 			if (dwRenderStateType > 0 && dwRenderStateType < D3D_MAXRENDERSTATES && ClientDirectXVersion < 7)
 			{
+				*lpdwRenderState = DeviceStates.RenderState[dwRenderStateType].State;
 				return D3D_OK;
 			}
 			else
 			{
+				*lpdwRenderState = 0;
 				return DDERR_INVALIDPARAMS;
 			}
 		}
@@ -1755,7 +1757,14 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		{
 			if (dwRenderStateType < D3D_MAXRENDERSTATES)
 			{
-				*lpdwRenderState = rsUnUsed96[dwRenderStateType - 96];
+				if (OverloadedD9RenderState(dwRenderStateType))
+				{
+					*lpdwRenderState = DeviceStates.rsMap[dwRenderStateType];
+				}
+				else
+				{
+					*lpdwRenderState = DeviceStates.RenderState[dwRenderStateType].State;
+				}
 				return D3D_OK;
 			}
 			else
@@ -1767,114 +1776,48 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 		switch ((DWORD)dwRenderStateType)
 		{
-		case D3DRENDERSTATE_NONE:
-			*lpdwRenderState = rsNone;
-			return D3D_OK;
-		case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
-			*lpdwRenderState = rsTextureHandle;
-			return D3D_OK;
-		case D3DRENDERSTATE_ANTIALIAS:			// 2
-			*lpdwRenderState = rsAntiAlias;
-			return D3D_OK;
-		case D3DRENDERSTATE_TEXTUREADDRESS:		// 3
-			*lpdwRenderState = rsTextureAddress;
-			return D3D_OK;
-		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:	// 4
-			*lpdwRenderState = rsTexturePerspective;
-			return D3D_OK;
-		case D3DRENDERSTATE_WRAPU:				// 5
-			*lpdwRenderState = rsWrapU;
-			return D3D_OK;
-		case D3DRENDERSTATE_WRAPV:				// 6
-			*lpdwRenderState = rsWrapV;
-			return D3D_OK;
-		case D3DRENDERSTATE_LINEPATTERN:		// 10
-			*lpdwRenderState = rsLinePattern;
-			return D3D_OK;
-		case D3DRENDERSTATE_MONOENABLE:			// 11
-			*lpdwRenderState = rsMonoEnable;
-			return D3D_OK;
-		case D3DRENDERSTATE_ROP2:				// 12
-			*lpdwRenderState = rsROP2;
-			return D3D_OK;
-		case D3DRENDERSTATE_PLANEMASK:			// 13
-			*lpdwRenderState = rsPlaneMask;
-			return D3D_OK;
-		case D3DRENDERSTATE_TEXTUREMAG:			// 17
-			*lpdwRenderState = rsTextureMag;
-			return D3D_OK;
-		case D3DRENDERSTATE_TEXTUREMIN:			// 18
-			*lpdwRenderState = rsTextureMin;
-			return D3D_OK;
-		case D3DRENDERSTATE_TEXTUREMAPBLEND:	// 21
-			*lpdwRenderState = rsTextureMapBlend;
-			return D3D_OK;
-		case D3DRENDERSTATE_ZVISIBLE:			// 30
-			// This render state is not supported.
-			*lpdwRenderState = rsZVisible;
-			return D3D_OK;
-		case D3DRENDERSTATE_SUBPIXEL:			// 31
-			*lpdwRenderState = rsSubPixel;
-			return D3D_OK;
-		case D3DRENDERSTATE_SUBPIXELX:			// 32
-			*lpdwRenderState = rsSubPixelX;
-			return D3D_OK;
-		case D3DRENDERSTATE_STIPPLEDALPHA:		// 33
-			*lpdwRenderState = rsStippledAlpha;
-			return D3D_OK;
 		case D3DRENDERSTATE_FOGTABLEMODE:		// 35
-			*lpdwRenderState = rsFogMode;
-			return D3D_OK;
 		case D3DRENDERSTATE_FOGSTART:			// 36
-			*lpdwRenderState = rsFogStart;
-			return D3D_OK;
 		case D3DRENDERSTATE_FOGEND:				// 37
-			*lpdwRenderState = rsFogEnd;
-			return D3D_OK;
 		case D3DRENDERSTATE_FOGDENSITY:			// 38
-			*lpdwRenderState = rsFogDensity;
+		case D3DRENDERSTATE_AMBIENT:			// 139
+		case D3DRENDERSTATE_FOGVERTEXMODE:		// 140
+		case D3DRENDERSTATE_COLORVERTEX:		// 141
+			*lpdwRenderState = DeviceStates.rsMap[dwRenderStateType];
 			return D3D_OK;
+		case D3DRENDERSTATE_NONE:
+		case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
+		case D3DRENDERSTATE_ANTIALIAS:			// 2
+		case D3DRENDERSTATE_TEXTUREADDRESS:		// 3
+		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:	// 4
+		case D3DRENDERSTATE_WRAPU:				// 5
+		case D3DRENDERSTATE_WRAPV:				// 6
+		case D3DRENDERSTATE_LINEPATTERN:		// 10
+		case D3DRENDERSTATE_MONOENABLE:			// 11
+		case D3DRENDERSTATE_ROP2:				// 12
+		case D3DRENDERSTATE_PLANEMASK:			// 13
+		case D3DRENDERSTATE_TEXTUREMAG:			// 17
+		case D3DRENDERSTATE_TEXTUREMIN:			// 18
+		case D3DRENDERSTATE_TEXTUREMAPBLEND:	// 21
+		case D3DRENDERSTATE_ZVISIBLE:			// 30
+		case D3DRENDERSTATE_SUBPIXEL:			// 31
+		case D3DRENDERSTATE_SUBPIXELX:			// 32
+		case D3DRENDERSTATE_STIPPLEDALPHA:		// 33
 		case D3DRENDERSTATE_STIPPLEENABLE:		// 39
-			*lpdwRenderState = rsStippleEnable;
-			return D3D_OK;
 		case D3DRENDERSTATE_EDGEANTIALIAS:		// 40
-			*lpdwRenderState = rsEdgeAntiAlias;
-			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYENABLE:		// 41
-			*lpdwRenderState = rsColorKeyEnabled;
-			return D3D_OK;
 		case D3DRENDERSTATE_OLDALPHABLENDENABLE:// 42
-			*lpdwRenderState = rsOldAlphaEnabled;
-			return D3D_OK;
 		case D3DRENDERSTATE_BORDERCOLOR:		// 43
-			*lpdwRenderState = rsBorderColor;
-			return D3D_OK;
 		case D3DRENDERSTATE_TEXTUREADDRESSU:	// 44
-			*lpdwRenderState = rsTextureAddressU;
-			return D3D_OK;
 		case D3DRENDERSTATE_TEXTUREADDRESSV:	// 45
-			*lpdwRenderState = rsTextureAddressV;
-			return D3D_OK;
 		case D3DRENDERSTATE_MIPMAPLODBIAS:		// 46
-			*lpdwRenderState = rsMipMapLobBias;
-			return D3D_OK;
 		case D3DRENDERSTATE_ZBIAS:				// 47
-			*lpdwRenderState = rsZBias;
-			return D3D_OK;
 		case D3DRENDERSTATE_ANISOTROPY:			// 49
-			*lpdwRenderState = rsAnisotropy;
-			return D3D_OK;
 		case D3DRENDERSTATE_FLUSHBATCH:			// 50
-			*lpdwRenderState = rsFlushBatch;
-			return D3D_OK;
 		case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:	// 51
-			*lpdwRenderState = rsTranslucentSortIndependent;
-			return D3D_OK;
 		case 61:
 		case 62:
 		case 63:
-			*lpdwRenderState = rsUnUsed61To63[dwRenderStateType - 61];
-			return D3D_OK;
 		case D3DRENDERSTATE_STIPPLEPATTERN00:	// 64
 		case D3DRENDERSTATE_STIPPLEPATTERN01:	// 65
 		case D3DRENDERSTATE_STIPPLEPATTERN02:	// 66
@@ -1907,17 +1850,9 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_STIPPLEPATTERN29:	// 93
 		case D3DRENDERSTATE_STIPPLEPATTERN30:	// 94
 		case D3DRENDERSTATE_STIPPLEPATTERN31:	// 95
-			*lpdwRenderState = rsStipplePattern[dwRenderStateType - D3DRENDERSTATE_STIPPLEPATTERN00];
-			return D3D_OK;
 		case D3DRENDERSTATE_EXTENTS:			// 138
-			// ToDo: use this to report on clip plane extents set by SetClipStatus()
-			*lpdwRenderState = rsExtents;
-			return D3D_OK;
-		case D3DRENDERSTATE_COLORVERTEX:		// 141
-			*lpdwRenderState = rsColorVertex;
-			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYBLENDENABLE:// 144
-			*lpdwRenderState = rsColorKeyBlendEnabled;
+			*lpdwRenderState = DeviceStates.RenderState[dwRenderStateType].State;
 			return D3D_OK;
 		}
 
@@ -1959,7 +1894,14 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		{
 			if (dwRenderStateType < D3D_MAXRENDERSTATES)
 			{
-				rsUnUsed96[dwRenderStateType - 96] = dwRenderState;
+				if (OverloadedD9RenderState(dwRenderStateType))
+				{
+					SetRenderStateMap(dwRenderStateType, dwRenderState);
+				}
+				else
+				{
+					DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
+				}
 				return D3D_OK;
 			}
 			else
@@ -1971,69 +1913,64 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		switch ((DWORD)dwRenderStateType)
 		{
 		case D3DRENDERSTATE_NONE:
-			rsNone = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return D3D_OK;
 		case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
-		{
-			rsTextureHandle = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return SetTextureHandle(dwRenderState);
-		}
 		case D3DRENDERSTATE_ANTIALIAS:			// 2
 			rsAntiAliasChanged = true;
-			rsAntiAlias = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return D3D_OK;
 		case D3DRENDERSTATE_TEXTUREADDRESS:		// 3
-			rsTextureAddress = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			SetD9SamplerState(0, D3DSAMP_ADDRESSU, dwRenderState);
 			return SetD9SamplerState(0, D3DSAMP_ADDRESSV, dwRenderState);
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:	// 4
-			if (dwRenderState != rsTexturePerspective)
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
+			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_TEXTUREPERSPECTIVE' not implemented: " << dwRenderState);
 			}
-			rsTexturePerspective = dwRenderState;
 			return D3D_OK;
 		case D3DRENDERSTATE_WRAPU:				// 5
-			rsWrapChanged = true;
-			rsWrapU = dwRenderState;
-			return D3D_OK;
 		case D3DRENDERSTATE_WRAPV:				// 6
 			rsWrapChanged = true;
-			rsWrapV = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return D3D_OK;
 		case D3DRENDERSTATE_LINEPATTERN:		// 10
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != 0)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented: " << dwRenderState);
 			}
-			rsLinePattern = dwRenderState;
 			return D3D_OK;
 		case D3DRENDERSTATE_MONOENABLE:			// 11
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_MONOENABLE' not implemented: " << dwRenderState);
 			}
-			rsMonoEnable = dwRenderState;
 			return D3D_OK;
 		case D3DRENDERSTATE_ROP2:				// 12
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != R2_COPYPEN)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ROP2' not implemented: " << dwRenderState);
 			}
-			rsROP2 = dwRenderState;
 			return D3D_OK;
 		case D3DRENDERSTATE_PLANEMASK:			// 13
-			if (dwRenderState != (DWORD)-1)
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
+			if (dwRenderState != ~0)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_PLANEMASK' not implemented: " << dwRenderState);
 			}
-			rsPlaneMask = dwRenderState;
 			return D3D_OK;
 		case D3DRENDERSTATE_TEXTUREMAG:			// 17
-			// Only the first two (D3DFILTER_NEAREST and D3DFILTER_LINEAR) are valid with D3DRENDERSTATE_TEXTUREMAG.
-			rsTextureMag = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			switch (dwRenderState)
 			{
+			// Only the first two (D3DFILTER_NEAREST and D3DFILTER_LINEAR) are valid with D3DRENDERSTATE_TEXTUREMAG.
 			case D3DFILTER_NEAREST:
 			case D3DFILTER_LINEAR:
 				return SetD9SamplerState(0, D3DSAMP_MAGFILTER, dwRenderState);
@@ -2042,7 +1979,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 				return D3D_OK;
 			}
 		case D3DRENDERSTATE_TEXTUREMIN:			// 18
-			rsTextureMin = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			switch (dwRenderState)
 			{
 			case D3DFILTER_NEAREST:
@@ -2066,7 +2003,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 				return D3D_OK;
 			}
 		case D3DRENDERSTATE_TEXTUREMAPBLEND:	// 21
-			rsTextureMapBlend = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			switch (dwRenderState)
 			{
 			case D3DTBLEND_COPY:
@@ -2157,47 +2094,47 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			dwRenderState &= 0xFF;
 			break;
 		case D3DRENDERSTATE_ZVISIBLE:			// 30
-			rsZVisible = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented: " << dwRenderState);
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_SUBPIXEL:			// 31
-			rsSubPixel = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_SUBPIXEL' not implemented: " << dwRenderState);
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_SUBPIXELX:			// 32
-			rsSubPixelX = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_SUBPIXELX' not implemented: " << dwRenderState);
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_STIPPLEDALPHA:		// 33
-			rsStippledAlpha = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented! " << dwRenderState);
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_FOGTABLEMODE:		// 35
-			rsFogMode = dwRenderState;
+			SetRenderStateMap(dwRenderStateType, dwRenderState);
 			break;
 		case D3DRENDERSTATE_FOGSTART:			// 36
-			rsFogStart = dwRenderState;
+			SetRenderStateMap(dwRenderStateType, dwRenderState);
 			break;
 		case D3DRENDERSTATE_FOGEND:				// 37
-			rsFogEnd = dwRenderState;
+			SetRenderStateMap(dwRenderStateType, dwRenderState);
 			break;
 		case D3DRENDERSTATE_FOGDENSITY:			// 38
-			rsFogDensity = dwRenderState;
+			SetRenderStateMap(dwRenderStateType, dwRenderState);
 			break;
 		case D3DRENDERSTATE_STIPPLEENABLE:		// 39
-			rsStippleEnable = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEENABLE' not implemented! " << dwRenderState);
@@ -2205,54 +2142,54 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			return D3D_OK;
 		case D3DRENDERSTATE_EDGEANTIALIAS:		// 40
 			rsAntiAliasChanged = true;
-			rsEdgeAntiAlias = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYENABLE:		// 41
-			rsColorKeyEnabled = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return D3D_OK;
 		case D3DRENDERSTATE_OLDALPHABLENDENABLE:// 42
-			rsOldAlphaEnabled = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_OLDALPHABLENDENABLE' not implemented! " << dwRenderState);
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_BORDERCOLOR:		// 43
-			rsBorderColor = dwRenderState;
-			if (dwRenderState != 0x00000000)
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
+			if (dwRenderState != D3DCOLOR_ARGB(0, 0, 0, 0))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_BORDERCOLOR' not implemented! " << dwRenderState);
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_TEXTUREADDRESSU:	// 44
-			rsTextureAddressU = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return SetD9SamplerState(0, D3DSAMP_ADDRESSU, dwRenderState);
 		case D3DRENDERSTATE_TEXTUREADDRESSV:	// 45
-			rsTextureAddressV = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return SetD9SamplerState(0, D3DSAMP_ADDRESSV, dwRenderState);
 		case D3DRENDERSTATE_MIPMAPLODBIAS:		// 46
-			rsMipMapLobBias = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return SetD9SamplerState(0, D3DSAMP_MIPMAPLODBIAS, dwRenderState);
 		case D3DRENDERSTATE_ZBIAS:				// 47
 		{
-			rsZBias = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			FLOAT Biased = static_cast<FLOAT>(dwRenderState) * -0.000005f;
 			dwRenderState = *reinterpret_cast<const DWORD*>(&Biased);
 			dwRenderStateType = D3DRS_DEPTHBIAS;
 			break;
 		}
 		case D3DRENDERSTATE_ANISOTROPY:			// 49
-			rsAnisotropy = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return SetD9SamplerState(0, D3DSAMP_MAXANISOTROPY, dwRenderState);
 		case D3DRENDERSTATE_FLUSHBATCH:			// 50
-			rsFlushBatch = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_FLUSHBATCH' not implemented! " << dwRenderState);
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:	// 51
-			rsTranslucentSortIndependent = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT' not implemented! " << dwRenderState);
@@ -2261,8 +2198,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case 61:
 		case 62:
 		case 63:
-			rsUnUsed61To63[dwRenderStateType - 61] = dwRenderState;
-			return D3D_OK;
 		case D3DRENDERSTATE_STIPPLEPATTERN00:	// 64
 		case D3DRENDERSTATE_STIPPLEPATTERN01:	// 65
 		case D3DRENDERSTATE_STIPPLEPATTERN02:	// 66
@@ -2295,7 +2230,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_STIPPLEPATTERN29:	// 93
 		case D3DRENDERSTATE_STIPPLEPATTERN30:	// 94
 		case D3DRENDERSTATE_STIPPLEPATTERN31:	// 95
-			rsStipplePattern[dwRenderStateType - D3DRENDERSTATE_STIPPLEPATTERN00] = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != 0)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEPATTERN00' not implemented! " << dwRenderState);
@@ -2303,17 +2238,19 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			return D3D_OK;
 		case D3DRENDERSTATE_EXTENTS:			// 138
 			// ToDo: use this to enable/disable clip plane extents set by SetClipStatus()
-			rsExtents = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented! " << dwRenderState);
 			}
 			return D3D_OK;
+		case D3DRENDERSTATE_AMBIENT:			// 139
+		case D3DRENDERSTATE_FOGVERTEXMODE:		// 140
 		case D3DRENDERSTATE_COLORVERTEX:		// 141
-			rsColorVertex = dwRenderState;
+			SetRenderStateMap(dwRenderStateType, dwRenderState);
 			break;
 		case D3DRENDERSTATE_COLORKEYBLENDENABLE:// 144
-			rsColorKeyBlendEnabled = dwRenderState;
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_COLORKEYBLENDENABLE' not implemented! " << dwRenderState);
@@ -2366,12 +2303,9 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 			return DDERR_INVALIDPARAMS;
 		}
 
-		D3DRENDERSTATETYPE RenderState = (D3DRENDERSTATETYPE)0;
 		switch (dwLightStateType)
 		{
 		case D3DLIGHTSTATE_MATERIAL:
-			*lpdwLightState = lsMaterialHandle;
-			return D3D_OK;
 		case D3DLIGHTSTATE_AMBIENT:
 		case D3DLIGHTSTATE_COLORMODEL:
 		case D3DLIGHTSTATE_FOGMODE:
@@ -2379,7 +2313,7 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 		case D3DLIGHTSTATE_FOGEND:
 		case D3DLIGHTSTATE_FOGDENSITY:
 		case D3DLIGHTSTATE_COLORVERTEX:
-			*lpdwLightState = lsColorState[dwLightStateType];
+			*lpdwLightState = DeviceStates.lsMap[dwLightStateType];
 			return D3D_OK;
 		default:
 			break;
@@ -2426,72 +2360,38 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 		switch (dwLightStateType)
 		{
 		case D3DLIGHTSTATE_MATERIAL:
-		{
-			lsMaterialHandle = dwLightState;
-
-			D3DMATERIAL Material = {};
-			Material.dwSize = sizeof(D3DMATERIAL);
-
-			if (dwLightState)
-			{
-				m_IDirect3DMaterialX* pMaterialX = GetMaterial(dwLightState);
-				if (pMaterialX)
-				{
-					if (FAILED(pMaterialX->GetMaterial(&Material)))
-					{
-						return DDERR_INVALIDPARAMS;
-					}
-				}
-				else
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get material handle!");
-					return D3D_OK;
-				}
-			}
-
-			D3DMATERIAL7 Material7;
-
-			ConvertMaterial(Material7, Material);
-
-			SetMaterial(&Material7);
-
-			if (Material.hTexture)
-			{
-				SetTextureHandle(Material.hTexture);
-			}
-
-			return D3D_OK;
-		}
+			SetLightStateMap(dwLightStateType, dwLightState);
+			return SetMaterialHandle(dwLightState);
 		case D3DLIGHTSTATE_AMBIENT:
 			RenderState = D3DRS_AMBIENT;
-			lsColorState[dwLightStateType] = dwLightState;
+			SetLightStateMap(dwLightStateType, dwLightState);
 			break;
 		case D3DLIGHTSTATE_COLORMODEL:
 			if (dwLightState != D3DCOLOR_RGB)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DLIGHTSTATE_COLORMODEL' not implemented! " << dwLightState);
 			}
-			lsColorState[dwLightStateType] = dwLightState;
+			SetLightStateMap(dwLightStateType, dwLightState);
 			return D3D_OK;
 		case D3DLIGHTSTATE_FOGMODE:
-			RenderState = D3DRS_FOGVERTEXMODE;
-			lsColorState[dwLightStateType] = dwLightState;
+			RenderState = D3DRS_FOGTABLEMODE;
+			SetLightStateMap(dwLightStateType, dwLightState);
 			break;
 		case D3DLIGHTSTATE_FOGSTART:
 			RenderState = D3DRS_FOGSTART;
-			lsColorState[dwLightStateType] = dwLightState;
+			SetLightStateMap(dwLightStateType, dwLightState);
 			break;
 		case D3DLIGHTSTATE_FOGEND:
 			RenderState = D3DRS_FOGEND;
-			lsColorState[dwLightStateType] = dwLightState;
+			SetLightStateMap(dwLightStateType, dwLightState);
 			break;
 		case D3DLIGHTSTATE_FOGDENSITY:
 			RenderState = D3DRS_FOGDENSITY;
-			lsColorState[dwLightStateType] = dwLightState;
+			SetLightStateMap(dwLightStateType, dwLightState);
 			break;
 		case D3DLIGHTSTATE_COLORVERTEX:
 			RenderState = D3DRS_COLORVERTEX;
-			lsColorState[dwLightStateType] = dwLightState;
+			SetLightStateMap(dwLightStateType, dwLightState);
 			break;
 		default:
 			break;
@@ -3543,7 +3443,7 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		{
 			if (dwStage < D3DHAL_TSS_MAXSTAGES && (DWORD)dwState < MaxTextureStageStates)
 			{
-				*lpdwValue = ssUnUsed[dwStage][dwState];
+				*lpdwValue = DeviceStates.TextureStageState[dwStage][dwState].State;
 			}
 			else
 			{
@@ -3567,7 +3467,7 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 			case D3DTSS_ADDRESSV:
 			case D3DTSS_MIPMAPLODBIAS:
 			case D3DTSS_MAXANISOTROPY:
-				*lpdwValue = ssStage0[dwState];
+				*lpdwValue = DeviceStates.tsMap0[dwState];
 				return D3D_OK;
 			}
 		}
@@ -3575,7 +3475,7 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		switch ((DWORD)dwState)
 		{
 		case D3DTSS_ADDRESS:
-			*lpdwValue = ssAddress[dwStage];
+			*lpdwValue = DeviceStates.TextureStageState[dwStage][dwState].State;
 			return D3D_OK;
 		case D3DTSS_ADDRESSU:
 			return GetD9SamplerState(dwStage, D3DSAMP_ADDRESSU, lpdwValue);
@@ -3586,12 +3486,12 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		case D3DTSS_BORDERCOLOR:
 			return GetD9SamplerState(dwStage, D3DSAMP_BORDERCOLOR, lpdwValue);
 		case D3DTSS_MAGFILTER:
-			*lpdwValue = ssMagFilter[dwStage];
+			*lpdwValue = DeviceStates.TextureStageState[dwStage][dwState].State;
 			return D3D_OK;
 		case D3DTSS_MINFILTER:
 			return GetD9SamplerState(dwStage, D3DSAMP_MINFILTER, lpdwValue);
 		case D3DTSS_MIPFILTER:
-			*lpdwValue = ssMipFilter[dwStage];
+			*lpdwValue = DeviceStates.TextureStageState[dwStage][dwState].State;
 			return D3D_OK;
 		case D3DTSS_MIPMAPLODBIAS:
 			return GetD9SamplerState(dwStage, D3DSAMP_MIPMAPLODBIAS, lpdwValue);
@@ -3645,7 +3545,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		{
 			if (dwStage < D3DHAL_TSS_MAXSTAGES && (DWORD)dwState < MaxTextureStageStates)
 			{
-				ssUnUsed[dwStage][dwState] = dwValue;
+				DeviceStates.TextureStageState[dwStage][dwState].State = dwValue;
 			}
 			return D3D_OK;
 		}
@@ -3665,14 +3565,14 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 			case D3DTSS_ADDRESSV:
 			case D3DTSS_MIPMAPLODBIAS:
 			case D3DTSS_MAXANISOTROPY:
-				ssStage0[dwState] = dwValue;
+				SetTextureStageStateMap(dwState, dwValue);
 			}
 		}
 
 		switch ((DWORD)dwState)
 		{
 		case D3DTSS_ADDRESS:
-			ssAddress[dwStage] = dwValue;
+			DeviceStates.TextureStageState[dwStage][dwState].State = dwValue;
 			SetD9SamplerState(dwStage, D3DSAMP_ADDRESSU, dwValue);
 			return SetD9SamplerState(dwStage, D3DSAMP_ADDRESSV, dwValue);
 		case D3DTSS_ADDRESSU:
@@ -3684,12 +3584,12 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		case D3DTSS_BORDERCOLOR:
 			return SetD9SamplerState(dwStage, D3DSAMP_BORDERCOLOR, dwValue);
 		case D3DTSS_MAGFILTER:
-			ssMagFilter[dwStage] = dwValue;
+			DeviceStates.TextureStageState[dwStage][dwState].State = dwValue;
 			return SetD9SamplerState(dwStage, D3DSAMP_MAGFILTER, dwValue);
 		case D3DTSS_MINFILTER:
 			return SetD9SamplerState(dwStage, D3DSAMP_MINFILTER, dwValue);
 		case D3DTSS_MIPFILTER:
-			ssMipFilter[dwStage] = dwValue;
+			DeviceStates.TextureStageState[dwStage][dwState].State = dwValue;
 			return SetD9SamplerState(dwStage, D3DSAMP_MIPFILTER, dwValue);
 		case D3DTSS_MIPMAPLODBIAS:
 			return SetD9SamplerState(dwStage, D3DSAMP_MIPMAPLODBIAS, dwValue);
@@ -5062,7 +4962,7 @@ void m_IDirect3DDeviceX::ClearMaterialHandle(D3DMATERIALHANDLE mHandle)
 		// If material handle is set then clear it
 		if (lsMaterialHandle == mHandle)
 		{
-			SetLightState(D3DLIGHTSTATE_MATERIAL, 0);
+			SetMaterialHandle(NULL);
 		}
 	}
 }
@@ -5395,6 +5295,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureHandle(DWORD TexHandle)
 {
 	if (TexHandle == NULL)
 	{
+		rsTextureHandle = NULL;
 		return SetTexture(0, (LPDIRECT3DTEXTURE2)nullptr);
 	}
 	m_IDirect3DTextureX* pTextureX = GetTexture(TexHandle);
@@ -5407,13 +5308,55 @@ HRESULT m_IDirect3DDeviceX::SetTextureHandle(DWORD TexHandle)
 			return D3D_OK;
 		}
 
+		rsTextureHandle = TexHandle;
 		return SetTexture(0, lpTexture);
 	}
 	else
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture handle!");
+		rsTextureHandle = NULL;
 		return SetTexture(0, (LPDIRECT3DTEXTURE2)nullptr);
 	}
+	return D3D_OK;
+}
+
+HRESULT m_IDirect3DDeviceX::SetMaterialHandle(DWORD MatHandle)
+{
+	lsMaterialHandle = NULL;
+
+	D3DMATERIAL Material = {};
+	Material.dwSize = sizeof(D3DMATERIAL);
+
+	if (MatHandle)
+	{
+		m_IDirect3DMaterialX* pMaterialX = GetMaterial(MatHandle);
+		if (pMaterialX)
+		{
+			if (FAILED(pMaterialX->GetMaterial(&Material)))
+			{
+				return DDERR_INVALIDPARAMS;
+			}
+		}
+		else
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get material handle!");
+			return D3D_OK;
+		}
+	}
+
+	lsMaterialHandle = MatHandle;
+
+	D3DMATERIAL7 Material7;
+
+	ConvertMaterial(Material7, Material);
+
+	SetMaterial(&Material7);
+
+	if (Material.hTexture)
+	{
+		SetTextureHandle(Material.hTexture);
+	}
+
 	return D3D_OK;
 }
 
@@ -5439,6 +5382,11 @@ HRESULT m_IDirect3DDeviceX::GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD l
 	}
 
 	return D3D_OK;
+}
+
+void m_IDirect3DDeviceX::SetRenderStateMap(D3DRENDERSTATETYPE State, DWORD Value)
+{
+	DeviceStates.rsMap[State] = Value;
 }
 
 HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value)
@@ -5480,6 +5428,11 @@ HRESULT m_IDirect3DDeviceX::GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 	return D3D_OK;
 }
 
+void m_IDirect3DDeviceX::SetTextureStageStateMap(D3DTEXTURESTAGESTATETYPE Type, DWORD Value)
+{
+	DeviceStates.tsMap0[Type] = Value;
+}
+
 HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value)
 {
 	if (Stage >= D3DHAL_TSS_MAXSTAGES || (UINT)Type >= MaxTextureStageStates)
@@ -5487,7 +5440,7 @@ HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 		return DDERR_INVALIDPARAMS;
 	}
 
-	BatchStates.TextureStageState[(Stage << 16) | Type] = Value;
+	BatchStates.TextureStageState[Stage][Type] = Value;
 
 	DeviceStates.TextureStageState[Stage][Type].Set = (DefaultTextureStageState[Stage][Type] != Value);
 	DeviceStates.TextureStageState[Stage][Type].State = Value;
@@ -5527,12 +5480,17 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 	}
 
 	Value = FixSamplerState(Type, Value);
-	BatchStates.SamplerState[(Sampler << 16) | Type] = Value;
+	BatchStates.SamplerState[Sampler][Type] = Value;
 
 	DeviceStates.SamplerState[Sampler][Type].Set = (DefaultSamplerState[Sampler][Type] != Value);
 	DeviceStates.SamplerState[Sampler][Type].State = Value;
 
 	return D3D_OK;
+}
+
+void m_IDirect3DDeviceX::SetLightStateMap(D3DLIGHTSTATETYPE State, DWORD Value)
+{
+	DeviceStates.lsMap[State] = Value;
 }
 
 HRESULT m_IDirect3DDeviceX::GetD9Light(DWORD Index, D3DLIGHT7* lpLight) const
@@ -5780,16 +5738,19 @@ void m_IDirect3DDeviceX::PrepDevice()
 			(*d3d9Device)->SetRenderState(entry.first, entry.second);
 		}
 		BatchStates.RenderState.clear();
-		for (auto& entry : BatchStates.TextureStageState)
+		for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 		{
-			(*d3d9Device)->SetTextureStageState(entry.first >> 16, (D3DTEXTURESTAGESTATETYPE)(entry.first & 0xFFFF), entry.second);
+			for (auto& entry : BatchStates.TextureStageState[x])
+			{
+				(*d3d9Device)->SetTextureStageState(x, entry.first, entry.second);
+			}
+			BatchStates.TextureStageState[x].clear();
+			for (auto& entry : BatchStates.SamplerState[x])
+			{
+				(*d3d9Device)->SetSamplerState(x, entry.first, entry.second);
+			}
+			BatchStates.SamplerState[x].clear();
 		}
-		BatchStates.TextureStageState.clear();
-		for (auto& entry : BatchStates.SamplerState)
-		{
-			(*d3d9Device)->SetSamplerState(entry.first >> 16, (D3DSAMPLERSTATETYPE)(entry.first & 0xFFFF), entry.second);
-		}
-		BatchStates.SamplerState.clear();
 		for (auto& entry : BatchStates.Light)
 		{
 			(*d3d9Device)->SetLight(entry.first, &entry.second);
@@ -6040,73 +6001,75 @@ void m_IDirect3DDeviceX::SetDefaults()
 	bSetDefaults = false;
 	RequiresStateRestore = true;
 
-	// Reset in scene flag
-	IsInScene = false;
-
-	// Reset state block
-	IsRecordingState = false;
-
-	// Clip status
-	D3DClipStatus = DefaultClipStatus;
-
-	// Light states
-	lsMaterialHandle = NULL;
-
 	// Render states
-	rsNone = (DWORD)-1;
-	rsTextureHandle = 0;
-	rsAntiAliasChanged = true;
-	rsAntiAlias = (ClientDirectXVersion == 7 ? (DWORD)-1 : D3DANTIALIAS_NONE);
-	rsTextureAddress = D3DTADDRESS_WRAP;
-	rsEdgeAntiAlias = (ClientDirectXVersion == 7 ? (DWORD)-1 : FALSE);
-	rsTexturePerspective = (ClientDirectXVersion > 2 ? TRUE : FALSE);
-	rsWrapChanged = false;
-	rsWrapU = FALSE;
-	rsWrapV = FALSE;
-	rsLinePattern = 0;
-	rsMonoEnable = FALSE;
-	rsROP2 = R2_COPYPEN;
-	rsPlaneMask = (DWORD)-1;
-	rsTextureMin = D3DFILTER_NEAREST;
-	rsTextureMag = D3DFILTER_NEAREST;
-	rsTextureMapBlend = D3DTBLEND_MODULATE;
-	rsZVisible = FALSE;
-	rsSubPixel = FALSE;
-	rsSubPixelX = FALSE;
-	rsStippledAlpha = FALSE;
-	rsFogMode = D3DFOG_NONE;
-	rsFogStart = 0;
-	rsFogEnd = 0x3F800000;	// 1.0f
-	rsFogDensity = 0x3F800000;	// 1.0f
-	rsStippleEnable = FALSE;
-	rsColorKeyEnabled = (ClientDirectXVersion == 1 ? TRUE : FALSE);
-	rsOldAlphaEnabled = (DWORD)-1;
-	rsBorderColor = D3DCOLOR_ARGB(0, 0, 0, 0);
-	rsTextureAddressU = D3DTADDRESS_WRAP;
-	rsTextureAddressV = D3DTADDRESS_WRAP;
-	rsMipMapLobBias = 0;
-	rsZBias = 0;
-	rsAnisotropy = 1;
-	rsFlushBatch = (DWORD)-1;
-	rsTranslucentSortIndependent = (DWORD)-1;
-	memset(rsUnUsed61To63, 0xFFFFFFFF, sizeof(rsUnUsed61To63));
-	memset(rsStipplePattern, 0, sizeof(rsStipplePattern));
-	rsExtents = (ClientDirectXVersion > 2 ? FALSE : TRUE);
-	rsColorVertex = TRUE;
-	rsColorKeyBlendEnabled = FALSE;
-	memset(rsUnUsed96, 0xFFFFFFFF, sizeof(rsUnUsed96));
-	memset(lsColorState, 0, sizeof(lsColorState));
-	lsColorState[D3DLIGHTSTATE_COLORVERTEX] = (ClientDirectXVersion == 3 ? TRUE : FALSE);
-	std::fill(std::begin(ssStage0), std::end(ssStage0), 1);
-	ssStage0[D3DTSS_COLOROP] = D3DTOP_MODULATE;
-	ssStage0[D3DTSS_COLORARG1] = D3DTA_TEXTURE;
-	ssStage0[D3DTSS_ALPHAOP] = D3DTOP_SELECTARG1;
-	ssStage0[D3DTSS_ALPHAARG1] = D3DTA_TEXTURE;
-	ssStage0[D3DTSS_MIPMAPLODBIAS] = D3DTA_DIFFUSE;
-	std::fill(std::begin(ssAddress), std::end(ssAddress), 1);
-	std::fill(std::begin(ssMagFilter), std::end(ssMagFilter), 1);
-	std::fill(std::begin(ssMipFilter), std::end(ssMipFilter), 1);
-	memset(ssUnUsed, 0xFFFFFFFF, sizeof(ssUnUsed));
+	if (ClientDirectXVersion == 1)
+	{
+		DeviceStates.RenderState[D3DRENDERSTATE_COLORKEYENABLE].State = TRUE;
+	}
+	else
+	{
+		for (auto State : { 1, 4, 5, 6, 10, 11, 30, 31, 32, 33, 39, 41, 43, 46, 47 })
+		{
+			DeviceStates.RenderState[State].State = FALSE;
+		}
+		for (UINT State = 64; State < 96; State++)
+		{
+			DeviceStates.RenderState[State].State = FALSE;
+		}
+		for (auto State : { 3, 4, 17, 18, 44, 45, 49 })
+		{
+			DeviceStates.RenderState[State].State = TRUE;
+		}
+		DeviceStates.RenderState[D3DRENDERSTATE_ROP2].State = R2_COPYPEN;
+		DeviceStates.RenderState[D3DRENDERSTATE_TEXTUREMAPBLEND].State = D3DTBLEND_MODULATE;
+		DeviceStates.RenderState[D3DRENDERSTATE_TEXTUREPERSPECTIVE].State = (ClientDirectXVersion == 2 ? FALSE : TRUE);
+
+		if (ClientDirectXVersion != 7)
+		{
+			DeviceStates.RenderState[D3DRENDERSTATE_NONE].State = 0;
+			DeviceStates.RenderState[D3DRENDERSTATE_ANTIALIAS].State = 0;
+			DeviceStates.RenderState[D3DRENDERSTATE_EDGEANTIALIAS].State = 0;
+		}
+		else
+		{
+			DeviceStates.RenderState[D3DRENDERSTATE_ANTIALIAS].State = (DWORD)-1;
+			DeviceStates.RenderState[D3DRENDERSTATE_EXTENTS].State = 0;
+			DeviceStates.RenderState[D3DRENDERSTATE_COLORKEYBLENDENABLE].State = 0;
+		}
+
+		if (ClientDirectXVersion > 2)
+		{
+			for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
+			{
+				for (auto State : { 12, 14, 16, 18 })
+				{
+					DeviceStates.TextureStageState[x][State].State = TRUE;
+				}
+			}
+		}
+
+		// Set default maps
+		DeviceStates.rsMap[D3DRENDERSTATE_FOGEND] = 0x3F800000;	// 1.0f
+		DeviceStates.rsMap[D3DRENDERSTATE_FOGDENSITY] = 0x3F800000;	// 1.0f
+		DeviceStates.rsMap[D3DRENDERSTATE_AMBIENT] = (ClientDirectXVersion == 7 ? FALSE : (DWORD)-1);
+		DeviceStates.rsMap[D3DRENDERSTATE_FOGVERTEXMODE] = (ClientDirectXVersion == 7 ? FALSE : (DWORD)-1);
+		DeviceStates.rsMap[D3DRENDERSTATE_COLORVERTEX] = (ClientDirectXVersion == 7 ? TRUE : (DWORD)-1);
+		DeviceStates.rsMap[D3DRS_DEPTHBIAS] = (DWORD)-1;
+		DeviceStates.tsMap0[D3DTSS_COLOROP] = 4;
+		DeviceStates.tsMap0[D3DTSS_COLORARG1] = 2;
+		DeviceStates.tsMap0[D3DTSS_COLORARG2] = 1;
+		DeviceStates.tsMap0[D3DTSS_ALPHAOP] = 2;
+		DeviceStates.tsMap0[D3DTSS_ALPHAARG1] = 2;
+		DeviceStates.tsMap0[D3DTSS_ALPHAARG2] = 1;
+		DeviceStates.tsMap0[D3DTSS_ADDRESSU] = 1;
+		DeviceStates.tsMap0[D3DTSS_ADDRESSV] = 1;
+		DeviceStates.tsMap0[D3DTSS_MAXANISOTROPY] = 1;
+
+		if (ClientDirectXVersion == 3)
+		{
+			DeviceStates.lsMap[D3DLIGHTSTATE_COLORVERTEX] = TRUE;
+		}
+	}
 
 	// Set DirectDraw defaults
 	for (UINT x = 1; x < D3DHAL_TSS_MAXSTAGES; x++)
@@ -6131,7 +6094,7 @@ void m_IDirect3DDeviceX::SetDefaults()
 
 	// Get default structures
 	(*d3d9Device)->GetDeviceCaps(&Caps9);
-	(*d3d9Device)->GetViewport(&DefaultViewport);
+	ddrawParent->GetDefaultViewport(&DefaultViewport);
 
 	// Set defaults
 	DeviceStates.Viewport.View = DefaultViewport;
@@ -6148,18 +6111,18 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 
 		if (dwFlags & D3DDP_DONOTCLIP)
 		{
-			(*d3d9Device)->GetRenderState(D3DRS_CLIPPING, &DrawStates.rsClipping);
+			(*d3d9Device)->GetRenderState(D3DRS_CLIPPING, &TempStates.rsClipping);
 			(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, FALSE);
 		}
 		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL))
 		{
-			(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
+			(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &TempStates.rsLighting);
 			(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE);
 		}
 		if (dwFlags & D3DDP_DONOTUPDATEEXTENTS)
 		{
 			// ToDo: fix Extents see SetRenderState() implementation
-			//GetRenderState(D3DRENDERSTATE_EXTENTS, &DrawStates.rsExtents);
+			//GetRenderState(D3DRENDERSTATE_EXTENTS, &TempStates.rsExtents);
 			//SetRenderState(D3DRENDERSTATE_EXTENTS, FALSE);
 		}
 	}
@@ -6186,7 +6149,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	// Handle texture wrapping
 	if (rsWrapChanged)
 	{
-		DWORD RenderState = (rsWrapU ? D3DWRAP_U : 0) | (rsWrapV ? D3DWRAP_V : 0);
+		DWORD RenderState = (DeviceStates.RenderState[D3DRENDERSTATE_WRAPU].State ? D3DWRAP_U : 0) | (DeviceStates.RenderState[D3DRENDERSTATE_WRAPV].State ? D3DWRAP_V : 0);
 		SetD9RenderState(D3DRS_WRAP0, RenderState);
 		rsWrapChanged = false;
 	}
@@ -6194,6 +6157,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	// Handle anti-aliasing
 	if (rsAntiAliasChanged)
 	{
+		DWORD rsAntiAlias = DeviceStates.RenderState[D3DRENDERSTATE_ANTIALIAS].State;
 		BOOL AntiAliasEnabled = (bool)((D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTDEPENDENT || (D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTINDEPENDENT);
 		SetD9RenderState(D3DRS_MULTISAMPLEANTIALIAS, AntiAliasEnabled);
 		rsAntiAliasChanged = false;
@@ -6205,8 +6169,8 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		{
 			if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
 			{
-				(*d3d9Device)->GetSamplerState(x, D3DSAMP_MINFILTER, &DrawStates.ssMinFilter[x]);
-				(*d3d9Device)->GetSamplerState(x, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter[x]);
+				(*d3d9Device)->GetSamplerState(x, D3DSAMP_MINFILTER, &TempStates.ssMinFilter[x]);
+				(*d3d9Device)->GetSamplerState(x, D3DSAMP_MAGFILTER, &TempStates.ssMagFilter[x]);
 
 				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
 				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
@@ -6224,7 +6188,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 				(*d3d9Device)->SetTexture(x, pTexture9);
 			}
 			// Generate MipMap levels
-			if (ssMipFilter[x] != D3DTEXF_NONE && !CurrentTextureSurfaceX[x]->IsMipMapGenerated())
+			if (DeviceStates.TextureStageState[x][D3DTSS_MIPFILTER].State != D3DTEXF_NONE && !CurrentTextureSurfaceX[x]->IsMipMapGenerated())
 			{
 				CurrentTextureSurfaceX[x]->GenerateMipMapLevels();
 			}
@@ -6234,7 +6198,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			(*d3d9Device)->SetTexture(x, nullptr);
 		}
 	}
-	if (rsColorKeyEnabled)
+	if (DeviceStates.RenderState[D3DRENDERSTATE_COLORKEYENABLE].State)
 	{
 		// Check for color key alpha texture
 		for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
@@ -6247,9 +6211,9 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		}
 		if (dwFlags & D3DDP_DXW_ALPHACOLORKEY)
 		{
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &DrawStates.rsAlphaFunc);
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &DrawStates.rsAlphaRef);
+			(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &TempStates.rsAlphaTestEnable);
+			(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &TempStates.rsAlphaFunc);
+			(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &TempStates.rsAlphaRef);
 
 			(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
 			(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
@@ -6265,8 +6229,8 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		if (colorkeyPixelShader && *colorkeyPixelShader)
 		{
 			(*d3d9Device)->SetPixelShader(*colorkeyPixelShader);
-			(*d3d9Device)->SetPixelShaderConstantF(0, DrawStates.lowColorKey, 1);
-			(*d3d9Device)->SetPixelShaderConstantF(1, DrawStates.highColorKey, 1);
+			(*d3d9Device)->SetPixelShaderConstantF(0, TempStates.lowColorKey, 1);
+			(*d3d9Device)->SetPixelShaderConstantF(1, TempStates.highColorKey, 1);
 		}
 	}
 	/*if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && d3d9Device && *d3d9Device && ddrawParent)
@@ -6299,16 +6263,16 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags
 	{
 		if (dwFlags & D3DDP_DONOTCLIP)
 		{
-			(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, DrawStates.rsClipping);
+			(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, TempStates.rsClipping);
 		}
 		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL))
 		{
-			(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
+			(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, TempStates.rsLighting);
 		}
 		if (dwFlags & D3DDP_DONOTUPDATEEXTENTS)
 		{
 			// ToDo: fix Extents see SetRenderState() implementation
-			//SetRenderState(D3DRENDERSTATE_EXTENTS, DrawStates.rsExtents);
+			//SetRenderState(D3DRENDERSTATE_EXTENTS, TempStates.rsExtents);
 		}
 	}
 	if (Config.DdrawFixByteAlignment > 1)
@@ -6317,16 +6281,16 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags
 		{
 			if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
 			{
-				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, DrawStates.ssMinFilter[x]);
-				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter[x]);
+				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, TempStates.ssMinFilter[x]);
+				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, TempStates.ssMagFilter[x]);
 			}
 		}
 	}
 	if (dwFlags & D3DDP_DXW_ALPHACOLORKEY)
 	{
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TempStates.rsAlphaTestEnable);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, TempStates.rsAlphaFunc);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, TempStates.rsAlphaRef);
 	}
 	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
 	{

@@ -305,6 +305,23 @@ bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectX
 	return false;
 }
 
+bool OverloadedD9RenderState(D3DRENDERSTATETYPE dwRenderStateType)
+{
+	switch (dwRenderStateType)
+	{
+	case D3DRS_FOGTABLEMODE:
+	case D3DRS_FOGSTART:
+	case D3DRS_FOGEND:
+	case D3DRS_FOGDENSITY:
+	case D3DRS_AMBIENT:
+	case D3DRS_FOGVERTEXMODE:
+	case D3DRS_COLORVERTEX:
+	case D3DRS_DEPTHBIAS:
+		return true;
+	}
+	return false;
+}
+
 DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value)
 {
 	if (Type == D3DSAMP_MAGFILTER)

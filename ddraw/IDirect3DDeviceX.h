@@ -44,7 +44,7 @@ private:
 	struct {
 		struct {
 			bool Set = false;
-			DWORD State = 0;
+			DWORD State = (DWORD)-1;
 		} RenderState[D3D_MAXRENDERSTATES], TextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates], SamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE];
 		std::unordered_map<DWORD, LIGHTENABLE> Light;
 		struct {
@@ -62,12 +62,15 @@ private:
 			D3DMATERIAL9 Material = {};
 		} Material = {};
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
+		std::unordered_map<D3DRENDERSTATETYPE, DWORD> rsMap;
+		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> tsMap0;
+		std::unordered_map<D3DLIGHTSTATETYPE, DWORD> lsMap;
 	} DeviceStates;
 
 	struct {
 		std::unordered_map<D3DRENDERSTATETYPE, DWORD> RenderState;
-		std::unordered_map<DWORD, DWORD> TextureStageState;
-		std::unordered_map<DWORD, DWORD> SamplerState;
+		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> TextureStageState[D3DHAL_TSS_MAXSTAGES];
+		std::unordered_map<D3DSAMPLERSTATETYPE, DWORD> SamplerState[D3DHAL_TSS_MAXSTAGES];
 		std::unordered_map<DWORD, D3DLIGHT9> Light;
 		std::unordered_map<DWORD, BOOL> LightEnable;
 		std::unordered_map<DWORD, FLOAT4> ClipPlane;
@@ -78,7 +81,7 @@ private:
 	struct {
 		DWORD rsClipping = 0;
 		DWORD rsLighting = 0;
-		DWORD rsExtents = 0;
+		//DWORD rsExtents = 0;
 		DWORD rsAlphaTestEnable = 0;
 		DWORD rsAlphaFunc = 0;
 		DWORD rsAlphaRef = 0;
@@ -86,67 +89,23 @@ private:
 		DWORD ssMagFilter[D3DHAL_TSS_MAXSTAGES] = {};
 		float lowColorKey[4] = {};
 		float highColorKey[4] = {};
-	} DrawStates;
+	} TempStates;
 
-	bool RequiresStateRestore = false;
+	// Texture handle
+	DWORD rsTextureHandle = NULL;
+
+	// Material handle
+	DWORD lsMaterialHandle = NULL;
+
+	// Flags
 	bool bSetDefaults = true;
+	bool RequiresStateRestore = false;
 	bool IsInScene = false;
+	bool rsAntiAliasChanged = false;
+	bool rsWrapChanged = false;
 
 	// Default clip status
 	D3DCLIPSTATUS D3DClipStatus = DefaultClipStatus;
-
-	// Light states
-	DWORD lsMaterialHandle;
-
-	// Render states
-	DWORD rsNone;
-	DWORD rsTextureHandle;
-	bool rsAntiAliasChanged;
-	DWORD rsAntiAlias;
-	DWORD rsTextureAddress;
-	DWORD rsTexturePerspective;
-	DWORD rsEdgeAntiAlias;
-	bool rsWrapChanged;
-	DWORD rsWrapU;
-	DWORD rsWrapV;
-	DWORD rsLinePattern;
-	DWORD rsMonoEnable;
-	DWORD rsROP2;
-	DWORD rsPlaneMask;
-	DWORD rsTextureMag;
-	DWORD rsTextureMin;
-	DWORD rsTextureMapBlend;
-	DWORD rsZVisible;
-	DWORD rsSubPixel;
-	DWORD rsSubPixelX;
-	DWORD rsStippledAlpha;
-	DWORD rsFogMode;
-	DWORD rsFogStart;
-	DWORD rsFogEnd;
-	DWORD rsFogDensity;
-	DWORD rsStippleEnable;
-	DWORD rsColorKeyEnabled;
-	DWORD rsOldAlphaEnabled;
-	DWORD rsBorderColor;
-	DWORD rsTextureAddressU;
-	DWORD rsTextureAddressV;
-	DWORD rsMipMapLobBias;
-	DWORD rsZBias;
-	DWORD rsAnisotropy;
-	DWORD rsFlushBatch;
-	DWORD rsTranslucentSortIndependent;
-	DWORD rsUnUsed61To63[3];
-	DWORD rsStipplePattern[32];
-	DWORD rsExtents;
-	DWORD rsColorVertex;
-	DWORD rsColorKeyBlendEnabled;
-	DWORD rsUnUsed96[160];
-	DWORD lsColorState[MaxLightStates];
-	DWORD ssStage0[MaxTextureStageStates];
-	DWORD ssAddress[D3DHAL_TSS_MAXSTAGES];
-	DWORD ssMagFilter[D3DHAL_TSS_MAXSTAGES];
-	DWORD ssMipFilter[D3DHAL_TSS_MAXSTAGES];
-	DWORD ssUnUsed[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates];
 
 	// Handle state blocks
 	bool IsRecordingState = false;
@@ -199,12 +158,16 @@ private:
 	HRESULT DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD triangleCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 
 	HRESULT SetTextureHandle(DWORD TexHandle);
+	HRESULT SetMaterialHandle(DWORD MatHandle);
 	HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue) const;
+	void SetRenderStateMap(D3DRENDERSTATETYPE State, DWORD Value);
 	HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
 	HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue) const;
+	void SetTextureStageStateMap(D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
 	HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
 	HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue) const;
 	HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
+	void SetLightStateMap(D3DLIGHTSTATETYPE State, DWORD Value);
 	HRESULT GetD9Light(DWORD Index, D3DLIGHT7* lpLight) const;
 	HRESULT SetD9Light(DWORD Index, const D3DLIGHT7* lpLight);
 	HRESULT GetD9LightEnable(DWORD Index, LPBOOL lpEnable) const;

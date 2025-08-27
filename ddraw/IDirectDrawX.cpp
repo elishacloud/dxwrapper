@@ -95,6 +95,7 @@ namespace {
 	LPDIRECT3D9 d3d9Object = nullptr;
 	LPDIRECT3DDEVICE9 d3d9Device = nullptr;
 	D3DPRESENT_PARAMETERS presParams = {};
+	D3DVIEWPORT9 DefaultViewport = {};
 	LPDIRECT3DSTATEBLOCK9 DefaultStateBlock = nullptr;
 	LPDIRECT3DTEXTURE9 GammaLUTTexture = nullptr;
 	LPDIRECT3DTEXTURE9 ScreenCopyTexture = nullptr;
@@ -3281,7 +3282,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 			CopyGDISurface = false;
 
 			// Create default state block
-			CreateStateBlock();
+			GetDefaultStates();
 
 			// Set render target
 			SetCurrentRenderTarget();
@@ -3649,7 +3650,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 
 		// Create default state block
-		CreateStateBlock();
+		GetDefaultStates();
 
 		// Set render target
 		SetCurrentRenderTarget();
@@ -3734,9 +3735,11 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	return hr;
 }
 
-void m_IDirectDrawX::CreateStateBlock()
+void m_IDirectDrawX::GetDefaultStates()
 {
-	if (d3d9Device && !DefaultStateBlock)
+	d3d9Device->GetViewport(&DefaultViewport);
+
+	if (!DefaultStateBlock)
 	{
 		LPDIRECT3DDEVICE9 pDevice9 = nullptr;
 		if (SUCCEEDED(d3d9Device->QueryInterface(IID_GetRealInterface, (LPVOID*)&pDevice9)))
@@ -3747,6 +3750,14 @@ void m_IDirectDrawX::CreateStateBlock()
 		{
 			d3d9Device->CreateStateBlock(D3DSBT_ALL, &DefaultStateBlock);
 		}
+	}
+}
+
+void m_IDirectDrawX::GetDefaultViewport(D3DVIEWPORT9* pViewport)
+{
+	if (pViewport)
+	{
+		*pViewport = DefaultViewport;
 	}
 }
 
