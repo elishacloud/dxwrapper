@@ -24,6 +24,7 @@
 namespace GdiWrapper
 {
 	INITIALIZE_OUT_WRAPPED_PROC(GetDeviceCaps, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(SetDeviceGammaRamp, unused);
 }
 
 using namespace GdiWrapper;
@@ -56,4 +57,18 @@ int WINAPI gdi_GetDeviceCaps(HDC hdc, int index)
 	}
 
 	return GetDeviceCaps(hdc, index);
+}
+
+BOOL WINAPI gdi_SetDeviceGammaRamp(HDC hdc, LPVOID lpRamp)
+{
+	Logging::LogDebug() << __FUNCTION__ << " " << WindowFromDC(hdc) << " " << lpRamp;
+
+	DEFINE_STATIC_PROC_ADDRESS(SetDeviceGammaRampProc, SetDeviceGammaRamp, SetDeviceGammaRamp_out);
+
+	if (Config.DisableGDIGammaRamp)
+	{
+		return TRUE;
+	}
+
+	return SetDeviceGammaRamp(hdc, lpRamp);
 }

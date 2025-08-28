@@ -1213,6 +1213,7 @@ void m_IDirect3DDevice9Ex::GetGammaRamp(THIS_ UINT iSwapChain, D3DGAMMARAMP* pRa
 		if (iSwapChain)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: Gamma support for swapchains not implemented: " << iSwapChain);
+			return ProxyInterface->GetGammaRamp(iSwapChain, pRamp);
 		}
 
 		memcpy(pRamp, &SHARED.RampData, sizeof(D3DGAMMARAMP));
@@ -1231,6 +1232,7 @@ void m_IDirect3DDevice9Ex::SetGammaRamp(THIS_ UINT iSwapChain, DWORD Flags, CONS
 		if (iSwapChain)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: Gamma support for swapchains not implemented: " << iSwapChain);
+			return ProxyInterface->SetGammaRamp(iSwapChain, Flags, pRamp);
 		}
 
 		SHARED.IsGammaSet = false;

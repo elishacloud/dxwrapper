@@ -652,6 +652,18 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 		}
 
+		// Hook gamma ramp
+		if (Config.DisableGDIGammaRamp)
+		{
+			using namespace GdiWrapper;
+			if (!GetModuleHandleA("gdi32.dll")) LoadLibrary("gdi32.dll");
+			HMODULE gdi32 = GetModuleHandleA("gdi32.dll");
+			if (gdi32)
+			{
+				SetDeviceGammaRamp_out = (FARPROC)Hook::HotPatch(GetProcAddress(gdi32, "SetDeviceGammaRamp"), "SetDeviceGammaRamp", gdi_SetDeviceGammaRamp);
+			}
+		}
+
 		// Start fullscreen thread
 		if (Config.FullScreen || Config.ForceTermination)
 		{

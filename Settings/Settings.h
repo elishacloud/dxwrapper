@@ -69,6 +69,7 @@
 	visit(SetSwapEffectShim) \
 	visit(DeviceLookupCacheTime) \
 	visit(DisableGameUX) \
+	visit(DisableGDIGammaRamp) \
 	visit(DisableHighDPIScaling) \
 	visit(DisableLogging) \
 	visit(DirectShowEmulation) \
@@ -275,6 +276,7 @@ struct CONFIG
 	DWORD DeviceLookupCacheTime = 0;			// Number of seconds to cache the DeviceEnum callback data
 	bool DirectShowEmulation = false;			// Emulates DirectShow APIs
 	bool DisableGameUX = false;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
+	bool DisableGDIGammaRamp = false;			// Disables gamma ramp for GDI, some games look washed out with gamme ramp enabled
 	bool DisableHighDPIScaling = false;			// Disables display scaling on high DPI settings
 	bool DisableLogging = false;				// Disables the logging file
 	DWORD SetSwapEffectShim = 0;				// Disables the call to d3d9.dll 'Direct3D9SetSwapEffectUpgradeShim' to switch present mode
