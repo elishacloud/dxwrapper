@@ -1904,6 +1904,9 @@
     <ClInclude Include="ddraw\IDirect3DTypesDefault.h">
       <Filter>ddraw</Filter>
     </ClInclude>
+    <ClInclude Include="d3d9\ShadowSurfaceStorage.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">

@@ -1,9 +1,5 @@
 #pragma once
 
-#include <deque>
-#include <unordered_map>
-#include <algorithm>
-
 constexpr UINT MaxIndex = 16;
 
 class AddressLookupTableD3d9Object

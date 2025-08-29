@@ -24,6 +24,7 @@ struct DEVICEDETAILS
 	bool IsDirectDrawDevice = false;
 	UINT Adapter = D3DADAPTER_DEFAULT;
 	D3DDEVTYPE DeviceType = D3DDEVTYPE_HAL;
+	DWORD BackBufferCount = 0;
 	HMONITOR hMonitor = nullptr;
 	HWND DeviceWindow = nullptr;
 	LONG BufferWidth = 0, BufferHeight = 0;
@@ -112,6 +113,8 @@ private:
 	LPDIRECT3DDEVICE9EX ProxyInterfaceEx = nullptr;
 	m_IDirect3D9Ex* m_pD3DEx;
 	const IID WrapperID;
+	ShadowSurfaceStorage ShadowBackbuffer;
+	std::vector<IDirect3DSurface9*> BackBufferList;
 
 	UINT DDKey;
 
@@ -122,7 +125,7 @@ private:
 	HRESULT CallBeginScene();
 	HRESULT CallEndScene();
 
-	inline bool RequirePresentHandling() const { return (SHARED.IsGammaSet || Config.ShowFPSCounter); }
+	inline bool RequirePresentHandling() const { return ((Config.WindowModeGammaShader && (ShadowBackbuffer.Count() || SHARED.IsGammaSet)) || Config.ShowFPSCounter); }
 
 	// Limit frame rate
 	void LimitFrameRate() const;
@@ -147,7 +150,9 @@ private:
 	void SetEnvironmentCubeMapTexture();
 
 	// For Reset & ResetEx
-	void ReInitInterface() const;
+	void ReInitInterface();
+	void CreateShadowBackbuffer();
+	void ReleaseShadowBackbuffer();
 	void ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters) const;
 	typedef HRESULT(WINAPI* fReset)(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fResetEx)(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
@@ -223,6 +228,7 @@ public:
 	STDMETHOD(UpdateTexture)(THIS_ IDirect3DBaseTexture9* pSourceTexture, IDirect3DBaseTexture9* pDestinationTexture);
 	STDMETHOD(GetRenderTargetData)(THIS_ IDirect3DSurface9* pRenderTarget, IDirect3DSurface9* pDestSurface);
 	STDMETHOD(GetFrontBufferData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
+	STDMETHOD(GetFrontBufferShadowData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
 	STDMETHOD(FakeGetFrontBufferData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
 	STDMETHOD(CopyRects)(THIS_ IDirect3DSurface9 *pSourceSurface, const RECT *pSourceRectsArray, UINT cRects, IDirect3DSurface9 *pDestinationSurface, const POINT *pDestPointsArray);
 	STDMETHOD(StretchRect)(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestSurface, CONST RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter);

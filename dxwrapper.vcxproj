@@ -692,6 +692,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="d3d9\IDirect3DVertexShader9.h" />
     <ClInclude Include="d3d9\IDirect3DVolume9.h" />
     <ClInclude Include="d3d9\IDirect3DVolumeTexture9.h" />
+    <ClInclude Include="d3d9\ShadowSurfaceStorage.h" />
     <ClInclude Include="D3DDDI\d3dddiExternal.h" />
     <ClInclude Include="DDrawCompat\DDrawCompatExternal.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>

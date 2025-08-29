@@ -754,6 +754,9 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 		return;
 	}
 
+	// Backbuffer (must be at least 1)
+	DeviceDetails.BackBufferCount = max(1, pPresentationParameters->BackBufferCount);
+
 	// Set vsync
 	if (Config.EnableVSync && (Config.ForceVsyncMode || pPresentationParameters->PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE))
 	{
