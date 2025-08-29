@@ -855,7 +855,6 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 		}
 	}
 
-	// ToDo: check if render target is real back buffer
 	if (SUCCEEDED(hr) && ppRenderTarget)
 	{
 		*ppRenderTarget = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppRenderTarget, this, IID_IDirect3DSurface9, nullptr);
@@ -908,6 +907,14 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 	if (pRenderTarget)
 	{
 		pRenderTarget = static_cast<m_IDirect3DSurface9 *>(pRenderTarget)->GetProxyInterface();
+	}
+
+	if (ShadowBackbuffer.Count())
+	{
+		if (std::find(BackBufferList.begin(), BackBufferList.end(), pRenderTarget) != BackBufferList.end())
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: application is sending the real render target!";
+		}
 	}
 
 	return ProxyInterface->SetRenderTarget(RenderTargetIndex, pRenderTarget);
