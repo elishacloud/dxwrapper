@@ -4233,52 +4233,52 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 				const auto& RecordState = StateBlock.Data[dwBlockHandle].RecordState.value();
 
 				// Restore state map
-				for (auto& entry : RecordState.rsMap)
+				for (const auto& entry : RecordState.rsMap)
 				{
 					DeviceStates.rsMap[entry.first] = entry.second;
 				}
-				for (auto& entry : RecordState.tsMap0)
+				for (const auto& entry : RecordState.tsMap0)
 				{
 					DeviceStates.tsMap0[entry.first] = entry.second;
 				}
 
 				// Restore states
-				for (auto& entry : RecordState.RenderState)
+				for (const auto& entry : RecordState.RenderState)
 				{
 					SetD9RenderState(entry.first, entry.second);
 				}
 				for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 				{
-					for (auto& entry : RecordState.TextureStageState[x])
+					for (const auto& entry : RecordState.TextureStageState[x])
 					{
 						SetD9TextureStageState(x, entry.first, entry.second);
 					}
-					for (auto& entry : RecordState.SamplerState[x])
+					for (const auto& entry : RecordState.SamplerState[x])
 					{
 						SetD9SamplerState(x, entry.first, entry.second);
 					}
 				}
-				for (auto& entry : RecordState.Light)
+				for (const auto& entry : RecordState.Light)
 				{
 					SetD9Light(entry.first, &entry.second);
 				}
-				for (auto& entry : RecordState.LightEnable)
+				for (const auto& entry : RecordState.LightEnable)
 				{
 					D9LightEnable(entry.first, entry.second);
 				}
-				for (auto& entry : RecordState.ClipPlane)
+				for (const auto& entry : RecordState.ClipPlane)
 				{
 					SetD9ClipPlane(entry.first, reinterpret_cast<const float*>(&entry.second));
 				}
-				for (auto& entry : RecordState.Viewport)
+				for (const auto& entry : RecordState.Viewport)
 				{
 					SetD9Viewport(&entry.second);
 				}
-				for (auto& entry : RecordState.Material)
+				for (const auto& entry : RecordState.Material)
 				{
 					SetD9Material(&entry.second);
 				}
-				for (auto& entry : RecordState.Matrix)
+				for (const auto& entry : RecordState.Matrix)
 				{
 					SetD9Transform(entry.first, &entry.second);
 				}
@@ -4299,7 +4299,7 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 
 				// Render states
 				rsAntiAliasChanged = true;
-				for (auto& entry : PixelState.RenderState)
+				for (const auto& entry : PixelState.RenderState)
 				{
 					DeviceStates.RenderState[entry.first] = entry.second;
 
@@ -4352,7 +4352,7 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 
 				// Render states
 				rsAntiAliasChanged = true;
-				for (auto& entry : VertexState.RenderState)
+				for (const auto& entry : VertexState.RenderState)
 				{
 					DeviceStates.RenderState[entry.first] = entry.second;
 
@@ -4374,7 +4374,7 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 				// Texture-stage states
 				for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 				{
-					for (auto& entry : VertexState.TextureStageState[x])
+					for (const auto& entry : VertexState.TextureStageState[x])
 					{
 						DeviceStates.TextureStageState[x][entry.first] = entry.second;
 					}
@@ -4431,7 +4431,7 @@ HRESULT m_IDirect3DDeviceX::CaptureStateBlock(DWORD dwBlockHandle)
 		{
 			StateBlock.Data[dwBlockHandle].PixelState.emplace();
 			auto& PixelState = StateBlock.Data[dwBlockHandle].PixelState.value();
-			for (auto& State : StateBlockPixelRenderStates)
+			for (const auto& State : StateBlockPixelRenderStates)
 			{
 				PixelState.RenderState[State] = DeviceStates.RenderState[State];
 			}
@@ -4448,7 +4448,7 @@ HRESULT m_IDirect3DDeviceX::CaptureStateBlock(DWORD dwBlockHandle)
 			VertexState.LightEnable = DeviceStates.LightEnable;
 			VertexState.Matrix = DeviceStates.Matrix;
 			memcpy(VertexState.ClipPlane, DeviceStates.ClipPlane, sizeof(VertexState.ClipPlane));
-			for (auto& State : StateBlockVertexRenderStates)
+			for (const auto& State : StateBlockVertexRenderStates)
 			{
 				VertexState.RenderState[State] = DeviceStates.RenderState[State];
 			}
@@ -4791,13 +4791,13 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 	SaveInterfaceAddress(WrapperInterface7);
 
 	// Clear ExecuteBuffers
-	for (auto& entry : ExecuteBufferList)
+	for (const auto& entry : ExecuteBufferList)
 	{
 		entry->ClearD3DDevice();
 	}
 
 	// Clear device from veiwports
-	for (auto& entry : AttachedViewports)
+	for (const auto& entry : AttachedViewports)
 	{
 		m_IDirect3DViewportX* lpViewportX = nullptr;
 		if (SUCCEEDED(entry->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpViewportX)))
@@ -4972,32 +4972,17 @@ void m_IDirect3DDeviceX::ClearLight(m_IDirect3DLight* lpLight)
 			// Disable light
 			D9LightEnable(Index, FALSE);
 
-			// Clear device states
-			{
-				auto entry = DeviceStates.Light.find(Index);
-				if (entry != DeviceStates.Light.end())
-				{
-					DeviceStates.Light.erase(entry);
-				}
-			}
+			// Clear light
+			DeviceStates.Light.erase(Index);
+
+			// Clear light enable
+			DeviceStates.LightEnable.erase(Index);
 
 			// Clear batch state light
-			{
-				auto entry = BatchStates.Light.find(Index);
-				if (entry != BatchStates.Light.end())
-				{
-					BatchStates.Light.erase(entry);
-				}
-			}
+			BatchStates.Light.erase(Index);
 
 			// Clear batch state light enable
-			{
-				auto entry = BatchStates.LightEnable.find(Index);
-				if (entry != BatchStates.LightEnable.end())
-				{
-					BatchStates.LightEnable.erase(entry);
-				}
-			}
+			BatchStates.LightEnable.erase(Index);
 		}
 		else
 		{
@@ -5024,7 +5009,7 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 	DWORD dwLightIndex = MaxActiveLights;
 
 	// Check if Light exists in the map
-	for (auto& entry : LightIndexMap)
+	for (const auto& entry : LightIndexMap)
 	{
 		if (entry.second == lpLightInterface)
 		{
@@ -5036,30 +5021,14 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 	// Create index and add light to the map
 	if (dwLightIndex == MaxActiveLights)
 	{
-		for (BYTE x = 0; x < MaxActiveLights; x++)
+		for (DWORD x = 0; x < MaxActiveLights; x++)
 		{
-			bool Flag = true;
-			for (auto& entry : LightIndexMap)
-			{
-				if (entry.first == x)
-				{
-					Flag = false;
-					break;
-				}
-			}
-			for (auto& entry : DeviceStates.Light)
-			{
-				if (entry.first == x)
-				{
-					Flag = false;
-					break;
-				}
-			}
-			if (x != 0 && Flag)
-			{
-				dwLightIndex = x;
-				break;
-			}
+			if (LightIndexMap.find(x) != LightIndexMap.end()) continue;
+			if (DeviceStates.Light.find(x) != DeviceStates.Light.end()) continue;
+			if (DeviceStates.LightEnable.find(x) != DeviceStates.LightEnable.end()) continue;
+
+			dwLightIndex = x;
+			break;
 		}
 	}
 
@@ -5080,14 +5049,9 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 		{
 			LPD3DLIGHT2 lpLight2 = reinterpret_cast<LPD3DLIGHT2>(lpLight);
 
-			if (lpLight2->dwFlags & D3DLIGHT_ACTIVE)
-			{
-				LightEnable(dwLightIndex, TRUE);
-			}
-			else
-			{
-				LightEnable(dwLightIndex, FALSE);
-			}
+			BOOL Enable = (lpLight2->dwFlags & D3DLIGHT_ACTIVE) ? TRUE : FALSE;
+
+			LightEnable(dwLightIndex, Enable);
 		}
 	}
 
@@ -5104,7 +5068,7 @@ HRESULT m_IDirect3DDeviceX::GetLightEnable(m_IDirect3DLight* lpLightInterface, B
 	DWORD dwLightIndex = 0;
 
 	// Check if Light exists in the map
-	for (auto& entry : LightIndexMap)
+	for (const auto& entry : LightIndexMap)
 	{
 		if (entry.second == lpLightInterface)
 		{
@@ -5962,37 +5926,37 @@ void m_IDirect3DDeviceX::PrepDevice()
 	// Set batched states
 	if (Config.Dd7to9)
 	{
-		for (auto& entry : BatchStates.RenderState)
+		for (const auto& entry : BatchStates.RenderState)
 		{
 			(*d3d9Device)->SetRenderState(entry.first, entry.second);
 		}
 		BatchStates.RenderState.clear();
 		for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 		{
-			for (auto& entry : BatchStates.TextureStageState[x])
+			for (const auto& entry : BatchStates.TextureStageState[x])
 			{
 				(*d3d9Device)->SetTextureStageState(x, entry.first, entry.second);
 			}
 			BatchStates.TextureStageState[x].clear();
-			for (auto& entry : BatchStates.SamplerState[x])
+			for (const auto& entry : BatchStates.SamplerState[x])
 			{
 				(*d3d9Device)->SetSamplerState(x, entry.first, entry.second);
 			}
 			BatchStates.SamplerState[x].clear();
 		}
-		for (auto& entry : BatchStates.Light)
+		for (const auto& entry : BatchStates.Light)
 		{
 			(*d3d9Device)->SetLight(entry.first, &entry.second);
 		}
 		BatchStates.Light.clear();
-		for (auto& entry : BatchStates.LightEnable)
+		for (const auto& entry : BatchStates.LightEnable)
 		{
 			(*d3d9Device)->LightEnable(entry.first, entry.second);
 		}
 		BatchStates.LightEnable.clear();
-		for (auto& entry : BatchStates.ClipPlane)
+		for (const auto& entry : BatchStates.ClipPlane)
 		{
-			(*d3d9Device)->SetClipPlane(entry.first, reinterpret_cast<float*>(&entry.second));
+			(*d3d9Device)->SetClipPlane(entry.first, reinterpret_cast<const float*>(&entry.second));
 		}
 		BatchStates.ClipPlane.clear();
 		if (BatchStates.Material.Set)
@@ -6000,7 +5964,7 @@ void m_IDirect3DDeviceX::PrepDevice()
 			(*d3d9Device)->SetMaterial(&DeviceStates.Material.Material);
 			BatchStates.Material.Set = false;
 		}
-		for (auto& entry : BatchStates.Matrix)
+		for (const auto& entry : BatchStates.Matrix)
 		{
 			(*d3d9Device)->SetTransform(entry.first, &entry.second);
 		}
@@ -6024,47 +5988,44 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	ddrawParent->ApplyStateBlock();
 
 	// Restore render states
-	for (UINT x = 0; x < D3D_MAXRENDERSTATES; x++)
+	for (const auto& State : D9RenderStateList)
 	{
-		if (DeviceStates.RenderState[x].Set)
+		if (DeviceStates.RenderState[State].Set)
 		{
-			(*d3d9Device)->SetRenderState((D3DRENDERSTATETYPE)x, DeviceStates.RenderState[x].State);
+			(*d3d9Device)->SetRenderState(State, DeviceStates.RenderState[State].State);
 		}
 	}
 
-	// Restore texture states
-	for (UINT y = 0; y < D3DHAL_TSS_MAXSTAGES; y++)
+	for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 	{
-		for (UINT x = 0; x < MaxTextureStageStates; x++)
+		// Restore texture states
+		for (const auto& State : D9TextureStateList)
 		{
-			if (DeviceStates.TextureStageState[y][x].Set)
+			if (DeviceStates.TextureStageState[x][State].Set)
 			{
-				(*d3d9Device)->SetTextureStageState(y, (D3DTEXTURESTAGESTATETYPE)x, DeviceStates.TextureStageState[y][x].State);
+				(*d3d9Device)->SetTextureStageState(x, State, DeviceStates.TextureStageState[x][State].State);
 			}
 		}
-	}
 
-	// Restore sampler states
-	for (UINT y = 0; y < D3DHAL_TSS_MAXSTAGES; y++)
-	{
-		for (UINT x = 0; x < D3DHAL_TEXTURESTATEBUF_SIZE; x++)
+		// Restore sampler states
+		for (const auto& State : D9SamplerStateList)
 		{
-			if (DeviceStates.SamplerState[y][x].Set)
+			if (DeviceStates.SamplerState[x][State].Set)
 			{
-				(*d3d9Device)->SetSamplerState(y, (D3DSAMPLERSTATETYPE)x, FixSamplerState((D3DSAMPLERSTATETYPE)x, DeviceStates.SamplerState[y][x].State));
+				(*d3d9Device)->SetSamplerState(x, State, FixSamplerState(State, DeviceStates.SamplerState[x][State].State));
 			}
 		}
 	}
 
 	// Restore lights
-	for (auto& entry : DeviceStates.Light)
+	for (const auto& entry : DeviceStates.Light)
 	{
 		D3DLIGHT9 Light = FixLight(entry.second);
 		(*d3d9Device)->SetLight(entry.first, &Light);
 	}
 
 	// Restore light enable
-	for (auto& entry : DeviceStates.LightEnable)
+	for (const auto& entry : DeviceStates.LightEnable)
 	{
 		if (entry.second)
 		{
@@ -6073,11 +6034,11 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	}
 
 	// Restore clip planes
-	for (UINT x = 0; x < MaxClipPlaneIndex; x++)
+	for (UINT Index = 0; Index < MaxClipPlaneIndex; Index++)
 	{
-		if (DeviceStates.ClipPlane[x].Set)
+		if (DeviceStates.ClipPlane[Index].Set)
 		{
-			(*d3d9Device)->SetClipPlane(x, reinterpret_cast<float*>(&DeviceStates.ClipPlane[x].Plane));
+			(*d3d9Device)->SetClipPlane(Index, reinterpret_cast<float*>(&DeviceStates.ClipPlane[Index].Plane));
 		}
 	}
 
@@ -6094,7 +6055,7 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	}
 
 	// Restore transform
-	for (auto& entry : DeviceStates.Matrix)
+	for (const auto& entry : DeviceStates.Matrix)
 	{
 		D3DMATRIX Matrix = FixMatrix(entry.second, entry.first, DeviceStates.Viewport.ViewportScale, DeviceStates.Viewport.UseViewportScale);
 		(*d3d9Device)->SetTransform(entry.first, &Matrix);
@@ -6452,7 +6413,7 @@ void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLigh
 {
 	if (ClientDirectXVersion == 7)
 	{
-		for (auto& entry : DeviceStates.Light)
+		for (const auto& entry : DeviceStates.Light)
 		{
 			auto it = DeviceStates.LightEnable.find(entry.first);
 			if (it != DeviceStates.LightEnable.end() && it->second)
