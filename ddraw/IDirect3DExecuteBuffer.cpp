@@ -16,6 +16,10 @@
 
 #include "ddraw.h"
 
+namespace {
+	constexpr DWORD ExtraDataBufferSize = 256;
+}
+
 // ******************************
 // IUnknown functions
 // ******************************
@@ -164,6 +168,13 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is already locked!");
 			return D3DERR_EXECUTE_LOCKED;
+		}
+
+		// Check buffer size
+		if (!UsingAppMemory && (MemoryData.empty() || MemoryData.size() < Desc.dwBufferSize))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: incorrect buffer size: " << Desc.dwBufferSize << " -> " << MemoryData.size());
+			return DDERR_GENERIC;
 		}
 
 		// Provide access to the execute buffer memory
@@ -384,8 +395,13 @@ void m_IDirect3DExecuteBuffer::InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc)
 		if (!(Desc.dwFlags & D3DDEB_LPDATA) || !Desc.lpData)
 		{
 			Desc.dwFlags |= D3DDEB_LPDATA;
-			MemoryData.resize(Desc.dwBufferSize, 0);
+			MemoryData.resize(Desc.dwBufferSize + ExtraDataBufferSize, 0);
 			Desc.lpData = MemoryData.data();
+		}
+		else
+		{
+			UsingAppMemory = true;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: lpData is non-null, using application data.");
 		}
 	}
 }

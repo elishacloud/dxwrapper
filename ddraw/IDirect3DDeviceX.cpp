@@ -293,6 +293,7 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lplpDirect3DExecuteBuffer = nullptr;
 
 		if (lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC))
 		{
@@ -327,7 +328,7 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: lpData is non-null, using application data.");
 		}
 
-		m_IDirect3DExecuteBuffer* pExecuteBuffer = m_IDirect3DExecuteBuffer::CreateDirect3DExecuteBuffer(*lplpDirect3DExecuteBuffer, this, lpDesc);
+		m_IDirect3DExecuteBuffer* pExecuteBuffer = m_IDirect3DExecuteBuffer::CreateDirect3DExecuteBuffer(nullptr, this, lpDesc);
 
 		*lplpDirect3DExecuteBuffer = pExecuteBuffer;
 
