@@ -366,7 +366,7 @@ HANDLE WINAPI Utils::kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttribute
 	}
 
 	// Check the current stack size, and if it's too small, increase it
-	if (dwStackSize < 1024 * 64)  // Minimum 64 KB stack size
+	if (dwStackSize && dwStackSize < 1024 * 64)  // Minimum 64 KB stack size
 	{
 		dwStackSize = 1024 * 64;
 	}
@@ -465,7 +465,7 @@ LPVOID WINAPI Utils::kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD 
 	if ((flAllocationType & MEM_RESERVE) && (flAllocationType & MEM_COMMIT))
 	{
 		// Ensure the reserve size is at least 1MB
-		if (dwSize < 1024 * 1024)  // 1MB minimum reserve
+		if (dwSize && dwSize < 1024 * 1024)  // 1MB minimum reserve
 		{
 			dwSize = 1024 * 1024;
 		}
