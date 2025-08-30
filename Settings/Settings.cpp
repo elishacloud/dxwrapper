@@ -803,9 +803,6 @@ void CONFIG::SetConfig()
 		FixHighFrequencyMouse = true;
 	}
 
-	// Limit surface emulation size
-	DdrawExtraEmulationSize = DdrawExtraEmulationSize == 1 ? 4000 : min(DdrawExtraEmulationSize, 10000);
-
 	// Windows Lie
 	WinVersionLieSP = (WinVersionLieSP > 0 && WinVersionLieSP <= 5) ? WinVersionLieSP : 0;
 

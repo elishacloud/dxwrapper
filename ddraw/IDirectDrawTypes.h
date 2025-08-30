@@ -192,7 +192,6 @@ struct EMUSURFACE
 	HDC DC = nullptr;
 	HDC GameDC = nullptr;
 	bool UsingGameDC = false;
-	bool IsUsingExtraEmulationSize = false;
 	DWORD Size = 0;
 	D3DFORMAT Format = D3DFMT_UNKNOWN;
 	void* pBits = nullptr;

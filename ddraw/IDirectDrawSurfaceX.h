@@ -298,7 +298,6 @@ private:
 	bool IsLockedFromOtherThread(DWORD MipMapLevel);
 	bool IsDummyMipMap(DWORD MipMapLevel) { return (MipMapLevel > MaxMipMapLevel || ((MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1 < MipMaps.size() && MipMaps[(MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1].IsDummy)); }
 	DWORD GetD3d9MipMapLevel(DWORD MipMapLevel) const { return min(MipMapLevel, MaxMipMapLevel); }
-	bool IsExtraEmulationSizeEnabled() const { return Config.DdrawExtraEmulationSize && !IsSurfaceTexture() && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY); }
 	DWORD GetWidth() const { return surfaceDesc2.dwWidth; }
 	DWORD GetHeight() const { return surfaceDesc2.dwHeight; }
 	DDSCAPS2 GetSurfaceCaps() const { return surfaceDesc2.ddsCaps; }

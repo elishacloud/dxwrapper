@@ -41,9 +41,7 @@ std::ostream& operator<<(std::ostream& os, const DDSCAPS& caps);
 std::ostream& operator<<(std::ostream& os, const DDSCAPS2& caps);
 std::ostream& operator<<(std::ostream& os, const DDPIXELFORMAT& pf);
 std::ostream& operator<<(std::ostream& os, const DDCOLORKEY& ck);
-std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC* lpDesc);
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd);
-std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2* lpDesc);
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd);
 #endif
 #ifdef _D3DCAPS_H
@@ -109,7 +107,6 @@ std::ostream& operator<<(std::ostream& os, const NCCALCSIZE_PARAMS& nccs);
 std::ostream& operator<<(std::ostream& os, const NMHDR& nm);
 std::ostream& operator<<(std::ostream& os, const POINT& p);
 std::ostream& operator<<(std::ostream& os, const POINTS& p);
-std::ostream& operator<<(std::ostream& os, const RECT* lpRect);
 std::ostream& operator<<(std::ostream& os, const RECT& rect);
 std::ostream& operator<<(std::ostream& os, const SIZE& size);
 std::ostream& operator<<(std::ostream& os, const STYLESTRUCT& ss);
