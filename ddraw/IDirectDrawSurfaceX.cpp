@@ -442,7 +442,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		if (dwFlags & (DDBLT_ZBUFFER | DDBLT_ZBUFFERDESTCONSTOVERRIDE | DDBLT_ZBUFFERDESTOVERRIDE | DDBLT_ZBUFFERSRCCONSTOVERRIDE | DDBLT_ZBUFFERSRCOVERRIDE))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: zbuffer values not implemented!");
-			return DDERR_NOZBUFFERHW;
+			return DDERR_UNSUPPORTED;
 		}
 
 		// DDBLT_DDROPS - dwDDROP is ignored as "no such ROPs are currently defined" in DirectDraw
@@ -479,7 +479,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		if ((dwFlags & DDBLT_ROP) && (lpDDBltFx->dwROP != SRCCOPY && lpDDBltFx->dwROP != BLACKNESS && lpDDBltFx->dwROP != WHITENESS))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Raster operation Not Implemented " << Logging::hex(lpDDBltFx->dwROP));
-			return DDERR_NORASTEROPHW;
+			return DDERR_UNSUPPORTED;
 		}
 
 		// Get source mipmap level
@@ -2416,6 +2416,16 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			surfaceDesc2.dwLinearSize = 0;
 		}
 
+		// Clear lpSurface
+		if (!surface.UsingSurfaceMemory &&
+			(!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE) || !(lpDDSurfaceDesc2->dwFlags & DDSD_PITCH) ||
+			!lpDDSurfaceDesc2->lpSurface || !lpDDSurfaceDesc2->lPitch ||
+			(DWORD)lpDDSurfaceDesc2->lPitch > lpDDSurfaceDesc2->dwWidth * 4 + 128))
+		{
+			lpDDSurfaceDesc2->dwFlags &= ~DDSD_LPSURFACE;
+			lpDDSurfaceDesc2->lpSurface = nullptr;
+		}
+
 		// Return error for CheckInterface after preparing surfaceDesc
 		if (FAILED(c_hr))
 		{
@@ -2425,10 +2435,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Check for video memory zbuffers
 		if ((IsDepthStencil() || (surface.Usage & D3DUSAGE_DEPTHSTENCIL)) && IsD9UsingVideoMemory())
 		{
-			lpDDSurfaceDesc2->dwFlags &= ~(DDSD_LPSURFACE | DDSD_PITCH);
-			lpDDSurfaceDesc2->lPitch = 0;
-			lpDDSurfaceDesc2->lpSurface = nullptr;
-			return DDERR_INVALIDPARAMS;
+			return DDERR_UNSUPPORTED;
 		}
 
 		ScopedCriticalSection ThreadLock(GetCriticalSection());
@@ -3513,6 +3520,10 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			surfaceDesc2.dwFlags |= DDSD_LPSURFACE;
 			surfaceDesc2.lpSurface = lpDDSurfaceDesc2->lpSurface;
 			surface.UsingSurfaceMemory = true;
+			if (surfaceDesc2.dwMipMapCount > 1)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: lpSurface not supported with MipMaps!");
+			}
 			if (surface.Surface || surface.Texture)
 			{
 				RecreateDevice = true;
@@ -6097,6 +6108,14 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		surfaceDesc2.lPitch = 0;
 	}
 	surface.UsingSurfaceMemory = ((surfaceDesc2.dwFlags & DDSD_LPSURFACE) && surfaceDesc2.lpSurface);
+	if (surface.UsingSurfaceMemory)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: lpSurface not fully Implemented.");
+		if (surfaceDesc2.dwMipMapCount > 1)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: lpSurface not supported with MipMaps!");
+		}
+	}
 
 	// Clear flags used in creating a surface structure
 	surfaceDesc2.ddsCaps.dwCaps4 = 0;
@@ -7131,7 +7150,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 	if (surface.Pool == D3DPOOL_SYSTEMMEM && (pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM || pSourceSurface->surface.Format != surface.Format))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: destination surface cannot be system memory for mismatching surfaces!");
-		return DDERR_INVALIDPARAMS;
+		return DDERR_UNSUPPORTED;
 	}
 
 	bool VideoMemoryBlt = (pSourceSurface->surface.Pool == D3DPOOL_DEFAULT && surface.Pool == D3DPOOL_DEFAULT);
@@ -7140,7 +7159,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 	float depthValue = (DepthColor & 0xFFFF0000) ?
 		static_cast<float>(DepthColor) / static_cast<float>(0xFFFFFFFF) :
 		static_cast<float>(DepthColor & 0xFFFF) / static_cast<float>(0xFFFF);
-	depthValue = min(max(depthValue, 0.0f), 1.0f);	// Clamp between [0.0f-1.0f]
+	depthValue = CLAMP(depthValue, 0.0f, 1.0f);
 
 	// Check conditions for copying Z-buffer
 	if (!DepthFill)
@@ -7149,14 +7168,14 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		if (pSourceSurface == this)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: source and destination surfaces cannot be the same!");
-			return VideoMemoryBlt ? DDERR_NOZBUFFERHW : DDERR_INVALIDPARAMS;
+			return DDERR_UNSUPPORTED;
 		}
 
 		// Check if source and dest surfaces are the same
 		if (pSourceSurface->surface.Format != surface.Format)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: source and destination surfaces must be the same format: " << pSourceSurface->surface.Format << " -> " << surface.Format);
-			return VideoMemoryBlt ? DDERR_NOZBUFFERHW : DDERR_INVALIDPARAMS;
+			return DDERR_UNSUPPORTED;
 		}
 
 		// Check for sub-rectangle copies
@@ -7166,7 +7185,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 				SrcRect.right < (LONG)pSourceSurface->surface.Width || SrcRect.bottom < (LONG)pSourceSurface->surface.Height))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: depth buffer copy cannot copy sub-rectangles!");
-			return DDERR_NOZBUFFERHW;
+			return DDERR_UNSUPPORTED;
 		}
 
 		// Check if rect is being stretched
@@ -7174,14 +7193,14 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 			abs((SrcRect.bottom - SrcRect.top) - (DestRect.bottom - DestRect.top)) > 1)			// Height size
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: stretched rect not supported!");
-			return VideoMemoryBlt ? DDERR_NOZBUFFERHW : DDERR_INVALIDPARAMS;
+			return DDERR_UNSUPPORTED;
 		}
 
 		// Check BitCount
 		if (pSourceSurface->surface.BitCount != 16 && pSourceSurface->surface.BitCount != 24 && pSourceSurface->surface.BitCount != 32)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid BitCount for source depth buffer: " << pSourceSurface->surface.BitCount);
-			return VideoMemoryBlt ? DDERR_NOZBUFFERHW : DDERR_INVALIDPARAMS;
+			return DDERR_UNSUPPORTED;
 		}
 	}
 
@@ -7266,7 +7285,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 
 		// Just return not supported for now
 		LOG_LIMIT(100, __FUNCTION__ << " Error: video memory zbuffer Blt not implemented!");
-		return DDERR_NOZBUFFERHW;
+		return DDERR_UNSUPPORTED;
 	}
 
 	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
