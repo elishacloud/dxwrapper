@@ -6205,18 +6205,18 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 
 		if (dwFlags & D3DDP_DONOTCLIP)
 		{
-			(*d3d9Device)->GetRenderState(D3DRS_CLIPPING, &TempStates.rsClipping);
+			(*d3d9Device)->GetRenderState(D3DRS_CLIPPING, &DrawStates.rsClipping);
 			(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, FALSE);
 		}
 		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL))
 		{
-			(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &TempStates.rsLighting);
+			(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
 			(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE);
 		}
 		if (dwFlags & D3DDP_DONOTUPDATEEXTENTS)
 		{
 			// ToDo: fix Extents see SetRenderState() implementation
-			//GetRenderState(D3DRENDERSTATE_EXTENTS, &TempStates.rsExtents);
+			//GetRenderState(D3DRENDERSTATE_EXTENTS, &DrawStates.rsExtents);
 			//SetRenderState(D3DRENDERSTATE_EXTENTS, FALSE);
 		}
 	}
@@ -6263,8 +6263,8 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		{
 			if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
 			{
-				(*d3d9Device)->GetSamplerState(x, D3DSAMP_MINFILTER, &TempStates.ssMinFilter[x]);
-				(*d3d9Device)->GetSamplerState(x, D3DSAMP_MAGFILTER, &TempStates.ssMagFilter[x]);
+				(*d3d9Device)->GetSamplerState(x, D3DSAMP_MINFILTER, &DrawStates.ssMinFilter[x]);
+				(*d3d9Device)->GetSamplerState(x, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter[x]);
 
 				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
 				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
@@ -6305,9 +6305,9 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		}
 		if (dwFlags & D3DDP_DXW_ALPHACOLORKEY)
 		{
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &TempStates.rsAlphaTestEnable);
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &TempStates.rsAlphaFunc);
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &TempStates.rsAlphaRef);
+			(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
+			(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &DrawStates.rsAlphaFunc);
+			(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &DrawStates.rsAlphaRef);
 
 			(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
 			(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
@@ -6323,8 +6323,8 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		if (colorkeyPixelShader && *colorkeyPixelShader)
 		{
 			(*d3d9Device)->SetPixelShader(*colorkeyPixelShader);
-			(*d3d9Device)->SetPixelShaderConstantF(0, TempStates.lowColorKey, 1);
-			(*d3d9Device)->SetPixelShaderConstantF(1, TempStates.highColorKey, 1);
+			(*d3d9Device)->SetPixelShaderConstantF(0, DrawStates.lowColorKey, 1);
+			(*d3d9Device)->SetPixelShaderConstantF(1, DrawStates.highColorKey, 1);
 		}
 	}
 	/*if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && d3d9Device && *d3d9Device && ddrawParent)
@@ -6357,16 +6357,16 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags
 	{
 		if (dwFlags & D3DDP_DONOTCLIP)
 		{
-			(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, TempStates.rsClipping);
+			(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, DrawStates.rsClipping);
 		}
 		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL))
 		{
-			(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, TempStates.rsLighting);
+			(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
 		}
 		if (dwFlags & D3DDP_DONOTUPDATEEXTENTS)
 		{
 			// ToDo: fix Extents see SetRenderState() implementation
-			//SetRenderState(D3DRENDERSTATE_EXTENTS, TempStates.rsExtents);
+			//SetRenderState(D3DRENDERSTATE_EXTENTS, DrawStates.rsExtents);
 		}
 	}
 	if (Config.DdrawFixByteAlignment > 1)
@@ -6375,16 +6375,16 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags
 		{
 			if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
 			{
-				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, TempStates.ssMinFilter[x]);
-				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, TempStates.ssMagFilter[x]);
+				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, DrawStates.ssMinFilter[x]);
+				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter[x]);
 			}
 		}
 	}
 	if (dwFlags & D3DDP_DXW_ALPHACOLORKEY)
 	{
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TempStates.rsAlphaTestEnable);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, TempStates.rsAlphaFunc);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, TempStates.rsAlphaRef);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
 	}
 	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
 	{

@@ -7134,6 +7134,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		return DDERR_INVALIDPARAMS;
 	}
 
+	bool VideoMemoryBlt = (pSourceSurface->surface.Pool == D3DPOOL_DEFAULT && surface.Pool == D3DPOOL_DEFAULT);
+
 	// zBuffer fill value
 	float depthValue = (DepthColor & 0xFFFF0000) ?
 		static_cast<float>(DepthColor) / static_cast<float>(0xFFFFFFFF) :
@@ -7147,24 +7149,24 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		if (pSourceSurface == this)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: source and destination surfaces cannot be the same!");
-			return DDERR_INVALIDPARAMS;
+			return VideoMemoryBlt ? DDERR_NOZBUFFERHW : DDERR_INVALIDPARAMS;
 		}
 
 		// Check if source and dest surfaces are the same
 		if (pSourceSurface->surface.Format != surface.Format)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: source and destination surfaces must be the same format: " << pSourceSurface->surface.Format << " -> " << surface.Format);
-			return DDERR_INVALIDPARAMS;
+			return VideoMemoryBlt ? DDERR_NOZBUFFERHW : DDERR_INVALIDPARAMS;
 		}
 
 		// Check for sub-rectangle copies
-		if (pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM && surface.Pool != D3DPOOL_SYSTEMMEM &&
+		if (VideoMemoryBlt &&
 			(DestRect.left || DestRect.top || DestRect.right < (LONG)surface.Width || DestRect.bottom < (LONG)surface.Height ||
 				SrcRect.left || SrcRect.top || SrcRect.right != DestRect.right || SrcRect.bottom != DestRect.bottom ||
 				SrcRect.right < (LONG)pSourceSurface->surface.Width || SrcRect.bottom < (LONG)pSourceSurface->surface.Height))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: depth buffer copy cannot copy sub-rectangles!");
-			return DDERR_INVALIDPARAMS;
+			return DDERR_NOZBUFFERHW;
 		}
 
 		// Check if rect is being stretched
@@ -7172,14 +7174,14 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 			abs((SrcRect.bottom - SrcRect.top) - (DestRect.bottom - DestRect.top)) > 1)			// Height size
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: stretched rect not supported!");
-			return DDERR_GENERIC;
+			return VideoMemoryBlt ? DDERR_NOZBUFFERHW : DDERR_INVALIDPARAMS;
 		}
 
 		// Check BitCount
 		if (pSourceSurface->surface.BitCount != 16 && pSourceSurface->surface.BitCount != 24 && pSourceSurface->surface.BitCount != 32)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid BitCount for source depth buffer: " << pSourceSurface->surface.BitCount);
-			return DDERR_GENERIC;
+			return VideoMemoryBlt ? DDERR_NOZBUFFERHW : DDERR_INVALIDPARAMS;
 		}
 	}
 
@@ -7238,7 +7240,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 
 	// Handle video memory copy
-	if (!DepthFill && pSourceSurface->surface.Pool == D3DPOOL_DEFAULT && surface.Pool == D3DPOOL_DEFAULT)
+	if (!DepthFill && VideoMemoryBlt)
 	{
 		/*bool InScene = ddrawParent->IsInScene();
 		if (InScene)

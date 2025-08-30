@@ -135,7 +135,7 @@ private:
 		DWORD ssMagFilter[D3DHAL_TSS_MAXSTAGES] = {};
 		float lowColorKey[4] = {};
 		float highColorKey[4] = {};
-	} TempStates;
+	} DrawStates;
 
 	// Texture handle
 	DWORD rsTextureHandle = NULL;
