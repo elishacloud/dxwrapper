@@ -31,21 +31,58 @@ namespace Utils
 	void RemoveCustomExceptionHandler();
 }
 
+// Your existing exception handler function
+LONG WINAPI Utils::Vectored_Exception_Handler(EXCEPTION_POINTERS* ExceptionInfo)
+{
+	if (ExceptionInfo &&
+		ExceptionInfo->ContextRecord &&
+		ExceptionInfo->ExceptionRecord &&
+		ExceptionInfo->ExceptionRecord->ExceptionAddress &&
+		ExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_PRIVILEGED_INSTRUCTION)
+	{
+		size_t size = Disasm::getInstructionLength(ExceptionInfo->ExceptionRecord->ExceptionAddress);
+
+		if (size)
+		{
+			static DWORD count = 0;
+			if (count++ < 10)
+			{
+				char moduleName[MAX_PATH];
+				GetModuleFromAddress(ExceptionInfo->ExceptionRecord->ExceptionAddress, moduleName, MAX_PATH);
+
+				Logging::Log() << "Skipping exception:" <<
+					" code=" << Logging::hex(ExceptionInfo->ExceptionRecord->ExceptionCode) <<
+					" flags=" << Logging::hex(ExceptionInfo->ExceptionRecord->ExceptionFlags) <<
+					" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress <<
+					" module=" << moduleName;
+			}
+
+			ExceptionInfo->ContextRecord->Eip += size;
+			return EXCEPTION_CONTINUE_EXECUTION;
+		}
+	}
+
+	return EXCEPTION_CONTINUE_SEARCH;
+}
+
 LONG WINAPI Utils::CustomUnhandledExceptionFilter(LPEXCEPTION_POINTERS exceptionInfo)
 {
 	void* faultAddr = exceptionInfo->ExceptionRecord->ExceptionAddress;
 	DWORD code = exceptionInfo->ExceptionRecord->ExceptionCode;
 
-	Logging::Log() << __FUNCTION__ << " Exception caught at address: " << faultAddr << ", code: 0x" << Logging::hex(code);
+	char moduleName[MAX_PATH];
+	GetModuleFromAddress(faultAddr, moduleName, MAX_PATH);
+
+	Logging::Log() << __FUNCTION__ << " Exception caught at address: " << faultAddr << ", code: " << Logging::hex(code) << ", module: " << moduleName;
 
 	// Simulate instruction patching (NOP fill) for specific exceptions
 	switch (code)
 	{
-	case 0xC0000094: // Divide by zero
-	case 0xC0000095: // Integer overflow
-	case 0xC0000096: // Privileged instruction
-	case 0xC000001D: // Illegal instruction
-	case 0xC0000005: // Access violation
+	case STATUS_INTEGER_DIVIDE_BY_ZERO:
+	case STATUS_INTEGER_OVERFLOW:
+	case STATUS_PRIVILEGED_INSTRUCTION:
+	case STATUS_ILLEGAL_INSTRUCTION:
+	case STATUS_ACCESS_VIOLATION:
 	{
 		// Use your custom disassembler to get the instruction length
 		unsigned instrLen = Disasm::getInstructionLength(faultAddr);

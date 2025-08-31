@@ -729,40 +729,6 @@ MMRESULT WINAPI Utils::winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt)
 	return result;
 }
 
-// Your existing exception handler function
-LONG WINAPI Utils::Vectored_Exception_Handler(EXCEPTION_POINTERS* ExceptionInfo)
-{
-	if (ExceptionInfo &&
-		ExceptionInfo->ContextRecord &&
-		ExceptionInfo->ExceptionRecord &&
-		ExceptionInfo->ExceptionRecord->ExceptionAddress &&
-		ExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_PRIVILEGED_INSTRUCTION)
-	{
-		size_t size = Disasm::getInstructionLength(ExceptionInfo->ExceptionRecord->ExceptionAddress);
-
-		if (size)
-		{
-			static DWORD count = 0;
-			if (count++ < 10)
-			{
-				char moduleName[MAX_PATH];
-				GetModuleFromAddress(ExceptionInfo->ExceptionRecord->ExceptionAddress, moduleName, MAX_PATH);
-
-				Logging::Log() << "Skipping exception:" <<
-					" code=" << Logging::hex(ExceptionInfo->ExceptionRecord->ExceptionCode) <<
-					" flags=" << Logging::hex(ExceptionInfo->ExceptionRecord->ExceptionFlags) <<
-					" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress <<
-					" module=" << moduleName;
-			}
-
-			ExceptionInfo->ContextRecord->Eip += size;
-			return EXCEPTION_CONTINUE_EXECUTION;
-		}
-	}
-
-	return EXCEPTION_CONTINUE_SEARCH;
-}
-
 // Add HMODULE to vector
 void Utils::AddHandleToVector(HMODULE dll, const char *name)
 {
