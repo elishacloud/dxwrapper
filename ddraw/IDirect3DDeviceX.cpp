@@ -5927,6 +5927,24 @@ void m_IDirect3DDeviceX::PrepDevice()
 	// Set batched states
 	if (Config.Dd7to9)
 	{
+		if (rsWrapChanged)
+		{
+			DWORD RenderState =
+				(DeviceStates.RenderState[D3DRENDERSTATE_WRAPU].State ? D3DWRAP_U : 0) |
+				(DeviceStates.RenderState[D3DRENDERSTATE_WRAPV].State ? D3DWRAP_V : 0);
+			SetD9RenderState(D3DRS_WRAP0, RenderState);
+			rsWrapChanged = false;
+		}
+		if (rsAntiAliasChanged)
+		{
+			DWORD rsAntiAlias = DeviceStates.RenderState[D3DRENDERSTATE_ANTIALIAS].State;
+			BOOL AntiAliasEnabled = (bool)(
+				(D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTDEPENDENT ||
+				(D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTINDEPENDENT ||
+				DeviceStates.RenderState[D3DRENDERSTATE_EDGEANTIALIAS].State);
+			SetD9RenderState(D3DRS_MULTISAMPLEANTIALIAS, AntiAliasEnabled);
+			rsAntiAliasChanged = false;
+		}
 		for (const auto& entry : BatchStates.RenderState)
 		{
 			(*d3d9Device)->SetRenderState(entry.first, entry.second);
@@ -6240,23 +6258,6 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 
 	// Need to always set viewport
 	(*d3d9Device)->SetViewport(&DeviceStates.Viewport.View);
-
-	// Handle texture wrapping
-	if (rsWrapChanged)
-	{
-		DWORD RenderState = (DeviceStates.RenderState[D3DRENDERSTATE_WRAPU].State ? D3DWRAP_U : 0) | (DeviceStates.RenderState[D3DRENDERSTATE_WRAPV].State ? D3DWRAP_V : 0);
-		SetD9RenderState(D3DRS_WRAP0, RenderState);
-		rsWrapChanged = false;
-	}
-
-	// Handle anti-aliasing
-	if (rsAntiAliasChanged)
-	{
-		DWORD rsAntiAlias = DeviceStates.RenderState[D3DRENDERSTATE_ANTIALIAS].State;
-		BOOL AntiAliasEnabled = (bool)((D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTDEPENDENT || (D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTINDEPENDENT);
-		SetD9RenderState(D3DRS_MULTISAMPLEANTIALIAS, AntiAliasEnabled);
-		rsAntiAliasChanged = false;
-	}
 
 	if (Config.DdrawFixByteAlignment > 1)
 	{
