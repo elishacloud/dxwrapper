@@ -6273,6 +6273,18 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			}
 		}
 	}
+	if (CurrentTextureSurfaceX[0] && DeviceStates.RenderState[D3DRENDERSTATE_TEXTUREMAPBLEND].State == D3DTBLEND_MODULATE)
+	{
+		// texture alpha replaces; if no texture alpha, use vertex alpha.
+		if (CurrentTextureSurfaceX[0]->HasAlphaChannel())
+		{
+			(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+		}
+		else
+		{
+			(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+		}
+	}
 	for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 	{
 		// Set textures

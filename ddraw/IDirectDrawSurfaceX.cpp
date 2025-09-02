@@ -4973,6 +4973,25 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	return DD_OK;
 }
 
+// Check surface for alpha channel
+bool m_IDirectDrawSurfaceX::HasAlphaChannel() const
+{
+	if (surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS)
+	{
+		return true;
+	}
+	switch (surfaceDesc2.ddpfPixelFormat.dwFourCC)
+	{
+	case D3DFMT_DXT1:
+	case D3DFMT_DXT2:
+	case D3DFMT_DXT3:
+	case D3DFMT_DXT4:
+	case D3DFMT_DXT5:
+		return true;
+	}
+	return false;
+}
+
 void m_IDirectDrawSurfaceX::UpdateAttachedDepthStencil(m_IDirectDrawSurfaceX* lpAttachedSurfaceX)
 {
 	bool HasChanged = false;
