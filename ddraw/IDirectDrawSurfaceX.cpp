@@ -4983,6 +4983,7 @@ bool m_IDirectDrawSurfaceX::HasAlphaChannel() const
 	switch (surfaceDesc2.ddpfPixelFormat.dwFourCC)
 	{
 	case D3DFMT_DXT1:
+		// ToDo: maybe need to check if DXT1 texture has alpha bits
 	case D3DFMT_DXT2:
 	case D3DFMT_DXT3:
 	case D3DFMT_DXT4:
