@@ -6485,9 +6485,10 @@ HRESULT m_IDirectDrawSurfaceX::Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDe
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: flags not supported. dwFlags: " << Logging::hex(dwFlags));
 	}
 
+	HRESULT hr;
 	if (!lprcSrcRect && (!lpDestPoint || (lpDestPoint && lpDestPoint->x == 0 && lpDestPoint->y == 0)))
 	{
-		return lpDestTex->Blt(nullptr, lpSrcTex, nullptr, 0, nullptr);
+		hr = lpDestTex->Blt(nullptr, lpSrcTex, nullptr, 0, nullptr);
 	}
 	else
 	{
@@ -6527,8 +6528,24 @@ HRESULT m_IDirectDrawSurfaceX::Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDe
 			DestPoint.y + (SrcRect.bottom - SrcRect.top),	// bottom
 		};
 
-		return lpDestTex->Blt(&DestRect, lpSrcTex, &SrcRect, 0, nullptr);
+		hr = lpDestTex->Blt(&DestRect, lpSrcTex, &SrcRect, 0, nullptr);
 	}
+
+	if (SUCCEEDED(hr))
+	{
+		// Load color key
+		m_IDirectDrawSurfaceX* pSrcSurfaceX = nullptr;
+		if (SUCCEEDED(lpSrcTex->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pSrcSurfaceX)))
+		{
+			surfaceDesc2.dwFlags |= pSrcSurfaceX->surfaceDesc2.dwFlags & (DDSD_CKDESTBLT | DDSD_CKDESTOVERLAY | DDSD_CKSRCBLT | DDSD_CKSRCOVERLAY);
+			if (surfaceDesc2.dwFlags & DDSD_CKDESTOVERLAY) surfaceDesc2.ddckCKDestOverlay = pSrcSurfaceX->surfaceDesc2.ddckCKDestOverlay;
+			if (surfaceDesc2.dwFlags & DDSD_CKDESTBLT) surfaceDesc2.ddckCKDestBlt = pSrcSurfaceX->surfaceDesc2.ddckCKDestBlt;
+			if (surfaceDesc2.dwFlags & DDSD_CKSRCOVERLAY) surfaceDesc2.ddckCKSrcOverlay = pSrcSurfaceX->surfaceDesc2.ddckCKSrcOverlay;
+			if (surfaceDesc2.dwFlags & DDSD_CKSRCBLT) surfaceDesc2.ddckCKSrcBlt = pSrcSurfaceX->surfaceDesc2.ddckCKSrcBlt;
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectDrawSurfaceX::SaveSurfaceToFile(const char *filename, D3DXIMAGE_FILEFORMAT format)
