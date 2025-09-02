@@ -2061,6 +2061,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 				SetD9TextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
 				SetD9TextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
 				SetD9TextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
+				DeviceStates.TextureStageState[0][D3DTSS_ALPHAOP].Set = FALSE;	// Sets alphaop to auto based on texture alpha channel
 
 				return D3D_OK;
 			case D3DTBLEND_MODULATEALPHA:
@@ -6192,7 +6193,12 @@ void m_IDirect3DDeviceX::SetDefaults()
 
 	if (ClientDirectXVersion < 3)
 	{
+		SetRenderState(D3DRENDERSTATE_TEXTUREMAPBLEND, D3DTBLEND_MODULATE);
 		SetD9RenderState(D3DRS_SPECULARENABLE, TRUE);
+	}
+	else
+	{
+		SetD9TextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
 	}
 
 	{
@@ -6273,7 +6279,9 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			}
 		}
 	}
-	if (CurrentTextureSurfaceX[0] && DeviceStates.RenderState[D3DRENDERSTATE_TEXTUREMAPBLEND].State == D3DTBLEND_MODULATE)
+	if (CurrentTextureSurfaceX[0] &&
+		DeviceStates.RenderState[D3DRENDERSTATE_TEXTUREMAPBLEND].State == D3DTBLEND_MODULATE &&
+		DeviceStates.TextureStageState[0][D3DTSS_ALPHAOP].Set == FALSE)
 	{
 		// texture alpha replaces; if no texture alpha, use vertex alpha.
 		if (CurrentTextureSurfaceX[0]->HasAlphaChannel())
