@@ -341,6 +341,11 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
 		}
+		// Handle exclusive mode cases where the window is resized to be different than the display size
+		if (Msg == WM_WINDOWPOSCHANGED && pDataStruct->IsExclusiveMode && lParam)
+		{
+			m_IDirectDrawX::CheckWindowPosChange(hWnd, (WINDOWPOS*)lParam);
+		}
 		// Handle cases where monitor gets disconnected during resolution change
 		if (Msg == WM_DISPLAYCHANGE)
 		{

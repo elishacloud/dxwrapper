@@ -92,6 +92,8 @@ namespace {
 	bool IsDeviceLost = false;
 	bool ReDrawNextPresent = false;
 	bool CopyGDISurface = false;
+	bool DontWindowRePosition = false;
+	m_IDirectDrawX* CreationInterface = nullptr;
 	LPDIRECT3D9 d3d9Object = nullptr;
 	LPDIRECT3DDEVICE9 d3d9Device = nullptr;
 	D3DPRESENT_PARAMETERS presParams = {};
@@ -2438,6 +2440,8 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		EnableWaitVsync = false;
 
 		// Direct3D9 Objects
+		DontWindowRePosition = false;
+		CreationInterface = nullptr;
 		d3d9Object = nullptr;
 		d3d9Device = nullptr;
 		GammaLUTTexture = nullptr;
@@ -3253,6 +3257,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 		}
 		else
 		{
+			CreationInterface = this;
 			IsDeviceLost = false;
 			WndProc::SwitchingResolution = false;
 			IsDeviceVerticesSet = false;
@@ -3285,6 +3290,15 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 
 	// Return
 	return hr;
+}
+
+void m_IDirectDrawX::FixWindowPos()
+{
+	if (d3d9Device && !DontWindowRePosition)
+	{
+		Utils::SetWindowPosToMonitor(hMonitor, presParams.hDeviceWindow, HWND_TOP, 0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_NOZORDER | SWP_NOACTIVATE);
+		DontWindowRePosition = true;
+	}
 }
 
 HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
@@ -3615,6 +3629,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		}
 
 		// Reset flags after creating device
+		CreationInterface = this;
 		IsDeviceLost = false;
 		WndProc::SwitchingResolution = false;
 		LastUsedHWnd = hWnd;
@@ -4293,6 +4308,7 @@ void m_IDirectDrawX::ReleaseD9Device()
 			while (d3d9Device->Release()) {};
 		}
 		d3d9Device = nullptr;
+		CreationInterface = nullptr;
 	}
 }
 
@@ -5431,6 +5447,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 		}
 	}
 	LastWindowRect = ClientRect;
+	DontWindowRePosition = false;
 
 	// Store new click time after frame draw is complete
 	QueryPerformanceCounter(&Counter.LastPresentTime);
@@ -5454,6 +5471,28 @@ bool m_IDirectDrawX::CheckDirectDrawXInterface(void* pInterface)
 	return false;
 }
 
+void m_IDirectDrawX::CheckWindowPosChange(HWND hWnd, WINDOWPOS* wPos)
+{
+	// If incorrect param or incorrect device
+	if (!wPos || !ExclusiveMode || !CreationInterface || hWnd != presParams.hDeviceWindow)
+	{
+		return;
+	}
+	// If window size doesn't match
+	if ((UINT)wPos->cx != presParams.BackBufferWidth || (UINT)wPos->cy != presParams.BackBufferHeight)
+	{
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+		for (const auto& entry : DDrawVector)
+		{
+			if (entry == CreationInterface)
+			{
+				return entry->FixWindowPos();
+			}
+		}
+	}
+}
+
 DWORD m_IDirectDrawX::GetDDrawBitsPixel(HWND hWnd)
 {
 	if (hWnd)
@@ -5473,7 +5512,12 @@ DWORD m_IDirectDrawX::GetDDrawBitsPixel(HWND hWnd)
 
 	if (!DDrawVector.empty() && IsWindow(DisplayMode.hWnd))
 	{
-		return DDrawVector.data()[0]->GetDisplayBPP();
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+		for (const auto& entry : DDrawVector)
+		{
+			return entry->GetDisplayBPP();
+		}
 	}
 
 	return 0;
