@@ -2832,20 +2832,27 @@ HRESULT m_IDirectDrawSurfaceX::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper)
 			return DD_OK;
 		}
 
+		// Check for device interface
+		HRESULT c_hr = CheckInterface(__FUNCTION__, false, false, false);
+		if (FAILED(c_hr))
+		{
+			return c_hr;
+		}
+
 		// If clipper exists increament ref
 		if (lpDDClipper)
 		{
-			if (!ddrawParent || !ddrawParent->DoesClipperExist((m_IDirectDrawClipper*)lpDDClipper))
+			if (!ddrawParent->DoesClipperExist((m_IDirectDrawClipper*)lpDDClipper))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find clipper");
-				return DDERR_INVALIDOBJECT;
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find clipper " << lpDDClipper);
+				return DDERR_INVALIDPARAMS;
 			}
 
 			lpDDClipper->AddRef();
 		}
 
 		// Decrement ref count
-		if (attachedClipper && ddrawParent && ddrawParent->DoesClipperExist(attachedClipper))
+		if (attachedClipper && ddrawParent->DoesClipperExist(attachedClipper))
 		{
 			attachedClipper->Release();
 		}
@@ -2974,15 +2981,22 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 			return DD_OK;
 		}
 
+		// Check for device interface
+		HRESULT c_hr = CheckInterface(__FUNCTION__, false, false, false);
+		if (FAILED(c_hr))
+		{
+			return c_hr;
+		}
+
 		ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
 
 		// If palette exists increament ref
 		if (lpDDPalette)
 		{
-			if (!ddrawParent || !ddrawParent->DoesPaletteExist((m_IDirectDrawPalette*)lpDDPalette))
+			if (!ddrawParent->DoesPaletteExist((m_IDirectDrawPalette*)lpDDPalette))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find palette");
-				return DDERR_INVALIDOBJECT;
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find palette " << lpDDPalette);
+				return DDERR_INVALIDPARAMS;
 			}
 
 			lpDDPalette->AddRef();
@@ -2995,7 +3009,7 @@ HRESULT m_IDirectDrawSurfaceX::SetPalette(LPDIRECTDRAWPALETTE lpDDPalette)
 		}
 
 		// Decrement ref count
-		if (attachedPalette && ddrawParent && ddrawParent->DoesPaletteExist(attachedPalette))
+		if (attachedPalette && ddrawParent->DoesPaletteExist(attachedPalette))
 		{
 			// Remove primary flag
 			if (IsPrimarySurface() && attachedPalette != lpDDPalette)
