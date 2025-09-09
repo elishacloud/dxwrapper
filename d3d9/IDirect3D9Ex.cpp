@@ -764,11 +764,13 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 	// Check for D3D9Ex FlipEx presentation mode
 	if (Config.D3d9to9Ex && Config.FlipEx)
 	{
-		// Backbuffer (must be at least 2 for FlipEx)
-		DeviceDetails.BackBufferCount = max(2, pPresentationParameters->BackBufferCount);
-
+		pPresentationParameters->MultiSampleType = D3DMULTISAMPLE_NONE;
+		pPresentationParameters->MultiSampleQuality = 0;
 		pPresentationParameters->Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 		pPresentationParameters->SwapEffect = D3DSWAPEFFECT_FLIPEX;
+
+		// Backbuffer (must be at least 2 for FlipEx)
+		DeviceDetails.BackBufferCount = max(2, pPresentationParameters->BackBufferCount);
 	}
 	else
 	{
