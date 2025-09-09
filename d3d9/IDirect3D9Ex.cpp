@@ -365,7 +365,7 @@ HRESULT m_IDirect3D9Ex::CheckDeviceFormatConversion(THIS_ UINT Adapter, D3DDEVTY
 }
 
 template <typename T>
-HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface)
+HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, bool IsEx, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface)
 {
 	if (!pPresentationParameters || !ppReturnedDeviceInterface)
 	{
@@ -417,14 +417,14 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, hFocusWindow, DeviceDetails, ForceFullscreen, true);
+	UpdatePresentParameter(&d3dpp, hFocusWindow, DeviceDetails, IsEx, ForceFullscreen, true);
 
 	bool IsWindowMode = d3dpp.Windowed != FALSE;
 
 	bool MultiSampleFlag = false;
 
-	// Check for AntiAliasing
-	if (Config.AntiAliasing != 0)
+	// Check for AntiAliasing (doesn't work with FlipEx)
+	if (Config.AntiAliasing && !(IsEx && Config.FlipEx))
 	{
 		DWORD QualityLevels = 0;
 
@@ -459,13 +459,17 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 			LOG_LIMIT(100, __FUNCTION__ << " Failed to enable AntiAliasing!");
 		}
 	}
+	else if (Config.AntiAliasing && IsEx && Config.FlipEx)
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: AntiAliasing is not supported on FlipEx presentation mode!");
+	}
 
 	// Create Device
 	if (FAILED(hr))
 	{
 		// Update presentation parameters
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, hFocusWindow, DeviceDetails, ForceFullscreen, false);
+		UpdatePresentParameter(&d3dpp, hFocusWindow, DeviceDetails, IsEx, ForceFullscreen, false);
 
 		// Create Device
 		hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed ? nullptr : pFullscreenDisplayMode), ppReturnedDeviceInterface);
@@ -531,7 +535,7 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 
 	DEVICEDETAILS DeviceDetails;
 
-	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, nullptr, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, false, nullptr, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
@@ -648,7 +652,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 
 	DEVICEDETAILS DeviceDetails;
 
-	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenDisplayMode, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, true, pFullscreenDisplayMode, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
@@ -747,15 +751,12 @@ DWORD m_IDirect3D9Ex::UpdateBehaviorFlags(DWORD BehaviorFlags)
 }
 
 // Update Presentation Parameters
-void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool ForceExclusiveFullscreen, bool SetWindow)
+void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool IsEx, bool ForceExclusiveFullscreen, bool SetWindow)
 {
 	if (!pPresentationParameters)
 	{
 		return;
 	}
-
-	// Backbuffer (must be at least 1)
-	DeviceDetails.BackBufferCount = max(1, pPresentationParameters->BackBufferCount);
 
 	// Set vsync
 	if (Config.EnableVSync && (Config.ForceVsyncMode || pPresentationParameters->PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE))
@@ -785,6 +786,34 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 		pPresentationParameters->Windowed = TRUE;
 		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
 	}
+
+	// Check for D3D9Ex FlipEx presentation mode
+	if (IsEx && Config.FlipEx)
+	{
+		if (pPresentationParameters->Windowed && IsWindow(hFocusWindow))
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Enabling FlipEx presentation mode!");
+
+			if (pPresentationParameters->MultiSampleType)
+			{
+				LOG_LIMIT(3, __FUNCTION__ << " Warning: AntiAliasing is not supported on FlipEx presentation mode!");
+			}
+			pPresentationParameters->MultiSampleType = D3DMULTISAMPLE_NONE;
+			pPresentationParameters->MultiSampleQuality = 0;
+			pPresentationParameters->Flags &= ~(D3DPRESENTFLAG_LOCKABLE_BACKBUFFER | D3DPRESENTFLAG_VIDEO);
+			pPresentationParameters->SwapEffect = D3DSWAPEFFECT_FLIPEX;
+
+			// Backbuffer (must be at least 2 for FlipEx)
+			pPresentationParameters->BackBufferCount = max(2, pPresentationParameters->BackBufferCount);
+		}
+		else
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: FlipEx presentation mode is only supported with windowed mode!");
+		}
+	}
+
+	// Backbuffer (must be at least 1)
+	DeviceDetails.BackBufferCount = max(1, pPresentationParameters->BackBufferCount);
 
 	// Store last window data
 	LONG LastBufferWidth = DeviceDetails.BufferWidth;

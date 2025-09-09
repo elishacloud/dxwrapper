@@ -92,6 +92,7 @@
 	visit(FixHighFrequencyMouse) \
 	visit(FixPerfCounterUptime) \
 	visit(FixSpeakerConfigType) \
+	visit(FlipEx) \
 	visit(ForceExclusiveMode) \
 	visit(ForceHardwareMixing) \
 	visit(ForceHQ3DSoftMixing) \
@@ -331,6 +332,7 @@ struct CONFIG
 	DWORD SetPOW2Caps = 0;						// Force caps change: 1 = force both, 2 = force D3DPTEXTURECAPS_NONPOW2CONDITIONAL, 3 = force D3DPTEXTURECAPS_POW2, 4 = remove both
 	DWORD AnisotropicFiltering = 0;				// Enable Anisotropic Filtering for d3d9
 	DWORD AntiAliasing = 0;						// Enable AntiAliasing for d3d9 CreateDevice
+	bool FlipEx = false;						// Enable FlipEx presentation mode for D3D9Ex. Disables AntiAliasing
 	DWORD RealWrapperMode = 0;					// Internal wrapper mode
 	MEMORYINFO VerifyMemoryInfo;				// Memory used for verification before hot patching
 	std::string WinVersionLie = "";				// Using DDrawCompat WinVersionLie to tell the OS a different OS
