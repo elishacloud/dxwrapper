@@ -426,37 +426,44 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	// Check for AntiAliasing
 	if (Config.AntiAliasing != 0)
 	{
-		DWORD QualityLevels = 0;
-
-		// Check AntiAliasing quality
-		for (int x = min(D3DMULTISAMPLE_16_SAMPLES, Config.AntiAliasing); x > 0; x--)
+		if (pPresentationParameters->SwapEffect == D3DSWAPEFFECT_FLIPEX)
 		{
-			D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
-			D3DFORMAT BufferFormat = (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8;
-			D3DFORMAT StencilFormat = (d3dpp.AutoDepthStencilFormat) ? d3dpp.AutoDepthStencilFormat : D3DFMT_X8R8G8B8;
+			LOG_LIMIT(3, "AntiAliasing is not supported on FlipEx presentation mode!");
+		}
+		else
+		{
+			DWORD QualityLevels = 0;
 
-			if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, BufferFormat, d3dpp.Windowed, Samples, &QualityLevels)) &&
-				SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, StencilFormat, d3dpp.Windowed, Samples, &QualityLevels)))
+			// Check AntiAliasing quality
+			for (int x = min(D3DMULTISAMPLE_16_SAMPLES, Config.AntiAliasing); x > 0; x--)
 			{
-				// Update Present Parameter for Multisample
-				UpdatePresentParameterForMultisample(&d3dpp, Samples, (QualityLevels > 0) ? QualityLevels - 1 : 0);
+				D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
+				D3DFORMAT BufferFormat = (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8;
+				D3DFORMAT StencilFormat = (d3dpp.AutoDepthStencilFormat) ? d3dpp.AutoDepthStencilFormat : D3DFMT_X8R8G8B8;
 
-				// Create Device
-				hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed ? nullptr : pFullscreenDisplayMode), ppReturnedDeviceInterface);
-
-				// Check if device was created successfully
-				if (SUCCEEDED(hr))
+				if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, BufferFormat, d3dpp.Windowed, Samples, &QualityLevels)) &&
+					SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, StencilFormat, d3dpp.Windowed, Samples, &QualityLevels)))
 				{
-					MultiSampleFlag = true;
-					(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-					LOG_LIMIT(3, "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality);
-					break;
+					// Update Present Parameter for Multisample
+					UpdatePresentParameterForMultisample(&d3dpp, Samples, (QualityLevels > 0) ? QualityLevels - 1 : 0);
+
+					// Create Device
+					hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed ? nullptr : pFullscreenDisplayMode), ppReturnedDeviceInterface);
+
+					// Check if device was created successfully
+					if (SUCCEEDED(hr))
+					{
+						MultiSampleFlag = true;
+						(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+						LOG_LIMIT(3, "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality);
+						break;
+					}
 				}
 			}
-		}
-		if (FAILED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to enable AntiAliasing!");
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Failed to enable AntiAliasing!");
+			}
 		}
 	}
 
@@ -784,6 +791,12 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 	{
 		pPresentationParameters->Windowed = TRUE;
 		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
+	}
+
+	// Check for D3D9Ex FlipEx presentation mode
+	if (Config.D3d9to9Ex && Config.FlipEx)
+	{
+		pPresentationParameters->SwapEffect = D3DSWAPEFFECT_FLIPEX;
 	}
 
 	// Store last window data
