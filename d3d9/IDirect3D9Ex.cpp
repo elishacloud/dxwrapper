@@ -426,7 +426,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	// Check for AntiAliasing
 	if (Config.AntiAliasing != 0)
 	{
-		if (pPresentationParameters->SwapEffect == D3DSWAPEFFECT_FLIPEX)
+		if (Config.D3d9to9Ex && Config.FlipEx)
 		{
 			LOG_LIMIT(3, "AntiAliasing is not supported on FlipEx presentation mode!");
 		}
