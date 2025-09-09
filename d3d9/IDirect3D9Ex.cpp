@@ -761,8 +761,20 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 		return;
 	}
 
-	// Backbuffer (must be at least 1)
-	DeviceDetails.BackBufferCount = max(1, pPresentationParameters->BackBufferCount);
+	// Check for D3D9Ex FlipEx presentation mode
+	if (Config.D3d9to9Ex && Config.FlipEx)
+	{
+		// Backbuffer (must be at least 2 for FlipEx)
+		DeviceDetails.BackBufferCount = max(2, pPresentationParameters->BackBufferCount);
+
+		pPresentationParameters->Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+		pPresentationParameters->SwapEffect = D3DSWAPEFFECT_FLIPEX;
+	}
+	else
+	{
+		// Backbuffer (must be at least 1)
+		DeviceDetails.BackBufferCount = max(1, pPresentationParameters->BackBufferCount);
+	}
 
 	// Set vsync
 	if (Config.EnableVSync && (Config.ForceVsyncMode || pPresentationParameters->PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE))
@@ -791,12 +803,6 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 	{
 		pPresentationParameters->Windowed = TRUE;
 		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
-	}
-
-	// Check for D3D9Ex FlipEx presentation mode
-	if (Config.D3d9to9Ex && Config.FlipEx)
-	{
-		pPresentationParameters->SwapEffect = D3DSWAPEFFECT_FLIPEX;
 	}
 
 	// Store last window data
