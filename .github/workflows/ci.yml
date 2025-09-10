@@ -22,6 +22,12 @@ jobs:
         platform: [Win32]
 
     steps:
+    - name: Install Windows 10 SDK
+      run: choco install windows-sdk-10-version-26100-all -y
+    - name: Install Windows 10 WDK
+      run: choco install windows-driver-kit -y
+    - name: Verify d3dumddi.h
+      run: dir "C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um\d3dumddi.h"
     - uses: actions/checkout@v3
       with:
         submodules: true
