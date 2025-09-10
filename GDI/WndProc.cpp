@@ -315,7 +315,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
 		}
-		// Some games hang when attempting to paint while iconic
+		// Special handling for iconic state to prevent issues with some games
 		if (IsIconic(hWnd))
 		{
 			switch (Msg)
@@ -337,7 +337,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 				}
 				[[fallthrough]];
 			case WM_PAINT:
-			case WM_SYNCPAINT:
+				// Some games hang when attempting to paint while iconic
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
 		}
@@ -389,6 +389,12 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		ImGuiWndProc(hWnd, Msg, wParam, lParam);
 	}
 #endif
+
+	// Send WM_SYNCPAINT to DefWindowProc
+	if (Msg == WM_SYNCPAINT)
+	{
+		return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+	}
 
 	return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 }
