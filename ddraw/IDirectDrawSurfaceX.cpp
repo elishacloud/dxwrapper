@@ -2844,8 +2844,8 @@ HRESULT m_IDirectDrawSurfaceX::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper)
 		{
 			if (!ddrawParent->DoesClipperExist((m_IDirectDrawClipper*)lpDDClipper))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find clipper " << lpDDClipper);
-				return DDERR_INVALIDPARAMS;
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not find clipper " << lpDDClipper);
+				return DD_OK;
 			}
 
 			lpDDClipper->AddRef();
