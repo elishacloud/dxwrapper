@@ -422,8 +422,6 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 		BYTE* vertexBuffer = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwVertexOffset;
 		const DWORD vertexCount = ExecuteData.dwVertexCount;
 
-		DWORD EmulatedDriverStatus = 0;
-
 		// Iterate through the instructions
 		while (instructionData < instructionEnd)
 		{
@@ -437,9 +435,6 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 			{
 				break;
 			}
-
-			// Just keep emulated driver status to 0 for now
-			//EmulatedDriverStatus |= (1 << opcode); // Set bit based on opcode
 
 			bool SkipNextMove = false;
 
@@ -706,7 +701,18 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					{
 						bool IsLight = (Flags & D3DPROCESSVERTICES_TRANSFORMLIGHT) && !(Flags & D3DPROCESSVERTICES_NOCOLOR);
 						bool UpdateExtents = (Flags & D3DPROCESSVERTICES_UPDATEEXTENTS);
-						m_IDirect3DVertexBufferX::TransformVertexUP(this, srcVertices, destVertices, nullptr, Count, lpStatus->drExtent, IsLight, UpdateExtents);
+						HRESULT hr = m_IDirect3DVertexBufferX::TransformVertexUP(this, srcVertices, destVertices, nullptr, Count, lpStatus->drExtent, IsLight, UpdateExtents);
+
+						if (SUCCEEDED(hr))
+						{
+							lpStatus->dwFlags |= D3DSETSTATUS_STATUS;
+							lpStatus->dwStatus = 0; // Just set no clip flags and no ZNOTVISIBLE
+
+							if (UpdateExtents)
+							{
+								lpStatus->dwFlags |= D3DSETSTATUS_EXTENTS;
+							}
+						}
 					}
 				}
 
@@ -748,16 +754,19 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: more than 1 count in set status instruction!");
 				}
 
-				switch (status->dwFlags)
+				// Update only the requested fields
+				if (status->dwFlags & D3DSETSTATUS_STATUS)
 				{
-				case D3DSETSTATUS_STATUS:
-					// Set execute status
-					*lpStatus = *status;
-					break;
-				case D3DSETSTATUS_EXTENTS:
-					// ToDo: Set extents status
-					break;
+					lpStatus->dwStatus = status->dwStatus;
 				}
+
+				if (status->dwFlags & D3DSETSTATUS_EXTENTS)
+				{
+					lpStatus->drExtent = status->drExtent;
+				}
+
+				// Always update the flags field to reflect what was set
+				lpStatus->dwFlags = status->dwFlags;
 
 				break;
 			}
@@ -777,16 +786,8 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: more than 1 count in branch forward instruction!");
 				}
 
-				if (branch->dwMask || branch->dwValue)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: branch forward emulated driver status is not working right!" <<
-						" Mask: " << branch->dwMask << " Value: " << branch->dwValue);
-				}
-
-				// ToDo: fix implementation of EmulatedDriverStatus
-
 				// Apply the mask to the current status
-				DWORD maskedStatus = EmulatedDriverStatus & branch->dwMask;
+				DWORD maskedStatus = lpStatus->dwStatus & branch->dwMask;
 
 				// Compare the masked status with the value
 				bool condition = (maskedStatus == branch->dwValue);
@@ -838,8 +839,6 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 				instructionData += instructionSize;
 			}
 		}
-
-		// ToDo: set lpExecuteData->dsStatus status after Execute() has finished
 
 		return D3D_OK;
 	}
