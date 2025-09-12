@@ -300,12 +300,12 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 		D3DHVERTEX* pHOut = reinterpret_cast<D3DHVERTEX*>(lpData->lpHOut);
 
 		HRESULT hr;
-		if (lpData->dwInSize == 12)
+		if (lpData->dwInSize == sizeof(XYZ))
 		{
 			XYZ* pIn = reinterpret_cast<XYZ*>(lpData->lpIn);
 			hr = m_IDirect3DVertexBufferX::TransformVertexUP(pDirect3DDeviceX, pIn, pOut, pHOut, dwVertexCount, lpData->drExtent, false, true);
 		}
-		else if (lpData->dwInSize == 32)
+		else if (lpData->dwInSize == sizeof(D3DLVERTEX))
 		{
 			D3DLVERTEX* pIn = reinterpret_cast<D3DLVERTEX*>(lpData->lpIn);
 			hr = m_IDirect3DVertexBufferX::TransformVertexUP(pDirect3DDeviceX, pIn, pOut, pHOut, dwVertexCount, lpData->drExtent, false, true);

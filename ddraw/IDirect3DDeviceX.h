@@ -508,7 +508,4 @@ public:
 	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw();
 	void AfterResetDevice();
-
-	// Static functions
-	static bool InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, const DWORD dwVertexStart, const DWORD dwNumVertices, const DWORD dwVertexTypeDesc);
 };
