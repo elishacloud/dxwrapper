@@ -259,12 +259,10 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 
 		// Check dwSize parameters
 		if (lpData->dwSize != sizeof(D3DTRANSFORMDATA) ||
-			lpData->dwInSize != sizeof(D3DLVERTEX) ||
 			lpData->dwOutSize != sizeof(D3DTLVERTEX))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: dwSize doesn't match: " <<
 				sizeof(D3DTRANSFORMDATA) << " -> " << lpData->dwSize <<
-				" dwInSize: " << sizeof(D3DLVERTEX) << " -> " << lpData->dwInSize <<
 				" dwOutSize: " << sizeof(D3DTLVERTEX) << " -> " << lpData->dwOutSize);
 			return DDERR_INVALIDPARAMS;
 		}
@@ -298,70 +296,25 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		D3DMATRIX matWorld, matView, matProj;
-		if (FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_WORLD, &matWorld)) ||
-			FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_VIEW, &matView)) ||
-			FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_PROJECTION, &matProj)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get transform matrices");
-			return DDERR_GENERIC;
-		}
-
-		D3DMATRIX matWorldView = {}, matWorldViewProj = {};
-		D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
-		D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
-
-		LONG minX = LONG_MAX;
-		LONG minY = LONG_MAX;
-		LONG maxX = LONG_MIN;
-		LONG maxY = LONG_MIN;
-
-		D3DLVERTEX* pIn = reinterpret_cast<D3DLVERTEX*>(lpData->lpIn);
 		D3DTLVERTEX* pOut = reinterpret_cast<D3DTLVERTEX*>(lpData->lpOut);
 		D3DHVERTEX* pHOut = reinterpret_cast<D3DHVERTEX*>(lpData->lpHOut);
 
-		for (DWORD i = 0; i < dwVertexCount; ++i)
+		HRESULT hr;
+		if (lpData->dwInSize == 12)
 		{
-			D3DLVERTEX& src = pIn[i];
-			D3DTLVERTEX& dst = pOut[i];
-
-			D3DXVECTOR4 pos(src.x, src.y, src.z, 1.0f);
-			D3DXVECTOR4 result;
-			D3DXVec4Transform(&result, &pos, &matWorldViewProj);
-
-			// Make sure result.w doesn't equal 0 to avoid divide by zero
-			result.w = result.w == 0.0f ? result.w = FLT_EPSILON : result.w;
-
-			dst.sx = result.x / result.w;
-			dst.sy = result.y / result.w;
-			dst.sz = result.z / result.w;
-			dst.sz = Config.DdrawClampVertexZDepth ? min(dst.sz, 1.0f) : dst.sz;
-			dst.rhw = 1.0f / result.w;
-
-			dst.color = src.color;
-			dst.specular = src.specular;
-			dst.tu = src.tu;
-			dst.tv = src.tv;
-
-			if (pHOut)
-			{
-				D3DHVERTEX& hdst = pHOut[i];
-				hdst.hx = result.x;
-				hdst.hy = result.y;
-				hdst.hz = result.z;
-				hdst.dwFlags = 0;	// No clip flags computed
-			}
-
-			minX = min(minX, static_cast<LONG>(floor(dst.sx)));
-			minY = min(minY, static_cast<LONG>(floor(dst.sy)));
-			maxX = max(maxX, static_cast<LONG>(ceil(dst.sx)));
-			maxY = max(maxY, static_cast<LONG>(ceil(dst.sy)));
+			XYZ* pIn = reinterpret_cast<XYZ*>(lpData->lpIn);
+			hr = m_IDirect3DVertexBufferX::TransformVertexUP(pDirect3DDeviceX, pIn, pOut, pHOut, dwVertexCount, lpData->drExtent, false, true);
 		}
-
-		lpData->drExtent.x1 = minX;
-		lpData->drExtent.y1 = minY;
-		lpData->drExtent.x2 = maxX;
-		lpData->drExtent.y2 = maxY;
+		else if (lpData->dwInSize == 32)
+		{
+			D3DLVERTEX* pIn = reinterpret_cast<D3DLVERTEX*>(lpData->lpIn);
+			hr = m_IDirect3DVertexBufferX::TransformVertexUP(pDirect3DDeviceX, pIn, pOut, pHOut, dwVertexCount, lpData->drExtent, false, true);
+		}
+		else
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: dwSize doesn't match: " << " dwInSize: " << sizeof(D3DLVERTEX) << " -> " << lpData->dwInSize);
+			hr = DDERR_INVALIDPARAMS;
+		}
 
 		//Address of a variable that is set to a nonzero value if the resulting vertices are all off-screen.
 		if (lpOffscreen)
@@ -373,7 +326,7 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)D3D_OK << " Timing = " << Logging::GetTimeLapseInMS(startTime);
 #endif
 
-		return D3D_OK;
+		return hr;
 	}
 
 	return ProxyInterface->TransformVertices(dwVertexCount, lpData, dwFlags, lpOffscreen);

@@ -655,16 +655,59 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: process vertices instruction size does not match!");
 				}
 
-				if (processVertices->dwFlags != D3DPROCESSVERTICES_COPY && processVertices->dwFlags != (D3DPROCESSVERTICES_COPY | D3DPROCESSVERTICES_UPDATEEXTENTS))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: process vertices instruction is not implemented! Flags: " << Logging::hex(processVertices->dwFlags));
-				}
-
-				// ToDo: implement process vertices opcode
-
 				for (DWORD i = 0; i < instruction->wCount; i++)
 				{
-					UNREFERENCED_PARAMETER(processVertices);
+					DWORD Flags = processVertices[i].dwFlags;
+
+					if ((Flags & (D3DPROCESSVERTICES_COPY | D3DPROCESSVERTICES_TRANSFORM | D3DPROCESSVERTICES_TRANSFORMLIGHT)) == 0)
+					{
+						Flags |= D3DPROCESSVERTICES_COPY;
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: ProcessVertices dwFlags=0, defaulting to COPY");
+					}
+
+					if (processVertices[i].wStart >= vertexCount || processVertices[i].wDest >= vertexCount || processVertices[i].wStart == processVertices[i].wDest)
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: index exceeds vertices count.  Skip processing!");
+						continue;
+					}
+					// Compute maximum safe count based on buffer size
+					DWORD Count = processVertices[i].dwCount;
+					if (processVertices[i].wStart < processVertices[i].wDest)
+					{
+						Count = min(Count, (DWORD)processVertices[i].wDest - processVertices[i].wStart);	// Src doesn't exceed Dest
+						Count = min(Count, vertexCount - processVertices[i].wDest);							// Dest doesn't exceed end of vertex list
+					}
+					else
+					{
+						Count = min(Count, (DWORD)processVertices[i].wStart - processVertices[i].wDest);	// Dest doesn't exceed Src
+						Count = min(Count, vertexCount - processVertices[i].wStart);						// Src doesn't exceed end of vertex list
+					}
+
+					// Check Count
+					if (Count == 0)
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: zero vertices to process. Skip processing!");
+						continue;
+					}
+
+					D3DLVERTEX* srcVertices = reinterpret_cast<D3DLVERTEX*>(vertexBuffer) + processVertices[i].wStart;
+					D3DTLVERTEX* destVertices = reinterpret_cast<D3DTLVERTEX*>(vertexBuffer) + processVertices[i].wDest;
+
+					// Copy vertices only
+					if (Flags & D3DPROCESSVERTICES_COPY)
+					{
+						for (UINT x = 0; x < Count; x++)
+						{
+							destVertices[x] = *(D3DTLVERTEX*)&srcVertices[x];
+						}
+					}
+					// Apply transform & lighting
+					else if (Flags & (D3DPROCESSVERTICES_TRANSFORM | D3DPROCESSVERTICES_TRANSFORMLIGHT))
+					{
+						bool IsLight = (Flags & D3DPROCESSVERTICES_TRANSFORMLIGHT) && !(Flags & D3DPROCESSVERTICES_NOCOLOR);
+						bool UpdateExtents = (Flags & D3DPROCESSVERTICES_UPDATEEXTENTS);
+						m_IDirect3DVertexBufferX::TransformVertexUP(this, srcVertices, destVertices, nullptr, Count, lpStatus->drExtent, IsLight, UpdateExtents);
+					}
 				}
 
 				break;

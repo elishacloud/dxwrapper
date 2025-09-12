@@ -853,19 +853,25 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 		D3DXVECTOR3& src = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex);
 		D3DXVECTOR4& dst = *reinterpret_cast<D3DXVECTOR4*>(pDestVertex);
 
-		// Transform vertices
-		D3DXVECTOR4 pos(src.x, src.y, src.z, 1.0f);
-		D3DXVECTOR4 result;
-		D3DXVec4Transform(&result, &pos, &matWorldViewProj);
+		const float* m = &matWorldViewProj._11;
+		float x = src.x;
+		float y = src.y;
+		float z = src.z;
+		float w = 1.0f;
 
-		// Make sure result.w doesn't equal 0 to avoid divide by zero
-		result.w = result.w == 0.0f ? result.w = FLT_EPSILON : result.w;
+		// Matrix multiply: row-major
+		float tx = x * m[0] + y * m[4] + z * m[8] + w * m[12];
+		float ty = x * m[1] + y * m[5] + z * m[9] + w * m[13];
+		float tz = x * m[2] + y * m[6] + z * m[10] + w * m[14];
+		float tw = x * m[3] + y * m[7] + z * m[11] + w * m[15];
 
-		dst.x = result.x / result.w;
-		dst.y = result.y / result.w;
-		dst.z = result.z / result.w;
-		dst.z = Config.DdrawClampVertexZDepth ? min(dst.z, 1.0f) : dst.z;
-		dst.w = 1.0f / result.w;
+		// Avoid divide by zero
+		tw = (tw == 0.0f) ? FLT_EPSILON : tw;
+
+		dst.x = tx / tw;
+		dst.y = ty / tw;
+		dst.z = Config.DdrawClampVertexZDepth ? min(tz / tw, 1.0f) : tz / tw;
+		dst.w = 1.0f / tw;
 
 		// Perform lighting if required
 		if (IsLight)
@@ -897,6 +903,120 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	if (pDestVertices)
 	{
 		Unlock();
+	}
+
+	return D3D_OK;
+}
+
+template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<XYZ>(m_IDirect3DDeviceX* , XYZ*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, D3DRECT&, bool, bool);
+template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<D3DLVERTEX>(m_IDirect3DDeviceX* , D3DLVERTEX*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, D3DRECT&, bool, bool);
+template <typename T>
+HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, T* srcVertex, D3DTLVERTEX* destVertex, D3DHVERTEX* pHOut, const DWORD dwCount, D3DRECT& drExtent, bool bLight, bool bUpdateExtents)
+{
+	D3DMATRIX matWorld, matView, matProj;
+	if (FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_WORLD, &matWorld)) ||
+		FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_VIEW, &matView)) ||
+		FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_PROJECTION, &matProj)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get transform matrices");
+		return DDERR_GENERIC;
+	}
+
+	D3DMATRIX matWorldView = {}, matWorldViewProj = {};
+	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
+	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
+
+	// Lighting not supported with current vertex types
+	if (bLight)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Lighting requested but no normals are provided.  Cannot compute lighting!");
+	}
+
+	LONG minX = LONG_MAX;
+	LONG minY = LONG_MAX;
+	LONG maxX = LONG_MIN;
+	LONG maxY = LONG_MIN;
+
+	for (DWORD i = 0; i < dwCount; ++i)
+	{
+		T& src = srcVertex[i];
+		D3DTLVERTEX& dst = destVertex[i];
+
+		const float* m = &matWorldViewProj._11;
+		float x = src.x;
+		float y = src.y;
+		float z = src.z;
+		float w = 1.0f;
+
+		// Matrix multiply: row-major
+		float tx = x * m[0] + y * m[4] + z * m[8] + w * m[12];
+		float ty = x * m[1] + y * m[5] + z * m[9] + w * m[13];
+		float tz = x * m[2] + y * m[6] + z * m[10] + w * m[14];
+		float tw = x * m[3] + y * m[7] + z * m[11] + w * m[15];
+
+		// Avoid divide by zero
+		tw = (tw == 0.0f) ? FLT_EPSILON : tw;
+
+		dst.sx = tx / tw;
+		dst.sy = ty / tw;
+		dst.sz = Config.DdrawClampVertexZDepth ? min(tz / tw, 1.0f) : tz / tw;
+		dst.rhw = 1.0f / tw;
+
+		// Default values: set for XYZ or copy for detailed vertex
+		if constexpr (std::is_same_v<T, XYZ>)
+		{
+			dst.color = 0xFFFFFFFF;	// Default to white
+			dst.specular = 0;
+			dst.tu = 0.0f;
+			dst.tv = 0.0f;
+		}
+		else if constexpr (std::is_same_v<T, D3DLVERTEX>)
+		{
+			dst.color = src.color;
+			dst.specular = src.specular;
+			dst.tu = src.tu;
+			dst.tv = src.tv;
+		}
+		else
+		{
+			static_assert(false);
+		}
+
+		// Fill homogeneous out if requested
+		if (pHOut)
+		{
+			D3DHVERTEX& hdst = pHOut[i];
+			// Store pre-divide homogeneous coords
+			hdst.hx = tx;
+			hdst.hy = ty;
+			hdst.hz = tz;
+			hdst.dwFlags = 0; // Clip flags not computed here (TransformVertices only sets them if clipping performed upstream)
+		}
+
+		if (bUpdateExtents)
+		{
+			// floor/ceil convert to integer extents
+			minX = min(minX, static_cast<LONG>(floor(dst.sx)));
+			minY = min(minY, static_cast<LONG>(floor(dst.sy)));
+			maxX = max(maxX, static_cast<LONG>(ceil(dst.sx)));
+			maxY = max(maxY, static_cast<LONG>(ceil(dst.sy)));
+		}
+	}
+
+	if (bUpdateExtents)
+	{
+		if (minX != LONG_MAX)
+		{
+			drExtent.x1 = minX;
+			drExtent.y1 = minY;
+			drExtent.x2 = maxX;
+			drExtent.y2 = maxY;
+		}
+		else
+		{
+			// no vertices -> empty extent
+			drExtent.x1 = drExtent.y1 = drExtent.x2 = drExtent.y2 = 0;
+		}
 	}
 
 	return D3D_OK;

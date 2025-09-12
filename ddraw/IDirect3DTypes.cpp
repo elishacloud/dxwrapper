@@ -915,6 +915,9 @@ void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWO
 	DWORD SrcNumBlending = GetBlendCount(SrcPosFVF);
 	DWORD DestNumBlending = GetBlendCount(DestPosFVF);
 
+	// Zero dest memory
+	ZeroMemory(pDestVertex, GetVertexStride(DestFVF));
+
 	// Copy Position XYZ
 	if (SrcPosFVF && DestPosFVF)
 	{
@@ -975,6 +978,10 @@ void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWO
 		{
 			*(D3DCOLOR*)(pDestVertex + DestOffset) = *(D3DCOLOR*)(pSrcVertex + SrcOffset);
 			SrcOffset += sizeof(D3DCOLOR);
+		}
+		else
+		{
+			*(D3DCOLOR*)(pDestVertex + DestOffset) = 0xFFFFFFFF;	// Default to white
 		}
 		DestOffset += sizeof(D3DCOLOR);
 	}
