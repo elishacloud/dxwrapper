@@ -544,9 +544,18 @@ std::ostream& operator<<(std::ostream& os, const D3DEXECUTEDATA& data)
 
 std::ostream& operator<<(std::ostream& os, const D3DLIGHT& data)
 {
-	D3DLIGHT2 light = {};
-	reinterpret_cast<D3DLIGHT&>(light) = data;
-	return os << light;
+	return Logging::LogStruct(os)
+		<< data.dltType
+		<< data.dcvColor
+		<< data.dvPosition
+		<< data.dvDirection
+		<< data.dvRange
+		<< data.dvFalloff
+		<< data.dvAttenuation0
+		<< data.dvAttenuation1
+		<< data.dvAttenuation2
+		<< data.dvTheta
+		<< data.dvPhi;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DLIGHT2& data)

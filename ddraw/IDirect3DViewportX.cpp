@@ -566,15 +566,12 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 			{
 				D3DLIGHT2 Light2 = {};
 				Light2.dwSize = sizeof(D3DLIGHT2);
-				if (FAILED(lpDirect3DLight->GetLight((LPD3DLIGHT)&Light2)))
+				if (SUCCEEDED(lpDirect3DLight->GetLight((LPD3DLIGHT)&Light2)))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get light!");
-					return DDERR_GENERIC;
-				}
-				if (FAILED(entry->SetLight((m_IDirect3DLight*)lpDirect3DLight, (LPD3DLIGHT)&Light2)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not set light!");
-					return DDERR_GENERIC;
+					if (FAILED(entry->SetLight((m_IDirect3DLight*)lpDirect3DLight, (LPD3DLIGHT)&Light2)))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: could not set light!");
+					}
 				}
 			}
 		}
@@ -1029,13 +1026,12 @@ void m_IDirect3DViewportX::SetCurrentViewportActive(bool SetViewPortData, bool S
 				{
 					D3DLIGHT2 Light2 = {};
 					Light2.dwSize = sizeof(D3DLIGHT2);
-					if (FAILED(entry->GetLight((LPD3DLIGHT)&Light2)))
+					if (SUCCEEDED(entry->GetLight((LPD3DLIGHT)&Light2)))
 					{
-						LOG_LIMIT(100, __FUNCTION__ << " Warning: could not get light!");
-					}
-					if (FAILED(D3DDevice->SetLight((m_IDirect3DLight*)entry, (LPD3DLIGHT)&Light2)))
-					{
-						LOG_LIMIT(100, __FUNCTION__ << " Warning: could not set light!");
+						if (FAILED(D3DDevice->SetLight((m_IDirect3DLight*)entry, (LPD3DLIGHT)&Light2)))
+						{
+							LOG_LIMIT(100, __FUNCTION__ << " Warning: could not set light!");
+						}
 					}
 				}
 			}
