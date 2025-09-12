@@ -5825,9 +5825,8 @@ HRESULT m_IDirect3DDeviceX::SetD9Viewport(const D3DVIEWPORT9* lpViewport)
 		{
 			if (lpViewport->X + lpViewport->Width > Desc2.dwWidth || lpViewport->Y + lpViewport->Height > Desc2.dwHeight)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid viewport size: " << lpViewport->X << "x" << lpViewport->Y << " " <<
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: invalid viewport size: " << lpViewport->X << "x" << lpViewport->Y << " " <<
 					lpViewport->Width << "x" << lpViewport->Height << " " << Desc2.dwWidth << "x" << Desc2.dwHeight);
-				return DDERR_INVALIDPARAMS;
 			}
 		}
 	}
