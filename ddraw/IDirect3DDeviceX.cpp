@@ -5389,12 +5389,6 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD tria
 					PrimitiveType = D3DPT_TRIANGLESTRIP;
 				}
 			}
-			// The primative type doesn't mismatch past cull mode
-			else if ((TriFlags == LastCullMode && PrimitiveType == D3DPT_TRIANGLESTRIP) ||
-				(TriFlags != LastCullMode && PrimitiveType == D3DPT_TRIANGLEFAN))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: vertex cull mode mismatch detected!");
-			}
 
 			if (triangle[i].v3 < vertexIndexCount)
 			{
