@@ -650,6 +650,11 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: process vertices instruction size does not match!");
 				}
 
+				bool IsHVertexUsed = false;
+
+				BYTE* inputVerts = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwVertexOffset;
+				BYTE* outputVerts = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwHVertexOffset;
+
 				for (DWORD i = 0; i < instruction->wCount; i++)
 				{
 					DWORD Flags = processVertices[i].dwFlags;
@@ -660,23 +665,15 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						LOG_LIMIT(100, __FUNCTION__ << " Warning: ProcessVertices dwFlags=0, defaulting to COPY");
 					}
 
-					if (processVertices[i].wStart >= vertexCount || processVertices[i].wDest >= vertexCount || processVertices[i].wStart == processVertices[i].wDest)
+					if (processVertices[i].wStart >= vertexCount || processVertices[i].wDest >= vertexCount)
 					{
 						LOG_LIMIT(100, __FUNCTION__ << " Warning: index exceeds vertices count.  Skip processing!");
 						continue;
 					}
 					// Compute maximum safe count based on buffer size
-					DWORD Count = processVertices[i].dwCount;
-					if (processVertices[i].wStart < processVertices[i].wDest)
-					{
-						Count = min(Count, (DWORD)processVertices[i].wDest - processVertices[i].wStart);	// Src doesn't exceed Dest
-						Count = min(Count, vertexCount - processVertices[i].wDest);							// Dest doesn't exceed end of vertex list
-					}
-					else
-					{
-						Count = min(Count, (DWORD)processVertices[i].wStart - processVertices[i].wDest);	// Dest doesn't exceed Src
-						Count = min(Count, vertexCount - processVertices[i].wStart);						// Src doesn't exceed end of vertex list
-					}
+					DWORD maxSrc = vertexCount - processVertices[i].wStart;
+					DWORD maxDest = vertexCount - processVertices[i].wDest;
+					DWORD Count = min(processVertices[i].dwCount, min(maxSrc, maxDest));
 
 					// Check Count
 					if (Count == 0)
@@ -685,20 +682,29 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						continue;
 					}
 
-					D3DLVERTEX* srcVertices = reinterpret_cast<D3DLVERTEX*>(vertexBuffer) + processVertices[i].wStart;
-					D3DTLVERTEX* destVertices = reinterpret_cast<D3DTLVERTEX*>(vertexBuffer) + processVertices[i].wDest;
+					D3DLVERTEX* srcVertices = reinterpret_cast<D3DLVERTEX*>(inputVerts) + processVertices[i].wStart;
+					D3DTLVERTEX* destVertices = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
 
 					// Copy vertices only
 					if (Flags & D3DPROCESSVERTICES_COPY)
 					{
+						IsHVertexUsed = true;
 						for (UINT x = 0; x < Count; x++)
 						{
-							destVertices[x] = *(D3DTLVERTEX*)&srcVertices[x];
+							destVertices[x].sx = srcVertices[x].x;
+							destVertices[x].sy = srcVertices[x].y;
+							destVertices[x].sz = srcVertices[x].z;
+							destVertices[x].rhw = 1.0f;
+							destVertices[x].color = srcVertices[x].color;
+							destVertices[x].specular = srcVertices[x].specular;
+							destVertices[x].tu = srcVertices[x].tu;
+							destVertices[x].tv = srcVertices[x].tv;
 						}
 					}
 					// Apply transform & lighting
 					else if (Flags & (D3DPROCESSVERTICES_TRANSFORM | D3DPROCESSVERTICES_TRANSFORMLIGHT))
 					{
+						IsHVertexUsed = true;
 						bool IsLight = (Flags & D3DPROCESSVERTICES_TRANSFORMLIGHT) && !(Flags & D3DPROCESSVERTICES_NOCOLOR);
 						bool UpdateExtents = (Flags & D3DPROCESSVERTICES_UPDATEEXTENTS);
 						HRESULT hr = m_IDirect3DVertexBufferX::TransformVertexUP(this, srcVertices, destVertices, nullptr, Count, lpStatus->drExtent, IsLight, UpdateExtents);
@@ -714,6 +720,12 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 							}
 						}
 					}
+				}
+
+				// Update vertex buffer to use output
+				if (IsHVertexUsed)
+				{
+					vertexBuffer = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwHVertexOffset;
 				}
 
 				break;
