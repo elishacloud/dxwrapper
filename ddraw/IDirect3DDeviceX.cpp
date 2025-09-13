@@ -691,14 +691,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						IsHVertexUsed = true;
 						for (UINT x = 0; x < Count; x++)
 						{
-							destVertices[x].sx = srcVertices[x].x;
-							destVertices[x].sy = srcVertices[x].y;
-							destVertices[x].sz = srcVertices[x].z;
-							destVertices[x].rhw = 1.0f;
-							destVertices[x].color = srcVertices[x].color;
-							destVertices[x].specular = srcVertices[x].specular;
-							destVertices[x].tu = srcVertices[x].tu;
-							destVertices[x].tv = srcVertices[x].tv;
+							destVertices[x] = *(D3DTLVERTEX*)&srcVertices[x];
 						}
 					}
 					// Apply transform & lighting
