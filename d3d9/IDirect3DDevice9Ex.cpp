@@ -1629,15 +1629,25 @@ void m_IDirect3DDevice9Ex::ApplyPostPresentFixes()
 {
 	if (ShadowBackbuffer.Count())
 	{
-		ShadowBackbuffer.Rotate();
-
-		ComPtr<IDirect3DSurface9> pSurface;
-		if (SUCCEEDED(ProxyInterface->GetRenderTarget(0, pSurface.GetAddressOf())))
+		if (SHARED.BackBufferCount == 1)
 		{
-			if (pSurface.Get() == ShadowBackbuffer.GetCurrentFrontBuffer()->GetProxyInterface() ||
-				std::find(BackBufferList.begin(), BackBufferList.end(), pSurface.Get()) != BackBufferList.end())
+			if (FAILED(ProxyInterface->StretchRect(ShadowBackbuffer.GetCurrentBackBuffer(), nullptr, ShadowBackbuffer.GetCurrentFrontBuffer(), nullptr, D3DTEXF_NONE)))
 			{
-				ProxyInterface->SetRenderTarget(0, ShadowBackbuffer.GetCurrentBackBuffer()->GetProxyInterface());
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: Failed to copy shadow backbuffer into shadow front buffer!");
+			}
+		}
+		else
+		{
+			ShadowBackbuffer.Rotate();
+
+			ComPtr<IDirect3DSurface9> pSurface;
+			if (SUCCEEDED(ProxyInterface->GetRenderTarget(0, pSurface.GetAddressOf())))
+			{
+				if (pSurface.Get() == ShadowBackbuffer.GetCurrentFrontBuffer()->GetProxyInterface() ||
+					std::find(BackBufferList.begin(), BackBufferList.end(), pSurface.Get()) != BackBufferList.end())
+				{
+					ProxyInterface->SetRenderTarget(0, ShadowBackbuffer.GetCurrentBackBuffer()->GetProxyInterface());
+				}
 			}
 		}
 	}

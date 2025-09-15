@@ -787,6 +787,9 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
 	}
 
+	// Get Backbuffer count before setting FlipEx (must be at least 1)
+	DeviceDetails.BackBufferCount = max(1, pPresentationParameters->BackBufferCount);
+
 	// Check for D3D9Ex FlipEx presentation mode
 	if (IsEx && Config.FlipEx)
 	{
@@ -811,9 +814,6 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: FlipEx presentation mode is only supported with windowed mode!");
 		}
 	}
-
-	// Backbuffer (must be at least 1)
-	DeviceDetails.BackBufferCount = max(1, pPresentationParameters->BackBufferCount);
 
 	// Store last window data
 	LONG LastBufferWidth = DeviceDetails.BufferWidth;

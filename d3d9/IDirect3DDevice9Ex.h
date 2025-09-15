@@ -125,7 +125,7 @@ private:
 	HRESULT CallBeginScene();
 	HRESULT CallEndScene();
 
-	inline bool RequirePresentHandling() const { return ((Config.WindowModeGammaShader && (ShadowBackbuffer.Count() || SHARED.IsGammaSet)) || Config.ShowFPSCounter); }
+	inline bool RequirePresentHandling() const { return ((Config.WindowModeGammaShader && SHARED.IsGammaSet) || Config.ShowFPSCounter || ShadowBackbuffer.Count()); }
 
 	// Limit frame rate
 	void LimitFrameRate() const;
