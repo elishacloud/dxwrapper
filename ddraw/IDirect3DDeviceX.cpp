@@ -661,8 +661,8 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 					if ((Flags & (D3DPROCESSVERTICES_COPY | D3DPROCESSVERTICES_TRANSFORM | D3DPROCESSVERTICES_TRANSFORMLIGHT)) == 0)
 					{
-						Flags |= D3DPROCESSVERTICES_COPY;
-						LOG_LIMIT(100, __FUNCTION__ << " Warning: ProcessVertices dwFlags=0, defaulting to COPY");
+						Flags |= D3DPROCESSVERTICES_TRANSFORM;
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: ProcessVertices dwFlags=0, defaulting to TRANSFORM");
 					}
 
 					if (processVertices[i].wStart >= vertexCount || processVertices[i].wDest >= vertexCount)
