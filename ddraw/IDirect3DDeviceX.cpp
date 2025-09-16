@@ -454,6 +454,20 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				break;
 			}
+			case D3DOP_SPAN:
+				// Spans a list of points with the same y value. For more information, see the D3DSPAN structure.
+			{
+				D3DSPAN* span = reinterpret_cast<D3DSPAN*>(opstruct);
+
+				if (instruction->bSize != sizeof(D3DSPAN))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: span instruction size does not match!");
+				}
+
+				DrawExecuteSpan(span, instruction->wCount, vertexCount, vertexBuffer, VertexTypeDesc);
+
+				break;
+			}
 			case D3DOP_LINE:
 				// Sends a line to the renderer. Operand data is described by the D3DLINE structure.
 			{
@@ -719,27 +733,6 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 				if (IsHVertexUsed)
 				{
 					vertexBuffer = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwHVertexOffset;
-				}
-
-				break;
-			}
-			case D3DOP_SPAN:
-				// Spans a list of points with the same y value. For more information, see the D3DSPAN structure.
-			{
-				D3DSPAN* span = reinterpret_cast<D3DSPAN*>(opstruct);
-
-				if (instruction->bSize != sizeof(D3DSPAN))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: span instruction size does not match!");
-				}
-
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: span instruction is not implemented!");
-
-				// ToDo: implement span opcode
-
-				for (DWORD i = 0; i < instruction->wCount; i++)
-				{
-					UNREFERENCED_PARAMETER(span);
 				}
 
 				break;
@@ -5297,6 +5290,37 @@ HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD pointCount, D
 	return D3D_OK;
 }
 
+HRESULT m_IDirect3DDeviceX::DrawExecuteSpan(D3DSPAN* span, WORD spanCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
+{
+	// Define vertices and setup vector
+	std::vector<BYTE, aligned_allocator<BYTE, 4>> vertices;
+	vertices.resize(sizeof(D3DTLVERTEX) * vertexIndexCount);
+	BYTE* verticesData = vertices.data();
+	DWORD verticesCount = 0;
+
+	// Add vertices to vector
+	for (DWORD i = 0; i < spanCount; i++)
+	{
+		if ((DWORD)span[i].wFirst < vertexIndexCount)
+		{
+			DWORD count = min(span[i].wCount, vertexIndexCount - span[i].wFirst);
+
+			for (DWORD x = 0; x < count; x++)
+			{
+				CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, span[i].wFirst + x, VertexTypeDesc);
+			}
+		}
+	}
+
+	if (verticesCount)
+	{
+		// Pass the vertex data to the rendering pipeline
+		DrawPrimitive(D3DPT_LINESTRIP, VertexTypeDesc, vertices.data(), verticesCount, 0, 1);
+	}
+
+	return D3D_OK;
+}
+
 HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
 {
 	// Define vertices and setup vector
@@ -5305,6 +5329,7 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD
 	BYTE* verticesData = vertices.data();
 	DWORD verticesCount = 0;
 
+	// Add vertices to vector
 	for (DWORD i = 0; i < lineCount; i++)
 	{
 		if (line[i].v1 < vertexIndexCount && line[i].v2 < vertexIndexCount)
