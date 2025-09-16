@@ -1631,7 +1631,7 @@ void m_IDirect3DDevice9Ex::ApplyPostPresentFixes()
 	{
 		if (SHARED.BackBufferCount == 1)
 		{
-			if (FAILED(ProxyInterface->StretchRect(ShadowBackbuffer.GetCurrentBackBuffer(), nullptr, ShadowBackbuffer.GetCurrentFrontBuffer(), nullptr, D3DTEXF_NONE)))
+			if (FAILED(ProxyInterface->StretchRect(ShadowBackbuffer.GetCurrentBackBuffer()->GetProxyInterface(), nullptr, ShadowBackbuffer.GetCurrentFrontBuffer()->GetProxyInterface(), nullptr, D3DTEXF_NONE)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: Failed to copy shadow backbuffer into shadow front buffer!");
 			}
