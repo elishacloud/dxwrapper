@@ -124,6 +124,7 @@
 	visit(Num2DBuffers) \
 	visit(Num3DBuffers) \
 	visit(OverrideRefreshRate) \
+	visit(OverrideStencilFormat) \
 	visit(PrimaryBufferBits) \
 	visit(PrimaryBufferChannels) \
 	visit(PrimaryBufferSamples) \
@@ -262,6 +263,7 @@ struct CONFIG
 	DWORD DdrawOverrideWidth = 0;				// Force Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawOverrideHeight = 0;				// Force Direct3d9 to use this height when using Dd7to9
 	DWORD OverrideRefreshRate = 0;				// Force Direct3d9 to use this refresh rate, only works in exclusive fullscreen mode
+	DWORD OverrideStencilFormat = 0;			// Force Direct3d9 to use this AutoStencilFormat
 	DWORD DdrawOverrideStencilFormat = 0;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
 	DWORD DdrawFlipFillColor = 0;				// Color used to fill the primary surface before flipping
 	bool DdrawForceMipMapAutoGen = false;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9

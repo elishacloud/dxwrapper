@@ -478,6 +478,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateCubeTexture(THIS_ UINT EdgeLength, UINT Leve
 		}
 	}
 
+	// Override stencil format
+	if (Config.OverrideStencilFormat && Usage == D3DUSAGE_DEPTHSTENCIL)
+	{
+		Format = (D3DFORMAT)Config.OverrideStencilFormat;
+	}
+
 	HRESULT hr = ProxyInterface->CreateCubeTexture(EdgeLength, Levels, Usage, Format, Pool, ppCubeTexture, pSharedHandle);
 
 	if (SUCCEEDED(hr))
@@ -502,6 +508,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 	if (Config.D3d9to9Ex && ProxyInterfaceEx)
 	{
 		return CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, 0);
+	}
+
+	// Override stencil format
+	if (Config.OverrideStencilFormat)
+	{
+		Format = (D3DFORMAT)Config.OverrideStencilFormat;
+		LOG_LIMIT(100, __FUNCTION__ << " Setting Stencil format: " << Format);
 	}
 
 	HRESULT hr = D3DERR_INVALIDCALL;
@@ -620,6 +633,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 			Pool = D3DPOOL_DEFAULT;
 			Usage |= D3DUSAGE_DYNAMIC;
 		}
+	}
+
+	// Override stencil format
+	if (Config.OverrideStencilFormat && Usage == D3DUSAGE_DEPTHSTENCIL)
+	{
+		Format = (D3DFORMAT)Config.OverrideStencilFormat;
 	}
 
 	HRESULT hr = ProxyInterface->CreateTexture(Width, Height, Levels, Usage, Format, Pool, ppTexture, pSharedHandle);
@@ -3283,6 +3302,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 		}
 	}
 
+	// Override stencil format
+	if (Config.OverrideStencilFormat && Usage == D3DUSAGE_DEPTHSTENCIL)
+	{
+		Format = (D3DFORMAT)Config.OverrideStencilFormat;
+	}
+
 	HRESULT hr = ProxyInterfaceEx->CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, Usage);
 
 	if (SUCCEEDED(hr))
@@ -3308,6 +3333,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 	if (!ppSurface)
 	{
 		return D3DERR_INVALIDCALL;
+	}
+
+	// Override stencil format
+	if (Config.OverrideStencilFormat)
+	{
+		Format = (D3DFORMAT)Config.OverrideStencilFormat;
+		LOG_LIMIT(100, __FUNCTION__ << " Setting Stencil format: " << Format);
 	}
 
 	HRESULT hr = D3DERR_INVALIDCALL;

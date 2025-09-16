@@ -815,6 +815,13 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 		}
 	}
 
+	// Override stencil format
+	if (Config.OverrideStencilFormat && pPresentationParameters->EnableAutoDepthStencil)
+	{
+		pPresentationParameters->AutoDepthStencilFormat = (D3DFORMAT)Config.OverrideStencilFormat;
+		LOG_LIMIT(100, __FUNCTION__ << " Setting Stencil format: " << pPresentationParameters->AutoDepthStencilFormat);
+	}
+
 	// Store last window data
 	LONG LastBufferWidth = DeviceDetails.BufferWidth;
 	LONG LastBufferHeight = DeviceDetails.BufferHeight;
