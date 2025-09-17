@@ -2442,8 +2442,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 
 		LASTLOCK& LastLock = LockedLevel[MipMapLevel];
 
-		std::lock_guard<std::recursive_mutex> guard(LastLock.LockMutex);
-
 		// Check for already locked state
 		if (!lpDestRect && !LastLock.LockRectList.empty())
 		{
@@ -3070,8 +3068,6 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 		}
 
 		LASTLOCK& LastLock = LockedLevel[MipMapLevel];
-
-		std::lock_guard<std::recursive_mutex> guard(LastLock.LockMutex);
 
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
