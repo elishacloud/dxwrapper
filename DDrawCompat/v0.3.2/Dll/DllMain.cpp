@@ -126,8 +126,8 @@ namespace
 	bool isOtherDDrawWrapperLoaded()
 	{
 		const auto currentDllPath(Compat32::getModulePath(Dll::g_currentModule));
-		const auto ddrawDllPath(Compat32::replaceFilename(currentDllPath, "ddraw.dll"));
-		const auto dciman32DllPath(Compat32::replaceFilename(currentDllPath, "dciman32.dll"));
+		const auto ddrawDllPath(Compat32::replaceFilename(currentDllPath, L"ddraw.dll"));
+		const auto dciman32DllPath(Compat32::replaceFilename(currentDllPath, L"dciman32.dll"));
 
 		return (!Compat32::isEqual(currentDllPath, ddrawDllPath) && GetModuleHandleW(ddrawDllPath.c_str())) ||
 			(!Compat32::isEqual(currentDllPath, dciman32DllPath) && GetModuleHandleW(dciman32DllPath.c_str()));
@@ -211,7 +211,7 @@ void Compat32::InstallDd7to9Hooks(HMODULE hModule)
 		auto systemPath(Compat32::getSystemPath());
 		Dll::g_origDDrawModule = LoadLibraryA("d3d9.dll");	// Just use d3d9 for this
 		auto currentDllPath(Compat32::getModulePath(hModule));
-		Dll::g_localDDModule = LoadLibraryW((currentDllPath.parent_path() / "ddraw.dll").c_str());
+		Dll::g_localDDModule = LoadLibraryW(std::wstring(getParentPath(currentDllPath) + L"\\ddraw.dll").c_str());
 		if (!Dll::g_localDDModule)
 		{
 			Dll::g_localDDModule = LoadLibraryA("ddraw.dll");
@@ -266,7 +266,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		//Compat32::Log::initLogging(processPath);
 		//********** End Edit ***************
 
-		Compat32::Log() << "Process path: " << processPath.u8string();
+		Compat32::Log() << "Process path: " << processPath.c_str();
 		//********** Begin Edit *************
 		//printEnvironmentVariable("__COMPAT_LAYER");
 		//********** End Edit ***************
@@ -276,19 +276,19 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		//********** End Edit ***************
 
 		auto systemPath(Compat32::getSystemPath());
-		if (Compat32::isEqual(currentDllPath.parent_path(), systemPath))
+		if (Compat32::isEqual(getParentPath(currentDllPath), systemPath))
 		{
 			Compat32::Log() << "DDrawCompat cannot be installed in the Windows system directory";
 			return FALSE;
 		}
 
-		Dll::g_origDDrawModule = LoadLibraryW((systemPath / "ddraw.dll").c_str());
+		Dll::g_origDDrawModule = LoadLibraryW(std::wstring(systemPath + L"\\ddraw.dll").c_str());
 		if (!Dll::g_origDDrawModule)
 		{
-			Compat32::Log() << "ERROR: Failed to load system ddraw.dll from " << systemPath.u8string();
+			Compat32::Log() << "ERROR: Failed to load system ddraw.dll from " << systemPath.c_str();
 			return FALSE;
 		}
-		Dll::g_localDDModule = LoadLibraryW((currentDllPath.parent_path() / "ddraw.dll").c_str());
+		Dll::g_localDDModule = LoadLibraryW(std::wstring(getParentPath(currentDllPath) + L"\\ddraw.dll").c_str());
 		if (!Dll::g_localDDModule)
 		{
 			Dll::g_localDDModule = Dll::g_origDDrawModule;
@@ -302,7 +302,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 		VISIT_ALL_DDRAW_PROCS(LOAD_WRAPPED_PROC);
 		//********** End Edit ***************
 
-		Dll::g_origDciman32Module = LoadLibraryW((systemPath / "dciman32.dll").c_str());
+		Dll::g_origDciman32Module = LoadLibraryW(std::wstring(systemPath + L"\\dciman32.dll").c_str());
 		if (Dll::g_origDciman32Module)
 		{
 			origModule = Dll::g_origDciman32Module;
