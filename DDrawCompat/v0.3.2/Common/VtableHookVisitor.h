@@ -69,7 +69,7 @@ public:
 private:
 	static std::string getVtableTypeName()
 	{
-		std::string name = typeid(Vtable).name();
+		std::string name = GetTypeName<Vtable>();
 		if (0 == name.find("struct "))
 		{
 			name = name.substr(name.find(" ") + 1);

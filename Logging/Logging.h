@@ -9,6 +9,12 @@ namespace Logging
 	void InitLog();
 }
 
+template <typename T>
+inline std::string GetTypeName() { return "Unknown"; }
+
+template <>
+inline std::string GetTypeName<DWORD>() { return "DWORD"; }
+
 #if(WINVER < 0x0602)
 typedef struct tagTOUCH_HIT_TESTING_INPUT
 {
