@@ -34,22 +34,20 @@ namespace Utils
 	NtQueryInformationThreadFunc g_ntQueryInformationThread = nullptr;
 	NtSetInformationThreadFunc g_ntSetInformationThread = nullptr;
 
-#if (_WIN32_WINNT < 0x0502)
-	typedef struct _CLIENT_ID {
+	typedef struct _CLIENT_ID7 {
 		HANDLE UniqueProcess;
 		HANDLE UniqueThread;
-	} CLIENT_ID;
+	} CLIENT_ID7;
 
-	typedef LONG KPRIORITY;
-#endif
+	typedef LONG KPRIORITY7;
 
 	struct THREAD_BASIC_INFORMATION {
 		NTSTATUS ExitStatus;
 		PVOID TebBaseAddress;
-		CLIENT_ID ClientId;
+		CLIENT_ID7 ClientId;
 		KAFFINITY AffinityMask;
-		KPRIORITY Priority;
-		KPRIORITY BasePriority;
+		KPRIORITY7 Priority;
+		KPRIORITY7 BasePriority;
 	};
 
 	struct SuspiciousThread {

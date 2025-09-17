@@ -22,7 +22,7 @@
 #include <iomanip>
 #include <intrin.h>
 #include <tlhelp32.h>
-#include <atlbase.h>
+#include <shlwapi.h>
 #include <comdef.h>
 #include <comutil.h>
 #include <Wbemidl.h>
