@@ -9,6 +9,17 @@ namespace Logging
 	void InitLog();
 }
 
+#if(WINVER < 0x0602)
+typedef struct tagTOUCH_HIT_TESTING_INPUT
+{
+    UINT32 pointerId;
+    POINT point;
+    RECT boundingBox;
+    RECT nonOccludedBoundingBox;
+    UINT32 orientation;
+} TOUCH_HIT_TESTING_INPUT, * PTOUCH_HIT_TESTING_INPUT;
+#endif
+
 #pragma warning (disable: 26812)
 typedef enum _DDFOURCC {} DDFOURCC;
 typedef enum _DDERR {} DDERR;

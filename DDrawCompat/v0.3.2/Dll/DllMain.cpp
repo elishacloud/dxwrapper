@@ -39,6 +39,8 @@
 #include <DDrawCompat/v0.3.2/Win32/WaitFunctions.h>
 //********** Begin Edit *************
 #define DllMain Compat32::DllMain_DDrawCompat
+
+typedef HRESULT(WINAPI* SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS value);
 //********** End Edit ***************
 
 HRESULT WINAPI SetAppCompatData(DWORD, DWORD);
@@ -148,7 +150,7 @@ namespace
 		HMODULE shcore = LoadLibrary("shcore");
 		if (shcore)
 		{
-			auto setProcessDpiAwareness = reinterpret_cast<decltype(&SetProcessDpiAwareness)>(
+			auto setProcessDpiAwareness = reinterpret_cast<SetProcessDpiAwarenessProc>(
 				Compat32::getProcAddress(shcore, "SetProcessDpiAwareness"));
 			if (setProcessDpiAwareness && SUCCEEDED(setProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE)))
 			{
