@@ -2,6 +2,30 @@
 
 #pragma once
 
+/*
+===== HLSL Source =====
+sampler2D inputTexture : register(s0);
+sampler1D gammaRampTexture : register(s1);
+
+float4 main(float2 texCoord : TEXCOORD0) : COLOR0 {
+    float4 color = tex2D(inputTexture, texCoord);
+
+    // Apply per-channel gamma correction using the ramp texture
+    color.r = tex1D(gammaRampTexture, color.r).r;
+    color.g = tex1D(gammaRampTexture, color.g).g;
+    color.b = tex1D(gammaRampTexture, color.b).b;
+
+    return color;
+}
+
+technique GammaCorrection {
+    pass P0 {
+        PixelShader = compile ps_2_0 main();
+    }
+}
+=======================
+*/
+
 const unsigned char GammaPixelShaderSrc[] = {
 0x0, 0x2, 0xff, 0xff, 0xfe, 0xff, 0x31, 0x0, 0x43, 0x54, 0x41, 0x42, 0x1c, 0x0, 0x0, 0x0, 
 0x8f, 0x0, 0x0, 0x0, 0x0, 0x2, 0xff, 0xff, 0x2, 0x0, 0x0, 0x0, 0x1c, 0x0, 0x0, 0x0, 

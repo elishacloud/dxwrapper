@@ -28,6 +28,9 @@
 #include "Utils\Utils.h"
 #include "External\Hooking\Hook.h"
 
+constexpr char hlsl_start[] = "===== HLSL Source =====";
+constexpr char hlsl_end[] = "=======================";
+
 HINSTANCE hModule_dll = nullptr;
 
 CONFIG Config;
@@ -35,7 +38,7 @@ CONFIG Config;
 bool Wrapper::ValidProcAddress(FARPROC) { return false; }
 
 // Function to compile HLSL file
-bool CompileShader(const wchar_t* hlslFile, LPD3DXBUFFER* compiledShader, LPCSTR pFunctionName, LPCSTR pProfile)
+static bool CompileShader(const wchar_t* hlslFile, LPD3DXBUFFER* compiledShader, LPCSTR pFunctionName, LPCSTR pProfile)
 {
     LPD3DXBUFFER errorMessages = nullptr;
     HRESULT hr = D3DXCompileShaderFromFileW(hlslFile, nullptr, nullptr, pFunctionName, pProfile, 0, compiledShader, &errorMessages, nullptr);
@@ -54,14 +57,14 @@ bool CompileShader(const wchar_t* hlslFile, LPD3DXBUFFER* compiledShader, LPCSTR
 }
 
 // Function to check if a file exists
-bool FileExists(const std::string& filePath)
+static bool FileExists(const std::string& filePath)
 {
     struct stat buffer;
     return (stat(filePath.c_str(), &buffer) == 0);
 }
 
 // Function to read the contents of a file
-std::string ReadFile(const std::string& filePath)
+static std::string ReadFile(const std::string& filePath)
 {
     std::ifstream file(filePath);
     if (!file)
@@ -75,12 +78,20 @@ std::string ReadFile(const std::string& filePath)
 }
 
 // Function to generate the header content
-std::string GenerateHeaderContent(const char* byteArrayName, LPD3DXBUFFER compiledShader)
+static std::string GenerateHeaderContent(const char* byteArrayName, LPD3DXBUFFER compiledShader, const std::string& hlslSource)
 {
     std::stringstream headerContent;
     headerContent << "// Automatically generated header file\n\n";
     headerContent << "#pragma once\n\n";
 
+    // Embed the HLSL source as a comment
+    headerContent << "/*\n";
+    headerContent << hlsl_start << "\n";
+    headerContent << hlslSource << "\n";
+    headerContent << hlsl_end << "\n";
+    headerContent << "*/\n\n";
+
+    // Add shader bytecode
     headerContent << "const unsigned char " << byteArrayName << "[] = {\n";
     const unsigned char* bytes = static_cast<const unsigned char*>(compiledShader->GetBufferPointer());
     const size_t byteCount = compiledShader->GetBufferSize();
@@ -99,14 +110,17 @@ std::string GenerateHeaderContent(const char* byteArrayName, LPD3DXBUFFER compil
 }
 
 // Function to generate header file with shader byte array
-bool GenerateHeaderFile(const char* hlslFileName, LPD3DXBUFFER compiledShader, const char* byteArrayName)
+static bool GenerateHeaderFile(const char* hlslFileName, LPD3DXBUFFER compiledShader, const char* byteArrayName)
 {
     // Compute output header file path based on HLSL file name
     std::string hlslFilePath(hlslFileName);
     std::string headerFilePath = hlslFilePath.substr(0, hlslFilePath.find_last_of('.')) + ".h";
 
-    // Generate new header content
-    std::string newHeaderContent = GenerateHeaderContent(byteArrayName, compiledShader);
+    // Read current HLSL source
+    std::string hlslSource = ReadFile(hlslFilePath);
+
+    // Generate new header content (with HLSL embedded)
+    std::string newHeaderContent = GenerateHeaderContent(byteArrayName, compiledShader, hlslSource);
 
     // Check if the file already exists
     if (FileExists(headerFilePath))
@@ -135,13 +149,31 @@ bool GenerateHeaderFile(const char* hlslFileName, LPD3DXBUFFER compiledShader, c
     return true;
 }
 
+// Function to extract embedded HLSL source from header
+static std::string ExtractEmbeddedHlsl(const std::string& headerContent)
+{
+    size_t start = headerContent.find(hlsl_start);
+    size_t end = headerContent.find(hlsl_end, start);
+
+    if (start != std::string::npos && end != std::string::npos)
+    {
+        // Skip the marker lines themselves
+        size_t srcStart = headerContent.find('\n', start);
+        if (srcStart != std::string::npos && srcStart < end)
+        {
+            return headerContent.substr(srcStart + 1, end - srcStart - 2);
+        }
+    }
+    return "";
+}
+
 // Main function
 int main(int argc, char* argv[])
 {
     if (argc != 5)
     {
         std::cerr << "Usage: " << argv[0] << " <HLSL file path> <entry point> <shader model> <Byte array variable name>" << std::endl;
-        return 0;   // Just ignore failure for now
+        return 1;
     }
 
     const char* hlslFileName = argv[1];
@@ -152,19 +184,35 @@ int main(int argc, char* argv[])
     std::wstring wHlslFileName;
     wHlslFileName.assign(hlslFileName, hlslFileName + strlen(hlslFileName));
 
+    std::string hlslSource = ReadFile(hlslFileName);
+    std::string headerFilePath = std::string(hlslFileName).substr(0, std::string(hlslFileName).find_last_of('.')) + ".h";
+
+    // If header exists, check embedded HLSL against current source
+    if (FileExists(headerFilePath))
+    {
+        std::string existingHeader = ReadFile(headerFilePath);
+        std::string oldHlslSource = ExtractEmbeddedHlsl(existingHeader);
+
+        if (!oldHlslSource.empty() && oldHlslSource == hlslSource)
+        {
+            std::cout << "HLSL source unchanged. Skipping recompilation." << std::endl;
+            return 0;  // Exit early, no need to compile or update header
+        }
+    }
+
     LPD3DXBUFFER compiledShader = nullptr;
 
     if (!CompileShader(wHlslFileName.c_str(), &compiledShader, entryPoint, shaderModel))
     {
         std::cout << "Failed to compile shader." << std::endl;
-        return 0;   // Just ignore failure for now
+        return 1;
     }
 
     if (!GenerateHeaderFile(hlslFileName, compiledShader, byteArrayName))
     {
         compiledShader->Release();
         std::cout << "Failed to create header." << std::endl;
-        return 0;   // Just ignore failure for now
+        return 1;
     }
 
     compiledShader->Release();
