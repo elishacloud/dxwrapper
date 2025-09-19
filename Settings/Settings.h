@@ -141,6 +141,7 @@
 	visit(ShowFPSCounter) \
 	visit(SingleProcAffinity) \
 	visit(StoppedDriverWorkaround) \
+	visit(UseShadowBackbuffer) \
 	visit(WaitForProcess) \
 	visit(WaitForWindowChanges) \
 	visit(WindowSleepTime) \
@@ -318,10 +319,11 @@ struct CONFIG
 	bool ResetScreenRes = false;				// Reset the screen resolution on close
 	DWORD LimitStateBlocks = 0;					// Reuses state block interfaces to prevent memory leaks
 	bool SendAltEnter = false;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen, requires FullScreen
+	bool UseShadowBackbuffer = false;			// Enables shadow backbuffer for d3d8to and Direct3D9 games
 	bool WaitForProcess = false;				// Waits for process to end before continuing, requires FullScreen
 	bool WaitForWindowChanges = false;			// Waits for window handle to stabilize before setting fullsreen, requires FullScreen
 	bool WindowModeBorder = false;				// Enables the window border when EnableWindowMode is set, requires EnableWindowMode
-	DWORD WindowModeGammaShader = 0;			// Use shader for gamma when in window mode
+	DWORD WindowModeGammaShader = 0;			// Use shader for gamma: 1 = when in window mode; 2 = for both window and exclusive fullscreen mode
 	bool SetInitialWindowPosition = false;		// Enable Initial window position
 	DWORD InitialWindowPositionLeft;			// Initial left window position for application
 	DWORD InitialWindowPositionTop;				// Initial top window position for application

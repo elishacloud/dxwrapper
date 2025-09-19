@@ -1290,7 +1290,7 @@ void m_IDirect3DDevice9Ex::GetGammaRamp(THIS_ UINT iSwapChain, D3DGAMMARAMP* pRa
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (pRamp && Config.WindowModeGammaShader)
+	if (pRamp && (Config.WindowModeGammaShader == 2 || (Config.WindowModeGammaShader && Config.EnableWindowMode)))
 	{
 		if (iSwapChain)
 		{
@@ -1309,7 +1309,7 @@ void m_IDirect3DDevice9Ex::SetGammaRamp(THIS_ UINT iSwapChain, DWORD Flags, CONS
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (pRamp && Config.WindowModeGammaShader)
+	if (pRamp && (Config.WindowModeGammaShader == 2 || (Config.WindowModeGammaShader && Config.EnableWindowMode)))
 	{
 		if (iSwapChain)
 		{
@@ -3418,7 +3418,7 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 
 	ShadowBackbuffer.ReleaseAll();
 
-	if (!SHARED.IsDirectDrawDevice && (Config.WindowModeGammaShader || Config.ShowFPSCounter))
+	if (!SHARED.IsDirectDrawDevice && Config.UseShadowBackbuffer)
 	{
 		CreateShadowBackbuffer();
 	}
