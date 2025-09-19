@@ -2,10 +2,13 @@
 #define CINTERFACE
 
 #include <array>
-#include <type_traits>
 #include <vector>
 
+#include <sdkddkver.h>   // defines NTDDI_WIN10
+
+#ifndef NTDDI_WIN10
 #include <intrin.h>
+#endif
 
 #include <DDrawCompat/v0.3.2/Common/ScopedCriticalSection.h>
 #include <DDrawCompat/v0.3.2/DDraw/Blitter.h>

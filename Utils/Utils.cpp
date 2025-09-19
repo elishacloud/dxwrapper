@@ -20,7 +20,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <iomanip>
-#include <intrin.h>
 #include <tlhelp32.h>
 #include <shlwapi.h>
 #include <comdef.h>

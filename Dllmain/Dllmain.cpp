@@ -39,7 +39,7 @@
 #include "dsound\dsoundExternal.h"
 #include "dxwrapper.h"
 
-#include <excpt.h>
+#include <sstream>
 
 typedef PVOID(WINAPI* AddHandlerFunc)(ULONG, PVECTORED_EXCEPTION_HANDLER);
 typedef ULONG(WINAPI* RemoveHandlerFunc)(PVOID);

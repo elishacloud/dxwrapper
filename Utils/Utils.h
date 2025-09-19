@@ -2,7 +2,6 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <intrin.h>
 #include "Wrappers\wrapper.h"
 #include "External\MemoryModule\MemoryModule.h"
 #include "Logging\Logging.h"
@@ -115,11 +114,24 @@ namespace Utils
 	void StartPriorityMonitor();
 	void StopPriorityMonitor();
 
+	static inline void my_cpuid(int cpuInfo[4], int function_id)
+	{
+		__asm {
+			mov eax, function_id
+			cpuid
+			mov edi, cpuInfo
+			mov[edi], eax
+			mov[edi + 4], ebx
+			mov[edi + 8], ecx
+			mov[edi + 12], edx
+		}
+	}
+
 	inline void BusyWaitYield(DWORD RemainingMS)
 	{
 		static bool supports_pause = []() {
 			int cpu_info[4] = { 0 };
-			__cpuid(cpu_info, 1); // Query CPU features
+			my_cpuid(cpu_info, 1); // Query CPU features
 			bool SSE2 = (cpu_info[3] & (1 << 26)) != 0; // Check for SSE2 support
 			LOG_ONCE(__FUNCTION__ << " SSE2 CPU support: " << SSE2);
 			return SSE2;

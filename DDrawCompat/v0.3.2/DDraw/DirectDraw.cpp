@@ -1,8 +1,6 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <type_traits>
-
 #include <DDrawCompat/v0.3.2/Common/CompatPtr.h>
 #include <DDrawCompat/v0.3.2/Common/CompatVtable.h>
 #include <DDrawCompat/v0.3.2/D3dDdi/KernelModeThunks.h>

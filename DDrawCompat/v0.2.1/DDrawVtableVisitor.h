@@ -3,7 +3,6 @@
 #define CINTERFACE
 
 #include <ddraw.h>
-#include <typeinfo>
 
 namespace Compat21
 {

@@ -2,7 +2,6 @@
 #define CINTERFACE
 
 #include <set>
-#include <type_traits>
 
 #include <DDrawCompat/v0.3.2/Common/CompatPtr.h>
 #include <DDrawCompat/v0.3.2/Common/CompatVtable.h>

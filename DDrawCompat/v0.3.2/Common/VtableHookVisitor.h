@@ -1,8 +1,6 @@
 #pragma once
 
 #include <string>
-#include <typeinfo>
-#include <type_traits>
 
 #include <DDrawCompat/v0.3.2/Common/Hook.h>
 #include <DDrawCompat/DDrawLog.h>

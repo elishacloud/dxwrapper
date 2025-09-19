@@ -18,7 +18,11 @@
 #include "ddraw\Shaders\GammaPixelShader.h"
 #include "GDI\WndProc.h"
 #include "Utils\Utils.h"
-#include <intrin.h>
+
+static inline void my_nop(void)
+{
+	__asm { nop }
+}
 
 #ifdef ENABLE_DEBUGOVERLAY
 DebugOverlay DOverlay;
@@ -3002,22 +3006,22 @@ HRESULT m_IDirect3DDevice9Ex::SetDialogBoxMode(THIS_ BOOL bEnableDialogs)
 HRESULT m_IDirect3DDevice9Ex::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapChain9** ppSwapChain)
 {
 	// Add 16 bytes for Steam Overlay Fix
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
 
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 

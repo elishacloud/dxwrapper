@@ -16,7 +16,7 @@
 
 #include "winmm.h"
 #include "ddraw.h"
-#include <sstream>
+#include <fstream>
 #include "Utils\Utils.h"
 
 namespace {

@@ -1,8 +1,6 @@
 #define WIN32_LEAN_AND_MEAN
 #define CINTERFACE
 
-#include <type_traits>
-
 #include <DDrawCompat/v0.3.2/Common/HResultException.h>
 #include <DDrawCompat/DDrawLog.h>
 #include <DDrawCompat/v0.3.2/Common/Time.h>
