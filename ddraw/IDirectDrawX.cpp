@@ -21,10 +21,10 @@
 #include "Dllmain\DllMain.h"
 #include "d3d9\d3d9External.h"
 #include "d3dddi\d3dddiExternal.h"
-#include "Shaders\PaletteShader.h"
-#include "Shaders\ColorKeyShader.h"
+#include "Shaders\PalettePixelShader.h"
+#include "Shaders\ColorKeyPixelShader.h"
 #include "Shaders\GammaPixelShader.h"
-#include "Shaders\VertexFixUpShader.h"
+#include "Shaders\FixUpVertexShader.h"
 
 namespace {
 	// Store a list of ddraw devices
@@ -3028,7 +3028,7 @@ LPDIRECT3DDEVICE9* m_IDirectDrawX::GetDirectD9Device()
 	return &d3d9Device;
 }
 
-bool m_IDirectDrawX::CreatePaletteShader()
+bool m_IDirectDrawX::CreatePalettePixelShader()
 {
 	// Create pixel shaders
 	if (d3d9Device && !palettePixelShader)
@@ -3038,7 +3038,7 @@ bool m_IDirectDrawX::CreatePaletteShader()
 	return (palettePixelShader != nullptr);
 }
 
-LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetColorKeyShader()
+LPDIRECT3DPIXELSHADER9* m_IDirectDrawX::GetColorKeyPixelShader()
 {
 	// Create pixel shader
 	if (d3d9Device && !colorkeyPixelShader)
@@ -3058,12 +3058,12 @@ LPDIRECT3DPIXELSHADER9 m_IDirectDrawX::GetGammaPixelShader()
 	return gammaPixelShader;
 }
 
-LPDIRECT3DVERTEXSHADER9* m_IDirectDrawX::GetVertexFixupShader()
+LPDIRECT3DVERTEXSHADER9* m_IDirectDrawX::GetFixupVertexShader()
 {
 	// Create vertex shader
 	if (d3d9Device && !fixupVertexShader)
 	{
-		d3d9Device->CreateVertexShader((DWORD*)VertexFixUpShaderSrc, &fixupVertexShader);
+		d3d9Device->CreateVertexShader((DWORD*)FixUpVertexShaderSrc, &fixupVertexShader);
 	}
 	return &fixupVertexShader;
 }
@@ -4981,7 +4981,7 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture)
 		LPDIRECT3DTEXTURE9 PaletteTexture = PrimarySurface->GetD3d9PaletteTexture();
 
 		// Set palette texture
-		if (PaletteTexture && CreatePaletteShader())
+		if (PaletteTexture && CreatePalettePixelShader())
 		{
 			// Set palette texture
 			PrimarySurface->UpdatePaletteData();

@@ -225,9 +225,9 @@ public:
 	bool CheckD9Device(char* FunctionName);
 	LPDIRECT3D9 GetDirectD9Object();
 	LPDIRECT3DDEVICE9 *GetDirectD9Device();
-	bool CreatePaletteShader();
-	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
-	LPDIRECT3DVERTEXSHADER9* GetVertexFixupShader();
+	bool CreatePalettePixelShader();
+	LPDIRECT3DPIXELSHADER9* GetColorKeyPixelShader();
+	LPDIRECT3DVERTEXSHADER9* GetFixupVertexShader();
 	LPDIRECT3DVERTEXBUFFER9 GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBufferX(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& IndexBufferSize, LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer);

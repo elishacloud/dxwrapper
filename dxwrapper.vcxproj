@@ -1194,10 +1194,10 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="ddraw\IDirectDrawGammaControl.h" />
     <ClInclude Include="ddraw\IDirectDrawPalette.h" />
     <ClInclude Include="ddraw\IDirectDrawX.h" />
-    <ClInclude Include="ddraw\Shaders\ColorKeyShader.h" />
+    <ClInclude Include="ddraw\Shaders\ColorKeyPixelShader.h" />
     <ClInclude Include="ddraw\Shaders\GammaPixelShader.h" />
-    <ClInclude Include="ddraw\Shaders\PaletteShader.h" />
-    <ClInclude Include="ddraw\Shaders\VertexFixUpShader.h" />
+    <ClInclude Include="ddraw\Shaders\PalettePixelShader.h" />
+    <ClInclude Include="ddraw\Shaders\FixUpVertexShader.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D2.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D3.h" />
@@ -1333,16 +1333,16 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ResourceCompile Include="Dllmain\dxwrapper.rc" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="ddraw\Shaders\ColorKeyShader.hlsl">
+    <CustomBuild Include="ddraw\Shaders\ColorKeyPixelShader.hlsl">
       <FileType>Document</FileType>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" ColorKeyShader.hlsl main ps_2_0 ColorKeyPixelShaderSrc"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\ColorKeyShader.h</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" ColorKeyPixelShader.hlsl main ps_2_0 ColorKeyPixelShaderSrc"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\ColorKeyPixelShader.h</Outputs>
     </CustomBuild>
-    <CustomBuild Include="ddraw\Shaders\PaletteShader.hlsl">
+    <CustomBuild Include="ddraw\Shaders\PalettePixelShader.hlsl">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" PaletteShader.hlsl main ps_2_0 PalettePixelShaderSrc"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\PaletteShader.h</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" PalettePixelShader.hlsl main ps_2_0 PalettePixelShaderSrc"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\PalettePixelShader.h</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
     </CustomBuild>
   </ItemGroup>
@@ -1355,10 +1355,10 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="ddraw\Shaders\VertexFixUpShader.hlsl">
+    <CustomBuild Include="ddraw\Shaders\FixUpVertexShader.hlsl">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" VertexFixUpShader.hlsl main vs_2_0 VertexFixUpShaderSrc"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\VertexFixUpShader.h</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpVertexShader.hlsl main vs_2_0 FixUpVertexShaderSrc"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpVertexShader.h</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
     </CustomBuild>
   </ItemGroup>

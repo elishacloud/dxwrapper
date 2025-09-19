@@ -1862,10 +1862,10 @@
     <ClInclude Include="Libraries\VersionHelpers.h">
       <Filter>Libraries</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\Shaders\ColorKeyShader.h">
+    <ClInclude Include="ddraw\Shaders\ColorKeyPixelShader.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\Shaders\PaletteShader.h">
+    <ClInclude Include="ddraw\Shaders\PalettePixelShader.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
     <ClInclude Include="GDI\WndProc.h">
@@ -1898,7 +1898,7 @@
     <ClInclude Include="External\Hooking\Disasm.h">
       <Filter>External\Hooking</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\Shaders\VertexFixUpShader.h">
+    <ClInclude Include="ddraw\Shaders\FixUpVertexShader.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\IDirect3DTypesDefault.h">
@@ -1917,16 +1917,16 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="ddraw\Shaders\ColorKeyShader.hlsl">
+    <CustomBuild Include="ddraw\Shaders\ColorKeyPixelShader.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
-    <CustomBuild Include="ddraw\Shaders\PaletteShader.hlsl">
+    <CustomBuild Include="ddraw\Shaders\PalettePixelShader.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
     <CustomBuild Include="ddraw\Shaders\GammaPixelShader.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
-    <CustomBuild Include="ddraw\Shaders\VertexFixUpShader.hlsl">
+    <CustomBuild Include="ddraw\Shaders\FixUpVertexShader.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
   </ItemGroup>

@@ -6405,7 +6405,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	{
 		if (!colorkeyPixelShader || !*colorkeyPixelShader)
 		{
-			colorkeyPixelShader = ddrawParent->GetColorKeyShader();
+			colorkeyPixelShader = ddrawParent->GetColorKeyPixelShader();
 		}
 		if (colorkeyPixelShader && *colorkeyPixelShader)
 		{
@@ -6418,7 +6418,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	{
 		if (!fixupVertexShader || !*fixupVertexShader)
 		{
-			fixupVertexShader = ddrawParent->GetVertexFixupShader();
+			fixupVertexShader = ddrawParent->GetFixupVertexShader();
 		}
 		if (fixupVertexShader && *fixupVertexShader)
 		{
