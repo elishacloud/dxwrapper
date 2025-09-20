@@ -2665,7 +2665,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), lpVertices, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
+		RestoreDrawStates(dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -2763,7 +2763,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
+		RestoreDrawStates(dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -2950,7 +2950,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 		HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), VertexCache.data(), GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
+		RestoreDrawStates(dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -2973,23 +2973,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 	case 3:
 		return GetProxyInterfaceV3()->DrawPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, dwFlags);
 	case 7:
-		if (DirectXVersion != 7)
-		{
-			// Handle dwFlags
-			SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
-
-			DWORD Flags = dwFlags & ~(D3DDP_DONOTCLIP | D3DDP_DONOTLIGHT | D3DDP_DONOTUPDATEEXTENTS);
-			HRESULT hr = GetProxyInterfaceV7()->DrawPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, Flags);
-
-			// Handle dwFlags
-			RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
-
-			return hr;
-		}
-		else
-		{
-			return GetProxyInterfaceV7()->DrawPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, dwFlags);
-		}
+		return GetProxyInterfaceV7()->DrawPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, dwFlags);
 	}
 }
 
@@ -3057,7 +3041,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, VertexCache.data(), GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
+		RestoreDrawStates(dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -3080,23 +3064,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 	case 3:
 		return GetProxyInterfaceV3()->DrawIndexedPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
 	case 7:
-		if (DirectXVersion != 7)
-		{
-			// Handle dwFlags
-			SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
-
-			DWORD Flags = dwFlags & ~(D3DDP_DONOTCLIP | D3DDP_DONOTLIGHT | D3DDP_DONOTUPDATEEXTENTS);
-			HRESULT hr = GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, Flags);
-
-			// Handle dwFlags
-			RestoreDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
-
-			return hr;
-		}
-		else
-		{
-			return GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
-		}
+		return GetProxyInterfaceV7()->DrawIndexedPrimitiveStrided(dptPrimitiveType, dwVertexTypeDesc, lpVertexArray, dwVertexCount, lpwIndices, dwIndexCount, dwFlags);
 	}
 }
 
@@ -3170,7 +3138,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		HRESULT hr = (*d3d9Device)->DrawPrimitive(dptPrimitiveType, dwStartVertex, GetNumberOfPrimitives(dptPrimitiveType, dwNumVertices));
 
 		// Handle dwFlags
-		RestoreDrawStates(FVF, dwFlags, DirectXVersion);
+		RestoreDrawStates(dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -3284,7 +3252,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitive(dptPrimitiveType, dwStartVertex, 0, dwNumVertices, 0, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount));
 
 		// Handle dwFlags
-		RestoreDrawStates(FVF, dwFlags, DirectXVersion);
+		RestoreDrawStates(dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -6307,12 +6275,16 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 
 		if (dwFlags & D3DDP_DONOTCLIP)
 		{
-			(*d3d9Device)->GetRenderState(D3DRS_CLIPPING, &DrawStates.rsClipping);
+			DrawStates.rsClipping = TRUE;
 			(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, FALSE);
 		}
-		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL))
+		// Only disable lighting when:
+		// 1. The draw call has D3DDP_DONOTLIGHT set, or
+		// 2. The FVF contains D3DFVF_XYZRHW (meaning transformed + lit vertices)
+		if ((dwFlags & D3DDP_DONOTLIGHT) || (dwVertexTypeDesc & D3DFVF_XYZRHW))
 		{
-			(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
+			dwFlags |= D3DDP_DONOTLIGHT;
+			DrawStates.rsLighting = TRUE;
 			(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE);
 		}
 		if (dwFlags & D3DDP_DONOTUPDATEEXTENTS)
@@ -6449,7 +6421,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	}*/
 }
 
-void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion)
+void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwFlags, DWORD DirectXVersion)
 {
 	// Handle dwFlags
 	if (DirectXVersion < 7)
@@ -6458,7 +6430,7 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags
 		{
 			(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, DrawStates.rsClipping);
 		}
-		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL))
+		if (dwFlags & D3DDP_DONOTLIGHT)
 		{
 			(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
 		}
