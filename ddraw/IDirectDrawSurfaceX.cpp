@@ -5152,6 +5152,23 @@ void m_IDirectDrawSurfaceX::SetAsRenderTarget()
 	}
 }
 
+DWORD m_IDirectDrawSurfaceX::GetAttachedStencilSurfaceZBits()
+{
+	m_IDirectDrawSurfaceX* lpAttachedSurfaceX = GetAttachedDepthStencil();
+	if (lpAttachedSurfaceX)
+	{
+		DWORD ZMask = lpAttachedSurfaceX->surfaceDesc2.ddpfPixelFormat.dwZBitMask;
+		DWORD ZBits = 0;
+		while (ZMask)
+		{
+			ZBits += (ZMask & 1);
+			ZMask >>= 1;
+		}
+		return max(ZBits, 15);
+	}
+	return 16; // safe default
+}
+
 void m_IDirectDrawSurfaceX::ClearUsing3DFlag()
 {
 	Using3D = false;

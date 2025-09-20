@@ -1567,6 +1567,12 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 
 		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
+		DWORD OldDepthBits = DepthBits;
+
+		DepthBits = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
+
+		rsZBiasChanged |= (OldDepthBits != DepthBits);
+
 		HRESULT hr = ddrawParent->SetRenderTargetSurface(lpDDSrcSurfaceX);
 
 		if (SUCCEEDED(hr))
@@ -2206,13 +2212,9 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return SetD9SamplerState(0, D3DSAMP_MIPMAPLODBIAS, dwRenderState);
 		case D3DRENDERSTATE_ZBIAS:				// 47
-		{
+			rsZBiasChanged |= (DeviceStates.RenderState[dwRenderStateType].State != dwRenderState);
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
-			FLOAT Biased = static_cast<FLOAT>(dwRenderState) * -0.000005f;
-			dwRenderState = *reinterpret_cast<const DWORD*>(&Biased);
-			dwRenderStateType = D3DRS_DEPTHBIAS;
-			break;
-		}
+			return D3D_OK;
 		case D3DRENDERSTATE_ANISOTROPY:			// 49
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return SetD9SamplerState(0, D3DSAMP_MAXANISOTROPY, dwRenderState);
@@ -4285,6 +4287,8 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 				}
 
 				// Restore states
+				rsAntiAliasChanged = true;
+				rsZBiasChanged = true;
 				for (const auto& entry : RecordState.RenderState)
 				{
 					SetD9RenderState(entry.first, entry.second);
@@ -4341,6 +4345,7 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 
 				// Render states
 				rsAntiAliasChanged = true;
+				rsZBiasChanged = true;
 				for (const auto& entry : PixelState.RenderState)
 				{
 					DeviceStates.RenderState[entry.first] = entry.second;
@@ -4393,7 +4398,7 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 				memcpy(DeviceStates.ClipPlane, VertexState.ClipPlane, sizeof(DeviceStates.ClipPlane));
 
 				// Render states
-				rsAntiAliasChanged = true;
+				rsZBiasChanged = true;
 				for (const auto& entry : VertexState.RenderState)
 				{
 					DeviceStates.RenderState[entry.first] = entry.second;
@@ -4796,6 +4801,8 @@ void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 					CurrentRenderTarget->AddRef();
 
 					lpCurrentRenderTargetX = lpDDSrcSurfaceX;
+
+					DepthBits = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
 
 					ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
 				}
@@ -6000,6 +6007,11 @@ void m_IDirect3DDeviceX::PrepDevice()
 				(DeviceStates.RenderState[D3DRENDERSTATE_WRAPV].State ? D3DWRAP_V : 0);
 			SetD9RenderState(D3DRS_WRAP0, RenderState);
 			rsWrapChanged = false;
+		}
+		if (rsZBiasChanged)
+		{
+			SetD9RenderState(D3DRS_DEPTHBIAS, GetDepthBias(DeviceStates.RenderState[D3DRENDERSTATE_ZBIAS].State, DepthBits));
+			rsZBiasChanged = false;
 		}
 		if (rsAntiAliasChanged)
 		{

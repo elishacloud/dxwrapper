@@ -148,6 +148,7 @@ private:
 	bool RequiresStateRestore = false;
 	bool IsInScene = false;
 	bool rsAntiAliasChanged = false;
+	bool rsZBiasChanged = false;
 	bool rsWrapChanged = false;
 
 	// Default clip status
@@ -199,6 +200,7 @@ private:
 	// Render target
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
 	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
+	DWORD DepthBits = 16;
 
 	// SetTexture array
 	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[D3DHAL_TSS_MAXSTAGES] = {};

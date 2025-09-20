@@ -503,6 +503,7 @@ public:
 	bool IsColorKeyTexture() const { return (IsSurfaceTexture() && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)); }
 	bool IsPalette() const { return (surface.Format == D3DFMT_P8); }
 	bool IsDepthStencil() const { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
+	DWORD GetAttachedStencilSurfaceZBits();
 	bool IsSurfaceManaged() const { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	bool IsSurfaceBusy(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS) { return (IsSurfaceBlitting() || IsSurfaceLocked(MipMapLevel) || IsSurfaceInDC(MipMapLevel)); }
 	bool CanSurfaceBeDeleted() const { return !ComplexChild; }

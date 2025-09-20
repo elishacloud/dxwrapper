@@ -322,6 +322,12 @@ bool OverloadedD9RenderState(D3DRENDERSTATETYPE dwRenderStateType)
 	return false;
 }
 
+DWORD GetDepthBias(DWORDFLOAT ZBias, DWORD DepthBits)
+{
+	ZBias.val.f = -(ZBias.val.f / (float)(1 << DepthBits));
+	return ZBias.val.d;
+}
+
 DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value)
 {
 	if (Type == D3DSAMP_MAGFILTER)
