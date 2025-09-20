@@ -381,26 +381,6 @@ typedef enum _D3DSURFACETYPE {
     D3DTYPE_DEPTHSTENCIL = 4
 } D3DSURFACETYPE;
 
-// Convert DWORD <-> float
-struct DWORDFLOAT {
-    union {
-        DWORD d;
-        float f;
-    } val;
-
-    // Constructor from DWORD
-    DWORDFLOAT(DWORD value) { val.d = value; }
-
-    // Constructor from float
-    DWORDFLOAT(float value) { val.f = value; }
-
-    // Conversion to DWORD
-    operator DWORD() const { return val.d; }
-
-    // Conversion to float
-    operator float() const { return val.f; }
-};
-
 #define CLAMP(val,zmin,zmax) (max((zmin),min((zmax),(val))))
 
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light);
@@ -417,7 +397,7 @@ void ConvertViewport(D3DVIEWPORT7& Viewport, const D3DVIEWPORT7& Viewport7);
 bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD& Value, DWORD DirectXVersion);
 bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
 bool OverloadedD9RenderState(D3DRENDERSTATETYPE dwRenderStateType);
-DWORD GetDepthBias(DWORDFLOAT ZBias, DWORD DepthBits);
+DWORD GetDepthBias(DWORD ZBias, DWORD DepthBits);
 DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value);
 bool IsValidTransformState(D3DTRANSFORMSTATETYPE State);
 D3DMATRIX FixMatrix(const D3DMATRIX& Matrix, D3DTRANSFORMSTATETYPE State, D3DVIEWPORT Viewport, bool ScaleMatrix);

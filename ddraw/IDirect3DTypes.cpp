@@ -322,10 +322,11 @@ bool OverloadedD9RenderState(D3DRENDERSTATETYPE dwRenderStateType)
 	return false;
 }
 
-DWORD GetDepthBias(DWORDFLOAT ZBias, DWORD DepthBits)
+DWORD GetDepthBias(DWORD ZBias, DWORD DepthBits)
 {
-	ZBias.val.f = -(ZBias.val.f / (float)(1 << DepthBits));
-	return ZBias.val.d;
+	float denom = (DepthBits < 32) ? (float)(1u << CLAMP(DepthBits, 15, 31)) : 4294967296.0f;
+	float DepthBias = -(static_cast<float>(min(ZBias, 16)) / denom);
+	return *reinterpret_cast<DWORD*>(&DepthBias);
 }
 
 DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value)
