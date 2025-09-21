@@ -39,7 +39,7 @@ void TestExecuteBuffer(DDType* pDDraw, D3DDType* pDirect3DDevice)
 }
 
 template <typename D3DDType>
-void TestRenderState(D3DDType* pDevice, const DWORD DefaultValue[], const DWORD Unchangeable[], size_t ArraySize, DWORD DirectXVersion)
+void TestRenderState(D3DDType* pDevice, const DWORD DefaultValue[], const DWORD Unchangeable[], size_t ArraySize, BOOL NewValue, DWORD DirectXVersion)
 {
     for (UINT x = 0; x < D3D_MAXRENDERSTATES; x++)
     {
@@ -72,13 +72,12 @@ void TestRenderState(D3DDType* pDevice, const DWORD DefaultValue[], const DWORD 
 
         if (rsValue != DefaultValue[x])
         {
-            LOG_TEST_RESULT(x, "Failed to get correct Render State. Error: ", rsValue, DefaultValue[x]);
+            LOG_TEST_RESULT(x, "Failed to get correct -1- Render State. Error: ", rsValue, DefaultValue[x]);
         }
 
         if (ChangeValue)
         {
-            // Enable setting
-            DWORD NewValue = FALSE;
+            // Set new value
             hr = pDevice->SetRenderState((D3DRENDERSTATETYPE)x, NewValue);
             if (hr != DD_OK)
             {
@@ -90,37 +89,20 @@ void TestRenderState(D3DDType* pDevice, const DWORD DefaultValue[], const DWORD 
                 LOG_TEST_RESULT(x, "Failed return value when trying to get -2- Render State. Error: ", (DDERR)hr, (DDERR)DD_OK);
             }
 
-            if (rsValue != NewValue)
+            if (rsValue != (DWORD)NewValue)
             {
-                LOG_TEST_RESULT(x, "Failed to set Render State to FALSE. Error: ", rsValue, NewValue);
-            }
-
-            // Disable setting
-            NewValue = TRUE;
-            hr = pDevice->SetRenderState((D3DRENDERSTATETYPE)x, NewValue);
-            if (hr != DD_OK)
-            {
-                LOG_TEST_RESULT(x, "Failed return value when trying to set -3- Render State. Error: ", (DDERR)hr, (DDERR)DD_OK);
-            }
-            hr = pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
-            if (hr != DD_OK)
-            {
-                LOG_TEST_RESULT(x, "Failed return value when trying to set -3- Render State. Error: ", (DDERR)hr, (DDERR)DD_OK);
-            }
-
-            if (rsValue != NewValue)
-            {
-                LOG_TEST_RESULT(x, "Failed to set Render State to TRUE. Error: ", rsValue, NewValue);
+                LOG_TEST_RESULT(x, "Failed to set -2- Render State to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", rsValue, NewValue);
             }
         }
         // Check if setting can be modified
         else
         {
-            DWORD NewValue = rsValue ? FALSE : TRUE;
-            hr = pDevice->SetRenderState((D3DRENDERSTATETYPE)x, NewValue);
-            if (hr != DDERR_INVALIDPARAMS)
+            DWORD tmpValue = rsValue ? FALSE : TRUE;
+            hr = pDevice->SetRenderState((D3DRENDERSTATETYPE)x, tmpValue);
+            HRESULT hr_test = (x == 50 && NewValue == FALSE && DirectXVersion < 7) ? DD_OK : DDERR_INVALIDPARAMS;
+            if (hr != hr_test)
             {
-                LOG_TEST_RESULT(x, "Failed return value when trying to set -4- Render State. Error: ", (DDERR)hr, (DDERR)DDERR_INVALIDPARAMS);
+                LOG_TEST_RESULT(x, "Failed return value when trying to set -4- Render State to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", (DDERR)hr, (DDERR)hr_test);
             }
             hr = pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
             if (ShouldCallFail)
@@ -138,16 +120,16 @@ void TestRenderState(D3DDType* pDevice, const DWORD DefaultValue[], const DWORD 
                 }
             }
 
-            if (rsValue == NewValue)
+            if (rsValue == tmpValue)
             {
-                LOG_TEST_RESULT(x, "Failed! Render State shouldn't be able to be changed. Error: ", rsValue, NewValue);
+                LOG_TEST_RESULT(x, "Failed! -4- Render State shouldn't be able to be changed. Error: ", rsValue, tmpValue);
             }
         }
     }
 }
 
 template <typename D3DDType>
-void TestTextureStageState(D3DDType* pDevice, const DWORD(*DefaultValue)[MaxTextureStageStates])
+void TestTextureStageState(D3DDType* pDevice, const DWORD(*DefaultValue)[MaxTextureStageStates], BOOL NewValue)
 {
     for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
     {
@@ -166,7 +148,6 @@ void TestTextureStageState(D3DDType* pDevice, const DWORD(*DefaultValue)[MaxText
                 LOG_TEST_RESULT(y, "Failed to get correct Texture State Stage " << x << ". Error: ", ssValue, DefaultValue[x][y]);
             }
 
-            DWORD NewValue = FALSE;
             hr = pDevice->SetTextureStageState(x, (D3DTEXTURESTAGESTATETYPE)y, NewValue);
             if (hr != DD_OK)
             {
@@ -178,33 +159,16 @@ void TestTextureStageState(D3DDType* pDevice, const DWORD(*DefaultValue)[MaxText
                 LOG_TEST_RESULT(y, "Failed return when trying to set -2- Texture State Stage " << x << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
             }
 
-            if (ssValue != NewValue)
+            if (ssValue != (DWORD)NewValue)
             {
-                LOG_TEST_RESULT(y, "Failed to set Texture State Stage " << x << " to FALSE. Error: ", ssValue, NewValue);
-            }
-
-            NewValue = TRUE;
-            hr = pDevice->SetTextureStageState(x, (D3DTEXTURESTAGESTATETYPE)y, NewValue);
-            if (hr != DD_OK)
-            {
-                LOG_TEST_RESULT(y, "Failed return when trying to get -3- Texture State Stage " << x << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
-            }
-            hr = pDevice->GetTextureStageState(x, (D3DTEXTURESTAGESTATETYPE)y, &ssValue);
-            if (hr != DD_OK)
-            {
-                LOG_TEST_RESULT(y, "Failed return when trying to set -3- Texture State Stage " << x << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
-            }
-
-            if (ssValue != NewValue)
-            {
-                LOG_TEST_RESULT(y, "Failed to set Texture State Stage " << x << " to TRUE. Error: ", ssValue, NewValue);
+                LOG_TEST_RESULT(y, "Failed to set Texture State Stage " << x << " to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", ssValue, NewValue);
             }
         }
     }
 }
 
 template <typename D3DDType>
-void TestLightState(D3DDType* pDevice, const DWORD DefaultValue[], DWORD MaxLightState)
+void TestLightState(D3DDType* pDevice, const DWORD DefaultValue[], BOOL NewValue, DWORD MaxLightState)
 {
     for (UINT x = 0; x < MaxLightStates; x++)
     {
@@ -235,12 +199,11 @@ void TestLightState(D3DDType* pDevice, const DWORD DefaultValue[], DWORD MaxLigh
             continue;
         }
 
-        DWORD NewValue = TRUE;
         hr = pDevice->SetLightState((D3DLIGHTSTATETYPE)x, NewValue);
 
         if (hr != DD_OK)
         {
-            LOG_TEST_RESULT(x, "Failed return when trying to Set -1- Light State to TRUE. Error: ", (DDERR)hr, (DDERR)DD_OK);
+            LOG_TEST_RESULT(x, "Failed return when trying to Set -1- Light State to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
         }
 
         hr = pDevice->GetLightState((D3DLIGHTSTATETYPE)x, &ssValue);
@@ -250,29 +213,9 @@ void TestLightState(D3DDType* pDevice, const DWORD DefaultValue[], DWORD MaxLigh
             LOG_TEST_RESULT(x, "Failed return when trying to Get -1- Light State. Error: ", (DDERR)hr, (DDERR)DD_OK);
         }
 
-        if (ssValue != NewValue)
+        if (ssValue != (DWORD)NewValue)
         {
             LOG_TEST_RESULT(x, "Failed to set correct -1- Light State. Error: ", ssValue, NewValue);
-        }
-
-        NewValue = FALSE;
-        hr = pDevice->SetLightState((D3DLIGHTSTATETYPE)x, NewValue);
-
-        if (hr != DD_OK)
-        {
-            LOG_TEST_RESULT(x, "Failed return when trying to Set -2- Light State to FALSE. Error: ", (DDERR)hr, (DDERR)DD_OK);
-        }
-
-        hr = pDevice->GetLightState((D3DLIGHTSTATETYPE)x, &ssValue);
-
-        if (hr != DD_OK)
-        {
-            LOG_TEST_RESULT(x, "Failed return when trying to Get -1- Light State. Error: ", (DDERR)hr, (DDERR)DD_OK);
-        }
-
-        if (ssValue != NewValue)
-        {
-            LOG_TEST_RESULT(x, "Failed to set correct -2- Light State. Error: ", ssValue, NewValue);
         }
     }
 }
@@ -387,6 +330,8 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
     D3DDType* pD3DDevice1 = nullptr;
     hr = DDERR_GENERIC;
 
+    // ****  846  ****
+    TestID = 846;
     if constexpr (std::is_same_v<D3DType, IDirect3D>)
     {
         // The Direct3DDevice object is obtained through the appropriate call to the IDirect3DDevice::QueryInterface
@@ -397,32 +342,255 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
     {
         hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1);
 
-        if (SUCCEEDED(hr))
+        if (FAILED(hr))
         {
-            TestRenderState<IDirect3DDevice2>(pD3DDevice1, DefaultRenderTargetDX5, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), 2);
-            TestLightState<IDirect3DDevice2>(pD3DDevice1, DefaultLightStateDX5, 7);
+            LOG_TEST_RESULT(TestID, "CreateDevice hr = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
         }
+
+        TestRenderState<IDirect3DDevice2>(pD3DDevice1, DefaultRenderTargetDX5, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), TRUE, 2);
+        TestLightState<IDirect3DDevice2>(pD3DDevice1, DefaultLightStateDX5, TRUE, 7);
+
+        ULONG ref = pD3DDevice1->Release();
+
+        if (ref != 0)
+        {
+            LOG_TEST_RESULT(TestID, "Failed to Release Device ref = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1);
+
+        if (FAILED(hr))
+        {
+            LOG_TEST_RESULT(TestID, "CreateDevice hr = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        TestRenderState<IDirect3DDevice2>(pD3DDevice1, DefaultRenderTargetDX5, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), FALSE, 2);
+        TestLightState<IDirect3DDevice2>(pD3DDevice1, DefaultLightStateDX5, FALSE, 7);
+
+        ref = pD3DDevice1->Release();
+
+        if (ref != 0)
+        {
+            LOG_TEST_RESULT(TestID, "Failed to Release Device ref = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1);
+
+        if (FAILED(hr))
+        {
+            LOG_TEST_RESULT(TestID, "CreateDevice hr = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        TestLightState<IDirect3DDevice2>(pD3DDevice1, DefaultLightStateDX5, TRUE, 7);
+        TestRenderState<IDirect3DDevice2>(pD3DDevice1, DefaultRenderTargetDX5, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), TRUE, 2);
+
+        ref = pD3DDevice1->Release();
+
+        if (ref != 0)
+        {
+            LOG_TEST_RESULT(TestID, "Failed to Release Device ref = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1);
+
+        if (FAILED(hr))
+        {
+            LOG_TEST_RESULT(TestID, "CreateDevice hr = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        TestLightState<IDirect3DDevice2>(pD3DDevice1, DefaultLightStateDX5, FALSE, 7);
+        TestRenderState<IDirect3DDevice2>(pD3DDevice1, DefaultRenderTargetDX5, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), FALSE, 2);
     }
     else if constexpr (std::is_same_v<D3DType, IDirect3D3>)
     {
         hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1, nullptr);
 
-        if (SUCCEEDED(hr))
+        if (FAILED(hr))
         {
-            TestRenderState<IDirect3DDevice3>(pD3DDevice1, DefaultRenderTargetDX6, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), 3);
-            TestTextureStageState<IDirect3DDevice3>(pD3DDevice1, DefaultTextureStageStateDX6);
-            TestLightState<IDirect3DDevice3>(pD3DDevice1, DefaultLightStateDX6, 8);
+            LOG_TEST_RESULT(TestID, "Failed to CreateDevice hr = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
         }
+
+        TestRenderState<IDirect3DDevice3>(pD3DDevice1, DefaultRenderTargetDX6, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), TRUE, 3);
+        TestTextureStageState<IDirect3DDevice3>(pD3DDevice1, DefaultTextureStageStateDX6, TRUE);
+        TestLightState<IDirect3DDevice3>(pD3DDevice1, DefaultLightStateDX6, TRUE, 8);
+
+        ULONG ref = pD3DDevice1->Release();
+
+        if (ref != 0)
+        {
+            LOG_TEST_RESULT(TestID, "Failed to Release Device ref = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1, nullptr);
+
+        if (FAILED(hr))
+        {
+            LOG_TEST_RESULT(TestID, "CreateDevice hr = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        TestRenderState<IDirect3DDevice3>(pD3DDevice1, DefaultRenderTargetDX6, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), FALSE, 3);
+        TestTextureStageState<IDirect3DDevice3>(pD3DDevice1, DefaultTextureStageStateDX6, FALSE);
+        TestLightState<IDirect3DDevice3>(pD3DDevice1, DefaultLightStateDX6, FALSE, 8);
+
+        ref = pD3DDevice1->Release();
+
+        if (ref != 0)
+        {
+            LOG_TEST_RESULT(TestID, "Failed to Release Device ref = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1, nullptr);
+
+        if (FAILED(hr))
+        {
+            LOG_TEST_RESULT(TestID, "CreateDevice hr = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        TestLightState<IDirect3DDevice3>(pD3DDevice1, DefaultLightStateDX6, TRUE, 8);
+        TestRenderState<IDirect3DDevice3>(pD3DDevice1, DefaultRenderTargetDX6, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), TRUE, 3);
+        TestTextureStageState<IDirect3DDevice3>(pD3DDevice1, DefaultTextureStageStateDX6, TRUE);
+
+        ref = pD3DDevice1->Release();
+
+        if (ref != 0)
+        {
+            LOG_TEST_RESULT(TestID, "Failed to Release Device ref = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1, nullptr);
+
+        if (FAILED(hr))
+        {
+            LOG_TEST_RESULT(TestID, "CreateDevice hr = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        TestLightState<IDirect3DDevice3>(pD3DDevice1, DefaultLightStateDX6, FALSE, 8);
+        TestRenderState<IDirect3DDevice3>(pD3DDevice1, DefaultRenderTargetDX6, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), FALSE, 3);
+        TestTextureStageState<IDirect3DDevice3>(pD3DDevice1, DefaultTextureStageStateDX6, FALSE);
+
+        ref = pD3DDevice1->Release();
+
+        if (ref != 0)
+        {
+            LOG_TEST_RESULT(TestID, "Failed to Release Device ref = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1, nullptr);
+
+        if (FAILED(hr))
+        {
+            LOG_TEST_RESULT(TestID, "CreateDevice hr = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        TestTextureStageState<IDirect3DDevice3>(pD3DDevice1, DefaultTextureStageStateDX6, TRUE);
+        TestLightState<IDirect3DDevice3>(pD3DDevice1, DefaultLightStateDX6, TRUE, 8);
+        TestRenderState<IDirect3DDevice3>(pD3DDevice1, DefaultRenderTargetDX6, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), TRUE, 3);
+
+        ref = pD3DDevice1->Release();
+
+        if (ref != 0)
+        {
+            LOG_TEST_RESULT(TestID, "Failed to Release Device ref = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1, nullptr);
+
+        if (FAILED(hr))
+        {
+            LOG_TEST_RESULT(TestID, "CreateDevice hr = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        TestTextureStageState<IDirect3DDevice3>(pD3DDevice1, DefaultTextureStageStateDX6, FALSE);
+        TestLightState<IDirect3DDevice3>(pD3DDevice1, DefaultLightStateDX6, FALSE, 8);
+        TestRenderState<IDirect3DDevice3>(pD3DDevice1, DefaultRenderTargetDX6, UnchangeableRenderTarget, sizeof(UnchangeableRenderTarget) / sizeof(UnchangeableRenderTarget[0]), FALSE, 3);
     }
     else if constexpr (std::is_same_v<D3DType, IDirect3D7>)
     {
         hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1);
 
-        if (SUCCEEDED(hr))
+        if (FAILED(hr))
         {
-            TestRenderState<IDirect3DDevice7>(pD3DDevice1, DefaultRenderTargetDX7, UnchangeableRenderTargetDX7, sizeof(UnchangeableRenderTargetDX7) / sizeof(UnchangeableRenderTargetDX7[0]), 7);
-            TestTextureStageState<IDirect3DDevice7>(pD3DDevice1, DefaultTextureStageStateDX7);
+            LOG_TEST_RESULT(TestID, "Failed to CreateDevice hr = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
         }
+
+        TestRenderState<IDirect3DDevice7>(pD3DDevice1, DefaultRenderTargetDX7, UnchangeableRenderTargetDX7, sizeof(UnchangeableRenderTargetDX7) / sizeof(UnchangeableRenderTargetDX7[0]), TRUE, 7);
+        TestTextureStageState<IDirect3DDevice7>(pD3DDevice1, DefaultTextureStageStateDX7, TRUE);
+
+        ULONG ref = pD3DDevice1->Release();
+
+        if (ref != 0)
+        {
+            LOG_TEST_RESULT(TestID, "Failed to Release Device ref = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1);
+
+        if (FAILED(hr))
+        {
+            LOG_TEST_RESULT(TestID, "Failed to CreateDevice hr = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        TestRenderState<IDirect3DDevice7>(pD3DDevice1, DefaultRenderTargetDX7, UnchangeableRenderTargetDX7, sizeof(UnchangeableRenderTargetDX7) / sizeof(UnchangeableRenderTargetDX7[0]), FALSE, 7);
+        TestTextureStageState<IDirect3DDevice7>(pD3DDevice1, DefaultTextureStageStateDX7, FALSE);
+
+        ref = pD3DDevice1->Release();
+
+        if (ref != 0)
+        {
+            LOG_TEST_RESULT(TestID, "Failed to Release Device ref = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1);
+
+        if (FAILED(hr))
+        {
+            LOG_TEST_RESULT(TestID, "Failed to CreateDevice hr = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        TestTextureStageState<IDirect3DDevice7>(pD3DDevice1, DefaultTextureStageStateDX7, TRUE);
+        TestRenderState<IDirect3DDevice7>(pD3DDevice1, DefaultRenderTargetDX7, UnchangeableRenderTargetDX7, sizeof(UnchangeableRenderTargetDX7) / sizeof(UnchangeableRenderTargetDX7[0]), TRUE, 7);
+
+        ref = pD3DDevice1->Release();
+
+        if (ref != 0)
+        {
+            LOG_TEST_RESULT(TestID, "Failed to Release Device ref = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        hr = pDirect3D->CreateDevice(IID_IDirect3DHALDevice, pSurface1, &pD3DDevice1);
+
+        if (FAILED(hr))
+        {
+            LOG_TEST_RESULT(TestID, "Failed to CreateDevice hr = ", (DDERR)hr, GetResults<DDType>(TestID));
+            return;
+        }
+
+        TestTextureStageState<IDirect3DDevice7>(pD3DDevice1, DefaultTextureStageStateDX7, FALSE);
+        TestRenderState<IDirect3DDevice7>(pD3DDevice1, DefaultRenderTargetDX7, UnchangeableRenderTargetDX7, sizeof(UnchangeableRenderTargetDX7) / sizeof(UnchangeableRenderTargetDX7[0]), FALSE, 7);
     }
 
     // ****  803  ****

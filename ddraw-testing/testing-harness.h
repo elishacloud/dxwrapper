@@ -8,11 +8,11 @@
 		DWORD Result = (DWORD)ExpectedResult; \
 		if (Value == Result && Value != TEST_FAILED && Result != TEST_FAILED) \
 		{ \
-				Logging::Log() << "Testing: " << TestID << " Succeded! " << LogEntry << ExpectedResult << " -> " << TestValue; \
+				Logging::Log() << "Testing: " << TestID << " Succeded! " << LogEntry << TestValue << " -> " << ExpectedResult; \
 		} \
 		else \
 		{ \
-				Logging::Log() << "Testing: " << TestID << " FAILED! " << LogEntry << ExpectedResult << " -> " << TestValue; \
+				Logging::Log() << "Testing: " << TestID << " FAILED! " << LogEntry << TestValue << " -> " << ExpectedResult; \
 		} \
 	}
 
@@ -289,6 +289,7 @@ constexpr TESTMATRIX TestResults[] = {
 	{ 843, { 1, 1, 1, 1, 1, 1 } },
 	{ 844, { 2, 2, 2, 4, 4, 4 } },
 	{ 845, { 2, 2, 2, 4, 4, 4 } },
+	{ 846, { 0, 0, 0, 0, 0, 0 } },
 
 	// Execute Buffer
 	{ 900, { 1, 0, 0, 0, 0, 0 } },
