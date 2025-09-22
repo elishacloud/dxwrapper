@@ -53,6 +53,17 @@ private:
 		bool Set = false;
 		D3DMATERIAL9 Material = {};
 	};
+	struct DWORDSTRUCT {
+		DWORD State = 1;
+
+		DWORDSTRUCT() {}
+
+		// Constructor from DWORD
+		DWORDSTRUCT(DWORD value) { State = value; }
+
+		// Conversion to DWORD
+		operator DWORD() const { return State; }
+	};
 	struct DEVICESTATE {
 		STATESTRUCT RenderState[D3D_MAXRENDERSTATES], TextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates], SamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE];
 		CLIPPLANESTRUCT ClipPlane[MaxClipPlaneIndex];
@@ -63,6 +74,7 @@ private:
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
 		std::unordered_map<D3DRENDERSTATETYPE, DWORD> rsMap;
 		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> tsMap0;
+		std::unordered_map<D3DSAMPLERSTATETYPE, DWORDSTRUCT> ssMapAddressUV[D3DHAL_TSS_MAXSTAGES];
 		std::unordered_map<D3DLIGHTSTATETYPE, DWORD> lsMap;
 	};
 	DEVICESTATE DeviceStates;
@@ -105,6 +117,7 @@ private:
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
 		std::unordered_map<D3DRENDERSTATETYPE, DWORD> rsMap;
 		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> tsMap0;
+		std::unordered_map<D3DSAMPLERSTATETYPE, DWORD> ssMapAddressUV[D3DHAL_TSS_MAXSTAGES];
 	};
 
 	struct PIXELSTATE {
@@ -113,6 +126,7 @@ private:
 		std::unordered_map<D3DRENDERSTATETYPE, STATESTRUCT> RenderState;
 		std::unordered_map<D3DRENDERSTATETYPE, DWORD> rsMap;
 		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> tsMap0;
+		std::unordered_map<D3DSAMPLERSTATETYPE, DWORDSTRUCT> ssMapAddressUV[D3DHAL_TSS_MAXSTAGES];
 	};
 
 	struct VERTEXSTATE {
@@ -248,6 +262,7 @@ private:
 	inline HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
 	inline HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue) const;
 	inline void SetTextureStageStateMap(D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
+	inline void SetSamplerStateMap(DWORD Stage, D3DSAMPLERSTATETYPE Type, DWORD Value);
 	inline HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
 	inline HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue) const;
 	inline HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);

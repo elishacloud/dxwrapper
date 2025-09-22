@@ -102,7 +102,7 @@ void TestRenderState(D3DDType* pDevice, const DWORD DefaultValue[], const DWORD 
             HRESULT hr_test = (x == 50 && NewValue == FALSE && DirectXVersion < 7) ? DD_OK : DDERR_INVALIDPARAMS;
             if (hr != hr_test)
             {
-                LOG_TEST_RESULT(x, "Failed return value when trying to set -4- Render State to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", (DDERR)hr, (DDERR)hr_test);
+                LOG_TEST_RESULT(x, "Failed return value when trying to set -4- Render State to " << (tmpValue ? "TRUE" : "FALSE") << ". Error: ", (DDERR)hr, (DDERR)hr_test);
             }
             hr = pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
             if (ShouldCallFail)
@@ -122,7 +122,7 @@ void TestRenderState(D3DDType* pDevice, const DWORD DefaultValue[], const DWORD 
 
             if (rsValue == tmpValue)
             {
-                LOG_TEST_RESULT(x, "Failed! -4- Render State shouldn't be able to be changed. Error: ", rsValue, tmpValue);
+                LOG_TEST_RESULT(x, "Failed! -4- Render State shouldn't be able to be changed. Error: ", rsValue, TEST_FAILED);
             }
         }
     }
@@ -145,7 +145,7 @@ void TestTextureStageState(D3DDType* pDevice, const DWORD(*DefaultValue)[MaxText
 
             if (ssValue != DefaultValue[x][y])
             {
-                LOG_TEST_RESULT(y, "Failed to get correct Texture State Stage " << x << ". Error: ", ssValue, DefaultValue[x][y]);
+                LOG_TEST_RESULT(y, "Failed to get correct -1- Texture State Stage " << x << ". Error: ", ssValue, DefaultValue[x][y]);
             }
 
             hr = pDevice->SetTextureStageState(x, (D3DTEXTURESTAGESTATETYPE)y, NewValue);
@@ -161,7 +161,7 @@ void TestTextureStageState(D3DDType* pDevice, const DWORD(*DefaultValue)[MaxText
 
             if (ssValue != (DWORD)NewValue)
             {
-                LOG_TEST_RESULT(y, "Failed to set Texture State Stage " << x << " to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", ssValue, NewValue);
+                LOG_TEST_RESULT(y, "Failed to set -2- Texture State Stage " << x << " to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", ssValue, NewValue);
             }
         }
     }
@@ -177,20 +177,20 @@ void TestLightState(D3DDType* pDevice, const DWORD DefaultValue[], BOOL NewValue
 
         if (ssValue != DefaultValue[x])
         {
-            LOG_TEST_RESULT(x, "Failed to get correct Light State. Error: ", ssValue, DefaultValue[x]);
+            LOG_TEST_RESULT(x, "Failed to get correct -1- Light State. Error: ", ssValue, DefaultValue[x]);
         }
 
         if (x == 0 || x > MaxLightState)
         {
             if (hr != DDERR_INVALIDPARAMS)
             {
-                LOG_TEST_RESULT(x, "Failed return when trying to get Light State. Error: ", (DDERR)hr, (DDERR)DDERR_INVALIDPARAMS);
+                LOG_TEST_RESULT(x, "Failed return when trying to get -1- Light State. Error: ", (DDERR)hr, (DDERR)DDERR_INVALIDPARAMS);
             }
             continue;   // Don't set value if failed to get value
         }
         if (hr != DD_OK)
         {
-            LOG_TEST_RESULT(x, "Failed return when trying to get Light State. Error: ", (DDERR)hr, (DDERR)DD_OK);
+            LOG_TEST_RESULT(x, "Failed return when trying to get -1- Light State. Error: ", (DDERR)hr, (DDERR)DD_OK);
         }
 
         // Setting an invalid material will cause crash
@@ -203,19 +203,19 @@ void TestLightState(D3DDType* pDevice, const DWORD DefaultValue[], BOOL NewValue
 
         if (hr != DD_OK)
         {
-            LOG_TEST_RESULT(x, "Failed return when trying to Set -1- Light State to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
+            LOG_TEST_RESULT(x, "Failed return when trying to Set -2- Light State to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
         }
 
         hr = pDevice->GetLightState((D3DLIGHTSTATETYPE)x, &ssValue);
 
         if (hr != DD_OK)
         {
-            LOG_TEST_RESULT(x, "Failed return when trying to Get -1- Light State. Error: ", (DDERR)hr, (DDERR)DD_OK);
+            LOG_TEST_RESULT(x, "Failed return when trying to Get -2- Light State. Error: ", (DDERR)hr, (DDERR)DD_OK);
         }
 
         if (ssValue != (DWORD)NewValue)
         {
-            LOG_TEST_RESULT(x, "Failed to set correct -1- Light State. Error: ", ssValue, NewValue);
+            LOG_TEST_RESULT(x, "Failed to set correct -2- Light State. Error: ", ssValue, NewValue);
         }
     }
 }

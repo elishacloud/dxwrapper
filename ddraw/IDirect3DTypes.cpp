@@ -217,11 +217,10 @@ void ConvertViewport(D3DVIEWPORT7& Viewport, const D3DVIEWPORT7& Viewport7)
 	Viewport.dvMaxZ = Viewport7.dvMaxZ;
 }
 
-bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD& Value, DWORD DirectXVersion)
+bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion)
 {
 	if (dwRenderStateType >= D3D_MAXRENDERSTATES)
 	{
-		Value = 0;
 		return false;
 	}
 
@@ -239,10 +238,7 @@ bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD& Value, DWOR
 		switch ((DWORD)dwRenderStateType)
 		{
 		case D3DRENDERSTATE_NONE:				// 0
-			Value = 0;
-			return false;
 		case D3DRENDERSTATE_FLUSHBATCH:			// 50
-			Value = (DWORD)-1;
 			return false;
 		}
 	}
@@ -270,13 +266,11 @@ bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD& Value, DWOR
 		case D3DRENDERSTATE_ANISOTROPY:			// 49
 		case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:			// 51
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: ignoring undocumented DX7 Render state: " << dwRenderStateType);
-			Value = 0;
 			return false;
 		}
 		if (dwRenderStateType > 63 && dwRenderStateType < 96)	// 64-95
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: ignoring undocumented DX7 Render state: " << dwRenderStateType);
-			Value = 0;
 			return false;
 		}
 	}

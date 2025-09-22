@@ -1786,7 +1786,7 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			return DDERR_INVALIDOBJECT;
 		}
 
-		if (!IsValidRenderState(dwRenderStateType, *lpdwRenderState, ClientDirectXVersion))
+		if (!IsValidRenderState(dwRenderStateType, ClientDirectXVersion))
 		{
 			if (dwRenderStateType > 0 && dwRenderStateType < D3D_MAXRENDERSTATES && ClientDirectXVersion < 7)
 			{
@@ -1932,7 +1932,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			return DDERR_INVALIDOBJECT;
 		}
 
-		if (DWORD Value; !IsValidRenderState(dwRenderStateType, Value, ClientDirectXVersion))
+		if (!IsValidRenderState(dwRenderStateType, ClientDirectXVersion))
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -3482,9 +3482,11 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 			*lpdwValue = DeviceStates.TextureStageState[dwStage][dwState].State;
 			return D3D_OK;
 		case D3DTSS_ADDRESSU:
-			return GetD9SamplerState(dwStage, D3DSAMP_ADDRESSU, lpdwValue);
+			*lpdwValue = DeviceStates.ssMapAddressUV[dwStage][D3DSAMP_ADDRESSU];
+			return D3D_OK;
 		case D3DTSS_ADDRESSV:
-			return GetD9SamplerState(dwStage, D3DSAMP_ADDRESSV, lpdwValue);
+			*lpdwValue = DeviceStates.ssMapAddressUV[dwStage][D3DSAMP_ADDRESSV];
+			return D3D_OK;
 		case D3DTSS_ADDRESSW:
 			return GetD9SamplerState(dwStage, D3DSAMP_ADDRESSW, lpdwValue);
 		case D3DTSS_BORDERCOLOR:
@@ -3584,8 +3586,10 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 			SetD9SamplerState(dwStage, D3DSAMP_ADDRESSU, dwValue);
 			return SetD9SamplerState(dwStage, D3DSAMP_ADDRESSV, dwValue);
 		case D3DTSS_ADDRESSU:
+			SetSamplerStateMap(dwStage, D3DSAMP_ADDRESSU, dwValue);
 			return SetD9SamplerState(dwStage, D3DSAMP_ADDRESSU, dwValue);
 		case D3DTSS_ADDRESSV:
+			SetSamplerStateMap(dwStage, D3DSAMP_ADDRESSV, dwValue);
 			return SetD9SamplerState(dwStage, D3DSAMP_ADDRESSV, dwValue);
 		case D3DTSS_ADDRESSW:
 			return SetD9SamplerState(dwStage, D3DSAMP_ADDRESSW, dwValue);
@@ -4253,6 +4257,13 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 				{
 					DeviceStates.tsMap0[entry.first] = entry.second;
 				}
+				for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
+				{
+					for (const auto& entry : RecordState.ssMapAddressUV[x])
+					{
+						DeviceStates.ssMapAddressUV[x][entry.first] = entry.second;
+					}
+				}
 
 				// Restore states
 				rsAntiAliasChanged = true;
@@ -4341,6 +4352,12 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 
 				// Sampler state
 				memcpy(DeviceStates.SamplerState, PixelState.SamplerState, sizeof(DeviceStates.SamplerState));
+
+				// Sampler state map
+				for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
+				{
+					DeviceStates.ssMapAddressUV[x] = PixelState.ssMapAddressUV[x];
+				}
 			}
 			else
 			{
@@ -4454,6 +4471,10 @@ HRESULT m_IDirect3DDeviceX::CaptureStateBlock(DWORD dwBlockHandle)
 			memcpy(PixelState.TextureStageState, DeviceStates.TextureStageState, sizeof(PixelState.TextureStageState));
 			PixelState.tsMap0 = DeviceStates.tsMap0;
 			memcpy(PixelState.SamplerState, DeviceStates.SamplerState, sizeof(PixelState.SamplerState));
+			for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
+			{
+				PixelState.ssMapAddressUV[x] = DeviceStates.ssMapAddressUV[x];
+			}
 			break;
 		}
 		case D3DSBT_VERTEXSTATE:
@@ -5621,6 +5642,16 @@ void m_IDirect3DDeviceX::SetTextureStageStateMap(D3DTEXTURESTAGESTATETYPE Type, 
 	}
 
 	DeviceStates.tsMap0[Type] = Value;
+}
+
+void m_IDirect3DDeviceX::SetSamplerStateMap(DWORD Stage, D3DSAMPLERSTATETYPE Type, DWORD Value)
+{
+	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
+	{
+		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().ssMapAddressUV[Stage][Type] = Value;
+	}
+
+	DeviceStates.ssMapAddressUV[Stage][Type] = Value;
 }
 
 HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value)
