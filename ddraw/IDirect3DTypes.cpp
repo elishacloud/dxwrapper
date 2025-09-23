@@ -308,132 +308,48 @@ DWORD GetDepthBias(DWORD ZBias, DWORD DepthBits)
 
 DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value)
 {
-	if (Type == D3DSAMP_MIPFILTER && Value == D3DTEXF_MIP_DEFAULT)
-	{
-		return D3DTEXF_NONE;
-	}
-	return Value;
-}
-
-void UpdateSamplerState(D3DSAMPLERSTATETYPE Type, DWORD& Value)
-{
 	if (Type == D3DSAMP_MAGFILTER)
 	{
 		switch (Value)
 		{
-		case NULL:
 		case D3DTFG_POINT:
 		case D3DTFG_LINEAR:
-			return;
+			return Value;
 		case D3DTFG_FLATCUBIC:
 		case D3DTFG_GAUSSIANCUBIC:
-			Value = D3DTEXF_LINEAR;
-			return;
+			return D3DTEXF_LINEAR;
 		case D3DTFG_ANISOTROPIC:
-			Value = D3DTEXF_ANISOTROPIC;
-			return;
+			return D3DTEXF_ANISOTROPIC;
 		default:
-			Value = D3DTEXF_NONE;
-			return;
+			return D3DTEXF_NONE;
 		}
 	}
 	if (Type == D3DSAMP_MINFILTER)
 	{
 		switch (Value)
 		{
-		case NULL:
 		case D3DTFN_POINT:
 		case D3DTFN_LINEAR:
 		case D3DTFN_ANISOTROPIC:
-			return;
+			return Value;
 		default:
-			Value = D3DTEXF_NONE;
-			return;
+			return D3DTEXF_NONE;
 		}
 	}
 	if (Type == D3DSAMP_MIPFILTER)
 	{
 		switch (Value)
 		{
-		case NULL:
-			Value = D3DTEXF_MIP_DEFAULT;
-			return;
 		default:
 		case D3DTFP_NONE:
-			Value = D3DTEXF_NONE;
-			return;
+			return D3DTEXF_NONE;
 		case D3DTFP_POINT:
-			Value = D3DTEXF_POINT;
-			return;
+			return D3DTEXF_POINT;
 		case D3DTFP_LINEAR:
-			Value = D3DTEXF_LINEAR;
-			return;
+			return D3DTEXF_LINEAR;
 		}
 	}
-}
-
-void RestoreSamplerState(D3DSAMPLERSTATETYPE Type, DWORD& Value)
-{
-	if (Type == D3DSAMP_MAGFILTER)
-	{
-		switch (Value)
-		{
-		case D3DTEXF_NONE:
-		case D3DTEXF_POINT:
-		case D3DTEXF_LINEAR:
-			return;
-		case D3DTEXF_ANISOTROPIC:
-			Value = D3DTFG_ANISOTROPIC;
-			return;
-		case D3DTEXF_PYRAMIDALQUAD:
-		case D3DTEXF_GAUSSIANQUAD:
-			Value = D3DTFG_LINEAR;
-			return;
-		default:
-			Value = D3DTFG_POINT;
-			return;
-		}
-	}
-	if (Type == D3DSAMP_MINFILTER)
-	{
-		switch (Value)
-		{
-		case D3DTEXF_NONE:
-		case D3DTEXF_POINT:
-		case D3DTEXF_LINEAR:
-		case D3DTEXF_ANISOTROPIC:
-			return;
-		case D3DTEXF_PYRAMIDALQUAD:
-		case D3DTEXF_GAUSSIANQUAD:
-			Value = D3DTFN_LINEAR;
-			return;
-		default:
-			Value = D3DTFN_POINT;
-			return;
-		}
-	}
-	if (Type == D3DSAMP_MIPFILTER)
-	{
-		switch (Value)
-		{
-		case D3DTEXF_MIP_DEFAULT:
-			Value = NULL;
-			return;
-		default:
-		case D3DTEXF_NONE:
-			Value = D3DTFP_NONE;
-			return;
-		case D3DTEXF_POINT:
-			Value = D3DTFP_POINT;
-			return;
-		case D3DTEXF_LINEAR:
-		case D3DTEXF_ANISOTROPIC:
-		case D3DTEXF_PYRAMIDALQUAD:
-		case D3DTEXF_GAUSSIANQUAD:
-			Value = D3DTFP_LINEAR;
-			return;
-		}
-	}
+	return Value;
 }
 
 bool IsValidTransformState(D3DTRANSFORMSTATETYPE State)

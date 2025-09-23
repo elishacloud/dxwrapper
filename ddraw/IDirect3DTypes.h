@@ -376,8 +376,6 @@ struct TLVERTEX
     float u, v;
 };
 
-constexpr DWORD D3DTEXF_MIP_DEFAULT = 0xFF;
-
 typedef enum _D3DSURFACETYPE {
     D3DTYPE_NONE = 0,
     D3DTYPE_OFFPLAINSURFACE = 1,
@@ -403,8 +401,6 @@ bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersi
 bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
 DWORD GetDepthBias(DWORD ZBias, DWORD DepthBits);
 DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value);
-void UpdateSamplerState(D3DSAMPLERSTATETYPE Type, DWORD& Value);
-void RestoreSamplerState(D3DSAMPLERSTATETYPE Type, DWORD& Value);
 bool IsValidTransformState(D3DTRANSFORMSTATETYPE State);
 D3DMATRIX FixMatrix(const D3DMATRIX& Matrix, D3DTRANSFORMSTATETYPE State, D3DVIEWPORT Viewport, bool ScaleMatrix);
 void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7);

@@ -2026,8 +2026,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		}
 		case D3DRENDERSTATE_TEXTUREADDRESS:		// 3
 			SetD9SamplerState(0, D3DSAMP_ADDRESSU, dwRenderState);
-			SetD9SamplerState(0, D3DSAMP_ADDRESSV, dwRenderState);
-			return D3D_OK;
+			return SetD9SamplerState(0, D3DSAMP_ADDRESSV, dwRenderState);
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:	// 4
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
@@ -2072,6 +2071,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			switch (dwRenderState)
 			{
 			// Only the first two (D3DFILTER_NEAREST and D3DFILTER_LINEAR) are valid with D3DRENDERSTATE_TEXTUREMAG.
+			case NULL:
 			case D3DFILTER_NEAREST:
 			case D3DFILTER_LINEAR:
 				return SetD9SamplerState(0, D3DSAMP_MAGFILTER, dwRenderState);
@@ -2083,22 +2083,23 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			switch (dwRenderState)
 			{
+			case NULL:
 			case D3DFILTER_NEAREST:
 			case D3DFILTER_LINEAR:
 				SetD9SamplerState(0, D3DSAMP_MINFILTER, dwRenderState);
-				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
+				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTFP_NONE);
 			case D3DFILTER_MIPNEAREST:
-				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
-				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_POINT);
+				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTFN_POINT);
+				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTFP_POINT);
 			case D3DFILTER_MIPLINEAR:
-				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_POINT);
+				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTFN_LINEAR);
+				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTFP_POINT);
 			case D3DFILTER_LINEARMIPNEAREST:
-				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
-				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTFN_POINT);
+				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTFP_LINEAR);
 			case D3DFILTER_LINEARMIPLINEAR:
-				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
+				SetD9SamplerState(0, D3DSAMP_MINFILTER, D3DTFN_LINEAR);
+				return SetD9SamplerState(0, D3DSAMP_MIPFILTER, D3DTFP_LINEAR);
 			default:
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: unsupported 'D3DRENDERSTATE_TEXTUREMIN' state: " << dwRenderState);
 				return D3D_OK;
@@ -3599,8 +3600,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		{
 		case D3DTSS_ADDRESS:
 			SetD9SamplerState(dwStage, D3DSAMP_ADDRESSU, dwValue);
-			SetD9SamplerState(dwStage, D3DSAMP_ADDRESSV, dwValue);
-			return D3D_OK;
+			return SetD9SamplerState(dwStage, D3DSAMP_ADDRESSV, dwValue);
 		case D3DTSS_ADDRESSU:
 			return SetD9SamplerState(dwStage, D3DSAMP_ADDRESSU, dwValue);
 		case D3DTSS_ADDRESSV:
@@ -5614,8 +5614,6 @@ HRESULT m_IDirect3DDeviceX::GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 		*lpValue = DefaultSamplerState[Sampler][Type];
 	}
 
-	RestoreSamplerState(Type, *lpValue);
-
 	return D3D_OK;
 }
 
@@ -5630,8 +5628,6 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().SamplerState[Sampler][Type] = Value;
 	}
-
-	UpdateSamplerState(Type, Value);
 
 	DeviceStates.SamplerState[Sampler][Type].Set = (DefaultSamplerState[Sampler][Type] != Value);
 	DeviceStates.SamplerState[Sampler][Type].State = Value;
