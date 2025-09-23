@@ -6168,10 +6168,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			DrawStates.rsClipping = TRUE;
 			(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, FALSE);
 		}
-		// Only disable lighting when:
-		// 1. The draw call has D3DDP_DONOTLIGHT set, or
-		// 2. The FVF contains D3DFVF_XYZRHW (meaning transformed + lit vertices)
-		if ((dwFlags & D3DDP_DONOTLIGHT) || (dwVertexTypeDesc & D3DFVF_XYZRHW))
+		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL))
 		{
 			dwFlags |= D3DDP_DONOTLIGHT;
 			DrawStates.rsLighting = TRUE;
