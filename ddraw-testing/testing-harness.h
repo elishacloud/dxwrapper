@@ -8,7 +8,7 @@
 		DWORD Result = (DWORD)ExpectedResult; \
 		if (Value == Result && Value != TEST_FAILED && Result != TEST_FAILED) \
 		{ \
-				Logging::Log() << "Testing: " << TestID << " Succeded! " << LogEntry << TestValue << " -> " << ExpectedResult; \
+				Logging::Log() << "Testing: " << TestID << " Succeeded! " << LogEntry << TestValue << " -> " << ExpectedResult; \
 		} \
 		else \
 		{ \

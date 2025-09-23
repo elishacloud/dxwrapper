@@ -55,7 +55,7 @@ private:
 	};
 	struct DEVICESTATE {
 		STATESTRUCT RenderState[D3D_MAXRENDERSTATES];
-		DWORD LightState[MaxLightStates];
+		DWORD LightState[MaxLightStates] = {};
 		STATESTRUCT TextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates];
 		STATESTRUCT SamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE];
 		CLIPPLANESTRUCT ClipPlane[MaxClipPlaneIndex];
@@ -64,7 +64,12 @@ private:
 		std::unordered_map<DWORD, D3DLIGHT9> Light;
 		std::unordered_map<DWORD, BOOL> LightEnable;
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
-		std::unordered_map<D3DRENDERSTATETYPE, DWORD> rsMap;
+		DWORD rsMap128 = 0;	// D3DRS_WRAP0
+		DWORD rsMap139 = 0;	// D3DRS_AMBIENT
+		DWORD rsMap140 = 0;	// D3DRS_FOGVERTEXMODE
+		DWORD rsMap141 = 0;	// D3DRS_COLORVERTEX
+		DWORD rsMap161 = 0;	// D3DRS_MULTISAMPLEANTIALIAS
+		DWORD rsMap195 = 0;	// D3DRS_DEPTHBIAS
 	};
 	DEVICESTATE DeviceStates;
 
@@ -137,9 +142,6 @@ private:
 	bool bSetDefaults = true;
 	bool RequiresStateRestore = false;
 	bool IsInScene = false;
-	bool rsAntiAliasChanged = false;
-	bool rsZBiasChanged = false;
-	bool rsWrapChanged = false;
 
 	// Default clip status
 	D3DCLIPSTATUS D3DClipStatus = DefaultClipStatus;
@@ -152,12 +154,15 @@ private:
 		std::optional<VERTEXSTATE> VertexState;
 		std::optional<DEVICESTATE> FullState;
 	};
-	struct {
+	struct STATEBLOCK {
 		bool IsRecording = false;
 		DWORD RecordingToken = 0;
-		DWORD LastTokenUsed = ((DWORD)this << 8 | (DWORD)this >> 8);
+		DWORD LastTokenUsed = 0;
 		std::vector<DWORD> Tokens;
 		std::unordered_map<DWORD, STATEBLOCKDATA> Data;
+
+		STATEBLOCK() { LastTokenUsed = ((DWORD)this << 8 | (DWORD)this >> 8); }
+		~STATEBLOCK() {}
 
 		DWORD CreateToken(D3DSTATEBLOCKTYPE Type)
 		{

@@ -299,19 +299,6 @@ bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectX
 	return false;
 }
 
-bool OverloadedD9RenderState(D3DRENDERSTATETYPE dwRenderStateType)
-{
-	switch (dwRenderStateType)
-	{
-	case D3DRS_AMBIENT:			// 139
-	case D3DRS_FOGVERTEXMODE:	// 140
-	case D3DRS_COLORVERTEX:		// 141
-	case D3DRS_DEPTHBIAS:		// 195
-		return true;
-	}
-	return false;
-}
-
 DWORD GetDepthBias(DWORD ZBias, DWORD DepthBits)
 {
 	float denom = (DepthBits < 32) ? (float)(1u << CLAMP(DepthBits, 15, 31)) : 4294967296.0f;
