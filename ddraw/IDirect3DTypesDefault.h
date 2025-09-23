@@ -1,6 +1,7 @@
 #pragma once
 
-constexpr UINT MaxTextureStageStates = 33;  // Devices have up to 32+1 stage states.
+constexpr UINT MaxLightStates = 9;			// Devices have up to 8+1 light states.
+constexpr UINT MaxTextureStageStates = 33;  // Devices have up to 32+1 texture stage states.
 constexpr UINT MaxClipPlaneIndex = 6;       // Devices can have up to 6 clip planes.
 constexpr UINT MaxActiveLights = 32;        // Devices can have up to 32 lights.
 

@@ -53,19 +53,11 @@ private:
 		bool Set = false;
 		D3DMATERIAL9 Material = {};
 	};
-	struct DWORDSTRUCT {
-		DWORD State = 1;
-
-		DWORDSTRUCT() {}
-
-		// Constructor from DWORD
-		DWORDSTRUCT(DWORD value) { State = value; }
-
-		// Conversion to DWORD
-		operator DWORD() const { return State; }
-	};
 	struct DEVICESTATE {
-		STATESTRUCT RenderState[D3D_MAXRENDERSTATES], TextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates], SamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE];
+		STATESTRUCT RenderState[D3D_MAXRENDERSTATES];
+		DWORD LightState[MaxLightStates];
+		STATESTRUCT TextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates];
+		STATESTRUCT SamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE];
 		CLIPPLANESTRUCT ClipPlane[MaxClipPlaneIndex];
 		VIEWPORTSTRUCT Viewport;
 		MATERIALSTRUCT Material = {};
@@ -73,9 +65,6 @@ private:
 		std::unordered_map<DWORD, BOOL> LightEnable;
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
 		std::unordered_map<D3DRENDERSTATETYPE, DWORD> rsMap;
-		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> tsMap0;
-		std::unordered_map<D3DSAMPLERSTATETYPE, DWORDSTRUCT> ssMapAddressUV[D3DHAL_TSS_MAXSTAGES];
-		std::unordered_map<D3DLIGHTSTATETYPE, DWORD> lsMap;
 	};
 	DEVICESTATE DeviceStates;
 
@@ -115,18 +104,12 @@ private:
 		std::unordered_map<DWORD, D3DVIEWPORT9> Viewport;
 		std::unordered_map<DWORD, D3DMATERIAL9> Material;
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
-		std::unordered_map<D3DRENDERSTATETYPE, DWORD> rsMap;
-		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> tsMap0;
-		std::unordered_map<D3DSAMPLERSTATETYPE, DWORD> ssMapAddressUV[D3DHAL_TSS_MAXSTAGES];
 	};
 
 	struct PIXELSTATE {
 		STATESTRUCT TextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates];
 		STATESTRUCT SamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE];
 		std::unordered_map<D3DRENDERSTATETYPE, STATESTRUCT> RenderState;
-		std::unordered_map<D3DRENDERSTATETYPE, DWORD> rsMap;
-		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> tsMap0;
-		std::unordered_map<D3DSAMPLERSTATETYPE, DWORDSTRUCT> ssMapAddressUV[D3DHAL_TSS_MAXSTAGES];
 	};
 
 	struct VERTEXSTATE {
@@ -135,7 +118,6 @@ private:
 		std::unordered_map<D3DTEXTURESTAGESTATETYPE, STATESTRUCT> TextureStageState[D3DHAL_TSS_MAXSTAGES];
 		std::unordered_map<DWORD, BOOL> LightEnable;
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
-		std::unordered_map<D3DRENDERSTATETYPE, DWORD> rsMap;
 	};
 
 	struct {
@@ -150,12 +132,6 @@ private:
 		float lowColorKey[4] = {};
 		float highColorKey[4] = {};
 	} DrawStates;
-
-	// Texture handle
-	DWORD rsTextureHandle = NULL;
-
-	// Material handle
-	DWORD lsMaterialHandle = NULL;
 
 	// Flags
 	bool bSetDefaults = true;
@@ -258,11 +234,8 @@ private:
 	HRESULT SetTextureHandle(DWORD TexHandle);
 	HRESULT SetMaterialHandle(DWORD MatHandle);
 	inline HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue) const;
-	inline void SetRenderStateMap(D3DRENDERSTATETYPE State, DWORD Value);
 	inline HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
 	inline HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue) const;
-	inline void SetTextureStageStateMap(D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
-	inline void SetSamplerStateMap(DWORD Stage, D3DSAMPLERSTATETYPE Type, DWORD Value);
 	inline HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
 	inline HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue) const;
 	inline HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
@@ -510,7 +483,7 @@ public:
 	// Material handle function
 	void ClearMaterialHandle(D3DMATERIALHANDLE mHandle);
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial);
-	bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == lsMaterialHandle); }
+	bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == DeviceStates.LightState[D3DLIGHTSTATE_MATERIAL]); }
 
 	// Light index function
 	bool IsLightInUse(m_IDirect3DLight* pLightX);
