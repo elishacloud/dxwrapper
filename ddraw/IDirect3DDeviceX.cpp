@@ -5629,6 +5629,8 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().SamplerState[Sampler][Type] = Value;
 	}
 
+	BatchStates.SamplerState[Sampler][Type] = FixSamplerState(Type, Value);
+
 	DeviceStates.SamplerState[Sampler][Type].Set = (DefaultSamplerState[Sampler][Type] != Value);
 	DeviceStates.SamplerState[Sampler][Type].State = Value;
 
@@ -5921,7 +5923,7 @@ void m_IDirect3DDeviceX::PrepDevice()
 			BatchStates.TextureStageState[x].clear();
 			for (const auto& entry : BatchStates.SamplerState[x])
 			{
-				(*d3d9Device)->SetSamplerState(x, entry.first, FixSamplerState(entry.first, entry.second));
+				(*d3d9Device)->SetSamplerState(x, entry.first, entry.second);
 			}
 			BatchStates.SamplerState[x].clear();
 		}
