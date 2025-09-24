@@ -301,8 +301,7 @@ bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectX
 
 DWORD GetDepthBias(DWORD ZBias, DWORD DepthBits)
 {
-	float denom = (DepthBits < 32) ? (float)(1u << CLAMP(DepthBits, 15, 31)) : 4294967296.0f;
-	float DepthBias = -(static_cast<float>(min(ZBias, 16)) / denom);
+	float DepthBias = static_cast<float>(static_cast<double>min(ZBias, 16) * -(1.0 / ((1ULL << (ULONGLONG)CLAMP(DepthBits, 15, 32)) - 1)));
 	return *reinterpret_cast<DWORD*>(&DepthBias);
 }
 

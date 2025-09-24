@@ -2252,7 +2252,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_ZBIAS:				// 47
 			if (dwRenderState != DeviceStates.RenderState[dwRenderStateType].State)
 			{
-				SetD9RenderState(D3DRS_DEPTHBIAS, GetDepthBias(DeviceStates.RenderState[dwRenderStateType].State, DepthBits));
+				SetD9RenderState(D3DRS_DEPTHBIAS, GetDepthBias(dwRenderState, DepthBits));
 			}
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return D3D_OK;
