@@ -195,7 +195,7 @@ private:
 	// Render target
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
 	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
-	DWORD DepthBits = 16;
+	DWORD DepthBits = 0;
 
 	// SetTexture array
 	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[D3DHAL_TSS_MAXSTAGES] = {};

@@ -301,7 +301,8 @@ bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectX
 
 DWORD GetDepthBias(DWORD ZBias, DWORD DepthBits)
 {
-	float DepthBias = static_cast<float>(static_cast<double>min(ZBias, 16) * -(1.0 / ((1ULL << (ULONGLONG)CLAMP(DepthBits, 15, 32)) - 1)));
+	DepthBits = DepthBits ? DepthBits : 16;
+	float DepthBias = static_cast<float>(static_cast<double>min(ZBias, 16) * -(1.0 / ((1ULL << CLAMP(DepthBits, 15, 32)) - 1)));
 	return *reinterpret_cast<DWORD*>(&DepthBias);
 }
 
@@ -807,10 +808,11 @@ bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState)
 
 const int o0_0f = 0x00000000; // float(0.0f) as int
 const int o1_0f = 0x3F800000; // float(1.0f) as int
-struct XYZ_16 { int x, y, z, w; };
+
+struct XYZ_16 { float x; float y; union { float z; int z_i; }; union { float rhw; int rhw_i; }; };
 
 #define DEFINE_XYZ_STRUCT(size) \
-	struct XYZ_##size { int x, y, z, w; DWORD a[((size - 16) / 4)]; };
+	struct XYZ_##size { float x; float y; union { float z; int z_i; }; union { float rhw; int rhw_i; }; float a[((size - 16) / 4)]; };
 
 DEFINE_XYZ_STRUCT(20)
 DEFINE_XYZ_STRUCT(24)
@@ -848,20 +850,41 @@ DEFINE_XYZ_STRUCT(148)
 DEFINE_XYZ_STRUCT(152)
 
 template <typename T>
-void ClampVerticesX(T* pDestVertex, DWORD dwNumVertices)
+void ClampVerticesX(T* pVertex, DWORD dwNumVertices)
 {
-	for (DWORD x = 0; x < dwNumVertices; x++)
+	switch (Config.DdrawClampVertexZDepth)
 	{
-		pDestVertex[x].z = min(pDestVertex[x].z, o1_0f);
+	default:
+	case 1:
+		for (DWORD x = 0; x < dwNumVertices; x++)
+		{
+			pVertex[x].z_i = min(pVertex[x].z_i, o1_0f);
+		}
+		break;
+	case 2:
+		for (DWORD x = 0; x < dwNumVertices; x++)
+		{
+			if (pVertex[x].rhw)
+			{
+				float tw = 1.0f / pVertex[x].rhw;      // recover tw
+				float tz = pVertex[x].z * tw;          // recover tz
+
+				tw = CLAMP(tw, min_rhw, max_rhw);      // clamp tw
+
+				pVertex[x].z = tz / tw;                // redo z
+				pVertex[x].rhw = 1.0f / tw;            // redo rhw
+			}
+
+			pVertex[x].z_i = CLAMP(pVertex[x].z_i, o0_0f, o1_0f);
+		}
+		break;
+	case 0:
+		break;
 	}
 }
 
 void ClampVertices(BYTE* pVertexData, DWORD Stride, DWORD dwNumVertices)
 {
-	if (!Config.DdrawClampVertexZDepth)
-	{
-		return;
-	}
 	if (Stride == 16) ClampVerticesX(reinterpret_cast<XYZ_16*>(pVertexData), dwNumVertices);
 	else if (Stride == 20) ClampVerticesX(reinterpret_cast<XYZ_20*>(pVertexData), dwNumVertices);
 	else if (Stride == 24) ClampVerticesX(reinterpret_cast<XYZ_24*>(pVertexData), dwNumVertices);

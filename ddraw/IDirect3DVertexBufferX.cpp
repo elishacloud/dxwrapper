@@ -1185,7 +1185,10 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 
 		dst.x = tx / tw;
 		dst.y = ty / tw;
-		dst.z = Config.DdrawClampVertexZDepth ? min(tz / tw, 1.0f) : tz / tw;
+		tw = (Config.DdrawClampVertexZDepth == 2) ? CLAMP(tw, min_rhw, max_rhw) : tw;
+		dst.z = tz / tw;
+		dst.z = (Config.DdrawClampVertexZDepth == 2) ? CLAMP(dst.z, 0.0f, 1.0f) :
+			Config.DdrawClampVertexZDepth ? min(dst.z, 1.0f) : dst.z;
 		dst.w = 1.0f / tw;
 
 		// Perform lighting if required
@@ -1274,7 +1277,10 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 
 		dst.sx = tx / tw;
 		dst.sy = ty / tw;
-		dst.sz = Config.DdrawClampVertexZDepth ? min(tz / tw, 1.0f) : tz / tw;
+		tw = (Config.DdrawClampVertexZDepth == 2) ? CLAMP(tw, min_rhw, max_rhw) : tw;
+		dst.sz = tz / tw;
+		dst.sz = (Config.DdrawClampVertexZDepth == 2) ? CLAMP(dst.sz, 0.0f, 1.0f) :
+			Config.DdrawClampVertexZDepth ? min(dst.sz, 1.0f) : dst.sz;
 		dst.rhw = 1.0f / tw;
 
 		// Default values: set for XYZ or copy for detailed vertex

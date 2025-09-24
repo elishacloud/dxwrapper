@@ -386,6 +386,10 @@ typedef enum _D3DSURFACETYPE {
 
 #define CLAMP(val,zmin,zmax) (max((zmin),min((zmax),(val))))
 
+// Clamp rhw values
+const float max_rhw = static_cast<float>(1u << 31);
+const float min_rhw = 1.0f / max_rhw;
+
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light);
 D3DLIGHT9 FixLight(const D3DLIGHT9& Light);
 void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7);
