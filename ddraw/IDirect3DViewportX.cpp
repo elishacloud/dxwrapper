@@ -230,6 +230,14 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 		return D3D_OK;
 	}
 
+	if (Config.DdrawUseNativeResolution && lpData)
+	{
+		lpData->dwX = (LONG)(lpData->dwX * ScaleDDWidthRatio) + ScaleDDPadX;
+		lpData->dwY = (LONG)(lpData->dwY * ScaleDDHeightRatio) + ScaleDDPadY;
+		lpData->dwWidth = (LONG)(lpData->dwWidth * ScaleDDWidthRatio);
+		lpData->dwHeight = (LONG)(lpData->dwHeight * ScaleDDHeightRatio);
+	}
+
 	return ProxyInterface->SetViewport(lpData);
 }
 
@@ -771,6 +779,14 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 		SetCurrentViewportActive(true, false, false);
 
 		return D3D_OK;
+	}
+
+	if (Config.DdrawUseNativeResolution && lpData)
+	{
+		lpData->dwX = (LONG)(lpData->dwX * ScaleDDWidthRatio) + ScaleDDPadX;
+		lpData->dwY = (LONG)(lpData->dwY * ScaleDDHeightRatio) + ScaleDDPadY;
+		lpData->dwWidth = (LONG)(lpData->dwWidth * ScaleDDWidthRatio);
+		lpData->dwHeight = (LONG)(lpData->dwHeight * ScaleDDHeightRatio);
 	}
 
 	return ProxyInterface->SetViewport2(lpData);

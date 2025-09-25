@@ -720,6 +720,34 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		return hr;
 	}
 
+	RECT DstRect = { 0, 0, 0, 0 };
+	if (Config.DdrawUseNativeResolution)
+	{
+		if (lpDestRect)
+		{
+			DstRect.left = (LONG)(lpDestRect->left * ScaleDDWidthRatio) + ScaleDDPadX;
+			DstRect.top = (LONG)(lpDestRect->top * ScaleDDHeightRatio) + ScaleDDPadY;
+			DstRect.right = (LONG)(lpDestRect->right * ScaleDDWidthRatio) + ScaleDDPadX;
+			DstRect.bottom = (LONG)(lpDestRect->bottom * ScaleDDHeightRatio) + ScaleDDPadY;
+		}
+		else
+		{
+			DstRect.left = ScaleDDPadX;
+			DstRect.top = ScaleDDPadY;
+			DstRect.right = ScaleDDCurrentWidth - (ScaleDDPadX * 2);
+			DstRect.bottom = ScaleDDCurrentHeight - (ScaleDDPadY * 2);
+		}
+
+		DDSURFACEDESC Desc = {};
+		Desc.dwSize = sizeof(Desc);
+		GetSurfaceDesc(&Desc, 0, 0);
+
+		if ((Desc.ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_FRONTBUFFER | DDSCAPS_BACKBUFFER)) && DstRect.right <= (LONG)ScaleDDCurrentWidth && DstRect.bottom <= (LONG)ScaleDDCurrentHeight)
+		{
+			lpDestRect = &DstRect;
+		}
+	}
+
 	if (lpDDSrcSurface)
 	{
 		lpDDSrcSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSrcSurface);
@@ -879,6 +907,50 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 	if (lpDDSrcSurface)
 	{
 		lpDDSrcSurface->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDDSrcSurface);
+	}
+
+	if (Config.DdrawUseNativeResolution)
+	{
+		RECT DstRect = { 0, 0, 0, 0 };
+		if (lpSrcRect)
+		{
+			DstRect.left = (LONG)(dwX * ScaleDDWidthRatio) + ScaleDDPadX;
+			DstRect.top = (LONG)(dwY * ScaleDDHeightRatio) + ScaleDDPadY;
+			DstRect.right = (LONG)((lpSrcRect->right - lpSrcRect->left) * ScaleDDWidthRatio) + DstRect.left;
+			DstRect.bottom = (LONG)((lpSrcRect->bottom - lpSrcRect->top) * ScaleDDHeightRatio) + DstRect.top;
+		}
+		else
+		{
+			DstRect.left = ScaleDDPadX;
+			DstRect.top = ScaleDDPadY;
+			DstRect.right = ScaleDDCurrentWidth - (ScaleDDPadX * 2);
+			DstRect.bottom = ScaleDDCurrentHeight - (ScaleDDPadY * 2);
+		}
+
+		DDSURFACEDESC Desc = {};
+		Desc.dwSize = sizeof(Desc);
+		GetSurfaceDesc(&Desc, 0, 0);
+
+		if ((Desc.ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_FRONTBUFFER | DDSCAPS_BACKBUFFER)) && DstRect.right <= (LONG)ScaleDDCurrentWidth && DstRect.bottom <= (LONG)ScaleDDCurrentHeight)
+		{
+			// Convert BltFast flags into Blt flags
+			DWORD Flags = 0;
+			if (dwFlags & DDBLTFAST_SRCCOLORKEY)
+			{
+				Flags |= DDBLT_KEYSRC;
+			}
+			if (dwFlags & DDBLTFAST_DESTCOLORKEY)
+			{
+				Flags |= DDBLT_KEYDEST;
+			}
+			if (dwFlags & DDBLTFAST_WAIT)
+			{
+				Flags |= DDBLT_WAIT;
+			}
+
+			// Call Blt
+			return ProxyInterface->Blt(&DstRect, lpDDSrcSurface, lpSrcRect, Flags, nullptr);
+		}
 	}
 
 	HRESULT hr = ProxyInterface->BltFast(dwX, dwY, lpDDSrcSurface, lpSrcRect, dwFlags);
