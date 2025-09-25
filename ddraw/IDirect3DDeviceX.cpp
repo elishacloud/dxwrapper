@@ -2196,6 +2196,12 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_ALPHAREF:			// 24
 			dwRenderState &= 0xFF;
 			break;
+		case D3DRENDERSTATE_BLENDENABLE:		// 27
+			if (ClientDirectXVersion == 1)
+			{
+				DeviceStates.RenderState[D3DRENDERSTATE_COLORKEYENABLE].State = dwRenderState;
+			}
+			break;
 		case D3DRENDERSTATE_ZVISIBLE:			// 30
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
@@ -6054,11 +6060,7 @@ void m_IDirect3DDeviceX::SetDefaults()
 	RequiresStateRestore = true;
 
 	// Render states
-	if (ClientDirectXVersion == 1)
-	{
-		DeviceStates.RenderState[D3DRENDERSTATE_COLORKEYENABLE].State = TRUE;
-	}
-	else
+	if (ClientDirectXVersion > 1)
 	{
 		for (auto State : { 1, 4, 5, 6, 10, 11, 30, 31, 32, 33, 39, 41, 43, 46, 47 })
 		{
