@@ -1181,14 +1181,23 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 		float tw = x * m[3] + y * m[7] + z * m[11] + w * m[15];
 
 		// Avoid divide by zero
-		tw = (tw == 0.0f) ? FLT_EPSILON : tw;
+		if (tw <= 0.0f)
+		{
+			// Vertex is behind the camera plane -> mark invalid
+			dst.x = 0.0f;
+			dst.y = 0.0f;
+			dst.z = 0.0f;
+			dst.w = 0.0f;
+			continue;
+		}
 
+		// Compute x and y first
 		dst.x = tx / tw;
 		dst.y = ty / tw;
-		tw = (Config.DdrawClampVertexZDepth == 2) ? CLAMP(tw, min_rhw, max_rhw) : tw;
-		dst.z = tz / tw;
-		dst.z = (Config.DdrawClampVertexZDepth == 2) ? CLAMP(dst.z, 0.0f, 1.0f) :
-			Config.DdrawClampVertexZDepth ? min(dst.z, 1.0f) : dst.z;
+
+		// Compute z and w with clamping
+		tw = CLAMP(tw, min_rhw, max_rhw);
+		dst.z = CLAMP(tz / tw, 0.0f, 1.0f);
 		dst.w = 1.0f / tw;
 
 		// Perform lighting if required
@@ -1273,14 +1282,23 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 		float tw = x * m[3] + y * m[7] + z * m[11] + w * m[15];
 
 		// Avoid divide by zero
-		tw = (tw == 0.0f) ? FLT_EPSILON : tw;
+		if (tw <= 0.0f)
+		{
+			// Vertex is behind the camera plane -> mark invalid
+			dst.sx = 0.0f;
+			dst.sy = 0.0f;
+			dst.sz = 0.0f;
+			dst.rhw = 0.0f;
+			continue;
+		}
 
+		// Compute x and y first
 		dst.sx = tx / tw;
 		dst.sy = ty / tw;
-		tw = (Config.DdrawClampVertexZDepth == 2) ? CLAMP(tw, min_rhw, max_rhw) : tw;
-		dst.sz = tz / tw;
-		dst.sz = (Config.DdrawClampVertexZDepth == 2) ? CLAMP(dst.sz, 0.0f, 1.0f) :
-			Config.DdrawClampVertexZDepth ? min(dst.sz, 1.0f) : dst.sz;
+
+		// Compute z and w with clamping
+		tw = CLAMP(tw, min_rhw, max_rhw);
+		dst.sz = CLAMP(tz / tw, 0.0f, 1.0f);
 		dst.rhw = 1.0f / tw;
 
 		// Default values: set for XYZ or copy for detailed vertex
