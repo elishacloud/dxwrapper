@@ -2738,11 +2738,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		return hr;
 	}
 
-	if (Config.DdrawUseNativeResolution)
-	{
-		ScaleVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
-	}
-
 	switch (ProxyDirectXVersion)
 	{
 	case 1:
@@ -2834,11 +2829,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 #endif
 
 		return hr;
-	}
-
-	if (Config.DdrawUseNativeResolution)
-	{
-		ScaleVertices(dwVertexTypeDesc, lpVertices, dwVertexCount);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -3913,17 +3903,6 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 		DeviceStates.Viewport.UseViewportScale = false;
 
 		return SetD9Viewport((D3DVIEWPORT9*)lpViewport);
-	}
-
-	D3DVIEWPORT7 Viewport7;
-	if (Config.DdrawUseNativeResolution && lpViewport)
-	{
-		ConvertViewport(Viewport7, *lpViewport);
-		Viewport7.dwX = (LONG)(Viewport7.dwX * ScaleDDWidthRatio) + ScaleDDPadX;
-		Viewport7.dwY = (LONG)(Viewport7.dwY * ScaleDDHeightRatio) + ScaleDDPadY;
-		Viewport7.dwWidth = (LONG)(Viewport7.dwWidth * ScaleDDWidthRatio);
-		Viewport7.dwHeight = (LONG)(Viewport7.dwHeight * ScaleDDHeightRatio);
-		lpViewport = &Viewport7;
 	}
 
 	return GetProxyInterfaceV7()->SetViewport(lpViewport);
@@ -6388,24 +6367,6 @@ void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLigh
 	else if (lpCurrentViewportX)
 	{
 		lpCurrentViewportX->GetEnabledLightList(AttachedLightList, this);
-	}
-}
-
-void m_IDirect3DDeviceX::ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount)
-{
-	if (dwVertexTypeDesc == 3)
-	{
-		VertexCache.resize(dwVertexCount * sizeof(D3DTLVERTEX));
-		memcpy(VertexCache.data(), lpVertices, dwVertexCount * sizeof(D3DTLVERTEX));
-		D3DTLVERTEX* pVert = (D3DTLVERTEX*)VertexCache.data();
-
-		for (DWORD x = 0; x < dwVertexCount; x++)
-		{
-			pVert[x].sx = (D3DVALUE)(pVert[x].sx * ScaleDDWidthRatio) + ScaleDDPadX;
-			pVert[x].sy = (D3DVALUE)(pVert[x].sy * ScaleDDHeightRatio) + ScaleDDPadY;
-		}
-
-		lpVertices = pVert;
 	}
 }
 

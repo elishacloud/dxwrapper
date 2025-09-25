@@ -243,15 +243,6 @@ static constexpr DWORD DDS_HEADER_SIZE			= sizeof(DWORD) + sizeof(DDS_HEADER);
 static constexpr DWORD DDS_HEADER_FLAGS_TEXTURE	= 0x00001007; // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT 
 static constexpr DWORD DDS_HEADER_FLAGS_PITCH	= 0x00000008;
 
-extern float ScaleDDWidthRatio;
-extern float ScaleDDHeightRatio;
-extern DWORD ScaleDDLastWidth;
-extern DWORD ScaleDDLastHeight;
-extern DWORD ScaleDDCurrentWidth;
-extern DWORD ScaleDDCurrentHeight;
-extern DWORD ScaleDDPadX;
-extern DWORD ScaleDDPadY;
-
 void AddDisplayResolution(DWORD Width, DWORD Height);
 bool IsDisplayResolution(DWORD Width, DWORD Height);
 template <typename T>

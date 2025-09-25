@@ -17,15 +17,6 @@
 #include "ddraw.h"
 #include "Utils\Utils.h"
 
-float ScaleDDWidthRatio = 1.0f;
-float ScaleDDHeightRatio = 1.0f;
-DWORD ScaleDDLastWidth = 0;
-DWORD ScaleDDLastHeight = 0;
-DWORD ScaleDDCurrentWidth = 0;
-DWORD ScaleDDCurrentHeight = 0;
-DWORD ScaleDDPadX = 0;
-DWORD ScaleDDPadY = 0;
-
 // For storing resolution list
 std::vector<std::pair<DWORD, DWORD>> CashedDisplayResolutions;
 
