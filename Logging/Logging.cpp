@@ -762,6 +762,36 @@ std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd)
 		<< dd.dwReserved4;
 }
 
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT& vp)
+{
+	return Logging::LogStruct(os)
+		<< vp.dwX
+		<< vp.dwY
+		<< vp.dwWidth
+		<< vp.dwHeight
+		<< vp.dvScaleX
+		<< vp.dvScaleY
+		<< vp.dvMaxX
+		<< vp.dvMaxY
+		<< vp.dvMinZ
+		<< vp.dvMaxZ;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT2& vp)
+{
+	return Logging::LogStruct(os)
+		<< vp.dwX
+		<< vp.dwY
+		<< vp.dwWidth
+		<< vp.dwHeight
+		<< vp.dvClipX
+		<< vp.dvClipY
+		<< vp.dvClipWidth
+		<< vp.dvClipHeight
+		<< vp.dvMinZ
+		<< vp.dvMaxZ;
+}
+
 std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT7& vp)
 {
 	return Logging::LogStruct(os)

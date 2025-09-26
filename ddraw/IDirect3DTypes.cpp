@@ -387,8 +387,8 @@ D3DMATRIX FixMatrix(const D3DMATRIX& Matrix, D3DTRANSFORMSTATETYPE State, D3DVIE
 	{
 		if (Viewport.dvScaleX != 0 && Viewport.dvScaleY != 0 && Viewport.dvMaxX != 0 && Viewport.dvMaxY != 0 && Viewport.dwWidth != 0 && Viewport.dwHeight != 0)
 		{
-			const float sx = Viewport.dvScaleX / (Viewport.dwWidth * 0.5f * Viewport.dvMaxX);
-			const float sy = Viewport.dvScaleY / (Viewport.dwHeight * 0.5f * Viewport.dvMaxY);
+			const float sx = 2.0f * (Viewport.dvScaleX * Viewport.dvMaxX) / Viewport.dwWidth;
+			const float sy = 2.0f * (Viewport.dvScaleY * Viewport.dvMaxY) / Viewport.dwHeight;
 
 			result._11 *= sx;
 			result._22 *= sy;

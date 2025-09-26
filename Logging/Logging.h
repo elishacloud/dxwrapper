@@ -81,6 +81,8 @@ std::ostream& operator<<(std::ostream& os, const D3DTRANSFORMCAPS& tc);
 std::ostream& operator<<(std::ostream& os, const D3DLIGHTINGCAPS& lc);
 std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC& dd);
 std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd);
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT& vp);
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT2& vp);
 std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT7& vp);
 #endif
 #ifdef _d3d9TYPES_H_
