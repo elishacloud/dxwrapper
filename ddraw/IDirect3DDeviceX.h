@@ -69,6 +69,7 @@ private:
 		DWORD rsMap140 = 0;	// D3DRS_FOGVERTEXMODE
 		DWORD rsMap141 = 0;	// D3DRS_COLORVERTEX
 		DWORD rsMap161 = 0;	// D3DRS_MULTISAMPLEANTIALIAS
+		DWORD rsMap162 = 0;	// D3DRS_MULTISAMPLEMASK
 		DWORD rsMap195 = 0;	// D3DRS_DEPTHBIAS
 	};
 	DEVICESTATE DeviceStates;
@@ -101,6 +102,7 @@ private:
 
 	struct RECORDSTATE {
 		std::unordered_map<D3DRENDERSTATETYPE, DWORD> RenderState;
+		std::unordered_map<D3DRENDERSTATETYPE, DWORD> UnmappedRenderState;
 		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> TextureStageState[D3DHAL_TSS_MAXSTAGES];
 		std::unordered_map<D3DSAMPLERSTATETYPE, DWORD> SamplerState[D3DHAL_TSS_MAXSTAGES];
 		std::unordered_map<DWORD, D3DLIGHT9> Light;
@@ -238,6 +240,7 @@ private:
 
 	HRESULT SetTextureHandle(DWORD TexHandle);
 	HRESULT SetMaterialHandle(DWORD MatHandle);
+	inline void SetStateBlockRenderState(D3DRENDERSTATETYPE State, DWORD Value);
 	inline HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue) const;
 	inline HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
 	inline HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue) const;
