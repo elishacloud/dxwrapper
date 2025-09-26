@@ -1101,7 +1101,7 @@ bool IsValidFVF(DWORD dwVertexTypeDesc)
 		return false;
 	}
 
-	// Validate texture count is 0–8
+	// Validate texture count is 0-8
 	DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
 	if (texCount > D3DDP_MAXTEXCOORD)
 	{
