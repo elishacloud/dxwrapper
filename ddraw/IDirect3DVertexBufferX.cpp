@@ -169,6 +169,10 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 			return D3D_OK;
 		}
 
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
 		// Lock vertex
 		void* pData = nullptr;
 		HRESULT hr = d3d9VertexBuffer->Lock(0, 0, &pData, Flags);
@@ -210,6 +214,10 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 				*lpdwSize = VB.Size;
 			}
 		}
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
 
 		return D3D_OK;
 	}
