@@ -240,7 +240,7 @@ private:
 
 	HRESULT SetTextureHandle(DWORD TexHandle);
 	HRESULT SetMaterialHandle(DWORD MatHandle);
-	inline void SetStateBlockRenderState(D3DRENDERSTATETYPE State, DWORD Value);
+	inline HRESULT SetStateBlockRenderState(D3DRENDERSTATETYPE State, DWORD Value);
 	inline HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue) const;
 	inline HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
 	inline HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue) const;
