@@ -5141,6 +5141,10 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 		return DDERR_GENERIC;
 	}
 
+#ifdef ENABLE_PROFILING
+	auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
 	// Prepare primary surface render target before presenting
 	PrimarySurface->PrepareRenderTarget();
 
@@ -5208,6 +5212,10 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 
 	// End scene
 	d3d9Device->EndScene();
+
+#ifdef ENABLE_PROFILING
+	Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
 
 	// Present to d3d9
 	if (SUCCEEDED(hr))
@@ -5329,6 +5337,10 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+#ifdef ENABLE_PROFILING
+	auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
 	// Skip frame if time lapse is too small
 	if (Config.DdrawAutoFrameSkip && !EnableWaitVsync && !IsUsingThreadPresent())
 	{
@@ -5381,9 +5393,13 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	{
 		hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
 	}
-	
+
 #ifdef ENABLE_PROFILING
-	Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(presentTime);
+	Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
+
+#ifdef ENABLE_PROFILING
+	Logging::Log() << __FUNCTION__ << " (" << this << ") Full Frame Time = " << Logging::GetTimeLapseInMS(presentTime);
 	presentTime = std::chrono::high_resolution_clock::now();
 #endif
 

@@ -665,7 +665,13 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: process vertices instruction size does not match!");
 				}
 
+#ifdef ENABLE_PROFILING
+				auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
 				bool IsHVertexUsed = false;
+
+				HRESULT hr = D3D_OK;
 
 				BYTE* inputVerts = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwVertexOffset;
 				BYTE* outputVerts = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwHVertexOffset;
@@ -715,7 +721,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						IsHVertexUsed = true;
 						bool IsLight = (Flags & D3DPROCESSVERTICES_TRANSFORMLIGHT) && !(Flags & D3DPROCESSVERTICES_NOCOLOR);
 						bool UpdateExtents = (Flags & D3DPROCESSVERTICES_UPDATEEXTENTS);
-						HRESULT hr = m_IDirect3DVertexBufferX::TransformVertexUP(this, srcVertices, destVertices, nullptr, Count, lpStatus->drExtent, IsLight, UpdateExtents);
+						hr = m_IDirect3DVertexBufferX::TransformVertexUP(this, srcVertices, destVertices, nullptr, Count, lpStatus->drExtent, IsLight, UpdateExtents);
 
 						if (SUCCEEDED(hr))
 						{
@@ -729,6 +735,10 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						}
 					}
 				}
+
+#ifdef ENABLE_PROFILING
+				Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
 
 				// Update vertex buffer to use output
 				if (IsHVertexUsed)
@@ -1306,16 +1316,24 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
 		// When this method succeeds, the scene has been rendered, and the device surface holds the rendered scene.
 
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
 		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		HRESULT hr = (*d3d9Device)->EndScene();
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
 
 		if (SUCCEEDED(hr))
 		{
 			IsInScene = false;
 
 #ifdef ENABLE_PROFILING
-			Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(sceneTime);
+			Logging::Log() << __FUNCTION__ << " (" << this << ") Full Scene Time = " << Logging::GetTimeLapseInMS(sceneTime);
 #endif
 
 			m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
