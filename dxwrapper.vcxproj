@@ -60,18 +60,19 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDLL;WINVER=0x0601;_WIN32_WINNT=0x0601;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;External\imgui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;Libraries\Win10_WDK_10.0.26100.0\include;External\imgui</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>detours.lib;msimg32.lib;oleacc.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>detours.lib;msimg32.lib;Shlwapi.lib;oleacc.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
       <OptimizeReferences>true</OptimizeReferences>
@@ -117,18 +118,19 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_WIN32_WINNT=0x0501;_USRDLL;_USING_V110_SDK71_;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDLL;WINVER=0x0501;_WIN32_WINNT=0x0501;_USING_V110_SDK71_;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;External\dinputto8\Include;External\dinputto8\Include\winsdk-10;External\imgui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;Libraries\Win10_WDK_10.0.26100.0\include;External\dinputto8\Include;External\dinputto8\Include\winsdk-10;External\imgui</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>Psapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Psapi.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
       <OptimizeReferences>true</OptimizeReferences>
@@ -147,23 +149,26 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPATLOG;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;ENABLE_DEBUGOVERLAY;ENABLE_PROFILING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDLL;WINVER=0x0601;_WIN32_WINNT=0x0601;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPATLOG;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;ENABLE_DEBUGOVERLAY;ENABLE_PROFILING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
-      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;External\imgui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);Libraries;Libraries\DirectX81SDK\include;Libraries\Win10_WDK_10.0.26100.0\include;External\imgui</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>detours.lib;msimg32.lib;oleacc.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>detours.lib;msimg32.lib;Shlwapi.lib;oleacc.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
       <Command>IF NOT EXIST "$(TargetDir)Build" mkdir "$(TargetDir)Build" &gt;nul
@@ -644,7 +649,6 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClCompile Include="External\Hooking\Hook.cpp" />
     <ClCompile Include="External\Hooking\HotPatch.cpp" />
     <ClCompile Include="External\Logging\Logging.cpp" />
-    <ClCompile Include="External\MemoryModule\MemoryModule.c" />
     <ClCompile Include="GDI\Comdlg32.cpp" />
     <ClCompile Include="GDI\Gdi32.cpp" />
     <ClCompile Include="GDI\User32.cpp" />
@@ -660,6 +664,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClCompile Include="Utils\CPUAffinity.cpp" />
     <ClCompile Include="Utils\Disasm.cpp" />
     <ClCompile Include="Utils\Fullscreen.cpp" />
+    <ClCompile Include="Utils\MemoryModule.cpp" />
     <ClCompile Include="Utils\MyStrings.cpp" />
     <ClCompile Include="Utils\Utils.cpp" />
     <ClCompile Include="Utils\WriteMemory.cpp" />
@@ -692,6 +697,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="d3d9\IDirect3DVertexShader9.h" />
     <ClInclude Include="d3d9\IDirect3DVolume9.h" />
     <ClInclude Include="d3d9\IDirect3DVolumeTexture9.h" />
+    <ClInclude Include="d3d9\ShadowSurfaceStorage.h" />
     <ClInclude Include="D3DDDI\d3dddiExternal.h" />
     <ClInclude Include="DDrawCompat\DDrawCompatExternal.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
@@ -1174,6 +1180,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="ddraw\IDirect3DMaterialX.h" />
     <ClInclude Include="ddraw\IDirect3DTextureX.h" />
     <ClInclude Include="ddraw\IDirect3DTypes.h" />
+    <ClInclude Include="ddraw\IDirect3DTypesDefault.h" />
     <ClInclude Include="ddraw\IDirect3DVertexBufferX.h" />
     <ClInclude Include="ddraw\IDirect3DViewportX.h" />
     <ClInclude Include="ddraw\IDirect3DX.h" />
@@ -1187,10 +1194,10 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="ddraw\IDirectDrawGammaControl.h" />
     <ClInclude Include="ddraw\IDirectDrawPalette.h" />
     <ClInclude Include="ddraw\IDirectDrawX.h" />
-    <ClInclude Include="ddraw\Shaders\ColorKeyShader.h" />
+    <ClInclude Include="ddraw\Shaders\ColorKeyPixelShader.h" />
     <ClInclude Include="ddraw\Shaders\GammaPixelShader.h" />
-    <ClInclude Include="ddraw\Shaders\PaletteShader.h" />
-    <ClInclude Include="ddraw\Shaders\VertexFixUpShader.h" />
+    <ClInclude Include="ddraw\Shaders\PalettePixelShader.h" />
+    <ClInclude Include="ddraw\Shaders\FixUpVertexShader.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D2.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D3.h" />
@@ -1326,16 +1333,16 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ResourceCompile Include="Dllmain\dxwrapper.rc" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="ddraw\Shaders\ColorKeyShader.hlsl">
+    <CustomBuild Include="ddraw\Shaders\ColorKeyPixelShader.hlsl">
       <FileType>Document</FileType>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" ColorKeyShader.hlsl main ps_2_0 ColorKeyPixelShaderSrc"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\ColorKeyShader.h</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" ColorKeyPixelShader.hlsl main ps_2_0 ColorKeyPixelShaderSrc"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\ColorKeyPixelShader.h</Outputs>
     </CustomBuild>
-    <CustomBuild Include="ddraw\Shaders\PaletteShader.hlsl">
+    <CustomBuild Include="ddraw\Shaders\PalettePixelShader.hlsl">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" PaletteShader.hlsl main ps_2_0 PalettePixelShaderSrc"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\PaletteShader.h</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" PalettePixelShader.hlsl main ps_2_0 PalettePixelShaderSrc"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\PalettePixelShader.h</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
     </CustomBuild>
   </ItemGroup>
@@ -1348,10 +1355,10 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="ddraw\Shaders\VertexFixUpShader.hlsl">
+    <CustomBuild Include="ddraw\Shaders\FixUpVertexShader.hlsl">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" VertexFixUpShader.hlsl main vs_2_0 VertexFixUpShaderSrc"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\VertexFixUpShader.h</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpVertexShader.hlsl main vs_2_0 FixUpVertexShaderSrc"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpVertexShader.h</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
     </CustomBuild>
   </ItemGroup>

@@ -269,7 +269,7 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 		if (!LightSet)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: light has not yet been set.");
-			return DDERR_GENERIC;
+			return DDERR_INVALIDPARAMS;
 		}
 
 		// Copy light

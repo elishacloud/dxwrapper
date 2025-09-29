@@ -14,6 +14,7 @@ private:
 	D3DEXECUTEDATA ExecuteData = {};
 	bool IsLocked = false;
 	bool IsDataValidated = false;
+	bool UsingAppMemory = false;
 
 	// Instruction data 
 	HRESULT ValidateInstructionData(LPD3DEXECUTEDATA lpExecuteData, LPDWORD lpdwOffset, LPD3DVALIDATECALLBACK lpFunc, LPVOID lpUserArg);

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <type_traits>
-
 #include <d3d.h>
 
 #include <DDrawCompat/v0.3.2/Common/CompatVtable.h>

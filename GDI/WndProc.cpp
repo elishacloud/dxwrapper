@@ -304,16 +304,32 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			switch (Msg)
 			{
+			case WM_ACTIVATEAPP:
+				// Some games don't properly handle app activate in exclusive mode
+				if (!pDataStruct->IsExclusiveMode)
+				{
+					break;
+				}
+				[[fallthrough]];
 			case WM_ACTIVATE:
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
 		}
-		// Some games hang when attempting to paint while iconic
+		// Special handling for iconic state to prevent issues with some games
 		if (IsIconic(hWnd))
 		{
 			switch (Msg)
 			{
 			case WM_ACTIVATE:
+				// Tell Windows & game to fully restore
+				if (LOWORD(wParam) == WA_ACTIVE || LOWORD(wParam) == WA_CLICKACTIVE)
+				{
+					CallWndProc(pWndProc, hWnd, Msg, WA_ACTIVE, NULL);
+					CallWndProc(nullptr, hWnd, WM_SYSCOMMAND, SC_RESTORE, NULL);
+					SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+					SetForegroundWindow(hWnd);
+					return 0;
+				}
 				// Some games require filtering this when iconic, other games require this message to see when the window is activated
 				if (pDataStruct->DirectXVersion > 4)
 				{
@@ -321,9 +337,14 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 				}
 				[[fallthrough]];
 			case WM_PAINT:
-			case WM_SYNCPAINT:
+				// Some games hang when attempting to paint while iconic
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
+		}
+		// Handle exclusive mode cases where the window is resized to be different than the display size
+		if (Msg == WM_WINDOWPOSCHANGED && pDataStruct->IsExclusiveMode && lParam)
+		{
+			m_IDirectDrawX::CheckWindowPosChange(hWnd, (WINDOWPOS*)lParam);
 		}
 		// Handle cases where monitor gets disconnected during resolution change
 		if (Msg == WM_DISPLAYCHANGE)
@@ -333,7 +354,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	}
 
 	// Filter some messages while forcing windowed mode
-	if (Config.EnableWindowMode && pDataStruct->IsDirect3D9 && pDataStruct->IsExclusiveMode)
+	if (Config.EnableWindowMode && (pDataStruct->IsDirectDraw || pDataStruct->IsDirect3D9) && pDataStruct->IsExclusiveMode)
 	{
 		switch (Msg)
 		{
@@ -368,6 +389,12 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		ImGuiWndProc(hWnd, Msg, wParam, lParam);
 	}
 #endif
+
+	// Send WM_SYNCPAINT to DefWindowProc
+	if (Msg == WM_SYNCPAINT)
+	{
+		return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+	}
 
 	return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 }

@@ -3,8 +3,9 @@
 class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
-	IDirect3DDevice7 *ProxyInterface = nullptr;
+	IDirect3DDevice7* ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
+	DWORD ClientDirectXVersion;
 	ULONG RefCount1 = 0;
 	ULONG RefCount2 = 0;
 	ULONG RefCount3 = 0;
@@ -18,9 +19,9 @@ private:
 	m_IDirect3DDevice7* WrapperInterface7 = nullptr;
 
 	// Convert to Direct3D9
-	m_IDirectDrawX *ddrawParent = nullptr;
+	m_IDirectDrawX* ddrawParent = nullptr;
 	m_IDirect3DX* D3DInterface = nullptr;
-	LPDIRECT3DDEVICE9 *d3d9Device = nullptr;
+	LPDIRECT3DDEVICE9* d3d9Device = nullptr;
 	LPDIRECT3DPIXELSHADER9* colorkeyPixelShader = nullptr;
 	LPDIRECT3DVERTEXSHADER9* fixupVertexShader = nullptr;
 	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
@@ -34,96 +35,173 @@ private:
 	std::chrono::steady_clock::time_point sceneTime;
 #endif
 
-	struct LIGHTENABLE {
-		BOOL Enable = FALSE;
-		D3DLIGHT9 Light = {};
+	struct STATESTRUCT {
+		bool Set = false;
+		DWORD State = (DWORD)-1;
 	};
-	struct {
-		struct {
-			bool Set = false;
-			DWORD State = 0;
-		} RenderState[MaxDeviceStates], TextureState[MaxTextureStages][MaxTextureStageStates], SamplerState[MaxTextureStages][MaxSamplerStates];
-		std::unordered_map<DWORD, LIGHTENABLE> Lights;
-		struct {
-			bool Set = false;
-			float Plane[4] = {};
-		} ClipPlane[MaxClipPlaneIndex];
-		struct {
-			bool Set = false;
-			D3DVIEWPORT9 View = {};
-			bool UseViewportScale = false;
-			D3DVALUE dvScaleX = 0.0f;
-			D3DVALUE dvScaleY = 0.0f;
-			D3DVALUE dvMaxX = 0.0f;
-			D3DVALUE dvMaxY = 0.0f;
-		} Viewport;
-		struct {
-			bool Set = false;
-			D3DMATERIAL9 Material = {};
-		} Material = {};
+	struct CLIPPLANESTRUCT {
+		bool Set = false;
+		FLOAT4 Plane = {};
+	};
+	struct VIEWPORTSTRUCT {
+		bool Set = false;
+		D3DVIEWPORT9 View = {};
+		D3DVIEWPORT ViewportScale = {};
+		bool UseViewportScale = false;
+	};
+	struct MATERIALSTRUCT {
+		bool Set = false;
+		D3DMATERIAL9 Material = {};
+	};
+	struct DEVICESTATE {
+		STATESTRUCT RenderState[D3D_MAXRENDERSTATES];
+		DWORD LightState[MaxLightStates] = {};
+		STATESTRUCT TextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates];
+		STATESTRUCT SamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE];
+		CLIPPLANESTRUCT ClipPlane[MaxClipPlaneIndex];
+		VIEWPORTSTRUCT Viewport;
+		MATERIALSTRUCT Material = {};
+		std::unordered_map<DWORD, D3DLIGHT9> Light;
+		std::unordered_map<DWORD, BOOL> LightEnable;
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
-	} DeviceStates;
+		DWORD rsMap128 = 0;	// D3DRS_WRAP0
+		DWORD rsMap139 = 0;	// D3DRS_AMBIENT
+		DWORD rsMap140 = 0;	// D3DRS_FOGVERTEXMODE
+		DWORD rsMap141 = 0;	// D3DRS_COLORVERTEX
+		DWORD rsMap161 = 0;	// D3DRS_MULTISAMPLEANTIALIAS
+		DWORD rsMap162 = 0;	// D3DRS_MULTISAMPLEMASK
+		DWORD rsMap195 = 0;	// D3DRS_DEPTHBIAS
+	};
+	DEVICESTATE DeviceStates;
 
 	struct {
 		std::unordered_map<D3DRENDERSTATETYPE, DWORD> RenderState;
-		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> TextureState[MaxTextureStages];
-		std::unordered_map<D3DSAMPLERSTATETYPE, DWORD> SamplerState[MaxTextureStages];
-	} Batch;
+		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> TextureStageState[D3DHAL_TSS_MAXSTAGES];
+		std::unordered_map<D3DSAMPLERSTATETYPE, DWORD> SamplerState[D3DHAL_TSS_MAXSTAGES];
+		std::unordered_map<DWORD, D3DLIGHT9> Light;
+		std::unordered_map<DWORD, BOOL> LightEnable;
+		std::unordered_map<DWORD, FLOAT4> ClipPlane;
+		struct { bool Set = false; } Material;
+		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
+
+		void clear()
+		{
+			RenderState.clear();
+			for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
+			{
+				TextureStageState[x].clear();
+				SamplerState[x].clear();
+			}
+			Light.clear();
+			LightEnable.clear();
+			ClipPlane.clear();
+			Material.Set = false;
+			Matrix.clear();
+		}
+	} BatchStates;
+
+	struct RECORDSTATE {
+		std::unordered_map<D3DRENDERSTATETYPE, DWORD> RenderState;
+		std::unordered_map<D3DRENDERSTATETYPE, DWORD> UnmappedRenderState;
+		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> TextureStageState[D3DHAL_TSS_MAXSTAGES];
+		std::unordered_map<D3DSAMPLERSTATETYPE, DWORD> SamplerState[D3DHAL_TSS_MAXSTAGES];
+		std::unordered_map<DWORD, D3DLIGHT9> Light;
+		std::unordered_map<DWORD, BOOL> LightEnable;
+		std::unordered_map<DWORD, FLOAT4> ClipPlane;
+		std::unordered_map<DWORD, D3DVIEWPORT9> Viewport;
+		std::unordered_map<DWORD, D3DMATERIAL9> Material;
+		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
+	};
+
+	struct PIXELSTATE {
+		STATESTRUCT TextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates];
+		STATESTRUCT SamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE];
+		std::unordered_map<D3DRENDERSTATETYPE, STATESTRUCT> RenderState;
+	};
+
+	struct VERTEXSTATE {
+		CLIPPLANESTRUCT ClipPlane[MaxClipPlaneIndex];
+		std::unordered_map<D3DRENDERSTATETYPE, STATESTRUCT> RenderState;
+		std::unordered_map<D3DTEXTURESTAGESTATETYPE, STATESTRUCT> TextureStageState[D3DHAL_TSS_MAXSTAGES];
+		std::unordered_map<DWORD, BOOL> LightEnable;
+		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
+	};
 
 	struct {
 		DWORD rsClipping = 0;
 		DWORD rsLighting = 0;
-		DWORD rsExtents = 0;
+		//DWORD rsExtents = 0;
 		DWORD rsAlphaTestEnable = 0;
 		DWORD rsAlphaFunc = 0;
 		DWORD rsAlphaRef = 0;
-		DWORD ssMinFilter[MaxTextureStages] = {};
-		DWORD ssMagFilter[MaxTextureStages] = {};
+		DWORD ssMinFilter[D3DHAL_TSS_MAXSTAGES] = {};
+		DWORD ssMagFilter[D3DHAL_TSS_MAXSTAGES] = {};
 		float lowColorKey[4] = {};
 		float highColorKey[4] = {};
 	} DrawStates;
 
+	// Flags
 	bool bSetDefaults = true;
-
+	bool RequiresStateRestore = false;
 	bool IsInScene = false;
 
 	// Default clip status
-	D3DCLIPSTATUS D3DClipStatus { D3DCLIPSTATUS_STATUS, D3DSTATUS_DEFAULT, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-
-	// Light states
-	DWORD lsMaterialHandle;
-
-	// Render states
-	bool rsAntiAliasChanged;
-	DWORD rsAntiAlias;
-	DWORD rsTexturePerspective;
-	DWORD rsEdgeAntiAlias;
-	bool rsTextureWrappingChanged;
-	DWORD rsTextureWrappingU;
-	DWORD rsTextureWrappingV;
-	DWORD rsTextureHandle;
-	DWORD rsTextureMin;
-	DWORD rsTextureMapBlend;
-	DWORD rsAlphaBlendEnabled;
-	DWORD rsSrcBlend;
-	DWORD rsDestBlend;
-	DWORD rsColorKeyEnabled;
-	DWORD ssMipFilter[MaxTextureStages] = {};
+	D3DCLIPSTATUS D3DClipStatus = DefaultClipStatus;
 
 	// Handle state blocks
-	bool IsRecordingState = false;
-	std::unordered_set<DWORD> StateBlockTokens;
+	struct STATEBLOCKDATA {
+		D3DSTATEBLOCKTYPE Type = D3DSBT_ALL;
+		std::optional<RECORDSTATE> RecordState;
+		std::optional<PIXELSTATE> PixelState;
+		std::optional<VERTEXSTATE> VertexState;
+		std::optional<DEVICESTATE> FullState;
+	};
+	struct STATEBLOCK {
+		bool IsRecording = false;
+		DWORD RecordingToken = 0;
+		DWORD LastTokenUsed = 0;
+		std::vector<DWORD> Tokens;
+		std::unordered_map<DWORD, STATEBLOCKDATA> Data;
+
+		STATEBLOCK() { LastTokenUsed = ((DWORD)this << 8 | (DWORD)this >> 8); }
+		~STATEBLOCK() {}
+
+		DWORD CreateToken(D3DSTATEBLOCKTYPE Type)
+		{
+			if (Config.LimitStateBlocks && Data.size() > MAX_STATE_BLOCKS)
+			{
+				DeleteToken(Tokens.front());
+			}
+			LastTokenUsed++;
+			DWORD NewToken = LastTokenUsed;
+			Tokens.push_back(NewToken);
+			Data[NewToken].Type = Type;
+			return NewToken;
+		}
+
+		void DeleteToken(DWORD Token)
+		{
+			auto it = std::find(Tokens.begin(), Tokens.end(), Token);
+			if (it != Tokens.end())
+			{
+				Tokens.erase(it);
+			}
+			Data.erase(Token);
+		}
+	} StateBlock;
 
 	// Default settings
+	D3DCAPS9 Caps9 = {};
 	D3DVIEWPORT9 DefaultViewport = {};
 
 	// Render target
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
 	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
+	DWORD DepthBits = 0;
 
 	// SetTexture array
-	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[MaxTextureStages] = {};
-	LPDIRECTDRAWSURFACE7 AttachedTexture[MaxTextureStages] = {};
+	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[D3DHAL_TSS_MAXSTAGES] = {};
+	LPDIRECTDRAWSURFACE7 AttachedTexture[D3DHAL_TSS_MAXSTAGES] = {};
 
 	// Texture handle map
 	std::unordered_map<D3DTEXTUREHANDLE, m_IDirect3DTextureX*> TextureHandleMap;
@@ -159,34 +237,38 @@ private:
 	// Execute buffer function
 	void CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& DestVertexCount, BYTE* SrcVertex, DWORD SrcIndex, DWORD VertexTypeDesc);
 	HRESULT DrawExecutePoint(D3DPOINT* point, WORD pointCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
+	HRESULT DrawExecuteSpan(D3DSPAN* span, WORD spanCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 	HRESULT DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 	HRESULT DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD triangleCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 
-	HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue);
-	HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
-	HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue);
-	HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
-	HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue);
-	HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
-	HRESULT GetD9Light(DWORD Index, D3DLIGHT9* lpLight);
+	HRESULT SetTextureHandle(DWORD TexHandle);
+	HRESULT SetMaterialHandle(DWORD MatHandle);
+	inline HRESULT SetStateBlockRenderState(D3DRENDERSTATETYPE State, DWORD Value);
+	inline HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue) const;
+	inline HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
+	inline HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue) const;
+	inline HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
+	inline HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue) const;
+	inline HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
+	HRESULT GetD9Light(DWORD Index, D3DLIGHT9* lpLight) const;
 	HRESULT SetD9Light(DWORD Index, const D3DLIGHT9* lpLight);
-	HRESULT GetD9LightEnable(DWORD Index, LPBOOL lpEnable);
+	HRESULT GetD9LightEnable(DWORD Index, LPBOOL lpEnable) const;
 	HRESULT D9LightEnable(DWORD Index, BOOL Enable);
-	HRESULT GetD9ClipPlane(DWORD Index, float* lpPlane);
+	HRESULT GetD9ClipPlane(DWORD Index, float* lpPlane) const;
 	HRESULT SetD9ClipPlane(DWORD Index, const float* lpPlane);
-	HRESULT GetD9Viewport(D3DVIEWPORT9* lpViewport);
+	HRESULT GetD9Viewport(D3DVIEWPORT9* lpViewport) const;
 	HRESULT SetD9Viewport(const D3DVIEWPORT9* lpViewport);
-	HRESULT GetD9Material(D3DMATERIAL9* lpMaterial);
+	HRESULT GetD9Material(D3DMATERIAL9* lpMaterial) const;
 	HRESULT SetD9Material(const D3DMATERIAL9* lpMaterial);
-	HRESULT GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* lpMatrix);
+	HRESULT GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* lpMatrix) const;
 	HRESULT SetD9Transform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* lpMatrix);
 	HRESULT D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* pMatrix);
 
+	void PrepDevice();
 	HRESULT RestoreStates();
 	void SetDefaults();
 	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
-	void RestoreDrawStates(DWORD dwVertexTypeDesc, DWORD dwFlags, DWORD DirectXVersion);
-	void ScaleVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexCount);
+	void RestoreDrawStates(DWORD dwFlags, DWORD DirectXVersion);
 	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwNumVertices);
 
 	D3DMATRIX* GetMatrix(D3DMATRIXHANDLE MatrixHandle)
@@ -248,6 +330,8 @@ public:
 	{
 		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
 
+		ClientDirectXVersion = DirectXVersion;
+
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
 			LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
@@ -267,6 +351,8 @@ public:
 		ddrawParent(lpDdraw), D3DInterface(lpD3D), CurrentRenderTarget(pRenderTarget), ClassID(rclsid)
 	{
 		ProxyDirectXVersion = 9;
+
+		ClientDirectXVersion = DirectXVersion;
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 
@@ -407,7 +493,7 @@ public:
 	// Material handle function
 	void ClearMaterialHandle(D3DMATERIALHANDLE mHandle);
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial);
-	bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == lsMaterialHandle); }
+	bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == DeviceStates.LightState[D3DLIGHTSTATE_MATERIAL]); }
 
 	// Light index function
 	bool IsLightInUse(m_IDirect3DLight* pLightX);
@@ -422,10 +508,5 @@ public:
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw();
-	void BeforeResetDevice();
 	void AfterResetDevice();
-	void ReleaseAllStateBlocks();
-
-	// Static functions
-	static bool InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, const DWORD dwVertexStart, const DWORD dwNumVertices, const DWORD dwVertexTypeDesc);
 };

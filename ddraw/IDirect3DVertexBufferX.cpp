@@ -169,6 +169,10 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 			return D3D_OK;
 		}
 
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
 		// Lock vertex
 		void* pData = nullptr;
 		HRESULT hr = d3d9VertexBuffer->Lock(0, 0, &pData, Flags);
@@ -211,6 +215,10 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 			}
 		}
 
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+#endif
+
 		return D3D_OK;
 	}
 
@@ -243,7 +251,7 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 		{
 			if (VB.Desc.dwFVF == D3DFVF_LVERTEX)
 			{
-				ConvertLVertex((D3DLVERTEX9*)LastLockAddr, (D3DLVERTEX*)VertexData.data(), VB.Desc.dwNumVertices);
+				ConvertLVertex((DXLVERTEX9*)LastLockAddr, (DXLVERTEX7*)VertexData.data(), VB.Desc.dwNumVertices);
 			}
 			else
 			{
@@ -283,7 +291,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		// Check if there are no vertices to process
 		if (dwCount == 0)
 		{
-			return DD_OK;
+			return D3D_OK;
 		}
 
 		// Always include the D3DVOP_TRANSFORM flag in the dwVertexOp parameter. If you do not, the method fails, returning DDERR_INVALIDPARAMS.
@@ -426,7 +434,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 		// Check if there are no vertices to process
 		if (dwCount == 0)
 		{
-			return DD_OK;
+			return D3D_OK;
 		}
 
 		// Always include the D3DVOP_TRANSFORM flag in the dwVertexOp parameter. If you do not, the method fails, returning DDERR_INVALIDPARAMS.
@@ -450,7 +458,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 		std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexCache;
 
 		// Process strided data
-		if (!m_IDirect3DDeviceX::InterleaveStridedVertexData(VertexCache, lpVertexArray, dwSrcIndex, dwCount, dwVertexTypeDesc))
+		if (!InterleaveStridedVertexData(VertexCache, lpVertexArray, dwSrcIndex, dwCount, dwVertexTypeDesc))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
 			return DDERR_INVALIDPARAMS;
@@ -657,11 +665,326 @@ void m_IDirect3DVertexBufferX::ReleaseD9Buffer(bool BackupData, bool ResetBuffer
 	}
 }
 
+bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, const DWORD dwVertexStart, const DWORD dwNumVertices, const DWORD dwVertexTypeDesc)
+{
+	if (!sd)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: missing D3DDRAWPRIMITIVESTRIDEDDATA!");
+		return false;
+	}
+
+	DWORD Stride = GetVertexStride(dwVertexTypeDesc);
+
+	bool hasPosition = (dwVertexTypeDesc & D3DFVF_POSITION_MASK);
+	bool hasReserved = (dwVertexTypeDesc & D3DFVF_RESERVED1);
+	bool hasNormal = (dwVertexTypeDesc & D3DFVF_NORMAL);
+	bool hasDiffuse = (dwVertexTypeDesc & D3DFVF_DIFFUSE);
+	bool hasSpecular = (dwVertexTypeDesc & D3DFVF_SPECULAR);
+	DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
+
+	if (texCount > D3DDP_MAXTEXCOORD)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: texCount " << texCount << " exceeds D3DDP_MAXTEXCOORD!");
+		return false;
+	}
+
+	UINT posStride = GetVertexPositionStride(dwVertexTypeDesc);
+	UINT texStride[D3DDP_MAXTEXCOORD] = {};
+
+	// Check data and compute stride
+	if (hasPosition)
+	{
+		if (!sd->position.lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: position data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		if (sd->position.dwStride != posStride)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: position stride does not match: " << posStride << " -> " << sd->position.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+	}
+	if (hasNormal)
+	{
+		if (!sd->normal.lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: normal data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		if (sd->normal.dwStride != sizeof(D3DXVECTOR3))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: normal stride does not match: " << sizeof(D3DXVECTOR3) << " -> " << sd->normal.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+	}
+	if (hasDiffuse)
+	{
+		if (!sd->diffuse.lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: diffuse data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		if (sd->diffuse.dwStride != sizeof(D3DCOLOR))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: diffuse stride does not match: " << sizeof(D3DCOLOR) << " -> " << sd->diffuse.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+	}
+	if (hasSpecular)
+	{
+		if (!sd->specular.lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: specular data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		if (sd->specular.dwStride != sizeof(D3DCOLOR))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: specular stride does not match: " << sizeof(D3DCOLOR) << " -> " << sd->specular.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+	}
+	for (DWORD t = 0; t < texCount; ++t)
+	{
+		if (!sd->textureCoords[t].lpvData)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: textureCoords " << t << " data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+		texStride[t] = GetTexStride(dwVertexTypeDesc, t);
+		if (sd->textureCoords[t].dwStride != texStride[t])
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: specular stride does not match: " << texStride[t] << " -> " << sd->textureCoords[t].dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
+			return false;
+		}
+	}
+
+	outputBuffer.resize((dwVertexStart + dwNumVertices) * Stride);
+
+	BYTE* cursor = outputBuffer.data() + dwVertexStart * Stride;
+	BYTE* posCursor = reinterpret_cast<BYTE*>(sd->position.lpvData) + dwVertexStart * sd->position.dwStride;
+	const D3DXVECTOR3* normalCursor = reinterpret_cast<D3DXVECTOR3*>(sd->normal.lpvData) + dwVertexStart * sd->normal.dwStride;
+	const D3DCOLOR* diffCursor = reinterpret_cast<D3DCOLOR*>(sd->diffuse.lpvData) + dwVertexStart * sd->diffuse.dwStride;
+	const D3DCOLOR* specCursor = reinterpret_cast<D3DCOLOR*>(sd->specular.lpvData) + dwVertexStart * sd->specular.dwStride;
+	BYTE* texCursor[D3DDP_MAXTEXCOORD] = {};
+	for (DWORD t = 0; t < texCount; ++t)
+	{
+		texCursor[t] = reinterpret_cast<BYTE*>(sd->textureCoords[t].lpvData) + dwVertexStart * sd->textureCoords[t].dwStride;
+	}
+
+	if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_DIFFUSE))
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Diffuse
+			*(D3DCOLOR*)cursor = diffCursor[i];
+			cursor += sizeof(D3DCOLOR);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_TEX1) && texCursor[0])
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1) && texCursor[0])
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Normal
+			*(D3DXVECTOR3*)cursor = normalCursor[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1) && texCursor[0])
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Diffuse
+			*(D3DCOLOR*)cursor = diffCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZRHW | D3DFVF_TEX1) && texCursor[0])
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR4*)cursor = ((D3DXVECTOR4*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR4);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1) && texCursor[0])
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR4*)cursor = ((D3DXVECTOR4*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR4);
+
+			// Diffuse
+			*(D3DCOLOR*)cursor = diffCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_RESERVED1 | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1) && texCursor[0])
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Reserved
+			cursor += sizeof(DWORD);
+
+			// Diffuse
+			*(D3DCOLOR*)cursor = diffCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Specular
+			*(D3DCOLOR*)cursor = specCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1) && texCursor[0])
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Diffuse
+			*(D3DCOLOR*)cursor = diffCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Specular
+			*(D3DCOLOR*)cursor = specCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1) && texCursor[0])
+	{
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			// Position
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)posCursor)[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Normal
+			*(D3DXVECTOR3*)cursor = normalCursor[i];
+			cursor += sizeof(D3DXVECTOR3);
+
+			// Diffuse
+			*(D3DCOLOR*)cursor = diffCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Specular
+			*(D3DCOLOR*)cursor = specCursor[i];
+			cursor += sizeof(D3DCOLOR);
+
+			// Texture
+			*(D3DXVECTOR2*)cursor = ((D3DXVECTOR2*)texCursor[0])[i];
+			cursor += sizeof(D3DXVECTOR2);
+		}
+	}
+	else
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Non-optimized vertex interleaving. FVF: " << Logging::hex(dwVertexTypeDesc));
+
+		for (DWORD i = 0; i < dwNumVertices; ++i)
+		{
+			if (hasPosition)
+			{
+				memcpy(cursor, posCursor, posStride);
+				cursor += posStride;
+				posCursor += sd->position.dwStride;
+			}
+
+			if (hasReserved)
+			{
+				cursor += sizeof(DWORD);
+			}
+
+			if (hasNormal)
+			{
+				*(D3DXVECTOR3*)cursor = normalCursor[i];
+				cursor += sizeof(D3DXVECTOR3);
+			}
+
+			if (hasDiffuse)
+			{
+				*(D3DCOLOR*)cursor = diffCursor[i];
+				cursor += sizeof(D3DCOLOR);
+			}
+
+			if (hasSpecular)
+			{
+				*(D3DCOLOR*)cursor = specCursor[i];
+				cursor += sizeof(D3DCOLOR);
+			}
+
+			for (DWORD t = 0; t < texCount; ++t)
+			{
+				memcpy(cursor, texCursor[t], texStride[t]);
+				cursor += texStride[t];
+				texCursor[t] += sd->textureCoords[t].dwStride;
+			}
+		}
+	}
+
+	return true;
+}
+
 HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags)
 {
 	if (dwCount == 0)
 	{
-		return DD_OK;	// No vertices to process
+		return D3D_OK;	// No vertices to process
 	}
 
 	if (!lpSrcBuffer)
@@ -853,18 +1176,37 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 		D3DXVECTOR3& src = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex);
 		D3DXVECTOR4& dst = *reinterpret_cast<D3DXVECTOR4*>(pDestVertex);
 
-		// Transform vertices
-		D3DXVECTOR4 pos(src.x, src.y, src.z, 1.0f);
-		D3DXVECTOR4 result;
-		D3DXVec4Transform(&result, &pos, &matWorldViewProj);
+		const float* m = &matWorldViewProj._11;
+		float x = src.x;
+		float y = src.y;
+		float z = src.z;
+		float w = 1.0f;
 
-		// Make sure result.w doesn't equal 0 to avoid divide by zero
-		result.w = result.w == 0.0f ? result.w = FLT_EPSILON : result.w;
+		// Matrix multiply: row-major
+		float tx = x * m[0] + y * m[4] + z * m[8] + w * m[12];
+		float ty = x * m[1] + y * m[5] + z * m[9] + w * m[13];
+		float tz = x * m[2] + y * m[6] + z * m[10] + w * m[14];
+		float tw = x * m[3] + y * m[7] + z * m[11] + w * m[15];
 
-		dst.x = result.x / result.w;
-		dst.y = result.y / result.w;
-		dst.z = result.z / result.w;
-		dst.w = 1.0f / result.w;
+		// Avoid divide by zero
+		if (tw <= 0.0f)
+		{
+			// Vertex is behind the camera plane -> mark invalid
+			dst.x = 0.0f;
+			dst.y = 0.0f;
+			dst.z = 0.0f;
+			dst.w = 0.0f;
+			continue;
+		}
+
+		// Compute x and y first
+		dst.x = tx / tw;
+		dst.y = ty / tw;
+
+		// Compute z and w with clamping
+		tw = CLAMP(tw, min_rhw, max_rhw);
+		dst.z = CLAMP(tz / tw, 0.0f, 1.0f);
+		dst.w = 1.0f / tw;
 
 		// Perform lighting if required
 		if (IsLight)
@@ -898,7 +1240,133 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 		Unlock();
 	}
 
-	return DD_OK;
+	return D3D_OK;
+}
+
+template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<XYZ>(m_IDirect3DDeviceX* , XYZ*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, D3DRECT&, bool, bool);
+template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<D3DLVERTEX>(m_IDirect3DDeviceX* , D3DLVERTEX*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, D3DRECT&, bool, bool);
+template <typename T>
+HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, T* srcVertex, D3DTLVERTEX* destVertex, D3DHVERTEX* pHOut, const DWORD dwCount, D3DRECT& drExtent, bool bLight, bool bUpdateExtents)
+{
+	D3DMATRIX matWorld, matView, matProj;
+	if (FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_WORLD, &matWorld)) ||
+		FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_VIEW, &matView)) ||
+		FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_PROJECTION, &matProj)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get transform matrices");
+		return DDERR_GENERIC;
+	}
+
+	D3DMATRIX matWorldView = {}, matWorldViewProj = {};
+	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
+	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
+
+	// Lighting not supported with current vertex types
+	if (bLight)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Lighting requested but no normals are provided.  Cannot compute lighting!");
+	}
+
+	LONG minX = LONG_MAX;
+	LONG minY = LONG_MAX;
+	LONG maxX = LONG_MIN;
+	LONG maxY = LONG_MIN;
+
+	for (DWORD i = 0; i < dwCount; ++i)
+	{
+		T& src = srcVertex[i];
+		D3DTLVERTEX& dst = destVertex[i];
+
+		const float* m = &matWorldViewProj._11;
+		float x = src.x;
+		float y = src.y;
+		float z = src.z;
+		float w = 1.0f;
+
+		// Matrix multiply: row-major
+		float tx = x * m[0] + y * m[4] + z * m[8] + w * m[12];
+		float ty = x * m[1] + y * m[5] + z * m[9] + w * m[13];
+		float tz = x * m[2] + y * m[6] + z * m[10] + w * m[14];
+		float tw = x * m[3] + y * m[7] + z * m[11] + w * m[15];
+
+		// Avoid divide by zero
+		if (tw <= 0.0f)
+		{
+			// Vertex is behind the camera plane -> mark invalid
+			dst.sx = 0.0f;
+			dst.sy = 0.0f;
+			dst.sz = 0.0f;
+			dst.rhw = 0.0f;
+			continue;
+		}
+
+		// Compute x and y first
+		dst.sx = tx / tw;
+		dst.sy = ty / tw;
+
+		// Compute z and w with clamping
+		tw = CLAMP(tw, min_rhw, max_rhw);
+		dst.sz = CLAMP(tz / tw, 0.0f, 1.0f);
+		dst.rhw = 1.0f / tw;
+
+		// Default values: set for XYZ or copy for detailed vertex
+		if constexpr (std::is_same_v<T, XYZ>)
+		{
+			dst.color = 0xFFFFFFFF;	// Default to white
+			dst.specular = 0;
+			dst.tu = 0.0f;
+			dst.tv = 0.0f;
+		}
+		else if constexpr (std::is_same_v<T, D3DLVERTEX>)
+		{
+			dst.color = src.color;
+			dst.specular = src.specular;
+			dst.tu = src.tu;
+			dst.tv = src.tv;
+		}
+		else
+		{
+			static_assert(false);
+		}
+
+		// Fill homogeneous out if requested
+		if (pHOut)
+		{
+			D3DHVERTEX& hdst = pHOut[i];
+			// Store pre-divide homogeneous coords
+			hdst.hx = tx;
+			hdst.hy = ty;
+			hdst.hz = tz;
+			hdst.dwFlags = 0; // Clip flags not computed here (TransformVertices only sets them if clipping performed upstream)
+		}
+
+		if (bUpdateExtents)
+		{
+			// floor/ceil convert to integer extents
+			minX = min(minX, static_cast<LONG>(floor(dst.sx)));
+			minY = min(minY, static_cast<LONG>(floor(dst.sy)));
+			maxX = max(maxX, static_cast<LONG>(ceil(dst.sx)));
+			maxY = max(maxY, static_cast<LONG>(ceil(dst.sy)));
+		}
+	}
+
+	if (bUpdateExtents)
+	{
+		if (minX != LONG_MAX)
+		{
+			drExtent.x1 = minX;
+			drExtent.y1 = minY;
+			drExtent.x2 = maxX;
+			drExtent.y2 = maxY;
+		}
+		else
+		{
+			// no vertices -> empty extent
+			drExtent.x1 = drExtent.y1 = drExtent.x2 = drExtent.y2 = 0;
+		}
+	}
+
+	return D3D_OK;
 }
 
 void m_IDirect3DVertexBufferX::ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& outSpecular, const D3DXVECTOR3& Position, const D3DXVECTOR3& Normal, const std::vector<DXLIGHT7>& cachedLights, const D3DXMATRIX& matWorldView, const D3DMATRIX& matWorld, const D3DMATRIX& matView, const D3DMATERIAL7& mat, bool UseMaterial)
@@ -923,8 +1391,8 @@ void m_IDirect3DVertexBufferX::ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& o
 	D3DXVec3TransformNormal(&worldNormal, &Normal, &matWorldRotOnly);
 	D3DXVec3Normalize(&worldNormal, &worldNormal);
 
-	D3DCOLORVALUE diffuse = { 0, 0, 0, 0 };
-	D3DCOLORVALUE specular = { 0, 0, 0, 0 };
+	D3DCOLORVALUE diffuse = { 0.0f, 0.0f, 0.0f, 0.0f };
+	D3DCOLORVALUE specular = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	for (const auto& light : cachedLights)
 	{
@@ -969,7 +1437,7 @@ void m_IDirect3DVertexBufferX::ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& o
 			{
 				D3DXVECTOR3 toLightNeg = -toLight;
 				float spotCos = D3DXVec3Dot(&toLightNeg, &lightDir);
-				spotCos = max(-1.0f, min(1.0f, spotCos));	// Clamp spotCos to [-1, 1]
+				spotCos = max(-1.0f, min(1.0f, spotCos));	// Clamp spotCos to [-1.0, 1.0]
 				float cosPhi = cosf(light.dvPhi * 0.5f);
 				if (spotCos < cosPhi) continue;
 

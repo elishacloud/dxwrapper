@@ -21,7 +21,6 @@ private:
 	// Remember the last lock info
 	struct LASTLOCK
 	{
-		std::recursive_mutex LockMutex;						// Mutex to protect this instance
 		bool IsLocked = false;
 		DWORD LockedWithID = 0;								// Thread ID of the current lock
 		std::vector<RECT> LockRectList;						// Rects used to lock the surface
@@ -298,7 +297,6 @@ private:
 	bool IsLockedFromOtherThread(DWORD MipMapLevel);
 	bool IsDummyMipMap(DWORD MipMapLevel) { return (MipMapLevel > MaxMipMapLevel || ((MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1 < MipMaps.size() && MipMaps[(MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1].IsDummy)); }
 	DWORD GetD3d9MipMapLevel(DWORD MipMapLevel) const { return min(MipMapLevel, MaxMipMapLevel); }
-	bool IsExtraEmulationSizeEnabled() const { return Config.DdrawExtraEmulationSize && !IsSurfaceTexture() && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY); }
 	DWORD GetWidth() const { return surfaceDesc2.dwWidth; }
 	DWORD GetHeight() const { return surfaceDesc2.dwHeight; }
 	DDSCAPS2 GetSurfaceCaps() const { return surfaceDesc2.ddsCaps; }
@@ -310,6 +308,7 @@ private:
 	bool DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool WasAttachedSurfaceAdded(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX);
+	HRESULT GetFlipList(std::vector<m_IDirectDrawSurfaceX*>& FlipList, LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride);
 
 	// Copying surface textures
 	void SetRenderTargetShadow();
@@ -500,9 +499,11 @@ public:
 	bool IsSurface3D() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) != 0; }
 	bool IsSurfaceTexture() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
 	bool IsSurfaceCreated() const { return (surface.Texture || surface.Surface); }
+	bool HasAlphaChannel() const;
 	bool IsColorKeyTexture() const { return (IsSurfaceTexture() && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)); }
 	bool IsPalette() const { return (surface.Format == D3DFMT_P8); }
 	bool IsDepthStencil() const { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
+	DWORD GetAttachedStencilSurfaceZBits();
 	bool IsSurfaceManaged() const { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	bool IsSurfaceBusy(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS) { return (IsSurfaceBlitting() || IsSurfaceLocked(MipMapLevel) || IsSurfaceInDC(MipMapLevel)); }
 	bool CanSurfaceBeDeleted() const { return !ComplexChild; }
@@ -549,6 +550,9 @@ public:
 
 	// For texture loading
 	HRESULT Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDestPoint, LPDIRECTDRAWSURFACE7 lpSrcTex, LPRECT lprcSrcRect, DWORD dwFlags);
+
+	// For Presenting
+	void CopyGDIToPrimaryAndBackbuffer();
 
 	// For Present checking
 	bool ShouldReadFromGDI() const { return (Config.DdrawReadFromGDI && IsPrimarySurface() && IsUsingEmulation() && !Using3D); }

@@ -84,7 +84,7 @@ private:
 	void Clear3DFlagForAllSurfaces();
 	void MarkAllSurfacesDirty();
 	void ResetAllSurfaceDisplay();
-	void ReleaseD3D9IndexBuffer();
+	void ReleaseD3D9IndexBuffer(LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer, DWORD& IndexBufferSize);
 	void ReleaseAllD9Resources(bool BackupData, bool ResetInterface);
 	void ReleaseD9Device();
 	void ReleaseD9Object();
@@ -225,13 +225,15 @@ public:
 	bool CheckD9Device(char* FunctionName);
 	LPDIRECT3D9 GetDirectD9Object();
 	LPDIRECT3DDEVICE9 *GetDirectD9Device();
-	bool CreatePaletteShader();
-	LPDIRECT3DPIXELSHADER9* GetColorKeyShader();
-	LPDIRECT3DVERTEXSHADER9* GetVertexFixupShader();
+	bool CreatePalettePixelShader();
+	LPDIRECT3DPIXELSHADER9* GetColorKeyPixelShader();
+	LPDIRECT3DVERTEXSHADER9* GetFixupVertexShader();
 	LPDIRECT3DVERTEXBUFFER9 GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
+	LPDIRECT3DINDEXBUFFER9 GetIndexBufferX(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& IndexBufferSize, LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer);
 	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels) const;
 	HRESULT ResetD9Device();
+	void FixWindowPos();
 	HRESULT CreateD9Device(char* FunctionName);
 	void UpdateVertices(DWORD Width, DWORD Height);
 	HRESULT TestD3D9CooperativeLevel();
@@ -239,14 +241,22 @@ public:
 	// Device information functions
 	static m_IDirectDrawX* GetDirectDrawInterface();
 	HMONITOR GetHMonitor();
+	HWND GetPresentationHwnd();
 	HWND GetHwnd();
 	DWORD GetHwndThreadID();
 	HDC GetDC();
 	DWORD GetDisplayBPP();
 	bool IsExclusiveMode();
+	DWORD GetLastDrawDevice();
+	void SetLastDrawDevice(DWORD DrawDevice);
 	void GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, DWORD& RefreshRate);
 	void GetViewportResolution(DWORD& Width, DWORD& Height);
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
+
+	// State block functions
+	void GetDefaultStates();
+	void GetDefaultViewport(D3DVIEWPORT9* pViewport);
+	void ApplyStateBlock();
 
 	// Surface vector functions
 	void AddReleasedSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
@@ -302,6 +312,7 @@ public:
 
 	// External static functions
 	static bool CheckDirectDrawXInterface(void* pInterface);
+	static void CheckWindowPosChange(HWND hWnd, WINDOWPOS* wPos);
 	static DWORD GetDDrawBitsPixel(HWND hWnd);
 	static DWORD GetDDrawWidth();
 	static DWORD GetDDrawHeight();

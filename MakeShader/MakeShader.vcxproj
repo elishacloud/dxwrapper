@@ -46,7 +46,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Ole32.lib;Wbemuuid.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Shlwapi.lib;Ole32.lib;Wbemuuid.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -57,10 +57,10 @@
     <ClCompile Include="..\External\Hooking\Disasm.cpp" />
     <ClCompile Include="..\External\Hooking\Hook.cpp" />
     <ClCompile Include="..\External\Hooking\HotPatch.cpp" />
-    <ClCompile Include="..\External\MemoryModule\MemoryModule.c" />
     <ClCompile Include="..\Libraries\d3dx9.cpp" />
     <ClCompile Include="..\Libraries\winmm.cpp" />
     <ClCompile Include="..\Utils\CPUAffinity.cpp" />
+    <ClCompile Include="..\Utils\MemoryModule.cpp" />
     <ClCompile Include="..\Utils\MyStrings.cpp" />
     <ClCompile Include="..\Utils\Utils.cpp" />
     <ClCompile Include="MakeShader.cpp" />

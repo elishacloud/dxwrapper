@@ -35,4 +35,8 @@ public:
 	// Helper functions
 	LPDIRECT3DSTATEBLOCK9 GetProxyInterface() const { return ProxyInterface; }
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; DDKey = NO_MAP_VALUE; }
+	void SetProxyAddress(LPDIRECT3DSTATEBLOCK9 Interface) {
+		ProxyInterface = Interface;
+		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
+	}
 };

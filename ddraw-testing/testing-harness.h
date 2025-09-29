@@ -8,13 +8,53 @@
 		DWORD Result = (DWORD)ExpectedResult; \
 		if (Value == Result && Value != TEST_FAILED && Result != TEST_FAILED) \
 		{ \
-				Logging::Log() << "Testing: " << TestID << " Succeded! " << LogEntry << TestValue << " -> " << ExpectedResult; \
+				Logging::Log() << "Testing: " << TestID << " Succeeded! " << LogEntry << TestValue << " -> " << ExpectedResult; \
 		} \
 		else \
 		{ \
 				Logging::Log() << "Testing: " << TestID << " FAILED! " << LogEntry << TestValue << " -> " << ExpectedResult; \
 		} \
 	}
+
+constexpr UINT MaxLightStates = 10;  // Devices have up to 10 types.
+constexpr UINT MaxTextureStageStates = 33;  // Devices have up to 33 types.
+
+namespace {
+	// 0xFFFFFFFF
+	constexpr DWORD Z = (DWORD)-1;
+	// 1.0f
+	constexpr DWORD I = 0x3F800000;
+}
+
+// Defaults for native DirectDraw
+constexpr DWORD DefaultLightStateDX5[MaxLightStates] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+constexpr DWORD DefaultLightStateDX6[MaxLightStates] = { 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 };
+
+constexpr DWORD UnchangeableRenderTarget[] = { 0, 50 };
+constexpr DWORD UnchangeableRenderTargetDX7[] = { 1, 3, 5, 6, 11, 12, 13, 17, 18, 21, 31, 32, 39, 43, 44, 45, 46, 49, 51, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95 };
+constexpr DWORD DefaultRenderTargetDX5[D3D_MAXRENDERSTATES] = { 0, 0, 0, 1, 0, 0, 0, 1, 3, 2, 0, 0, 13, Z, 1, 0, 1, 1, 1, 2, 1, 2, 3, 4, 0, 8, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, I, I, 0, 0, 0, Z, 0, 1, 1, 0, 0, 0, 1, Z, Z, 0, 1, 1, 1, 8, 0, Z, Z, Z, Z, Z, Z, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, 0, 0, 0, 0, 0, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z };
+constexpr DWORD DefaultRenderTargetDX6[D3D_MAXRENDERSTATES] = { 0, 0, 0, 1, 1, 0, 0, 1, 3, 2, 0, 0, 13, Z, 1, 0, 1, 1, 1, 2, 1, 2, 3, 4, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, I, I, 0, 0, 0, Z, 0, 1, 1, 0, 0, 0, 1, Z, Z, 0, 1, 1, 1, 8, 0, Z, Z, Z, Z, Z, Z, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, 0, 0, 0, 0, 0, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z };
+constexpr DWORD DefaultRenderTargetDX7[D3D_MAXRENDERSTATES] = { Z, 0, Z, 0, 1, 0, 0, 1, 3, 2, 0, 0,  0, 0, 1, 0, 1, 0, 0, 2, 1, 0, 3, 4, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, I, I, 0, Z, 0, Z, 0, 0, 0, 0, 0, 0, 0, Z, 0, 0, 1, 1, 1, 8, 0, Z, Z, Z, Z, Z, Z, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 2, 0, 0, Z, Z, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z, Z };
+
+constexpr DWORD DefaultTextureStageStateDX6[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates] = {
+	{ Z, 4, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z, Z }};
+
+constexpr DWORD DefaultTextureStageStateDX7[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates] = {
+	{ Z, 4, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z },
+	{ Z, 1, 2, 1, 1, 2, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, Z, Z, Z, Z, Z, Z, Z, Z }};
 
 constexpr DWORD vDDraw1 = 0;
 constexpr DWORD vDDraw2 = 1;
@@ -249,6 +289,7 @@ constexpr TESTMATRIX TestResults[] = {
 	{ 843, { 1, 1, 1, 1, 1, 1 } },
 	{ 844, { 2, 2, 2, 4, 4, 4 } },
 	{ 845, { 2, 2, 2, 4, 4, 4 } },
+	{ 846, { 0, 0, 0, 0, 0, 0 } },
 
 	// Execute Buffer
 	{ 900, { 1, 0, 0, 0, 0, 0 } },

@@ -2,7 +2,6 @@
 
 static constexpr size_t MAX_CLIP_PLANES = 6;
 static constexpr size_t MAX_TEXTURE_STAGES = 8;
-static constexpr size_t MAX_STATE_BLOCKS = 1024;
 const std::chrono::seconds FPS_CALCULATION_WINDOW(1);	// Define a constant for the desired duration of FPS calculation
 
 struct DEVICEDETAILS
@@ -25,6 +24,7 @@ struct DEVICEDETAILS
 	bool IsDirectDrawDevice = false;
 	UINT Adapter = D3DADAPTER_DEFAULT;
 	D3DDEVTYPE DeviceType = D3DDEVTYPE_HAL;
+	DWORD BackBufferCount = 0;
 	HMONITOR hMonitor = nullptr;
 	HWND DeviceWindow = nullptr;
 	LONG BufferWidth = 0, BufferHeight = 0;
@@ -37,6 +37,8 @@ struct DEVICEDETAILS
 	AddressLookupTableD3d9 ProxyAddressLookupTable9;
 
 	StateBlockCache StateBlockTable;
+
+	StateBlockCache DeletedStateBlocks;
 
 	D3DCAPS9 Caps = {};
 
@@ -111,16 +113,19 @@ private:
 	LPDIRECT3DDEVICE9EX ProxyInterfaceEx = nullptr;
 	m_IDirect3D9Ex* m_pD3DEx;
 	const IID WrapperID;
+	ShadowSurfaceStorage ShadowBackbuffer;
+	std::vector<IDirect3DSurface9*> BackBufferList;
 
 	UINT DDKey;
 
 	void ApplyDrawFixes();
-	void ApplyPresentFixes();
+	void ApplyPrePresentFixes();
+	void ApplyPostPresentFixes();
 
 	HRESULT CallBeginScene();
 	HRESULT CallEndScene();
 
-	inline bool RequirePresentHandling() const { return (SHARED.IsGammaSet || Config.ShowFPSCounter); }
+	inline bool RequirePresentHandling() const { return ((Config.WindowModeGammaShader && SHARED.IsGammaSet) || Config.ShowFPSCounter || ShadowBackbuffer.Count()); }
 
 	// Limit frame rate
 	void LimitFrameRate() const;
@@ -145,12 +150,14 @@ private:
 	void SetEnvironmentCubeMapTexture();
 
 	// For Reset & ResetEx
-	void ReInitInterface() const;
+	void ReInitInterface();
+	void CreateShadowBackbuffer();
+	void ReleaseShadowBackbuffer();
 	void ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters) const;
 	typedef HRESULT(WINAPI* fReset)(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fResetEx)(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
 	template <typename T>
-	HRESULT ResetT(T, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode = nullptr);
+	HRESULT ResetT(T, D3DPRESENT_PARAMETERS* pPresentationParameters, bool IsEx, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
 	inline HRESULT ResetT(fReset, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX*)
 	{ return ProxyInterface->Reset(pPresentationParameters); }
 	inline HRESULT ResetT(fResetEx, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
@@ -221,6 +228,7 @@ public:
 	STDMETHOD(UpdateTexture)(THIS_ IDirect3DBaseTexture9* pSourceTexture, IDirect3DBaseTexture9* pDestinationTexture);
 	STDMETHOD(GetRenderTargetData)(THIS_ IDirect3DSurface9* pRenderTarget, IDirect3DSurface9* pDestSurface);
 	STDMETHOD(GetFrontBufferData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
+	STDMETHOD(GetFrontBufferShadowData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
 	STDMETHOD(FakeGetFrontBufferData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
 	STDMETHOD(CopyRects)(THIS_ IDirect3DSurface9 *pSourceSurface, const RECT *pSourceRectsArray, UINT cRects, IDirect3DSurface9 *pDestinationSurface, const POINT *pDestPointsArray);
 	STDMETHOD(StretchRect)(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestSurface, CONST RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter);
@@ -331,10 +339,12 @@ public:
 	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
 	AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() const { return &SHARED.StateBlockTable; }
+	StateBlockCache* GetDeletedStateBlock() const { return &SHARED.DeletedStateBlocks; }
+	m_IDirect3DStateBlock9* GetCreateStateBlock(IDirect3DStateBlock9* pSB);
 	DWORD GetClientDXVersion() const { return SHARED.ClientDirectXVersion; }
 	REFIID GetIID() { return WrapperID; }
 
 	// Static functions
-	static void m_IDirect3DDevice9Ex::ModeToModeEx(D3DDISPLAYMODE& Mode, D3DDISPLAYMODEEX& ModeEx);
+	static void m_IDirect3DDevice9Ex::ModeExToMode(D3DDISPLAYMODEEX& ModeEx, D3DDISPLAYMODE& Mode);
 };
 #undef SHARED

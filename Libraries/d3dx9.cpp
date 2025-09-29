@@ -17,9 +17,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include "d3dx9.h"
 #include "d3dx9_data.h"
-#include <fstream>
-#include <iostream>
-#include <ostream>
+#include <string>
 #include "External\MemoryModule\MemoryModule.h"
 #include "Utils\Utils.h"
 #include "Logging\Logging.h"

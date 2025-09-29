@@ -9,6 +9,23 @@ namespace Logging
 	void InitLog();
 }
 
+template <typename T>
+inline std::string GetTypeName() { return "Unknown"; }
+
+template <>
+inline std::string GetTypeName<DWORD>() { return "DWORD"; }
+
+#if(WINVER < 0x0602)
+typedef struct tagTOUCH_HIT_TESTING_INPUT
+{
+    UINT32 pointerId;
+    POINT point;
+    RECT boundingBox;
+    RECT nonOccludedBoundingBox;
+    UINT32 orientation;
+} TOUCH_HIT_TESTING_INPUT, * PTOUCH_HIT_TESTING_INPUT;
+#endif
+
 #pragma warning (disable: 26812)
 typedef enum _DDFOURCC {} DDFOURCC;
 typedef enum _DDERR {} DDERR;
@@ -20,6 +37,14 @@ typedef enum _DIERR {} DIERR;
 typedef enum _DSERR {} DSERR;
 typedef enum _WMMSG {} WMMSG;
 
+struct FLOAT4 {
+    union {
+        float m[4];
+        float Plane[4];
+    };
+};
+
+std::ostream& operator<<(std::ostream& os, const FLOAT4& data);
 std::ostream& operator<<(std::ostream& os, const DDFOURCC& dwFourCC);
 std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode);
 std::ostream& operator<<(std::ostream& os, const D3DERR& ErrCode);
@@ -33,9 +58,7 @@ std::ostream& operator<<(std::ostream& os, const DDSCAPS& caps);
 std::ostream& operator<<(std::ostream& os, const DDSCAPS2& caps);
 std::ostream& operator<<(std::ostream& os, const DDPIXELFORMAT& pf);
 std::ostream& operator<<(std::ostream& os, const DDCOLORKEY& ck);
-std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC* lpDesc);
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd);
-std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2* lpDesc);
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd);
 #endif
 #ifdef _D3DCAPS_H
@@ -58,12 +81,19 @@ std::ostream& operator<<(std::ostream& os, const D3DTRANSFORMCAPS& tc);
 std::ostream& operator<<(std::ostream& os, const D3DLIGHTINGCAPS& lc);
 std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC& dd);
 std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd);
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT& vp);
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT2& vp);
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT7& vp);
 #endif
 #ifdef _d3d9TYPES_H_
 std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format);
 std::ostream& operator<<(std::ostream& os, const D3DRESOURCETYPE& Resource);
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp);
 std::ostream& operator<<(std::ostream& os, const D3DSURFACE_DESC& desc);
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT9& vp);
+std::ostream& operator<<(std::ostream& os, const D3DLIGHT9& data);
+std::ostream& operator<<(std::ostream& os, const D3DMATERIAL9& data);
+std::ostream& operator<<(std::ostream& os, const D3DMATRIX& data);
 #endif
 #ifdef GUID_DEFINED
 std::ostream& operator<<(std::ostream& os, REFIID riid);
@@ -96,7 +126,6 @@ std::ostream& operator<<(std::ostream& os, const NCCALCSIZE_PARAMS& nccs);
 std::ostream& operator<<(std::ostream& os, const NMHDR& nm);
 std::ostream& operator<<(std::ostream& os, const POINT& p);
 std::ostream& operator<<(std::ostream& os, const POINTS& p);
-std::ostream& operator<<(std::ostream& os, const RECT* lpRect);
 std::ostream& operator<<(std::ostream& os, const RECT& rect);
 std::ostream& operator<<(std::ostream& os, const SIZE& size);
 std::ostream& operator<<(std::ostream& os, const STYLESTRUCT& ss);

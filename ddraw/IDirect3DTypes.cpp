@@ -28,7 +28,11 @@ void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 	Light7.dltType = Light.dltType;
 	Light7.dcvDiffuse = Light.dcvColor;
 	Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 0.0f };
-	Light7.dcvAmbient = { 0.0f, 0.0f, 0.0f, 0.0f };
+	const float scale = 0.5f;
+	Light7.dcvAmbient.r = Light.dcvColor.r * scale;
+	Light7.dcvAmbient.g = Light.dcvColor.g * scale;
+	Light7.dcvAmbient.b = Light.dcvColor.b * scale;
+	Light7.dcvAmbient.a = Light.dcvColor.a;
 	Light7.dvPosition = Light.dvPosition;
 	Light7.dvDirection = Light.dvDirection;
 	Light7.dvRange = Light.dvRange;
@@ -38,6 +42,23 @@ void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 	Light7.dvAttenuation2 = Light.dvAttenuation2;
 	Light7.dvTheta = Light.dvTheta;
 	Light7.dvPhi = Light.dvPhi;
+}
+
+D3DLIGHT9 FixLight(const D3DLIGHT9& Light)
+{
+	D3DLIGHT9 result = Light;
+
+	// Make spot light work more like it did in Direct3D7
+	if (result.Type == D3DLIGHT_SPOT)
+	{
+		// Theta must be in the range from 0 through the value specified by Phi
+		if (result.Theta <= result.Phi)
+		{
+			result.Theta /= 1.75f;
+		}
+	}
+
+	return result;
 }
 
 void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7)
@@ -70,130 +91,311 @@ void ConvertMaterial(D3DMATERIAL7& Material7, const D3DMATERIAL& Material)
 	Material7.dvPower = Material.dvPower;
 }
 
-void ConvertViewport(D3DVIEWPORT& ViewPort, const D3DVIEWPORT2& ViewPort2)
+void ConvertViewport(D3DVIEWPORT& Viewport, const D3DVIEWPORT2& Viewport2)
 {
-	if (ViewPort.dwSize != sizeof(D3DVIEWPORT) || ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
+	if (Viewport.dwSize != sizeof(D3DVIEWPORT) || Viewport2.dwSize != sizeof(D3DVIEWPORT2))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort.dwSize << " " << ViewPort2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Viewport.dwSize << " " << Viewport2.dwSize);
 		return;
 	}
 	// Convert variables
-	ViewPort.dwX = ViewPort2.dwX;
-	ViewPort.dwY = ViewPort2.dwY;
-	ViewPort.dwWidth = ViewPort2.dwWidth;
-	ViewPort.dwHeight = ViewPort2.dwHeight;
-	ViewPort.dvMinZ = ViewPort2.dvMinZ;
-	ViewPort.dvMaxZ = ViewPort2.dvMaxZ;
+	Viewport.dwX = Viewport2.dwX;
+	Viewport.dwY = Viewport2.dwY;
+	Viewport.dwWidth = Viewport2.dwWidth;
+	Viewport.dwHeight = Viewport2.dwHeight;
+	Viewport.dvMinZ = Viewport2.dvMinZ;
+	Viewport.dvMaxZ = Viewport2.dvMaxZ;
 	// Extra parameters
-	ViewPort.dvScaleX = 0;        /* Scale homogeneous to screen */
-	ViewPort.dvScaleY = 0;        /* Scale homogeneous to screen */
-	ViewPort.dvMaxX = 0;          /* Min/max homogeneous x coord */
-	ViewPort.dvMaxY = 0;          /* Min/max homogeneous y coord */
+	Viewport.dvScaleX = 0;        /* Scale homogeneous to screen */
+	Viewport.dvScaleY = 0;        /* Scale homogeneous to screen */
+	Viewport.dvMaxX = 0;          /* Min/max homogeneous x coord */
+	Viewport.dvMaxY = 0;          /* Min/max homogeneous y coord */
 }
 
-void ConvertViewport(D3DVIEWPORT2& ViewPort2, const D3DVIEWPORT& ViewPort)
+void ConvertViewport(D3DVIEWPORT2& Viewport2, const D3DVIEWPORT& Viewport)
 {
-	if (ViewPort2.dwSize != sizeof(D3DVIEWPORT2) || ViewPort.dwSize != sizeof(D3DVIEWPORT))
+	if (Viewport2.dwSize != sizeof(D3DVIEWPORT2) || Viewport.dwSize != sizeof(D3DVIEWPORT))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort2.dwSize << " " << ViewPort.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Viewport2.dwSize << " " << Viewport.dwSize);
 		return;
 	}
 	// Convert variables
-	ViewPort2.dwX = ViewPort.dwX;
-	ViewPort2.dwY = ViewPort.dwY;
-	ViewPort2.dwWidth = ViewPort.dwWidth;
-	ViewPort2.dwHeight = ViewPort.dwHeight;
-	ViewPort2.dvMinZ = ViewPort.dvMinZ;
-	ViewPort2.dvMaxZ = ViewPort.dvMaxZ;
+	Viewport2.dwX = Viewport.dwX;
+	Viewport2.dwY = Viewport.dwY;
+	Viewport2.dwWidth = Viewport.dwWidth;
+	Viewport2.dwHeight = Viewport.dwHeight;
+	Viewport2.dvMinZ = Viewport.dvMinZ;
+	Viewport2.dvMaxZ = Viewport.dvMaxZ;
 	// Extra parameters
-	ViewPort2.dvClipX = 0;        /* Top left of clip volume */
-	ViewPort2.dvClipY = 0;
-	ViewPort2.dvClipWidth = 0;    /* Clip Volume Dimensions */
-	ViewPort2.dvClipHeight = 0;
+	Viewport2.dvClipX = 0;        /* Top left of clip volume */
+	Viewport2.dvClipY = 0;
+	Viewport2.dvClipWidth = 0;    /* Clip Volume Dimensions */
+	Viewport2.dvClipHeight = 0;
 }
 
-void ConvertViewport(D3DVIEWPORT& ViewPort, const D3DVIEWPORT7& ViewPort7)
+void ConvertViewport(D3DVIEWPORT& Viewport, const D3DVIEWPORT7& Viewport7)
 {
-	if (ViewPort.dwSize != sizeof(D3DVIEWPORT))
+	if (Viewport.dwSize != sizeof(D3DVIEWPORT))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Viewport.dwSize);
 		return;
 	}
 	// Convert variables
-	ViewPort.dwX = ViewPort7.dwX;
-	ViewPort.dwY = ViewPort7.dwY;
-	ViewPort.dwWidth = ViewPort7.dwWidth;
-	ViewPort.dwHeight = ViewPort7.dwHeight;
-	ViewPort.dvMinZ = ViewPort7.dvMinZ;
-	ViewPort.dvMaxZ = ViewPort7.dvMaxZ;
+	Viewport.dwX = Viewport7.dwX;
+	Viewport.dwY = Viewport7.dwY;
+	Viewport.dwWidth = Viewport7.dwWidth;
+	Viewport.dwHeight = Viewport7.dwHeight;
+	Viewport.dvMinZ = Viewport7.dvMinZ;
+	Viewport.dvMaxZ = Viewport7.dvMaxZ;
 	// Extra parameters
-	ViewPort.dvScaleX = 0;        /* Scale homogeneous to screen */
-	ViewPort.dvScaleY = 0;        /* Scale homogeneous to screen */
-	ViewPort.dvMaxX = 0;          /* Min/max homogeneous x coord */
-	ViewPort.dvMaxY = 0;          /* Min/max homogeneous y coord */
+	Viewport.dvScaleX = 0;        /* Scale homogeneous to screen */
+	Viewport.dvScaleY = 0;        /* Scale homogeneous to screen */
+	Viewport.dvMaxX = 0;          /* Min/max homogeneous x coord */
+	Viewport.dvMaxY = 0;          /* Min/max homogeneous y coord */
 }
 
-void ConvertViewport(D3DVIEWPORT2& ViewPort2, const D3DVIEWPORT7& ViewPort7)
+void ConvertViewport(D3DVIEWPORT2& Viewport2, const D3DVIEWPORT7& Viewport7)
 {
-	if (ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
+	if (Viewport2.dwSize != sizeof(D3DVIEWPORT2))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Viewport2.dwSize);
 		return;
 	}
 	// Convert variables
-	ViewPort2.dwX = ViewPort7.dwX;
-	ViewPort2.dwY = ViewPort7.dwY;
-	ViewPort2.dwWidth = ViewPort7.dwWidth;
-	ViewPort2.dwHeight = ViewPort7.dwHeight;
-	ViewPort2.dvMinZ = ViewPort7.dvMinZ;
-	ViewPort2.dvMaxZ = ViewPort7.dvMaxZ;
+	Viewport2.dwX = Viewport7.dwX;
+	Viewport2.dwY = Viewport7.dwY;
+	Viewport2.dwWidth = Viewport7.dwWidth;
+	Viewport2.dwHeight = Viewport7.dwHeight;
+	Viewport2.dvMinZ = Viewport7.dvMinZ;
+	Viewport2.dvMaxZ = Viewport7.dvMaxZ;
 	// Extra parameters
-	ViewPort2.dvClipX = 0;        /* Top left of clip volume */
-	ViewPort2.dvClipY = 0;
-	ViewPort2.dvClipWidth = 0;    /* Clip Volume Dimensions */
-	ViewPort2.dvClipHeight = 0;
+	Viewport2.dvClipX = 0;        /* Top left of clip volume */
+	Viewport2.dvClipY = 0;
+	Viewport2.dvClipWidth = 0;    /* Clip Volume Dimensions */
+	Viewport2.dvClipHeight = 0;
 }
 
-void ConvertViewport(D3DVIEWPORT7& ViewPort7, const D3DVIEWPORT& ViewPort)
+void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT& Viewport)
 {
-	if (ViewPort.dwSize != sizeof(D3DVIEWPORT))
+	if (Viewport.dwSize != sizeof(D3DVIEWPORT))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Viewport.dwSize);
 		return;
 	}
 	// Convert variables
-	ViewPort7.dwX = ViewPort.dwX;
-	ViewPort7.dwY = ViewPort.dwY;
-	ViewPort7.dwWidth = ViewPort.dwWidth;
-	ViewPort7.dwHeight = ViewPort.dwHeight;
-	ViewPort7.dvMinZ = ViewPort.dvMinZ;
-	ViewPort7.dvMaxZ = ViewPort.dvMaxZ;
+	Viewport7.dwX = Viewport.dwX;
+	Viewport7.dwY = Viewport.dwY;
+	Viewport7.dwWidth = Viewport.dwWidth;
+	Viewport7.dwHeight = Viewport.dwHeight;
+	Viewport7.dvMinZ = Viewport.dvMinZ;
+	Viewport7.dvMaxZ = Viewport.dvMaxZ;
 }
 
-void ConvertViewport(D3DVIEWPORT7& ViewPort7, const D3DVIEWPORT2& ViewPort2)
+void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT2& Viewport2)
 {
-	if (ViewPort2.dwSize != sizeof(D3DVIEWPORT2))
+	if (Viewport2.dwSize != sizeof(D3DVIEWPORT2))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ViewPort2.dwSize);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Viewport2.dwSize);
 		return;
 	}
 	// Convert variables
-	ViewPort7.dwX = ViewPort2.dwX;
-	ViewPort7.dwY = ViewPort2.dwY;
-	ViewPort7.dwWidth = ViewPort2.dwWidth;
-	ViewPort7.dwHeight = ViewPort2.dwHeight;
-	ViewPort7.dvMinZ = ViewPort2.dvMinZ;
-	ViewPort7.dvMaxZ = ViewPort2.dvMaxZ;
+	Viewport7.dwX = Viewport2.dwX;
+	Viewport7.dwY = Viewport2.dwY;
+	Viewport7.dwWidth = Viewport2.dwWidth;
+	Viewport7.dwHeight = Viewport2.dwHeight;
+	Viewport7.dvMinZ = Viewport2.dvMinZ;
+	Viewport7.dvMaxZ = Viewport2.dvMaxZ;
 }
 
-void ConvertViewport(D3DVIEWPORT7& ViewPort, const D3DVIEWPORT7& ViewPort7)
+void ConvertViewport(D3DVIEWPORT7& Viewport, const D3DVIEWPORT7& Viewport7)
 {
-	ViewPort.dwX = ViewPort7.dwX;
-	ViewPort.dwY = ViewPort7.dwY;
-	ViewPort.dwWidth = ViewPort7.dwWidth;
-	ViewPort.dwHeight = ViewPort7.dwHeight;
-	ViewPort.dvMinZ = ViewPort7.dvMinZ;
-	ViewPort.dvMaxZ = ViewPort7.dvMaxZ;
+	Viewport.dwX = Viewport7.dwX;
+	Viewport.dwY = Viewport7.dwY;
+	Viewport.dwWidth = Viewport7.dwWidth;
+	Viewport.dwHeight = Viewport7.dwHeight;
+	Viewport.dvMinZ = Viewport7.dvMinZ;
+	Viewport.dvMaxZ = Viewport7.dvMaxZ;
+}
+
+bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion)
+{
+	if (dwRenderStateType >= D3D_MAXRENDERSTATES)
+	{
+		return false;
+	}
+
+	if (DirectXVersion == 1)	// IDirect3D (DX 2 & 3)
+	{
+		if (dwRenderStateType == 0									// 0
+			|| (dwRenderStateType > 39 && dwRenderStateType < 64)	// 40-63
+			|| dwRenderStateType > 95)								// 96-256
+		{
+			return false;
+		}
+	}
+	else if (DirectXVersion < 7)	// IDirect3D 2 & 3 (DX 5 & 6)
+	{
+		switch ((DWORD)dwRenderStateType)
+		{
+		case D3DRENDERSTATE_NONE:				// 0
+		case D3DRENDERSTATE_FLUSHBATCH:			// 50
+			return false;
+		}
+	}
+	else if (DirectXVersion == 7)	// IDirect3D 7 (DX 7)
+	{
+		switch ((DWORD)dwRenderStateType)
+		{
+		case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
+		case D3DRENDERSTATE_TEXTUREADDRESS:		// 3
+		case D3DRENDERSTATE_WRAPU:				// 5
+		case D3DRENDERSTATE_WRAPV:				// 6
+		case D3DRENDERSTATE_MONOENABLE:			// 11
+		case D3DRENDERSTATE_ROP2:				// 12
+		case D3DRENDERSTATE_PLANEMASK:			// 13
+		case D3DRENDERSTATE_TEXTUREMAG:			// 17
+		case D3DRENDERSTATE_TEXTUREMIN:			// 18
+		case D3DRENDERSTATE_TEXTUREMAPBLEND:	// 21
+		case D3DRENDERSTATE_SUBPIXEL:			// 31
+		case D3DRENDERSTATE_SUBPIXELX:			// 32
+		case D3DRENDERSTATE_STIPPLEENABLE:		// 39
+		case D3DRENDERSTATE_BORDERCOLOR:		// 43
+		case D3DRENDERSTATE_TEXTUREADDRESSU:	// 44
+		case D3DRENDERSTATE_TEXTUREADDRESSV:	// 45
+		case D3DRENDERSTATE_MIPMAPLODBIAS:		// 46
+		case D3DRENDERSTATE_ANISOTROPY:			// 49
+		case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:			// 51
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: ignoring undocumented DX7 Render state: " << dwRenderStateType);
+			return false;
+		}
+		if (dwRenderStateType > 63 && dwRenderStateType < 96)	// 64-95
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: ignoring undocumented DX7 Render state: " << dwRenderStateType);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion)
+{
+	switch (DirectXVersion)
+	{
+	case 2:
+	case 3:
+		if (dwRenderStateType > 135)
+		{
+			return true;
+		}
+		break;
+	case 7:
+		if (dwRenderStateType == 149 || dwRenderStateType == 150 || dwRenderStateType > 152)
+		{
+			return true;
+		}
+		break;
+	}
+	return false;
+}
+
+DWORD GetDepthBias(DWORD ZBias, DWORD DepthBits)
+{
+	DepthBits = DepthBits ? DepthBits : 16;
+	float DepthBias = static_cast<float>(static_cast<double>min(ZBias, 16) * -(1.0 / ((1ULL << CLAMP(DepthBits, 15, 32)) - 1)));
+	return *reinterpret_cast<DWORD*>(&DepthBias);
+}
+
+DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value)
+{
+	if (Type == D3DSAMP_MAGFILTER)
+	{
+		switch (Value)
+		{
+		case D3DTFG_POINT:
+		case D3DTFG_LINEAR:
+			return Value;
+		case D3DTFG_FLATCUBIC:
+		case D3DTFG_GAUSSIANCUBIC:
+			return D3DTEXF_LINEAR;
+		case D3DTFG_ANISOTROPIC:
+			return D3DTEXF_ANISOTROPIC;
+		default:
+			return D3DTEXF_NONE;
+		}
+	}
+	if (Type == D3DSAMP_MINFILTER)
+	{
+		switch (Value)
+		{
+		case D3DTFN_POINT:
+		case D3DTFN_LINEAR:
+		case D3DTFN_ANISOTROPIC:
+			return Value;
+		default:
+			return D3DTEXF_NONE;
+		}
+	}
+	if (Type == D3DSAMP_MIPFILTER)
+	{
+		switch (Value)
+		{
+		default:
+		case D3DTFP_NONE:
+			return D3DTEXF_NONE;
+		case D3DTFP_POINT:
+			return D3DTEXF_POINT;
+		case D3DTFP_LINEAR:
+			return D3DTEXF_LINEAR;
+		}
+	}
+	return Value;
+}
+
+bool IsValidTransformState(D3DTRANSFORMSTATETYPE State)
+{
+	switch ((DWORD)State)
+	{
+	case D3DTS_VIEW:
+	case D3DTS_PROJECTION:
+	case D3DTS_WORLD:
+	case D3DTS_WORLD1:
+	case D3DTS_WORLD2:
+	case D3DTS_WORLD3:
+		return true;
+
+	case D3DTS_TEXTURE0:
+	case D3DTS_TEXTURE1:
+	case D3DTS_TEXTURE2:
+	case D3DTS_TEXTURE3:
+	case D3DTS_TEXTURE4:
+	case D3DTS_TEXTURE5:
+	case D3DTS_TEXTURE6:
+	case D3DTS_TEXTURE7:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+D3DMATRIX FixMatrix(const D3DMATRIX& Matrix, D3DTRANSFORMSTATETYPE State, D3DVIEWPORT Viewport, bool ScaleMatrix)
+{
+	D3DMATRIX result = Matrix;
+
+	if (ScaleMatrix && State == D3DTS_PROJECTION)
+	{
+		if (Viewport.dvScaleX != 0 && Viewport.dvScaleY != 0 && Viewport.dvMaxX != 0 && Viewport.dvMaxY != 0 && Viewport.dwWidth != 0 && Viewport.dwHeight != 0)
+		{
+			const float sx = 2.0f * (Viewport.dvScaleX * Viewport.dvMaxX) / Viewport.dwWidth;
+			const float sy = 2.0f * (Viewport.dvScaleY * Viewport.dvMaxY) / Viewport.dwHeight;
+
+			result._11 *= sx;
+			result._22 *= sy;
+		}
+	}
+
+	return result;
 }
 
 void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7)
@@ -527,11 +729,11 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9)
 	Desc7.dvGuardBandRight = Caps9.GuardBandRight;
 	Desc7.dvGuardBandBottom = Caps9.GuardBandBottom;
 	Desc7.dvExtentsAdjust = Caps9.ExtentsAdjust;
-	Desc7.wMaxTextureBlendStages = (WORD)min(Caps9.MaxTextureBlendStages, USHRT_MAX);
-	Desc7.wMaxSimultaneousTextures = (WORD)min(Caps9.MaxSimultaneousTextures, USHRT_MAX);
-	Desc7.dwMaxActiveLights = Caps9.MaxActiveLights;
+	Desc7.wMaxTextureBlendStages = (WORD)min(Caps9.MaxTextureBlendStages, D3DHAL_TSS_MAXSTAGES);
+	Desc7.wMaxSimultaneousTextures = (WORD)min(Caps9.MaxSimultaneousTextures, D3DHAL_TSS_MAXSTAGES);
+	Desc7.dwMaxActiveLights = min(Caps9.MaxActiveLights, MaxActiveLights);
 	Desc7.dvMaxVertexW = Caps9.MaxVertexW;
-	Desc7.wMaxUserClipPlanes = (WORD)min(Caps9.MaxUserClipPlanes, USHRT_MAX);
+	Desc7.wMaxUserClipPlanes = (WORD)min(Caps9.MaxUserClipPlanes, MaxClipPlaneIndex);
 	Desc7.wMaxVertexBlendMatrices = (WORD)min(Caps9.MaxVertexBlendMatrices, USHRT_MAX);
 
 	// Specific settings
@@ -558,31 +760,21 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9)
 	}
 }
 
-void ConvertLVertex(D3DLVERTEX* lFVF, const D3DLVERTEX9* lFVF9, DWORD NumVertices)
+void ConvertLVertex(DXLVERTEX7* lFVF7, const DXLVERTEX9* lFVF9, DWORD NumVertices)
 {
 	for (UINT x = 0; x < NumVertices; x++)
 	{
-		lFVF[x].x = lFVF9[x].x;
-		lFVF[x].y = lFVF9[x].y;
-		lFVF[x].z = lFVF9[x].z;
-		lFVF[x].color = lFVF9[x].diffuse;
-		lFVF[x].specular = lFVF9[x].specular;
-		lFVF[x].tu = lFVF9[x].tu;
-		lFVF[x].tv = lFVF9[x].tv;
+		lFVF7[x].xyz = lFVF9[x].xyz;
+		lFVF7[x].ctuv = lFVF9[x].ctuv;
 	}
 }
 
-void ConvertLVertex(D3DLVERTEX9* lFVF9, const D3DLVERTEX* lFVF, DWORD NumVertices)
+void ConvertLVertex(DXLVERTEX9* lFVF9, const DXLVERTEX7* lFVF7, DWORD NumVertices)
 {
 	for (UINT x = 0; x < NumVertices; x++)
 	{
-		lFVF9[x].x = lFVF[x].x;
-		lFVF9[x].y = lFVF[x].y;
-		lFVF9[x].z = lFVF[x].z;
-		lFVF9[x].diffuse = lFVF[x].color;
-		lFVF9[x].specular = lFVF[x].specular;
-		lFVF9[x].tu = lFVF[x].tu;
-		lFVF9[x].tv = lFVF[x].tv;
+		lFVF9[x].xyz = lFVF7[x].xyz;
+		lFVF9[x].ctuv = lFVF7[x].ctuv;
 	}
 }
 
@@ -614,125 +806,13 @@ bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState)
 	}
 }
 
-bool CheckRenderStateType(D3DRENDERSTATETYPE dwRenderStateType)
-{
-	switch ((DWORD)dwRenderStateType)
-	{
-	case D3DRS_ZENABLE:
-	case D3DRS_FILLMODE:
-	case D3DRS_SHADEMODE:
-	case D3DRS_ZWRITEENABLE:
-	case D3DRS_ALPHATESTENABLE:
-	case D3DRS_LASTPIXEL:
-	case D3DRS_SRCBLEND:
-	case D3DRS_DESTBLEND:
-	case D3DRS_CULLMODE:
-	case D3DRS_ZFUNC:
-	case D3DRS_ALPHAREF:
-	case D3DRS_ALPHAFUNC:
-	case D3DRS_DITHERENABLE:
-	case D3DRS_ALPHABLENDENABLE:
-	case D3DRS_FOGENABLE:
-	case D3DRS_SPECULARENABLE:
-	case D3DRS_FOGCOLOR:
-	case D3DRS_FOGTABLEMODE:
-	case D3DRS_FOGSTART:
-	case D3DRS_FOGEND:
-	case D3DRS_FOGDENSITY:
-	case D3DRS_RANGEFOGENABLE:
-	case D3DRS_STENCILENABLE:
-	case D3DRS_STENCILFAIL:
-	case D3DRS_STENCILZFAIL:
-	case D3DRS_STENCILPASS:
-	case D3DRS_STENCILFUNC:
-	case D3DRS_STENCILREF:
-	case D3DRS_STENCILMASK:
-	case D3DRS_STENCILWRITEMASK:
-	case D3DRS_TEXTUREFACTOR:
-	case D3DRS_WRAP0:
-	case D3DRS_WRAP1:
-	case D3DRS_WRAP2:
-	case D3DRS_WRAP3:
-	case D3DRS_WRAP4:
-	case D3DRS_WRAP5:
-	case D3DRS_WRAP6:
-	case D3DRS_WRAP7:
-	case D3DRS_CLIPPING:
-	case D3DRS_LIGHTING:
-	case D3DRS_AMBIENT:
-	case D3DRS_FOGVERTEXMODE:
-	case D3DRS_COLORVERTEX:
-	case D3DRS_LOCALVIEWER:
-	case D3DRS_NORMALIZENORMALS:
-	case D3DRS_DIFFUSEMATERIALSOURCE:
-	case D3DRS_SPECULARMATERIALSOURCE:
-	case D3DRS_AMBIENTMATERIALSOURCE:
-	case D3DRS_EMISSIVEMATERIALSOURCE:
-	case D3DRS_VERTEXBLEND:
-	case D3DRS_CLIPPLANEENABLE:
-	case D3DRS_POINTSIZE:
-	case D3DRS_POINTSIZE_MIN:
-	case D3DRS_POINTSPRITEENABLE:
-	case D3DRS_POINTSCALEENABLE:
-	case D3DRS_POINTSCALE_A:
-	case D3DRS_POINTSCALE_B:
-	case D3DRS_POINTSCALE_C:
-	case D3DRS_MULTISAMPLEANTIALIAS:
-	case D3DRS_MULTISAMPLEMASK:
-	case D3DRS_PATCHEDGESTYLE:
-	case D3DRS_DEBUGMONITORTOKEN:
-	case D3DRS_POINTSIZE_MAX:
-	case D3DRS_INDEXEDVERTEXBLENDENABLE:
-	case D3DRS_COLORWRITEENABLE:
-	case D3DRS_TWEENFACTOR:
-	case D3DRS_BLENDOP:
-	case D3DRS_POSITIONDEGREE:
-	case D3DRS_NORMALDEGREE:
-	case D3DRS_SCISSORTESTENABLE:
-	case D3DRS_SLOPESCALEDEPTHBIAS:
-	case D3DRS_ANTIALIASEDLINEENABLE:
-	case D3DRS_MINTESSELLATIONLEVEL:
-	case D3DRS_MAXTESSELLATIONLEVEL:
-	case D3DRS_ADAPTIVETESS_X:
-	case D3DRS_ADAPTIVETESS_Y:
-	case D3DRS_ADAPTIVETESS_Z:
-	case D3DRS_ADAPTIVETESS_W:
-	case D3DRS_ENABLEADAPTIVETESSELLATION:
-	case D3DRS_TWOSIDEDSTENCILMODE:
-	case D3DRS_CCW_STENCILFAIL:
-	case D3DRS_CCW_STENCILZFAIL:
-	case D3DRS_CCW_STENCILPASS:
-	case D3DRS_CCW_STENCILFUNC:
-	case D3DRS_COLORWRITEENABLE1:
-	case D3DRS_COLORWRITEENABLE2:
-	case D3DRS_COLORWRITEENABLE3:
-	case D3DRS_BLENDFACTOR:
-	case D3DRS_SRGBWRITEENABLE:
-	case D3DRS_DEPTHBIAS:
-	case D3DRS_WRAP8:
-	case D3DRS_WRAP9:
-	case D3DRS_WRAP10:
-	case D3DRS_WRAP11:
-	case D3DRS_WRAP12:
-	case D3DRS_WRAP13:
-	case D3DRS_WRAP14:
-	case D3DRS_WRAP15:
-	case D3DRS_SEPARATEALPHABLENDENABLE:
-	case D3DRS_SRCBLENDALPHA:
-	case D3DRS_DESTBLENDALPHA:
-	case D3DRS_BLENDOPALPHA:
-		return true;
-	default:
-		return false;
-	}
-}
-
 const int o0_0f = 0x00000000; // float(0.0f) as int
 const int o1_0f = 0x3F800000; // float(1.0f) as int
-struct XYZ_16 { int x, y, z, w; };
+
+struct XYZ_16 { float x; float y; union { float z; int z_i; }; union { float rhw; int rhw_i; }; };
 
 #define DEFINE_XYZ_STRUCT(size) \
-	struct XYZ_##size { int x, y, z, w; DWORD a[((size - 16) / 4)]; };
+	struct XYZ_##size { float x; float y; union { float z; int z_i; }; union { float rhw; int rhw_i; }; float a[((size - 16) / 4)]; };
 
 DEFINE_XYZ_STRUCT(20)
 DEFINE_XYZ_STRUCT(24)
@@ -770,20 +850,41 @@ DEFINE_XYZ_STRUCT(148)
 DEFINE_XYZ_STRUCT(152)
 
 template <typename T>
-void ClampVerticesX(T* pDestVertex, DWORD dwNumVertices)
+void ClampVerticesX(T* pVertex, DWORD dwNumVertices)
 {
-	for (DWORD x = 0; x < dwNumVertices; x++)
+	switch (Config.DdrawClampVertexZDepth)
 	{
-		pDestVertex[x].z = min(pDestVertex[x].z, o1_0f);
+	default:
+	case 1:
+		for (DWORD x = 0; x < dwNumVertices; x++)
+		{
+			pVertex[x].z_i = min(pVertex[x].z_i, o1_0f);
+		}
+		break;
+	case 2:
+		for (DWORD x = 0; x < dwNumVertices; x++)
+		{
+			if (pVertex[x].rhw)
+			{
+				float tw = 1.0f / pVertex[x].rhw;      // recover tw
+				float tz = pVertex[x].z * tw;          // recover tz
+
+				tw = CLAMP(tw, min_rhw, max_rhw);      // clamp tw
+
+				pVertex[x].z = tz / tw;                // redo z
+				pVertex[x].rhw = 1.0f / tw;            // redo rhw
+			}
+
+			pVertex[x].z_i = CLAMP(pVertex[x].z_i, o0_0f, o1_0f);
+		}
+		break;
+	case 0:
+		break;
 	}
 }
 
 void ClampVertices(BYTE* pVertexData, DWORD Stride, DWORD dwNumVertices)
 {
-	if (!Config.DdrawClampVertexZDepth)
-	{
-		return;
-	}
 	if (Stride == 16) ClampVerticesX(reinterpret_cast<XYZ_16*>(pVertexData), dwNumVertices);
 	else if (Stride == 20) ClampVerticesX(reinterpret_cast<XYZ_20*>(pVertexData), dwNumVertices);
 	else if (Stride == 24) ClampVerticesX(reinterpret_cast<XYZ_24*>(pVertexData), dwNumVertices);
@@ -836,6 +937,9 @@ void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWO
 	// Get number of blending weights
 	DWORD SrcNumBlending = GetBlendCount(SrcPosFVF);
 	DWORD DestNumBlending = GetBlendCount(DestPosFVF);
+
+	// Zero dest memory
+	ZeroMemory(pDestVertex, GetVertexStride(DestFVF));
 
 	// Copy Position XYZ
 	if (SrcPosFVF && DestPosFVF)
@@ -897,6 +1001,10 @@ void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWO
 		{
 			*(D3DCOLOR*)(pDestVertex + DestOffset) = *(D3DCOLOR*)(pSrcVertex + SrcOffset);
 			SrcOffset += sizeof(D3DCOLOR);
+		}
+		else
+		{
+			*(D3DCOLOR*)(pDestVertex + DestOffset) = 0xFFFFFFFF;	// Default to white
 		}
 		DestOffset += sizeof(D3DCOLOR);
 	}
@@ -993,7 +1101,7 @@ bool IsValidFVF(DWORD dwVertexTypeDesc)
 		return false;
 	}
 
-	// Validate texture count is 0–8
+	// Validate texture count is 0-8
 	DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
 	if (texCount > D3DDP_MAXTEXCOORD)
 	{

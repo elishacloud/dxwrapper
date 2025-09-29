@@ -7,9 +7,11 @@
 #include <DDrawCompat/DDrawLog.h>
 #include <DDrawCompat/v0.3.2/Gdi/Metrics.h>
 
+typedef int(WINAPI* GetSystemMetricsForDpiProc)(int  nIndex, UINT dpi);
+
 namespace
 {
-	decltype(&GetSystemMetricsForDpi) g_origGetSystemMetricsForDpi = nullptr;
+	GetSystemMetricsForDpiProc g_origGetSystemMetricsForDpi = nullptr;
 
 	int WINAPI getSystemMetrics(int nIndex)
 	{

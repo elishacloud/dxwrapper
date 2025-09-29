@@ -76,6 +76,15 @@ void Logging::InitLog()
 	Open(wrappername);
 }
 
+std::ostream& operator<<(std::ostream& os, const FLOAT4& data)
+{
+	return Logging::LogStruct(os)
+		<< data.m[0]
+		<< data.m[1]
+		<< data.m[2]
+		<< data.m[3];
+}
+
 std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format)
 {
 	switch ((DWORD)format)
@@ -445,18 +454,6 @@ std::ostream& operator<<(std::ostream& os, const DDCOLORKEY& ck)
 		<< Logging::hex(ck.dwColorSpaceHighValue);
 }
 
-std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC* lpDesc)
-{
-	if (lpDesc)
-	{
-		return os << *lpDesc;
-	}
-	else
-	{
-		return os << nullptr;
-	}
-}
-
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd)
 {
 	return Logging::LogStruct(os)
@@ -475,18 +472,6 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd)
 		<< sd.ddckCKSrcBlt
 		<< sd.ddpfPixelFormat
 		<< sd.ddsCaps;
-}
-
-std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2* lpDesc)
-{
-	if (lpDesc)
-	{
-		return os << *lpDesc;
-	}
-	else
-	{
-		return os << nullptr;
-	}
 }
 
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd)
@@ -510,6 +495,7 @@ std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC2& sd)
 		<< sd.ddsCaps
 		<< sd.dwTextureStage;
 }
+
 std::ostream& operator<<(std::ostream& os, const D3DCOLORVALUE& data)
 {
 	return Logging::LogStruct(os)
@@ -558,9 +544,18 @@ std::ostream& operator<<(std::ostream& os, const D3DEXECUTEDATA& data)
 
 std::ostream& operator<<(std::ostream& os, const D3DLIGHT& data)
 {
-	D3DLIGHT2 light = {};
-	reinterpret_cast<D3DLIGHT&>(light) = data;
-	return os << light;
+	return Logging::LogStruct(os)
+		<< data.dltType
+		<< data.dcvColor
+		<< data.dvPosition
+		<< data.dvDirection
+		<< data.dvRange
+		<< data.dvFalloff
+		<< data.dvAttenuation0
+		<< data.dvAttenuation1
+		<< data.dvAttenuation2
+		<< data.dvTheta
+		<< data.dvPhi;
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DLIGHT2& data)
@@ -765,6 +760,95 @@ std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd)
 		<< dd.dwReserved2
 		<< dd.dwReserved3
 		<< dd.dwReserved4;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT& vp)
+{
+	return Logging::LogStruct(os)
+		<< vp.dwX
+		<< vp.dwY
+		<< vp.dwWidth
+		<< vp.dwHeight
+		<< vp.dvScaleX
+		<< vp.dvScaleY
+		<< vp.dvMaxX
+		<< vp.dvMaxY
+		<< vp.dvMinZ
+		<< vp.dvMaxZ;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT2& vp)
+{
+	return Logging::LogStruct(os)
+		<< vp.dwX
+		<< vp.dwY
+		<< vp.dwWidth
+		<< vp.dwHeight
+		<< vp.dvClipX
+		<< vp.dvClipY
+		<< vp.dvClipWidth
+		<< vp.dvClipHeight
+		<< vp.dvMinZ
+		<< vp.dvMaxZ;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT7& vp)
+{
+	return Logging::LogStruct(os)
+		<< vp.dwX
+		<< vp.dwY
+		<< vp.dwWidth
+		<< vp.dwHeight
+		<< vp.dvMinZ
+		<< vp.dvMaxZ;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT9& vp)
+{
+	return Logging::LogStruct(os)
+		<< vp.X
+		<< vp.Y
+		<< vp.Width
+		<< vp.Height
+		<< vp.MinZ
+		<< vp.MaxZ;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DLIGHT9& data)
+{
+	return Logging::LogStruct(os)
+		<< data.Type
+		<< data.Diffuse
+		<< data.Specular
+		<< data.Ambient
+		<< data.Position
+		<< data.Direction
+		<< data.Range
+		<< data.Falloff
+		<< data.Attenuation0
+		<< data.Attenuation1
+		<< data.Attenuation2
+		<< data.Theta
+		<< data.Phi;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DMATERIAL9& data)
+{
+	return Logging::LogStruct(os)
+		<< data.Diffuse
+		<< data.Ambient
+		<< data.Specular
+		<< data.Emissive
+		<< data.Power;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DMATRIX& data)
+{
+	return Logging::LogStruct(os)
+		<< *(FLOAT4*)&data.m[0]
+		<< *(FLOAT4*)&data.m[1]
+		<< *(FLOAT4*)&data.m[2]
+		<< *(FLOAT4*)&data.m[3];
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp)
@@ -2400,18 +2484,6 @@ std::ostream& operator<<(std::ostream& os, const POINTS& p)
 	return Logging::LogStruct(os)
 		<< p.x
 		<< p.y;
-}
-
-std::ostream& operator<<(std::ostream& os, const RECT* lpRect)
-{
-	if (lpRect)
-	{
-		return os << *lpRect;
-	}
-	else
-	{
-		return os << nullptr;
-	}
 }
 
 std::ostream& operator<<(std::ostream& os, const RECT& rect)

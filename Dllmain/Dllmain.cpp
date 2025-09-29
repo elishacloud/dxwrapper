@@ -39,7 +39,7 @@
 #include "dsound\dsoundExternal.h"
 #include "dxwrapper.h"
 
-#include <excpt.h>
+#include <sstream>
 
 typedef PVOID(WINAPI* AddHandlerFunc)(ULONG, PVECTORED_EXCEPTION_HANDLER);
 typedef ULONG(WINAPI* RemoveHandlerFunc)(PVOID);
@@ -298,6 +298,28 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Pin current module
 		HMODULE dummy = nullptr;
 		GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCSTR>(DllMain), &dummy);
+
+		// Fix QPC uptime issues (before other compatibility options)
+		if (Config.FixPerfCounterUptime && Utils::InitUpTimeOffsets())
+		{
+			using namespace GdiWrapper;
+			if (kernel32)
+			{
+				Utils::QueryPerformanceFrequency_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "QueryPerformanceFrequency"), "QueryPerformanceFrequency", Utils::kernel_QueryPerformanceFrequency);
+				Utils::QueryPerformanceCounter_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "QueryPerformanceCounter"), "QueryPerformanceCounter", Utils::kernel_QueryPerformanceCounter);
+				Utils::GetTickCount_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetTickCount"), "GetTickCount", Utils::kernel_GetTickCount);
+#if (_WIN32_WINNT >= 0x0502)
+				Utils::GetTickCount64_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetTickCount64"), "GetTickCount64", Utils::kernel_GetTickCount64);
+#endif
+			}
+			HMODULE winmm = LoadLibrary("winmm.dll");
+			if (winmm)
+			{
+				Logging::Log() << "Installing winmm hooks";
+				Utils::timeGetTime_out = (FARPROC)Hook::HotPatch(GetProcAddress(winmm, "timeGetTime"), "timeGetTime", Utils::winmm_timeGetTime);
+				Utils::timeGetSystemTime_out = (FARPROC)Hook::HotPatch(GetProcAddress(winmm, "timeGetSystemTime"), "timeGetSystemTime", Utils::winmm_timeGetSystemTime);
+			}
+		}
 
 		// Launch processes
 		if (!Config.RunProcess.empty())
@@ -630,25 +652,15 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 		}
 
-		// Fix QPC uptime issues
-		if (Config.FixPerfCounterUptime && Utils::InitUpTimeOffsets())
+		// Hook gamma ramp
+		if (Config.DisableGDIGammaRamp)
 		{
 			using namespace GdiWrapper;
-			HMODULE winmm = LoadLibrary("winmm.dll");
-			if (kernel32)
+			if (!GetModuleHandleA("gdi32.dll")) LoadLibrary("gdi32.dll");
+			HMODULE gdi32 = GetModuleHandleA("gdi32.dll");
+			if (gdi32)
 			{
-				Utils::QueryPerformanceFrequency_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "QueryPerformanceFrequency"), "QueryPerformanceFrequency", Utils::kernel_QueryPerformanceFrequency);
-				Utils::QueryPerformanceCounter_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "QueryPerformanceCounter"), "QueryPerformanceCounter", Utils::kernel_QueryPerformanceCounter);
-				Utils::GetTickCount_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetTickCount"), "GetTickCount", Utils::kernel_GetTickCount);
-#if (_WIN32_WINNT >= 0x0502)
-				Utils::GetTickCount64_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetTickCount64"), "GetTickCount64", Utils::kernel_GetTickCount64);
-#endif
-			}
-			if (winmm)
-			{
-				Logging::Log() << "Installing winmm hooks";
-				Utils::timeGetTime_out = (FARPROC)Hook::HotPatch(GetProcAddress(winmm, "timeGetTime"), "timeGetTime", Utils::winmm_timeGetTime);
-				Utils::timeGetSystemTime_out = (FARPROC)Hook::HotPatch(GetProcAddress(winmm, "timeGetSystemTime"), "timeGetSystemTime", Utils::winmm_timeGetSystemTime);
+				SetDeviceGammaRamp_out = (FARPROC)Hook::HotPatch(GetProcAddress(gdi32, "SetDeviceGammaRamp"), "SetDeviceGammaRamp", gdi_SetDeviceGammaRamp);
 			}
 		}
 

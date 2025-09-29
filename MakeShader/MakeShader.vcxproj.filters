@@ -5,9 +5,6 @@
     <ClCompile Include="..\Libraries\d3dx9.cpp">
       <Filter>Libraries</Filter>
     </ClCompile>
-    <ClCompile Include="..\External\MemoryModule\MemoryModule.c">
-      <Filter>MemoryModule</Filter>
-    </ClCompile>
     <ClCompile Include="..\Utils\Utils.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
@@ -28,6 +25,9 @@
     </ClCompile>
     <ClCompile Include="..\External\Hooking\Disasm.cpp">
       <Filter>Hooking</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Utils\MemoryModule.cpp">
+      <Filter>MemoryModule</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

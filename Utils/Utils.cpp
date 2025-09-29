@@ -20,9 +20,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <iomanip>
-#include <intrin.h>
 #include <tlhelp32.h>
-#include <atlbase.h>
+#include <shlwapi.h>
 #include <comdef.h>
 #include <comutil.h>
 #include <Wbemidl.h>
@@ -366,7 +365,7 @@ HANDLE WINAPI Utils::kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttribute
 	}
 
 	// Check the current stack size, and if it's too small, increase it
-	if (dwStackSize < 1024 * 64)  // Minimum 64 KB stack size
+	if (dwStackSize && dwStackSize < 1024 * 64)  // Minimum 64 KB stack size
 	{
 		dwStackSize = 1024 * 64;
 	}
@@ -465,7 +464,7 @@ LPVOID WINAPI Utils::kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD 
 	if ((flAllocationType & MEM_RESERVE) && (flAllocationType & MEM_COMMIT))
 	{
 		// Ensure the reserve size is at least 1MB
-		if (dwSize < 1024 * 1024)  // 1MB minimum reserve
+		if (dwSize && dwSize < 1024 * 1024)  // 1MB minimum reserve
 		{
 			dwSize = 1024 * 1024;
 		}
@@ -727,40 +726,6 @@ MMRESULT WINAPI Utils::winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt)
 		}
 	}
 	return result;
-}
-
-// Your existing exception handler function
-LONG WINAPI Utils::Vectored_Exception_Handler(EXCEPTION_POINTERS* ExceptionInfo)
-{
-	if (ExceptionInfo &&
-		ExceptionInfo->ContextRecord &&
-		ExceptionInfo->ExceptionRecord &&
-		ExceptionInfo->ExceptionRecord->ExceptionAddress &&
-		ExceptionInfo->ExceptionRecord->ExceptionCode == STATUS_PRIVILEGED_INSTRUCTION)
-	{
-		size_t size = Disasm::getInstructionLength(ExceptionInfo->ExceptionRecord->ExceptionAddress);
-
-		if (size)
-		{
-			static DWORD count = 0;
-			if (count++ < 10)
-			{
-				char moduleName[MAX_PATH];
-				GetModuleFromAddress(ExceptionInfo->ExceptionRecord->ExceptionAddress, moduleName, MAX_PATH);
-
-				Logging::Log() << "Skipping exception:" <<
-					" code=" << Logging::hex(ExceptionInfo->ExceptionRecord->ExceptionCode) <<
-					" flags=" << Logging::hex(ExceptionInfo->ExceptionRecord->ExceptionFlags) <<
-					" addr=" << ExceptionInfo->ExceptionRecord->ExceptionAddress <<
-					" module=" << moduleName;
-			}
-
-			ExceptionInfo->ContextRecord->Eip += size;
-			return EXCEPTION_CONTINUE_EXECUTION;
-		}
-	}
-
-	return EXCEPTION_CONTINUE_SEARCH;
 }
 
 // Add HMODULE to vector

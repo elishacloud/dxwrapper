@@ -3,7 +3,6 @@
 #define CINTERFACE
 
 #include <ddraw.h>
-#include <typeinfo>
 
 namespace Compat21
 {
@@ -19,7 +18,7 @@ namespace Compat21
 	template <typename T>
 	std::string getTypeName()
 	{
-		std::string typeName(typeid(T).name());
+		std::string typeName(GetTypeName<T>());
 		if (0 == typeName.find("struct "))
 		{
 			typeName = typeName.substr(typeName.find(" ") + 1);

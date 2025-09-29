@@ -18,7 +18,11 @@
 #include "ddraw\Shaders\GammaPixelShader.h"
 #include "GDI\WndProc.h"
 #include "Utils\Utils.h"
-#include <intrin.h>
+
+static inline void my_nop(void)
+{
+	__asm { nop }
+}
 
 #ifdef ENABLE_DEBUGOVERLAY
 DebugOverlay DOverlay;
@@ -31,6 +35,23 @@ std::unordered_map<UINT, DEVICEDETAILS> DeviceDetailsMap;
 HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
+
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+	*ppvObj = nullptr;
+
+	if (riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return D3D_OK;
+	}
+	if (riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return D3D_OK;
+	}
 
 	if (riid == IID_IUnknown || riid == WrapperID || (Config.D3d9to9Ex && riid == IID_IDirect3DDevice9))
 	{
@@ -52,10 +73,7 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: disabling unsupported interface: " << riid);
 
-		if (ppvObj)
-		{
-			*ppvObj = nullptr;
-		}
+		*ppvObj = nullptr;
 
 		return E_NOINTERFACE;
 	}
@@ -92,15 +110,30 @@ ULONG m_IDirect3DDevice9Ex::Release()
 
 	ULONG ref = ProxyInterface->Release();
 
+	ULONG UsedRef = ShadowBackbuffer.Count();
+
 #ifdef ENABLE_DEBUGOVERLAY
+	bool UsingDOverlay = (Config.EnableImgui && DOverlay.IsSetup() && DOverlay.Getd3d9Device() == ProxyInterface);
+	UsedRef += (UsingDOverlay ? 1 : 0);
+
 	// Teardown debug overlay before destroying device
-	if (Config.EnableImgui && ref == 1 && DOverlay.IsSetup() && DOverlay.Getd3d9Device() == ProxyInterface)
+	if (ref > 0 && ref == UsedRef && UsingDOverlay)
 	{
 		ProxyInterface->AddRef();
+		UsedRef -= 1;
 		DOverlay.Shutdown();
 		ref = ProxyInterface->Release();
 	}
 #endif
+
+	// Release shadow backbuffer before destroying device
+	if (ref > 0 && ref == UsedRef && ShadowBackbuffer.Count())
+	{
+		ProxyInterface->AddRef();
+		UsedRef -= ShadowBackbuffer.Count();
+		ReleaseShadowBackbuffer();
+		ref = ProxyInterface->Release();
+	}
 
 	if (ref == 0)
 	{
@@ -125,6 +158,12 @@ ULONG m_IDirect3DDevice9Ex::Release()
 			{
 				if (it->first == DDKey)
 				{
+					while (SHARED.DeletedStateBlocks.size())
+					{
+						m_IDirect3DStateBlock9* Interface = SHARED.DeletedStateBlocks.back();
+						SHARED.DeletedStateBlocks.RemoveStateBlock(Interface);
+						Interface->DeleteMe();
+					}
 					DeviceDetailsMap.erase(it);
 					break;
 				}
@@ -154,7 +193,7 @@ void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParamet
 }
 
 template <typename T>
-HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
+HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentationParameters, bool IsEx, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
 {
 	if (!pPresentationParameters)
 	{
@@ -162,6 +201,8 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	}
 
 	ReleaseResources(true);
+
+	ReleaseShadowBackbuffer();
 
 #ifdef ENABLE_DEBUGOVERLAY
 	// Teardown debug overlay before reset
@@ -202,7 +243,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, IsWindowModeChanging || IsResolutionChanging);
+	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, IsEx, ForceFullscreen, IsWindowModeChanging || IsResolutionChanging);
 
 	// Test for Multisample
 	if (SHARED.DeviceMultiSampleFlag)
@@ -223,7 +264,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 
 			// Reset presentation parameters
 			CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-			m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
+			m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, IsEx, ForceFullscreen, false);
 
 			// Reset device
 			hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
@@ -289,7 +330,7 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 		return ResetEx(pPresentationParameters, &FullscreenDisplayMode);
 	}
 
-	return ResetT<fReset>(nullptr, pPresentationParameters);
+	return ResetT<fReset>(nullptr, pPresentationParameters, false, nullptr);
 }
 
 HRESULT m_IDirect3DDevice9Ex::CallEndScene()
@@ -373,7 +414,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp;
 	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
+	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, false, ForceFullscreen, false);
 
 	// Test for Multisample
 	if (SHARED.DeviceMultiSampleFlag)
@@ -388,7 +429,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	if (FAILED(hr))
 	{
 		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, ForceFullscreen, false);
+		m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, false, ForceFullscreen, false);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
@@ -441,6 +482,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateCubeTexture(THIS_ UINT EdgeLength, UINT Leve
 		}
 	}
 
+	// Override stencil format
+	if (Config.OverrideStencilFormat && Usage == D3DUSAGE_DEPTHSTENCIL)
+	{
+		Format = (D3DFORMAT)Config.OverrideStencilFormat;
+	}
+
 	HRESULT hr = ProxyInterface->CreateCubeTexture(EdgeLength, Levels, Usage, Format, Pool, ppCubeTexture, pSharedHandle);
 
 	if (SUCCEEDED(hr))
@@ -465,6 +512,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 	if (Config.D3d9to9Ex && ProxyInterfaceEx)
 	{
 		return CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, 0);
+	}
+
+	// Override stencil format
+	if (Config.OverrideStencilFormat)
+	{
+		Format = (D3DFORMAT)Config.OverrideStencilFormat;
+		LOG_LIMIT(100, __FUNCTION__ << " Setting Stencil format: " << Format);
 	}
 
 	HRESULT hr = D3DERR_INVALIDCALL;
@@ -585,6 +639,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 		}
 	}
 
+	// Override stencil format
+	if (Config.OverrideStencilFormat && Usage == D3DUSAGE_DEPTHSTENCIL)
+	{
+		Format = (D3DFORMAT)Config.OverrideStencilFormat;
+	}
+
 	HRESULT hr = ProxyInterface->CreateTexture(Width, Height, Levels, Usage, Format, Pool, ppTexture, pSharedHandle);
 
 	if (SUCCEEDED(hr))
@@ -663,6 +723,26 @@ HRESULT m_IDirect3DDevice9Ex::CreateVolumeTexture(THIS_ UINT Width, UINT Height,
 	return hr;
 }
 
+m_IDirect3DStateBlock9* m_IDirect3DDevice9Ex::GetCreateStateBlock(IDirect3DStateBlock9* pSB)
+{
+	m_IDirect3DStateBlock9* StateBlockX = nullptr;
+
+	if (SHARED.DeletedStateBlocks.size())
+	{
+		StateBlockX = SHARED.DeletedStateBlocks.back();
+		SHARED.DeletedStateBlocks.RemoveStateBlock(StateBlockX);
+
+		StateBlockX->SetProxyAddress(pSB);
+		StateBlockX->InitInterface(this, IID_IDirect3DStateBlock9, nullptr);
+	}
+	else
+	{
+		StateBlockX = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(pSB, this, IID_IDirect3DStateBlock9, nullptr);
+	}
+
+	return StateBlockX;
+}
+
 HRESULT m_IDirect3DDevice9Ex::BeginStateBlock()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -683,7 +763,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateStateBlock(THIS_ D3DSTATEBLOCKTYPE Type, IDi
 
 	if (SUCCEEDED(hr))
 	{
-		m_IDirect3DStateBlock9* StateBlockX = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(*ppSB, this, IID_IDirect3DStateBlock9, nullptr);
+		m_IDirect3DStateBlock9* StateBlockX = GetCreateStateBlock(*ppSB);
 
 		if (Config.LimitStateBlocks)
 		{
@@ -713,7 +793,7 @@ HRESULT m_IDirect3DDevice9Ex::EndStateBlock(THIS_ IDirect3DStateBlock9** ppSB)
 
 	if (SUCCEEDED(hr))
 	{
-		m_IDirect3DStateBlock9* StateBlockX = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(*ppSB, this, IID_IDirect3DStateBlock9, nullptr);
+		m_IDirect3DStateBlock9* StateBlockX = GetCreateStateBlock(*ppSB);
 
 		if (Config.LimitStateBlocks)
 		{
@@ -739,18 +819,23 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayMode(THIS_ UINT iSwapChain, D3DDISPLAYMO
 
 	if (Config.D3d9to9Ex && ProxyInterfaceEx)
 	{
-		D3DDISPLAYMODEEX* pModeEx = nullptr;
-		D3DDISPLAYMODEEX ModeEx = {};
-
-		if (pMode)
+		if (!pMode)
 		{
-			ModeToModeEx(*pMode, ModeEx);
-			pModeEx = &ModeEx;
+			return D3DERR_INVALIDCALL;
 		}
 
+		D3DDISPLAYMODEEX ModeEx = {};
+		ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
 		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
 
-		return GetDisplayModeEx(iSwapChain, pModeEx, &Rotation);
+		HRESULT hr = GetDisplayModeEx(iSwapChain, &ModeEx, &Rotation);
+
+		if (SUCCEEDED(hr))
+		{
+			ModeExToMode(ModeEx, *pMode);
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->GetDisplayMode(iSwapChain, pMode);
@@ -767,7 +852,31 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ppRenderTarget)
+	{
+		return D3DERR_INVALIDCALL;
+	}
+
+	ScopedCriticalSection ThreadLock(&SHARED.d9cs, RequirePresentHandling());
+
 	HRESULT hr = ProxyInterface->GetRenderTarget(RenderTargetIndex, ppRenderTarget);
+
+	if (ShadowBackbuffer.Count())
+	{
+		auto it = std::find(BackBufferList.begin(), BackBufferList.end(), *ppRenderTarget);
+		if (it != BackBufferList.end())
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: GetRenderTarget is returning the real render target!";
+
+			(*ppRenderTarget)->Release();
+
+			*ppRenderTarget = ShadowBackbuffer.GetCurrentBackBuffer();
+			if (!*ppRenderTarget)
+			{
+				return D3DERR_INVALIDCALL;
+			}
+		}
+	}
 
 	if (SUCCEEDED(hr) && ppRenderTarget)
 	{
@@ -816,9 +925,19 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	ScopedCriticalSection ThreadLock(&SHARED.d9cs, RequirePresentHandling());
+
 	if (pRenderTarget)
 	{
 		pRenderTarget = static_cast<m_IDirect3DSurface9 *>(pRenderTarget)->GetProxyInterface();
+	}
+
+	if (ShadowBackbuffer.Count())
+	{
+		if (std::find(BackBufferList.begin(), BackBufferList.end(), pRenderTarget) != BackBufferList.end())
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: application is sending the real render target!";
+		}
 	}
 
 	return ProxyInterface->SetRenderTarget(RenderTargetIndex, pRenderTarget);
@@ -909,28 +1028,36 @@ LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
 
 void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 {
-	if (!SHARED.GammaLUTTexture)
+	if (SHARED.IsGammaSet && !SHARED.GammaLUTTexture)
 	{
-		if (FAILED(SetBrightnessLevel(SHARED.RampData)))
-		{
-			return;
-		}
+		SetBrightnessLevel(SHARED.RampData);
 	}
+	bool UsingGamma = SHARED.IsGammaSet && SHARED.GammaLUTTexture;
 
 	// Set shader
-	IDirect3DPixelShader9* pShader = GetGammaPixelShader();
-	if (!pShader)
+	IDirect3DPixelShader9* pShader = UsingGamma ? GetGammaPixelShader() : nullptr;
+	if (UsingGamma && !pShader)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to retrieve gamma pixel shader!");
 		return;
 	}
 
-	// Get current backbuffer
-	ComPtr<IDirect3DSurface9> pBackBuffer;
-	if (FAILED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))
+	// Get current backbuffer (make sure to get it from wrapper not proxy)
+	IDirect3DSurface9* pBackBuffer = nullptr;
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get back buffer!");
-		return;
+		ComPtr<IDirect3DSurface9> tmpBackBuffer;
+		if (FAILED(GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, tmpBackBuffer.GetAddressOf())))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get back buffer!");
+			return;
+		}
+		pBackBuffer = tmpBackBuffer.Get();
+
+		void* pVoid = nullptr;
+		if (SUCCEEDED(pBackBuffer->QueryInterface(IID_GetInterfaceX, &pVoid)))
+		{
+			pBackBuffer = static_cast<m_IDirect3DSurface9*>(pBackBuffer)->GetProxyInterface();
+		}
 	}
 
 	// Create intermediate texture for shader input
@@ -951,7 +1078,7 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get surface level from screen copy texture!");
 		return;
 	}
-	if (FAILED(ProxyInterface->StretchRect(pBackBuffer.Get(), nullptr, pCopySurface.Get(), nullptr, D3DTEXF_NONE)))
+	if (FAILED(ProxyInterface->StretchRect(pBackBuffer, nullptr, pCopySurface.Get(), nullptr, D3DTEXF_NONE)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to copy render target!");
 		return;
@@ -1163,11 +1290,12 @@ void m_IDirect3DDevice9Ex::GetGammaRamp(THIS_ UINT iSwapChain, D3DGAMMARAMP* pRa
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (pRamp && Config.WindowModeGammaShader && SHARED.IsWindowMode)
+	if (pRamp && (Config.WindowModeGammaShader == 2 || (Config.WindowModeGammaShader && Config.EnableWindowMode)))
 	{
 		if (iSwapChain)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: Gamma support for swapchains not implemented: " << iSwapChain);
+			return ProxyInterface->GetGammaRamp(iSwapChain, pRamp);
 		}
 
 		memcpy(pRamp, &SHARED.RampData, sizeof(D3DGAMMARAMP));
@@ -1181,11 +1309,12 @@ void m_IDirect3DDevice9Ex::SetGammaRamp(THIS_ UINT iSwapChain, DWORD Flags, CONS
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (pRamp && Config.WindowModeGammaShader && SHARED.IsWindowMode)
+	if (pRamp && (Config.WindowModeGammaShader == 2 || (Config.WindowModeGammaShader && Config.EnableWindowMode)))
 	{
 		if (iSwapChain)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: Gamma support for swapchains not implemented: " << iSwapChain);
+			return ProxyInterface->SetGammaRamp(iSwapChain, Flags, pRamp);
 		}
 
 		SHARED.IsGammaSet = false;
@@ -1438,7 +1567,7 @@ HRESULT m_IDirect3DDevice9Ex::SetPixelShader(THIS_ IDirect3DPixelShader9* pShade
 	return ProxyInterface->SetPixelShader(pShader);
 }
 
-void m_IDirect3DDevice9Ex::ApplyPresentFixes()
+void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 {
 	bool CalledBeginScene = false;
 
@@ -1475,7 +1604,7 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 				}
 
 				// Apply brightness level
-				if (SHARED.IsGammaSet)
+				if (ShadowBackbuffer.Count() || SHARED.IsGammaSet)
 				{
 					ApplyBrightnessLevel();
 				}
@@ -1515,13 +1644,46 @@ void m_IDirect3DDevice9Ex::ApplyPresentFixes()
 	}
 	SHARED.BeginSceneCalled = false;
 
+	// Check FPU state before presenting
+	Utils::ResetInvalidFPUState();
+}
+
+void m_IDirect3DDevice9Ex::ApplyPostPresentFixes()
+{
+	if (ShadowBackbuffer.Count())
+	{
+		if (SHARED.BackBufferCount == 1)
+		{
+			if (FAILED(ProxyInterface->StretchRect(ShadowBackbuffer.GetCurrentBackBuffer()->GetProxyInterface(), nullptr, ShadowBackbuffer.GetCurrentFrontBuffer()->GetProxyInterface(), nullptr, D3DTEXF_NONE)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: Failed to copy shadow backbuffer into shadow front buffer!");
+			}
+		}
+		else
+		{
+			ShadowBackbuffer.Rotate();
+
+			ComPtr<IDirect3DSurface9> pSurface;
+			if (SUCCEEDED(ProxyInterface->GetRenderTarget(0, pSurface.GetAddressOf())))
+			{
+				if (pSurface.Get() == ShadowBackbuffer.GetCurrentFrontBuffer()->GetProxyInterface() ||
+					std::find(BackBufferList.begin(), BackBufferList.end(), pSurface.Get()) != BackBufferList.end())
+				{
+					ProxyInterface->SetRenderTarget(0, ShadowBackbuffer.GetCurrentBackBuffer()->GetProxyInterface());
+				}
+			}
+		}
+	}
+
 	if (Config.LimitPerFrameFPS)
 	{
 		LimitFrameRate();
 	}
 
-	// Check FPU state before presenting
-	Utils::ResetInvalidFPUState();
+	if (Config.ShowFPSCounter || Config.EnableImgui)
+	{
+		CalculateFPS();
+	}
 }
 
 HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDestRect, HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
@@ -1533,18 +1695,13 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 		return PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, 0);
 	}
 
-	ApplyPresentFixes();
-
-	Utils::ScopedThreadPriority ThreadPriority;
+	ApplyPrePresentFixes();
 
 	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 
 	if (SUCCEEDED(hr))
 	{
-		if (Config.ShowFPSCounter || Config.EnableImgui)
-		{
-			CalculateFPS();
-		}
+		ApplyPostPresentFixes();
 	}
 
 	return hr;
@@ -1713,6 +1870,39 @@ HRESULT m_IDirect3DDevice9Ex::SetStreamSource(THIS_ UINT StreamNumber, IDirect3D
 HRESULT m_IDirect3DDevice9Ex::GetBackBuffer(THIS_ UINT iSwapChain, UINT iBackBuffer, D3DBACKBUFFER_TYPE Type, IDirect3DSurface9** ppBackBuffer)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (iSwapChain == 0 && ShadowBackbuffer.Count())
+	{
+		if (!ppBackBuffer)
+		{
+			return D3DERR_INVALIDCALL;
+		}
+		*ppBackBuffer = nullptr;
+
+		if (iBackBuffer >= SHARED.BackBufferCount)
+		{
+			return D3DERR_INVALIDCALL;
+		}
+
+		if (Type != D3DBACKBUFFER_TYPE_MONO)
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: unsupported backbuffer type requested: " << Type;
+		}
+
+		// For stereo buffers, we just return the mono shadow for simplicity
+		IDirect3DSurface9* pSurface = ShadowBackbuffer.GetSurface(iBackBuffer);
+		if (!pSurface)
+		{
+			return D3DERR_INVALIDCALL;
+		}
+
+		// Caller expects a refcount increment
+		pSurface->AddRef();
+
+		*ppBackBuffer = pSurface;
+
+		return D3D_OK;
+	}
 
 	HRESULT hr = ProxyInterface->GetBackBuffer(iSwapChain, iBackBuffer, Type, ppBackBuffer);
 
@@ -2633,19 +2823,59 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!pDestSurface)
+	{
+		return D3DERR_INVALIDCALL;
+	}
+
 	if (Config.EnableWindowMode && (SHARED.BufferWidth != SHARED.screenWidth || SHARED.BufferHeight != SHARED.screenHeight))
 	{
 		return FakeGetFrontBufferData(iSwapChain, pDestSurface);
 	}
 	else
 	{
-		if (pDestSurface)
+		if (iSwapChain == 0 && ShadowBackbuffer.Count())
 		{
-			pDestSurface = static_cast<m_IDirect3DSurface9 *>(pDestSurface)->GetProxyInterface();
+			return GetFrontBufferShadowData(iSwapChain, pDestSurface);
 		}
+
+		pDestSurface = static_cast<m_IDirect3DSurface9*>(pDestSurface)->GetProxyInterface();
 
 		return ProxyInterface->GetFrontBufferData(iSwapChain, pDestSurface);
 	}
+}
+
+HRESULT m_IDirect3DDevice9Ex::GetFrontBufferShadowData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface)
+{
+	// Get surface desc
+	D3DSURFACE_DESC Desc;
+	if (!pDestSurface || FAILED(pDestSurface->GetDesc(&Desc)))
+	{
+		return D3DERR_INVALIDCALL;
+	}
+
+	void* pVoid = nullptr;
+	if (SUCCEEDED(pDestSurface->QueryInterface(IID_GetInterfaceX, &pVoid)))
+	{
+		pDestSurface = static_cast<m_IDirect3DSurface9*>(pDestSurface)->GetProxyInterface();
+	}
+
+	if (iSwapChain != 0)
+	{
+		return ProxyInterface->GetFrontBufferData(iSwapChain, pDestSurface);
+	}
+
+	if ((LONG)Desc.Width != SHARED.BufferWidth || (LONG)Desc.Height != SHARED.BufferHeight || Desc.Format != D3DFMT_A8R8G8B8)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: incorrect size or format: " << Desc.Width << "x" << Desc.Height <<
+			" " << SHARED.BufferWidth << "x" << SHARED.BufferHeight << " " << Desc.Format;
+		return D3DERR_INVALIDCALL;
+	}
+
+	IDirect3DSurface9* pShadowSurface = ShadowBackbuffer.GetCurrentFrontBuffer()->GetProxyInterface();
+
+	// Copy shadow buffer into destination
+	return ProxyInterface->StretchRect(pShadowSurface, nullptr, pDestSurface, nullptr, D3DTEXF_NONE);
 }
 
 HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface)
@@ -2685,7 +2915,9 @@ HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDir
 	}
 
 	// Get FrontBuffer data to new surface
-	HRESULT hr = ProxyInterface->GetFrontBufferData(iSwapChain, pSrcSurface.Get());
+	HRESULT hr = ShadowBackbuffer.Count() ?
+		GetFrontBufferShadowData(iSwapChain, pSrcSurface.Get()) :
+		ProxyInterface->GetFrontBufferData(iSwapChain, pSrcSurface.Get());
 	if (FAILED(hr))
 	{
 		return hr;
@@ -2721,6 +2953,8 @@ HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDir
 HRESULT m_IDirect3DDevice9Ex::GetRenderTargetData(THIS_ IDirect3DSurface9* pRenderTarget, IDirect3DSurface9* pDestSurface)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	ScopedCriticalSection ThreadLock(&SHARED.d9cs, RequirePresentHandling());
 
 	if (pRenderTarget)
 	{
@@ -2772,22 +3006,22 @@ HRESULT m_IDirect3DDevice9Ex::SetDialogBoxMode(THIS_ BOOL bEnableDialogs)
 HRESULT m_IDirect3DDevice9Ex::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapChain9** ppSwapChain)
 {
 	// Add 16 bytes for Steam Overlay Fix
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
-	__nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
+	my_nop();
 
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -2867,18 +3101,13 @@ HRESULT m_IDirect3DDevice9Ex::PresentEx(THIS_ CONST RECT* pSourceRect, CONST REC
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ApplyPresentFixes();
-
-	Utils::ScopedThreadPriority ThreadPriority;
+	ApplyPrePresentFixes();
 
 	HRESULT hr = ProxyInterfaceEx->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, dwFlags);
 
 	if (SUCCEEDED(hr))
 	{
-		if (Config.ShowFPSCounter || Config.EnableImgui)
-		{
-			CalculateFPS();
-		}
+		ApplyPostPresentFixes();
 	}
 
 	return hr;
@@ -3077,6 +3306,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 		}
 	}
 
+	// Override stencil format
+	if (Config.OverrideStencilFormat && Usage == D3DUSAGE_DEPTHSTENCIL)
+	{
+		Format = (D3DFORMAT)Config.OverrideStencilFormat;
+	}
+
 	HRESULT hr = ProxyInterfaceEx->CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, Usage);
 
 	if (SUCCEEDED(hr))
@@ -3102,6 +3337,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 	if (!ppSurface)
 	{
 		return D3DERR_INVALIDCALL;
+	}
+
+	// Override stencil format
+	if (Config.OverrideStencilFormat)
+	{
+		Format = (D3DFORMAT)Config.OverrideStencilFormat;
+		LOG_LIMIT(100, __FUNCTION__ << " Setting Stencil format: " << Format);
 	}
 
 	HRESULT hr = D3DERR_INVALIDCALL;
@@ -3141,7 +3383,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentation
 		return D3DERR_INVALIDCALL;
 	}
 
-	return ResetT<fResetEx>(nullptr, pPresentationParameters, pFullscreenDisplayMode);
+	return ResetT<fResetEx>(nullptr, pPresentationParameters, true, pFullscreenDisplayMode);
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation)
@@ -3158,7 +3400,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 }
 
 // Runs when device is created and on every successful Reset()
-void m_IDirect3DDevice9Ex::ReInitInterface() const
+void m_IDirect3DDevice9Ex::ReInitInterface()
 {
 	Utils::GetScreenSize(SHARED.hMonitor, SHARED.screenWidth, SHARED.screenHeight);
 
@@ -3173,16 +3415,85 @@ void m_IDirect3DDevice9Ex::ReInitInterface() const
 		SHARED.DefaultRampData.green[i] = value;
 		SHARED.DefaultRampData.blue[i] = value;
 	}
+
+	ShadowBackbuffer.ReleaseAll();
+
+	if (!SHARED.IsDirectDrawDevice && Config.UseShadowBackbuffer)
+	{
+		CreateShadowBackbuffer();
+	}
 }
 
-void m_IDirect3DDevice9Ex::ModeToModeEx(D3DDISPLAYMODE& Mode, D3DDISPLAYMODEEX& ModeEx)
+void m_IDirect3DDevice9Ex::CreateShadowBackbuffer()
 {
-	ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
-	ModeEx.Width = Mode.Width;
-	ModeEx.Height = Mode.Height;
-	ModeEx.RefreshRate = Mode.RefreshRate;
-	ModeEx.Format = Mode.Format;
-	ModeEx.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
+	if (!SHARED.BackBufferCount)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: too small BackBufferCount: " << SHARED.BackBufferCount;
+		return;
+	}
+
+	DWORD BackBufferCount = max(2, SHARED.BackBufferCount);
+
+	BackBufferList.clear();
+
+	D3DSURFACE_DESC Desc = {};
+	{
+		ComPtr<IDirect3DSurface9> pBackbuffer;
+		if (FAILED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackbuffer.GetAddressOf())))
+		{
+			Logging::Log() << __FUNCTION__ << " Error: failed to get Back Buffer!";
+			return;
+		}
+		if (FAILED(pBackbuffer.Get()->GetDesc(&Desc)))
+		{
+			Logging::Log() << __FUNCTION__ << " Error: failed to get surface Desc!";
+			return;
+		}
+	}
+
+	ShadowBackbuffer.Initialize(BackBufferCount);
+
+	for (size_t i = 0; i < BackBufferCount; ++i)
+	{
+		m_IDirect3DSurface9* surf = nullptr;
+		if (FAILED(CreateRenderTarget(Desc.Width, Desc.Height, Desc.Format, Desc.MultiSampleType, Desc.MultiSampleQuality, FALSE, reinterpret_cast<IDirect3DSurface9**>(&surf), nullptr)))
+		{
+			Logging::Log() << __FUNCTION__ << " Error: failed to create render target!";
+			ShadowBackbuffer.ReleaseAll();
+			return;
+		}
+		ShadowBackbuffer.SetSurface(i, surf);
+
+		ComPtr<IDirect3DSurface9> pBackbuffer;
+		if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, i, D3DBACKBUFFER_TYPE_MONO, pBackbuffer.GetAddressOf())))
+		{
+			BackBufferList.push_back(pBackbuffer.Get());
+		}
+	}
+
+	ProxyInterface->SetRenderTarget(0, ShadowBackbuffer.GetCurrentBackBuffer()->GetProxyInterface());
+}
+
+void m_IDirect3DDevice9Ex::ReleaseShadowBackbuffer()
+{
+	if (ShadowBackbuffer.Count())
+	{
+		ComPtr<IDirect3DSurface9> pBackbuffer;
+		if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackbuffer.GetAddressOf())))
+		{
+			ProxyInterface->SetRenderTarget(0, pBackbuffer.Get());
+		}
+
+		ShadowBackbuffer.ReleaseAll();
+	}
+}
+
+void m_IDirect3DDevice9Ex::ModeExToMode(D3DDISPLAYMODEEX& ModeEx, D3DDISPLAYMODE& Mode)
+{
+	Mode.Width = ModeEx.Width;
+	Mode.Height = ModeEx.Height;
+	Mode.RefreshRate = ModeEx.RefreshRate;
+	Mode.Format = ModeEx.Format;
 }
 
 void m_IDirect3DDevice9Ex::LimitFrameRate() const
@@ -3190,50 +3501,44 @@ void m_IDirect3DDevice9Ex::LimitFrameRate() const
 	// Count the number of frames
 	SHARED.Counter.FrameCounter++;
 
-	// Get performance frequency if not already cached
-	static LARGE_INTEGER Frequency = {};
-	if (!Frequency.QuadPart)
-	{
-		QueryPerformanceFrequency(&Frequency);
-	}
-	static LONGLONG TicksPerMS = Frequency.QuadPart / 1000;
+	// Get performance frequency once
+	static const LARGE_INTEGER Frequency = [] {
+		LARGE_INTEGER freq = {};
+		QueryPerformanceFrequency(&freq);
+		return freq;
+		}();
+	static const LONGLONG TicksPerMS = Frequency.QuadPart / 1000;
 
-	// Calculate the delay time in ticks
+	// Calculate time per frame in ticks
 	static long double PerFrameFPS = Config.LimitPerFrameFPS;
-	static LONGLONG PreFrameTicks = static_cast<LONGLONG>(static_cast<long double>(Frequency.QuadPart) / PerFrameFPS);
+	static LONGLONG PerFrameTicks = static_cast<LONGLONG>(static_cast<long double>(Frequency.QuadPart) / PerFrameFPS);
 
-	// Get next tick time
+	// Get current time
 	LARGE_INTEGER ClickTime = {};
 	QueryPerformanceCounter(&ClickTime);
-	LONGLONG TargetEndTicks = SHARED.Counter.LastPresentTime.QuadPart;
-	LONGLONG FramesSinceLastCall = ((ClickTime.QuadPart - SHARED.Counter.LastPresentTime.QuadPart - 1) / PreFrameTicks) + 1;
-	if (SHARED.Counter.LastPresentTime.QuadPart == 0 || FramesSinceLastCall > 2)
+
+	LONGLONG TargetEndTicks = SHARED.Counter.LastPresentTime.QuadPart + PerFrameTicks;
+
+	// First frame or if we fell behind, reset base time
+	if (SHARED.Counter.LastPresentTime.QuadPart == 0 || ClickTime.QuadPart >= TargetEndTicks)
 	{
-		QueryPerformanceCounter(&SHARED.Counter.LastPresentTime);
-		TargetEndTicks = SHARED.Counter.LastPresentTime.QuadPart;
-	}
-	else
-	{
-		TargetEndTicks += FramesSinceLastCall * PreFrameTicks;
+		SHARED.Counter.LastPresentTime.QuadPart = ClickTime.QuadPart;
+		return;
 	}
 
-	// Wait for time to expire
-	bool DoLoop;
-	do {
+	// Wait until target time
+	while (true)
+	{
 		QueryPerformanceCounter(&ClickTime);
 		LONGLONG RemainingTicks = TargetEndTicks - ClickTime.QuadPart;
 
-		// Check if we still need to wait
-		DoLoop = RemainingTicks > 0;
+		if (RemainingTicks <= 0) break;
 
-		if (DoLoop)
-		{
-			// Busy wait until we reach the target time
-			Utils::BusyWaitYield(static_cast<DWORD>(RemainingTicks / TicksPerMS));
-		}
-	} while (DoLoop);
+		// Busy wait until we reach the target time
+		Utils::BusyWaitYield(static_cast<DWORD>(RemainingTicks / TicksPerMS));
+	}
 
-	// Update the last present time
+	// Store target time for next frame
 	SHARED.Counter.LastPresentTime.QuadPart = TargetEndTicks;
 }
 

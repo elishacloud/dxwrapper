@@ -17,6 +17,32 @@ public:
     }
 };
 
+template<typename T>
+struct HeapBuffer
+{
+private:
+    T* buffer = nullptr;
+public:
+    // Constructor: allocate and initialize buffer
+    HeapBuffer(size_t bufferSize)
+    {
+        buffer = new T[bufferSize](); // value-initialized
+    }
+    // Destructor: free memory
+    ~HeapBuffer()
+    {
+        delete[] buffer;
+    }
+    // Get buffer pointer
+    T* data()
+    {
+        return buffer;
+    }
+    // Disable copy to prevent accidental copies
+    HeapBuffer(const HeapBuffer&) = delete;
+    HeapBuffer& operator=(const HeapBuffer&) = delete;
+};
+
 struct ScopedCriticalSection
 {
 private:

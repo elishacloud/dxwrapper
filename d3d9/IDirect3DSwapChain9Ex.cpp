@@ -20,6 +20,12 @@ HRESULT m_IDirect3DSwapChain9Ex::QueryInterface(THIS_ REFIID riid, void** ppvObj
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+	*ppvObj = nullptr;
+
 	if (riid == IID_IUnknown || riid == WrapperID)
 	{
 		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
@@ -36,7 +42,15 @@ HRESULT m_IDirect3DSwapChain9Ex::QueryInterface(THIS_ REFIID riid, void** ppvObj
 
 	if (SUCCEEDED(hr))
 	{
+		IDirect3DSwapChain9* pSwapChain = reinterpret_cast<IDirect3DSwapChain9*>(*ppvObj);
 		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
+
+		// Reinitialize as Ex
+		if (riid == IID_IDirect3DSwapChain9Ex && pSwapChain != *ppvObj)
+		{
+			m_IDirect3DSwapChain9Ex* pSwapChainEx = reinterpret_cast<m_IDirect3DSwapChain9Ex*>(*ppvObj);
+			pSwapChainEx->InitInterface(m_pDeviceEx, riid, nullptr);
+		}
 	}
 
 	return hr;
@@ -111,18 +125,23 @@ HRESULT m_IDirect3DSwapChain9Ex::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
 
 	if (Config.D3d9to9Ex && ProxyInterfaceEx)
 	{
-		D3DDISPLAYMODEEX* pModeEx = nullptr;
-		D3DDISPLAYMODEEX ModeEx = {};
-
-		if (pMode)
+		if (!pMode)
 		{
-			m_IDirect3DDevice9Ex::ModeToModeEx(*pMode, ModeEx);
-			pModeEx = &ModeEx;
+			return D3DERR_INVALIDCALL;
 		}
 
+		D3DDISPLAYMODEEX ModeEx = {};
+		ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
 		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
 
-		return GetDisplayModeEx(pModeEx, &Rotation);
+		HRESULT hr = GetDisplayModeEx(&ModeEx, &Rotation);
+
+		if (SUCCEEDED(hr))
+		{
+			m_IDirect3DDevice9Ex::ModeExToMode(ModeEx, *pMode);
+		}
+
+		return hr;
 	}
 
 	return ProxyInterface->GetDisplayMode(pMode);

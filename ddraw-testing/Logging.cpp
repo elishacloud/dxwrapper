@@ -301,3 +301,12 @@ std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode)
 
 	return os << Logging::hex((DWORD)ErrCode);
 }
+
+std::ostream& operator<<(std::ostream& os, const D3DCOLORVALUE& data)
+{
+	return Logging::LogStruct(os)
+		<< data.r
+		<< data.g
+		<< data.b
+		<< data.a;
+}

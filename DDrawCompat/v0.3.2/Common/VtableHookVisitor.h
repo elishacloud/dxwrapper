@@ -1,8 +1,6 @@
 #pragma once
 
 #include <string>
-#include <typeinfo>
-#include <type_traits>
 
 #include <DDrawCompat/v0.3.2/Common/Hook.h>
 #include <DDrawCompat/DDrawLog.h>
@@ -69,7 +67,7 @@ public:
 private:
 	static std::string getVtableTypeName()
 	{
-		std::string name = typeid(Vtable).name();
+		std::string name = GetTypeName<Vtable>();
 		if (0 == name.find("struct "))
 		{
 			name = name.substr(name.find(" ") + 1);

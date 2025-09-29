@@ -73,7 +73,7 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD Dir
 
 			ddrawParent->AddRef(DxVersion);
 
-			return DD_OK;
+			return D3D_OK;
 		}
 	}
 

@@ -184,7 +184,7 @@ namespace Compat32
 		HMODULE module = Compat32::getModuleHandleFromAddress(funcPtr);
 		if (module)
 		{
-			oss << Compat32::getModulePath(module).u8string() << "+0x" << std::hex <<
+			oss << toUtf8(Compat32::getModulePath(module)) << "+0x" << std::hex <<
 				reinterpret_cast<DWORD>(funcPtr) - reinterpret_cast<DWORD>(module);
 		}
 		else

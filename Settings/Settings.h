@@ -34,7 +34,6 @@
 	visit(DdrawCustomWidth) \
 	visit(DdrawCustomHeight) \
 	visit(DdrawEnableByteAlignment) \
-	visit(DdrawExtraEmulationSize) \
 	visit(DdrawDisableDirect3DCaps) \
 	visit(DdrawEmulateLock) \
 	visit(DdrawFillSurfaceColor) \
@@ -77,6 +76,7 @@
 	visit(SetSwapEffectShim) \
 	visit(DeviceLookupCacheTime) \
 	visit(DisableGameUX) \
+	visit(DisableGDIGammaRamp) \
 	visit(DisableHighDPIScaling) \
 	visit(DisableLogging) \
 	visit(DirectShowEmulation) \
@@ -100,6 +100,7 @@
 	visit(FixHighFrequencyMouse) \
 	visit(FixPerfCounterUptime) \
 	visit(FixSpeakerConfigType) \
+	visit(FlipEx) \
 	visit(ForceExclusiveMode) \
 	visit(ForceHardwareMixing) \
 	visit(ForceHQ3DSoftMixing) \
@@ -131,6 +132,7 @@
 	visit(Num2DBuffers) \
 	visit(Num3DBuffers) \
 	visit(OverrideRefreshRate) \
+	visit(OverrideStencilFormat) \
 	visit(PrimaryBufferBits) \
 	visit(PrimaryBufferChannels) \
 	visit(PrimaryBufferSamples) \
@@ -147,6 +149,7 @@
 	visit(ShowFPSCounter) \
 	visit(SingleProcAffinity) \
 	visit(StoppedDriverWorkaround) \
+	visit(UseShadowBackbuffer) \
 	visit(WaitForProcess) \
 	visit(WaitForWindowChanges) \
 	visit(WindowSleepTime) \
@@ -240,11 +243,10 @@ struct CONFIG
 	bool DDrawCompatDisableGDIHook = false;		// Disables DDrawCompat GDI hooks
 	bool DDrawCompatNoProcAffinity = false;		// Disables DDrawCompat single processor affinity
 	bool DdrawAlternatePixelCenter = false;		// Enables alternate pixel center -0.5f vs 0.0
-	bool DdrawClampVertexZDepth = false;		// Clamps the z depth in vertex buffer to a max of 1.0f
+	DWORD DdrawClampVertexZDepth = 0;			// 1) Clamps z depth to a max of 1.0f, 2) Clamps the z depth between 0.0f and 1.0f and recomputes w/rhw
 	bool DdrawAutoFrameSkip = false;			// Automatically skips frames to reduce input lag
 	DWORD DdrawFixByteAlignment = false;		// Fixes lock with surfaces that have unaligned byte sizes, 1) just byte align, 2) byte align + D3DTEXF_NONE, 3) byte align + D3DTEXF_LINEAR
 	bool DdrawEnableByteAlignment = false;		// Disables 32bit / 64bit byte alignment
-	DWORD DdrawExtraEmulationSize = 0;			// Adds extra space to system memory surfaces to help with cases where games read beyond the bottom of the surface
 	bool DdrawIntroVideoFix = false;			// Enables some fixes that may help with showing intro videos
 	DWORD DdrawResolutionHack = 0;				// Removes the artificial resolution limit from Direct3D7 and below https://github.com/UCyborg/LegacyD3DResolutionHack
 	bool DdrawRemoveScanlines = false;			// Experimental feature to removing interlaced black lines in a single frame
@@ -277,6 +279,7 @@ struct CONFIG
 	DWORD DdrawOverrideWidth = 0;				// Force Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawOverrideHeight = 0;				// Force Direct3d9 to use this height when using Dd7to9
 	DWORD OverrideRefreshRate = 0;				// Force Direct3d9 to use this refresh rate, only works in exclusive fullscreen mode
+	DWORD OverrideStencilFormat = 0;			// Force Direct3d9 to use this AutoStencilFormat
 	DWORD DdrawOverrideStencilFormat = 0;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
 	DWORD DdrawFlipFillColor = 0;				// Color used to fill the primary surface before flipping
 	bool DdrawForceMipMapAutoGen = false;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
@@ -291,6 +294,7 @@ struct CONFIG
 	DWORD DeviceLookupCacheTime = 0;			// Number of seconds to cache the DeviceEnum callback data
 	bool DirectShowEmulation = false;			// Emulates DirectShow APIs
 	bool DisableGameUX = false;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
+	bool DisableGDIGammaRamp = false;			// Disables gamma ramp for GDI, some games look washed out with gamme ramp enabled
 	bool DisableHighDPIScaling = false;			// Disables display scaling on high DPI settings
 	bool DisableLogging = false;				// Disables the logging file
 	DWORD SetSwapEffectShim = 0;				// Disables the call to d3d9.dll 'Direct3D9SetSwapEffectUpgradeShim' to switch present mode
@@ -309,7 +313,7 @@ struct CONFIG
 	bool FixHighFrequencyMouse = false;			// Gets the latest mouse status by merging the DirectInput buffer data
 	float MouseMovementFactor = 1.0f;			// Sets the mouse movement speed factor, requires enabling FixHighFrequencyMouse
 	DWORD MouseMovementPadding = 0;				// Adds extra mouse movement to overcome issues with input deadzone in some games, requires enabling FixHighFrequencyMouse
-	DWORD FixPerfCounterUptime = 0;				// Reduces uptime counters to prevent shlowdown in games
+	DWORD FixPerfCounterUptime = 0;				// Reduces uptime counters to prevent slowdowns in games
 	bool ForceDirect3D9On12 = false;			// Forces Direct3D9 to use CreateDirect3D9On12
 	bool ForceExclusiveFullscreen = false;		// Forces exclusive fullscreen mode in d3d9
 	bool ForceMixedVertexProcessing = false;	// Forces Mixed mode for vertex processing in d3d9
@@ -331,10 +335,11 @@ struct CONFIG
 	bool ResetScreenRes = false;				// Reset the screen resolution on close
 	DWORD LimitStateBlocks = 0;					// Reuses state block interfaces to prevent memory leaks
 	bool SendAltEnter = false;					// Sends an Alt+Enter message to the wind to tell it to go into fullscreen, requires FullScreen
+	bool UseShadowBackbuffer = false;			// Enables shadow backbuffer for d3d8to and Direct3D9 games
 	bool WaitForProcess = false;				// Waits for process to end before continuing, requires FullScreen
 	bool WaitForWindowChanges = false;			// Waits for window handle to stabilize before setting fullsreen, requires FullScreen
 	bool WindowModeBorder = false;				// Enables the window border when EnableWindowMode is set, requires EnableWindowMode
-	DWORD WindowModeGammaShader = 0;			// Use shader for gamma when in window mode
+	DWORD WindowModeGammaShader = 0;			// Use shader for gamma: 1 = when in window mode; 2 = for both window and exclusive fullscreen mode
 	bool SetInitialWindowPosition = false;		// Enable Initial window position
 	DWORD InitialWindowPositionLeft;			// Initial left window position for application
 	DWORD InitialWindowPositionTop;				// Initial top window position for application
@@ -347,6 +352,7 @@ struct CONFIG
 	DWORD SetPOW2Caps = 0;						// Force caps change: 1 = force both, 2 = force D3DPTEXTURECAPS_NONPOW2CONDITIONAL, 3 = force D3DPTEXTURECAPS_POW2, 4 = remove both
 	DWORD AnisotropicFiltering = 0;				// Enable Anisotropic Filtering for d3d9
 	DWORD AntiAliasing = 0;						// Enable AntiAliasing for d3d9 CreateDevice
+	bool FlipEx = false;						// Enable FlipEx presentation mode for D3D9Ex. Disables AntiAliasing
 	DWORD RealWrapperMode = 0;					// Internal wrapper mode
 	MEMORYINFO VerifyMemoryInfo;				// Memory used for verification before hot patching
 	std::string WinVersionLie = "";				// Using DDrawCompat WinVersionLie to tell the OS a different OS

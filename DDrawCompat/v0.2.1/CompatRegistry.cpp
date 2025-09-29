@@ -2,7 +2,7 @@
 #include <cstring>
 #include <map>
 
-#include <atlstr.h>
+#include <string>
 
 #include "CompatRegistry.h"
 #include "DDrawCompat\DDrawLog.h"
@@ -12,29 +12,50 @@ namespace Compat21
 {
 	namespace
 	{
+		inline std::wstring ToWString(const char* s)
+		{
+			if (!s) return L"";
+			size_t len = strlen(s);
+			std::wstring ws(len, L'\0');
+			size_t converted = 0;
+			mbstowcs_s(&converted, &ws[0], len + 1, s, len);
+
+			return ws;
+		}
+
+		inline int CompareNoCase(const std::wstring& a, const std::wstring& b)
+		{
+			// LOCALE_INVARIANT avoids locale-specific differences
+			return CompareStringW(LOCALE_INVARIANT, NORM_IGNORECASE,
+				a.c_str(), (int)a.length(),
+				b.c_str(), (int)b.length()) - CSTR_EQUAL;
+		}
+
 		struct RegistryKey
 		{
 			HKEY key;
-			CStringW subKey;
-			CStringW value;
+			std::wstring subKey;
+			std::wstring value;
 
-			RegistryKey(HKEY key, CStringW subKey, CStringW value) : key(key), subKey(subKey), value(value) {}
+			RegistryKey(HKEY key, const std::wstring& subKey, const std::wstring& value) : key(key), subKey(subKey), value(value) {}
+
+			RegistryKey(HKEY key, const char* subKey, const char* value) : key(key), subKey(ToWString(subKey)), value(ToWString(value)) {}
 
 			bool operator<(const RegistryKey& rhs) const
 			{
 				if (key < rhs.key) { return true; }
 				if (key > rhs.key) { return false; }
-				const int subKeyComp = subKey.CompareNoCase(rhs.subKey);
+				const int subKeyComp = CompareNoCase(subKey, rhs.subKey);
 				if (subKeyComp < 0) { return true; }
 				if (subKeyComp > 0) { return false; }
-				return value.CompareNoCase(rhs.value) < 0;
+				return CompareNoCase(value, rhs.value) < 0;
 			}
 
 			bool operator==(const RegistryKey& rhs) const
 			{
 				return key == rhs.key &&
-					0 == subKey.CompareNoCase(rhs.subKey) &&
-					0 == value.CompareNoCase(rhs.value);
+					0 == CompareNoCase(subKey, rhs.subKey) &&
+					0 == CompareNoCase(value, rhs.value);
 			}
 		};
 
