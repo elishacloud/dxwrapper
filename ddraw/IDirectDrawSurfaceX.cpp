@@ -7138,6 +7138,15 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		IsUsingEmulation() ? DD_OK : UnLockD3d9Surface(MipMapLevel);
 	}
 
+	if (SUCCEEDED(hr))
+	{
+		if (MipMapLevel == 0)
+		{
+			// Keep surface insync
+			EndWriteSyncSurfaces(&DestRect);
+		}
+	}
+
 	// Return
 	return hr;
 }
