@@ -4418,7 +4418,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			}
 			else
 			{
-				BOOL IsLockable = (surface.MultiSampleType || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE)) ? FALSE : TRUE;
+				BOOL IsLockable = (surface.MultiSampleType || Config.AntiAliasing || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE)) ? FALSE : TRUE;
 				surface.IsLockable = (IsLockable == TRUE);
 				surface.Type = D3DTYPE_RENDERTARGET;
 				if (FAILED((*d3d9Device)->CreateRenderTarget(surface.Width, surface.Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)) &&
