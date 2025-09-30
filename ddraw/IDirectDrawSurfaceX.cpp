@@ -2689,11 +2689,14 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC, DWORD MipMapLevel)
 			// Set dirty flag
 			SetDirtyFlag(MipMapLevel);
 
-			// Keep surface insync
-			EndWriteSyncSurfaces(nullptr);
+			if (MipMapLevel == 0)
+			{
+				// Keep surface insync
+				EndWriteSyncSurfaces(nullptr);
 
-			// Present surface
-			EndWritePresent(nullptr, false, true, true, false);
+				// Present surface
+				EndWritePresent(nullptr, false, true, true, false);
+			}
 		}
 
 		return hr;
@@ -3106,11 +3109,14 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 				// Set dirty flag
 				SetDirtyFlag(LastLock.MipMapLevel);
 
-				// Keep surface insync
-				EndWriteSyncSurfaces(&LastLock.Rect);
+				if (LastLock.MipMapLevel == 0)
+				{
+					// Keep surface insync
+					EndWriteSyncSurfaces(&LastLock.Rect);
 
-				// Present surface
-				EndWritePresent(&LastLock.Rect, false, true, true, LastLock.IsSkipScene);
+					// Present surface
+					EndWritePresent(&LastLock.Rect, false, true, true, LastLock.IsSkipScene);
+				}
 			}
 		}
 
@@ -5912,6 +5918,12 @@ void m_IDirectDrawSurfaceX::EndWriteSyncSurfaces(LPRECT lpDestRect)
 	{
 		CopyFromEmulatedSurface(lpDestRect);
 	}
+
+	// Pre-populate draw texture
+	if (Using3D && IsSurfaceTexture() && IsColorKeyTexture() && !IsPrimaryOrBackBuffer() && !IsRenderTarget())
+	{
+		GetD3d9DrawTexture();
+	}
 }
 
 bool m_IDirectDrawSurfaceX::IsSurfaceLocked(DWORD MipMapLevel)
@@ -6357,8 +6369,11 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 		}
 	}
 
-	// Keep surface insync
-	EndWriteSyncSurfaces(&DestRect);
+	if (MipMapLevel == 0)
+	{
+		// Keep surface insync
+		EndWriteSyncSurfaces(&DestRect);
+	}
 
 	return DD_OK;
 }
@@ -7096,12 +7111,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	if (UnlockDest)
 	{
 		IsUsingEmulation() ? DD_OK : UnLockD3d9Surface(MipMapLevel);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		// Keep surface insync
-		EndWriteSyncSurfaces(&DestRect);
 	}
 
 	// Return
