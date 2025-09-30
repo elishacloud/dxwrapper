@@ -4404,7 +4404,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			// ToDo: if render surface is a texture then create as a texture (MipMaps can be supported on render target textures)
 			surface.Usage = D3DUSAGE_RENDERTARGET;
 			surface.Pool = D3DPOOL_DEFAULT;
-			if (IsSurfaceTexture() || IsPalette() || (IsPrimaryOrBackBuffer() && !Config.AntiAliasing && !surface.MultiSampleType))
+			if (IsSurfaceTexture() || IsPalette())
 			{
 				surface.IsLockable = false;
 				surface.Type = D3DTYPE_TEXTURE;
