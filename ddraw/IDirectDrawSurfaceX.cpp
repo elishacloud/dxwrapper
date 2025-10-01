@@ -4365,12 +4365,24 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	// Anti-aliasing
 	if (IsRenderTarget())
 	{
-		bool AntiAliasing = (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING);
+		bool AntiAliasing = (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) || (surfaceDesc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK);
 		if (AntiAliasing && !surface.MultiSampleType)
 		{
+			DWORD MaxSamples = 0;
+			DWORD Mask =
+				!(surfaceDesc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK) ? 0 :
+				surfaceDesc2.ddpfPixelFormat.MultiSampleCaps.wBltMSTypes > surfaceDesc2.ddpfPixelFormat.MultiSampleCaps.wFlipMSTypes ?
+				surfaceDesc2.ddpfPixelFormat.MultiSampleCaps.wBltMSTypes : surfaceDesc2.ddpfPixelFormat.MultiSampleCaps.wFlipMSTypes;
+			if (Mask)
+			{
+				while ((Mask & 1) == 0)
+				{
+					Mask >>= 1;
+					MaxSamples++;
+				}
+			}
 			// Default to 8 samples as some games have issues with more samples
-			DWORD MaxSamples = (surfaceDesc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK) ? (surfaceDesc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK) : D3DMULTISAMPLE_8_SAMPLES;
-			surface.MultiSampleType = ddrawParent->GetMultiSampleTypeQuality(Format, MaxSamples, surface.MultiSampleQuality);
+			surface.MultiSampleType = ddrawParent->GetMultiSampleTypeQuality(Format, MaxSamples ? MaxSamples : D3DMULTISAMPLE_8_SAMPLES, surface.MultiSampleQuality);
 		}
 	}
 
