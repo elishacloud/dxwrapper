@@ -64,6 +64,7 @@ struct DEVICEDETAILS
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;
 	bool SetSSAA = false;
+	bool SetATOC = false;
 	D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
 	DWORD DeviceMultiSampleQuality = 0;
 
@@ -174,10 +175,17 @@ public:
 		}
 
 		// Check for SSAA
-		if (SHARED.DeviceMultiSampleType && m_pD3DEx &&
-			m_pD3DEx->CheckDeviceFormat(SHARED.Adapter, SHARED.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
+		if (SHARED.DeviceMultiSampleType && m_pD3DEx)
 		{
-			SHARED.SetSSAA = true;
+			if (m_pD3DEx->CheckDeviceFormat(SHARED.Adapter, SHARED.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
+			{
+				SHARED.SetSSAA = true;
+			}
+			if (Config.EnableMultisamplingATOC &&
+				m_pD3DEx->CheckDeviceFormat(SHARED.Adapter, SHARED.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('A', 'T', 'O', 'C')) == S_OK)
+			{
+				SHARED.SetATOC = true;
+			}
 		}
 
 		ReInitInterface();

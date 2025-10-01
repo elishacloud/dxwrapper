@@ -81,6 +81,7 @@
 	visit(EnableDinput8Wrapper) \
 	visit(EnableDsoundWrapper) \
 	visit(EnableImgui) \
+	visit(EnableMultisamplingATOC) \
 	visit(EnableOpenDialogHook) \
 	visit(EnableVSync) \
 	visit(EnableWindowMode) \
@@ -294,6 +295,7 @@ struct CONFIG
 	bool EnableDinput8Wrapper = false;			// Enables the dinput8 wrapper
 	bool EnableDsoundWrapper = false;			// Enables the dsound wrapper
 	bool EnableImgui = false;					// Enables imgui for debugging
+	bool EnableMultisamplingATOC = false;		// Enables transparency multisampling (ATOC)
 	bool EnableOpenDialogHook = false;			// Enables the hooks for the open dialog box
 	bool EnableWindowMode = false;				// Enables WndMode for d3d9 wrapper
 	bool EnableVSync = false;					// Enables VSync for d3d9 wrapper

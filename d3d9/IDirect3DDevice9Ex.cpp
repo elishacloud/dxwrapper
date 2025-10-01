@@ -276,6 +276,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 				SHARED.DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
 				SHARED.DeviceMultiSampleQuality = 0;
 				SHARED.SetSSAA = false;
+				SHARED.SetATOC = false;
 			}
 
 		} while (false);
@@ -906,6 +907,10 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 
 	// Set for Multisample
 	if (SHARED.DeviceMultiSampleFlag && State == D3DRS_MULTISAMPLEANTIALIAS)
+	{
+		Value = TRUE;
+	}
+	if (SHARED.SetATOC && State == D3DRS_ALPHATESTENABLE)
 	{
 		Value = TRUE;
 	}
@@ -1834,6 +1839,11 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 			if (SHARED.SetSSAA)
 			{
 				ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('S', 'S', 'A', 'A'));
+			}
+			if (SHARED.SetATOC)
+			{
+				ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
+				ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('A', 'T', 'O', 'C'));
 			}
 		}
 	}
