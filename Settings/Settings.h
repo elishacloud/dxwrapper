@@ -19,6 +19,7 @@
 	visit(Dd7to9) \
 	visit(D3d8to9) \
 	visit(D3d9to9Ex) \
+	visit(D3d9on12) \
 	visit(Dinputto8) \
 	visit(DDrawCompat) \
 	visit(DDrawCompat20) \
@@ -83,7 +84,6 @@
 	visit(EnableVSync) \
 	visit(EnableWindowMode) \
 	visit(ExcludeProcess) \
-	visit(ForceDirect3D9On12) \
 	visit(ForceExclusiveFullscreen) \
 	visit(ForceMixedVertexProcessing) \
 	visit(ForceSystemMemVertexCache) \
@@ -227,6 +227,7 @@ struct CONFIG
 	bool Dd7to9 = false;						// Converts DirectDraw/Direct3D (ddraw.dll) to Direct3D9 (d3d9.dll)
 	bool D3d8to9 = false;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
 	bool D3d9to9Ex = false;						// Converts Direct3D9 to Direct3D9Ex
+	bool D3d9on12 = false;						// Converts Direct3D9 to use CreateDirect3D9On12
 	bool Dinputto8 = false;						// Converts DirectInput (dinput.dll) to DirectInput8 (dinput8.dll)
 	bool DDrawCompat = false;					// Enables the default DDrawCompat functions https://github.com/narzoul/DDrawCompat/
 	bool DDrawCompat20 = false;					// Enables DDrawCompat v0.2.0b
@@ -298,7 +299,6 @@ struct CONFIG
 	float MouseMovementFactor = 1.0f;			// Sets the mouse movement speed factor, requires enabling FixHighFrequencyMouse
 	DWORD MouseMovementPadding = 0;				// Adds extra mouse movement to overcome issues with input deadzone in some games, requires enabling FixHighFrequencyMouse
 	DWORD FixPerfCounterUptime = 0;				// Reduces uptime counters to prevent slowdowns in games
-	bool ForceDirect3D9On12 = false;			// Forces Direct3D9 to use CreateDirect3D9On12
 	bool ForceExclusiveFullscreen = false;		// Forces exclusive fullscreen mode in d3d9
 	bool ForceMixedVertexProcessing = false;	// Forces Mixed mode for vertex processing in d3d9
 	bool ForceSystemMemVertexCache = false;		// Forces System Memory caching for vertexes in d3d9

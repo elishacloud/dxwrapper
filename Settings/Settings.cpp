@@ -46,6 +46,7 @@ namespace Settings
 	bool DDrawCompatExperimental = false;
 	bool DDrawCompat30 = false;
 	bool DDrawCompat31 = false;
+	bool ForceDirect3D9On12 = false;
 
 	// Function declarations
 	bool IsValueEnabled(char*);
@@ -304,6 +305,7 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 	SET_LOCAL_VALUE(DDrawCompatExperimental);
 	SET_LOCAL_VALUE(DDrawCompat30);
 	SET_LOCAL_VALUE(DDrawCompat31);
+	SET_LOCAL_VALUE(ForceDirect3D9On12);
 
 	// Set Value of local settings
 	VISIT_LOCAL_SETTINGS(SET_LOCAL_VALUE);
@@ -728,11 +730,12 @@ void CONFIG::SetConfig()
 	{
 		DDrawCompat20 = false;
 	}
+	D3d9on12 = (D3d9on12 || ForceDirect3D9On12);
 	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || IsSet(DdrawResolutionHack) || DdrawUseDirect3D9Caps || Dd7to9);
 	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
 	DdrawAutoFrameSkip = (AutoFrameSkip || DdrawAutoFrameSkip);																	// For legacy purposes
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
-	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || IsSet(D3d9HookSystem32) || D3d9to9Ex ||
+	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || IsSet(D3d9HookSystem32) || D3d9to9Ex || D3d9on12 ||
 		(EnableD3d9Wrapper == NOT_EXIST && (AnisotropicFiltering || AntiAliasing || IsSet(CacheClipPlane) || EnableVSync ||		// For legacy purposes
 			ForceMixedVertexProcessing || ForceSystemMemVertexCache || ForceVsyncMode || EnableWindowMode)));					// For legacy purposes
 	EnvironmentCubeMapFix = EnvironmentCubeMapFix || EnvironmentMapCubeFix;														// For legacy purposes

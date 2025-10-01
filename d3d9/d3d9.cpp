@@ -296,7 +296,7 @@ IDirect3D9* WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 
 	SetupIDirect3D9();
 
-	if (Config.ForceDirect3D9On12 && Config.D3d9to9Ex)
+	if (Config.D3d9on12 && Config.D3d9to9Ex)
 	{
 		DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9On12ExProc, Direct3DCreate9On12Ex, Direct3DCreate9On12Ex_out);
 
@@ -317,7 +317,7 @@ IDirect3D9* WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 		}
 	}
 
-	if (Config.ForceDirect3D9On12)
+	if (Config.D3d9on12)
 	{
 		DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9On12Proc, Direct3DCreate9On12, Direct3DCreate9On12_out);
 
@@ -381,7 +381,7 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppD3D)
 
 	SetupIDirect3D9();
 
-	if (Config.ForceDirect3D9On12)
+	if (Config.D3d9on12)
 	{
 		DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9On12ExProc, Direct3DCreate9On12Ex, Direct3DCreate9On12Ex_out);
 
@@ -429,7 +429,7 @@ IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverr
 
 	SetupIDirect3D9();
 
-	if (Config.ForceDirect3D9On12 && pOverrideList)
+	if (Config.D3d9on12 && pOverrideList)
 	{
 		for (UINT x = 0; x < NumOverrideEntries; x++)
 		{
@@ -480,7 +480,7 @@ HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrid
 
 	SetupIDirect3D9();
 
-	if (Config.ForceDirect3D9On12 && pOverrideList)
+	if (Config.D3d9on12 && pOverrideList)
 	{
 		for (UINT x = 0; x < NumOverrideEntries; x++)
 		{
