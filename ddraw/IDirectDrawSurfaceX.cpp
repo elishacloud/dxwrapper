@@ -1761,7 +1761,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 #endif
 
 		// Check if render target should use shadow
-		if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !surface.IsLockable && !IsUsingShadowSurface())
+		if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !IsUsingShadowSurface())
 		{
 			SetRenderTargetShadow();
 		}
@@ -2421,9 +2421,18 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 #endif
 
 		// Check if render target should use shadow
-		if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !surface.IsLockable && !IsUsingShadowSurface())
+		if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET))
 		{
-			SetRenderTargetShadow();
+			if (surface.IsLockable)
+			{
+				// Don't use shadow for Lock()
+				// Some games write to surface without locking so we don't want to give them a shadow surface or it could make the shadow surface out of sync
+				PrepareRenderTarget();
+			}
+			else if (!IsUsingShadowSurface())
+			{
+				SetRenderTargetShadow();
+			}
 		}
 
 		HRESULT hr = DD_OK;
@@ -6811,13 +6820,13 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Check if source render target should use shadow
-		if (SrcMipMapLevel == 0 && (pSourceSurface->surface.Usage & D3DUSAGE_RENDERTARGET) && !pSourceSurface->surface.IsLockable && !pSourceSurface->IsUsingShadowSurface())
+		if (SrcMipMapLevel == 0 && (pSourceSurface->surface.Usage & D3DUSAGE_RENDERTARGET) && !pSourceSurface->IsUsingShadowSurface())
 		{
 			pSourceSurface->SetRenderTargetShadow();
 		}
 
 		// Check if render target should use shadow
-		if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !surface.IsLockable && !IsUsingShadowSurface())
+		if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !IsUsingShadowSurface())
 		{
 			SetRenderTargetShadow();
 		}
