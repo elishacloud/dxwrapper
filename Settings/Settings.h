@@ -58,6 +58,7 @@
 	visit(DdrawOverrideStencilFormat) \
 	visit(DdrawResolutionHack) \
 	visit(DdrawUseDirect3D9Caps) \
+	visit(DdrawUseShadowSurface) \
 	visit(DdrawUseNativeResolution) \
 	visit(DdrawEnableMouseHook) \
 	visit(DdrawHookSystem32) \
@@ -253,6 +254,7 @@ struct CONFIG
 	bool DdrawIntegerScalingClamp = false;		// Scales the screen by an integer value to help preserve video quality
 	bool DdrawMaintainAspectRatio = false;		// Keeps the current DirectDraw aspect ratio when overriding the game's resolution
 	bool DdrawUseDirect3D9Caps = false;			// Use Direct3D9 (Dd7to9) for GetCaps
+	bool DdrawUseShadowSurface = false;			// Use shadow surface with Dd7to9 for render target Locks/GetDC
 	bool DdrawUseNativeResolution = false;		// Uses the current screen resolution for Dd7to9
 	DWORD DdrawClippedWidth = 0;				// Used to scaled Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawClippedHeight = 0;				// Used to scaled Direct3d9 to use this height when using Dd7to9

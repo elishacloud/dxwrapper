@@ -2421,18 +2421,9 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 #endif
 
 		// Check if render target should use shadow
-		if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET))
+		if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !surface.IsLockable && !IsUsingShadowSurface())
 		{
-			if (surface.IsLockable)
-			{
-				// Don't use shadow for Lock()
-				// Some games write to surface without locking so we don't want to give them a shadow surface or it could make the shadow surface out of sync
-				PrepareRenderTarget();
-			}
-			else if (!IsUsingShadowSurface())
-			{
-				SetRenderTargetShadow();
-			}
+			SetRenderTargetShadow();
 		}
 
 		HRESULT hr = DD_OK;
@@ -4418,7 +4409,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			}
 			else
 			{
-				BOOL IsLockable = (surface.MultiSampleType || Config.AntiAliasing || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE)) ? FALSE : TRUE;
+				BOOL IsLockable = (surface.MultiSampleType || Config.AntiAliasing || Config.DdrawUseShadowSurface || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE)) ? FALSE : TRUE;
 				surface.IsLockable = (IsLockable == TRUE);
 				surface.Type = D3DTYPE_RENDERTARGET;
 				if (FAILED((*d3d9Device)->CreateRenderTarget(surface.Width, surface.Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)) &&
