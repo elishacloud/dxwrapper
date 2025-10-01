@@ -910,7 +910,7 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 	{
 		Value = TRUE;
 	}
-	if (SHARED.SetATOC && State == D3DRS_ALPHATESTENABLE)
+	if (SHARED.SetATOC && State == D3DRS_ALPHATESTENABLE && Config.EnableMultisamplingATOC == 2)
 	{
 		Value = TRUE;
 	}
@@ -1842,8 +1842,11 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 			}
 			if (SHARED.SetATOC)
 			{
-				ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
 				ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('A', 'T', 'O', 'C'));
+				if (Config.EnableMultisamplingATOC == 2)
+				{
+					ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
+				}
 			}
 		}
 	}

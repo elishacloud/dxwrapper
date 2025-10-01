@@ -295,7 +295,7 @@ struct CONFIG
 	bool EnableDinput8Wrapper = false;			// Enables the dinput8 wrapper
 	bool EnableDsoundWrapper = false;			// Enables the dsound wrapper
 	bool EnableImgui = false;					// Enables imgui for debugging
-	bool EnableMultisamplingATOC = false;		// Enables transparency multisampling (ATOC)
+	DWORD EnableMultisamplingATOC = 0;			// Enables transparency multisampling (ATOC). 1) Just enable ATOC. 2) Enable ATOC and AlphaTest Render State
 	bool EnableOpenDialogHook = false;			// Enables the hooks for the open dialog box
 	bool EnableWindowMode = false;				// Enables WndMode for d3d9 wrapper
 	bool EnableVSync = false;					// Enables VSync for d3d9 wrapper
