@@ -505,6 +505,7 @@ public:
 	bool IsPalette() const { return (surface.Format == D3DFMT_P8); }
 	bool IsDepthStencil() const { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	DWORD GetAttachedStencilSurfaceZBits();
+	D3DMULTISAMPLE_TYPE GetMultiSampleType() const { return surface.MultiSampleType; }
 	bool IsSurfaceManaged() const { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	bool IsSurfaceBusy(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS) { return (IsSurfaceBlitting() || IsSurfaceLocked(MipMapLevel) || IsSurfaceInDC(MipMapLevel)); }
 	bool CanSurfaceBeDeleted() const { return !ComplexChild; }

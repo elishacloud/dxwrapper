@@ -1586,15 +1586,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 
 		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
-		DWORD OldDepthBits = DepthBits;
-
-		DepthBits = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
-
-		if (OldDepthBits != DepthBits)
-		{
-			SetD9RenderState(D3DRS_DEPTHBIAS, GetDepthBias(DeviceStates.RenderState[D3DRENDERSTATE_ZBIAS].State, DepthBits));
-		}
-
 		HRESULT hr = ddrawParent->SetRenderTargetSurface(lpDDSrcSurfaceX);
 
 		if (SUCCEEDED(hr))
@@ -1606,9 +1597,20 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 
 			CurrentRenderTarget = lpNewRenderTarget;
 
+			CurrentRenderTarget->AddRef();
+
 			lpCurrentRenderTargetX = lpDDSrcSurfaceX;
 
-			CurrentRenderTarget->AddRef();
+			RenderTargetMultiSampleType = lpDDSrcSurfaceX->GetMultiSampleType();
+
+			DWORD OldDepthBits = DepthBits;
+
+			DepthBits = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
+
+			if (OldDepthBits != DepthBits)
+			{
+				SetD9RenderState(D3DRS_DEPTHBIAS, GetDepthBias(DeviceStates.RenderState[D3DRENDERSTATE_ZBIAS].State, DepthBits));
+			}
 		}
 
 		return D3D_OK;
@@ -2038,14 +2040,11 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
 			return SetTextureHandle(dwRenderState);
 		case D3DRENDERSTATE_ANTIALIAS:			// 2
-		case D3DRENDERSTATE_EDGEANTIALIAS:		// 40
 		{
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
-			DWORD rsAntiAlias = DeviceStates.RenderState[D3DRENDERSTATE_ANTIALIAS].State;
-			BOOL AntiAliasEnabled = (bool)(
-				(D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTDEPENDENT ||
-				(D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTINDEPENDENT ||
-				DeviceStates.RenderState[D3DRENDERSTATE_EDGEANTIALIAS].State);
+			BOOL AntiAliasEnabled = (
+				(D3DANTIALIASMODE)dwRenderState == D3DANTIALIAS_SORTDEPENDENT ||
+				(D3DANTIALIASMODE)dwRenderState == D3DANTIALIAS_SORTINDEPENDENT) ? TRUE : FALSE;
 			SetStateBlockRenderState(dwRenderStateType, dwRenderState);
 			return SetD9RenderState(D3DRS_MULTISAMPLEANTIALIAS, AntiAliasEnabled);
 		}
@@ -2260,6 +2259,13 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEENABLE' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
+		case D3DRENDERSTATE_EDGEANTIALIAS:		// 40
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
+			if (dwRenderState != FALSE)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EDGEANTIALIAS' not implemented! " << dwRenderState);
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYENABLE:		// 41
@@ -4743,6 +4749,8 @@ void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 
 					lpCurrentRenderTargetX = lpDDSrcSurfaceX;
 
+					RenderTargetMultiSampleType = lpDDSrcSurfaceX->GetMultiSampleType();
+
 					DepthBits = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
 
 					ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
@@ -6212,6 +6220,12 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		{
 			(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, DeviceStates.RenderState[D3DRS_ZENABLE].State);
 		}
+	}
+
+	// Check Multi-Sample Type
+	if (RenderTargetMultiSampleType == D3DMULTISAMPLE_NONE && DeviceStates.RenderState[D3DRS_MULTISAMPLEANTIALIAS].State)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: MultiSample render state enabled on a non-MultiSample render target!");
 	}
 
 	// Need to always set viewport
