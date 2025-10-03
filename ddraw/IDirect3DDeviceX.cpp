@@ -5917,10 +5917,10 @@ HRESULT m_IDirect3DDeviceX::D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, con
 
 		if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
 		{
-			StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Matrix[State] = *lpMatrix;
+			StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Matrix[State] = result;
 		}
 
-		BatchStates.Matrix[State] = FixMatrix(*lpMatrix, State, DeviceStates.Viewport.ViewportScale, DeviceStates.Viewport.UseViewportScale);
+		BatchStates.Matrix[State] = FixMatrix(result, State, DeviceStates.Viewport.ViewportScale, DeviceStates.Viewport.UseViewportScale);
 
 		DeviceStates.Matrix[State] = result;
 	}
