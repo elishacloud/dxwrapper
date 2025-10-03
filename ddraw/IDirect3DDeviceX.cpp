@@ -1336,10 +1336,9 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			Logging::Log() << __FUNCTION__ << " (" << this << ") Full Scene Time = " << Logging::GetTimeLapseInMS(sceneTime);
 #endif
 
-			m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
-			if (!PrimarySurface || FAILED(PrimarySurface->GetFlipStatus(DDGFS_CANFLIP, true)) || PrimarySurface == ddrawParent->GetRenderTargetSurface() || !PrimarySurface->IsRenderTarget())
+			if (lpCurrentRenderTargetX)
 			{
-				ddrawParent->PresentScene(nullptr);
+				lpCurrentRenderTargetX->EndWritePresent(nullptr, false, false, true, false);
 			}
 		}
 
@@ -2753,7 +2752,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), lpVertices, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwFlags, DirectXVersion);
+		RestoreDrawStates(hr, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -2846,7 +2845,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwFlags, DirectXVersion);
+		RestoreDrawStates(hr, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -3028,7 +3027,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 		HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), VertexCache.data(), GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwFlags, DirectXVersion);
+		RestoreDrawStates(hr, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -3119,7 +3118,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, VertexCache.data(), GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwFlags, DirectXVersion);
+		RestoreDrawStates(hr, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -3216,7 +3215,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		HRESULT hr = (*d3d9Device)->DrawPrimitive(dptPrimitiveType, dwStartVertex, GetNumberOfPrimitives(dptPrimitiveType, dwNumVertices));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwFlags, DirectXVersion);
+		RestoreDrawStates(hr, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -3330,7 +3329,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitive(dptPrimitiveType, dwStartVertex, 0, dwNumVertices, 0, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwFlags, DirectXVersion);
+		RestoreDrawStates(hr, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -3895,7 +3894,7 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 		// Clear respects the current viewport
 		(*d3d9Device)->SetViewport(&DeviceStates.Viewport.View);
 
-		if (lpCurrentRenderTargetX)
+		if (lpCurrentRenderTargetX && (dwFlags & D3DCLEAR_TARGET))
 		{
 			lpCurrentRenderTargetX->PrepareRenderTarget();
 
@@ -6339,7 +6338,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	}*/
 }
 
-void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwFlags, DWORD DirectXVersion)
+void m_IDirect3DDeviceX::RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD DirectXVersion)
 {
 	// Handle dwFlags
 	if (DirectXVersion < 7)
@@ -6383,6 +6382,15 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwFlags, DWORD DirectXVersion)
 	{
 		(*d3d9Device)->SetVertexShader(nullptr);
 	}*/
+
+	if (SUCCEEDED(hr))
+	{
+		// Mark render target as dirty
+		if (lpCurrentRenderTargetX)
+		{
+			lpCurrentRenderTargetX->SetDirtyFlag(0);
+		}
+	}
 }
 
 bool m_IDirect3DDeviceX::IsLightInUse(m_IDirect3DLight* pLightX)

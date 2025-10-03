@@ -263,7 +263,6 @@ private:
 	// Direct3D9 interfaces
 	HRESULT LockD3d9Surface(D3DLOCKED_RECT* pLockedRect, RECT* pRect, DWORD Flags, DWORD MipMapLevel);
 	HRESULT UnLockD3d9Surface(DWORD MipMapLevel);
-	void SetDirtyFlag(DWORD MipMapLevel);
 
 	// Swap surface addresses for Flip
 	template <typename T>
@@ -286,7 +285,6 @@ private:
 	bool CheckRectforSkipScene(RECT& DestRect);
 	HRESULT PresentOverlay(LPRECT lpSrcRect);
 	void BeginWritePresent(bool IsSkipScene);
-	void EndWritePresent(LPRECT lpDestRect, bool IsFlip, bool WriteToWindow, bool FullPresent, bool IsSkipScene);
 	void EndWriteSyncSurfaces(LPRECT lpDestRect);
 
 	// Surface information functions
@@ -490,6 +488,8 @@ public:
 	void ReleaseD9Surface(bool BackupData, bool ResetSurface);
 	HRESULT PresentSurface(bool IsFlip, bool IsSkipScene);
 	void ResetSurfaceDisplay();
+	void SetDirtyFlag(DWORD MipMapLevel);
+	void EndWritePresent(LPRECT lpDestRect, bool IsFlip, bool WriteToWindow, bool FullPresent, bool IsSkipScene);
 
 	// Surface information functions
 	bool IsPrimarySurface() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
