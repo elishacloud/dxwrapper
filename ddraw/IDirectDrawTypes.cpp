@@ -142,43 +142,40 @@ static inline float GetDepthValue(DWORD DepthColor, D3DFORMAT Format)
 
 	switch ((DWORD)Format)
 	{
-	case D3DFMT_S1D15:
-		DepthValue = static_cast<float>(DepthColor & 0x7FFF) / static_cast<float>(0x7FFF);
+	case D3DFMT_S1D15: // 1-bit stencil + 15-bit depth
+		DepthValue = (DepthColor & 0x7FFF) / 32767.0f;
 		break;
 
-	case D3DFMT_D15S1:
-		// Shift the depth value by 1 bits before extracting
-		DepthValue = static_cast<float>((DepthColor >> 1) & 0x7FFF) / static_cast<float>(0x7FFF);
+	case D3DFMT_D15S1: // 15-bit depth + 1-bit stencil
+		DepthValue = (DepthColor >> 1 & 0x7FFF) / 32767.0f;
 		break;
 
 	case D3DFMT_D16:
 	case D3DFMT_D16_LOCKABLE:
-		// 16-bit normalized int
-		DepthValue = static_cast<float>(DepthColor & 0xFFFF) / static_cast<float>(0xFFFF);
+		DepthValue = (DepthColor & 0xFFFF) / 65535.0f;
 		break;
 
-	case D3DFMT_X8D24:
+	case D3DFMT_X8D24:   // 24-bit depth in lower bits
 	case D3DFMT_S8D24:
 	case D3DFMT_X4S4D24:
-		DepthValue = static_cast<float>(DepthColor & 0xFFFFFF) / static_cast<float>(0xFFFFFF);
+		DepthValue = (DepthColor & 0x00FFFFFF) / 16777215.0f;
 		break;
 
-	case D3DFMT_D24X8:
+	case D3DFMT_D24X8:   // 24-bit depth in upper bits
 	case D3DFMT_D24S8:
 	case D3DFMT_D24FS8:
 	case D3DFMT_D24X4S4:
-		// Shift the depth value by 8 bits before extracting
-		DepthValue = static_cast<float>((DepthColor >> 8) & 0xFFFFFF) / static_cast<float>(0xFFFFFF);
+		DepthValue = ((DepthColor >> 8) & 0x00FFFFFF) / 16777215.0f;
 		break;
 
 	case D3DFMT_D32:
-		// Full 32-bit unsigned int normalized
-		DepthValue = static_cast<float>(DepthColor) / static_cast<float>(0xFFFFFFFF);
+	case D3DFMT_D32_LOCKABLE:
+		// Normalize 32-bit unsigned int depth
+		DepthValue = (float)((double)DepthColor / 4294967295.0); // use double to avoid precision loss
 		break;
 
-	case D3DFMT_D32_LOCKABLE:
 	case D3DFMT_D32F_LOCKABLE:
-		// Depth is already a float
+		// Already a float
 		DepthValue = *reinterpret_cast<float*>(&DepthColor);
 		break;
 
@@ -188,13 +185,11 @@ static inline float GetDepthValue(DWORD DepthColor, D3DFORMAT Format)
 	}
 
 	// Clamp result to valid range
-	return min(max(DepthValue, 0.0f), 1.0f);
+	return CLAMP(DepthValue, 0.0f, 1.0f);
 }
 
 // Copy zbuffer complex
-template HRESULT ComplexZBufferCopy<BYTE>(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format);
 template HRESULT ComplexZBufferCopy<WORD>(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format);
-template HRESULT ComplexZBufferCopy<TRIBYTE>(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format);
 template HRESULT ComplexZBufferCopy<DWORD>(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format);
 template <typename T>
 HRESULT ComplexZBufferCopy(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format)
@@ -217,7 +212,7 @@ HRESULT ComplexZBufferCopy(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSou
 	int height = SrcRect.bottom - SrcRect.top;
 
 	// Map of z-value -> vector of rects
-	std::map<T, std::vector<D3DRECT>> zRectMap;
+	std::unordered_map<T, std::vector<D3DRECT>> zRectMap;
 
 	for (int y = 0; y < height; ++y)
 	{

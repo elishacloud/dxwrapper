@@ -5695,7 +5695,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT9* lpLight)
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Light[Index] = *lpLight;
 	}
 
-	BatchStates.Light[Index] = FixLight(*(D3DLIGHT9*)lpLight);
+	BatchStates.Light[Index] = FixLight(*lpLight);
 
 	DeviceStates.Light[Index] = *lpLight;
 

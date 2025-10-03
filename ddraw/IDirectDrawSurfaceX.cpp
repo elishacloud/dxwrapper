@@ -7408,9 +7408,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		case 16:
 			hr = ComplexZBufferCopy<WORD>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, surface.Format);
 			break;
-		case 24:
-			hr = ComplexZBufferCopy<TRIBYTE>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, surface.Format);
-			break;
+		case 24:	// Depth surfaces are always padded to multiples of 4 bytes per pixel. 
 		case 32:
 			hr = ComplexZBufferCopy<DWORD>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, surface.Format);
 			break;
