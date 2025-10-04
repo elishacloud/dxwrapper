@@ -6258,6 +6258,13 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
 		}
 	}
+	if (DrawStates.nullDiffuseDetected)
+	{
+		(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOp);
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+		(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLORARG1, &DrawStates.tsColorArg1);
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	}
 	for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 	{
 		// Set textures
@@ -6382,6 +6389,12 @@ void m_IDirect3DDeviceX::RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD Dire
 	{
 		(*d3d9Device)->SetVertexShader(nullptr);
 	}*/
+	if (DrawStates.nullDiffuseDetected)
+	{
+		DrawStates.nullDiffuseDetected = false;
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, DrawStates.tsColorOp);
+		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, DrawStates.tsColorArg1);
+	}
 
 	if (SUCCEEDED(hr))
 	{
@@ -6442,16 +6455,51 @@ void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVerti
 		dwVertexTypeDesc = D3DFVF_LVERTEX9;
 		lpVertices = VertexCache.data();
 	}
-	else if (Config.DdrawClampVertexZDepth && (dwVertexTypeDesc & D3DFVF_XYZRHW))
+	else if (dwVertexTypeDesc & D3DFVF_XYZRHW)
 	{
-		DWORD stride = GetVertexStride(dwVertexTypeDesc);
-		VertexCache.resize((dwVertexStart + dwNumVertices) * stride);
-		memcpy(reinterpret_cast<void*>(VertexCache.data() + (dwVertexStart * stride)),
-			reinterpret_cast<void*>((DWORD)lpVertices + (dwVertexStart * stride)),
-			dwNumVertices * stride);
+		if ((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW &&
+			(dwVertexTypeDesc & D3DFVF_DIFFUSE) &&
+			dwNumVertices > 3 &&
+			AttachedTexture[0] != nullptr)
+		{
+			struct VERTEX {
+				float x, y, z, rhw;
+				D3DCOLOR color;
+			};
 
-		ClampVertices(VertexCache.data(), stride, dwNumVertices);
+			DWORD stride = GetVertexStride(dwVertexTypeDesc);
+			BYTE* buffer = (BYTE*)lpVertices + (dwVertexStart * stride);
 
-		lpVertices = VertexCache.data();
+			bool foundColor = false;
+			UINT step = max(1u, dwNumVertices / 20);
+
+			for (UINT x = 0; x < dwNumVertices; x += step)
+			{
+				VERTEX* v = (VERTEX*)(buffer + (x * stride));
+				if (v->color != 0)
+				{
+					foundColor = true;
+					break;
+				}
+			}
+
+			if (!foundColor)
+			{
+				DrawStates.nullDiffuseDetected = true;
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: detected transformed vertices with NULL diffuse!");
+			}
+		}
+		if (Config.DdrawClampVertexZDepth)
+		{
+			DWORD stride = GetVertexStride(dwVertexTypeDesc);
+			VertexCache.resize((dwVertexStart + dwNumVertices) * stride);
+			memcpy(reinterpret_cast<void*>(VertexCache.data() + (dwVertexStart * stride)),
+				reinterpret_cast<void*>((DWORD)lpVertices + (dwVertexStart * stride)),
+				dwNumVertices * stride);
+
+			ClampVertices(VertexCache.data(), stride, dwNumVertices);
+
+			lpVertices = VertexCache.data();
+		}
 	}
 }
