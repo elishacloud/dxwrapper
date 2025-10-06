@@ -813,5 +813,5 @@ void CONFIG::SetConfig()
 	CacheClipPlane = (CacheClipPlane != 0);
 	DdrawResolutionHack = (DdrawResolutionHack != 0);
 	LimitStateBlocks = (LimitStateBlocks != NOT_EXIST) ? LimitStateBlocks : (Dd7to9 || D3d8to9);
-	WindowModeGammaShader = (WindowModeGammaShader == NOT_EXIST);
+	WindowModeGammaShader = (WindowModeGammaShader != NOT_EXIST) ? WindowModeGammaShader : 1;
 }
