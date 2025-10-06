@@ -973,14 +973,17 @@ HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
 	// Create or update the gamma LUT texture
 	if (!SHARED.GammaLUTTexture)
 	{
-		if (SUCCEEDED(ProxyInterface->CreateTexture(256, 1, 1, 0, D3DFMT_A32B32G32R32F, D3DPOOL_MANAGED, &SHARED.GammaLUTTexture, nullptr)))
+		DWORD Usage = (Config.D3d9to9Ex ? D3DUSAGE_DYNAMIC : 0);
+		D3DPOOL Pool = (Config.D3d9to9Ex ? D3DPOOL_DEFAULT : D3DPOOL_MANAGED);
+
+		if (SUCCEEDED(ProxyInterface->CreateTexture(256, 1, 1, Usage, D3DFMT_A32B32G32R32F, Pool, &SHARED.GammaLUTTexture, nullptr)))
 		{
 			SHARED.UsingShader32f = true;
 		}
 		else
 		{
 			SHARED.UsingShader32f = false;
-			HRESULT hr = ProxyInterface->CreateTexture(256, 1, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &SHARED.GammaLUTTexture, nullptr);
+			HRESULT hr = ProxyInterface->CreateTexture(256, 1, 1, Usage, D3DFMT_A8R8G8B8, Pool, &SHARED.GammaLUTTexture, nullptr);
 			if (FAILED(hr))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create gamma LUD texture!");
@@ -2062,7 +2065,10 @@ void m_IDirect3DDevice9Ex::SetEnvironmentCubeMapTexture()
 		if (!SHARED.BlankTexture)
 		{
 			const UINT CubeSize = 64;
-			HRESULT hr = ProxyInterface->CreateCubeTexture(CubeSize, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &SHARED.BlankTexture, nullptr);
+			const DWORD Usage = (Config.D3d9to9Ex ? D3DUSAGE_DYNAMIC : 0);
+			const D3DPOOL Pool = (Config.D3d9to9Ex ? D3DPOOL_DEFAULT : D3DPOOL_MANAGED);
+
+			HRESULT hr = ProxyInterface->CreateCubeTexture(CubeSize, 1, Usage, D3DFMT_A8R8G8B8, Pool, &SHARED.BlankTexture, nullptr);
 			if (FAILED(hr))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create BlankCubeTexture for environment map!");
