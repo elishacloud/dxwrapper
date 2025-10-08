@@ -70,7 +70,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DRampDevice || riid == IID_IDirect3DMMXDevice ||
 		riid == IID_IDirect3DRefDevice || riid == IID_IDirect3DNullDevice);
 
-	DWORD DxVersion = (CheckWrapperType(riid) && Config.Dd7to9) ? GetGUIDVersion(riid) : DirectXVersion;
+	DWORD DxVersion = (Config.Dd7to9 && CheckWrapperType(riid)) ? GetGUIDVersion(riid) : DirectXVersion;
 
 	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
 	{
@@ -86,6 +86,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, false, false, false)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Query failed for " << riid << " from " << GetWrapperType(DirectXVersion));
+
 			return E_NOINTERFACE;
 		}
 
@@ -94,7 +96,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 			// Check for Direct3D surface
 			if (!IsSurface3D())
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not a Direct3D surface!");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not a Direct3D surface for " << riid << " from " << GetWrapperType(DirectXVersion));
+
 				return E_NOINTERFACE;
 			}
 
@@ -137,6 +140,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 			{
 				if (FAILED(ddrawParent->CreateColorControl(reinterpret_cast<m_IDirectDrawColorControl**>(ppvObj))))
 				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create ColorControl for " << riid << " from " << GetWrapperType(DirectXVersion));
+
 					return E_NOINTERFACE;
 				}
 			}
@@ -157,6 +162,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 			{
 				if (FAILED(ddrawParent->CreateGammaControl(reinterpret_cast<m_IDirectDrawGammaControl**>(ppvObj))))
 				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create Gamma for " << riid << " from " << GetWrapperType(DirectXVersion));
+
 					return E_NOINTERFACE;
 				}
 			}
@@ -167,6 +174,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		{
 			if (ddrawParent->IsCreatedEx())
 			{
+				LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << GetWrapperType(DirectXVersion));
+
 				return E_NOINTERFACE;
 			}
 

@@ -77,12 +77,14 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD Dir
 		}
 	}
 
-	DWORD DxVersion = (CheckWrapperType(riid) && Config.Dd7to9) ? GetGUIDVersion(riid) : DirectXVersion;
+	DWORD DxVersion = (Config.Dd7to9 && CheckWrapperType(riid)) ? GetGUIDVersion(riid) : DirectXVersion;
 
-	if ((riid == GetWrapperType(DxVersion) && (riid != IID_IDirect3D7 || DirectXVersion == 7)) || riid == IID_IUnknown)
+	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
 	{
 		if (riid != IID_IUnknown && ddrawParent && ((ddrawParent->IsCreatedEx() && riid != IID_IDirect3D7) || (!ddrawParent->IsCreatedEx() && riid == IID_IDirect3D7)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << GetWrapperType(DirectXVersion));
+
 			return E_NOINTERFACE;
 		}
 

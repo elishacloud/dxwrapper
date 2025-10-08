@@ -158,10 +158,17 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		return DD_OK;
 	}
 
-	DWORD DxVersion = (CheckWrapperType(riid) && Config.Dd7to9) ? GetGUIDVersion(riid) : DirectXVersion;
+	DWORD DxVersion = (Config.Dd7to9 && CheckWrapperType(riid)) ? GetGUIDVersion(riid) : DirectXVersion;
 
-	if ((riid == GetWrapperType(DxVersion) && riid != IID_IDirectDraw3) || riid == IID_IUnknown)
+	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
 	{
+		if (riid == IID_IDirectDraw3)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << GetWrapperType(DirectXVersion));
+
+			return E_NOINTERFACE;
+		}
+
 		if (ClientDirectXVersion < DxVersion)
 		{
 			ClientDirectXVersion = DxVersion;
@@ -176,10 +183,19 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 	if (Config.Dd7to9)
 	{
-		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || (riid == IID_IDirect3D7 && DirectXVersion == 7))
+		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7)
 		{
-			if (Config.DdrawDisableDirect3DCaps || (IsCreatedEx() && riid != IID_IDirect3D7) || (!IsCreatedEx() && riid == IID_IDirect3D7))
+			if ((IsCreatedEx() && riid != IID_IDirect3D7) || (!IsCreatedEx() && riid == IID_IDirect3D7))
 			{
+				LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << GetWrapperType(DirectXVersion));
+
+				return E_NOINTERFACE;
+			}
+
+			if (Config.DdrawDisableDirect3DCaps)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Query Disabled for " << riid << " from " << GetWrapperType(DirectXVersion));
+
 				return E_NOINTERFACE;
 			}
 
