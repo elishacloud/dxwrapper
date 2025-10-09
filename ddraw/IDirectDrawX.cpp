@@ -2430,22 +2430,9 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		EnableWaitVsync = false;
 
 		// Direct3D9 Objects
-		DontWindowRePosition = false;
 		CreationInterface = nullptr;
-		d3d9Object = nullptr;
-		d3d9Device = nullptr;
-		GammaLUTTexture = nullptr;
-		ScreenCopyTexture = nullptr;
-		palettePixelShader = nullptr;
-		colorkeyPixelShader = nullptr;
-		gammaPixelShader = nullptr;
-		validateDeviceVertexBuffer = nullptr;
-
-		presParams = {};
+		DontWindowRePosition = false;
 		IsDeviceVerticesSet = false;
-		BehaviorFlags = 0;
-		hFocusWindow = nullptr;
-		FocusWindowThreadID = 0;
 
 		// Display resolution
 		if (Config.DdrawUseNativeResolution)
@@ -2583,6 +2570,10 @@ void m_IDirectDrawX::ReleaseInterface()
 
 	// Remove ddraw device
 	DDrawVector.erase(std::remove(DDrawVector.begin(), DDrawVector.end(), this), DDrawVector.end());
+	if (CreationInterface == this)
+	{
+		CreationInterface = nullptr;
+	}
 
 	// Re-enable exclusive mode once non-exclusive device is released
 	if (!DDrawVector.empty() && ExclusiveMode &&
@@ -3989,6 +3980,7 @@ HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 		if (!lpSurface)
 		{
 			ClearRenderTarget();
+			SetDepthStencilSurface(nullptr);
 
 			RenderTargetSurface = nullptr;
 			DepthStencilSurface = nullptr;
