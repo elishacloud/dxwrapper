@@ -146,7 +146,7 @@ static bool CheckForDuplicateLoad(HMODULE hModule, HANDLE& hMutex)
 		// Show message box
 		MessageBoxA(nullptr, message.str().c_str(), "DxWrapper Duplicate Load Detected", MB_ICONWARNING | MB_OK | MB_TOPMOST);
 
-		return true; // Causes DLL to unload on process attach
+		return TRUE; // Causes DLL to unload on process attach
 	}
 
 	// Create mutex
@@ -163,10 +163,10 @@ static bool CheckForDuplicateLoad(HMODULE hModule, HANDLE& hMutex)
 		// Show message box
 		MessageBoxA(nullptr, message.str().c_str(), "Mutex Creation Error", MB_ICONERROR | MB_OK | MB_TOPMOST);
 
-		return true; // If mutex creation fails, return true to unload the DLL
+		return TRUE; // If mutex creation fails, return true to unload the DLL
 	}
 
-	return false; // Allow the DLL to continue loading
+	return FALSE; // Allow the DLL to continue loading
 }
 
 // Declare variables
@@ -803,5 +803,5 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Logging::EnableLogging = false;
 		break;
 	}
-	return true;
+	return TRUE;
 }
