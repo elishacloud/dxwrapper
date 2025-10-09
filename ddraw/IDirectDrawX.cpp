@@ -3472,16 +3472,21 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
 
 		// Check if there are any device changes
-		if (d3d9Device &&
-			presParamsBackup.BackBufferWidth == presParams.BackBufferWidth &&
-			presParamsBackup.BackBufferHeight == presParams.BackBufferHeight &&
-			presParamsBackup.Windowed == presParams.Windowed &&
-			presParamsBackup.hDeviceWindow == presParams.hDeviceWindow &&
-			presParamsBackup.FullScreen_RefreshRateInHz == presParams.FullScreen_RefreshRateInHz &&
-			LastBehaviorFlags == BehaviorFlags)
+		HRESULT hr_test = D3D_OK;
+		if (d3d9Device)
 		{
-			hr = DD_OK;
-			break;
+			hr_test = TestD3D9CooperativeLevel();
+			if ((hr_test == D3D_OK || hr_test == DDERR_NOEXCLUSIVEMODE) &&
+				presParamsBackup.BackBufferWidth == presParams.BackBufferWidth &&
+				presParamsBackup.BackBufferHeight == presParams.BackBufferHeight &&
+				presParamsBackup.Windowed == presParams.Windowed &&
+				presParamsBackup.hDeviceWindow == presParams.hDeviceWindow &&
+				presParamsBackup.FullScreen_RefreshRateInHz == presParams.FullScreen_RefreshRateInHz &&
+				LastBehaviorFlags == BehaviorFlags)
+			{
+				hr = DD_OK;
+				break;
+			}
 		}
 
 		// Mark as creating device
@@ -3494,8 +3499,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		if (d3d9Device)
 		{
 			// Check if device needs to be reset
-			hr = TestD3D9CooperativeLevel();
-			if ((hr == D3D_OK || hr == DDERR_NOEXCLUSIVEMODE || hr == D3DERR_DEVICENOTRESET) &&
+			if ((hr_test == D3D_OK || hr_test == DDERR_NOEXCLUSIVEMODE || hr_test == D3DERR_DEVICENOTRESET) &&
 				presParamsBackup.Windowed == presParams.Windowed &&
 				presParamsBackup.hDeviceWindow == presParams.hDeviceWindow &&
 				LastBehaviorFlags == BehaviorFlags)
