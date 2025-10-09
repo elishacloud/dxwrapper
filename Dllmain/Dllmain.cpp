@@ -800,6 +800,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Final log
 		Logging::Log() << "DxWrapper terminated!";
+		Logging::EnableLogging = false;
 		break;
 	}
 	return true;
