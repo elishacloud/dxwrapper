@@ -73,8 +73,6 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: disabling unsupported interface: " << riid);
 
-		*ppvObj = nullptr;
-
 		return E_NOINTERFACE;
 	}
 
@@ -106,33 +104,34 @@ ULONG m_IDirect3DDevice9Ex::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ReleaseResources(false);
-
 	ULONG ref = ProxyInterface->Release();
 
-	ULONG UsedRef = ShadowBackbuffer.Count();
+	ULONG UsedRef = GetResourceRefCount();
 
 #ifdef ENABLE_DEBUGOVERLAY
 	bool UsingDOverlay = (Config.EnableImgui && DOverlay.IsSetup() && DOverlay.Getd3d9Device() == ProxyInterface);
 	UsedRef += (UsingDOverlay ? 1 : 0);
-
-	// Teardown debug overlay before destroying device
-	if (ref > 0 && ref == UsedRef && UsingDOverlay)
-	{
-		ProxyInterface->AddRef();
-		UsedRef -= 1;
-		DOverlay.Shutdown();
-		ref = ProxyInterface->Release();
-	}
 #endif
 
-	// Release shadow backbuffer before destroying device
-	if (ref > 0 && ref == UsedRef && ShadowBackbuffer.Count())
+	// Teardown wrapper resources before destroying device
+	if (ref == UsedRef)
 	{
 		ProxyInterface->AddRef();
-		UsedRef -= ShadowBackbuffer.Count();
-		ReleaseShadowBackbuffer();
+
+		ReleaseResources(false);
+
+#ifdef ENABLE_DEBUGOVERLAY
+		if (UsingDOverlay)
+		{
+			DOverlay.Shutdown();
+		}
+#endif
+
 		ref = ProxyInterface->Release();
+	}
+	else if (ref > 0 && ref < UsedRef)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: device ref '" << ref << "' is less than used ref '" << UsedRef << "'.";
 	}
 
 	if (ref == 0)
@@ -179,17 +178,17 @@ ULONG m_IDirect3DDevice9Ex::Release()
 	return ref;
 }
 
-void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters) const
+void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters)
 {
 	UNREFERENCED_PARAMETER(pPresentationParameters);
 
 	// Clear variables
-	ZeroMemory(&SHARED.Caps, sizeof(D3DCAPS9));
-	SHARED.MaxAnisotropy = 0;
-	SHARED.isAnisotropySet = false;
-	SHARED.AnisotropyDisabledFlag = false;
-	SHARED.isClipPlaneSet = false;
-	SHARED.ClipPlaneRenderState = 0;
+	ZeroMemory(&Caps, sizeof(D3DCAPS9));
+	MaxAnisotropy = 0;
+	isAnisotropySet = false;
+	AnisotropyDisabledFlag = false;
+	isClipPlaneSet = false;
+	ClipPlaneRenderState = 0;
 }
 
 template <typename T>
@@ -201,8 +200,6 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	}
 
 	ReleaseResources(true);
-
-	ReleaseShadowBackbuffer();
 
 #ifdef ENABLE_DEBUGOVERLAY
 	// Teardown debug overlay before reset
@@ -337,7 +334,7 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS *pPresentationParamete
 HRESULT m_IDirect3DDevice9Ex::CallEndScene()
 {
 	// clear Begin/End Scene flags
-	SHARED.IsInScene = false;
+	IsInScene = false;
 
 #ifdef ENABLE_DEBUGOVERLAY
 	if (Config.EnableImgui && DOverlay.Getd3d9Device() == ProxyInterface)
@@ -355,9 +352,9 @@ HRESULT m_IDirect3DDevice9Ex::EndScene()
 
 	if (Config.ForceSingleBeginEndScene)
 	{
-		if (SHARED.IsInScene)
+		if (IsInScene)
 		{
-			SHARED.IsInScene = false;
+			IsInScene = false;
 
 			return D3D_OK;
 		}
@@ -920,7 +917,7 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 	// CacheClipPlane
 	if (SUCCEEDED(hr) && State == D3DRS_CLIPPLANEENABLE)
 	{
-		SHARED.ClipPlaneRenderState = Value;
+		ClipPlaneRenderState = Value;
 	}
 
 	return hr;
@@ -971,19 +968,19 @@ HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
 	Logging::LogDebug() << __FUNCTION__;
 
 	// Create or update the gamma LUT texture
-	if (!SHARED.GammaLUTTexture)
+	if (!GammaLUTTexture)
 	{
 		DWORD Usage = (Config.D3d9to9Ex ? D3DUSAGE_DYNAMIC : 0);
 		D3DPOOL Pool = (Config.D3d9to9Ex ? D3DPOOL_DEFAULT : D3DPOOL_MANAGED);
 
-		if (SUCCEEDED(ProxyInterface->CreateTexture(256, 1, 1, Usage, D3DFMT_A32B32G32R32F, Pool, &SHARED.GammaLUTTexture, nullptr)))
+		if (SUCCEEDED(ProxyInterface->CreateTexture(256, 1, 1, Usage, D3DFMT_A32B32G32R32F, Pool, &GammaLUTTexture, nullptr)))
 		{
-			SHARED.UsingShader32f = true;
+			UsingShader32f = true;
 		}
 		else
 		{
-			SHARED.UsingShader32f = false;
-			HRESULT hr = ProxyInterface->CreateTexture(256, 1, 1, Usage, D3DFMT_A8R8G8B8, Pool, &SHARED.GammaLUTTexture, nullptr);
+			UsingShader32f = false;
+			HRESULT hr = ProxyInterface->CreateTexture(256, 1, 1, Usage, D3DFMT_A8R8G8B8, Pool, &GammaLUTTexture, nullptr);
 			if (FAILED(hr))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create gamma LUD texture!");
@@ -993,9 +990,9 @@ HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
 	}
 
 	D3DLOCKED_RECT lockedRect;
-	if (SUCCEEDED(SHARED.GammaLUTTexture->LockRect(0, &lockedRect, nullptr, D3DLOCK_DISCARD)))
+	if (SUCCEEDED(GammaLUTTexture->LockRect(0, &lockedRect, nullptr, D3DLOCK_DISCARD)))
 	{
-		if (SHARED.UsingShader32f)
+		if (UsingShader32f)
 		{
 			float* texData = static_cast<float*>(lockedRect.pBits);
 			for (int i = 0; i < 256; ++i)
@@ -1018,29 +1015,29 @@ HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
 				texData[i] = D3DCOLOR_ARGB(255, r, g, b);
 			}
 		}
-		SHARED.GammaLUTTexture->UnlockRect(0);
+		GammaLUTTexture->UnlockRect(0);
 	}
 
 	return D3D_OK;
 }
 
-LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader() const
+LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader()
 {
 	// Create pixel shaders
-	if (!SHARED.gammaPixelShader)
+	if (!gammaPixelShader)
 	{
-		ProxyInterface->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &SHARED.gammaPixelShader);
+		ProxyInterface->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &gammaPixelShader);
 	}
-	return SHARED.gammaPixelShader;
+	return gammaPixelShader;
 }
 
 void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 {
-	if (SHARED.IsGammaSet && !SHARED.GammaLUTTexture)
+	if (IsGammaSet && !GammaLUTTexture)
 	{
-		SetBrightnessLevel(SHARED.RampData);
+		SetBrightnessLevel(RampData);
 	}
-	bool UsingGamma = SHARED.IsGammaSet && SHARED.GammaLUTTexture;
+	bool UsingGamma = IsGammaSet && GammaLUTTexture;
 
 	// Set shader
 	IDirect3DPixelShader9* pShader = UsingGamma ? GetGammaPixelShader() : nullptr;
@@ -1071,9 +1068,9 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	// Create intermediate texture for shader input
 	D3DSURFACE_DESC desc;
 	pBackBuffer->GetDesc(&desc);
-	if (!SHARED.ScreenCopyTexture)
+	if (!ScreenCopyTexture)
 	{
-		if (FAILED(ProxyInterface->CreateTexture(desc.Width, desc.Height, 1, D3DUSAGE_RENDERTARGET, desc.Format, D3DPOOL_DEFAULT, &SHARED.ScreenCopyTexture, nullptr)))
+		if (FAILED(ProxyInterface->CreateTexture(desc.Width, desc.Height, 1, D3DUSAGE_RENDERTARGET, desc.Format, D3DPOOL_DEFAULT, &ScreenCopyTexture, nullptr)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create screen copy texture!");
 			return;
@@ -1081,7 +1078,7 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	}
 
 	ComPtr<IDirect3DSurface9> pCopySurface;
-	if (FAILED(SHARED.ScreenCopyTexture->GetSurfaceLevel(0, pCopySurface.GetAddressOf())))
+	if (FAILED(ScreenCopyTexture->GetSurfaceLevel(0, pCopySurface.GetAddressOf())))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get surface level from screen copy texture!");
 		return;
@@ -1136,8 +1133,8 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->Clear(0, nullptr, D3DCLEAR_TARGET, D3DCOLOR_ARGB(0, 0, 0, 0), 1.0f, 0);
 
 	// Set texture
-	ProxyInterface->SetTexture(0, SHARED.ScreenCopyTexture);
-	ProxyInterface->SetTexture(1, SHARED.GammaLUTTexture);
+	ProxyInterface->SetTexture(0, ScreenCopyTexture);
+	ProxyInterface->SetTexture(1, GammaLUTTexture);
 
 	// Clear textures
 	for (int x = 2; x < MAX_TEXTURE_STAGES; x++)
@@ -1178,119 +1175,130 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	ProxyInterface->SetTexture(1, nullptr);
 }
 
+DWORD m_IDirect3DDevice9Ex::GetResourceRefCount()
+{
+	return
+		(GammaLUTTexture ? 1 : 0) +
+		(ScreenCopyTexture ? 1 : 0) +
+		(gammaPixelShader ? 1 : 0) +
+		(BlankTexture ? 1 : 0) +
+		(pFont ? 1 : 0) +
+		(pSprite ? 2 : 0) +
+		(pStateBlock ? 1 : 0) +
+		ShadowBackbuffer.Count();
+}
+
 void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 {
 	ScopedCriticalSection ThreadLock(&SHARED.d9cs, RequirePresentHandling());
 
-	if (SHARED.DontReleaseResources)
+	if (GammaLUTTexture)
 	{
-		return;
-	}
-
-	if (SHARED.GammaLUTTexture)
-	{
-		ULONG ref = SHARED.GammaLUTTexture->Release();
+		ULONG ref = GammaLUTTexture->Release();
 		if (ref)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'GammaLUTTexture' " << ref;
 		}
-		SHARED.GammaLUTTexture = nullptr;
+		GammaLUTTexture = nullptr;
 	}
 
-	if (SHARED.ScreenCopyTexture)
+	if (ScreenCopyTexture)
 	{
-		ULONG ref = SHARED.ScreenCopyTexture->Release();
+		ULONG ref = ScreenCopyTexture->Release();
 		if (ref)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'ScreenCopyTexture' " << ref;
 		}
-		SHARED.ScreenCopyTexture = nullptr;
+		ScreenCopyTexture = nullptr;
 	}
 
-	if (SHARED.gammaPixelShader)
+	if (gammaPixelShader)
 	{
-		ULONG ref = SHARED.gammaPixelShader->Release();
+		ULONG ref = gammaPixelShader->Release();
 		if (ref)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'gammaPixelShader' " << ref;
 		}
-		SHARED.gammaPixelShader = nullptr;
+		gammaPixelShader = nullptr;
 	}
 
-	if (SHARED.BlankTexture)
+	if (BlankTexture)
 	{
-		if (SHARED.isBlankTextureUsed)
+		if (isBlankTextureUsed)
 		{
-			SHARED.isBlankTextureUsed = false;
+			isBlankTextureUsed = false;
 			ProxyInterface->SetTexture(0, nullptr);
 		}
-		ULONG ref = SHARED.BlankTexture->Release();
+		ULONG ref = BlankTexture->Release();
 		if (ref)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'BlankTexture' " << ref;
 		}
-		SHARED.BlankTexture = nullptr;
+		BlankTexture = nullptr;
 	}
 
-	if (SHARED.pFont)
+	if (pFont)
 	{
-		ULONG ref = SHARED.pFont->Release();
+		ULONG ref = pFont->Release();
 		if (ref)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'pFont' " << ref;
 		}
-		SHARED.pFont = nullptr;
+		pFont = nullptr;
 	}
 
-	if (SHARED.pSprite)
+	if (pSprite)
 	{
-		ULONG ref = SHARED.pSprite->Release();
+		ULONG ref = pSprite->Release();
 		if (ref)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'pSprite' " << ref;
 		}
-		SHARED.pSprite = nullptr;
+		pSprite = nullptr;
 	}
 
-	if (SHARED.pStateBlock)
+	if (pStateBlock)
 	{
-		ULONG ref = SHARED.pStateBlock->Release();
+		ULONG ref = pStateBlock->Release();
 		if (ref)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'pStateBlock' " << ref;
 		}
-		SHARED.pStateBlock = nullptr;
+		pStateBlock = nullptr;
 	}
+
+	// Release shadow backbuffer
+	ReleaseShadowBackbuffer();
 
 	if (isReset)
 	{
 		// Anisotropic Filtering
-		SHARED.isAnisotropySet = false;
-		SHARED.AnisotropyDisabledFlag = false;
+		isAnisotropySet = false;
+		AnisotropyDisabledFlag = false;
 
 		// clear Begin/End Scene flags
-		SHARED.IsInScene = false;
-		SHARED.BeginSceneCalled = false;
+		IsInScene = false;
+		BeginSceneCalled = false;
 
 		// For environment map cube
-		std::fill(std::begin(SHARED.isTextureCubeMap), std::end(SHARED.isTextureCubeMap), false);
-		std::fill(std::begin(SHARED.isTransformCubeMap), std::end(SHARED.isTransformCubeMap), false);
-		std::fill(std::begin(SHARED.texCoordIndex), std::end(SHARED.texCoordIndex), 0);
-		std::fill(std::begin(SHARED.texTransformFlags), std::end(SHARED.texTransformFlags), 0);
-		SHARED.isBlankTextureUsed = false;
-		SHARED.pCurrentTexture = nullptr;
+		std::fill(std::begin(isTextureCubeMap), std::end(isTextureCubeMap), false);
+		std::fill(std::begin(isTransformCubeMap), std::end(isTransformCubeMap), false);
+		std::fill(std::begin(texCoordIndex), std::end(texCoordIndex), 0);
+		std::fill(std::begin(texTransformFlags), std::end(texTransformFlags), 0);
+		isBlankTextureUsed = false;
+		pCurrentTexture = nullptr;
 
 		// For CacheClipPlane
-		SHARED.isClipPlaneSet = false;
-		SHARED.ClipPlaneRenderState = 0;
+		isClipPlaneSet = false;
+		ClipPlaneRenderState = 0;
 		for (int i = 0; i < MAX_CLIP_PLANES; ++i)
 		{
-			std::fill(std::begin(SHARED.StoredClipPlanes[i]), std::end(SHARED.StoredClipPlanes[i]), 0.0f);
+			std::fill(std::begin(StoredClipPlanes[i]), std::end(StoredClipPlanes[i]), 0.0f);
 		}
 
 		// For gamma
-		SHARED.IsGammaSet = false;
-		SHARED.UsingShader32f = true;
+		IsGammaSet = false;
+		UsingShader32f = true;
 	}
 }
 
@@ -1306,7 +1314,7 @@ void m_IDirect3DDevice9Ex::GetGammaRamp(THIS_ UINT iSwapChain, D3DGAMMARAMP* pRa
 			return ProxyInterface->GetGammaRamp(iSwapChain, pRamp);
 		}
 
-		memcpy(pRamp, &SHARED.RampData, sizeof(D3DGAMMARAMP));
+		memcpy(pRamp, &RampData, sizeof(D3DGAMMARAMP));
 		return;
 	}
 
@@ -1325,13 +1333,13 @@ void m_IDirect3DDevice9Ex::SetGammaRamp(THIS_ UINT iSwapChain, DWORD Flags, CONS
 			return ProxyInterface->SetGammaRamp(iSwapChain, Flags, pRamp);
 		}
 
-		SHARED.IsGammaSet = false;
-		memcpy(&SHARED.RampData, pRamp, sizeof(D3DGAMMARAMP));
+		IsGammaSet = false;
+		memcpy(&RampData, pRamp, sizeof(D3DGAMMARAMP));
 
-		if (memcmp(&SHARED.DefaultRampData, &SHARED.RampData, sizeof(D3DGAMMARAMP)) != S_OK)
+		if (memcmp(&DefaultRampData, &RampData, sizeof(D3DGAMMARAMP)) != S_OK)
 		{
-			SHARED.IsGammaSet = true;
-			SetBrightnessLevel(SHARED.RampData);
+			IsGammaSet = true;
+			SetBrightnessLevel(RampData);
 		}
 
 		return;
@@ -1582,20 +1590,19 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 	if (RequirePresentHandling())
 	{
 		ScopedCriticalSection ThreadLock(&SHARED.d9cs);
-		ScopedFlagSet AutoSet(SHARED.DontReleaseResources);
 
 		// Create state block
-		if (SHARED.pStateBlock || SUCCEEDED(ProxyInterface->CreateStateBlock(D3DSBT_ALL, &SHARED.pStateBlock)))
+		if (pStateBlock || SUCCEEDED(ProxyInterface->CreateStateBlock(D3DSBT_ALL, &pStateBlock)))
 		{
 			// Begin scene
-			if (!Config.ForceSingleBeginEndScene || !SHARED.BeginSceneCalled)
+			if (!Config.ForceSingleBeginEndScene || !BeginSceneCalled)
 			{
 				CalledBeginScene = true;
 				CallBeginScene();
 			}
 
 			// Capture modified state
-			SHARED.pStateBlock->Capture();
+			pStateBlock->Capture();
 
 			{
 				// Backup depth stencil
@@ -1612,7 +1619,7 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 				}
 
 				// Apply brightness level
-				if (ShadowBackbuffer.Count() || SHARED.IsGammaSet)
+				if (ShadowBackbuffer.Count() || IsGammaSet)
 				{
 					ApplyBrightnessLevel();
 				}
@@ -1642,15 +1649,15 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 			}
 
 			// Apply state block
-			SHARED.pStateBlock->Apply();
+			pStateBlock->Apply();
 		}
 	}
 
-	if (CalledBeginScene || (Config.ForceSingleBeginEndScene && SHARED.BeginSceneCalled))
+	if (CalledBeginScene || (Config.ForceSingleBeginEndScene && BeginSceneCalled))
 	{
 		CallEndScene();
 	}
-	SHARED.BeginSceneCalled = false;
+	BeginSceneCalled = false;
 
 	// Check FPU state before presenting
 	Utils::ResetInvalidFPUState();
@@ -1718,13 +1725,13 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT *pSourceRect, CONST RECT *pDest
 void m_IDirect3DDevice9Ex::ApplyDrawFixes()
 {
 	// CacheClipPlane
-	if (Config.CacheClipPlane && SHARED.isClipPlaneSet)
+	if (Config.CacheClipPlane && isClipPlaneSet)
 	{
 		ApplyClipPlanes();
 	}
 
 	// Reenable Anisotropic Filtering
-	if (SHARED.MaxAnisotropy)
+	if (MaxAnisotropy)
 	{
 		ReeableAnisotropicSamplerState();
 	}
@@ -1778,8 +1785,8 @@ HRESULT m_IDirect3DDevice9Ex::CallBeginScene()
 
 	if (SUCCEEDED(hr))
 	{
-		SHARED.IsInScene = true;
-		SHARED.BeginSceneCalled = true;
+		IsInScene = true;
+		BeginSceneCalled = true;
 
 #ifdef ENABLE_DEBUGOVERLAY
 		if (Config.EnableImgui)
@@ -1804,14 +1811,14 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 	}
 #endif
 
-	if (Config.ForceSingleBeginEndScene && (SHARED.IsInScene || SHARED.BeginSceneCalled))
+	if (Config.ForceSingleBeginEndScene && (IsInScene || BeginSceneCalled))
 	{
-		if (SHARED.IsInScene)
+		if (IsInScene)
 		{
 			return D3DERR_INVALIDCALL;
 		}
 
-		SHARED.IsInScene = true;
+		IsInScene = true;
 
 		return D3D_OK;
 	}
@@ -1821,17 +1828,17 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 	if (SUCCEEDED(hr))
 	{
 		// Get DeviceCaps
-		if (SHARED.Caps.DeviceType == NULL)
+		if (Caps.DeviceType == NULL)
 		{
-			if (SUCCEEDED(ProxyInterface->GetDeviceCaps(&SHARED.Caps)))
+			if (SUCCEEDED(ProxyInterface->GetDeviceCaps(&Caps)))
 			{
 				// Set for Anisotropic Filtering
-				SHARED.MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? SHARED.Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, SHARED.Caps.MaxAnisotropy);
+				MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
 			}
 			else
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: Falied to get DeviceCaps (" << this << ")");
-				ZeroMemory(&SHARED.Caps, sizeof(D3DCAPS9));
+				ZeroMemory(&Caps, sizeof(D3DCAPS9));
 			}
 		}
 
@@ -1948,7 +1955,7 @@ HRESULT m_IDirect3DDevice9Ex::GetTexture(DWORD Stage, IDirect3DBaseTexture9 **pp
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Stage == 0 && SHARED.isBlankTextureUsed)
+	if (Stage == 0 && isBlankTextureUsed)
 	{
 		if (ppTexture)
 		{
@@ -1988,7 +1995,7 @@ HRESULT m_IDirect3DDevice9Ex::GetTextureStageState(DWORD Stage, D3DTEXTURESTAGES
 }
 
 // Check if this is a texture stage transform for cube mapping
-void m_IDirect3DDevice9Ex::CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix) const
+void m_IDirect3DDevice9Ex::CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix)
 {
 	if (State >= D3DTS_TEXTURE0 && State <= D3DTS_TEXTURE7)
 	{
@@ -2027,7 +2034,7 @@ void m_IDirect3DDevice9Ex::CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State,
 			}
 
 			// Store cube map detection result
-			SHARED.isTransformCubeMap[stage] = isCubeMap;
+			isTransformCubeMap[stage] = isCubeMap;
 		}
 	}
 }
@@ -2037,8 +2044,8 @@ bool m_IDirect3DDevice9Ex::CheckTextureStageForCubeMap() const
 {
 	for (DWORD i = 0; i < MAX_TEXTURE_STAGES; i++)
 	{
-		if ((SHARED.texCoordIndex[i] == D3DTSS_TCI_CAMERASPACEREFLECTIONVECTOR || SHARED.texCoordIndex[i] == D3DTSS_TCI_CAMERASPACENORMAL) &&
-			((SHARED.texTransformFlags[i] & D3DTTFF_COUNT3) || (SHARED.texTransformFlags[i] & D3DTTFF_COUNT4)))
+		if ((texCoordIndex[i] == D3DTSS_TCI_CAMERASPACEREFLECTIONVECTOR || texCoordIndex[i] == D3DTSS_TCI_CAMERASPACENORMAL) &&
+			((texTransformFlags[i] & D3DTTFF_COUNT3) || (texTransformFlags[i] & D3DTTFF_COUNT4)))
 		{
 			return true;
 		}
@@ -2052,7 +2059,7 @@ void m_IDirect3DDevice9Ex::SetEnvironmentCubeMapTexture()
 		[&]() {
 		for (int i = 0; i < MAX_TEXTURE_STAGES; ++i)
 		{
-			if (SHARED.isTextureCubeMap[i] || SHARED.isTransformCubeMap[i])
+			if (isTextureCubeMap[i] || isTransformCubeMap[i])
 			{
 				return true;
 			}
@@ -2060,15 +2067,15 @@ void m_IDirect3DDevice9Ex::SetEnvironmentCubeMapTexture()
 		return false;
 		}();
 
-	if (isCubeMap && SHARED.pCurrentTexture == nullptr)
+	if (isCubeMap && pCurrentTexture == nullptr)
 	{
-		if (!SHARED.BlankTexture)
+		if (!BlankTexture)
 		{
 			const UINT CubeSize = 64;
 			const DWORD Usage = (Config.D3d9to9Ex ? D3DUSAGE_DYNAMIC : 0);
 			const D3DPOOL Pool = (Config.D3d9to9Ex ? D3DPOOL_DEFAULT : D3DPOOL_MANAGED);
 
-			HRESULT hr = ProxyInterface->CreateCubeTexture(CubeSize, 1, Usage, D3DFMT_A8R8G8B8, Pool, &SHARED.BlankTexture, nullptr);
+			HRESULT hr = ProxyInterface->CreateCubeTexture(CubeSize, 1, Usage, D3DFMT_A8R8G8B8, Pool, &BlankTexture, nullptr);
 			if (FAILED(hr))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create BlankCubeTexture for environment map!");
@@ -2078,7 +2085,7 @@ void m_IDirect3DDevice9Ex::SetEnvironmentCubeMapTexture()
 			D3DLOCKED_RECT lockedRect;
 			for (UINT face = 0; face < 6; ++face)
 			{
-				if (SUCCEEDED(SHARED.BlankTexture->LockRect((D3DCUBEMAP_FACES)face, 0, &lockedRect, nullptr, 0)))
+				if (SUCCEEDED(BlankTexture->LockRect((D3DCUBEMAP_FACES)face, 0, &lockedRect, nullptr, 0)))
 				{
 					DWORD* pixels = static_cast<DWORD*>(lockedRect.pBits);
 					for (UINT y = 0; y < CubeSize; ++y)
@@ -2089,7 +2096,7 @@ void m_IDirect3DDevice9Ex::SetEnvironmentCubeMapTexture()
 						}
 						pixels += lockedRect.Pitch / sizeof(DWORD);
 					}
-					SHARED.BlankTexture->UnlockRect((D3DCUBEMAP_FACES)face, 0);
+					BlankTexture->UnlockRect((D3DCUBEMAP_FACES)face, 0);
 				}
 				else
 				{
@@ -2098,12 +2105,12 @@ void m_IDirect3DDevice9Ex::SetEnvironmentCubeMapTexture()
 			}
 		}
 
-		SHARED.isBlankTextureUsed = true;
-		ProxyInterface->SetTexture(0, SHARED.BlankTexture);
+		isBlankTextureUsed = true;
+		ProxyInterface->SetTexture(0, BlankTexture);
 	}
-	else if (!isCubeMap && SHARED.isBlankTextureUsed)
+	else if (!isCubeMap && isBlankTextureUsed)
 	{
-		SHARED.isBlankTextureUsed = false;
+		isBlankTextureUsed = false;
 		ProxyInterface->SetTexture(0, nullptr);
 	}
 }
@@ -2119,24 +2126,24 @@ HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTe
 		{
 		case D3DRTYPE_TEXTURE:
 			pTexture = static_cast<m_IDirect3DTexture9 *>(pTexture)->GetProxyInterface();
-			if (SHARED.MaxAnisotropy && Stage > 0)
+			if (MaxAnisotropy && Stage > 0)
 			{
-				DisableAnisotropicSamplerState((SHARED.Caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (SHARED.Caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
+				DisableAnisotropicSamplerState((Caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
 			}
 			break;
 		case D3DRTYPE_VOLUMETEXTURE:
 			pTexture = static_cast<m_IDirect3DVolumeTexture9 *>(pTexture)->GetProxyInterface();
-			if (SHARED.MaxAnisotropy && Stage > 0)
+			if (MaxAnisotropy && Stage > 0)
 			{
-				DisableAnisotropicSamplerState((SHARED.Caps.VolumeTextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (SHARED.Caps.VolumeTextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
+				DisableAnisotropicSamplerState((Caps.VolumeTextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (Caps.VolumeTextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
 			}
 			break;
 		case D3DRTYPE_CUBETEXTURE:
 			pTexture = static_cast<m_IDirect3DCubeTexture9 *>(pTexture)->GetProxyInterface();
 			isTexCube = true;
-			if (SHARED.MaxAnisotropy && Stage > 0)
+			if (MaxAnisotropy && Stage > 0)
 			{
-				DisableAnisotropicSamplerState((SHARED.Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (SHARED.Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
+				DisableAnisotropicSamplerState((Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
 			}
 			break;
 		default:
@@ -2150,12 +2157,12 @@ HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTe
 	{
 		if (Stage < MAX_TEXTURE_STAGES)
 		{
-			SHARED.isTextureCubeMap[Stage] = isTexCube;
+			isTextureCubeMap[Stage] = isTexCube;
 		}
 		if (Stage == 0)
 		{
-			SHARED.isBlankTextureUsed = false;
-			SHARED.pCurrentTexture = pTexture;
+			isBlankTextureUsed = false;
+			pCurrentTexture = pTexture;
 		}
 	}
 
@@ -2174,11 +2181,11 @@ HRESULT m_IDirect3DDevice9Ex::SetTextureStageState(DWORD Stage, D3DTEXTURESTAGES
 		{
 			if (Type == D3DTSS_TEXCOORDINDEX)
 			{
-				SHARED.texCoordIndex[Stage] = Value;
+				texCoordIndex[Stage] = Value;
 			}
 			else if (Type == D3DTSS_TEXTURETRANSFORMFLAGS)
 			{
-				SHARED.texTransformFlags[Stage] = Value;
+				texTransformFlags[Stage] = Value;
 			}
 		}
 	}
@@ -2247,7 +2254,7 @@ HRESULT m_IDirect3DDevice9Ex::GetClipPlane(DWORD Index, float *pPlane)
 			return D3DERR_INVALIDCALL;
 		}
 
-		memcpy(pPlane, SHARED.StoredClipPlanes[Index], sizeof(SHARED.StoredClipPlanes[0]));
+		memcpy(pPlane, StoredClipPlanes[Index], sizeof(StoredClipPlanes[0]));
 
 		return D3D_OK;
 	}
@@ -2267,9 +2274,9 @@ HRESULT m_IDirect3DDevice9Ex::SetClipPlane(DWORD Index, CONST float *pPlane)
 			return D3DERR_INVALIDCALL;
 		}
 
-		SHARED.isClipPlaneSet = true;
+		isClipPlaneSet = true;
 
-		memcpy(SHARED.StoredClipPlanes[Index], pPlane, sizeof(SHARED.StoredClipPlanes[0]));
+		memcpy(StoredClipPlanes[Index], pPlane, sizeof(StoredClipPlanes[0]));
 
 		return D3D_OK;
 	}
@@ -2283,9 +2290,9 @@ void m_IDirect3DDevice9Ex::ApplyClipPlanes()
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	DWORD index = 0;
-	for (const auto plane : SHARED.StoredClipPlanes)
+	for (const auto plane : StoredClipPlanes)
 	{
-		if ((SHARED.ClipPlaneRenderState & (1 << index)) != 0)
+		if ((ClipPlaneRenderState & (1 << index)) != 0)
 		{
 			ProxyInterface->SetClipPlane(index, plane);
 		}
@@ -2625,24 +2632,24 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	}
 
 	// Enable Anisotropic Filtering
-	if (SHARED.MaxAnisotropy)
+	if (MaxAnisotropy)
 	{
 		if (Type == D3DSAMP_MAXANISOTROPY)
 		{
-			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, SHARED.MaxAnisotropy)))
+			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy)))
 			{
 				return D3D_OK;
 			}
 		}
 		else if ((Value == D3DTEXF_LINEAR || Value == D3DTEXF_ANISOTROPIC) && (Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MAGFILTER))
 		{
-			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, SHARED.MaxAnisotropy)) &&
+			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy)) &&
 				SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC)))
 			{
-				if (!SHARED.isAnisotropySet)
+				if (!isAnisotropySet)
 				{
-					SHARED.isAnisotropySet = true;
-					Logging::Log() << "Setting Anisotropic Filtering at " << SHARED.MaxAnisotropy << "x";
+					isAnisotropySet = true;
+					Logging::Log() << "Setting Anisotropic Filtering at " << MaxAnisotropy << "x";
 				}
 				return D3D_OK;
 			}
@@ -2662,7 +2669,7 @@ void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bo
 			if (SUCCEEDED(ProxyInterface->GetSamplerState(x, D3DSAMP_MINFILTER, &Value)) && Value == D3DTEXF_ANISOTROPIC &&
 				SUCCEEDED(ProxyInterface->SetSamplerState(x, D3DSAMP_MINFILTER, D3DTEXF_LINEAR)))
 			{
-				SHARED.AnisotropyDisabledFlag = true;
+				AnisotropyDisabledFlag = true;
 			}
 		}
 		if (!AnisotropyMag)	// Anisotropic Mag Filter is not supported for multi-stage textures
@@ -2670,7 +2677,7 @@ void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bo
 			if (SUCCEEDED(ProxyInterface->GetSamplerState(x, D3DSAMP_MAGFILTER, &Value)) && Value == D3DTEXF_ANISOTROPIC &&
 				SUCCEEDED(ProxyInterface->SetSamplerState(x, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR)))
 			{
-				SHARED.AnisotropyDisabledFlag = true;
+				AnisotropyDisabledFlag = true;
 			}
 		}
 	}
@@ -2678,7 +2685,7 @@ void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bo
 
 void m_IDirect3DDevice9Ex::ReeableAnisotropicSamplerState()
 {
-	if (SHARED.AnisotropyDisabledFlag)
+	if (AnisotropyDisabledFlag)
 	{
 		bool Flag = false;
 		DWORD Value = 0;
@@ -2695,7 +2702,7 @@ void m_IDirect3DDevice9Ex::ReeableAnisotropicSamplerState()
 				Flag = true;	// Unable to re-eanble Anisotropic filtering
 			}
 		}
-		SHARED.AnisotropyDisabledFlag = Flag;
+		AnisotropyDisabledFlag = Flag;
 	}
 }
 
@@ -3423,16 +3430,16 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 {
 	Utils::GetScreenSize(SHARED.hMonitor, SHARED.screenWidth, SHARED.screenHeight);
 
-	SHARED.IsGammaSet = false;
+	IsGammaSet = false;
 	for (int i = 0; i < 256; ++i)
 	{
 		WORD value = static_cast<WORD>(i * 65535 / 255); // Linear interpolation from 0 to 65535
-		SHARED.RampData.red[i] = value;
-		SHARED.RampData.green[i] = value;
-		SHARED.RampData.blue[i] = value;
-		SHARED.DefaultRampData.red[i] = value;
-		SHARED.DefaultRampData.green[i] = value;
-		SHARED.DefaultRampData.blue[i] = value;
+		RampData.red[i] = value;
+		RampData.green[i] = value;
+		RampData.blue[i] = value;
+		DefaultRampData.red[i] = value;
+		DefaultRampData.green[i] = value;
+		DefaultRampData.blue[i] = value;
 	}
 
 	ShadowBackbuffer.ReleaseAll();
@@ -3607,7 +3614,7 @@ void m_IDirect3DDevice9Ex::CalculateFPS() const
 	Logging::LogDebug() << "Frames: " << SHARED.frameTimes.size() << " Average time: " << averageFrameTime << " FPS: " << SHARED.AverageFPSCounter;
 }
 
-void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD position) const
+void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD position)
 {
 	// Scale the font size based on the rect height (adjustable factor)
 	int fontSize = SHARED.BufferHeight / 40;
@@ -3615,17 +3622,17 @@ void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD pos
 	if (fontSize > 128) fontSize = 128;	// Maximum font size
 
 	// Create the font if not created
-	if (!SHARED.pFont &&
+	if (!pFont &&
 		FAILED(D3DXCreateFontW(ProxyInterface, fontSize, 0, FW_BOLD, 1, FALSE, DEFAULT_CHARSET,
 			OUT_DEFAULT_PRECIS, ANTIALIASED_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
-			L"Arial", &SHARED.pFont)))
+			L"Arial", &pFont)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create font!");
 		return;
 	}
 
 	// Create the sprite if not created
-	if (!SHARED.pSprite && FAILED(D3DXCreateSprite(ProxyInterface, &SHARED.pSprite)))
+	if (!pSprite && FAILED(D3DXCreateSprite(ProxyInterface, &pSprite)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create sprite!");
 		return;
@@ -3676,13 +3683,13 @@ void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD pos
 		alignment |= DT_TOP;
 
 	// Start drawing
-	SHARED.pSprite->Begin(D3DXSPRITE_ALPHABLEND | D3DXSPRITE_SORT_TEXTURE | D3DXSPRITE_DONOTSAVESTATE);
+	pSprite->Begin(D3DXSPRITE_ALPHABLEND | D3DXSPRITE_SORT_TEXTURE | D3DXSPRITE_DONOTSAVESTATE);
 
 	// Draw the text
-	INT ret = SHARED.pFont->DrawTextW(SHARED.pSprite, fpsText, -1, &textRect, alignment, D3DCOLOR_XRGB(247, 247, 0));
+	INT ret = pFont->DrawTextW(pSprite, fpsText, -1, &textRect, alignment, D3DCOLOR_XRGB(247, 247, 0));
 
 	// End drawing
-	SHARED.pSprite->End();
+	pSprite->End();
 
 	if (ret == 0)
 	{
