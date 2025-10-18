@@ -107,6 +107,7 @@ constexpr UINT NO_MAP_VALUE = 0xFFFFFFFF;
 namespace D3d9Wrapper
 {
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
+	void TestAllDeviceRefs(IDirect3DDevice9* device);
 }
 
 #include "ComPtr.h"

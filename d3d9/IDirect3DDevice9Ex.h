@@ -174,6 +174,8 @@ public:
 			ProxyInterfaceEx = pDevice;
 		}
 
+		D3d9Wrapper::TestAllDeviceRefs(ProxyInterface);
+
 		// Check for SSAA
 		if (SHARED.DeviceMultiSampleType && m_pD3DEx)
 		{
