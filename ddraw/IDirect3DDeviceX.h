@@ -202,7 +202,7 @@ private:
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
 	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
 	D3DMULTISAMPLE_TYPE RenderTargetMultiSampleType = D3DMULTISAMPLE_NONE;
-	DWORD DepthBits = 0;
+	DWORD DepthBitCount = 0;
 
 	// SetTexture array
 	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[D3DHAL_TSS_MAXSTAGES] = {};

@@ -1602,13 +1602,13 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 
 			RenderTargetMultiSampleType = lpDDSrcSurfaceX->GetMultiSampleType();
 
-			DWORD OldDepthBits = DepthBits;
+			DWORD OldDepthBits = DepthBitCount;
 
-			DepthBits = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
+			DepthBitCount = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
 
-			if (OldDepthBits != DepthBits)
+			if (OldDepthBits != DepthBitCount)
 			{
-				SetD9RenderState(D3DRS_DEPTHBIAS, GetDepthBias(DeviceStates.RenderState[D3DRENDERSTATE_ZBIAS].State, DepthBits));
+				SetD9RenderState(D3DRS_DEPTHBIAS, GetDepthBias(DeviceStates.RenderState[D3DRENDERSTATE_ZBIAS].State, DepthBitCount));
 			}
 		}
 
@@ -2284,7 +2284,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_ZBIAS:				// 47
 			if (dwRenderState != DeviceStates.RenderState[dwRenderStateType].State)
 			{
-				SetD9RenderState(D3DRS_DEPTHBIAS, GetDepthBias(dwRenderState, DepthBits));
+				SetD9RenderState(D3DRS_DEPTHBIAS, GetDepthBias(dwRenderState, DepthBitCount));
 			}
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return SetStateBlockRenderState(dwRenderStateType, dwRenderState);
@@ -4750,7 +4750,7 @@ void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 
 					RenderTargetMultiSampleType = lpDDSrcSurfaceX->GetMultiSampleType();
 
-					DepthBits = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
+					DepthBitCount = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
 
 					ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
 				}

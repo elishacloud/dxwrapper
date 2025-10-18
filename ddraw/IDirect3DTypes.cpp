@@ -299,10 +299,13 @@ bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectX
 	return false;
 }
 
-DWORD GetDepthBias(DWORD ZBias, DWORD DepthBits)
+DWORD GetDepthBias(DWORD ZBias, DWORD DepthBitCount)
 {
-	DepthBits = DepthBits ? DepthBits : 16;
-	float DepthBias = static_cast<float>(static_cast<double>min(ZBias, 16) * -(1.0 / ((1ULL << CLAMP(DepthBits, 15, 32)) - 1)));
+	if (ZBias == 0)
+		return 0;
+
+	DepthBitCount = DepthBitCount ? CLAMP(DepthBitCount, 15, 32) : 16;
+	float DepthBias = -static_cast<float>(static_cast<double>min(ZBias, 16) / ((1ULL << DepthBitCount) - 1));
 	return *reinterpret_cast<DWORD*>(&DepthBias);
 }
 
