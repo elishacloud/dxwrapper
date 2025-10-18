@@ -6236,8 +6236,8 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		{
 			if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
 			{
-				(*d3d9Device)->GetSamplerState(x, D3DSAMP_MINFILTER, &DrawStates.ssMinFilter[x]);
-				(*d3d9Device)->GetSamplerState(x, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter[x]);
+				GetD9SamplerState(x, D3DSAMP_MINFILTER, &DrawStates.ssMinFilter[x]);
+				GetD9SamplerState(x, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter[x]);
 
 				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
 				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
@@ -6258,12 +6258,20 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
 		}
 	}
-	if (DrawStates.nullDiffuseDetected)
+	if (DrawStates.nullDiffuseVertex)
 	{
-		(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOp);
-		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
-		(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLORARG1, &DrawStates.tsColorArg1);
-		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+		GetD9TextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOp);
+		GetD9TextureStageState(0, D3DTSS_COLORARG1, &DrawStates.tsColorArg1);
+		GetD9TextureStageState(0, D3DTSS_COLORARG2, &DrawStates.tsColorArg2);
+
+		if (DrawStates.tsColorOp == D3DTOP_MODULATE && (DrawStates.tsColorArg1 == D3DTA_TEXTURE || DrawStates.tsColorArg2 == D3DTA_TEXTURE))
+		{
+			(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_ADD);
+		}
+		else
+		{
+			DrawStates.nullDiffuseVertex = false;
+		}
 	}
 	for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 	{
@@ -6300,9 +6308,9 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		}
 		if (dwFlags & D3DDP_DXW_ALPHACOLORKEY)
 		{
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &DrawStates.rsAlphaFunc);
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &DrawStates.rsAlphaRef);
+			GetD9RenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
+			GetD9RenderState(D3DRS_ALPHAFUNC, &DrawStates.rsAlphaFunc);
+			GetD9RenderState(D3DRS_ALPHAREF, &DrawStates.rsAlphaRef);
 
 			(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
 			(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
@@ -6370,16 +6378,16 @@ void m_IDirect3DDeviceX::RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD Dire
 		{
 			if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
 			{
-				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, DrawStates.ssMinFilter[x]);
-				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter[x]);
+				SetD9SamplerState(x, D3DSAMP_MINFILTER, DrawStates.ssMinFilter[x]);
+				SetD9SamplerState(x, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter[x]);
 			}
 		}
 	}
 	if (dwFlags & D3DDP_DXW_ALPHACOLORKEY)
 	{
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
+		SetD9RenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
+		SetD9RenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
+		SetD9RenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
 	}
 	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
 	{
@@ -6389,11 +6397,11 @@ void m_IDirect3DDeviceX::RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD Dire
 	{
 		(*d3d9Device)->SetVertexShader(nullptr);
 	}*/
-	if (DrawStates.nullDiffuseDetected)
+	if (DrawStates.nullDiffuseVertex)
 	{
-		DrawStates.nullDiffuseDetected = false;
-		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, DrawStates.tsColorOp);
-		(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, DrawStates.tsColorArg1);
+		DrawStates.nullDiffuseVertex = false;
+		SetD9TextureStageState(0, D3DTSS_COLOROP, DrawStates.tsColorOp);
+		D3DTA_TEXTURE;
 	}
 
 	if (SUCCEEDED(hr))
@@ -6459,8 +6467,8 @@ void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVerti
 	{
 		if ((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW &&
 			(dwVertexTypeDesc & D3DFVF_DIFFUSE) &&
-			dwNumVertices > 3 &&
-			AttachedTexture[0] != nullptr)
+			(dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) &&
+			dwNumVertices >= 3)
 		{
 			struct VERTEX {
 				float x, y, z, rhw;
@@ -6471,12 +6479,21 @@ void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVerti
 			BYTE* buffer = (BYTE*)lpVertices + (dwVertexStart * stride);
 
 			bool foundColor = false;
-			UINT step = max(1u, dwNumVertices / 20);
+			UINT step = max(1u, dwNumVertices / 10);
+			UINT end = max(1u, dwNumVertices - 3);
 
-			for (UINT x = 0; x < dwNumVertices; x += step)
+			for (UINT x = 0; x < end; x += step)
 			{
-				VERTEX* v = (VERTEX*)(buffer + (x * stride));
-				if (v->color != 0)
+				VERTEX* v0 = (VERTEX*)(buffer + ((x + 0) * stride));
+				VERTEX* v1 = (VERTEX*)(buffer + ((x + 1) * stride));
+				VERTEX* v2 = (VERTEX*)(buffer + ((x + 2) * stride));
+
+				DWORD ColorCount =
+					(v0->color == 0 ? 0 : 1) +
+					(v1->color == 0 ? 0 : 1) +
+					(v2->color == 0 ? 0 : 1);
+
+				if (ColorCount > 1)
 				{
 					foundColor = true;
 					break;
@@ -6485,7 +6502,7 @@ void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVerti
 
 			if (!foundColor)
 			{
-				DrawStates.nullDiffuseDetected = true;
+				DrawStates.nullDiffuseVertex = true;
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: detected transformed vertices with NULL diffuse!");
 			}
 		}
