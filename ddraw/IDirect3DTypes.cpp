@@ -305,7 +305,7 @@ DWORD GetDepthBias(DWORD ZBias, DWORD DepthBitCount)
 		return 0;
 
 	DepthBitCount = DepthBitCount ? CLAMP(DepthBitCount, 15, 32) : 16;
-	float DepthBias = -static_cast<float>(static_cast<double>min(ZBias, 16) / ((1ULL << DepthBitCount) - 1));
+	float DepthBias = -(static_cast<float>min(ZBias, 16) / ((1ULL << DepthBitCount) - 1));
 	return *reinterpret_cast<DWORD*>(&DepthBias);
 }
 
