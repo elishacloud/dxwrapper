@@ -114,7 +114,7 @@ ULONG m_IDirect3DDevice9Ex::Release()
 #endif
 
 	// Teardown wrapper resources before destroying device
-	if (ref == UsedRef)
+	if (UsedRef > 0 && ref == UsedRef)
 	{
 		ProxyInterface->AddRef();
 
