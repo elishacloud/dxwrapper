@@ -77,7 +77,7 @@ HRESULT m_IDirect3DVideoDevice9::CreateSurface(THIS_ UINT Width, UINT Height, UI
 		return D3D_OK;
 	}
 
-	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Width << " " << Height << " " << BackBuffers << " " << Format << " " << Pool << " " << Usage << " " << pSharedHandle;
+	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Width << " " << Height << " " << BackBuffers << " " << Format << " " << Pool << " " << Usage << " " << pSharedHandle;
 	return hr;
 }
 
