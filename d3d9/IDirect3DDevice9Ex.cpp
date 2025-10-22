@@ -68,8 +68,7 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 	}
 
 	// Check for unsupported IIDs
-	if (riid == IID{ 0x126D0349, 0x4787, 0x4AA6, {0x8E, 0x1B, 0x40, 0xC1, 0x77, 0xC6, 0x0A, 0x01} } ||
-		riid == IID{ 0x694036AC, 0x542A, 0x4A3A, {0x9A, 0x32, 0x53, 0xBC, 0x20, 0x00, 0x2C, 0x1B} })
+	if (riid == IID_IDirect3DDxva2Container9)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: disabling unsupported interface: " << riid);
 

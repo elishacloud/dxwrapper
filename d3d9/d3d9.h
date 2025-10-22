@@ -1,8 +1,10 @@
 #pragma once
 
+#define __DXVA1_DEPRECATED_INTERFACES__
 #include <d3d9.h>
 #include "d3dx9.h"
 #include "d3d9Shared.h"
+#include <Dxva.h>
 #include <unordered_map>
 #include <deque>
 #include <algorithm>
@@ -22,6 +24,8 @@ class m_IDirect3DVertexDeclaration9;
 class m_IDirect3DVertexShader9;
 class m_IDirect3DVolume9;
 class m_IDirect3DVolumeTexture9;
+class m_IDirect3DVideoDevice9;
+class m_IDirect3DDXVADevice9;
 
 #include "AddressLookupTable.h"
 #include "ShadowSurfaceStorage.h"
@@ -127,3 +131,5 @@ namespace D3d9Wrapper
 #include "IDirect3DVertexShader9.h"
 #include "IDirect3DVolume9.h"
 #include "IDirect3DVolumeTexture9.h"
+#include "IDirect3DVideoDevice9.h"
+#include "IDirect3DDXVADevice9.h"

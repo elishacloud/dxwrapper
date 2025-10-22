@@ -15,10 +15,12 @@
 */
 
 #define INITGUID
+#define __DXVA1_DEPRECATED_INTERFACES__
 #define DIRECTINPUT_VERSION 0x0800
 
 #include <d3d9.h>
 #include <d3d9types.h>
+#include <Dxva.h>
 #include <ddraw.h>
 #include <ddrawex.h>
 #include <d3d.h>
@@ -1020,6 +1022,10 @@ std::ostream& operator<<(std::ostream& os, REFIID riid)
 	CHECK_REFIID(IID, IDirect3DDevice9Video);
 	CHECK_REFIID(IID, IDirect3DAuthenticatedChannel9);
 	CHECK_REFIID(IID, IDirect3DCryptoSession9);
+	CHECK_REFIID(IID, IDirect3DVideoDevice9);
+	CHECK_REFIID(IID, IDirect3DDXVADevice9);
+	CHECK_REFIID(IID, IDirect3DDxva2Container9);
+
 	// dinput
 	CHECK_REFIID(CLSID, DirectInput);
 	CHECK_REFIID(CLSID, DirectInputDevice);

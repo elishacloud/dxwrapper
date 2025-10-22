@@ -77,6 +77,8 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 	QUERYINTERFACE(IDirect3DVertexShader9);
 	QUERYINTERFACE(IDirect3DVolume9);
 	QUERYINTERFACE(IDirect3DVolumeTexture9);
+	QUERYINTERFACE(IDirect3DVideoDevice9);
+	QUERYINTERFACE(IDirect3DDXVADevice9);
 
 	LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
 }

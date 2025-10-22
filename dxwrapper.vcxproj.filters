@@ -892,6 +892,12 @@
     <ClCompile Include="d3d9\DeviceChecking.cpp">
       <Filter>d3d9</Filter>
     </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DVideoDevice9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DDXVADevice9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -1908,6 +1914,12 @@
       <Filter>ddraw</Filter>
     </ClInclude>
     <ClInclude Include="d3d9\ShadowSurfaceStorage.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DVideoDevice9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DDXVADevice9.h">
       <Filter>d3d9</Filter>
     </ClInclude>
   </ItemGroup>
