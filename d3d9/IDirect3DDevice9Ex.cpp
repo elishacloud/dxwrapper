@@ -3322,14 +3322,6 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (Config.D3d9to9Ex)
-	{
-		if (Pool == D3DPOOL_DEFAULT && Usage == 0)
-		{
-			Usage = D3DUSAGE_DYNAMIC;
-		}
-	}
-
 	// Override stencil format
 	if (Config.OverrideStencilFormat && Usage == D3DUSAGE_DEPTHSTENCIL)
 	{
