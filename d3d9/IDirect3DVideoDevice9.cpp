@@ -73,7 +73,7 @@ HRESULT m_IDirect3DVideoDevice9::CreateSurface(THIS_ UINT Width, UINT Height, UI
 
 	if (SUCCEEDED(hr) && ppSurface)
 	{
-		*ppSurface = m_pDeviceEx->GetLookupTable()->FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, m_pDeviceEx, IID_IDirect3DSurface9, nullptr);
+		*ppSurface = m_pDeviceEx->GetLookupTable()->FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, m_pDeviceEx, IID_IDirect3DSurface9, nullptr);
 		return D3D_OK;
 	}
 
@@ -117,7 +117,7 @@ HRESULT m_IDirect3DVideoDevice9::CreateDXVADevice(THIS_ GUID* pGuid, DXVAUncompD
 
 	if (SUCCEEDED(hr) && ppDXVADevice)
 	{
-		*ppDXVADevice = m_pDeviceEx->GetLookupTable()->FindAddress<m_IDirect3DDXVADevice9, m_IDirect3DDevice9Ex, LPVOID>(*ppDXVADevice, m_pDeviceEx, IID_IDirect3DDXVADevice9, nullptr);
+		*ppDXVADevice = m_pDeviceEx->GetLookupTable()->FindCreateAddress<m_IDirect3DDXVADevice9, m_IDirect3DDevice9Ex, LPVOID>(*ppDXVADevice, m_pDeviceEx, IID_IDirect3DDXVADevice9, nullptr);
 		return D3D_OK;
 	}
 

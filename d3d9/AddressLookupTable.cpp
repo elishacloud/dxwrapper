@@ -145,6 +145,8 @@ m_IDirect3DDXVADevice9* AddressLookupTableD3d9::CreateInterface<m_IDirect3DDXVAD
 	return new m_IDirect3DDXVADevice9(static_cast<m_IDirect3DDXVADevice9*>(Proxy), Device);
 }
 
+template m_IDirect3D9Ex* AddressLookupTableD3d9::FindCreateAddress<m_IDirect3D9Ex, void, LPVOID>(void*, void*, REFIID, LPVOID);
+template m_IDirect3DDevice9Ex* AddressLookupTableD3d9::FindCreateAddress<m_IDirect3DDevice9Ex, m_IDirect3D9Ex, UINT>(void*, m_IDirect3D9Ex*, REFIID, UINT);
 template m_IDirect3DCubeTexture9* AddressLookupTableD3d9::FindCreateAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
 template m_IDirect3DIndexBuffer9* AddressLookupTableD3d9::FindCreateAddress<m_IDirect3DIndexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
 template m_IDirect3DPixelShader9* AddressLookupTableD3d9::FindCreateAddress<m_IDirect3DPixelShader9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
@@ -181,25 +183,25 @@ T* AddressLookupTableD3d9::FindCreateAddress(void* Proxy, D* Device, REFIID riid
 	return CreateInterface((T*)Proxy, Device, riid, Data);
 }
 
-template m_IDirect3D9Ex* AddressLookupTableD3d9::FindAddress<m_IDirect3D9Ex, void, LPVOID>(void*, void*, REFIID, LPVOID);
-template m_IDirect3DDevice9Ex* AddressLookupTableD3d9::FindAddress<m_IDirect3DDevice9Ex, m_IDirect3D9Ex, UINT>(void*, m_IDirect3D9Ex*, REFIID, UINT);
-template m_IDirect3DCubeTexture9* AddressLookupTableD3d9::FindAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template m_IDirect3DIndexBuffer9* AddressLookupTableD3d9::FindAddress<m_IDirect3DIndexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template m_IDirect3DPixelShader9* AddressLookupTableD3d9::FindAddress<m_IDirect3DPixelShader9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template m_IDirect3DQuery9* AddressLookupTableD3d9::FindAddress<m_IDirect3DQuery9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template m_IDirect3DStateBlock9* AddressLookupTableD3d9::FindAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template m_IDirect3DSurface9* AddressLookupTableD3d9::FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template m_IDirect3DSwapChain9Ex* AddressLookupTableD3d9::FindAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template m_IDirect3DTexture9* AddressLookupTableD3d9::FindAddress<m_IDirect3DTexture9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template m_IDirect3DVertexBuffer9* AddressLookupTableD3d9::FindAddress<m_IDirect3DVertexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template m_IDirect3DVertexDeclaration9* AddressLookupTableD3d9::FindAddress<m_IDirect3DVertexDeclaration9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template m_IDirect3DVertexShader9* AddressLookupTableD3d9::FindAddress<m_IDirect3DVertexShader9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template m_IDirect3DVolume9* AddressLookupTableD3d9::FindAddress<m_IDirect3DVolume9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template m_IDirect3DVolumeTexture9* AddressLookupTableD3d9::FindAddress<m_IDirect3DVolumeTexture9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template m_IDirect3DVideoDevice9* AddressLookupTableD3d9::FindAddress<m_IDirect3DVideoDevice9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template m_IDirect3DDXVADevice9* AddressLookupTableD3d9::FindAddress<m_IDirect3DDXVADevice9, m_IDirect3DDevice9Ex, LPVOID>(void*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
-template <typename T, typename D, typename L>
-T* AddressLookupTableD3d9::FindAddress(void* Proxy, D* Device, REFIID riid, L Data)
+template m_IDirect3D9Ex* AddressLookupTableD3d9::FindAddress<m_IDirect3D9Ex>(void*);
+template m_IDirect3DDevice9Ex* AddressLookupTableD3d9::FindAddress<m_IDirect3DDevice9Ex>(void*);
+template m_IDirect3DCubeTexture9* AddressLookupTableD3d9::FindAddress<m_IDirect3DCubeTexture9>(void*);
+template m_IDirect3DIndexBuffer9* AddressLookupTableD3d9::FindAddress<m_IDirect3DIndexBuffer9>(void*);
+template m_IDirect3DPixelShader9* AddressLookupTableD3d9::FindAddress<m_IDirect3DPixelShader9>(void*);
+template m_IDirect3DQuery9* AddressLookupTableD3d9::FindAddress<m_IDirect3DQuery9>(void*);
+template m_IDirect3DStateBlock9* AddressLookupTableD3d9::FindAddress<m_IDirect3DStateBlock9>(void*);
+template m_IDirect3DSurface9* AddressLookupTableD3d9::FindAddress<m_IDirect3DSurface9>(void*);
+template m_IDirect3DSwapChain9Ex* AddressLookupTableD3d9::FindAddress<m_IDirect3DSwapChain9Ex>(void*);
+template m_IDirect3DTexture9* AddressLookupTableD3d9::FindAddress<m_IDirect3DTexture9>(void*);
+template m_IDirect3DVertexBuffer9* AddressLookupTableD3d9::FindAddress<m_IDirect3DVertexBuffer9>(void*);
+template m_IDirect3DVertexDeclaration9* AddressLookupTableD3d9::FindAddress<m_IDirect3DVertexDeclaration9>(void*);
+template m_IDirect3DVertexShader9* AddressLookupTableD3d9::FindAddress<m_IDirect3DVertexShader9>(void*);
+template m_IDirect3DVolume9* AddressLookupTableD3d9::FindAddress<m_IDirect3DVolume9>(void*);
+template m_IDirect3DVolumeTexture9* AddressLookupTableD3d9::FindAddress<m_IDirect3DVolumeTexture9>(void*);
+template m_IDirect3DVideoDevice9* AddressLookupTableD3d9::FindAddress<m_IDirect3DVideoDevice9>(void*);
+template m_IDirect3DDXVADevice9* AddressLookupTableD3d9::FindAddress<m_IDirect3DDXVADevice9>(void*);
+template <typename T>
+T* AddressLookupTableD3d9::FindAddress(void* Proxy)
 {
 	if (!Proxy)
 	{
@@ -214,7 +216,8 @@ T* AddressLookupTableD3d9::FindAddress(void* Proxy, D* Device, REFIID riid, L Da
 		return static_cast<T*>(it->second);
 	}
 
-	return CreateInterface((T*)Proxy, Device, riid, Data);
+	LOG_LIMIT(100, __FUNCTION__ << " Error: could not find interface for index: " << CacheIndex);
+	return nullptr;
 }
 
 template IDirect3DSurface9* AddressLookupTableD3d9::GetSafeProxyInterface<m_IDirect3DSurface9, IDirect3DSurface9>(m_IDirect3DSurface9*);

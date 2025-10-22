@@ -26,7 +26,7 @@ HRESULT m_IDirect3DSwapChain9Ex::QueryInterface(THIS_ REFIID riid, void** ppvObj
 	}
 	*ppvObj = nullptr;
 
-	if (riid == IID_IUnknown || riid == WrapperID)
+	if (riid == IID_IUnknown || riid == WrapperID || (Config.D3d9to9Ex && riid == IID_IDirect3DSwapChain9))
 	{
 		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
 
@@ -42,14 +42,13 @@ HRESULT m_IDirect3DSwapChain9Ex::QueryInterface(THIS_ REFIID riid, void** ppvObj
 
 	if (SUCCEEDED(hr))
 	{
-		IDirect3DSwapChain9* pSwapChain = reinterpret_cast<IDirect3DSwapChain9*>(*ppvObj);
-		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
-
-		// Reinitialize as Ex
-		if (riid == IID_IDirect3DSwapChain9Ex && pSwapChain != *ppvObj)
+		if (riid == IID_IDirect3DSwapChain9 || riid == IID_IDirect3DSwapChain9Ex)
 		{
-			m_IDirect3DSwapChain9Ex* pSwapChainEx = reinterpret_cast<m_IDirect3DSwapChain9Ex*>(*ppvObj);
-			pSwapChainEx->InitInterface(m_pDeviceEx, riid, nullptr);
+			*ppvObj = m_pDeviceEx->GetLookupTable()->FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(*ppvObj, m_pDeviceEx, riid, nullptr);
+		}
+		else
+		{
+			D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
 		}
 	}
 
@@ -106,7 +105,7 @@ HRESULT m_IDirect3DSwapChain9Ex::GetBackBuffer(THIS_ UINT BackBuffer, D3DBACKBUF
 
 	if (SUCCEEDED(hr) && ppBackBuffer)
 	{
-		*ppBackBuffer = m_pDeviceEx->GetLookupTable()->FindAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppBackBuffer, m_pDeviceEx, IID_IDirect3DSurface9, nullptr);
+		*ppBackBuffer = m_pDeviceEx->GetLookupTable()->FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppBackBuffer, m_pDeviceEx, IID_IDirect3DSurface9, nullptr);
 	}
 
 	return hr;

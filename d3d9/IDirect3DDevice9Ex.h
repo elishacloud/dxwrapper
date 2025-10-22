@@ -347,6 +347,7 @@ public:
 
 	// Helper functions
 	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
+	void InitInterface(void*, REFIID, UINT) {}	// Stub only
 	AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() const { return &SHARED.StateBlockTable; }
 	StateBlockCache* GetDeletedStateBlock() const { return &SHARED.DeletedStateBlocks; }

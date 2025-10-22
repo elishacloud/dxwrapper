@@ -18,8 +18,8 @@ public:
 	template <typename T, typename D, typename L>
 	T* FindCreateAddress(void* Proxy, D* Device, REFIID riid, L Data);
 
-	template <typename T, typename D, typename L>
-	T* FindAddress(void* Proxy, D* Device, REFIID riid, L Data);
+	template <typename T>
+	T* FindAddress(void* Proxy);
 
 	template <typename T, typename M>
 	M* GetSafeProxyInterface(T* WrapperInterface);

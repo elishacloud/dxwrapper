@@ -82,6 +82,7 @@ public:
 	STDMETHOD(GetAdapterLUID)(THIS_ UINT Adapter, LUID * pLUID);
 
 	// Helper functions
+	void InitInterface(void*, REFIID, void*) {}	// Stub only
 	void SetDirectXVersion(DWORD DxVersion);
 	bool TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD BackBufferHeight);
 
