@@ -68,7 +68,10 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 	}
 
 	// Check for unsupported IIDs
-	if (riid == IID_IDirect3DDxva2Container9)
+	if (riid == IID_IDirect3DDxva2Container9 ||
+		riid == IID_IDirect3DDevice9Video ||
+		riid == IID_IDirect3DAuthenticatedChannel9 ||
+		riid == IID_IDirect3DCryptoSession9)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: disabling unsupported interface: " << riid);
 
