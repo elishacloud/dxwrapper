@@ -176,6 +176,10 @@ ULONG m_IDirect3DDevice9Ex::Release()
 			}
 		}
 	}
+	else
+	{
+		ref = ref > UsedRef ? ref - UsedRef : ref;
+	}
 
 	return ref;
 }
@@ -1182,8 +1186,8 @@ DWORD m_IDirect3DDevice9Ex::GetResourceRefCount()
 		(ScreenCopyTexture ? 1 : 0) +
 		(gammaPixelShader ? 1 : 0) +
 		(BlankTexture ? 1 : 0) +
-		(pFont ? 1 : 0) +
-		(pSprite ? 2 : 0) +
+		(pFont ? 1 + FontRefCount : 0)  +
+		(pSprite ? 2 + SprintRefCount : 0) +
 		(pStateBlock ? 1 : 0) +
 		ShadowBackbuffer.Count();
 }
@@ -1971,13 +1975,13 @@ HRESULT m_IDirect3DDevice9Ex::GetTexture(DWORD Stage, IDirect3DBaseTexture9 **pp
 		switch ((*ppTexture)->GetType())
 		{
 		case D3DRTYPE_TEXTURE:
-			*ppTexture = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DTexture9>(*ppTexture);
+			*ppTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DTexture9, nullptr);
 			break;
 		case D3DRTYPE_VOLUMETEXTURE:
-			*ppTexture = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DVolumeTexture9>(*ppTexture);
+			*ppTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVolumeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DVolumeTexture9, nullptr);
 			break;
 		case D3DRTYPE_CUBETEXTURE:
-			*ppTexture = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DCubeTexture9>(*ppTexture);
+			*ppTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DCubeTexture9, nullptr);
 			break;
 		default:
 			return D3DERR_INVALIDCALL;
@@ -3438,6 +3442,11 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 	{
 		CreateShadowBackbuffer();
 	}
+
+	if (Config.ShowFPSCounter)
+	{
+		ApplyPrePresentFixes();	// Loads fonts for FPS counter to get accurate ref count
+	}
 }
 
 void m_IDirect3DDevice9Ex::CreateShadowBackbuffer()
@@ -3672,16 +3681,30 @@ void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD pos
 	else
 		alignment |= DT_TOP;
 
+	DWORD RefCount = SprintRefCount != 0 ? 0 : ComPtr<void*>::GetRefCount(ProxyInterface);
+
 	// Start drawing
-	pSprite->Begin(D3DXSPRITE_ALPHABLEND | D3DXSPRITE_SORT_TEXTURE | D3DXSPRITE_DONOTSAVESTATE);
+	HRESULT hr = pSprite->Begin(D3DXSPRITE_ALPHABLEND | D3DXSPRITE_SORT_TEXTURE | D3DXSPRITE_DONOTSAVESTATE | D3DXSPRITE_DO_NOT_ADDREF_TEXTURE);
+
+	if (SprintRefCount == 0 && SUCCEEDED(hr))
+	{
+		SprintRefCount = ComPtr<void*>::GetRefCount(ProxyInterface) - RefCount;
+	}
+
+	RefCount = FontRefCount != 0 ? 0 : ComPtr<void*>::GetRefCount(ProxyInterface);
 
 	// Draw the text
 	INT ret = pFont->DrawTextW(pSprite, fpsText, -1, &textRect, alignment, D3DCOLOR_XRGB(247, 247, 0));
 
-	// End drawing
-	pSprite->End();
+	if (FontRefCount == 0 && ret)
+	{
+		FontRefCount = ComPtr<void*>::GetRefCount(ProxyInterface) - RefCount;
+	}
 
-	if (ret == 0)
+	// End drawing
+	hr = pSprite->End();
+
+	if (FAILED(hr) || ret == 0)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not DrawText!");
 	}

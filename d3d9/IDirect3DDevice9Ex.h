@@ -85,7 +85,9 @@ private:
 
 	// FPS display
 	LPD3DXFONT pFont = nullptr;
+	DWORD FontRefCount = 0;
 	LPD3DXSPRITE pSprite = nullptr;
+	DWORD SprintRefCount = 0;
 
 	// State block
 	IDirect3DStateBlock9* pStateBlock = nullptr;
@@ -356,6 +358,6 @@ public:
 	REFIID GetIID() { return WrapperID; }
 
 	// Static functions
-	static void m_IDirect3DDevice9Ex::ModeExToMode(D3DDISPLAYMODEEX& ModeEx, D3DDISPLAYMODE& Mode);
+	static void ModeExToMode(D3DDISPLAYMODEEX& ModeEx, D3DDISPLAYMODE& Mode);
 };
 #undef SHARED

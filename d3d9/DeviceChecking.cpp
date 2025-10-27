@@ -21,16 +21,14 @@ template<typename CreateFunc>
 static void TestDeviceRefChange(IDirect3DDevice9* device, const char* name, CreateFunc createFunc, DWORD ExpectedRefCount)
 {
     // Get reference count before creation
-    ULONG before = device->AddRef();
-    device->Release();
+    ULONG before = ComPtr<void*>::GetRefCount(device);
 
     // Create the object
     IUnknown* obj = nullptr;
     HRESULT hr = createFunc(&obj);
 
     // Get reference count after creation
-    ULONG after = device->AddRef();
-    device->Release();
+    ULONG after = ComPtr<void*>::GetRefCount(device);
 
     if (SUCCEEDED(hr) && obj)
     {
