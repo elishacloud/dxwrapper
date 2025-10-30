@@ -6169,6 +6169,9 @@ void m_IDirect3DDeviceX::SetDefaults()
 		SetD9TextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
 	}
 
+	float Value = -0.0f;
+	SetD9RenderState(D3DRS_DEPTHBIAS, *(DWORD*)&Value);
+
 	// Get default structures
 	(*d3d9Device)->GetDeviceCaps(&Caps9);
 	ddrawParent->GetDefaultViewport(&DefaultViewport);

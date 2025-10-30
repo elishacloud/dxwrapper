@@ -301,12 +301,22 @@ bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectX
 
 DWORD GetDepthBias(DWORD ZBias, DWORD DepthBitCount)
 {
-	if (ZBias == 0)
-		return 0;
-
-	// 24-bits of precision is the max handled by a float
-	DepthBitCount = DepthBitCount ? CLAMP(DepthBitCount, 15, 24) : 16;
-	float DepthBias = -(static_cast<float>min(ZBias, 16) / ((1ULL << DepthBitCount) - 1));
+	float DepthEpsilon;
+	switch (DepthBitCount)
+	{
+	case 32:
+	case 24:
+		DepthEpsilon = -10.0f / (1 << 16);
+		break;
+	default:
+	case 16:
+		DepthEpsilon = -20.0f / (1 << 16);
+		break;
+	case 15:
+		DepthEpsilon = -25.0f / (1 << 16);
+		break;
+	}
+	float DepthBias = min(ZBias, 16UL) * DepthEpsilon;
 	return *reinterpret_cast<DWORD*>(&DepthBias);
 }
 
