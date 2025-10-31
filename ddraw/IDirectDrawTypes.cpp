@@ -754,6 +754,7 @@ DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount)
 {
 	if (Config.DdrawEnableByteAlignment)
 	{
+		Width = max(Width, 64);
 		while ((Width * BitCount) % 64)
 		{
 			Width++;
