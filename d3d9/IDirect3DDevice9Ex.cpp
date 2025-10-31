@@ -2733,6 +2733,10 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurface(THIS_ UINT Width, UINT
 
 	if (Config.D3d9to9Ex && ProxyInterfaceEx)
 	{
+		if (Width < 64 && Pool == D3DPOOL_SYSTEMMEM)
+		{
+			Pool = D3DPOOL_DEFAULT;
+		}
 		return CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, 0);
 	}
 
