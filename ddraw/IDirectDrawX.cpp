@@ -3140,8 +3140,15 @@ LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBufferX(LPWORD lpwIndices, DWORD 
 		IndexBufferSize = NewIndexSize;
 	}
 
+	DWORD Flags = D3DLOCK_DISCARD | (Config.DdrawNoDrawBufferSysLock ? D3DLOCK_NOSYSLOCK : NULL);
+
 	void* pData = nullptr;
-	hr = d3d9IndexBuffer->Lock(0, NewIndexSize, &pData, D3DLOCK_DISCARD);
+	hr = d3d9IndexBuffer->Lock(0, NewIndexSize, &pData, Flags);
+
+	if (FAILED(hr) && (Flags & D3DLOCK_NOSYSLOCK))
+	{
+		hr = d3d9IndexBuffer->Lock(0, NewIndexSize, &pData, Flags & ~D3DLOCK_NOSYSLOCK);
+	}
 
 	if (FAILED(hr))
 	{

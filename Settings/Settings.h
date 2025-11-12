@@ -52,6 +52,7 @@
 	visit(DdrawLimitDisplayModeCount) \
 	visit(DdrawLimitTextureFormats) \
 	visit(DdrawMaintainAspectRatio) \
+	visit(DdrawNoDrawBufferSysLock) \
 	visit(DdrawOverrideBitMode) \
 	visit(DdrawOverrideWidth) \
 	visit(DdrawOverrideHeight) \
@@ -254,6 +255,7 @@ struct CONFIG
 	bool DdrawWriteToGDI = false;				// Blt surface directly to GDI rather than Direct3D9
 	bool DdrawIntegerScalingClamp = false;		// Scales the screen by an integer value to help preserve video quality
 	bool DdrawMaintainAspectRatio = false;		// Keeps the current DirectDraw aspect ratio when overriding the game's resolution
+	bool DdrawNoDrawBufferSysLock = false;		// Disables Draw CriticalSection and sets NOSYSLOCK on Index and Vertex Buffer locks
 	bool DdrawUseDirect3D9Caps = false;			// Use Direct3D9 (Dd7to9) for GetCaps
 	bool DdrawUseShadowSurface = false;			// Use shadow surface with Dd7to9 for render target Locks/GetDC
 	bool DdrawUseNativeResolution = false;		// Uses the current screen resolution for Dd7to9

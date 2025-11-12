@@ -2731,7 +2731,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection(), !Config.DdrawNoDrawBufferSysLock);
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -2824,7 +2824,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection(), !Config.DdrawNoDrawBufferSysLock);
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -2999,7 +2999,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection(), !Config.DdrawNoDrawBufferSysLock);
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3177,7 +3177,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection(), !Config.DdrawNoDrawBufferSysLock);
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3281,7 +3281,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection(), !Config.DdrawNoDrawBufferSysLock);
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 

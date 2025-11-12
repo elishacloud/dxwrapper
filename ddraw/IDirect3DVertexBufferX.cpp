@@ -151,7 +151,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		// Non-implemented dwFlags:
 		// DDLOCK_WAIT, DDLOCK_SURFACEMEMORYPTR and DDLOCK_WRITEONLY can be ignored safely
 
-		DWORD Flags = (dwFlags & (DDLOCK_READONLY | DDLOCK_DISCARDCONTENTS | DDLOCK_NOSYSLOCK));
+		DWORD Flags = (dwFlags & (DDLOCK_READONLY | DDLOCK_DISCARDCONTENTS | DDLOCK_NOSYSLOCK)) | (Config.DdrawNoDrawBufferSysLock ? D3DLOCK_NOSYSLOCK : NULL);
 
 		// Handle emulated readonly
 		if (IsVBEmulated && (Flags & D3DLOCK_READONLY))
@@ -194,6 +194,8 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		if (IsVBEmulated)
 		{
 			*lplpData = VertexData.data();
+
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: emulating vertex buffer lock, may cause slowdowns!");
 
 			if (lpdwSize)
 			{
@@ -614,8 +616,8 @@ HRESULT m_IDirect3DVertexBufferX::CreateD3D9VertexBuffer()
 	if (FAILED(hr))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create vertex buffer: " << (D3DERR)hr <<
-			" Length: " << d3d9VBDesc.Size << " Usage: " << Logging::hex(d3d9VBDesc.Usage) << " FVF: " << Logging::hex(d3d9VBDesc.FVF) << " Pool: " << Logging::hex(d3d9VBDesc.Pool) <<
-			VB.Desc);
+			" Size: " << d3d9VBDesc.Size << " Usage: " << Logging::hex(d3d9VBDesc.Usage) << " FVF: " << Logging::hex(d3d9VBDesc.FVF) <<
+			" Pool: " << Logging::hex(d3d9VBDesc.Pool) << VB.Desc);
 		return DDERR_GENERIC;
 	}
 
