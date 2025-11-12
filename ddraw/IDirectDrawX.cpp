@@ -3273,13 +3273,16 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 	return hr;
 }
 
-void m_IDirectDrawX::FixWindowPos()
+void m_IDirectDrawX::FixWindowPos(HWND hWnd, int X, int Y, int cx, int cy)
 {
-	if (d3d9Device && !DontWindowRePosition)
+	if (DontWindowRePosition || !d3d9Device)
 	{
-		Utils::SetWindowPosToMonitor(hMonitor, presParams.hDeviceWindow, HWND_TOP, 0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, SWP_NOZORDER | SWP_NOACTIVATE);
-		DontWindowRePosition = true;
+		return;
 	}
+
+	Utils::SetWindowPosToMonitor(hMonitor, hWnd, HWND_TOP, X, Y, cx, cy, SWP_NOZORDER | SWP_NOACTIVATE);
+
+	DontWindowRePosition = true;
 }
 
 HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
@@ -5476,20 +5479,35 @@ bool m_IDirectDrawX::CheckDirectDrawXInterface(void* pInterface)
 void m_IDirectDrawX::CheckWindowPosChange(HWND hWnd, WINDOWPOS* wPos)
 {
 	// If incorrect param or incorrect device
-	if (!wPos || !ExclusiveMode || !CreationInterface || hWnd != presParams.hDeviceWindow)
+	if (!wPos || !ExclusiveMode || !CreationInterface || hWnd != presParams.hDeviceWindow || (Config.EnableWindowMode && !Config.FullscreenWindowMode))
 	{
 		return;
 	}
+
 	// If window size doesn't match
 	if ((UINT)wPos->cx != presParams.BackBufferWidth || (UINT)wPos->cy != presParams.BackBufferHeight)
 	{
-		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+		RECT rcClient = { 0, 0, (LONG)presParams.BackBufferWidth, (LONG)presParams.BackBufferHeight };
 
-		for (const auto& entry : DDrawVector)
+		DWORD style = GetWindowLong(hWnd, GWL_STYLE);
+		DWORD exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+
+		AdjustWindowRectEx(&rcClient, style, GetMenu(hWnd) != NULL, exStyle);
+		int X = rcClient.left;
+		int Y = rcClient.top;
+		int cx = rcClient.right - rcClient.left;
+		int cy = rcClient.bottom - rcClient.top;
+
+		if (X != wPos->x || Y != wPos->y || cx != wPos->cx || cy != wPos->cy)
 		{
-			if (entry == CreationInterface)
+			ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+			for (const auto& entry : DDrawVector)
 			{
-				return entry->FixWindowPos();
+				if (entry == CreationInterface)
+				{
+					return entry->FixWindowPos(hWnd, X, Y, cx, cy);
+				}
 			}
 		}
 	}

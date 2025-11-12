@@ -359,7 +359,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_WINDOWPOSCHANGED:
 		// Handle exclusive mode cases where the window is resized to be different than the display size
-		if (pDataStruct->IsDirectDraw && pDataStruct->IsExclusiveMode && lParam)
+		if (pDataStruct->IsDirectDraw && pDataStruct->IsExclusiveMode)
 		{
 			m_IDirectDrawX::CheckWindowPosChange(hWnd, (WINDOWPOS*)lParam);
 		}
