@@ -16,7 +16,6 @@
 
 #include "ddraw.h"
 #include "DirectShow\IAMMediaStream.h"
-#include "IClassFactory\IClassFactory.h"
 
 DWORD DdrawWrapper::GetGUIDVersion(REFIID riid)
 {
