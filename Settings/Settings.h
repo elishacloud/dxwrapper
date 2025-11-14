@@ -53,6 +53,7 @@
 	visit(DdrawLimitTextureFormats) \
 	visit(DdrawMaintainAspectRatio) \
 	visit(DdrawNoDrawBufferSysLock) \
+	visit(DdrawNoMultiThreaded) \
 	visit(DdrawOverrideBitMode) \
 	visit(DdrawOverrideWidth) \
 	visit(DdrawOverrideHeight) \
@@ -61,6 +62,7 @@
 	visit(DdrawUseDirect3D9Caps) \
 	visit(DdrawUseShadowSurface) \
 	visit(DdrawUseNativeResolution) \
+	visit(DdrawVertexLockDiscard) \
 	visit(DdrawEnableMouseHook) \
 	visit(DdrawHookSystem32) \
 	visit(D3d8HookSystem32) \
@@ -256,9 +258,11 @@ struct CONFIG
 	bool DdrawIntegerScalingClamp = false;		// Scales the screen by an integer value to help preserve video quality
 	bool DdrawMaintainAspectRatio = false;		// Keeps the current DirectDraw aspect ratio when overriding the game's resolution
 	bool DdrawNoDrawBufferSysLock = false;		// Disables Draw CriticalSection and sets NOSYSLOCK on Index and Vertex Buffer locks
+	bool DdrawNoMultiThreaded = false;			// Don't add D3DCREATE_MULTITHREADED flag when creating Direct3D9 device unless the game requests it
 	bool DdrawUseDirect3D9Caps = false;			// Use Direct3D9 (Dd7to9) for GetCaps
 	bool DdrawUseShadowSurface = false;			// Use shadow surface with Dd7to9 for render target Locks/GetDC
 	bool DdrawUseNativeResolution = false;		// Uses the current screen resolution for Dd7to9
+	bool DdrawVertexLockDiscard = false;		// Sets the discard flag for vertex Lock
 	DWORD DdrawClippedWidth = 0;				// Used to scaled Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawClippedHeight = 0;				// Used to scaled Direct3d9 to use this height when using Dd7to9
 	DWORD DdrawCustomWidth = 0;					// Custom resolution width for Dd7to9 when using DdrawLimitDisplayModeCount, resolution must be supported by video card and monitor

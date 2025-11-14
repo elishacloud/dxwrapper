@@ -3465,8 +3465,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 		// Set behavior flags
 		BehaviorFlags = ((d3dcaps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
-			(Device.FPUPreserve ? D3DCREATE_FPU_PRESERVE : 0) |
-			D3DCREATE_MULTITHREADED;
+			(Device.FPUPreserve ? D3DCREATE_FPU_PRESERVE : NULL) |
+			(Device.MultiThreaded || !Config.DdrawNoMultiThreaded ? D3DCREATE_MULTITHREADED : NULL);
 
 		Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
 			presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
