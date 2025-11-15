@@ -71,7 +71,6 @@ private:
 	m_IDirect3DX *D3DInterface = nullptr;
 
 	// Helper functions
-	bool ClipRectToBounds(RECT* r, LONG width, LONG height);
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice);
 	void FindMonitorHandle() const;
 	HRESULT CreateD9Object();

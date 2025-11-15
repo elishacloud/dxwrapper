@@ -8158,19 +8158,22 @@ HRESULT m_IDirectDrawSurfaceX::GetPresentWindowRect(LPRECT pRect, RECT& DestRect
 		Rect.bottom = min(Rect.bottom, ClientRect.bottom);
 	}
 
-	// Validate rect
-	if (Rect.left >= Rect.right || Rect.top >= Rect.bottom)
+	// Get map points
+	RECT MapClient = Rect;
+	MapWindowPoints(HWND_DESKTOP, hWnd, (LPPOINT)&MapClient, 2);
+
+	// Validate MapClient rect
+	if (!ClipRectToBounds(&MapClient, surfaceDesc2.dwWidth, surfaceDesc2.dwHeight))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << Rect);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid MapClient rect: " << Rect);
 		return DDERR_GENERIC;
 	}
 
-	// Get map points
-	RECT MapClient = Rect;
-	if (MapWindowPoints(HWND_DESKTOP, hWnd, (LPPOINT)&MapClient, 2))
+	// Validate rect
+	if (!ClipRectToBounds(&Rect, surfaceDesc2.dwWidth, surfaceDesc2.dwHeight))
 	{
-		MapClient.right = min((LONG)surfaceDesc2.dwWidth, MapClient.right);
-		MapClient.bottom = min((LONG)surfaceDesc2.dwHeight, MapClient.bottom);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << Rect);
+		return DDERR_GENERIC;
 	}
 
 	// Get source surface

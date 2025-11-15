@@ -290,6 +290,31 @@ bool GetOverlappingRect(const RECT& rect1, const RECT& rect2, RECT& outOverlapRe
 	return false;
 }
 
+bool ClipRectToBounds(RECT* r, LONG width, LONG height)
+{
+	// If the rect starts entirely outside, nothing to do
+	if (r->left >= width || r->top >= height)
+	{
+		return false;
+	}
+
+	// Clip to zero
+	if (r->left < 0) r->left = 0;
+	if (r->top < 0) r->top = 0;
+
+	// Clip to bounds
+	if (r->right > width) r->right = width;
+	if (r->bottom > height) r->bottom = height;
+
+	// Empty or inverted?
+	if (r->left >= r->right || r->top >= r->bottom)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 void ConvertSurfaceDesc(DDSURFACEDESC& Desc, const DDSURFACEDESC2& Desc2)
 {
 	// Check for supported dwSize
