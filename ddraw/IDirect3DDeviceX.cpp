@@ -296,6 +296,11 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 		}
 		*lplpDirect3DExecuteBuffer = nullptr;
 
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
+		}
+
 		if (lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpDesc->dwSize);

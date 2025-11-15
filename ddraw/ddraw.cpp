@@ -267,6 +267,11 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 	{
 		LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' to --> 'Direct3DCreate9'");
 
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
+		}
+
 		if (Config.SetSwapEffectShim < 2)
 		{
 			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
@@ -313,9 +318,14 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDClipper || pUnkOuter)
+		if (!lplpDDClipper)
 		{
 			return DDERR_INVALIDPARAMS;
+		}
+
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
 		}
 
 		m_IDirectDrawClipper* ClipperX = m_IDirectDrawClipper::CreateDirectDrawClipper(nullptr, nullptr, dwFlags);
@@ -350,7 +360,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDD || pUnkOuter)
+		if (!lplpDD)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -362,6 +372,11 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 		}
 
 		LOG_LIMIT(3, "Redirecting 'DirectDrawCreateEx' to --> 'Direct3DCreate9'");
+
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
+		}
 
 		if (Config.SetSwapEffectShim < 2)
 		{

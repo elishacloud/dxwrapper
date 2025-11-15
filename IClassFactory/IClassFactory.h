@@ -14,10 +14,13 @@ DEFINE_GUID(IID_IDirect3DDxva2Container9, 0x126D0349, 0x4787, 0x4AA6, 0x8E, 0x1B
 
 typedef void(WINAPI *IQueryInterfaceProc)(REFIID, LPVOID *);
 typedef HRESULT(WINAPI *CoCreateInstanceHandleProc)(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv);
+typedef HRESULT(WINAPI* CoGetClassObjectHandleProc)(REFCLSID rclsid, DWORD dwClsContext, LPVOID pvReserved, REFIID riid, LPVOID* ppv);
 
 EXPORT_OUT_WRAPPED_PROC(CoCreateInstance, unused);
+EXPORT_OUT_WRAPPED_PROC(CoGetClassObject, unused);
 
 HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv);
+HRESULT WINAPI CoGetClassObjectHandle(REFCLSID rclsid, DWORD dwClsContext, LPVOID pvReserved, REFIID riid, LPVOID* ppv);
 
 class m_IClassFactory : public IClassFactory
 {

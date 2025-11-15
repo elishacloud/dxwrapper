@@ -359,9 +359,15 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Hook CoCreateInstance
-		if (Config.EnableDdrawWrapper || Config.DDrawCompat || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8)
+		if (Config.EnableDdrawWrapper || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8 || Config.EnableDsoundWrapper)
 		{
-			InterlockedExchangePointer((PVOID*)&CoCreateInstance_out, Hook::HotPatch(GetProcAddress(LoadLibraryA("ole32.dll"), "CoCreateInstance"), "CoCreateInstance", *CoCreateInstanceHandle));
+			HMODULE ole32_dll = LoadLibraryA("ole32.dll");
+			if (ole32_dll)
+			{
+				Logging::Log() << "Hooking ole32.dll APIs...";
+				InterlockedExchangePointer((PVOID*)&CoCreateInstance_out, Hook::HotPatch(GetProcAddress(ole32_dll, "CoCreateInstance"), "CoCreateInstance", *CoCreateInstanceHandle));
+				InterlockedExchangePointer((PVOID*)&CoGetClassObject_out, Hook::HotPatch(GetProcAddress(ole32_dll, "CoGetClassObject"), "CoGetClassObject", *CoGetClassObjectHandle));
+			}
 		}
 
 		// Start dsound.dll module

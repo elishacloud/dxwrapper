@@ -319,9 +319,14 @@ HRESULT m_IDirectDrawX::CreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER FAR * l
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDClipper || pUnkOuter)
+		if (!lplpDDClipper)
 		{
 			return DDERR_INVALIDPARAMS;
+		}
+
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
 		}
 
 		m_IDirectDrawClipper* Interface = m_IDirectDrawClipper::CreateDirectDrawClipper(nullptr, this, dwFlags);
@@ -363,9 +368,14 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDPalette || !lpDDColorArray || pUnkOuter)
+		if (!lplpDDPalette || !lpDDColorArray)
 		{
 			return DDERR_INVALIDPARAMS;
+		}
+
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
 		}
 
 		m_IDirectDrawPalette* Interface = m_IDirectDrawPalette::CreateDirectDrawPalette(nullptr, this, dwFlags, lpDDColorArray);
@@ -407,7 +417,7 @@ HRESULT m_IDirectDrawX::CreateSurface(LPDDSURFACEDESC lpDDSurfaceDesc, LPDIRECTD
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDSurface || !lpDDSurfaceDesc || pUnkOuter)
+		if (!lplpDDSurface || !lpDDSurfaceDesc)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -447,11 +457,16 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDSurface || !lpDDSurfaceDesc2 || pUnkOuter)
+		if (!lplpDDSurface || !lpDDSurfaceDesc2)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 		*lplpDDSurface = nullptr;
+
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
+		}
 
 		if (lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{

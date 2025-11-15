@@ -10,6 +10,7 @@
 typedef _Return_type_success_(return == 0) UINT MMRESULT;   /* error return code, 0 means no error */
 
 #ifndef _INC_MMSYSTEM
+#ifndef _INC_MMSYSCOM
 
 typedef struct mmtime_tag {
     UINT  wType;
@@ -32,6 +33,7 @@ typedef struct mmtime_tag {
         } midi;
     } u;
 } MMTIME, * PMMTIME, * LPMMTIME;
+#endif
 
 /* types for wType field in MMTIME struct */
 #define TIME_MS         0x0001  /* time in milliseconds */

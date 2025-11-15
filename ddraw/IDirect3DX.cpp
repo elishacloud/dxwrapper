@@ -233,6 +233,11 @@ HRESULT m_IDirect3DX::CreateLight(LPDIRECT3DLIGHT* lplpDirect3DLight, LPUNKNOWN 
 		}
 		*lplpDirect3DLight = nullptr;
 
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
+		}
+
 		// Check for device
 		if (!ddrawParent)
 		{
@@ -288,6 +293,11 @@ HRESULT m_IDirect3DX::CreateMaterial(LPDIRECT3DMATERIAL3* lplpDirect3DMaterial, 
 			return DDERR_INVALIDPARAMS;
 		}
 		*lplpDirect3DMaterial = nullptr;
+
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
+		}
 
 		// Check for device
 		if (!ddrawParent)
@@ -346,6 +356,11 @@ HRESULT m_IDirect3DX::CreateViewport(LPDIRECT3DVIEWPORT3* lplpD3DViewport, LPUNK
 			return DDERR_INVALIDPARAMS;
 		}
 		*lplpD3DViewport = nullptr;
+
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
+		}
 
 		// Check for device
 		if (!ddrawParent)
@@ -600,6 +615,11 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		}
 		*lplpD3DDevice = nullptr;
 
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
+		}
+
 		// Check for device
 		if (!ddrawParent)
 		{
@@ -707,6 +727,11 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 			return DDERR_INVALIDPARAMS;
 		}
 		*lplpD3DVertexBuffer = nullptr;
+
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
+		}
 
 		if (!lpVBDesc->dwNumVertices)
 		{
