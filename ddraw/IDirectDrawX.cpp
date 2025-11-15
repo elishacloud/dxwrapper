@@ -3570,14 +3570,14 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 					LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
 
-					m_IDirect3D9Ex::AdjustWindow(hMon, hWnd, Width, Height, false, false, true);
+					m_IDirect3D9Ex::AdjustWindow(hMon, hWnd, Width, Height, false, true);
 
 					SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_BORDER);
 					SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 				}
 				else
 				{
-					m_IDirect3D9Ex::AdjustWindow(hMon, hWnd, Width, Height, false, true, false);
+					m_IDirect3D9Ex::AdjustWindow(hMon, hWnd, Width, Height, true, false);
 				}
 			}
 		};
