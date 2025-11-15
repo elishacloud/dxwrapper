@@ -3419,8 +3419,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Width/height
 		presParams.BackBufferWidth = BackBufferWidth;
 		presParams.BackBufferHeight = BackBufferHeight;
-		// Discard swap
-		presParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
 		// Backbuffer
 		presParams.BackBufferCount = 1;
 		// Auto stencel format
@@ -3440,6 +3438,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Set parameters for the current display mode
 		if (Device.IsWindowed || !hWnd)
 		{
+			// Copy swap
+			presParams.SwapEffect = D3DSWAPEFFECT_COPY;
 			// Window mode
 			presParams.Windowed = TRUE;
 			// Backbuffer
@@ -3449,6 +3449,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		}
 		else
 		{
+			// Discard swap
+			presParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
 			// Fullscreen
 			presParams.Windowed = FALSE;
 			// Backbuffer
@@ -4944,6 +4946,31 @@ void m_IDirectDrawX::RestoreState(DRAWSTATEBACKUP& DrawStates)
 	d3d9Device->SetTransform(D3DTS_PROJECTION, &DrawStates.ProjectionMatrix);
 }
 
+inline bool m_IDirectDrawX::ClipRectToBounds(RECT* r, LONG width, LONG height)
+{
+	// If the rect starts entirely outside, nothing to do
+	if (r->left >= width || r->top >= height)
+	{
+		return false;
+	}
+
+	// Clip to zero
+	if (r->left < 0) r->left = 0;
+	if (r->top < 0) r->top = 0;
+
+	// Clip to bounds
+	if (r->right > width) r->right = width;
+	if (r->bottom > height) r->bottom = height;
+
+	// Empty or inverted?
+	if (r->left >= r->right || r->top >= r->bottom)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 HRESULT m_IDirectDrawX::DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -5187,7 +5214,7 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 
 	LPRECT pDestRect = nullptr;
 	RECT DestRect = {};
-	if (PrimarySurface->ShouldPresentToWindow(true))
+	if (PrimarySurface->ShouldPresentToWindow(true) && presParams.SwapEffect == D3DSWAPEFFECT_COPY)
 	{
 		if (FAILED(PrimarySurface->GetPresentWindowRect(pRect, DestRect)))
 		{
@@ -5428,7 +5455,32 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	HRESULT hr = D3DERR_DEVICELOST;
 	if (!IsUsingThreadPresent())
 	{
-		hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
+		bool NothingToPresent = false;
+
+		if (pSourceRect)
+		{
+			if (!ClipRectToBounds(pSourceRect, presParams.BackBufferWidth, presParams.BackBufferHeight))
+			{
+				NothingToPresent = true;
+			}
+		}
+
+		if (pDestRect)
+		{
+			if (!ClipRectToBounds(pDestRect, presParams.BackBufferWidth, presParams.BackBufferHeight))
+			{
+				NothingToPresent = true;
+			}
+		}
+
+		if (NothingToPresent)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: nothing to present: " << pSourceRect << " ->" << pDestRect << " buffer: " << presParams.BackBufferWidth << "x" << presParams.BackBufferHeight);
+		}
+		else
+		{
+			hr = d3d9Device->Present(pSourceRect, pDestRect, nullptr, nullptr);
+		}
 	}
 
 #ifdef ENABLE_PROFILING
