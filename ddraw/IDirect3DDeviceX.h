@@ -136,12 +136,8 @@ private:
 		DWORD rsAlphaRef = 0;
 		DWORD ssMinFilter[D3DHAL_TSS_MAXSTAGES] = {};
 		DWORD ssMagFilter[D3DHAL_TSS_MAXSTAGES] = {};
-		DWORD tsColorOp = 0;
-		DWORD tsColorArg1 = 0;
-		DWORD tsColorArg2 = 0;
 		float lowColorKey[4] = {};
 		float highColorKey[4] = {};
-		bool nullDiffuseVertex = false;
 	} DrawStates;
 
 	// Flags

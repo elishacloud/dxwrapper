@@ -6266,21 +6266,6 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
 		}
 	}
-	if (DrawStates.nullDiffuseVertex)
-	{
-		GetD9TextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOp);
-		GetD9TextureStageState(0, D3DTSS_COLORARG1, &DrawStates.tsColorArg1);
-		GetD9TextureStageState(0, D3DTSS_COLORARG2, &DrawStates.tsColorArg2);
-
-		if (DrawStates.tsColorOp == D3DTOP_MODULATE && (DrawStates.tsColorArg1 == D3DTA_TEXTURE || DrawStates.tsColorArg2 == D3DTA_TEXTURE))
-		{
-			(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_ADD);
-		}
-		else
-		{
-			DrawStates.nullDiffuseVertex = false;
-		}
-	}
 	for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 	{
 		// Set textures
@@ -6405,12 +6390,6 @@ void m_IDirect3DDeviceX::RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD Dire
 	{
 		(*d3d9Device)->SetVertexShader(nullptr);
 	}*/
-	if (DrawStates.nullDiffuseVertex)
-	{
-		DrawStates.nullDiffuseVertex = false;
-		SetD9TextureStageState(0, D3DTSS_COLOROP, DrawStates.tsColorOp);
-		D3DTA_TEXTURE;
-	}
 
 	if (SUCCEEDED(hr))
 	{
@@ -6473,47 +6452,6 @@ void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVerti
 	}
 	else if (dwVertexTypeDesc & D3DFVF_XYZRHW)
 	{
-		if ((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW &&
-			(dwVertexTypeDesc & D3DFVF_DIFFUSE) &&
-			(dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) &&
-			dwNumVertices >= 3)
-		{
-			struct VERTEX {
-				float x, y, z, rhw;
-				D3DCOLOR color;
-			};
-
-			DWORD stride = GetVertexStride(dwVertexTypeDesc);
-			BYTE* buffer = (BYTE*)lpVertices + (dwVertexStart * stride);
-
-			bool foundColor = false;
-			UINT step = max(1u, dwNumVertices / 10);
-			UINT end = max(1u, dwNumVertices - 3);
-
-			for (UINT x = 0; x < end; x += step)
-			{
-				VERTEX* v0 = (VERTEX*)(buffer + ((x + 0) * stride));
-				VERTEX* v1 = (VERTEX*)(buffer + ((x + 1) * stride));
-				VERTEX* v2 = (VERTEX*)(buffer + ((x + 2) * stride));
-
-				DWORD ColorCount =
-					(v0->color == 0 ? 0 : 1) +
-					(v1->color == 0 ? 0 : 1) +
-					(v2->color == 0 ? 0 : 1);
-
-				if (ColorCount > 1)
-				{
-					foundColor = true;
-					break;
-				}
-			}
-
-			if (!foundColor)
-			{
-				DrawStates.nullDiffuseVertex = true;
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: detected transformed vertices with NULL diffuse!");
-			}
-		}
 		if (Config.DdrawClampVertexZDepth)
 		{
 			DWORD stride = GetVertexStride(dwVertexTypeDesc);
