@@ -682,12 +682,8 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 					// Set dirty flag
 					SetDirtyFlag(MipMapLevel);
 
-					// Handle fullscreen blt as flip
-					bool IsFullScreenBlt = IsPrimarySurface() && (!lpSrcRect ||
-						(lpSrcRect->left == 0 && lpSrcRect->top == 0 && lpSrcRect->right == (LONG)surfaceDesc2.dwWidth && lpSrcRect->bottom == (LONG)surfaceDesc2.dwHeight));
-
 					// Present surface
-					EndWritePresent(lpDestRect, IsFullScreenBlt, true, PresentBlt, IsSkipScene);
+					EndWritePresent(lpDestRect, true, IsSkipScene);
 				}
 			}
 
@@ -810,7 +806,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 		SetDirtyFlag(MipMapLevel);
 
 		// Present surface
-		EndWritePresent(nullptr, false, false, true, IsSkipScene);
+		EndWritePresent(nullptr, false, IsSkipScene);
 	}
 
 	return hr;
@@ -1370,7 +1366,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			}
 
 			// Present surface
-			EndWritePresent(nullptr, true, true, true, false);
+			EndWritePresent(nullptr, true, false);
 
 			if (IsRenderTarget())
 			{
@@ -2704,7 +2700,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC, DWORD MipMapLevel)
 				EndWriteSyncSurfaces(nullptr);
 
 				// Present surface
-				EndWritePresent(nullptr, false, true, true, false);
+				EndWritePresent(nullptr, true, false);
 			}
 		}
 
@@ -3124,7 +3120,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 					EndWriteSyncSurfaces(&LastLock.Rect);
 
 					// Present surface
-					EndWritePresent(&LastLock.Rect, false, true, true, LastLock.IsSkipScene);
+					EndWritePresent(&LastLock.Rect, true, LastLock.IsSkipScene);
 				}
 			}
 		}
@@ -5413,7 +5409,7 @@ void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 	}
 }
 
-HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsFlip, bool IsSkipScene)
+HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsSkipScene)
 {
 	// Check for device interface
 	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
@@ -5422,10 +5418,16 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsFlip, bool IsSkipScene)
 		return c_hr;
 	}
 
+	bool ShouldSkipScene = ((IsSkipScene && !SceneReady) || IsPresentRunning);
+
 	// Check if is not primary surface or if scene should be skipped
 	if (ShouldWriteToGDI() || ShouldPresentToWindow(true) || ddrawParent->IsInScene())
 	{
-		// Never present when using Direct3D or when writing to GDI
+		// Never present when writing to GDI, presenting to a window or using Direct3D and InScene
+		if (IsPrimarySurface() && !ShouldSkipScene)
+		{
+			SceneReady = true;
+		}
 		return DD_OK;
 	}
 	else if (!IsPrimarySurface())
@@ -5435,12 +5437,12 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsFlip, bool IsSkipScene)
 			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 			if (lpDDSrcSurfaceX)
 			{
-				return lpDDSrcSurfaceX->PresentSurface(IsFlip, IsSkipScene);
+				return lpDDSrcSurfaceX->PresentSurface(IsSkipScene);
 			}
 		}
 		return DDERR_GENERIC;
 	}
-	else if ((IsSkipScene && !SceneReady) || IsPresentRunning)
+	else if (ShouldSkipScene)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Skipping scene!";
 		return DDERR_GENERIC;
@@ -5909,14 +5911,14 @@ void m_IDirectDrawSurfaceX::BeginWritePresent(bool IsSkipScene)
 	// Check if data needs to be presented before write
 	if (dirtyFlag)
 	{
-		if (FAILED(PresentSurface(false, IsSkipScene)))
+		if (FAILED(PresentSurface(IsSkipScene)))
 		{
 			PresentOnUnlock = true;
 		}
 	}
 }
 
-void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, bool IsFlip, bool WriteToWindow, bool FullPresent, bool IsSkipScene)
+void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, bool WriteToWindow, bool IsSkipScene)
 {
 	// Handle overlays
 	PresentOverlay(lpDestRect);
@@ -5942,9 +5944,9 @@ void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, bool IsFlip, bool
 		}
 	}
 	// Present surface after each draw unless removing interlacing
-	else if (FullPresent && (PresentOnUnlock || !Config.DdrawRemoveInterlacing))
+	else if (PresentOnUnlock || !Config.DdrawRemoveInterlacing)
 	{
-		PresentSurface(IsFlip, IsSkipScene);
+		PresentSurface(IsSkipScene);
 
 		// Reset endscene lock
 		PresentOnUnlock = false;

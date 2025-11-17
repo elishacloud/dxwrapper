@@ -5161,6 +5161,8 @@ HRESULT m_IDirectDrawX::CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer)
 
 HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 {
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
 	HRESULT hr = DDERR_GENERIC;
 
 	if (IsUsingThreadPresent())
