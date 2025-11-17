@@ -486,10 +486,10 @@ public:
 	void SetAsRenderTarget();
 	void ReleaseD9AuxiliarySurfaces();
 	void ReleaseD9Surface(bool BackupData, bool ResetSurface);
-	HRESULT PresentSurface(bool IsSkipScene);
+	HRESULT PresentSurface(LPRECT lpDestRect, bool IsSkipScene);
 	void ResetSurfaceDisplay();
 	void SetDirtyFlag(DWORD MipMapLevel);
-	void EndWritePresent(LPRECT lpDestRect, bool WriteToWindow, bool IsSkipScene);
+	void EndWritePresent(LPRECT lpDestRect, bool IsSkipScene);
 
 	// Surface information functions
 	bool IsPrimarySurface() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }

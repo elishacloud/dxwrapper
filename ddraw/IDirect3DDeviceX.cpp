@@ -1343,7 +1343,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 
 			if (lpCurrentRenderTargetX)
 			{
-				lpCurrentRenderTargetX->EndWritePresent(nullptr, false, false);
+				lpCurrentRenderTargetX->EndWritePresent(nullptr, false);
 			}
 		}
 
