@@ -16,7 +16,8 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include "d3dx9.h"
-#include "d3dx9_data.h"
+#include "d3dx9_data_43.h"
+#include "d3dx9_data_47.h"
 #include <string>
 #include "External\MemoryModule\MemoryModule.h"
 #include "Utils\Utils.h"
@@ -99,11 +100,15 @@ void LoadD3dx9()
 	RunOnce = false;
 
 	d3dx9Module = Utils::LoadMemoryToDLL((LPVOID)D3DX9_43, sizeof(D3DX9_43));
+#if (_WIN32_WINNT >= 0x0502)
 	d3dCompileModule = Utils::LoadMemoryToDLL((LPVOID)D3DCompiler_47, sizeof(D3DCompiler_47));
+#else
+	d3dCompileModule = Utils::LoadMemoryToDLL((LPVOID)D3DCompiler_43, sizeof(D3DCompiler_43));
+#endif
 
 	if (!d3dx9Module || !d3dCompileModule)
 	{
-		Logging::Log() << __FUNCTION__ << "Error: failed to load d3dx9 modules!";
+		Logging::Log() << __FUNCTION__ << " Error: failed to load d3dx9 modules!";
 	}
 	if (d3dx9Module)
 	{
