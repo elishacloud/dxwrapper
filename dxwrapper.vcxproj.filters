@@ -898,6 +898,9 @@
     <ClCompile Include="d3d9\IDirect3DDXVADevice9.cpp">
       <Filter>d3d9</Filter>
     </ClCompile>
+    <ClCompile Include="ddraw\AddressLookupTable.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">

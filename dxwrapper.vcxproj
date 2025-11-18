@@ -541,6 +541,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClCompile Include="DDrawCompat\v0.3.2\Win32\WaitFunctions.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="ddraw\AddressLookupTable.cpp" />
     <ClCompile Include="ddraw\ddraw.cpp" />
     <ClCompile Include="ddraw\IDirect3DDeviceX.cpp" />
     <ClCompile Include="ddraw\IDirect3DMaterialX.cpp" />
