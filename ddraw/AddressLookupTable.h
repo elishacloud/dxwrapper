@@ -13,7 +13,7 @@ struct AddressInterfaceList {
 template <typename T>
 T* InterfaceAddressCache(T* Interface)
 {
-	static std::vector<T*> InterfaceList;
+	std::vector<T*>& InterfaceList = AddressInterfaceList<T>::InterfaceList;
 	if (Interface)
 	{
 		if (!Config.DdrawKeepAllInterfaceCache)
