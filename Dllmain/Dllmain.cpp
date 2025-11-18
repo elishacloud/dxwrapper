@@ -365,8 +365,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			if (ole32_dll)
 			{
 				Logging::Log() << "Hooking ole32.dll APIs...";
-				InterlockedExchangePointer((PVOID*)&CoCreateInstance_out, Hook::HotPatch(GetProcAddress(ole32_dll, "CoCreateInstance"), "CoCreateInstance", *CoCreateInstanceHandle));
 				InterlockedExchangePointer((PVOID*)&CoGetClassObject_out, Hook::HotPatch(GetProcAddress(ole32_dll, "CoGetClassObject"), "CoGetClassObject", *CoGetClassObjectHandle));
+				InterlockedExchangePointer((PVOID*)&CoCreateInstance_out, Hook::HotPatch(GetProcAddress(ole32_dll, "CoCreateInstance"), "CoCreateInstance", *CoCreateInstanceHandle));
 			}
 		}
 

@@ -1031,7 +1031,6 @@ std::ostream& operator<<(std::ostream& os, REFIID riid)
 	CHECK_REFIID(IID, IDirect3DVideoDevice9);
 	CHECK_REFIID(IID, IDirect3DDXVADevice9);
 	CHECK_REFIID(IID, IDirect3DDxva2Container9);
-
 	// dinput
 	CHECK_REFIID(CLSID, DirectInput);
 	CHECK_REFIID(CLSID, DirectInputDevice);
@@ -1087,6 +1086,31 @@ std::ostream& operator<<(std::ostream& os, REFIID riid)
 	CHECK_REFIID(GUID, Inertia);
 	CHECK_REFIID(GUID, Friction);
 	CHECK_REFIID(GUID, CustomForce);
+	// dound
+	CHECK_REFIID(CLSID, DirectSound);
+	CHECK_REFIID(CLSID, DirectSound8);
+	CHECK_REFIID(IID, IDirectSound);
+	CHECK_REFIID(IID, IDirectSound8);
+	CHECK_REFIID(IID, IDirectSoundCapture);
+	CHECK_REFIID(IID, IDirectSoundCaptureBuffer8);
+	CHECK_REFIID(IID, IDirectSoundCaptureBuffer);
+	CHECK_REFIID(IID, IDirectSound3DListener);
+	CHECK_REFIID(IID, IDirectSound3DBuffer);
+	CHECK_REFIID(IID, IDirectSoundNotify);
+	CHECK_REFIID(IID, IDirectSoundFXGargle);
+	CHECK_REFIID(IID, IDirectSoundFXChorus);
+	CHECK_REFIID(IID, IDirectSoundFXFlanger);
+	CHECK_REFIID(IID, IDirectSoundFXEcho);
+	CHECK_REFIID(IID, IDirectSoundFXDistortion);
+	CHECK_REFIID(IID, IDirectSoundFXCompressor);
+	CHECK_REFIID(IID, IDirectSoundFXParamEq);
+	CHECK_REFIID(IID, IDirectSoundFXWavesReverb);
+	CHECK_REFIID(IID, IDirectSoundFXI3DL2Reverb);
+	CHECK_REFIID(IID, IDirectSoundCaptureFXAec);
+	CHECK_REFIID(IID, IDirectSoundCaptureFXNoiseSuppress);
+	CHECK_REFIID(IID, IDirectSoundFullDuplex);
+	CHECK_REFIID(IID, IReferenceClock);
+	CHECK_REFIID(IID, IKsPropertySet);
 	// DirectShow
 	CHECK_REFIID(CLSID, AMMultiMediaStream);
 	CHECK_REFIID(CLSID, AMDirectDrawStream);

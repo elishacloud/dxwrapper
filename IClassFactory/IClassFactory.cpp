@@ -32,8 +32,8 @@
 #include "dsound\dsoundExternal.h"
 #endif
 
-INITIALIZE_OUT_WRAPPED_PROC(CoCreateInstance, unused);
 INITIALIZE_OUT_WRAPPED_PROC(CoGetClassObject, unused);
+INITIALIZE_OUT_WRAPPED_PROC(CoCreateInstance, unused);
 
 #ifdef DINPUT8
 namespace dinputto8
@@ -53,6 +53,15 @@ REFIID ConvertAllREFIID(REFIID riid)
 	return riid;
 }
 
+static inline HRESULT CreateClassFactory(REFCLSID rclsid, LPVOID* ppv)
+{
+	*ppv = new m_IClassFactory((IClassFactory*)*ppv, nullptr);
+
+	((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
+
+	return S_OK;
+}
+
 static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID* ppv, bool& InterfaceCreated)
 {
 	UNREFERENCED_PARAMETER(dwClsContext);
@@ -66,6 +75,11 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		// Create DirectDraw interface
 		if (rclsid == CLSID_DirectDraw)
 		{
+			if (riid == IID_IClassFactory)
+			{
+				return CreateClassFactory(rclsid,  ppv);
+			}
+
 			if (riid != IID_IUnknown &&
 				riid != IID_IDirectDraw &&
 				riid != IID_IDirectDraw2 &&
@@ -113,6 +127,11 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		// Create DirectDraw7 interface
 		if (rclsid == CLSID_DirectDraw7)
 		{
+			if (riid == IID_IClassFactory)
+			{
+				return CreateClassFactory(rclsid, ppv);
+			}
+
 			if (riid != IID_IUnknown && riid != IID_IDirectDraw7)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID: " << riid << " from: " << rclsid);
@@ -125,6 +144,11 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		// Create DirectDrawClipper interface
 		if (rclsid == CLSID_DirectDrawClipper)
 		{
+			if (riid == IID_IClassFactory)
+			{
+				return CreateClassFactory(rclsid, ppv);
+			}
+
 			if (riid != IID_IUnknown && riid != IID_IDirectDrawClipper)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID: " << riid << " from: " << rclsid);
@@ -143,6 +167,11 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		// Create DirectInput interface
 		if (rclsid == CLSID_DirectInput)
 		{
+			if (riid == IID_IClassFactory)
+			{
+				return CreateClassFactory(rclsid, ppv);
+			}
+
 			if (riid != IID_IUnknown &&
 				riid != IID_IDirectInputA && riid != IID_IDirectInputW &&
 				riid != IID_IDirectInput2A && riid != IID_IDirectInput2W &&
@@ -158,6 +187,11 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		// Create DirectInputDevice interface
 		if (rclsid == CLSID_DirectInputDevice)
 		{
+			if (riid == IID_IClassFactory)
+			{
+				return CreateClassFactory(rclsid, ppv);
+			}
+
 			if (riid != IID_IUnknown &&
 				riid != IID_IDirectInputDeviceA && riid != IID_IDirectInputDeviceW &&
 				riid != IID_IDirectInputDevice2A && riid != IID_IDirectInputDevice2W &&
@@ -193,6 +227,11 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		// Create DirectInput8 interface
 		if (rclsid == CLSID_DirectInput8)
 		{
+			if (riid == IID_IClassFactory)
+			{
+				return CreateClassFactory(rclsid, ppv);
+			}
+
 			if (riid != IID_IUnknown && riid != IID_IDirectInput8A && riid != IID_IDirectInput8W)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID: " << riid << " from: " << rclsid);
@@ -205,6 +244,11 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		// Create DirectInputDevice8 interface
 		if (rclsid == CLSID_DirectInputDevice8)
 		{
+			if (riid == IID_IClassFactory)
+			{
+				return CreateClassFactory(rclsid, ppv);
+			}
+
 			if (riid != IID_IUnknown && riid != IID_IDirectInputDevice8A && riid != IID_IDirectInputDevice8W)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID: " << riid << " from: " << rclsid);
@@ -231,6 +275,11 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		// Create DirectSound interface
 		if (rclsid == CLSID_DirectSound)
 		{
+			if (riid == IID_IClassFactory)
+			{
+				return CreateClassFactory(rclsid, ppv);
+			}
+
 			if (riid != IID_IUnknown && riid != IID_IDirectSound)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID: " << riid << " from: " << rclsid);
@@ -243,6 +292,11 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		// Create DirectSound8 interface
 		if (rclsid == CLSID_DirectSound8)
 		{
+			if (riid == IID_IClassFactory)
+			{
+				return CreateClassFactory(rclsid, ppv);
+			}
+
 			if (riid != IID_IUnknown && riid != IID_IDirectSound8)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid IID: " << riid << " from: " << rclsid);
@@ -264,7 +318,7 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 
 HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	Logging::LogDebug() << __FUNCTION__ << " Query for " << riid << " from " << WrapperID;
+	LOG_LIMIT(100 ,__FUNCTION__ << " Query for " << riid << " from " << WrapperID);
 
 	if (!ppvObj)
 	{
@@ -377,7 +431,7 @@ ULONG m_IClassFactory::Release()
 
 HRESULT m_IClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject)
 {
-	Logging::LogDebug() << __FUNCTION__ << " " << ClassID << " --> " << riid;
+	LOG_LIMIT(100, __FUNCTION__ << " " << ClassID << " --> " << riid);
 
 	if (!ppvObject)
 	{
@@ -454,9 +508,9 @@ HRESULT m_IClassFactory::LockServer(BOOL fLock)
 
 HRESULT WINAPI CoGetClassObjectHandle(REFCLSID rclsid, DWORD dwClsContext, LPVOID pvReserved, REFIID riid, LPVOID* ppv)
 {
-	Logging::LogDebug() << __FUNCTION__ " " << rclsid << " -> " << riid;
+	LOG_LIMIT(100, __FUNCTION__ " " << rclsid << " -> " << riid);
 
-	DEFINE_STATIC_PROC_ADDRESS(CoGetClassObjectHandleProc, CoGetClassObject, CoGetClassObject_out);
+	DEFINE_STATIC_PROC_ADDRESS(CoGetClassObjectProc, CoGetClassObject, CoGetClassObject_out);
 
 	if (!CoGetClassObject)
 	{
@@ -469,20 +523,12 @@ HRESULT WINAPI CoGetClassObjectHandle(REFCLSID rclsid, DWORD dwClsContext, LPVOI
 	}
 	*ppv = nullptr;
 
-	// IClassFactory wrapper
-	if (riid == IID_IClassFactory)
+	bool InterfaceCreated = false;
+
+	HRESULT hr = CreateWrapperInterface(rclsid, nullptr, dwClsContext, riid, ppv, InterfaceCreated);
+
+	if (InterfaceCreated)
 	{
-		HRESULT hr = CoGetClassObject(rclsid, dwClsContext, pvReserved, riid, ppv);
-
-		if (SUCCEEDED(hr))
-		{
-			*ppv = new m_IClassFactory((IClassFactory*)*ppv, nullptr);
-
-			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
-
-			return S_OK;
-		}
-
 		return hr;
 	}
 
@@ -491,9 +537,9 @@ HRESULT WINAPI CoGetClassObjectHandle(REFCLSID rclsid, DWORD dwClsContext, LPVOI
 
 HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv)
 {
-	Logging::LogDebug() << __FUNCTION__ " " << rclsid << " -> " << riid;
+	LOG_LIMIT(100, __FUNCTION__ " " << rclsid << " -> " << riid);
 
-	DEFINE_STATIC_PROC_ADDRESS(CoCreateInstanceHandleProc, CoCreateInstance, CoCreateInstance_out);
+	DEFINE_STATIC_PROC_ADDRESS(CoCreateInstanceProc, CoCreateInstance, CoCreateInstance_out);
 
 	if (!CoCreateInstance)
 	{
