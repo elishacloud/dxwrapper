@@ -28,9 +28,9 @@ static inline void my_nop(void)
 DebugOverlay DOverlay;
 #endif
 
-#define SHARED DeviceDetailsMap[DDKey]
+#define SHARED (*DeviceDetailsMap[DDKey].get())
 
-std::unordered_map<UINT, DEVICEDETAILS> DeviceDetailsMap;
+std::unordered_map<UINT, std::unique_ptr<DEVICEDETAILS>> DeviceDetailsMap;
 
 HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {

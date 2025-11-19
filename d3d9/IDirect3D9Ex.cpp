@@ -533,9 +533,9 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		}
 	}
 
-	DEVICEDETAILS DeviceDetails;
+	auto DeviceDetails = std::make_unique<DEVICEDETAILS>();
 
-	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, false, nullptr, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(*DeviceDetails.get(), Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, false, nullptr, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
@@ -554,8 +554,8 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 			}
 		}
 
-		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.DeviceWindow;
-		DeviceDetailsMap[DDKey] = DeviceDetails;
+		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.get();
+		DeviceDetailsMap[DDKey] = std::move(DeviceDetails);
 
 		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, riid, DDKey);
 
@@ -650,14 +650,14 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		return D3DERR_INVALIDCALL;
 	}
 
-	DEVICEDETAILS DeviceDetails;
+	auto DeviceDetails = std::make_unique<DEVICEDETAILS>();
 
-	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, true, pFullscreenDisplayMode, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(*DeviceDetails.get(), Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, true, pFullscreenDisplayMode, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
-		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.DeviceWindow;
-		DeviceDetailsMap[DDKey] = DeviceDetails;
+		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.get();
+		DeviceDetailsMap[DDKey] = std::move(DeviceDetails);
 
 		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, DDKey);
 

@@ -59,11 +59,11 @@ struct DEVICEDETAILS
 	DWORD DeviceMultiSampleQuality = 0;
 };
 
-extern std::unordered_map<UINT, DEVICEDETAILS> DeviceDetailsMap;
+extern std::unordered_map<UINT, std::unique_ptr<DEVICEDETAILS>> DeviceDetailsMap;
 
 #include "IDirect3D9Ex.h"
 
-#define SHARED DeviceDetailsMap[DDKey]
+#define SHARED (*DeviceDetailsMap[DDKey].get())
 
 class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex, public AddressLookupTableD3d9Object
 {
