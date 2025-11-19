@@ -19,6 +19,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <cctype>
 #include <iomanip>
 #include <tlhelp32.h>
 #include <shlwapi.h>
@@ -726,6 +727,61 @@ MMRESULT WINAPI Utils::winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt)
 		}
 	}
 	return result;
+}
+
+static inline void ToLower(char* str)
+{
+	if (!str) return;
+	while (*str)
+	{
+		*str = static_cast<char>(::tolower(static_cast<unsigned char>(*str)));
+		++str;
+	}
+}
+
+bool Utils::CheckIfSystemModuleLoaded(const char* moduleName)
+{
+	if (!moduleName || !*moduleName)
+	{
+		return false;
+	}
+
+	HMODULE hMod = GetModuleHandleA(moduleName);
+	if (!hMod)
+	{
+		return false; // module not loaded
+	}
+
+	// Build: <System32>\<moduleName>
+	char sysDir[MAX_PATH] = {};
+	GetSystemDirectoryA(sysDir, MAX_PATH);
+	std::string sysPath = sysDir;
+	sysPath += "\\";
+	sysPath += moduleName;
+	// lowercase
+	char sysPathC[MAX_PATH];
+	strncpy_s(sysPathC, sysPath.c_str(), MAX_PATH);
+	sysPathC[MAX_PATH - 1] = 0;
+	ToLower(sysPathC);
+
+	// Build: <Windows>\SysWOW64\<moduleName>
+	char windowsDir[MAX_PATH] = {};
+	GetWindowsDirectoryA(windowsDir, MAX_PATH);
+	std::string wowPath = windowsDir;
+	wowPath += "\\SysWOW64\\";
+	wowPath += moduleName;
+	// lowercase
+	char wowPathC[MAX_PATH];
+	strncpy_s(wowPathC, wowPath.c_str(), MAX_PATH);
+	wowPathC[MAX_PATH - 1] = 0;
+	ToLower(wowPathC);
+
+	if (GetModuleHandleA(sysPathC) || GetModuleHandleA(wowPathC))
+	{
+		return true;
+	}
+
+	return false;
 }
 
 // Add HMODULE to vector

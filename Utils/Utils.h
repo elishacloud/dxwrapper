@@ -66,6 +66,7 @@ namespace Utils
 	void RemoveCustomExceptionHandler();
 	LONG WINAPI Vectored_Exception_Handler(EXCEPTION_POINTERS* ExceptionInfo);
 	void AddHandleToVector(HMODULE dll, const char *name);
+	bool CheckIfSystemModuleLoaded(const char* moduleName);
 	HMODULE LoadLibrary(const char *dllname, bool EnableLogging = false);
 	void LoadCustomDll();
 	void LoadPlugins();

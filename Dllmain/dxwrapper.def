@@ -3,9 +3,10 @@ EXPORTS
 
 
 ; ****
-;LIBRARY "dxwrapper" <---  Retrieve specific settings from dxwrapper
+;LIBRARY "dxwrapper" <---  Used by stub for reteriving settings and logging events
 ; ****
 DxWrapperSettings
+DxWrapperLogging
 
 
 ; ****

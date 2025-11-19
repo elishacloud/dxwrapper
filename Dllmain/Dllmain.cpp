@@ -81,6 +81,11 @@ __declspec(dllexport) void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings
 	DxSettings->Dinputto8 = Config.Dinputto8;
 }
 
+__declspec(dllexport) void WINAPI DxWrapperLogging(const char* LogMessage)
+{
+	Logging::Log() << __FUNCTION__ << " " << LogMessage;
+}
+
 typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
 
 static HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSystem32)
@@ -187,6 +192,20 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Get handle
 		hModule_dll = hModule;
 
+		// Check if already loaded
+		{
+			HMODULE dxw_dll = GetModuleHandleA("dxwrapper.dll");
+			if (dxw_dll && dxw_dll != hModule_dll)
+			{
+				return FALSE;
+			}
+			HMODULE dxw_asi = GetModuleHandleA("dxwrapper.asi");
+			if (dxw_asi && dxw_asi != hModule_dll)
+			{
+				return FALSE;
+			}
+		}
+
 		// Initialize config
 		Config.Init();
 
@@ -238,6 +257,20 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			" Windows Vista: " << Utils::IsWindowsVistaOrNewer() <<
 			" Windows 7: " << Utils::IsWindows7OrNewer() <<
 			" Windows 8: " << Utils::IsWindows8OrNewer();
+
+		// Check system modules
+		if (Config.Dd7to9 && Utils::CheckIfSystemModuleLoaded("ddraw.dll"))
+		{
+			Logging::Log() << "Warning: System 'ddraw.dll' is already loaded before dxwrapper!";
+		}
+		if (Config.D3d8to9 && Utils::CheckIfSystemModuleLoaded("d3d8.dll"))
+		{
+			Logging::Log() << "Warning: System 'd3d8.dll' is already loaded before dxwrapper!";
+		}
+		if (Config.Dinputto8 && Utils::CheckIfSystemModuleLoaded("dinput.dll"))
+		{
+			Logging::Log() << "Warning: System 'dinput.dll' is already loaded before dxwrapper!";
+		}
 
 		// Check if process is excluded
 		if (Config.ProcessExcluded)

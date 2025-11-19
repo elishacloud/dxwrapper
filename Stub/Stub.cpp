@@ -16,6 +16,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <cctype>
 #include <fstream>
 #include "stub.h"
 #include "..\Settings\ReadParse.h"
@@ -83,9 +84,13 @@ static void __stdcall ParseCallback(char* name, char* value)
 static void GetConfig(HMODULE hModule)
 {
 	// Get config file path and stub name
-	char configname[MAX_PATH];
+	char configname[MAX_PATH] = {};
 	GetModuleFileNameA(hModule, configname, MAX_PATH);
 	StubName.assign(strrchr(configname, '\\') + 1);
+	for (auto it = StubName.begin(); it != StubName.end(); ++it)
+	{
+		*it = static_cast<char>(std::tolower(static_cast<unsigned char>(*it)));
+	}
 	strcpy_s(strrchr(configname, '.'), MAX_PATH - strlen(configname), ".ini");
 
 	// Read config file
@@ -110,24 +115,31 @@ static void GetConfig(HMODULE hModule)
 
 static void LoadDxWrapper(HMODULE hModule)
 {
-	// Open file and get size
-	char path[MAX_PATH];
-	std::ifstream myfile;
+	// Path for dxwrapper file
+	char path[MAX_PATH] = {};
 
 	// Get config file path
 	GetModuleFileNameA(hModule, path, sizeof(path));
 	strcpy_s(strrchr(path, '\\'), MAX_PATH - strlen(path), "\\dxwrapper.dll");
 
 	// Check if the dll is already loaded
-	wrapper_dll = GetModuleHandle(path);
+	bool AlreadyLoaded = false;
+	wrapper_dll = GetModuleHandle("dxwrapper.dll");
+	if (!wrapper_dll)
+	{
+		wrapper_dll = GetModuleHandle("dxwrapper.asi");
+	}
 	if (wrapper_dll)
 	{
 		// Already loaded
+		AlreadyLoaded = true;
 	}
 #if (_WIN32_WINNT >= 0x0502)
 	// Use MemoryModule to load dxwrapper
 	else if (LoadFromMemory)
 	{
+		std::ifstream myfile;
+
 		// Get config file name for log
 		myfile.open(path, std::ios::binary | std::ios::in | std::ios::ate);
 		DWORD size = (DWORD)myfile.tellg();
@@ -161,6 +173,18 @@ static void LoadDxWrapper(HMODULE hModule)
 		if (DxWrapperSettings)
 		{
 			DxWrapperSettings(&DxSettings);
+		}
+		DxWrapperLoggingProc DxWrapperLogging = (DxWrapperLoggingProc)Hook::GetProcAddress(wrapper_dll, "DxWrapperLogging");
+		if (DxWrapperLogging)
+		{
+			if (AlreadyLoaded)
+			{
+				DxWrapperLogging(std::string("Secondary stub detected: " + StubName).c_str());
+			}
+			else
+			{
+				DxWrapperLogging(std::string("DxWrapper loaded by stub: " + StubName).c_str());
+			}
 		}
 	}
 	else

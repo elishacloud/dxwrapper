@@ -18,11 +18,22 @@
 #include "External\dinputto8\resource.h"
 #include "External\dinputto8\dinputto8.h"
 #include "IClassFactory\IClassFactory.h"
+#include "Utils\Utils.h"
 
 namespace DinputWrapper
 {
 	VISIT_PROCS_DINPUT_SHARED(INITIALIZE_OUT_WRAPPED_PROC);
 	INITIALIZE_OUT_WRAPPED_PROC(DirectInput8Create, unused);
+
+	static void CheckSystemModule()
+	{
+		static bool RunOnce = true;
+		if (RunOnce && Utils::CheckIfSystemModuleLoaded("dinput.dll"))
+		{
+			Logging::Log() << "Warning: System 'dinput.dll' is already loaded before dxwrapper!";
+		}
+		RunOnce = false;
+	}
 }
 
 using namespace DinputWrapper;
@@ -50,6 +61,8 @@ HRESULT WINAPI di_DirectInputCreateW(HINSTANCE hinst, DWORD dwVersion, LPDIRECTI
 HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID riid, LPVOID * lplpDD, LPUNKNOWN pUnkOuter)
 {
 	LOG_LIMIT(1, __FUNCTION__);
+
+	CheckSystemModule();
 
 	DEFINE_STATIC_PROC_ADDRESS(DirectInput8CreateProc, DirectInput8Create, DirectInput8Create_out);
 

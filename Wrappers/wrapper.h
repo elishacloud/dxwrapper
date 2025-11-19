@@ -16,7 +16,8 @@ struct DXWAPPERSETTINGS
 	bool Dinputto8 = false;
 };
 
-typedef void(WINAPI *DxWrapperSettingsProc)(DXWAPPERSETTINGS *DxSettings);
+typedef void(WINAPI* DxWrapperSettingsProc)(DXWAPPERSETTINGS* DxSettings);
+typedef void(WINAPI* DxWrapperLoggingProc)(const char* LogMessage);
 
 // Shared procs
 #include "shared.h"
