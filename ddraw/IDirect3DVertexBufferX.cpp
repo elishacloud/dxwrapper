@@ -137,7 +137,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 			*lpdwSize = 0;
 		}
 
-		if (LastLockAddr)
+		if (LastLock.IsLocked)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: locking vertex buffer when buffer is already locked!");
 		}
@@ -158,8 +158,9 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		// Handle emulated readonly
 		if (IsVBEmulated && (Flags & D3DLOCK_READONLY))
 		{
-			LastLockAddr = nullptr;
-			LastLockFlags = Flags;
+			LastLock.IsLocked = true;
+			LastLock.Addr = nullptr;
+			LastLock.Flags = Flags;
 
 			*lplpData = VertexData.data();
 
@@ -189,8 +190,9 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 			return hr;
 		}
 
-		LastLockAddr = pData;
-		LastLockFlags = Flags;
+		LastLock.IsLocked = true;
+		LastLock.Addr = pData;
+		LastLock.Flags = Flags;
 
 		// Handle emulated vertex
 		if (IsVBEmulated)
@@ -240,27 +242,28 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 		}
 
 		// Handle emulated readonly
-		if (IsVBEmulated && (LastLockFlags & D3DLOCK_READONLY))
+		if (IsVBEmulated && (LastLock.Flags & D3DLOCK_READONLY))
 		{
-			LastLockAddr = nullptr;
-			LastLockFlags = 0;
+			LastLock.IsLocked = false;
+			LastLock.Addr = nullptr;
+			LastLock.Flags = 0;
 
 			return D3D_OK;
 		}
 
 		// Handle emulated vertex
-		if (IsVBEmulated && LastLockAddr)
+		if (IsVBEmulated && LastLock.Addr)
 		{
 			if (VB.Desc.dwFVF == D3DFVF_LVERTEX)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: converting vertex buffer, may cause slowdowns!");
 
-				ConvertLVertex((DXLVERTEX9*)LastLockAddr, (DXLVERTEX7*)VertexData.data(), VB.Desc.dwNumVertices);
+				ConvertLVertex((DXLVERTEX9*)LastLock.Addr, (DXLVERTEX7*)VertexData.data(), VB.Desc.dwNumVertices);
 			}
 			else
 			{
 				DWORD stride = GetVertexStride(VB.Desc.dwFVF);
-				memcpy(LastLockAddr, VertexData.data(), VB.Desc.dwNumVertices * stride);
+				memcpy(LastLock.Addr, VertexData.data(), VB.Desc.dwNumVertices * stride);
 
 				if (Config.DdrawClampVertexZDepth && (VB.Desc.dwFVF & D3DFVF_XYZRHW))
 				{
@@ -277,8 +280,9 @@ HRESULT m_IDirect3DVertexBufferX::Unlock()
 			return hr;
 		}
 		
-		LastLockAddr = nullptr;
-		LastLockFlags = 0;
+		LastLock.IsLocked = false;
+		LastLock.Addr = nullptr;
+		LastLock.Flags = 0;
 
 		return D3D_OK;
 	}
@@ -637,8 +641,9 @@ HRESULT m_IDirect3DVertexBufferX::CreateD3D9VertexBuffer()
 		}
 	}
 
-	LastLockAddr = nullptr;
-	LastLockFlags = 0;
+	LastLock.IsLocked = false;
+	LastLock.Addr = nullptr;
+	LastLock.Flags = 0;
 
 	return D3D_OK;
 }
