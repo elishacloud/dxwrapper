@@ -2776,10 +2776,10 @@ HRESULT m_IDirectDrawSurfaceX::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper)
 		// If clipper exists increament ref
 		if (lpDDClipper)
 		{
-			if (!ddrawParent->DoesClipperExist((m_IDirectDrawClipper*)lpDDClipper))
+			if (!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawClipper*)lpDDClipper))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not find clipper " << lpDDClipper);
-				return DD_OK;
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find clipper " << lpDDClipper);
+				return DDERR_INVALIDPARAMS;
 			}
 
 			lpDDClipper->AddRef();
