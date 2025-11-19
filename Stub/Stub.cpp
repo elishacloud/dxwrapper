@@ -39,11 +39,6 @@ HMODULE proxy_dll = nullptr;
 
 DXWAPPERSETTINGS DxSettings = {};
 
-void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *)
-{
-	return;
-}
-
 // Set booloean value from string (file)
 static bool IsValueEnabled(char* name)
 {

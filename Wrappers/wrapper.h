@@ -21,21 +21,24 @@ typedef void(WINAPI *DxWrapperSettingsProc)(DXWAPPERSETTINGS *DxSettings);
 // Shared procs
 #include "shared.h"
 
-#define VISIT_DLLS(visit) \
+#define VISIT_DLLS_BASIC(visit) \
+	visit(d3d8) \
+	visit(d3d9) \
+	visit(ddraw) \
+	visit(dinput) \
+	visit(dinput8) \
+	visit(dsound)
+
+#define VISIT_DLLS_STUB(visit) \
 	visit(bcrypt) \
 	visit(cryptbase) \
 	visit(cryptsp) \
 	visit(d2d1) \
-	visit(d3d8) \
-	visit(d3d9) \
 	visit(dciman32) \
-	visit(ddraw) \
-	visit(dinput) \
-	visit(dinput8) \
 	visit(dplayx) \
-	visit(dsound) \
 	visit(dwmapi) \
 	visit(msacm32) \
+	visit(msvbvm60) \
 	visit(msvfw32) \
 	visit(version) \
 	visit(wininet) \
@@ -43,27 +46,39 @@ typedef void(WINAPI *DxWrapperSettingsProc)(DXWAPPERSETTINGS *DxSettings);
 	visit(winspool) \
 	visit(wsock32)
 
+#ifdef STUB
+#define VISIT_DLLS(visit) \
+	VISIT_DLLS_BASIC(visit) \
+	VISIT_DLLS_STUB(visit)
+#else
+#define VISIT_DLLS(visit) \
+	VISIT_DLLS_BASIC(visit)
+#endif
+
 // Wrappers
+#include "d3d8.h"
+#include "d3d9.h"
+#include "ddraw.h"
+#include "dinput.h"
+#include "dinput8.h"
+#include "dsound.h"
+#ifdef STUB
 #include "bcrypt.h"
 #include "cryptbase.h"
 #include "cryptsp.h"
 #include "d2d1.h"
-#include "d3d8.h"
-#include "d3d9.h"
 #include "dciman32.h"
-#include "ddraw.h"
-#include "dinput.h"
-#include "dinput8.h"
 #include "dplayx.h"
-#include "dsound.h"
 #include "dwmapi.h"
 #include "msacm32.h"
+#include "msvbvm60.h"
 #include "msvfw32.h"
 #include "version.h"
 #include "wininet.h"
 #include "winmm.h"
 #include "winspool.h"
 #include "wsock32.h"
+#endif
 
 #define EXPORT_OUT_WRAPPED_PROC(procName, unused) \
 	extern volatile FARPROC procName ## _out;

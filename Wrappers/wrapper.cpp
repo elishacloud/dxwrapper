@@ -228,6 +228,7 @@ const char *Wrapper::GetWrapperName(const char *WrapperMode)
 
 	VISIT_DLLS(CHECK_WRAPPER);
 
+#ifdef VISIT_PROCS_WINMM
 	// Special handling for winmm.dll because sometimes it is changed to win32 or winnm or some other name
 	if (strlen(WrapperMode) > 8)
 	{
@@ -247,6 +248,7 @@ const char *Wrapper::GetWrapperName(const char *WrapperMode)
 
 	// Special handling for winmmbase.dll because it is sharing procs from winmm
 	{ using namespace winmm; if (_stricmp(WrapperMode, "winmmbase.dll") == 0) { return "winmmbase.dll"; }}
+#endif
 
 	return nullptr;
 }
@@ -294,8 +296,10 @@ HMODULE Wrapper::GetWrapperType(const char *ProxyDll, const char *WrapperMode, c
 
 	VISIT_DLLS(CHECK_FOR_WRAPPER);
 
+#ifdef VISIT_PROCS_WINMM
 	// Special handling for winmmbase.dll because it is sharing procs from winmm
 	{ using namespace winmm; if (_stricmp(WrapperName, "winmmbase.dll") == 0) { Name = "winmmbase.dll"; return Load(ProxyDll, MyDllName); }}
+#endif
 
 	return nullptr;
 }

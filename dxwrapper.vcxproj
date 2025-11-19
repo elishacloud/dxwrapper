@@ -73,7 +73,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>detours.lib;msimg32.lib;Shlwapi.lib;oleacc.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>Dllmain\dxwrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -131,7 +131,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>Psapi.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>Dllmain\dxwrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -163,7 +163,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>detours.lib;msimg32.lib;Shlwapi.lib;oleacc.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>Dllmain\dxwrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -677,7 +677,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini" />
     <None Include="Settings\Settings.ini" />
-    <None Include="Wrappers\wrapper.def" />
+    <None Include="Dllmain\dxwrapper.def" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d8\d3d8External.h" />
@@ -1311,28 +1311,14 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="Settings\ReadParse.h" />
     <ClInclude Include="Settings\Settings.h" />
     <ClInclude Include="Utils\Utils.h" />
-    <ClInclude Include="Wrappers\bcrypt.h" />
-    <ClInclude Include="Wrappers\cryptbase.h" />
-    <ClInclude Include="Wrappers\cryptsp.h" />
-    <ClInclude Include="Wrappers\d2d1.h" />
     <ClInclude Include="Wrappers\d3d8.h" />
     <ClInclude Include="Wrappers\d3d9.h" />
-    <ClInclude Include="Wrappers\dciman32.h" />
     <ClInclude Include="Wrappers\ddraw.h" />
     <ClInclude Include="Wrappers\dinput.h" />
     <ClInclude Include="Wrappers\dinput8.h" />
-    <ClInclude Include="Wrappers\dplayx.h" />
     <ClInclude Include="Wrappers\dsound.h" />
-    <ClInclude Include="Wrappers\dwmapi.h" />
-    <ClInclude Include="Wrappers\msacm32.h" />
-    <ClInclude Include="Wrappers\msvfw32.h" />
     <ClInclude Include="Wrappers\shared.h" />
-    <ClInclude Include="Wrappers\version.h" />
-    <ClInclude Include="Wrappers\wininet.h" />
-    <ClInclude Include="Wrappers\winmm.h" />
-    <ClInclude Include="Wrappers\winspool.h" />
     <ClInclude Include="Wrappers\wrapper.h" />
-    <ClInclude Include="Wrappers\wsock32.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc" />
