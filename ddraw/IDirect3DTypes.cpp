@@ -878,7 +878,11 @@ void ClampVerticesX(T* pVertex, DWORD dwNumVertices)
 	case 2:
 		for (DWORD x = 0; x < dwNumVertices; x++)
 		{
-			if (pVertex[x].rhw)
+			if (!isfinite(pVertex[x].rhw) || pVertex[x].rhw == 0.0f)
+			{
+				pVertex[x].rhw = 1.0f;
+			}
+			else if (pVertex[x].rhw)
 			{
 				float tw = 1.0f / pVertex[x].rhw;      // recover tw
 				float tz = pVertex[x].z * tw;          // recover tz
@@ -1224,17 +1228,26 @@ UINT GetVertexStride(DWORD dwVertexTypeDesc)
 
 UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount)
 {
-	if (!dptPrimitiveType || dptPrimitiveType > 6)
+	switch (dptPrimitiveType)
 	{
-		LOG_LIMIT(100, __FUNCTION__ " Warning: Unsupported primitive type: " << dptPrimitiveType);
-	}
+	case D3DPT_POINTLIST:
+		return dwVertexCount;                     // one primitive per vertex
 
-	return
-		(dptPrimitiveType == D3DPT_POINTLIST) ? dwVertexCount :
-		(dptPrimitiveType == D3DPT_LINELIST) ? dwVertexCount / 2 :
-		(dptPrimitiveType == D3DPT_LINESTRIP) ? dwVertexCount - 1 :
-		(dptPrimitiveType == D3DPT_TRIANGLELIST) ? dwVertexCount / 3 :
-		(dptPrimitiveType == D3DPT_TRIANGLESTRIP) ? dwVertexCount - 2 :
-		(dptPrimitiveType == D3DPT_TRIANGLEFAN) ? dwVertexCount - 2 :
-		0;
+	case D3DPT_LINELIST:
+		return dwVertexCount / 2;                 // each line uses 2 vertices
+
+	case D3DPT_LINESTRIP:
+		return (dwVertexCount >= 2) ? (dwVertexCount - 1) : 0;
+
+	case D3DPT_TRIANGLELIST:
+		return dwVertexCount / 3;                 // each triangle uses 3 vertices
+
+	case D3DPT_TRIANGLESTRIP:
+	case D3DPT_TRIANGLEFAN:
+		return (dwVertexCount >= 3) ? (dwVertexCount - 2) : 0;
+
+	default:
+		LOG_LIMIT(100, __FUNCTION__ " Warning: Unsupported primitive type: " << dptPrimitiveType);
+		return 0;
+	}
 }
