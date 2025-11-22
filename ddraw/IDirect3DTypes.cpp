@@ -880,7 +880,7 @@ void ClampVerticesX(T* pVertex, DWORD dwNumVertices)
 		{
 			if (!isfinite(pVertex[x].rhw) || pVertex[x].rhw == 0.0f)
 			{
-				pVertex[x].rhw = 1.0f;
+				pVertex[x].rhw = 1.0f;                 // fix invalid rhw
 			}
 			else if (pVertex[x].rhw)
 			{

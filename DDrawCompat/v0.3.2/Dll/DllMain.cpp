@@ -335,10 +335,19 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 			Time::init();
 			Compat32::Log() << "Installing Win32 hooks";
 			Win32::WaitFunctions::installHooks();
-		}
 
-		const DWORD disableMaxWindowedMode = 12;
-		CALL_ORIG_PROC(SetAppCompatData)(disableMaxWindowedMode, 0);
+			const DWORD disableMaxWindowedMode = 12;
+			typedef HRESULT(WINAPI* SetAppCompatDataProc)(DWORD Type, DWORD Value);
+			FARPROC pSetAppCompatData = GetProcAddress(Dll::g_origDDrawModule, "SetAppCompatData");
+			if (pSetAppCompatData)
+			{
+				((SetAppCompatDataProc)pSetAppCompatData)(disableMaxWindowedMode, 0);
+			}
+			else
+			{
+				Compat32::Log() << "WARNING: Failed to get SetAppCompatData() address!";
+			}
+		}
 
 		Compat32::Log() << "DDrawCompat v0.3.2 version loaded successfully";
 	}
