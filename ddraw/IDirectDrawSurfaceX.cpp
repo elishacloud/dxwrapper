@@ -5171,6 +5171,28 @@ void m_IDirectDrawSurfaceX::ReleaseD9AuxiliarySurfaces()
 		surface.UsingShadowSurface = false;
 	}
 
+	// Release d3d9 tmp shadow surface when surface is released
+	if (tmpVideo.Texture)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
+		ULONG ref = tmpVideo.Texture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpVideo.Texture' " << ref;
+		}
+		tmpVideo.Texture = nullptr;
+	}
+	if (tmpVideo.Surface)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
+		ULONG ref = tmpVideo.Surface->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpVideo.Surface' " << ref;
+		}
+		tmpVideo.Surface = nullptr;
+	}
+
 	// Release primary display texture
 	if (PrimaryDisplayTexture)
 	{
@@ -6746,10 +6768,68 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			{
 				hr = (*d3d9Device)->StretchRect(Src.GetSurface(), &SrcRect, Dest.GetSurface(), &DestRect, Filter);
 
+				if (hr == D3DERR_INVALIDCALL && Src.GetSurface() == Dest.GetSurface())
+				{
+					if (!tmpVideo.Surface)
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Creating tmpVideo surface.");
+
+						D3DSURFACE_DESC Desc = {};
+						Dest.GetSurface()->GetDesc(&Desc);
+
+						if (surface.Type == D3DTYPE_OFFPLAINSURFACE)
+						{
+							if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, surface.Pool, &tmpVideo.Surface, nullptr)))
+							{
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create offplain tmpVideo.Surface. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
+							}
+						}
+						else if (surface.Type == D3DTYPE_RENDERTARGET)
+						{
+							if (FAILED((*d3d9Device)->CreateRenderTarget(Desc.Width, Desc.Height, Desc.Format, D3DMULTISAMPLE_NONE, 0, FALSE, &tmpVideo.Surface, nullptr)))
+							{
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create render target tmpVideo.Surface. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
+							}
+						}
+						else if (surface.Type == D3DTYPE_TEXTURE)
+						{
+							if (!tmpVideo.Texture && FAILED((*d3d9Device)->CreateTexture(Desc.Width, Desc.Height, 1, surface.Usage, Desc.Format, surface.Pool, &tmpVideo.Texture, nullptr)))
+							{
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create texture tmpVideo.Texture. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
+							}
+							if (tmpVideo.Texture && FAILED(tmpVideo.Texture->GetSurfaceLevel(0, &tmpVideo.Surface)))
+							{
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface level for tmpVideo.Texture. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
+							}
+						}
+					}
+
+					if (tmpVideo.Surface)
+					{
+						hr = (*d3d9Device)->StretchRect(Src.GetSurface(), &SrcRect, tmpVideo.Surface, &DestRect, Filter);
+
+						if (FAILED(hr))
+						{
+							LOG_LIMIT(100, __FUNCTION__ << " Error: failed to StretchRect to tmpVideo.Surface!");
+						}
+
+						if (SUCCEEDED(hr))
+						{
+							hr = (*d3d9Device)->StretchRect(tmpVideo.Surface, &DestRect, Dest.GetSurface(), &DestRect, D3DTEXF_NONE);
+
+							if (FAILED(hr))
+							{
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to StretchRect from tmpVideo.Surface!");
+							}
+						}
+					}
+				}
+
 				if (FAILED(hr))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not copy rect: " << SrcDesc2.ddsCaps << " -> " << DestDesc2.ddsCaps << " " <<
-						SrcFormat << " -> " << DestFormat << " " << SrcRect << " -> " << DestRect << " " << IsStretchRect << " " << (D3DERR)hr);
+						SrcFormat << " -> " << DestFormat << " " << SrcRect << " -> " << DestRect << " " << IsStretchRect << " " <<
+						Src.GetSurface() << " -> " << Dest.GetSurface() << " " << (D3DERR)hr);
 				}
 			}
 

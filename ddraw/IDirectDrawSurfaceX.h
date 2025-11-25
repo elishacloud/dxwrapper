@@ -199,6 +199,10 @@ private:
 	DWORD MaxMipMapLevel = 0;							// Total number of manually created MipMap levels
 	bool IsMipMapReadyToUse = false;					// Used for MipMap filtering
 	bool RecreateAuxiliarySurfaces = false;
+	struct {
+		LPDIRECT3DSURFACE9 Surface = nullptr;			// Shadow surface for StretchRect
+		LPDIRECT3DTEXTURE9 Texture = nullptr;			// Shadow texture for StretchRect
+	} tmpVideo;
 	LPDIRECT3DTEXTURE9 PrimaryDisplayTexture = nullptr;	// Used for the texture surface for the primary surface
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
