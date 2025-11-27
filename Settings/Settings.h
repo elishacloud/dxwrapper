@@ -4,10 +4,23 @@
 #include <windows.h>
 #include <vector>
 #include <string>
+#include <ostream>
 #include "ReadParse.h"
 
 #define NOT_EXIST 0xFFFF
 #define MAX_ENV_VAR 0x7FFF
+
+struct DHEX {
+	DWORD value = 0;
+
+	explicit operator bool() const { return value != 0; }
+	operator DWORD() const { return value; }
+	DHEX& operator=(DWORD v) { value = v; return *this; }
+};
+
+inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
+	return os << dhex.value;
+}
 
 #define VISIT_CONFIG_SETTINGS(visit) \
 	visit(AnisotropicFiltering) \
@@ -90,6 +103,7 @@
 	visit(EnableWindowMode) \
 	visit(ExcludeProcess) \
 	visit(ForceExclusiveFullscreen) \
+	visit(ForceKeyboardLayout) \
 	visit(ForceMixedVertexProcessing) \
 	visit(ForceSystemMemVertexCache) \
 	visit(ForceSingleBeginEndScene) \
@@ -310,6 +324,7 @@ struct CONFIG
 	DWORD MouseMovementPadding = 0;				// Adds extra mouse movement to overcome issues with input deadzone in some games, requires enabling FixHighFrequencyMouse
 	DWORD FixPerfCounterUptime = 0;				// Reduces uptime counters to prevent slowdowns in games
 	bool ForceExclusiveFullscreen = false;		// Forces exclusive fullscreen mode in d3d9
+	DHEX ForceKeyboardLayout = {};				// Force specific keyboard layout
 	bool ForceMixedVertexProcessing = false;	// Forces Mixed mode for vertex processing in d3d9
 	bool ForceSystemMemVertexCache = false;		// Forces System Memory caching for vertexes in d3d9
 	bool ForceSingleBeginEndScene = false;		// Ensures that only a single EndScene/BeginScene pair are called per frame

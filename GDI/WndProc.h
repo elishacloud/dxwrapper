@@ -3,6 +3,7 @@
 #include <atomic>
 
 #define WM_APP_CREATE_D3D9_DEVICE (WM_APP + 0xFFF - 0x123)
+#define WM_APP_SET_KEYBOARD_LAYOUT (WM_APP + 0xFFF - 0x124)
 
 #define WM_MAKE_KEY(Val1, Val2) \
 	(LPARAM)WndProc::MakeKey((DWORD)Val1, (DWORD)Val2)

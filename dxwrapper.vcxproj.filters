@@ -901,6 +901,9 @@
     <ClCompile Include="ddraw\AddressLookupTable.cpp">
       <Filter>ddraw</Filter>
     </ClCompile>
+    <ClCompile Include="Utils\ForceKeyboardLayout.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">

@@ -81,6 +81,7 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 	}
 
 	HRESULT hr = hresValidInstanceAndVersion(hinst, dwVersion);
+
 	if (SUCCEEDED(hr))
 	{
 		hr = DirectInput8Create(hinst, 0x0800, ConvertREFIID(riid), lplpDD, nullptr);

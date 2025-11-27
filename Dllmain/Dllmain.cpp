@@ -354,6 +354,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 		}
 
+		// Hook keyboard layout
+		if (Config.ForceKeyboardLayout)
+		{
+			KeyboardLayout::ForceKeyboardLayout(Config.ForceKeyboardLayout);
+		}
+
 		// Launch processes
 		if (!Config.RunProcess.empty())
 		{
@@ -810,6 +816,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Unload loaded dlls
 		Utils::UnloadAllDlls();
+
+		// Unhook keyboard layout
+		if (Config.ForceKeyboardLayout)
+		{
+			KeyboardLayout::DisableForcedKeyboardLayout();
+		}
 
 		// Unload exception handler
 		if (Config.HandleExceptions)

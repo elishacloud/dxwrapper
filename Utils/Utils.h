@@ -173,6 +173,14 @@ namespace Fullscreen
 	void ResetScreen();
 }
 
+namespace KeyboardLayout
+{
+	void ForceKeyboardLayout(DWORD layoutID);
+	void SetForcedKeyboardLayout();
+	void UnSetForcedKeyboardLayout();
+	void DisableForcedKeyboardLayout();
+}
+
 bool stristr(LPCSTR strCheck, LPCSTR str, size_t size);
 bool wcsistr(LPCWSTR strCheck, LPCWSTR str, size_t size);
 

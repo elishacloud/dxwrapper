@@ -373,8 +373,8 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	}
 
 	// Hook WndProc before creating device
-	HWND hwnd = (hFocusWindow ? hFocusWindow : pPresentationParameters ? pPresentationParameters->hDeviceWindow : nullptr);
-	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hwnd);
+	HWND hWnd = (hFocusWindow ? hFocusWindow : pPresentationParameters ? pPresentationParameters->hDeviceWindow : nullptr);
+	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
 	if (WndDataStruct)
 	{
 		WndDataStruct->IsDirect3D9 = true;

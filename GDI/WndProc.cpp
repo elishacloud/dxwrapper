@@ -21,6 +21,7 @@
 #include "GDI.h"
 #include "ddraw\ddraw.h"
 #include "d3d9\d3d9External.h"
+#include "Utils\Utils.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
@@ -35,6 +36,9 @@ namespace WndProc
 	bool IsExecutableAddress(void* address);
 
 	bool SwitchingResolution = false;
+
+	std::atomic<bool> IsKeyboardActive = false;
+	void SetKeyboardLayoutFocus(HWND hWnd, bool IsActivating);
 
 	struct WNDPROCSTRUCT
 	{
@@ -214,6 +218,17 @@ WndProc::DATASTRUCT* WndProc::AddWndProc(HWND hWnd)
 	LOG_LIMIT(100, __FUNCTION__ << " Creating WndProc instance! " << hWnd);
 	SetWndProc(hWnd, NewWndProc);
 	WndProcList.push_back(NewEntry);
+
+	// Handle keyboard layout
+	if (Config.ForceKeyboardLayout)
+	{
+		if (hWnd == GetActiveWindow() || hWnd == GetFocus())
+		{
+			PostMessage(hWnd, WM_APP_SET_KEYBOARD_LAYOUT, (WPARAM)NewWndProc, WM_MAKE_KEY(hWnd, NewWndProc));
+		}
+	}
+
+	// Return
 	return NewEntry->GetDataStruct();
 }
 
@@ -257,6 +272,21 @@ DWORD WndProc::MakeKey(DWORD Val1, DWORD Val2)
 	return Result % 8 ? Result ^ 0xAAAAAAAA : Result ^ 0x55555555;
 }
 
+void WndProc::SetKeyboardLayoutFocus(HWND hWnd, bool IsActivating)
+{
+	// On Activation
+	if (IsActivating)
+	{
+		PostMessage(hWnd, WM_APP_SET_KEYBOARD_LAYOUT, (WPARAM)hWnd, WM_MAKE_KEY(hWnd, hWnd));
+	}
+	// On Deactivation
+	else if (IsKeyboardActive)
+	{
+		IsKeyboardActive = false;
+		KeyboardLayout::UnSetForcedKeyboardLayout();
+	}
+}
+
 LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
 {
 	if (Msg != WM_PAINT)
@@ -295,7 +325,24 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		}
 		break;
 
+	case WM_APP_SET_KEYBOARD_LAYOUT:
+		if (WM_MAKE_KEY(hWnd, wParam) == lParam)
+		{
+			if (Config.ForceKeyboardLayout)
+			{
+				IsKeyboardActive = true;
+				KeyboardLayout::SetForcedKeyboardLayout();
+			}
+			return NULL;
+		}
+		break;
+
 	case WM_ACTIVATEAPP:
+		// Handle keyboard layout
+		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		{
+			SetKeyboardLayoutFocus(hWnd, wParam != FALSE);
+		}
 		// Some games don't properly handle app activate in exclusive mode
 		if (pDataStruct->IsDirectDraw)
 		{
@@ -309,6 +356,11 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		break;
 
 	case WM_ACTIVATE:
+		// Handle keyboard layout
+		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		{
+			SetKeyboardLayoutFocus(hWnd, LOWORD(wParam) != WA_INACTIVE);
+		}
 		// Filter some messages while creating a Direct3D9 device or forcing windowed mode
 		if (pDataStruct->IsDirectDraw && (pDataStruct->IsCreatingDevice || isForcingWindowedMode))
 		{
@@ -340,6 +392,22 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		if (pDataStruct->IsDirectDraw && isForcingWindowedMode)
 		{
 			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+		}
+		break;
+
+	case WM_SETFOCUS:
+		// Handle keyboard layout
+		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		{
+			SetKeyboardLayoutFocus(hWnd, true);
+		}
+		break;
+
+	case WM_KILLFOCUS:
+		// Handle keyboard layout
+		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		{
+			SetKeyboardLayoutFocus(hWnd, false);
 		}
 		break;
 
@@ -391,6 +459,14 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		}
 		break;
 
+	case WM_INPUTLANGCHANGEREQUEST:
+	case WM_INPUTLANGCHANGE:
+		if (Config.ForceKeyboardLayout)
+		{
+			return TRUE;  // handled, do NOT forward
+		}
+		break;
+
 	case WM_SYSCOMMAND:
 		// Set instance as inactive when window closes
 		if (wParam == SC_CLOSE && hWnd == hWndInstance)
@@ -402,6 +478,11 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	case WM_CLOSE:
 	case WM_DESTROY:
 	case WM_NCDESTROY:
+		// Handle keyboard layout
+		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		{
+			SetKeyboardLayoutFocus(hWnd, false);
+		}
 		// Set instance as inactive when window closes
 		if (hWnd == hWndInstance)
 		{

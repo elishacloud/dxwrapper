@@ -54,6 +54,7 @@ namespace Settings
 	void ClearValue(std::vector<std::string>*);
 	void ClearValue(std::string*);
 	void ClearValue(DWORD*);
+	void ClearValue(DHEX* setting);
 	void ClearValue(float*);
 	void ClearValue(double*);
 	void ClearValue(bool*);
@@ -61,6 +62,7 @@ namespace Settings
 	void SetValue(char*, char*, void**);
 	void SetValue(char*, char*, std::string*);
 	void SetValue(char*, char*, DWORD*);
+	void SetValue(char* name, char* value, DHEX* setting);
 	void SetValue(char*, char*, float*);
 	void SetValue(char*, char*, double*);
 	void SetValue(char*, char*, bool*);
@@ -241,6 +243,21 @@ void Settings::SetValue(char* name, char* value, DWORD* setting)
 	}
 }
 
+// Set value for DWORD
+void Settings::SetValue(char* name, char* value, DHEX* setting)
+{
+	DWORD NewValue = strtoul(value, nullptr, 16);
+	if (*setting != NewValue)
+	{
+		*setting = (NewValue) ? NewValue : IsValueEnabled(value);
+#ifdef _DEBUG
+		Logging::Log() << name << " set to '" << *setting << "'";
+#else
+		UNREFERENCED_PARAMETER(name);
+#endif
+	}
+}
+
 // Set value for float
 void Settings::SetValue(char* name, char* value, float* setting)
 {
@@ -389,6 +406,12 @@ void Settings::ClearValue(std::vector<std::string>* setting)
 void Settings::ClearValue(std::string* setting)
 {
 	setting->clear();
+}
+
+// Clear DHEX
+void Settings::ClearValue(DHEX* setting)
+{
+	*setting = 0;
 }
 
 // Clear DWORD
