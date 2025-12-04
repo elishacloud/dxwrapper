@@ -175,6 +175,22 @@ LRESULT WndProc::CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM 
 			DefWindowProcA(hWnd, Msg, wParam, lParam)));
 }
 
+bool WndProc::ShouldHook(HWND hWnd)
+{
+	if (!IsWindow(hWnd))
+		return false;
+
+	// Must be top-level (child windows never receive WM_ACTIVATE)
+	if (GetParent(hWnd) != NULL)
+		return false;
+
+	// Message-only windows never activate
+	if (hWnd == HWND_MESSAGE)
+		return false;
+
+	return true;
+}
+
 WndProc::DATASTRUCT* WndProc::AddWndProc(HWND hWnd)
 {
 	// Validate window handle
@@ -456,14 +472,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		if (pDataStruct->IsDirectDraw)
 		{
 			SwitchingResolution = true;
-		}
-		break;
-
-	case WM_INPUTLANGCHANGEREQUEST:
-	case WM_INPUTLANGCHANGE:
-		if (Config.ForceKeyboardLayout)
-		{
-			return TRUE;  // handled, do NOT forward
 		}
 		break;
 

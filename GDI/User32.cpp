@@ -70,7 +70,14 @@ HWND WINAPI user_CreateWindowExT(D CreateWindowExT, DWORD dwExStyle, T lpClassNa
 		Utils::GetScreenSize(Utils::GetMonitorFromWindow(hWndParent), nWidth, nHeight);
 	}
 
-	return CreateWindowExT(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+	HWND hWnd = CreateWindowExT(dwExStyle, lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
+
+	if (Config.ForceKeyboardLayout && WndProc::ShouldHook(hWnd))
+	{
+		WndProc::AddWndProc(hWnd);
+	}
+
+	return hWnd;
 }
 
 HWND WINAPI user_CreateWindowExA(DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam)

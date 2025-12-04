@@ -21,6 +21,7 @@
 #include "Wrappers\wrapper.h"
 #include "winmm.h"
 #include "GDI\GDI.h"
+#include "GDI\WndProc.h"
 #include "External\Hooking\Hook.h"
 #ifdef DDRAWCOMPAT
 #include "DDrawCompat\DDrawCompatExternal.h"
@@ -30,7 +31,6 @@
 #include "Logging\Logging.h"
 // Wrappers last
 #include "IClassFactory\IClassFactory.h"
-#include "GDI\GDI.h"
 #include "d3d9\d3d9External.h"
 #include "ddraw\ddrawExternal.h"
 #include "dinput\dinputExternal.h"
@@ -358,6 +358,28 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.ForceKeyboardLayout)
 		{
 			KeyboardLayout::ForceKeyboardLayout(Config.ForceKeyboardLayout);
+
+			// Hook all windows in this process starting with the first top-level window
+			{
+				const DWORD pid = GetCurrentProcessId();
+
+				HWND hWnd = GetTopWindow(NULL);
+
+				while (hWnd)
+				{
+					DWORD wpid = 0;
+					GetWindowThreadProcessId(hWnd, &wpid);
+
+					// Add the top-level window
+					if (wpid == pid && WndProc::ShouldHook(hWnd))
+					{
+						WndProc::AddWndProc(hWnd);
+					}
+
+					// Next top-level window
+					hWnd = GetWindow(hWnd, GW_HWNDNEXT);
+				}
+			}
 		}
 
 		// Launch processes
@@ -679,6 +701,17 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.Dd7to9)
 		{
 			InitDDraw();
+		}
+		else if (Config.ForceKeyboardLayout)
+		{
+			Logging::Log() << "Installing User32 hooks";
+			HMODULE user32 = GetModuleHandleA("user32.dll");
+			if (user32)
+			{
+				using namespace GdiWrapper;
+				CreateWindowExA_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
+				CreateWindowExW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
+			}
 		}
 
 		// Hook Comdlg functions

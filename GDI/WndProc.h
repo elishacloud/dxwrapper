@@ -21,6 +21,7 @@ namespace WndProc
 
 	extern bool SwitchingResolution;
 
+	bool ShouldHook(HWND hWnd);
 	DATASTRUCT* AddWndProc(HWND hWnd);
 	void RemoveWndProc(HWND hWnd);
 	DATASTRUCT* GetWndProctStruct(HWND hWnd);
