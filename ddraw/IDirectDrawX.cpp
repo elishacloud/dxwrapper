@@ -1533,7 +1533,10 @@ HRESULT m_IDirectDrawX::GetScanLine(LPDWORD lpdwScanLine)
 		}
 
 		*lpdwScanLine = RasterStatus.ScanLine;
-
+		if (RasterStatus.InVBlank)
+		{
+			return DDERR_VERTICALBLANKINPROGRESS;
+		}
 		return DD_OK;
 	}
 
