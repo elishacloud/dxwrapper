@@ -3037,7 +3037,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 				HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, lpVertices, targetStride);
 
 				// Handle dwFlags
-				RestoreDrawStates(newVertexTypeDesc, dwFlags);
+				RestoreDrawStates(hr, newVertexTypeDesc, dwFlags);
 
 				// Restore transform
 				D3DMATRIX identityMatrix = {};
