@@ -18,11 +18,22 @@
 #include "External\dinputto8\resource.h"
 #include "External\dinputto8\dinputto8.h"
 #include "IClassFactory\IClassFactory.h"
+#include "Utils\Utils.h"
 
 namespace DinputWrapper
 {
 	VISIT_PROCS_DINPUT_SHARED(INITIALIZE_OUT_WRAPPED_PROC);
 	INITIALIZE_OUT_WRAPPED_PROC(DirectInput8Create, unused);
+
+	static void CheckSystemModule()
+	{
+		static bool RunOnce = true;
+		if (RunOnce && Utils::CheckIfSystemModuleLoaded("dinput.dll"))
+		{
+			Logging::Log() << "Warning: System 'dinput.dll' is already loaded before dxwrapper!";
+		}
+		RunOnce = false;
+	}
 }
 
 using namespace DinputWrapper;
@@ -31,25 +42,27 @@ DWORD diVersion = 0;
 
 AddressLookupTableDinput<void> ProxyAddressLookupTable = AddressLookupTableDinput<void>();
 
-HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID riid, LPVOID * lplpDD, LPUNKNOWN punkOuter);
+HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID riid, LPVOID * lplpDD, LPUNKNOWN pUnkOuter);
 
-HRESULT WINAPI di_DirectInputCreateA(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTA* lplpDirectInput, LPUNKNOWN punkOuter)
+HRESULT WINAPI di_DirectInputCreateA(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTA* lplpDirectInput, LPUNKNOWN pUnkOuter)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	return di_DirectInputCreateEx(hinst, dwVersion, IID_IDirectInputA, (LPVOID*)lplpDirectInput, punkOuter);
+	return di_DirectInputCreateEx(hinst, dwVersion, IID_IDirectInputA, (LPVOID*)lplpDirectInput, pUnkOuter);
 }
 
-HRESULT WINAPI di_DirectInputCreateW(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTW* lplpDirectInput, LPUNKNOWN punkOuter)
+HRESULT WINAPI di_DirectInputCreateW(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTW* lplpDirectInput, LPUNKNOWN pUnkOuter)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	return di_DirectInputCreateEx(hinst, dwVersion, IID_IDirectInputW, (LPVOID*)lplpDirectInput, punkOuter);
+	return di_DirectInputCreateEx(hinst, dwVersion, IID_IDirectInputW, (LPVOID*)lplpDirectInput, pUnkOuter);
 }
 
-HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID riid, LPVOID * lplpDD, LPUNKNOWN punkOuter)
+HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID riid, LPVOID * lplpDD, LPUNKNOWN pUnkOuter)
 {
 	LOG_LIMIT(1, __FUNCTION__);
+
+	CheckSystemModule();
 
 	DEFINE_STATIC_PROC_ADDRESS(DirectInput8CreateProc, DirectInput8Create, DirectInput8Create_out);
 
@@ -62,10 +75,16 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 	LOG_LIMIT(3, "Redirecting 'DirectInputCreate' " << riid << " version " << Logging::hex(dwVersion) << " to --> 'DirectInput8Create'");
 
+	if (pUnkOuter)
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
+	}
+
 	HRESULT hr = hresValidInstanceAndVersion(hinst, dwVersion);
+
 	if (SUCCEEDED(hr))
 	{
-		hr = DirectInput8Create(hinst, 0x0800, ConvertREFIID(riid), lplpDD, punkOuter);
+		hr = DirectInput8Create(hinst, 0x0800, ConvertREFIID(riid), lplpDD, nullptr);
 
 		if (SUCCEEDED(hr) && lplpDD)
 		{

@@ -42,7 +42,7 @@ HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWO
 		return D3D_OK;
 	}
 
-	DWORD DxVersion = (CheckWrapperType(riid) && Config.Dd7to9) ? GetGUIDVersion(riid) : DirectXVersion;
+	DWORD DxVersion = (Config.Dd7to9 && CheckWrapperType(riid)) ? GetGUIDVersion(riid) : DirectXVersion;
 
 	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
 	{
@@ -296,6 +296,11 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 		}
 		*lplpDirect3DExecuteBuffer = nullptr;
 
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
+		}
+
 		if (lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpDesc->dwSize);
@@ -396,6 +401,14 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 		LPVOID lpData;
 		D3DEXECUTEDATA ExecuteData;
 		LPD3DSTATUS lpStatus;
+
+		// Check lock
+		bool IsLocked = false;
+		ScopedFlagSet(pExecuteBuffer->CheckLockStatus(IsLocked));
+		if (IsLocked)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: execute buffer still locked!");
+		}
 
 		// Get execute data and desc
 		if (FAILED(pExecuteBuffer->GetBuffer(&lpData, ExecuteData, &lpStatus)))
@@ -1336,10 +1349,9 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 			Logging::Log() << __FUNCTION__ << " (" << this << ") Full Scene Time = " << Logging::GetTimeLapseInMS(sceneTime);
 #endif
 
-			m_IDirectDrawSurfaceX* PrimarySurface = ddrawParent->GetPrimarySurface();
-			if (!PrimarySurface || FAILED(PrimarySurface->GetFlipStatus(DDGFS_CANFLIP, true)) || PrimarySurface == ddrawParent->GetRenderTargetSurface() || !PrimarySurface->IsRenderTarget())
+			if (lpCurrentRenderTargetX)
 			{
-				ddrawParent->PresentScene(nullptr);
+				lpCurrentRenderTargetX->EndWritePresent(nullptr, false);
 			}
 		}
 
@@ -1586,15 +1598,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 
 		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
-		DWORD OldDepthBits = DepthBits;
-
-		DepthBits = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
-
-		if (OldDepthBits != DepthBits)
-		{
-			SetD9RenderState(D3DRS_DEPTHBIAS, GetDepthBias(DeviceStates.RenderState[D3DRENDERSTATE_ZBIAS].State, DepthBits));
-		}
-
 		HRESULT hr = ddrawParent->SetRenderTargetSurface(lpDDSrcSurfaceX);
 
 		if (SUCCEEDED(hr))
@@ -1606,9 +1609,20 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 
 			CurrentRenderTarget = lpNewRenderTarget;
 
+			CurrentRenderTarget->AddRef();
+
 			lpCurrentRenderTargetX = lpDDSrcSurfaceX;
 
-			CurrentRenderTarget->AddRef();
+			RenderTargetMultiSampleType = lpDDSrcSurfaceX->GetMultiSampleType();
+
+			DWORD OldDepthBits = DepthBitCount;
+
+			DepthBitCount = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
+
+			if (OldDepthBits != DepthBitCount)
+			{
+				SetD9RenderState(D3DRS_DEPTHBIAS, GetDepthBias(DeviceStates.RenderState[D3DRENDERSTATE_ZBIAS].State, DepthBitCount));
+			}
 		}
 
 		return D3D_OK;
@@ -2038,14 +2052,11 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
 			return SetTextureHandle(dwRenderState);
 		case D3DRENDERSTATE_ANTIALIAS:			// 2
-		case D3DRENDERSTATE_EDGEANTIALIAS:		// 40
 		{
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
-			DWORD rsAntiAlias = DeviceStates.RenderState[D3DRENDERSTATE_ANTIALIAS].State;
-			BOOL AntiAliasEnabled = (bool)(
-				(D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTDEPENDENT ||
-				(D3DANTIALIASMODE)rsAntiAlias == D3DANTIALIAS_SORTINDEPENDENT ||
-				DeviceStates.RenderState[D3DRENDERSTATE_EDGEANTIALIAS].State);
+			BOOL AntiAliasEnabled = (
+				(D3DANTIALIASMODE)dwRenderState == D3DANTIALIAS_SORTDEPENDENT ||
+				(D3DANTIALIASMODE)dwRenderState == D3DANTIALIAS_SORTINDEPENDENT) ? TRUE : FALSE;
 			SetStateBlockRenderState(dwRenderStateType, dwRenderState);
 			return SetD9RenderState(D3DRS_MULTISAMPLEANTIALIAS, AntiAliasEnabled);
 		}
@@ -2262,6 +2273,13 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEENABLE' not implemented! " << dwRenderState);
 			}
 			return D3D_OK;
+		case D3DRENDERSTATE_EDGEANTIALIAS:		// 40
+			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
+			if (dwRenderState != FALSE)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EDGEANTIALIAS' not implemented! " << dwRenderState);
+			}
+			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYENABLE:		// 41
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return SetStateBlockRenderState(dwRenderStateType, dwRenderState);
@@ -2279,7 +2297,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_ZBIAS:				// 47
 			if (dwRenderState != DeviceStates.RenderState[dwRenderStateType].State)
 			{
-				SetD9RenderState(D3DRS_DEPTHBIAS, GetDepthBias(dwRenderState, DepthBits));
+				SetD9RenderState(D3DRS_DEPTHBIAS, GetDepthBias(dwRenderState, DepthBitCount));
 			}
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return SetStateBlockRenderState(dwRenderStateType, dwRenderState);
@@ -2837,7 +2855,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection(), !Config.DdrawNoDrawBufferSysLock);
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -2858,7 +2876,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), lpVertices, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwFlags, DirectXVersion);
+		RestoreDrawStates(hr, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -2930,7 +2948,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection(), !Config.DdrawNoDrawBufferSysLock);
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3048,7 +3066,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, lpVertices, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwFlags, DirectXVersion);
+		RestoreDrawStates(hr, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -3202,7 +3220,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection(), !Config.DdrawNoDrawBufferSysLock);
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3230,7 +3248,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 		HRESULT hr = (*d3d9Device)->DrawPrimitiveUP(dptPrimitiveType, GetNumberOfPrimitives(dptPrimitiveType, dwVertexCount), VertexCache.data(), GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwFlags, DirectXVersion);
+		RestoreDrawStates(hr, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -3321,7 +3339,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitiveUP(dptPrimitiveType, 0, dwVertexCount, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount), lpwIndices, D3DFMT_INDEX16, VertexCache.data(), GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwFlags, DirectXVersion);
+		RestoreDrawStates(hr, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -3380,7 +3398,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection(), !Config.DdrawNoDrawBufferSysLock);
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3418,7 +3436,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		HRESULT hr = (*d3d9Device)->DrawPrimitive(dptPrimitiveType, dwStartVertex, GetNumberOfPrimitives(dptPrimitiveType, dwNumVertices));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwFlags, DirectXVersion);
+		RestoreDrawStates(hr, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -3484,7 +3502,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection(), !Config.DdrawNoDrawBufferSysLock);
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
@@ -3532,7 +3550,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitive(dptPrimitiveType, dwStartVertex, 0, dwNumVertices, 0, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount));
 
 		// Handle dwFlags
-		RestoreDrawStates(dwFlags, DirectXVersion);
+		RestoreDrawStates(hr, dwFlags, DirectXVersion);
 
 		if (FAILED(hr))
 		{
@@ -4097,7 +4115,7 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 		// Clear respects the current viewport
 		(*d3d9Device)->SetViewport(&DeviceStates.Viewport.View);
 
-		if (lpCurrentRenderTargetX)
+		if (lpCurrentRenderTargetX && (dwFlags & D3DCLEAR_TARGET))
 		{
 			lpCurrentRenderTargetX->PrepareRenderTarget();
 
@@ -4951,7 +4969,9 @@ void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 
 					lpCurrentRenderTargetX = lpDDSrcSurfaceX;
 
-					DepthBits = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
+					RenderTargetMultiSampleType = lpDDSrcSurfaceX->GetMultiSampleType();
+
+					DepthBitCount = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
 
 					ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
 				}
@@ -5895,7 +5915,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT9* lpLight)
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Light[Index] = *lpLight;
 	}
 
-	BatchStates.Light[Index] = FixLight(*(D3DLIGHT9*)lpLight);
+	BatchStates.Light[Index] = FixLight(*lpLight);
 
 	DeviceStates.Light[Index] = *lpLight;
 
@@ -6117,10 +6137,10 @@ HRESULT m_IDirect3DDeviceX::D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, con
 
 		if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
 		{
-			StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Matrix[State] = *lpMatrix;
+			StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Matrix[State] = result;
 		}
 
-		BatchStates.Matrix[State] = FixMatrix(*lpMatrix, State, DeviceStates.Viewport.ViewportScale, DeviceStates.Viewport.UseViewportScale);
+		BatchStates.Matrix[State] = FixMatrix(result, State, DeviceStates.Viewport.ViewportScale, DeviceStates.Viewport.UseViewportScale);
 
 		DeviceStates.Matrix[State] = result;
 	}
@@ -6377,6 +6397,9 @@ void m_IDirect3DDeviceX::SetDefaults()
 		SetD9TextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
 	}
 
+	float Value = -0.0f;
+	SetD9RenderState(D3DRS_DEPTHBIAS, *(DWORD*)&Value);
+
 	// Get default structures
 	(*d3d9Device)->GetDeviceCaps(&Caps9);
 	ddrawParent->GetDefaultViewport(&DefaultViewport);
@@ -6429,6 +6452,12 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		}
 	}
 
+	// Check Multi-Sample Type
+	if (RenderTargetMultiSampleType == D3DMULTISAMPLE_NONE && DeviceStates.RenderState[D3DRS_MULTISAMPLEANTIALIAS].State)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: MultiSample render state enabled on a non-MultiSample render target!");
+	}
+
 	// Need to always set viewport
 	(*d3d9Device)->SetViewport(&DeviceStates.Viewport.View);
 
@@ -6438,8 +6467,8 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		{
 			if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
 			{
-				(*d3d9Device)->GetSamplerState(x, D3DSAMP_MINFILTER, &DrawStates.ssMinFilter[x]);
-				(*d3d9Device)->GetSamplerState(x, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter[x]);
+				GetD9SamplerState(x, D3DSAMP_MINFILTER, &DrawStates.ssMinFilter[x]);
+				GetD9SamplerState(x, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter[x]);
 
 				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
 				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, Config.DdrawFixByteAlignment == 2 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
@@ -6495,9 +6524,9 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		}
 		if (dwFlags & D3DDP_DXW_ALPHACOLORKEY)
 		{
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &DrawStates.rsAlphaFunc);
-			(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &DrawStates.rsAlphaRef);
+			GetD9RenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
+			GetD9RenderState(D3DRS_ALPHAFUNC, &DrawStates.rsAlphaFunc);
+			GetD9RenderState(D3DRS_ALPHAREF, &DrawStates.rsAlphaRef);
 
 			(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
 			(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
@@ -6540,7 +6569,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	}*/
 }
 
-void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwFlags, DWORD DirectXVersion)
+void m_IDirect3DDeviceX::RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD DirectXVersion)
 {
 	// Handle dwFlags
 	if (DirectXVersion < 7)
@@ -6565,16 +6594,16 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwFlags, DWORD DirectXVersion)
 		{
 			if (CurrentTextureSurfaceX[x] && CurrentTextureSurfaceX[x]->GetWasBitAlignLocked())
 			{
-				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MINFILTER, DrawStates.ssMinFilter[x]);
-				(*d3d9Device)->SetSamplerState(x, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter[x]);
+				SetD9SamplerState(x, D3DSAMP_MINFILTER, DrawStates.ssMinFilter[x]);
+				SetD9SamplerState(x, D3DSAMP_MAGFILTER, DrawStates.ssMagFilter[x]);
 			}
 		}
 	}
 	if (dwFlags & D3DDP_DXW_ALPHACOLORKEY)
 	{
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
+		SetD9RenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
+		SetD9RenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
+		SetD9RenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
 	}
 	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
 	{
@@ -6584,6 +6613,15 @@ void m_IDirect3DDeviceX::RestoreDrawStates(DWORD dwFlags, DWORD DirectXVersion)
 	{
 		(*d3d9Device)->SetVertexShader(nullptr);
 	}*/
+
+	if (SUCCEEDED(hr))
+	{
+		// Mark render target as dirty
+		if (lpCurrentRenderTargetX)
+		{
+			lpCurrentRenderTargetX->SetDirtyFlag(0);
+		}
+	}
 }
 
 bool m_IDirect3DDeviceX::IsLightInUse(m_IDirect3DLight* pLightX)
@@ -6635,16 +6673,19 @@ void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVerti
 		dwVertexTypeDesc = D3DFVF_LVERTEX9;
 		lpVertices = VertexCache.data();
 	}
-	else if (Config.DdrawClampVertexZDepth && (dwVertexTypeDesc & D3DFVF_XYZRHW))
+	else if (dwVertexTypeDesc & D3DFVF_XYZRHW)
 	{
-		DWORD stride = GetVertexStride(dwVertexTypeDesc);
-		VertexCache.resize((dwVertexStart + dwNumVertices) * stride);
-		memcpy(reinterpret_cast<void*>(VertexCache.data() + (dwVertexStart * stride)),
-			reinterpret_cast<void*>((DWORD)lpVertices + (dwVertexStart * stride)),
-			dwNumVertices * stride);
+		if (Config.DdrawClampVertexZDepth)
+		{
+			DWORD stride = GetVertexStride(dwVertexTypeDesc);
+			VertexCache.resize((dwVertexStart + dwNumVertices) * stride);
+			memcpy(reinterpret_cast<void*>(VertexCache.data() + (dwVertexStart * stride)),
+				reinterpret_cast<void*>((DWORD)lpVertices + (dwVertexStart * stride)),
+				dwNumVertices * stride);
 
-		ClampVertices(VertexCache.data(), stride, dwNumVertices);
+			ClampVertices(VertexCache.data(), stride, dwNumVertices);
 
-		lpVertices = VertexCache.data();
+			lpVertices = VertexCache.data();
+		}
 	}
 }

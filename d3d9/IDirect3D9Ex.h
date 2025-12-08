@@ -82,6 +82,7 @@ public:
 	STDMETHOD(GetAdapterLUID)(THIS_ UINT Adapter, LUID * pLUID);
 
 	// Helper functions
+	void InitInterface(void*, REFIID, void*) {}	// Stub only
 	void SetDirectXVersion(DWORD DxVersion);
 	bool TestResolution(UINT Adapter, DWORD BackBufferWidth, DWORD BackBufferHeight);
 
@@ -92,5 +93,5 @@ public:
 	static void GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails);
 	static void GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DDISPLAYMODEEX& Mode);
 	static void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality);
-	static void AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed, bool EnableWindowMode, bool FullscreenWindowMode);
+	static void AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool EnableWindowMode, bool FullscreenWindowMode);
 };

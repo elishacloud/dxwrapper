@@ -15,6 +15,7 @@
 */
 
 #include "dinput8.h"
+#include "GDI\WndProc.h"
 
 constexpr DWORD SignBit = 0x80000000;
 
@@ -373,6 +374,8 @@ HRESULT m_IDirectInputDevice8::SetEventNotification(HANDLE hEvent)
 HRESULT m_IDirectInputDevice8::SetCooperativeLevel(HWND hwnd, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	WndProc::AddWndProc(hwnd);
 
 	return ProxyInterface->SetCooperativeLevel(hwnd, dwFlags);
 }

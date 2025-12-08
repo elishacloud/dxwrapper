@@ -19,6 +19,7 @@
 #include "External\d3d8to9\source\d3d8to9.hpp"
 #include "External\d3d8to9\source\d3dx9.hpp"
 #include "IClassFactory\IClassFactory.h"
+#include "Utils\Utils.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 #include "BuildNo.rc"
@@ -38,6 +39,16 @@ PFN_D3DXLoadSurfaceFromSurface D3DXLoadSurfaceFromSurface = (PFN_D3DXLoadSurface
 namespace D3d8Wrapper
 {
 	INITIALIZE_OUT_WRAPPED_PROC(Direct3DCreate9, unused);
+
+	static void CheckSystemModule()
+	{
+		static bool RunOnce = true;
+		if (RunOnce && Utils::CheckIfSystemModuleLoaded("d3d8.dll"))
+		{
+			Logging::Log() << "Warning: System 'd3d8.dll' is already loaded before dxwrapper!";
+		}
+		RunOnce = false;
+	}
 }
 
 using namespace D3d8Wrapper;
@@ -222,6 +233,8 @@ HRESULT WINAPI d8_ValidateVertexShader(const DWORD* pVertexShader, const DWORD* 
 Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 {
 	LOG_LIMIT(1, __FUNCTION__);
+
+	CheckSystemModule();
 
 	if (!Config.D3d8to9)
 	{

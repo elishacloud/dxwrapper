@@ -15,10 +15,12 @@
 */
 
 #define INITGUID
+#define __DXVA1_DEPRECATED_INTERFACES__
 #define DIRECTINPUT_VERSION 0x0800
 
 #include <d3d9.h>
 #include <d3d9types.h>
+#include <Dxva.h>
 #include <ddraw.h>
 #include <ddrawex.h>
 #include <d3d.h>
@@ -883,6 +885,9 @@ std::ostream& operator<<(std::ostream& os, const D3DSURFACE_DESC& desc)
 		<< desc.Height;
 }
 
+// DirectDraw
+DEFINE_GUID(IID_IDirectDrawKernel, 0x8D56C120, 0x6A08, 0x11D0, 0x9B, 0x06, 0x00, 0xA0, 0xC9, 0x03, 0xA3, 0xB8);
+DEFINE_GUID(IID_IDirectDrawSurfaceKernel, 0x60755DA0, 0x6A40, 0x11D0, 0x9B, 0x06, 0x00, 0xA0, 0xC9, 0x03, 0xA3, 0xB8);
 #ifndef _D3D8_H_
 DEFINE_GUID(IID_IDirect3D8, 0x1dd9e8da, 0x1c77, 0x4d40, 0xb0, 0xcf, 0x98, 0xfe, 0xfd, 0xff, 0x95, 0x12);
 DEFINE_GUID(IID_IDirect3DDevice8, 0x7385e5df, 0x8fe8, 0x41d5, 0x86, 0xb6, 0xd7, 0xb4, 0x85, 0x47, 0xb6, 0xcf);
@@ -901,6 +906,7 @@ DEFINE_GUID(IID_IDirect3DSwapChain8, 0x928c088b, 0x76b9, 0x4c6b, 0xa5, 0x36, 0xa
 DEFINE_GUID(IID_IAMMultiMediaStream, 0xbebe595c, 0x9a6f, 0x11d0, 0x8f, 0xde, 0x00, 0xc0, 0x4f, 0xd9, 0x18, 0x9d);
 DEFINE_GUID(IID_IAMMediaStream, 0xbebe595d, 0x9a6f, 0x11d0, 0x8f, 0xde, 0x00, 0xc0, 0x4f, 0xd9, 0x18, 0x9d);
 DEFINE_GUID(IID_IMediaStreamFilter, 0xbebe595e, 0x9a6f, 0x11d0, 0x8f, 0xde, 0x00, 0xc0, 0x4f, 0xd9, 0x18, 0x9d);
+DEFINE_GUID(IID_IDirectDrawVideo, 0x36d39eb0, 0xdd75, 0x11ce, 0xbf, 0x0e, 0x00, 0xaa, 0x00, 0x55, 0x59, 0x5a);
 DEFINE_GUID(IID_IDirectDrawMediaSampleAllocator, 0xab6b4afc, 0xf6e4, 0x11d0, 0x90, 0x0d, 0x00, 0xc0, 0x4f, 0xd9, 0x18, 0x9d);
 DEFINE_GUID(IID_IDirectDrawMediaSample, 0xab6b4afe, 0xf6e4, 0x11d0, 0x90, 0x0d, 0x00, 0xc0, 0x4f, 0xd9, 0x18, 0x9d);
 DEFINE_GUID(IID_IAMMediaTypeStream, 0xab6b4afa, 0xf6e4, 0x11d0, 0x90, 0x0d, 0x00, 0xc0, 0x4f, 0xd9, 0x18, 0x9d);
@@ -949,6 +955,8 @@ std::ostream& operator<<(std::ostream& os, REFIID riid)
 	CHECK_REFIID(IID, IDirectDrawClipper);
 	CHECK_REFIID(IID, IDirectDrawColorControl);
 	CHECK_REFIID(IID, IDirectDrawGammaControl);
+	CHECK_REFIID(IID, IDirectDrawKernel);
+	CHECK_REFIID(IID, IDirectDrawSurfaceKernel);
 	// ddrawex
 	CHECK_REFIID(IID, IDirectDraw3);
 	CHECK_REFIID(CLSID, DirectDrawFactory);
@@ -1020,6 +1028,9 @@ std::ostream& operator<<(std::ostream& os, REFIID riid)
 	CHECK_REFIID(IID, IDirect3DDevice9Video);
 	CHECK_REFIID(IID, IDirect3DAuthenticatedChannel9);
 	CHECK_REFIID(IID, IDirect3DCryptoSession9);
+	CHECK_REFIID(IID, IDirect3DVideoDevice9);
+	CHECK_REFIID(IID, IDirect3DDXVADevice9);
+	CHECK_REFIID(IID, IDirect3DDxva2Container9);
 	// dinput
 	CHECK_REFIID(CLSID, DirectInput);
 	CHECK_REFIID(CLSID, DirectInputDevice);
@@ -1075,6 +1086,31 @@ std::ostream& operator<<(std::ostream& os, REFIID riid)
 	CHECK_REFIID(GUID, Inertia);
 	CHECK_REFIID(GUID, Friction);
 	CHECK_REFIID(GUID, CustomForce);
+	// dound
+	CHECK_REFIID(CLSID, DirectSound);
+	CHECK_REFIID(CLSID, DirectSound8);
+	CHECK_REFIID(IID, IDirectSound);
+	CHECK_REFIID(IID, IDirectSound8);
+	CHECK_REFIID(IID, IDirectSoundCapture);
+	CHECK_REFIID(IID, IDirectSoundCaptureBuffer8);
+	CHECK_REFIID(IID, IDirectSoundCaptureBuffer);
+	CHECK_REFIID(IID, IDirectSound3DListener);
+	CHECK_REFIID(IID, IDirectSound3DBuffer);
+	CHECK_REFIID(IID, IDirectSoundNotify);
+	CHECK_REFIID(IID, IDirectSoundFXGargle);
+	CHECK_REFIID(IID, IDirectSoundFXChorus);
+	CHECK_REFIID(IID, IDirectSoundFXFlanger);
+	CHECK_REFIID(IID, IDirectSoundFXEcho);
+	CHECK_REFIID(IID, IDirectSoundFXDistortion);
+	CHECK_REFIID(IID, IDirectSoundFXCompressor);
+	CHECK_REFIID(IID, IDirectSoundFXParamEq);
+	CHECK_REFIID(IID, IDirectSoundFXWavesReverb);
+	CHECK_REFIID(IID, IDirectSoundFXI3DL2Reverb);
+	CHECK_REFIID(IID, IDirectSoundCaptureFXAec);
+	CHECK_REFIID(IID, IDirectSoundCaptureFXNoiseSuppress);
+	CHECK_REFIID(IID, IDirectSoundFullDuplex);
+	CHECK_REFIID(IID, IReferenceClock);
+	CHECK_REFIID(IID, IKsPropertySet);
 	// DirectShow
 	CHECK_REFIID(CLSID, AMMultiMediaStream);
 	CHECK_REFIID(CLSID, AMDirectDrawStream);
@@ -1084,6 +1120,7 @@ std::ostream& operator<<(std::ostream& os, REFIID riid)
 	CHECK_REFIID(IID, IAMMultiMediaStream);
 	CHECK_REFIID(IID, IAMMediaStream);
 	CHECK_REFIID(IID, IMediaStreamFilter);
+	CHECK_REFIID(IID, IDirectDrawVideo);
 	CHECK_REFIID(IID, IDirectDrawMediaSampleAllocator);
 	CHECK_REFIID(IID, IDirectDrawMediaSample);
 	CHECK_REFIID(IID, IAMMediaTypeStream);

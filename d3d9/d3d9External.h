@@ -31,7 +31,7 @@ class m_IDirect3D9Ex
 public:
 	void SetDirectXVersion(DWORD DxVersion);
 	static DWORD AdjustPOW2Caps(DWORD OriginalCaps);
-	static void AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed, bool EnableWindowMode, bool FullscreenWindowMode);
+	static void AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool EnableWindowMode, bool FullscreenWindowMode);
 };
 
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \

@@ -133,7 +133,11 @@ HRESULT m_IDirect3DExecuteBuffer::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, 
 		return DDERR_ALREADYINITIALIZED;
 	}
 
-	if (lpDirect3DDevice)
+	if (lpDirect3DDevice &&
+		(ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirect3DDevice*)lpDirect3DDevice) ||
+			ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirect3DDevice2*)lpDirect3DDevice) ||
+			ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirect3DDevice3*)lpDirect3DDevice) ||
+			ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirect3DDevice7*)lpDirect3DDevice)))
 	{
 		lpDirect3DDevice->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3DDevice);
 	}
@@ -157,17 +161,35 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC))
+		if (lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC) && lpDesc->dwSize != 76)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpDesc->dwSize);
 			return DDERR_INVALIDPARAMS;
 		}
+		lpDesc->dwCaps = NULL;
+		lpDesc->dwFlags = NULL;
+		lpDesc->lpData = nullptr;
+
+		if (IsExecuting)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is still in use!");
+			return D3DERR_WASSTILLDRAWING;
+		}
 
 		// Check if the buffer is already locked
-		if (IsLocked)
+		DWORD ThreadID = GetCurrentThreadId();
+		if (LockedThread && ThreadID != LockedThread)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is already locked!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is already locked! Thread: " << ThreadID << "->" << LockedThread);
 			return D3DERR_EXECUTE_LOCKED;
+		}
+
+		// Create buffer on first Lock
+		if (Desc.lpData == nullptr || MemoryData.empty())
+		{
+			Desc.dwFlags |= D3DDEB_LPDATA;
+			MemoryData.resize(Desc.dwBufferSize + ExtraDataBufferSize);
+			Desc.lpData = MemoryData.data();
 		}
 
 		// Check buffer size
@@ -181,7 +203,8 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 		*lpDesc = Desc;
 
 		// Mark the buffer as locked
-		IsLocked = true;
+		LockedCount++;
+		LockedThread = ThreadID;
 
 		// Mark data as unvalidated
 		IsDataValidated = false;
@@ -204,14 +227,15 @@ HRESULT m_IDirect3DExecuteBuffer::Unlock()
 	if (Config.Dd7to9)
 	{
 		// Check if the buffer is not locked
-		if (!IsLocked)
+		DWORD ThreadID = GetCurrentThreadId();
+		if (LockedCount == 0 || ThreadID != LockedThread)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is not locked!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is not locked! Thread: " << ThreadID << "->" << LockedThread);
 			return D3DERR_EXECUTE_NOT_LOCKED;
 		}
 
 		// Mark the buffer as unlocked
-		IsLocked = false;
+		LockedCount--;
 
 		// No specific action required, just return success
 		return D3D_OK;
@@ -243,7 +267,7 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpExecuteData)
 		}
 
 		// Check if the buffer is locked
-		if (IsLocked)
+		if (LockedCount != 0)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is locked!");
 			return D3DERR_EXECUTE_LOCKED;
@@ -306,7 +330,7 @@ HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpExecuteData)
 		}
 
 		// Check if the buffer is locked
-		if (IsLocked)
+		if (LockedCount != 0)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is locked!");
 			return D3DERR_EXECUTE_LOCKED;
@@ -374,7 +398,7 @@ void m_IDirect3DExecuteBuffer::InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc)
 		D3DDeviceInterface->AddExecuteBuffer(this);
 	}
 
-	IsLocked = false;
+	LockedCount = 0;
 	IsDataValidated = false;
 	ExecuteData = {};
 	ExecuteData.dwSize = sizeof(D3DEXECUTEDATA);
@@ -392,16 +416,16 @@ void m_IDirect3DExecuteBuffer::InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc)
 			Desc.dwCaps = D3DDEBCAPS_SYSTEMMEMORY;
 		}
 		Desc.dwCaps &= D3DDEBCAPS_MEM;
-		if (!(Desc.dwFlags & D3DDEB_LPDATA) || !Desc.lpData)
-		{
-			Desc.dwFlags |= D3DDEB_LPDATA;
-			MemoryData.resize(Desc.dwBufferSize + ExtraDataBufferSize, 0);
-			Desc.lpData = MemoryData.data();
-		}
-		else
+		if ((Desc.dwFlags & D3DDEB_LPDATA) && Desc.lpData)
 		{
 			UsingAppMemory = true;
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: lpData is non-null, using application data.");
+		}
+		else
+		{
+			UsingAppMemory = false;
+			Desc.dwFlags &= ~D3DDEB_LPDATA;
+			Desc.lpData = nullptr;
 		}
 	}
 }
@@ -447,6 +471,12 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExe
 	if (!lpExecuteData)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid params!");
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (!Desc.lpData)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: buffer not setup yet!");
 		return DDERR_INVALIDPARAMS;
 	}
 

@@ -417,7 +417,7 @@ void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT2& Viewport2);
 void ConvertViewport(D3DVIEWPORT7& Viewport, const D3DVIEWPORT7& Viewport7);
 bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
 bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
-DWORD GetDepthBias(DWORD ZBias, DWORD DepthBits);
+DWORD GetDepthBias(DWORD ZBias, DWORD DepthBitCount);
 DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value);
 bool IsValidTransformState(D3DTRANSFORMSTATETYPE State);
 D3DMATRIX FixMatrix(const D3DMATRIX& Matrix, D3DTRANSFORMSTATETYPE State, D3DVIEWPORT Viewport, bool ScaleMatrix);

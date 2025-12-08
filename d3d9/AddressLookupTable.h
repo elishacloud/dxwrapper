@@ -1,6 +1,6 @@
 #pragma once
 
-constexpr UINT MaxIndex = 16;
+constexpr UINT MaxIndex = 18;
 
 class AddressLookupTableD3d9Object
 {
@@ -18,8 +18,11 @@ public:
 	template <typename T, typename D, typename L>
 	T* FindCreateAddress(void* Proxy, D* Device, REFIID riid, L Data);
 
-	template <typename T, typename D, typename L>
-	T* FindAddress(void* Proxy, D* Device, REFIID riid, L Data);
+	template <typename T>
+	T* FindAddress(void* Proxy);
+
+	template <typename T, typename M>
+	M* GetSafeProxyInterface(T* WrapperInterface);
 
 	template <typename T>
 	void SaveAddress(T* Wrapper, void* Proxy);
@@ -62,6 +65,10 @@ private:
 	struct AddressCacheIndex<m_IDirect3DVolume9> { static constexpr UINT CacheIndex = 14; };
 	template <>
 	struct AddressCacheIndex<m_IDirect3DVolumeTexture9> { static constexpr UINT CacheIndex = 15; };
+	template <>
+	struct AddressCacheIndex<m_IDirect3DVideoDevice9> { static constexpr UINT CacheIndex = 16; };
+	template <>
+	struct AddressCacheIndex<m_IDirect3DDXVADevice9> { static constexpr UINT CacheIndex = 17; };
 
 	// General template function for CreateInterface
 	template <typename T, typename D, typename L>

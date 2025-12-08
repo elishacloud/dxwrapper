@@ -28,8 +28,11 @@ private:
 	// Vector buffer data
 	std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexData;
 	bool IsVBEmulated = false;
-	void* LastLockAddr = nullptr;
-	DWORD LastLockFlags = 0;
+	struct {
+		bool IsLocked = false;
+		void* Addr = nullptr;
+		DWORD Flags = 0;
+	} LastLock;
 
 	// Direct3D9 interface functions
 	HRESULT CreateD3D9VertexBuffer();

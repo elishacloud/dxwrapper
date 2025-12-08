@@ -21,6 +21,7 @@
 #include "Wrappers\wrapper.h"
 #include "winmm.h"
 #include "GDI\GDI.h"
+#include "GDI\WndProc.h"
 #include "External\Hooking\Hook.h"
 #ifdef DDRAWCOMPAT
 #include "DDrawCompat\DDrawCompatExternal.h"
@@ -30,7 +31,6 @@
 #include "Logging\Logging.h"
 // Wrappers last
 #include "IClassFactory\IClassFactory.h"
-#include "GDI\GDI.h"
 #include "d3d9\d3d9External.h"
 #include "ddraw\ddrawExternal.h"
 #include "dinput\dinputExternal.h"
@@ -79,6 +79,11 @@ __declspec(dllexport) void WINAPI DxWrapperSettings(DXWAPPERSETTINGS *DxSettings
 	DxSettings->Dd7to9 = Config.Dd7to9;
 	DxSettings->D3d8to9 = Config.D3d8to9;
 	DxSettings->Dinputto8 = Config.Dinputto8;
+}
+
+__declspec(dllexport) void WINAPI DxWrapperLogging(const char* LogMessage)
+{
+	Logging::Log() << __FUNCTION__ << " " << LogMessage;
 }
 
 typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
@@ -146,7 +151,7 @@ static bool CheckForDuplicateLoad(HMODULE hModule, HANDLE& hMutex)
 		// Show message box
 		MessageBoxA(nullptr, message.str().c_str(), "DxWrapper Duplicate Load Detected", MB_ICONWARNING | MB_OK | MB_TOPMOST);
 
-		return true; // Causes DLL to unload on process attach
+		return TRUE; // Causes DLL to unload on process attach
 	}
 
 	// Create mutex
@@ -163,10 +168,10 @@ static bool CheckForDuplicateLoad(HMODULE hModule, HANDLE& hMutex)
 		// Show message box
 		MessageBoxA(nullptr, message.str().c_str(), "Mutex Creation Error", MB_ICONERROR | MB_OK | MB_TOPMOST);
 
-		return true; // If mutex creation fails, return true to unload the DLL
+		return TRUE; // If mutex creation fails, return true to unload the DLL
 	}
 
-	return false; // Allow the DLL to continue loading
+	return FALSE; // Allow the DLL to continue loading
 }
 
 // Declare variables
@@ -186,6 +191,20 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 	{
 		// Get handle
 		hModule_dll = hModule;
+
+		// Check if already loaded
+		{
+			HMODULE dxw_dll = GetModuleHandleA("dxwrapper.dll");
+			if (dxw_dll && dxw_dll != hModule_dll)
+			{
+				return FALSE;
+			}
+			HMODULE dxw_asi = GetModuleHandleA("dxwrapper.asi");
+			if (dxw_asi && dxw_asi != hModule_dll)
+			{
+				return FALSE;
+			}
+		}
 
 		// Initialize config
 		Config.Init();
@@ -238,6 +257,20 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			" Windows Vista: " << Utils::IsWindowsVistaOrNewer() <<
 			" Windows 7: " << Utils::IsWindows7OrNewer() <<
 			" Windows 8: " << Utils::IsWindows8OrNewer();
+
+		// Check system modules
+		if (Config.Dd7to9 && Utils::CheckIfSystemModuleLoaded("ddraw.dll"))
+		{
+			Logging::Log() << "Warning: System 'ddraw.dll' is already loaded before dxwrapper!";
+		}
+		if (Config.D3d8to9 && Utils::CheckIfSystemModuleLoaded("d3d8.dll"))
+		{
+			Logging::Log() << "Warning: System 'd3d8.dll' is already loaded before dxwrapper!";
+		}
+		if (Config.Dinputto8 && Utils::CheckIfSystemModuleLoaded("dinput.dll"))
+		{
+			Logging::Log() << "Warning: System 'dinput.dll' is already loaded before dxwrapper!";
+		}
 
 		// Check if process is excluded
 		if (Config.ProcessExcluded)
@@ -321,6 +354,34 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 		}
 
+		// Hook keyboard layout
+		if (Config.ForceKeyboardLayout)
+		{
+			KeyboardLayout::ForceKeyboardLayout(Config.ForceKeyboardLayout);
+
+			// Hook all windows in this process starting with the first top-level window
+			{
+				const DWORD pid = GetCurrentProcessId();
+
+				HWND hWnd = GetTopWindow(NULL);
+
+				while (hWnd)
+				{
+					DWORD wpid = 0;
+					GetWindowThreadProcessId(hWnd, &wpid);
+
+					// Add the top-level window
+					if (wpid == pid && WndProc::ShouldHook(hWnd))
+					{
+						WndProc::AddWndProc(hWnd);
+					}
+
+					// Next top-level window
+					hWnd = GetWindow(hWnd, GW_HWNDNEXT);
+				}
+			}
+		}
+
 		// Launch processes
 		if (!Config.RunProcess.empty())
 		{
@@ -359,9 +420,15 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Hook CoCreateInstance
-		if (Config.EnableDdrawWrapper || Config.DDrawCompat || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8)
+		if (Config.EnableDdrawWrapper || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8 || Config.EnableDsoundWrapper)
 		{
-			InterlockedExchangePointer((PVOID*)&CoCreateInstance_out, Hook::HotPatch(GetProcAddress(LoadLibraryA("ole32.dll"), "CoCreateInstance"), "CoCreateInstance", *CoCreateInstanceHandle));
+			HMODULE ole32_dll = LoadLibraryA("ole32.dll");
+			if (ole32_dll)
+			{
+				Logging::Log() << "Hooking ole32.dll APIs...";
+				InterlockedExchangePointer((PVOID*)&CoGetClassObject_out, Hook::HotPatch(GetProcAddress(ole32_dll, "CoGetClassObject"), "CoGetClassObject", *CoGetClassObjectHandle));
+				InterlockedExchangePointer((PVOID*)&CoCreateInstance_out, Hook::HotPatch(GetProcAddress(ole32_dll, "CoCreateInstance"), "CoCreateInstance", *CoCreateInstanceHandle));
+			}
 		}
 
 		// Start dsound.dll module
@@ -635,6 +702,17 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			InitDDraw();
 		}
+		else if (Config.ForceKeyboardLayout)
+		{
+			Logging::Log() << "Installing User32 hooks";
+			HMODULE user32 = GetModuleHandleA("user32.dll");
+			if (user32)
+			{
+				using namespace GdiWrapper;
+				CreateWindowExA_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
+				CreateWindowExW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
+			}
+		}
 
 		// Hook Comdlg functions
 		if (Config.EnableOpenDialogHook)
@@ -772,6 +850,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Unload loaded dlls
 		Utils::UnloadAllDlls();
 
+		// Unhook keyboard layout
+		if (Config.ForceKeyboardLayout)
+		{
+			KeyboardLayout::DisableForcedKeyboardLayout();
+		}
+
 		// Unload exception handler
 		if (Config.HandleExceptions)
 		{
@@ -800,7 +884,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Final log
 		Logging::Log() << "DxWrapper terminated!";
+		Logging::EnableLogging = false;
 		break;
 	}
-	return true;
+	return TRUE;
 }

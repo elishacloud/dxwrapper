@@ -1,0 +1,92 @@
+LIBRARY
+EXPORTS
+
+
+; ****
+;LIBRARY "dxwrapper" <---  Used by stub for reteriving settings and logging events
+; ****
+DxWrapperSettings
+DxWrapperLogging
+
+
+; ****
+;LIBRARY "dsound"    <--- Needs to have the correct ordinals since some programs use the ordinal numbers for dsound APIs
+; ****
+DirectSoundCreate				@1
+DirectSoundEnumerateA			@2
+DirectSoundEnumerateW			@3
+DllCanUnloadNow					PRIVATE
+DllGetClassObject				PRIVATE
+DirectSoundCaptureCreate		@6
+DirectSoundCaptureEnumerateA	@7
+DirectSoundCaptureEnumerateW	@8
+GetDeviceID						@9
+DirectSoundFullDuplexCreate		@10
+DirectSoundCreate8				@11
+DirectSoundCaptureCreate8		@12
+
+
+; ****
+;LIBRARY "ddraw"
+; ****
+AcquireDDThreadLock
+CompleteCreateSysmemSurface
+D3DParseUnknownCommand
+DDGetAttachedSurfaceLcl
+DDInternalLock
+DDInternalUnlock
+DSoundHelp
+DirectDrawCreate
+DirectDrawCreateClipper
+DirectDrawCreateEx
+DirectDrawEnumerateA
+DirectDrawEnumerateExA
+DirectDrawEnumerateExW
+DirectDrawEnumerateW
+DllCanUnloadNow					PRIVATE
+DllGetClassObject				PRIVATE
+GetDDSurfaceLocal
+GetOLEThunkData
+GetSurfaceFromDC
+RegisterSpecialCase
+ReleaseDDThreadLock
+SetAppCompatData
+
+
+; ****
+;LIBRARY "d3d8"
+; ****
+ValidatePixelShader
+ValidateVertexShader
+Direct3DCreate8
+
+
+; ****
+;LIBRARY "d3d9"
+; ****
+D3DPERF_BeginEvent
+D3DPERF_EndEvent
+D3DPERF_GetStatus
+D3DPERF_QueryRepeatFrame
+D3DPERF_SetMarker
+D3DPERF_SetOptions
+D3DPERF_SetRegion
+Direct3DCreate9
+Direct3DCreate9Ex
+Direct3DCreate9On12
+Direct3DCreate9On12Ex
+
+
+; ****
+;LIBRARY "dinput"
+; ****
+DirectInputCreateA
+DirectInputCreateEx
+DirectInputCreateW
+
+
+; ****
+;LIBRARY "dinput8"
+; ****
+DirectInput8Create
+GetdfDIJoystick

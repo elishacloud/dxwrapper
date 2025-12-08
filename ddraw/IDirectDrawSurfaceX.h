@@ -157,6 +157,7 @@ private:
 		bool HasData = false;
 		bool UsingSurfaceMemory = false;
 		bool UsingShadowSurface = false;
+		bool IsLockable = false;
 		bool IsDirtyFlag = false;
 		bool IsDrawTextureDirty = false;
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
@@ -198,6 +199,10 @@ private:
 	DWORD MaxMipMapLevel = 0;							// Total number of manually created MipMap levels
 	bool IsMipMapReadyToUse = false;					// Used for MipMap filtering
 	bool RecreateAuxiliarySurfaces = false;
+	struct {
+		LPDIRECT3DSURFACE9 Surface = nullptr;			// Shadow surface for StretchRect
+		LPDIRECT3DTEXTURE9 Texture = nullptr;			// Shadow texture for StretchRect
+	} tmpVideo;
 	LPDIRECT3DTEXTURE9 PrimaryDisplayTexture = nullptr;	// Used for the texture surface for the primary surface
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
@@ -262,7 +267,6 @@ private:
 	// Direct3D9 interfaces
 	HRESULT LockD3d9Surface(D3DLOCKED_RECT* pLockedRect, RECT* pRect, DWORD Flags, DWORD MipMapLevel);
 	HRESULT UnLockD3d9Surface(DWORD MipMapLevel);
-	void SetDirtyFlag(DWORD MipMapLevel);
 
 	// Swap surface addresses for Flip
 	template <typename T>
@@ -285,7 +289,6 @@ private:
 	bool CheckRectforSkipScene(RECT& DestRect);
 	HRESULT PresentOverlay(LPRECT lpSrcRect);
 	void BeginWritePresent(bool IsSkipScene);
-	void EndWritePresent(LPRECT lpDestRect, bool IsFlip, bool WriteToWindow, bool FullPresent, bool IsSkipScene);
 	void EndWriteSyncSurfaces(LPRECT lpDestRect);
 
 	// Surface information functions
@@ -487,8 +490,10 @@ public:
 	void SetAsRenderTarget();
 	void ReleaseD9AuxiliarySurfaces();
 	void ReleaseD9Surface(bool BackupData, bool ResetSurface);
-	HRESULT PresentSurface(bool IsFlip, bool IsSkipScene);
+	HRESULT PresentSurface(LPRECT lpDestRect, bool IsSkipScene);
 	void ResetSurfaceDisplay();
+	void SetDirtyFlag(DWORD MipMapLevel);
+	void EndWritePresent(LPRECT lpDestRect, bool IsSkipScene);
 
 	// Surface information functions
 	bool IsPrimarySurface() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
@@ -504,6 +509,7 @@ public:
 	bool IsPalette() const { return (surface.Format == D3DFMT_P8); }
 	bool IsDepthStencil() const { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	DWORD GetAttachedStencilSurfaceZBits();
+	D3DMULTISAMPLE_TYPE GetMultiSampleType() const { return surface.MultiSampleType; }
 	bool IsSurfaceManaged() const { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	bool IsSurfaceBusy(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS) { return (IsSurfaceBlitting() || IsSurfaceLocked(MipMapLevel) || IsSurfaceInDC(MipMapLevel)); }
 	bool CanSurfaceBeDeleted() const { return !ComplexChild; }

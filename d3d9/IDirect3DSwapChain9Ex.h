@@ -46,7 +46,7 @@ public:
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID riid, void*) {
 		m_pDeviceEx = Device;
 		WrapperID == riid;
-		if (riid == IID_IDirect3DSwapChain9Ex)
+		if (riid == IID_IDirect3DSwapChain9Ex || ProxyInterfaceEx == ProxyInterface)
 		{
 			ProxyInterfaceEx = reinterpret_cast<LPDIRECT3DSWAPCHAIN9EX>(ProxyInterface);
 		}

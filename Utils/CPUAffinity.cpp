@@ -19,6 +19,7 @@
 #include <winternl.h>
 #include <tlhelp32.h>
 #include <map>
+#include "Dllmain\Dllmain.h"
 #include "Utils.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
@@ -27,6 +28,7 @@ namespace Utils
 {
 	constexpr THREADINFOCLASS ThreadBasicInformation = (THREADINFOCLASS)0;
 	constexpr THREADINFOCLASS ThreadPriority = (THREADINFOCLASS)2;
+	constexpr THREADINFOCLASS ThreadQuerySetWin32StartAddress = (THREADINFOCLASS)9;
 
 	using NtQueryInformationThreadFunc = NTSTATUS(WINAPI*)(HANDLE, int, PVOID, ULONG, PULONG);
 	using NtSetInformationThreadFunc = NTSTATUS(WINAPI*)(HANDLE, int, PVOID, ULONG);
@@ -63,6 +65,28 @@ namespace Utils
 	DWORD GetCoresUsedByProcess();
 	DWORD_PTR GetCPUMask();
 	DWORD WINAPI PriorityFixThreadProc(LPVOID);
+	bool ShouldSetAffinity(DWORD threadId, HANDLE hThread);
+
+	static inline std::string GetSystemPath()
+	{
+		char path[MAX_PATH] = {};
+		if (GetSystemDirectoryA(path, MAX_PATH) == 0)
+		{
+			return "C:\\Windows\\System32"; // fallback
+		}
+		return std::string(path);
+	}
+
+	static inline bool isPrefix(LPCSTR prefixPath, LPCSTR fullPath)
+	{
+		// Check if fullPath starts with prefixPath
+		if (prefixPath && fullPath)
+		{
+			return _strnicmp(prefixPath, fullPath, strlen(prefixPath)) == 0;
+		}
+
+		return false;
+	}
 }
 
 // Static accessor for NtQueryInformationThread / NtSetInformationThread
@@ -131,6 +155,65 @@ void Utils::SetProcessAffinity()
 	SetProcessAffinityMask(GetCurrentProcess(), GetCPUMask());
 }
 
+bool Utils::ShouldSetAffinity(DWORD threadId, HANDLE hThread)
+{
+	// Get function pointer
+	GetNtThreadFunctions(g_ntQueryInformationThread, g_ntSetInformationThread);
+	if (!g_ntQueryInformationThread)
+	{
+		return true;
+	}
+
+	// Get the thread start address
+	PVOID startAddress = nullptr;
+	g_ntQueryInformationThread(hThread, ThreadQuerySetWin32StartAddress, &startAddress, sizeof(startAddress), nullptr);
+	if (!startAddress)
+	{
+		return true;
+	}
+
+	// Get module handle
+	HMODULE hModule = nullptr;
+	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)startAddress, &hModule);
+	if (!hModule)
+	{
+		return true;
+	}
+
+	// Skip dxwrapper module
+	if (hModule == hModule_dll)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " SKIPPING DxWrapper -> ThreadID=" << threadId << ", StartAddr=" << startAddress;
+		return false;
+	}
+
+	// Get module handle
+	char ModulePath[MAX_PATH] = {};
+	if (GetModuleFileName(hModule, ModulePath, MAX_PATH) == 0)
+	{
+		return true;
+	}
+
+	// Get module name
+	char Name[MAX_PATH] = {};
+	const char* pdest = strrchr(ModulePath, '\\');
+	strcpy_s(Name, MAX_PATH, pdest ? pdest + 1 : ModulePath);
+
+	// Skip some known good modules
+	if (_stricmp("d3d9.dll", Name) == 0 ||
+		_stricmp("dinput.dll", Name) == 0 ||
+		_stricmp("dinput8.dll", Name) == 0 ||
+		_stricmp("dsound.dll", Name) == 0 ||
+		isPrefix((GetSystemPath() + "\\DriverStore").c_str(), ModulePath))
+	{
+		Logging::LogDebug() << __FUNCTION__ << " SKIPPING -> ThreadID=" << threadId << ", StartAddr=" << startAddress << ", Module=" << Name;
+		return false;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " -> ThreadID=" << threadId << ", StartAddr=" << startAddress << ", Module=" << Name;
+	return true;
+}
+
 void Utils::SetThreadAffinity(DWORD threadId)
 {
 	static DWORD_PTR cpuAffinityMask = GetCPUMask();
@@ -138,7 +221,11 @@ void Utils::SetThreadAffinity(DWORD threadId)
 	HANDLE hThread = OpenThread(THREAD_QUERY_INFORMATION | THREAD_SET_INFORMATION, FALSE, threadId);
 	if (hThread)
 	{
-		SetThreadAffinityMask(hThread, cpuAffinityMask);
+		if (ShouldSetAffinity(threadId, hThread))
+		{
+			SetThreadAffinityMask(hThread, cpuAffinityMask);
+		}
+
 		CloseHandle(hThread);
 	}
 }

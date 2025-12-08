@@ -233,7 +233,7 @@ public:
 	LPDIRECT3DINDEXBUFFER9 GetIndexBufferX(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& IndexBufferSize, LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer);
 	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels) const;
 	HRESULT ResetD9Device();
-	void FixWindowPos();
+	void FixWindowPos(HWND hWnd, int X, int Y, int cx, int cy);
 	HRESULT CreateD9Device(char* FunctionName);
 	void UpdateVertices(DWORD Width, DWORD Height);
 	HRESULT TestD3D9CooperativeLevel();

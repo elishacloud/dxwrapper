@@ -889,6 +889,21 @@
     <ClCompile Include="Utils\MemoryModule.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="d3d9\DeviceChecking.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DVideoDevice9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9\IDirect3DDXVADevice9.cpp">
+      <Filter>d3d9</Filter>
+    </ClCompile>
+    <ClCompile Include="ddraw\AddressLookupTable.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\ForceKeyboardLayout.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -897,8 +912,8 @@
     <None Include="Settings\Settings.ini">
       <Filter>Settings</Filter>
     </None>
-    <None Include="Wrappers\wrapper.def">
-      <Filter>Wrappers</Filter>
+    <None Include="Dllmain\dxwrapper.def">
+      <Filter>Dllmain</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -1010,22 +1025,10 @@
     <ClInclude Include="d3d9\d3d9External.h">
       <Filter>d3d9</Filter>
     </ClInclude>
-    <ClInclude Include="Wrappers\bcrypt.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\cryptsp.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\d2d1.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
     <ClInclude Include="Wrappers\d3d8.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="Wrappers\d3d9.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\dciman32.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="Wrappers\ddraw.h">
@@ -1037,22 +1040,10 @@
     <ClInclude Include="Wrappers\dinput8.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
-    <ClInclude Include="Wrappers\dplayx.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
     <ClInclude Include="Wrappers\dsound.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
-    <ClInclude Include="Wrappers\msacm32.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\msvfw32.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
     <ClInclude Include="Wrappers\shared.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\winmm.h">
       <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="DDrawCompat\DDrawCompatExternal.h">
@@ -1355,12 +1346,6 @@
     <ClInclude Include="External\d3d8to9\source\d3dx9.hpp">
       <Filter>External\d3d8to9</Filter>
     </ClInclude>
-    <ClInclude Include="Wrappers\version.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\wininet.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
     <ClInclude Include="External\Logging\Logging.h">
       <Filter>External\Logging</Filter>
     </ClInclude>
@@ -1513,12 +1498,6 @@
     </ClInclude>
     <ClInclude Include="IClassFactory\IClassFactory.h">
       <Filter>IClassFactory</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\dwmapi.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\wsock32.h">
-      <Filter>Wrappers</Filter>
     </ClInclude>
     <ClInclude Include="External\dinputto8\ditypes.h">
       <Filter>External\dinputto8</Filter>
@@ -1850,12 +1829,6 @@
     <ClInclude Include="D3DDDI\d3dddiExternal.h">
       <Filter>d3dddi</Filter>
     </ClInclude>
-    <ClInclude Include="Wrappers\cryptbase.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
-    <ClInclude Include="Wrappers\winspool.h">
-      <Filter>Wrappers</Filter>
-    </ClInclude>
     <ClInclude Include="d3d9\DebugOverlay.h">
       <Filter>d3d9</Filter>
     </ClInclude>
@@ -1905,6 +1878,12 @@
       <Filter>ddraw</Filter>
     </ClInclude>
     <ClInclude Include="d3d9\ShadowSurfaceStorage.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DVideoDevice9.h">
+      <Filter>d3d9</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9\IDirect3DDXVADevice9.h">
       <Filter>d3d9</Filter>
     </ClInclude>
   </ItemGroup>

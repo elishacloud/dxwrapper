@@ -106,4 +106,14 @@ public:
     {
         return ptr != nullptr;
     }
+
+    static ULONG GetRefCount(IUnknown* pComObject)
+    {
+        if (pComObject)
+        {
+            pComObject->AddRef();
+            return pComObject->Release();
+        }
+        return 0;
+    }
 };

@@ -104,6 +104,9 @@
     <ClInclude Include="..\External\Hooking\Disasm.h">
       <Filter>External\Hooking</Filter>
     </ClInclude>
+    <ClInclude Include="..\Wrappers\msvbvm60.h">
+      <Filter>Wrappers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="stub.rc" />
@@ -129,7 +132,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Wrappers\wrapper.def">
+    <None Include="stub.def">
       <Filter>Wrappers</Filter>
     </None>
     <None Include="..\Settings\Stub.ini">

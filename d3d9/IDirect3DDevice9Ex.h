@@ -40,12 +40,6 @@ struct DEVICEDETAILS
 
 	StateBlockCache DeletedStateBlocks;
 
-	D3DCAPS9 Caps = {};
-
-	// Begin/End Scene
-	bool IsInScene = false;
-	bool BeginSceneCalled = false;
-
 	// Limit frame rate
 	struct {
 		DWORD FrameCounter = 0;
@@ -57,23 +51,45 @@ struct DEVICEDETAILS
 	std::deque<std::pair<std::chrono::steady_clock::time_point, std::chrono::duration<double>>> frameTimes;	// Store frame times in a deque
 	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();	// Store start time for PFS counter
 
-	// FPS display
-	ID3DXFont* pFont = nullptr;
-	ID3DXSprite* pSprite = nullptr;
-
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;
 	bool SetSSAA = false;
+	bool SetATOC = false;
 	D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
 	DWORD DeviceMultiSampleQuality = 0;
+};
 
-	// Anisotropic Filtering
-	DWORD MaxAnisotropy = 0;
-	bool isAnisotropySet = false;
-	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
+extern std::unordered_map<UINT, std::unique_ptr<DEVICEDETAILS>> DeviceDetailsMap;
+
+#include "IDirect3D9Ex.h"
+
+#define SHARED (*DeviceDetailsMap[DDKey].get())
+
+class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex, public AddressLookupTableD3d9Object
+{
+private:
+	LPDIRECT3DDEVICE9 ProxyInterface;
+	LPDIRECT3DDEVICE9EX ProxyInterfaceEx = nullptr;
+	m_IDirect3D9Ex* m_pD3DEx;
+	const IID WrapperID;
+	ShadowSurfaceStorage ShadowBackbuffer;
+	std::vector<IDirect3DSurface9*> BackBufferList;
+
+	UINT DDKey;
+
+	D3DCAPS9 Caps = {};
+
+	// Begin/End Scene
+	bool IsInScene = false;
+	bool BeginSceneCalled = false;
+
+	// FPS display
+	LPD3DXFONT pFont = nullptr;
+	DWORD FontRefCount = 0;
+	LPD3DXSPRITE pSprite = nullptr;
+	DWORD SprintRefCount = 0;
 
 	// State block
-	bool DontReleaseResources = false;
 	IDirect3DStateBlock9* pStateBlock = nullptr;
 
 	// For environment map cube
@@ -98,25 +114,11 @@ struct DEVICEDETAILS
 	LPDIRECT3DTEXTURE9 GammaLUTTexture = nullptr;
 	LPDIRECT3DTEXTURE9 ScreenCopyTexture = nullptr;
 	LPDIRECT3DPIXELSHADER9 gammaPixelShader = nullptr;
-};
 
-extern std::unordered_map<UINT, DEVICEDETAILS> DeviceDetailsMap;
-
-#include "IDirect3D9Ex.h"
-
-#define SHARED DeviceDetailsMap[DDKey]
-
-class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex, public AddressLookupTableD3d9Object
-{
-private:
-	LPDIRECT3DDEVICE9 ProxyInterface;
-	LPDIRECT3DDEVICE9EX ProxyInterfaceEx = nullptr;
-	m_IDirect3D9Ex* m_pD3DEx;
-	const IID WrapperID;
-	ShadowSurfaceStorage ShadowBackbuffer;
-	std::vector<IDirect3DSurface9*> BackBufferList;
-
-	UINT DDKey;
+	// Anisotropic Filtering
+	DWORD MaxAnisotropy = 0;
+	bool isAnisotropySet = false;
+	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
 
 	void ApplyDrawFixes();
 	void ApplyPrePresentFixes();
@@ -125,14 +127,14 @@ private:
 	HRESULT CallBeginScene();
 	HRESULT CallEndScene();
 
-	inline bool RequirePresentHandling() const { return ((Config.WindowModeGammaShader && SHARED.IsGammaSet) || Config.ShowFPSCounter || ShadowBackbuffer.Count()); }
+	inline bool RequirePresentHandling() const { return ((Config.WindowModeGammaShader && IsGammaSet) || Config.ShowFPSCounter || ShadowBackbuffer.Count()); }
 
 	// Limit frame rate
 	void LimitFrameRate() const;
 
 	// Frame counter
 	void CalculateFPS() const;
-	void DrawFPS(float fps, const RECT& presentRect, DWORD position) const;
+	void DrawFPS(float fps, const RECT& presentRect, DWORD position);
 
 	// Anisotropic Filtering
 	void DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag);
@@ -140,12 +142,13 @@ private:
 
 	// Gamma
 	HRESULT SetBrightnessLevel(D3DGAMMARAMP& Ramp);
-	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader() const;
+	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader();
 	void ApplyBrightnessLevel();
+	DWORD GetResourceRefCount();
 	void ReleaseResources(bool isReset);
 
 	// For environment map cube
-	void CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix) const;
+	void CheckTransformForCubeMap(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix);
 	bool CheckTextureStageForCubeMap() const;
 	void SetEnvironmentCubeMapTexture();
 
@@ -153,7 +156,7 @@ private:
 	void ReInitInterface();
 	void CreateShadowBackbuffer();
 	void ReleaseShadowBackbuffer();
-	void ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters) const;
+	void ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fReset)(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fResetEx)(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
 	template <typename T>
@@ -173,11 +176,20 @@ public:
 			ProxyInterfaceEx = pDevice;
 		}
 
+		D3d9Wrapper::TestAllDeviceRefs(ProxyInterface);
+
 		// Check for SSAA
-		if (SHARED.DeviceMultiSampleType && m_pD3DEx &&
-			m_pD3DEx->CheckDeviceFormat(SHARED.Adapter, SHARED.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
+		if (SHARED.DeviceMultiSampleType && m_pD3DEx)
 		{
-			SHARED.SetSSAA = true;
+			if (m_pD3DEx->CheckDeviceFormat(SHARED.Adapter, SHARED.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
+			{
+				SHARED.SetSSAA = true;
+			}
+			if (Config.EnableMultisamplingATOC &&
+				m_pD3DEx->CheckDeviceFormat(SHARED.Adapter, SHARED.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('A', 'T', 'O', 'C')) == S_OK)
+			{
+				SHARED.SetATOC = true;
+			}
 		}
 
 		ReInitInterface();
@@ -337,6 +349,7 @@ public:
 
 	// Helper functions
 	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
+	void InitInterface(void*, REFIID, UINT) {}	// Stub only
 	AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() const { return &SHARED.StateBlockTable; }
 	StateBlockCache* GetDeletedStateBlock() const { return &SHARED.DeletedStateBlocks; }
@@ -345,6 +358,6 @@ public:
 	REFIID GetIID() { return WrapperID; }
 
 	// Static functions
-	static void m_IDirect3DDevice9Ex::ModeExToMode(D3DDISPLAYMODEEX& ModeEx, D3DDISPLAYMODE& Mode);
+	static void ModeExToMode(D3DDISPLAYMODEEX& ModeEx, D3DDISPLAYMODE& Mode);
 };
 #undef SHARED

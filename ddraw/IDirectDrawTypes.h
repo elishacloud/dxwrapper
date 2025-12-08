@@ -255,6 +255,7 @@ HRESULT ComplexZBufferCopy(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSou
 DWORD ComputeRND(DWORD Seed, DWORD Num);
 bool DoRectsMatch(const RECT& lhs, const RECT& rhs);
 bool GetOverlappingRect(const RECT& rect1, const RECT& rect2, RECT& outOverlapRect);
+bool ClipRectToBounds(RECT* r, LONG width, LONG height);
 void ConvertSurfaceDesc(DDSURFACEDESC& Desc, const DDSURFACEDESC2& Desc2);
 void ConvertSurfaceDesc(DDSURFACEDESC2& Desc2, const DDSURFACEDESC& Desc);
 void ClearUnusedValues(DDSURFACEDESC2& Desc2);

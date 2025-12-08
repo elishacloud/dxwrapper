@@ -4,10 +4,23 @@
 #include <windows.h>
 #include <vector>
 #include <string>
+#include <ostream>
 #include "ReadParse.h"
 
 #define NOT_EXIST 0xFFFF
 #define MAX_ENV_VAR 0x7FFF
+
+struct DHEX {
+	DWORD value = 0;
+
+	explicit operator bool() const { return value != 0; }
+	operator DWORD() const { return value; }
+	DHEX& operator=(DWORD v) { value = v; return *this; }
+};
+
+inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
+	return os << dhex.value;
+}
 
 #define VISIT_CONFIG_SETTINGS(visit) \
 	visit(AnisotropicFiltering) \
@@ -19,6 +32,7 @@
 	visit(Dd7to9) \
 	visit(D3d8to9) \
 	visit(D3d9to9Ex) \
+	visit(D3d9on12) \
 	visit(Dinputto8) \
 	visit(DDrawCompat) \
 	visit(DDrawCompat20) \
@@ -51,6 +65,8 @@
 	visit(DdrawLimitDisplayModeCount) \
 	visit(DdrawLimitTextureFormats) \
 	visit(DdrawMaintainAspectRatio) \
+	visit(DdrawNoDrawBufferSysLock) \
+	visit(DdrawNoMultiThreaded) \
 	visit(DdrawOverrideBitMode) \
 	visit(DdrawOverrideWidth) \
 	visit(DdrawOverrideHeight) \
@@ -64,7 +80,9 @@
 	visit(DdrawConvertHomogeneousToWorldFarPlane) \
 	visit(DdrawConvertHomogeneousToWorldDepthOffset) \
 	visit(DdrawUseDirect3D9Caps) \
+	visit(DdrawUseShadowSurface) \
 	visit(DdrawUseNativeResolution) \
+	visit(DdrawVertexLockDiscard) \
 	visit(DdrawEnableMouseHook) \
 	visit(DdrawDisableLighting) \
 	visit(DdrawHookSystem32) \
@@ -87,12 +105,13 @@
 	visit(EnableDinput8Wrapper) \
 	visit(EnableDsoundWrapper) \
 	visit(EnableImgui) \
+	visit(EnableMultisamplingATOC) \
 	visit(EnableOpenDialogHook) \
 	visit(EnableVSync) \
 	visit(EnableWindowMode) \
 	visit(ExcludeProcess) \
-	visit(ForceDirect3D9On12) \
 	visit(ForceExclusiveFullscreen) \
+	visit(ForceKeyboardLayout) \
 	visit(ForceMixedVertexProcessing) \
 	visit(ForceSystemMemVertexCache) \
 	visit(ForceSingleBeginEndScene) \
@@ -235,6 +254,7 @@ struct CONFIG
 	bool Dd7to9 = false;						// Converts DirectDraw/Direct3D (ddraw.dll) to Direct3D9 (d3d9.dll)
 	bool D3d8to9 = false;						// Converts Direct3D8 (d3d8.dll) to Direct3D9 (d3d9.dll) https://github.com/crosire/d3d8to9
 	bool D3d9to9Ex = false;						// Converts Direct3D9 to Direct3D9Ex
+	bool D3d9on12 = false;						// Converts Direct3D9 to use CreateDirect3D9On12
 	bool Dinputto8 = false;						// Converts DirectInput (dinput.dll) to DirectInput8 (dinput8.dll)
 	bool DDrawCompat = false;					// Enables the default DDrawCompat functions https://github.com/narzoul/DDrawCompat/
 	bool DDrawCompat20 = false;					// Enables DDrawCompat v0.2.0b
@@ -266,8 +286,12 @@ struct CONFIG
 	float DdrawConvertHomogeneousToWorldNearPlane = 0.0f;		// The near plane of the camera used to reconstruct the original 3D world.
 	float DdrawConvertHomogeneousToWorldFarPlane = 0.0f;		// The far plane of the camera used to reconstruct the original 3D world.
 	float DdrawConvertHomogeneousToWorldDepthOffset = 0.0f;		// The offset to add to the geometry so it does not clip into the near plane.
+	bool DdrawNoDrawBufferSysLock = false;		// Disables Draw CriticalSection and sets NOSYSLOCK on Index and Vertex Buffer locks
+	bool DdrawNoMultiThreaded = false;			// Don't add D3DCREATE_MULTITHREADED flag when creating Direct3D9 device unless the game requests it
 	bool DdrawUseDirect3D9Caps = false;			// Use Direct3D9 (Dd7to9) for GetCaps
+	bool DdrawUseShadowSurface = false;			// Use shadow surface with Dd7to9 for render target Locks/GetDC
 	bool DdrawUseNativeResolution = false;		// Uses the current screen resolution for Dd7to9
+	bool DdrawVertexLockDiscard = false;		// Sets the discard flag for vertex Lock
 	DWORD DdrawClippedWidth = 0;				// Used to scaled Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawClippedHeight = 0;				// Used to scaled Direct3d9 to use this height when using Dd7to9
 	DWORD DdrawCustomWidth = 0;					// Custom resolution width for Dd7to9 when using DdrawLimitDisplayModeCount, resolution must be supported by video card and monitor
@@ -307,6 +331,7 @@ struct CONFIG
 	bool EnableDinput8Wrapper = false;			// Enables the dinput8 wrapper
 	bool EnableDsoundWrapper = false;			// Enables the dsound wrapper
 	bool EnableImgui = false;					// Enables imgui for debugging
+	DWORD EnableMultisamplingATOC = 0;			// Enables transparency multisampling (ATOC). 1) Just enable ATOC. 2) Enable ATOC and AlphaTest Render State
 	bool EnableOpenDialogHook = false;			// Enables the hooks for the open dialog box
 	bool EnableWindowMode = false;				// Enables WndMode for d3d9 wrapper
 	bool EnableVSync = false;					// Enables VSync for d3d9 wrapper
@@ -314,8 +339,8 @@ struct CONFIG
 	float MouseMovementFactor = 1.0f;			// Sets the mouse movement speed factor, requires enabling FixHighFrequencyMouse
 	DWORD MouseMovementPadding = 0;				// Adds extra mouse movement to overcome issues with input deadzone in some games, requires enabling FixHighFrequencyMouse
 	DWORD FixPerfCounterUptime = 0;				// Reduces uptime counters to prevent slowdowns in games
-	bool ForceDirect3D9On12 = false;			// Forces Direct3D9 to use CreateDirect3D9On12
 	bool ForceExclusiveFullscreen = false;		// Forces exclusive fullscreen mode in d3d9
+	DHEX ForceKeyboardLayout = {};				// Force specific keyboard layout
 	bool ForceMixedVertexProcessing = false;	// Forces Mixed mode for vertex processing in d3d9
 	bool ForceSystemMemVertexCache = false;		// Forces System Memory caching for vertexes in d3d9
 	bool ForceSingleBeginEndScene = false;		// Ensures that only a single EndScene/BeginScene pair are called per frame

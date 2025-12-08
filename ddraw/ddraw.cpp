@@ -28,17 +28,15 @@ AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<
 
 static UINT GetAdapterIndex(GUID FAR* lpGUID);
 
-namespace {
-	bool IsInitialized = false;
-	CRITICAL_SECTION ddcs;
-	CRITICAL_SECTION pecs;
-}
-
 namespace DdrawWrapper
 {
 	VISIT_PROCS_DDRAW(INITIALIZE_OUT_WRAPPED_PROC);
 	VISIT_PROCS_DDRAW_SHARED(INITIALIZE_OUT_WRAPPED_PROC);
 	INITIALIZE_OUT_WRAPPED_PROC(Direct3DCreate9, unused);
+
+	bool IsInitialized = false;
+	CRITICAL_SECTION ddcs;
+	CRITICAL_SECTION pecs;
 
 	struct DDDeviceInfo
 	{
@@ -63,6 +61,16 @@ namespace DdrawWrapper
 	CRITICAL_SECTION* GetPECriticalSection()
 	{
 		return IsInitialized ? &pecs : nullptr;
+	}
+
+	static void CheckSystemModule()
+	{
+		static bool RunOnce = true;
+		if (RunOnce && Config.Dd7to9 && Utils::CheckIfSystemModuleLoaded("ddraw.dll"))
+		{
+			Logging::Log() << "Warning: System 'ddraw.dll' is already loaded before dxwrapper!";
+		}
+		RunOnce = false;
 	}
 }
 
@@ -263,9 +271,16 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
+	CheckSystemModule();
+
 	if (Config.Dd7to9)
 	{
 		LOG_LIMIT(3, "Redirecting 'DirectDrawCreate' to --> 'Direct3DCreate9'");
+
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
+		}
 
 		if (Config.SetSwapEffectShim < 2)
 		{
@@ -311,11 +326,18 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
+	CheckSystemModule();
+
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDClipper || pUnkOuter)
+		if (!lplpDDClipper)
 		{
 			return DDERR_INVALIDPARAMS;
+		}
+
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
 		}
 
 		m_IDirectDrawClipper* ClipperX = m_IDirectDrawClipper::CreateDirectDrawClipper(nullptr, nullptr, dwFlags);
@@ -348,9 +370,11 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
+	CheckSystemModule();
+
 	if (Config.Dd7to9)
 	{
-		if (!lplpDD || pUnkOuter)
+		if (!lplpDD)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -362,6 +386,11 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 		}
 
 		LOG_LIMIT(3, "Redirecting 'DirectDrawCreateEx' to --> 'Direct3DCreate9'");
+
+		if (pUnkOuter)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
+		}
 
 		if (Config.SetSwapEffectShim < 2)
 		{
@@ -409,6 +438,8 @@ HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpCo
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
+	CheckSystemModule();
+
 	if (Config.Dd7to9)
 	{
 		return DirectDrawEnumerateHandler(lpCallback, lpContext, 0, DDET_ENUMCALLBACKA);
@@ -428,6 +459,8 @@ HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID 
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
+	CheckSystemModule();
+
 	if (Config.Dd7to9)
 	{
 		return DirectDrawEnumerateHandler(lpCallback, lpContext, dwFlags, DDET_ENUMCALLBACKEXA);
@@ -446,6 +479,8 @@ HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID 
 HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID lpContext, DWORD dwFlags)
 {
 	LOG_LIMIT(1, __FUNCTION__);
+
+	CheckSystemModule();
 
 	if (Config.Dd7to9)
 	{
@@ -468,6 +503,8 @@ HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID 
 HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext)
 {
 	LOG_LIMIT(1, __FUNCTION__);
+
+	CheckSystemModule();
 
 	if (Config.Dd7to9)
 	{
@@ -675,6 +712,8 @@ HRESULT WINAPI dd_ReleaseDDThreadLock()
 HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 {
 	LOG_LIMIT(1, __FUNCTION__);
+
+	CheckSystemModule();
 
 	if (Config.Dd7to9)
 	{

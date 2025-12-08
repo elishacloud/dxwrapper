@@ -65,7 +65,7 @@ HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 	{
 		if (riid == IID_IDirect3D9 || riid == IID_IDirect3D9Ex)
 		{
-			*ppvObj = ProxyAddressLookupTable9.FindAddress<m_IDirect3D9Ex, void, LPVOID>(*ppvObj, nullptr, riid, nullptr);
+			*ppvObj = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3D9Ex, void, LPVOID>(*ppvObj, nullptr, riid, nullptr);
 		}
 		else
 		{
@@ -373,8 +373,8 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	}
 
 	// Hook WndProc before creating device
-	HWND hwnd = (hFocusWindow ? hFocusWindow : pPresentationParameters ? pPresentationParameters->hDeviceWindow : nullptr);
-	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hwnd);
+	HWND hWnd = (hFocusWindow ? hFocusWindow : pPresentationParameters ? pPresentationParameters->hDeviceWindow : nullptr);
+	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
 	if (WndDataStruct)
 	{
 		WndDataStruct->IsDirect3D9 = true;
@@ -533,9 +533,9 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		}
 	}
 
-	DEVICEDETAILS DeviceDetails;
+	auto DeviceDetails = std::make_unique<DEVICEDETAILS>();
 
-	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, false, nullptr, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(*DeviceDetails.get(), Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, false, nullptr, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
@@ -554,15 +554,15 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 			}
 		}
 
-		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.DeviceWindow;
-		DeviceDetailsMap[DDKey] = DeviceDetails;
+		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.get();
+		DeviceDetailsMap[DDKey] = std::move(DeviceDetails);
 
 		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, riid, DDKey);
 
 		return D3D_OK;
 	}
 
-	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Adapter << " " << DeviceType << " " << hFocusWindow << " " << BehaviorFlags << " " << pPresentationParameters;
+	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Adapter << " " << DeviceType << " " << hFocusWindow << " " << BehaviorFlags << " " << pPresentationParameters;
 	
 	return hr;
 }
@@ -650,21 +650,21 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		return D3DERR_INVALIDCALL;
 	}
 
-	DEVICEDETAILS DeviceDetails;
+	auto DeviceDetails = std::make_unique<DEVICEDETAILS>();
 
-	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, true, pFullscreenDisplayMode, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(*DeviceDetails.get(), Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, true, pFullscreenDisplayMode, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr))
 	{
-		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.DeviceWindow;
-		DeviceDetailsMap[DDKey] = DeviceDetails;
+		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.get();
+		DeviceDetailsMap[DDKey] = std::move(DeviceDetails);
 
 		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, DDKey);
 
 		return D3D_OK;
 	}
 
-	Logging::LogDebug() << __FUNCTION__ << " FAILED! " << (D3DERR)hr << " " << Adapter << " " << DeviceType << " " << hFocusWindow << " " << BehaviorFlags << " " << pPresentationParameters << " " << pFullscreenDisplayMode;
+	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Adapter << " " << DeviceType << " " << hFocusWindow << " " << BehaviorFlags << " " << pPresentationParameters << " " << pFullscreenDisplayMode;
 	return hr;
 }
 
@@ -875,7 +875,7 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 			GetClientRect(DeviceDetails.DeviceWindow, &Rect);
 			if (AnyChange || Rect.right - Rect.left != DeviceDetails.BufferWidth || Rect.bottom - Rect.top != DeviceDetails.BufferHeight)
 			{
-				AdjustWindow(DeviceDetails.hMonitor, DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, pPresentationParameters->Windowed, Config.EnableWindowMode, Config.FullscreenWindowMode);
+				AdjustWindow(DeviceDetails.hMonitor, DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, Config.EnableWindowMode, Config.FullscreenWindowMode);
 			}
 
 			// Set fullscreen resolution
@@ -933,7 +933,7 @@ void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DD
 }
 
 // Adjusting the window position for WindowMode
-void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool isWindowed, bool EnableWindowMode, bool FullscreenWindowMode)
+void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool EnableWindowMode, bool FullscreenWindowMode)
 {
 	if (!IsWindow(MainhWnd) || !displayWidth || !displayHeight)
 	{
@@ -956,47 +956,38 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
 	}
 
-	// Set window active and focus
-	if (EnableWindowMode || isWindowed)
+	// Move window to top if not already topmost
+	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+	if (!(lExStyle & WS_EX_TOPMOST))
 	{
-		// Move window to top if not already topmost
-		LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
-		if (!(lExStyle & WS_EX_TOPMOST))
+		SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle | WS_EX_TOPMOST);
+		SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+		SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle & ~WS_EX_TOPMOST);
+		SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+	}
+
+	// Set active and foreground if needed
+	if (MainhWnd != GetFocus() || MainhWnd != GetActiveWindow())
+	{
+		DWORD currentThreadId = GetCurrentThreadId();
+		DWORD foregroundThreadId = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
+
+		bool shouldAttachThreadID = currentThreadId != foregroundThreadId;
+
+		// Attach the input of the foreground window and current window
+		if (shouldAttachThreadID)
 		{
-			SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle | WS_EX_TOPMOST);
-			SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
-			SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle & ~WS_EX_TOPMOST);
-			SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+			AttachThreadInput(currentThreadId, foregroundThreadId, TRUE);
 		}
 
-		// Set active and foreground if needed
-		if (MainhWnd != GetForegroundWindow() || MainhWnd != GetFocus() || MainhWnd != GetActiveWindow())
+		SetFocus(MainhWnd);
+		SetActiveWindow(MainhWnd);
+		BringWindowToTop(MainhWnd);
+
+		// Detach the input from the foreground window
+		if (shouldAttachThreadID)
 		{
-			DWORD currentThreadId = GetCurrentThreadId();
-			DWORD foregroundThreadId = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
-
-			bool isForeground = (MainhWnd == GetForegroundWindow());
-			bool shouldAttachThreadID = !isForeground && (currentThreadId != foregroundThreadId);
-
-			// Attach the input of the foreground window and current window
-			if (shouldAttachThreadID)
-			{
-				AttachThreadInput(currentThreadId, foregroundThreadId, TRUE);
-			}
-			if (!isForeground)
-			{
-				SetForegroundWindow(MainhWnd);
-			}
-
-			SetFocus(MainhWnd);
-			SetActiveWindow(MainhWnd);
-			BringWindowToTop(MainhWnd);
-
-			// Detach the input from the foreground window
-			if (shouldAttachThreadID)
-			{
-				AttachThreadInput(currentThreadId, foregroundThreadId, FALSE);
-			}
+			AttachThreadInput(currentThreadId, foregroundThreadId, FALSE);
 		}
 	}
 
@@ -1011,7 +1002,7 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 	// Get window style
 	LONG lOrgStyle = GetWindowLong(MainhWnd, GWL_STYLE);
 	lStyle = lOrgStyle;
-	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+	lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 	BOOL HasMenu = (GetMenu(MainhWnd) != NULL);
 
 	// Set window style

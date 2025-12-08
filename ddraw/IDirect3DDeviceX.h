@@ -197,7 +197,8 @@ private:
 	// Render target
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
 	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
-	DWORD DepthBits = 0;
+	D3DMULTISAMPLE_TYPE RenderTargetMultiSampleType = D3DMULTISAMPLE_NONE;
+	DWORD DepthBitCount = 0;
 
 	// SetTexture array
 	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[D3DHAL_TSS_MAXSTAGES] = {};
@@ -268,7 +269,7 @@ private:
 	HRESULT RestoreStates();
 	void SetDefaults();
 	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
-	void RestoreDrawStates(DWORD dwFlags, DWORD DirectXVersion);
+	void RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD DirectXVersion);
 	void UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwNumVertices);
 
 	D3DMATRIX* GetMatrix(D3DMATRIXHANDLE MatrixHandle)

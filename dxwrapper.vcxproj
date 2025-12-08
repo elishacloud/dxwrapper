@@ -60,7 +60,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDLL;WINVER=0x0601;_WIN32_WINNT=0x0601;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDLL;WINVER=0x0601;_WIN32_WINNT=0x0601;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DSOUND;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
@@ -73,7 +73,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>detours.lib;msimg32.lib;Shlwapi.lib;oleacc.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>Dllmain\dxwrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -118,7 +118,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDLL;WINVER=0x0501;_WIN32_WINNT=0x0501;_USING_V110_SDK71_;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDLL;WINVER=0x0501;_WIN32_WINNT=0x0501;_USING_V110_SDK71_;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DSOUND;DXWND;D3D8TO9NOLOG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
@@ -131,7 +131,7 @@ cmd /q /c "cd /D ""$(ProjectDir)d3d8\"" &amp;&amp; del build.bat"</Command>
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>Psapi.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>Dllmain\dxwrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -149,7 +149,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>WIN32;_WINDLL;WINVER=0x0601;_WIN32_WINNT=0x0601;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DDRAWCOMPATLOG;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;ENABLE_DEBUGOVERLAY;ENABLE_PROFILING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDLL;WINVER=0x0601;_WIN32_WINNT=0x0601;FULLSCREENLOG;WRAPPERLOGGING;DISABLE_COMMON_LOGGING;_NO_DDRAWINT_NO_COM;DDRAW;DINPUT;DINPUT8;DSOUND;DDRAWCOMPATLOG;DDRAWCOMPAT;DDRAWCOMPAT_EXPORTS;DXWND;ENABLE_DEBUGOVERLAY;ENABLE_PROFILING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ObjectFileName>$(SolutionDir)bin\Intermediate\$(Configuration)\Object\%(RelativeDir)</ObjectFileName>
       <WarningLevel>Level4</WarningLevel>
@@ -163,7 +163,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>detours.lib;msimg32.lib;Shlwapi.lib;oleacc.lib;wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <ModuleDefinitionFile>Wrappers\wrapper.def</ModuleDefinitionFile>
+      <ModuleDefinitionFile>Dllmain\dxwrapper.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>Libraries\detours\lib</AdditionalLibraryDirectories>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -185,9 +185,11 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClCompile Include="d3d9\AddressLookupTable.cpp" />
     <ClCompile Include="d3d9\d3d9.cpp" />
     <ClCompile Include="d3d9\DebugOverlay.cpp" />
+    <ClCompile Include="d3d9\DeviceChecking.cpp" />
     <ClCompile Include="d3d9\IDirect3D9Ex.cpp" />
     <ClCompile Include="d3d9\IDirect3DCubeTexture9.cpp" />
     <ClCompile Include="d3d9\IDirect3DDevice9Ex.cpp" />
+    <ClCompile Include="d3d9\IDirect3DDXVADevice9.cpp" />
     <ClCompile Include="d3d9\IDirect3DIndexBuffer9.cpp" />
     <ClCompile Include="d3d9\IDirect3DPixelShader9.cpp" />
     <ClCompile Include="d3d9\IDirect3DQuery9.cpp" />
@@ -198,6 +200,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClCompile Include="d3d9\IDirect3DVertexBuffer9.cpp" />
     <ClCompile Include="d3d9\IDirect3DVertexDeclaration9.cpp" />
     <ClCompile Include="d3d9\IDirect3DVertexShader9.cpp" />
+    <ClCompile Include="d3d9\IDirect3DVideoDevice9.cpp" />
     <ClCompile Include="d3d9\IDirect3DVolume9.cpp" />
     <ClCompile Include="d3d9\IDirect3DVolumeTexture9.cpp" />
     <ClCompile Include="d3d9\InterfaceQuery.cpp" />
@@ -538,6 +541,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClCompile Include="DDrawCompat\v0.3.2\Win32\WaitFunctions.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="ddraw\AddressLookupTable.cpp" />
     <ClCompile Include="ddraw\ddraw.cpp" />
     <ClCompile Include="ddraw\IDirect3DDeviceX.cpp" />
     <ClCompile Include="ddraw\IDirect3DMaterialX.cpp" />
@@ -663,6 +667,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClCompile Include="Settings\Settings.cpp" />
     <ClCompile Include="Utils\CPUAffinity.cpp" />
     <ClCompile Include="Utils\Disasm.cpp" />
+    <ClCompile Include="Utils\ForceKeyboardLayout.cpp" />
     <ClCompile Include="Utils\Fullscreen.cpp" />
     <ClCompile Include="Utils\MemoryModule.cpp" />
     <ClCompile Include="Utils\MyStrings.cpp" />
@@ -673,7 +678,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini" />
     <None Include="Settings\Settings.ini" />
-    <None Include="Wrappers\wrapper.def" />
+    <None Include="Dllmain\dxwrapper.def" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3d8\d3d8External.h" />
@@ -685,6 +690,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="d3d9\IDirect3D9Ex.h" />
     <ClInclude Include="d3d9\IDirect3DCubeTexture9.h" />
     <ClInclude Include="d3d9\IDirect3DDevice9Ex.h" />
+    <ClInclude Include="d3d9\IDirect3DDXVADevice9.h" />
     <ClInclude Include="d3d9\IDirect3DIndexBuffer9.h" />
     <ClInclude Include="d3d9\IDirect3DPixelShader9.h" />
     <ClInclude Include="d3d9\IDirect3DQuery9.h" />
@@ -695,6 +701,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="d3d9\IDirect3DVertexBuffer9.h" />
     <ClInclude Include="d3d9\IDirect3DVertexDeclaration9.h" />
     <ClInclude Include="d3d9\IDirect3DVertexShader9.h" />
+    <ClInclude Include="d3d9\IDirect3DVideoDevice9.h" />
     <ClInclude Include="d3d9\IDirect3DVolume9.h" />
     <ClInclude Include="d3d9\IDirect3DVolumeTexture9.h" />
     <ClInclude Include="d3d9\ShadowSurfaceStorage.h" />
@@ -1305,28 +1312,14 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="Settings\ReadParse.h" />
     <ClInclude Include="Settings\Settings.h" />
     <ClInclude Include="Utils\Utils.h" />
-    <ClInclude Include="Wrappers\bcrypt.h" />
-    <ClInclude Include="Wrappers\cryptbase.h" />
-    <ClInclude Include="Wrappers\cryptsp.h" />
-    <ClInclude Include="Wrappers\d2d1.h" />
     <ClInclude Include="Wrappers\d3d8.h" />
     <ClInclude Include="Wrappers\d3d9.h" />
-    <ClInclude Include="Wrappers\dciman32.h" />
     <ClInclude Include="Wrappers\ddraw.h" />
     <ClInclude Include="Wrappers\dinput.h" />
     <ClInclude Include="Wrappers\dinput8.h" />
-    <ClInclude Include="Wrappers\dplayx.h" />
     <ClInclude Include="Wrappers\dsound.h" />
-    <ClInclude Include="Wrappers\dwmapi.h" />
-    <ClInclude Include="Wrappers\msacm32.h" />
-    <ClInclude Include="Wrappers\msvfw32.h" />
     <ClInclude Include="Wrappers\shared.h" />
-    <ClInclude Include="Wrappers\version.h" />
-    <ClInclude Include="Wrappers\wininet.h" />
-    <ClInclude Include="Wrappers\winmm.h" />
-    <ClInclude Include="Wrappers\winspool.h" />
     <ClInclude Include="Wrappers\wrapper.h" />
-    <ClInclude Include="Wrappers\wsock32.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc" />

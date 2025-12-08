@@ -70,7 +70,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		riid == IID_IDirect3DRGBDevice || riid == IID_IDirect3DRampDevice || riid == IID_IDirect3DMMXDevice ||
 		riid == IID_IDirect3DRefDevice || riid == IID_IDirect3DNullDevice);
 
-	DWORD DxVersion = (CheckWrapperType(riid) && Config.Dd7to9) ? GetGUIDVersion(riid) : DirectXVersion;
+	DWORD DxVersion = (Config.Dd7to9 && CheckWrapperType(riid)) ? GetGUIDVersion(riid) : DirectXVersion;
 
 	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
 	{
@@ -86,6 +86,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, false, false, false)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Query failed for " << riid << " from " << GetWrapperType(DirectXVersion));
+
 			return E_NOINTERFACE;
 		}
 
@@ -94,7 +96,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 			// Check for Direct3D surface
 			if (!IsSurface3D())
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not a Direct3D surface!");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not a Direct3D surface for " << riid << " from " << GetWrapperType(DirectXVersion));
+
 				return E_NOINTERFACE;
 			}
 
@@ -137,6 +140,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 			{
 				if (FAILED(ddrawParent->CreateColorControl(reinterpret_cast<m_IDirectDrawColorControl**>(ppvObj))))
 				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create ColorControl for " << riid << " from " << GetWrapperType(DirectXVersion));
+
 					return E_NOINTERFACE;
 				}
 			}
@@ -157,6 +162,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 			{
 				if (FAILED(ddrawParent->CreateGammaControl(reinterpret_cast<m_IDirectDrawGammaControl**>(ppvObj))))
 				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create Gamma for " << riid << " from " << GetWrapperType(DirectXVersion));
+
 					return E_NOINTERFACE;
 				}
 			}
@@ -167,6 +174,8 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		{
 			if (ddrawParent->IsCreatedEx())
 			{
+				LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << GetWrapperType(DirectXVersion));
+
 				return E_NOINTERFACE;
 			}
 
@@ -673,12 +682,8 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 					// Set dirty flag
 					SetDirtyFlag(MipMapLevel);
 
-					// Handle fullscreen blt as flip
-					bool IsFullScreenBlt = IsPrimarySurface() && (!lpSrcRect ||
-						(lpSrcRect->left == 0 && lpSrcRect->top == 0 && lpSrcRect->right == (LONG)surfaceDesc2.dwWidth && lpSrcRect->bottom == (LONG)surfaceDesc2.dwHeight));
-
 					// Present surface
-					EndWritePresent(lpDestRect, IsFullScreenBlt, true, PresentBlt, IsSkipScene);
+					EndWritePresent(lpDestRect, IsSkipScene);
 				}
 			}
 
@@ -801,7 +806,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 		SetDirtyFlag(MipMapLevel);
 
 		// Present surface
-		EndWritePresent(nullptr, false, false, true, IsSkipScene);
+		EndWritePresent(nullptr, IsSkipScene);
 	}
 
 	return hr;
@@ -1361,7 +1366,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			}
 
 			// Present surface
-			EndWritePresent(nullptr, true, true, true, false);
+			EndWritePresent(nullptr, false);
 
 			if (IsRenderTarget())
 			{
@@ -1761,7 +1766,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 #endif
 
 		// Check if render target should use shadow
-		if ((surface.Usage & D3DUSAGE_RENDERTARGET) && !IsUsingShadowSurface())
+		if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !IsUsingShadowSurface())
 		{
 			SetRenderTargetShadow();
 		}
@@ -2421,9 +2426,9 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 #endif
 
 		// Check if render target should use shadow
-		if (surface.Usage & D3DUSAGE_RENDERTARGET)
+		if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET))
 		{
-			if (surface.Type == D3DTYPE_RENDERTARGET)
+			if (surface.IsLockable)
 			{
 				// Don't use shadow for Lock()
 				// Some games write to surface without locking so we don't want to give them a shadow surface or it could make the shadow surface out of sync
@@ -2689,11 +2694,14 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC, DWORD MipMapLevel)
 			// Set dirty flag
 			SetDirtyFlag(MipMapLevel);
 
-			// Keep surface insync
-			EndWriteSyncSurfaces(nullptr);
+			if (MipMapLevel == 0)
+			{
+				// Keep surface insync
+				EndWriteSyncSurfaces(nullptr);
 
-			// Present surface
-			EndWritePresent(nullptr, false, true, true, false);
+				// Present surface
+				EndWritePresent(nullptr, false);
+			}
 		}
 
 		return hr;
@@ -2768,10 +2776,10 @@ HRESULT m_IDirectDrawSurfaceX::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper)
 		// If clipper exists increament ref
 		if (lpDDClipper)
 		{
-			if (!ddrawParent->DoesClipperExist((m_IDirectDrawClipper*)lpDDClipper))
+			if (!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawClipper*)lpDDClipper))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: could not find clipper " << lpDDClipper);
-				return DD_OK;
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find clipper " << lpDDClipper);
+				return DDERR_INVALIDPARAMS;
 			}
 
 			lpDDClipper->AddRef();
@@ -3106,11 +3114,14 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 				// Set dirty flag
 				SetDirtyFlag(LastLock.MipMapLevel);
 
-				// Keep surface insync
-				EndWriteSyncSurfaces(&LastLock.Rect);
+				if (LastLock.MipMapLevel == 0)
+				{
+					// Keep surface insync
+					EndWriteSyncSurfaces(&LastLock.Rect);
 
-				// Present surface
-				EndWritePresent(&LastLock.Rect, false, true, true, LastLock.IsSkipScene);
+					// Present surface
+					EndWritePresent(&LastLock.Rect, LastLock.IsSkipScene);
+				}
 			}
 		}
 
@@ -4353,15 +4364,30 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	surface.Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surface.BitCount);
 	surface.Height = surfaceDesc2.dwHeight;
 
+	// Set lockable
+	surface.IsLockable = true;
+
 	// Anti-aliasing
 	if (IsRenderTarget())
 	{
-		bool AntiAliasing = (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING);
+		bool AntiAliasing = (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) || (surfaceDesc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK);
 		if (AntiAliasing && !surface.MultiSampleType)
 		{
+			DWORD MaxSamples = 0;
+			DWORD Mask =
+				!(surfaceDesc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK) ? 0 :
+				surfaceDesc2.ddpfPixelFormat.MultiSampleCaps.wBltMSTypes > surfaceDesc2.ddpfPixelFormat.MultiSampleCaps.wFlipMSTypes ?
+				surfaceDesc2.ddpfPixelFormat.MultiSampleCaps.wBltMSTypes : surfaceDesc2.ddpfPixelFormat.MultiSampleCaps.wFlipMSTypes;
+			if (Mask)
+			{
+				while ((Mask & 1) == 0)
+				{
+					Mask >>= 1;
+					MaxSamples++;
+				}
+			}
 			// Default to 8 samples as some games have issues with more samples
-			DWORD MaxSamples = (surfaceDesc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK) ? (surfaceDesc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK) : D3DMULTISAMPLE_8_SAMPLES;
-			surface.MultiSampleType = ddrawParent->GetMultiSampleTypeQuality(Format, MaxSamples, surface.MultiSampleQuality);
+			surface.MultiSampleType = ddrawParent->GetMultiSampleTypeQuality(Format, MaxSamples ? MaxSamples : D3DMULTISAMPLE_8_SAMPLES, surface.MultiSampleQuality);
 		}
 	}
 
@@ -4377,6 +4403,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 		// Create depth stencil
 		if (IsDepthStencil() && surface.Pool != D3DPOOL_SYSTEMMEM)
 		{
+			surface.IsLockable = false;
 			surface.Type = D3DTYPE_DEPTHSTENCIL;
 			surface.Usage = D3DUSAGE_DEPTHSTENCIL;
 			surface.Pool = D3DPOOL_DEFAULT;
@@ -4396,6 +4423,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			surface.Pool = D3DPOOL_DEFAULT;
 			if (IsSurfaceTexture() || IsPalette())
 			{
+				surface.IsLockable = false;
 				surface.Type = D3DTYPE_TEXTURE;
 				if (FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, 1, surface.Usage, Format, surface.Pool, &surface.Texture, nullptr)) &&
 					FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, 1, surface.Usage, GetFailoverFormat(Format), surface.Pool, &surface.Texture, nullptr)))
@@ -4407,8 +4435,9 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			}
 			else
 			{
+				BOOL IsLockable = (surface.MultiSampleType || Config.AntiAliasing || Config.DdrawUseShadowSurface || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE)) ? FALSE : TRUE;
+				surface.IsLockable = (IsLockable == TRUE);
 				surface.Type = D3DTYPE_RENDERTARGET;
-				BOOL IsLockable = (surface.MultiSampleType || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE)) ? FALSE : TRUE;
 				if (FAILED((*d3d9Device)->CreateRenderTarget(surface.Width, surface.Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)) &&
 					FAILED((*d3d9Device)->CreateRenderTarget(surface.Width, surface.Height, GetFailoverFormat(Format), surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)))
 				{
@@ -4607,6 +4636,12 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			{
 				for (UINT Level = 0; Level < LostDeviceBackup.size(); Level++)
 				{
+					// Check if render target should use shadow
+					if (Level == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !surface.IsLockable && !IsUsingShadowSurface())
+					{
+						SetRenderTargetShadow();
+					}
+
 					D3DLOCKED_RECT LockRect = {};
 					if (FAILED(LockD3d9Surface(&LockRect, nullptr, 0, Level)))
 					{
@@ -5133,6 +5168,29 @@ void m_IDirectDrawSurfaceX::ReleaseD9AuxiliarySurfaces()
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'surface.Shadow' " << ref;
 		}
 		surface.Shadow = nullptr;
+		surface.UsingShadowSurface = false;
+	}
+
+	// Release d3d9 tmp shadow surface when surface is released
+	if (tmpVideo.Texture)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
+		ULONG ref = tmpVideo.Texture->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpVideo.Texture' " << ref;
+		}
+		tmpVideo.Texture = nullptr;
+	}
+	if (tmpVideo.Surface)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
+		ULONG ref = tmpVideo.Surface->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpVideo.Surface' " << ref;
+		}
+		tmpVideo.Surface = nullptr;
 	}
 
 	// Release primary display texture
@@ -5264,6 +5322,12 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 			{
 				for (UINT Level = 0; Level < ((IsMipMapAutogen() || !MaxMipMapLevel) ? 1 : MaxMipMapLevel); Level++)
 				{
+					// Check if render target should use shadow
+					if (Level == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !surface.IsLockable && !IsUsingShadowSurface())
+					{
+						SetRenderTargetShadow();
+					}
+
 					D3DLOCKED_RECT LockRect = {};
 					if (FAILED(LockD3d9Surface(&LockRect, nullptr, D3DLOCK_READONLY, Level)))
 					{
@@ -5367,7 +5431,7 @@ void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 	}
 }
 
-HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsFlip, bool IsSkipScene)
+HRESULT m_IDirectDrawSurfaceX::PresentSurface(LPRECT lpDestRect, bool IsSkipScene)
 {
 	// Check for device interface
 	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
@@ -5376,10 +5440,16 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsFlip, bool IsSkipScene)
 		return c_hr;
 	}
 
+	bool ShouldSkipScene = ((IsSkipScene && !SceneReady) || IsPresentRunning);
+
 	// Check if is not primary surface or if scene should be skipped
-	if (ShouldWriteToGDI() || ShouldPresentToWindow(true) || ddrawParent->IsInScene())
+	if (ShouldWriteToGDI() || ddrawParent->IsInScene())
 	{
-		// Never present when using Direct3D or when writing to GDI
+		// Never present when writing to GDI, presenting to a window or using Direct3D and InScene
+		if (IsPrimarySurface() && !ShouldSkipScene)
+		{
+			SceneReady = true;
+		}
 		return DD_OK;
 	}
 	else if (!IsPrimarySurface())
@@ -5389,12 +5459,12 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsFlip, bool IsSkipScene)
 			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 			if (lpDDSrcSurfaceX)
 			{
-				return lpDDSrcSurfaceX->PresentSurface(IsFlip, IsSkipScene);
+				return lpDDSrcSurfaceX->PresentSurface(lpDestRect, IsSkipScene);
 			}
 		}
 		return DDERR_GENERIC;
 	}
-	else if ((IsSkipScene && !SceneReady) || IsPresentRunning)
+	else if (ShouldSkipScene)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Skipping scene!";
 		return DDERR_GENERIC;
@@ -5411,20 +5481,16 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(bool IsFlip, bool IsSkipScene)
 	}
 
 	// Set present flag
-	IsPresentRunning = true;
+	ScopedFlagSet ScopedFlag(IsPresentRunning);
 
 	ScopedCriticalSection ThreadLock(GetCriticalSection());
 
 	// Present to d3d9
-	HRESULT hr = DD_OK;
-	if (FAILED(ddrawParent->PresentScene(nullptr)))
+	HRESULT hr = ddrawParent->PresentScene(lpDestRect);
+	if (FAILED(hr))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
-		hr = DDERR_GENERIC;
 	}
-
-	// Reset present flag
-	IsPresentRunning = false;
 
 	return hr;
 }
@@ -5863,42 +5929,29 @@ void m_IDirectDrawSurfaceX::BeginWritePresent(bool IsSkipScene)
 	// Check if data needs to be presented before write
 	if (dirtyFlag)
 	{
-		if (FAILED(PresentSurface(false, IsSkipScene)))
+		if (FAILED(PresentSurface(nullptr, IsSkipScene)))
 		{
 			PresentOnUnlock = true;
 		}
 	}
 }
 
-void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, bool IsFlip, bool WriteToWindow, bool FullPresent, bool IsSkipScene)
+void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, bool IsSkipScene)
 {
 	// Handle overlays
 	PresentOverlay(lpDestRect);
 
-	// Blt surface directly to GDI
 	if (ShouldWriteToGDI())
 	{
-		if (WriteToWindow)
+		if (IsPrimaryOrBackBuffer())
 		{
 			CopyEmulatedSurfaceToGDI(lpDestRect);
 		}
 	}
-	// Present surface to window
-	else if (ShouldPresentToWindow(true))
-	{
-		if (WriteToWindow && ddrawParent && !ddrawParent->IsInScene())
-		{
-			RECT DestRect = {};
-			if (CheckCoordinates(DestRect, lpDestRect, nullptr))
-			{
-				ddrawParent->PresentScene(&DestRect);
-			}
-		}
-	}
 	// Present surface after each draw unless removing interlacing
-	else if (FullPresent && (PresentOnUnlock || !Config.DdrawRemoveInterlacing))
+	else if (PresentOnUnlock || !Config.DdrawRemoveInterlacing)
 	{
-		PresentSurface(IsFlip, IsSkipScene);
+		PresentSurface(lpDestRect, IsSkipScene);
 
 		// Reset endscene lock
 		PresentOnUnlock = false;
@@ -5911,6 +5964,12 @@ void m_IDirectDrawSurfaceX::EndWriteSyncSurfaces(LPRECT lpDestRect)
 	if (IsUsingEmulation())
 	{
 		CopyFromEmulatedSurface(lpDestRect);
+	}
+
+	// Pre-populate draw texture
+	if (Using3D && IsSurfaceTexture() && IsColorKeyTexture() && !IsPrimaryOrBackBuffer() && !IsRenderTarget())
+	{
+		GetD3d9DrawTexture();
 	}
 }
 
@@ -6357,8 +6416,11 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 		}
 	}
 
-	// Keep surface insync
-	EndWriteSyncSurfaces(&DestRect);
+	if (MipMapLevel == 0)
+	{
+		// Keep surface insync
+		EndWriteSyncSurfaces(&DestRect);
+	}
 
 	return DD_OK;
 }
@@ -6706,10 +6768,68 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			{
 				hr = (*d3d9Device)->StretchRect(Src.GetSurface(), &SrcRect, Dest.GetSurface(), &DestRect, Filter);
 
+				if (hr == D3DERR_INVALIDCALL && Src.GetSurface() == Dest.GetSurface())
+				{
+					if (!tmpVideo.Surface)
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Creating tmpVideo surface.");
+
+						D3DSURFACE_DESC Desc = {};
+						Dest.GetSurface()->GetDesc(&Desc);
+
+						if (surface.Type == D3DTYPE_OFFPLAINSURFACE)
+						{
+							if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, surface.Pool, &tmpVideo.Surface, nullptr)))
+							{
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create offplain tmpVideo.Surface. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
+							}
+						}
+						else if (surface.Type == D3DTYPE_RENDERTARGET)
+						{
+							if (FAILED((*d3d9Device)->CreateRenderTarget(Desc.Width, Desc.Height, Desc.Format, D3DMULTISAMPLE_NONE, 0, FALSE, &tmpVideo.Surface, nullptr)))
+							{
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create render target tmpVideo.Surface. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
+							}
+						}
+						else if (surface.Type == D3DTYPE_TEXTURE)
+						{
+							if (!tmpVideo.Texture && FAILED((*d3d9Device)->CreateTexture(Desc.Width, Desc.Height, 1, surface.Usage, Desc.Format, surface.Pool, &tmpVideo.Texture, nullptr)))
+							{
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create texture tmpVideo.Texture. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
+							}
+							if (tmpVideo.Texture && FAILED(tmpVideo.Texture->GetSurfaceLevel(0, &tmpVideo.Surface)))
+							{
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface level for tmpVideo.Texture. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
+							}
+						}
+					}
+
+					if (tmpVideo.Surface)
+					{
+						hr = (*d3d9Device)->StretchRect(Src.GetSurface(), &SrcRect, tmpVideo.Surface, &DestRect, Filter);
+
+						if (FAILED(hr))
+						{
+							LOG_LIMIT(100, __FUNCTION__ << " Error: failed to StretchRect to tmpVideo.Surface!");
+						}
+
+						if (SUCCEEDED(hr))
+						{
+							hr = (*d3d9Device)->StretchRect(tmpVideo.Surface, &DestRect, Dest.GetSurface(), &DestRect, D3DTEXF_NONE);
+
+							if (FAILED(hr))
+							{
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to StretchRect from tmpVideo.Surface!");
+							}
+						}
+					}
+				}
+
 				if (FAILED(hr))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: could not copy rect: " << SrcDesc2.ddsCaps << " -> " << DestDesc2.ddsCaps << " " <<
-						SrcFormat << " -> " << DestFormat << " " << SrcRect << " -> " << DestRect << " " << IsStretchRect << " " << (D3DERR)hr);
+						SrcFormat << " -> " << DestFormat << " " << SrcRect << " -> " << DestRect << " " << IsStretchRect << " " <<
+						Src.GetSurface() << " -> " << Dest.GetSurface() << " " << (D3DERR)hr);
 				}
 			}
 
@@ -6785,8 +6905,14 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			}
 		}
 
+		// Check if source render target should use shadow
+		if (SrcMipMapLevel == 0 && (pSourceSurface->surface.Usage & D3DUSAGE_RENDERTARGET) && !pSourceSurface->IsUsingShadowSurface())
+		{
+			pSourceSurface->SetRenderTargetShadow();
+		}
+
 		// Check if render target should use shadow
-		if ((surface.Usage & D3DUSAGE_RENDERTARGET) && !IsUsingShadowSurface())
+		if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !IsUsingShadowSurface())
 		{
 			SetRenderTargetShadow();
 		}
@@ -7100,8 +7226,11 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 	if (SUCCEEDED(hr))
 	{
-		// Keep surface insync
-		EndWriteSyncSurfaces(&DestRect);
+		if (MipMapLevel == 0)
+		{
+			// Keep surface insync
+			EndWriteSyncSurfaces(&DestRect);
+		}
 	}
 
 	// Return
@@ -7353,9 +7482,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		case 16:
 			hr = ComplexZBufferCopy<WORD>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, surface.Format);
 			break;
-		case 24:
-			hr = ComplexZBufferCopy<TRIBYTE>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, surface.Format);
-			break;
+		case 24:	// Depth surfaces are always padded to multiples of 4 bytes per pixel. 
 		case 32:
 			hr = ComplexZBufferCopy<DWORD>(*d3d9Device, pSourceSurface->surface.Surface, SrcRect, DestRect, surface.Format);
 			break;
@@ -7446,7 +7573,7 @@ HRESULT m_IDirectDrawSurfaceX::LoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSur
 	const UINT SrcBitCount = GetBitCount(SrcFormat);
 	const UINT DestBitCount = GetBitCount(Desc.Format);
 
-	if (SrcBitCount == DestBitCount && (SrcFormat == Desc.Format || GetFailoverFormat(SrcFormat) == Desc.Format))
+	if (SrcBitCount == DestBitCount && !(Desc.Usage & D3DUSAGE_RENDERTARGET) && (SrcFormat == Desc.Format || GetFailoverFormat(SrcFormat) == Desc.Format))
 	{
 		// Lock destination surface
 		D3DLOCKED_RECT LockedRect = {};
@@ -8096,19 +8223,22 @@ HRESULT m_IDirectDrawSurfaceX::GetPresentWindowRect(LPRECT pRect, RECT& DestRect
 		Rect.bottom = min(Rect.bottom, ClientRect.bottom);
 	}
 
-	// Validate rect
-	if (Rect.left >= Rect.right || Rect.top >= Rect.bottom)
+	// Get map points
+	RECT MapClient = Rect;
+	MapWindowPoints(HWND_DESKTOP, hWnd, (LPPOINT)&MapClient, 2);
+
+	// Validate MapClient rect
+	if (!ClipRectToBounds(&MapClient, surfaceDesc2.dwWidth, surfaceDesc2.dwHeight))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << Rect);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid MapClient rect: " << Rect);
 		return DDERR_GENERIC;
 	}
 
-	// Get map points
-	RECT MapClient = Rect;
-	if (MapWindowPoints(HWND_DESKTOP, hWnd, (LPPOINT)&MapClient, 2))
+	// Validate rect
+	if (!ClipRectToBounds(&Rect, surfaceDesc2.dwWidth, surfaceDesc2.dwHeight))
 	{
-		MapClient.right = min((LONG)surfaceDesc2.dwWidth, MapClient.right);
-		MapClient.bottom = min((LONG)surfaceDesc2.dwHeight, MapClient.bottom);
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << Rect);
+		return DDERR_GENERIC;
 	}
 
 	// Get source surface

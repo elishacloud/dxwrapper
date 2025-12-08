@@ -21,6 +21,7 @@
 #include "GDI.h"
 #include "ddraw\ddraw.h"
 #include "d3d9\d3d9External.h"
+#include "Utils\Utils.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
@@ -35,6 +36,9 @@ namespace WndProc
 	bool IsExecutableAddress(void* address);
 
 	bool SwitchingResolution = false;
+
+	std::atomic<bool> IsKeyboardActive = false;
+	void SetKeyboardLayoutFocus(HWND hWnd, bool IsActivating);
 
 	struct WNDPROCSTRUCT
 	{
@@ -63,8 +67,8 @@ namespace WndProc
 		int* pFunctCall = (int*)&FunctCode[22];
 		DWORD oldProtect = 0;
 		HWND hWnd = nullptr;
-		WNDPROC MyWndProc = 0;
-		WNDPROC AppWndProc = 0;
+		WNDPROC MyWndProc = nullptr;
+		WNDPROC AppWndProc = nullptr;
 		DATASTRUCT DataStruct = {};
 		bool Active = true;
 		bool Exiting = false;
@@ -171,6 +175,22 @@ LRESULT WndProc::CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM 
 			DefWindowProcA(hWnd, Msg, wParam, lParam)));
 }
 
+bool WndProc::ShouldHook(HWND hWnd)
+{
+	if (!IsWindow(hWnd))
+		return false;
+
+	// Must be top-level (child windows never receive WM_ACTIVATE)
+	if (GetParent(hWnd) != NULL)
+		return false;
+
+	// Message-only windows never activate
+	if (hWnd == HWND_MESSAGE)
+		return false;
+
+	return true;
+}
+
 WndProc::DATASTRUCT* WndProc::AddWndProc(HWND hWnd)
 {
 	// Validate window handle
@@ -196,13 +216,8 @@ WndProc::DATASTRUCT* WndProc::AddWndProc(HWND hWnd)
 		}
 	}
 
-	// Check WndProc in struct
+	// Get WndProc from hWnd
 	WNDPROC NewAppWndProc = GetWndProc(hWnd);
-	if (!NewAppWndProc)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get wndproc window pointer!");
-		return nullptr;
-	}
 
 	// Create new struct
 	auto NewEntry = std::make_shared<WNDPROCSTRUCT>(hWnd, NewAppWndProc);
@@ -219,6 +234,17 @@ WndProc::DATASTRUCT* WndProc::AddWndProc(HWND hWnd)
 	LOG_LIMIT(100, __FUNCTION__ << " Creating WndProc instance! " << hWnd);
 	SetWndProc(hWnd, NewWndProc);
 	WndProcList.push_back(NewEntry);
+
+	// Handle keyboard layout
+	if (Config.ForceKeyboardLayout)
+	{
+		if (hWnd == GetActiveWindow() || hWnd == GetFocus())
+		{
+			PostMessage(hWnd, WM_APP_SET_KEYBOARD_LAYOUT, (WPARAM)NewWndProc, WM_MAKE_KEY(hWnd, NewWndProc));
+		}
+	}
+
+	// Return
 	return NewEntry->GetDataStruct();
 }
 
@@ -262,6 +288,21 @@ DWORD WndProc::MakeKey(DWORD Val1, DWORD Val2)
 	return Result % 8 ? Result ^ 0xAAAAAAAA : Result ^ 0x55555555;
 }
 
+void WndProc::SetKeyboardLayoutFocus(HWND hWnd, bool IsActivating)
+{
+	// On Activation
+	if (IsActivating)
+	{
+		PostMessage(hWnd, WM_APP_SET_KEYBOARD_LAYOUT, (WPARAM)hWnd, WM_MAKE_KEY(hWnd, hWnd));
+	}
+	// On Deactivation
+	else if (IsKeyboardActive)
+	{
+		IsKeyboardActive = false;
+		KeyboardLayout::UnSetForcedKeyboardLayout();
+	}
+}
+
 LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
 {
 	if (Msg != WM_PAINT)
@@ -279,107 +320,183 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	const HWND hWndInstance = AppWndProcInstance->GetHWnd();
 	DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
 
-	// Set instance as inactive when window closes
-	if ((Msg == WM_CLOSE || Msg == WM_DESTROY || Msg == WM_NCDESTROY || (Msg == WM_SYSCOMMAND && wParam == SC_CLOSE)) && hWnd == hWndInstance)
+	if (hWnd != hWndInstance)
 	{
-		AppWndProcInstance->SetInactive();
+		return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 	}
 
-	// Handle Direct3D9 device creation
-	if (Msg == WM_APP_CREATE_D3D9_DEVICE && WM_MAKE_KEY(hWnd, wParam) == lParam)
-	{
-		if (m_IDirectDrawX::CheckDirectDrawXInterface((void*)wParam))
-		{
-			((m_IDirectDrawX*)wParam)->CreateD9Device(__FUNCTION__);
-		}
+	const bool isForcingWindowedMode = (Config.EnableWindowMode && pDataStruct->IsExclusiveMode);
 
-		return NULL;
-	}
-
-	// Special handling for DirectDraw games
-	if (pDataStruct->IsDirectDraw)
+	switch (Msg)
 	{
-		// Filter some messages while creating a Direct3D9 device
-		if (pDataStruct->IsCreatingDevice)
+	case WM_APP_CREATE_D3D9_DEVICE:
+		// Handle Direct3D9 device creation
+		if (WM_MAKE_KEY(hWnd, wParam) == lParam)
 		{
-			switch (Msg)
+			if (m_IDirectDrawX::CheckDirectDrawXInterface((void*)wParam))
 			{
-			case WM_ACTIVATEAPP:
-				// Some games don't properly handle app activate in exclusive mode
-				if (!pDataStruct->IsExclusiveMode)
-				{
-					break;
-				}
-				[[fallthrough]];
-			case WM_ACTIVATE:
+				((m_IDirectDrawX*)wParam)->CreateD9Device(__FUNCTION__);
+			}
+			return NULL;
+		}
+		break;
+
+	case WM_APP_SET_KEYBOARD_LAYOUT:
+		if (WM_MAKE_KEY(hWnd, wParam) == lParam)
+		{
+			if (Config.ForceKeyboardLayout)
+			{
+				IsKeyboardActive = true;
+				KeyboardLayout::SetForcedKeyboardLayout();
+			}
+			return NULL;
+		}
+		break;
+
+	case WM_ACTIVATEAPP:
+		// Handle keyboard layout
+		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		{
+			SetKeyboardLayoutFocus(hWnd, wParam != FALSE);
+		}
+		// Some games don't properly handle app activate in exclusive mode
+		if (pDataStruct->IsDirectDraw)
+		{
+			static WPARAM isActive = TRUE;
+			if (wParam == isActive || (pDataStruct->IsCreatingDevice && pDataStruct->IsExclusiveMode) || isForcingWindowedMode)
+			{
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
+			isActive = wParam;
 		}
+		break;
+
+	case WM_ACTIVATE:
+		// Handle keyboard layout
+		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		{
+			SetKeyboardLayoutFocus(hWnd, LOWORD(wParam) != WA_INACTIVE);
+		}
+		// Filter some messages while creating a Direct3D9 device or forcing windowed mode
+		if (pDataStruct->IsDirectDraw && (pDataStruct->IsCreatingDevice || isForcingWindowedMode))
+		{
+			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+		}
+
 		// Special handling for iconic state to prevent issues with some games
-		if (IsIconic(hWnd))
+		if (pDataStruct->IsDirectDraw && IsIconic(hWnd))
 		{
-			switch (Msg)
+			// Tell Windows & game to fully restore
+			if (LOWORD(wParam) == WA_ACTIVE || LOWORD(wParam) == WA_CLICKACTIVE)
 			{
-			case WM_ACTIVATE:
-				// Tell Windows & game to fully restore
-				if (LOWORD(wParam) == WA_ACTIVE || LOWORD(wParam) == WA_CLICKACTIVE)
-				{
-					CallWndProc(pWndProc, hWnd, Msg, WA_ACTIVE, NULL);
-					CallWndProc(nullptr, hWnd, WM_SYSCOMMAND, SC_RESTORE, NULL);
-					SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
-					SetForegroundWindow(hWnd);
-					return 0;
-				}
-				// Some games require filtering this when iconic, other games require this message to see when the window is activated
-				if (pDataStruct->DirectXVersion > 4)
-				{
-					break;
-				}
-				[[fallthrough]];
-			case WM_PAINT:
-				// Some games hang when attempting to paint while iconic
+				CallWndProc(pWndProc, hWnd, Msg, WA_ACTIVE, NULL);
+				CallWndProc(nullptr, hWnd, WM_SYSCOMMAND, SC_RESTORE, NULL);
+				SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+				SetForegroundWindow(hWnd);
+				return NULL;
+			}
+			// Some games require filtering this when iconic, other games require this message to see when the window is activated
+			if (pDataStruct->DirectXVersion <= 4)
+			{
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
 		}
+		break;
+
+	case WM_NCACTIVATE:
+		// Filter some messages while forcing windowed mode
+		if (pDataStruct->IsDirectDraw && isForcingWindowedMode)
+		{
+			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+		}
+		break;
+
+	case WM_SETFOCUS:
+		// Handle keyboard layout
+		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		{
+			SetKeyboardLayoutFocus(hWnd, true);
+		}
+		break;
+
+	case WM_KILLFOCUS:
+		// Handle keyboard layout
+		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		{
+			SetKeyboardLayoutFocus(hWnd, false);
+		}
+		break;
+
+	case WM_STYLECHANGING:
+	case WM_STYLECHANGED:
+	case WM_ENTERSIZEMOVE:
+	case WM_EXITSIZEMOVE:
+	case WM_SIZING:
+	case WM_SIZE:
+	case WM_WINDOWPOSCHANGING:
+		// Filter some messages while forcing windowed mode
+		if (pDataStruct->IsCreatingDevice && isForcingWindowedMode)
+		{
+			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+		}
+		break;
+
+	case WM_WINDOWPOSCHANGED:
 		// Handle exclusive mode cases where the window is resized to be different than the display size
-		if (Msg == WM_WINDOWPOSCHANGED && pDataStruct->IsExclusiveMode && lParam)
+		if (pDataStruct->IsDirectDraw && pDataStruct->IsExclusiveMode)
 		{
 			m_IDirectDrawX::CheckWindowPosChange(hWnd, (WINDOWPOS*)lParam);
 		}
+
+		// Filter some messages while forcing windowed mode
+		if (pDataStruct->IsCreatingDevice && isForcingWindowedMode)
+		{
+			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+		}
+		break;
+
+	case WM_PAINT:
+		// Some games hang when attempting to paint while iconic
+		if (pDataStruct->IsDirectDraw && IsIconic(hWnd))
+		{
+			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+		}
+		break;
+
+	case WM_SYNCPAINT:
+		// Send WM_SYNCPAINT to DefWindowProc
+		return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+
+	case WM_DISPLAYCHANGE:
 		// Handle cases where monitor gets disconnected during resolution change
-		if (Msg == WM_DISPLAYCHANGE)
+		if (pDataStruct->IsDirectDraw)
 		{
 			SwitchingResolution = true;
 		}
-	}
+		break;
 
-	// Filter some messages while forcing windowed mode
-	if (Config.EnableWindowMode && (pDataStruct->IsDirectDraw || pDataStruct->IsDirect3D9) && pDataStruct->IsExclusiveMode)
-	{
-		switch (Msg)
+	case WM_SYSCOMMAND:
+		// Set instance as inactive when window closes
+		if (wParam == SC_CLOSE && hWnd == hWndInstance)
 		{
-		case WM_NCACTIVATE:
-		case WM_ACTIVATE:
-		case WM_ACTIVATEAPP:
-			if (pDataStruct->IsDirectDraw)
-			{
-				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
-			}
-			break;
-		case WM_STYLECHANGING:
-		case WM_STYLECHANGED:
-		case WM_ENTERSIZEMOVE:
-		case WM_EXITSIZEMOVE:
-		case WM_SIZING:
-		case WM_SIZE:
-		case WM_WINDOWPOSCHANGING:
-		case WM_WINDOWPOSCHANGED:
-			if (pDataStruct->IsCreatingDevice)
-			{
-				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
-			}
-			break;
+			AppWndProcInstance->SetInactive();
 		}
+		break;
+
+	case WM_CLOSE:
+	case WM_DESTROY:
+	case WM_NCDESTROY:
+		// Handle keyboard layout
+		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		{
+			SetKeyboardLayoutFocus(hWnd, false);
+		}
+		// Set instance as inactive when window closes
+		if (hWnd == hWndInstance)
+		{
+			AppWndProcInstance->SetInactive();
+		}
+		break;
 	}
 
 	// Handle debug overlay
@@ -389,12 +506,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		ImGuiWndProc(hWnd, Msg, wParam, lParam);
 	}
 #endif
-
-	// Send WM_SYNCPAINT to DefWindowProc
-	if (Msg == WM_SYNCPAINT)
-	{
-		return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
-	}
 
 	return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 }

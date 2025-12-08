@@ -1,0 +1,2049 @@
+LIBRARY
+EXPORTS
+
+
+; ****
+;LIBRARY "dsound"    <--- Needs to have the correct ordinals since some programs use the ordinal numbers for dsound APIs
+; ****
+DirectSoundCreate				@1
+DirectSoundEnumerateA			@2
+DirectSoundEnumerateW			@3
+DllCanUnloadNow					PRIVATE
+DllGetClassObject				PRIVATE
+DirectSoundCaptureCreate		@6
+DirectSoundCaptureEnumerateA	@7
+DirectSoundCaptureEnumerateW	@8
+GetDeviceID						@9
+DirectSoundFullDuplexCreate		@10
+DirectSoundCreate8				@11
+DirectSoundCaptureCreate8		@12
+
+
+; ****
+;LIBRARY "msvbvm60"    <--- Needs to have the correct ordinals since some programs use the ordinal numbers for msvbvm60 APIs
+; ****
+ThunRTMain @100
+VBDllUnRegisterServer @101
+VBDllCanUnloadNow @102
+VBDllRegisterServer @103
+VBDllGetClassObject @104
+UserDllMain @105
+;DllRegisterServer @106
+;DllUnregisterServer @107
+__vbaAryLock @108
+__vbaBoolErrVar @109
+__vbaRedimVar2 @110
+__vbaStrErrVarCopy @111
+__vbaVarLateMemCallLd @112
+__vbaVarLateMemCallLdRf @113
+__vbaVarLateMemCallSt @114
+__vbaVarLateMemSt @115
+__vbaVarLateMemStAd @116
+__vbaAryVarVarg @117
+__vbaFpCDblR4 @118
+__vbaFpCDblR8 @119
+__vbaFpCSngR4 @120
+__vbaFpCSngR8 @121
+__vbaFpCmpCy @122
+__vbaFpCy @123
+__vbaFpI2 @124
+__vbaFpI4 @125
+__vbaFpR4 @126
+__vbaFpR8 @127
+__vbaFpUI1 @128
+__vbaFreeObj @129
+__vbaFreeStr @130
+__vbaFreeVar @131
+__vbaFreeVarg @132
+__vbaI2Abs @133
+__vbaI2I4 @134
+__vbaI2Sgn @135
+__vbaI4Abs @136
+__vbaI4Sgn @137
+__vbaStrCopy @138
+__vbaStrMove @139
+__vbaUI1I2 @140
+__vbaUI1I4 @141
+__vbaUI1Sgn @142
+__vbaVarCopy @143
+__vbaVarDup @144
+__vbaVarMove @145
+__vbaVarVargNofree @146
+__vbaVarZero @147
+__vbaVargParmRef @148
+__vbaVargVar @149
+__vbaVargVarCopy @150
+__vbaVargVarMove @151
+__vbaVargVarRef @152
+DLLGetDocumentation @153
+;DllCanUnloadNow @154
+;DllGetClassObject @155
+_CIatan @156
+_CIcos @157
+_CIexp @158
+_CIlog @159
+_CIsin @160
+_CIsqrt @161
+_CItan @162
+__vbaAptOffset @163
+__vbaAryConstruct2 @164
+__vbaAryConstruct @165
+__vbaAryCopy @166
+__vbaAryDestruct @167
+__vbaAryMove @168
+__vbaAryRebase1Var @169
+__vbaAryRecCopy @170
+__vbaAryRecMove @171
+__vbaAryUnlock @172
+__vbaAryVar @173
+__vbaBoolStr @174
+__vbaBoolVar @175
+__vbaBoolVarNull @176
+__vbaCVarAryUdt @177
+__vbaCastObj @178
+__vbaCastObjVar @179
+__vbaCheckType @180
+__vbaCheckTypeVar @181
+__vbaChkstk @182
+__vbaCopyBytes @183
+__vbaCopyBytesZero @184
+__vbaCyAbs @185
+ProcCallEngine @186
+DllFunctionCall @187
+__vbaCyAdd @188
+__vbaCyErrVar @189
+CopyRecord @190
+__vbaCyFix @191
+__vbaCyForInit @192
+__vbaCyForNext @193
+__vbaCyI2 @194
+TipGetAddressOfPredeclaredInstance @195
+__vbaCyI4 @196
+__vbaCyInt @197
+__vbaCyMul @198
+MethCallEngine @199
+__vbaCyMulI2 @200
+__vbaCySgn @201
+__vbaCyStr @202
+__vbaCySub @203
+__vbaCyUI1 @204
+__vbaCyVar @205
+__vbaDateR4 @206
+__vbaDateR8 @207
+__vbaDateStr @208
+__vbaDateVar @209
+__vbaDerefAry @210
+__vbaDerefAry1 @211
+__vbaEnd @212
+__vbaErase @213
+__vbaEraseKeepData @214
+__vbaEraseNoPop @215
+__vbaError @216
+__vbaErrorOverflow @217
+__vbaExceptHandler @218
+__vbaExitEachAry @219
+TipSetOption @220
+__vbaExitEachColl @221
+__vbaExitEachVar @222
+__vbaExitProc @223
+__vbaFPException @224
+__vbaFPFix @225
+__vbaFPInt @226
+TipUnloadProject @227
+__vbaFailedFriend @228
+__vbaFileClose @229
+TipCreateInstanceProject2 @230
+EbResetProject @231
+EbGetHandleOfExecutingProject @232
+__vbaFileCloseAll @233
+__vbaFileLock @234
+__vbaFileOpen @235
+__vbaFileSeek @236
+__vbaFixstrConstruct @237
+__vbaForEachAry @238
+__vbaForEachCollAd @239
+__vbaForEachCollObj @240
+__vbaForEachCollVar @241
+__vbaForEachVar @242
+__vbaFreeObjList @243
+__vbaFreeStrList @244
+__vbaFreeVarList @245
+__vbaGenerateBoundsError @246
+__vbaGet3 @247
+__vbaGet4 @248
+__vbaGetFxStr3 @249
+__vbaGetFxStr4 @250
+__vbaGetOwner3 @251
+__vbaGetOwner4 @252
+__vbaGosub @253
+__vbaGosubFree @254
+__vbaGosubReturn @255
+__vbaHresultCheck @256
+__vbaHresultCheckNonvirt @257
+__vbaHresultCheckObj @258
+__vbaI2Cy @259
+__vbaI2ErrVar @260
+__vbaI2ForNextCheck @261
+__vbaI2Str @262
+__vbaI2Var @263
+__vbaI4Cy @264
+EbResetProjectNormal @265
+TipUnloadInstance @266
+__vbaI4ErrVar @267
+EbLibraryLoad @268
+EbLibraryUnload @269
+__vbaI4ForNextCheck @270
+EbLoadRunTime @271
+__vbaI4Str @272
+__vbaI4Var @273
+EbCreateContext @274
+EbDestroyContext @275
+EbSetContextWorkerThread @276
+__vbaInStr @277
+__vbaInStrB @278
+__vbaInStrVar @279
+__vbaInStrVarB @280
+__vbaInputFile @281
+__vbaLateIdCall @282
+__vbaLateIdCallLd @283
+EbGetErrorInfo @284
+__vbaLateIdCallSt @285
+__vbaLateIdNamedCall @286
+__vbaLateIdNamedCallLd @287
+__vbaLateIdNamedCallSt @288
+__vbaLateIdNamedStAd @289
+__vbaLateIdSt @290
+__vbaLateIdStAd @291
+__vbaLateMemCall @292
+__vbaLateMemCallLd @293
+__vbaLateMemCallSt @294
+__vbaLateMemNamedCall @295
+__vbaLateMemNamedCallLd @296
+__vbaLateMemNamedCallSt @297
+EbIsProjectOnStack @298
+TipCreateInstanceEx @299
+GetMem2 @300
+GetMem4 @301
+GetMem8 @302
+GetMemStr @303
+GetMemVar @304
+GetMemObj @305
+PutMem2 @306
+PutMem4 @307
+PutMem8 @308
+PutMemStr @309
+PutMemVar @310
+PutMemObj @311
+SetMemVar @312
+SetMemObj @313
+GetMemNewObj @314
+PutMemNewObj @315
+SetMemNewObj @316
+GetMem1 @317
+PutMem1 @318
+GetMemEvent @319
+PutMemEvent @320
+SetMemEvent @321
+__vbaLateMemNamedStAd @322
+__vbaLateMemSt @323
+__vbaLateMemStAd @324
+__vbaLbound @325
+__vbaLdZeroAry @326
+__vbaLenBstr @327
+__vbaLenBstrB @328
+__vbaLenVar @329
+__vbaLenVarB @330
+__vbaLineInputStr @331
+__vbaLineInputVar @332
+__vbaLsetFixstr @333
+__vbaLsetFixstrFree @334
+__vbaMidStmtBstr @335
+__vbaMidStmtBstrB @336
+__vbaMidStmtVar @337
+__vbaMidStmtVarB @338
+__vbaNameFile @339
+__vbaNew2 @340
+__vbaNew @341
+__vbaNextEachAry @342
+__vbaNextEachCollAd @343
+__vbaNextEachCollObj @344
+__vbaNextEachCollVar @345
+__vbaNextEachVar @346
+__vbaObjAddref @347
+__vbaObjIs @348
+__vbaObjSet @349
+__vbaObjSetAddref @350
+__vbaObjVar @351
+__vbaOnError @352
+__vbaOnGoCheck @353
+__vbaPowerR8 @354
+__vbaPrintFile @355
+__vbaPrintObj @356
+__vbaPut3 @357
+__vbaPut4 @358
+__vbaPutFxStr3 @359
+__vbaPutFxStr4 @360
+__vbaPutOwner3 @361
+__vbaPutOwner4 @362
+__vbaR4Cy @363
+__vbaR4ErrVar @364
+__vbaR4ForNextCheck @365
+__vbaR4Sgn @366
+__vbaR4Str @367
+__vbaR4Var @368
+__vbaR8Cy @369
+__vbaR8ErrVar @370
+__vbaR8FixI2 @371
+__vbaR8FixI4 @372
+__vbaR8ForNextCheck @373
+__vbaR8IntI2 @374
+__vbaR8IntI4 @375
+__vbaR8Sgn @376
+__vbaR8Str @377
+__vbaR8Var @378
+__vbaRaiseEvent @379
+__vbaRecAnsiToUni @380
+__vbaRecAssign @381
+__vbaRecDestruct @382
+__vbaRecDestructAnsi @383
+__vbaRecUniToAnsi @384
+__vbaRedim @385
+__vbaRedimPreserve @386
+__vbaRedimPreserveVar @387
+__vbaRedimPreserveVar2 @388
+__vbaRedimVar @389
+__vbaRefVarAry @390
+__vbaResume @391
+__vbaRsetFixstr @392
+__vbaRsetFixstrFree @393
+__vbaSetSystemError @394
+__vbaStopExe @395
+__vbaStr2Vec @396
+__vbaStrAryToAnsi @397
+__vbaStrAryToUnicode @398
+__vbaStrBool @399
+EVENT_SINK_QueryInterface @400
+EVENT_SINK_AddRef @401
+EVENT_SINK_Release @402
+EVENT_SINK_GetIDsOfNames @403
+EVENT_SINK_Invoke @404
+__vbaStrCat @405
+__vbaStrCmp @406
+__vbaStrComp @407
+__vbaStrCompVar @408
+__vbaStrCy @409
+BASIC_CLASS_QueryInterface @410
+BASIC_CLASS_AddRef @411
+BASIC_CLASS_Release @412
+BASIC_CLASS_GetIDsOfNames @413
+BASIC_CLASS_Invoke @414
+__vbaStrDate @415
+__vbaStrFixstr @416
+__vbaStrI2 @417
+__vbaStrI4 @418
+__vbaStrLike @419
+BASIC_DISPINTERFACE_GetTICount @420
+BASIC_DISPINTERFACE_GetTypeInfo @421
+__vbaStrR4 @422
+__vbaStrR8 @423
+__vbaStrTextCmp @424
+__vbaStrTextLike @425
+__vbaStrToAnsi @426
+__vbaStrToUnicode @427
+__vbaStrUI1 @428
+__vbaStrVarCopy @429
+Zombie_QueryInterface @430
+Zombie_AddRef @431
+Zombie_Release @432
+Zombie_GetTypeInfoCount @433
+Zombie_GetTypeInfo @434
+Zombie_GetIDsOfNames @435
+Zombie_Invoke @436
+__vbaStrVarMove @437
+__vbaStrVarVal @438
+__vbaUI1Cy @439
+EVENT_SINK2_AddRef @440
+EVENT_SINK2_Release @441
+__vbaUI1ErrVar @442
+__vbaUI1Str @443
+__vbaUI1Var @444
+__vbaUbound @445
+__vbaUdtVar @446
+__vbaUnkVar @447
+__vbaVar2Vec @448
+__vbaVarAbs @449
+__vbaVarAdd @450
+__vbaVarAnd @451
+__vbaVarCat @452
+__vbaVarCmpEq @453
+__vbaVarCmpGe @454
+__vbaVarCmpGt @455
+__vbaVarCmpLe @456
+__vbaVarCmpLt @457
+__vbaVarCmpNe @458
+__vbaVarDateVar @459
+__vbaVarDiv @460
+__vbaVarEqv @461
+__vbaVarErrI4 @462
+__vbaVarFix @463
+__vbaVarForInit @464
+__vbaVarForNext @465
+__vbaVarIdiv @466
+__vbaVarImp @467
+__vbaVarIndexLoad @468
+__vbaVarIndexLoadRef @469
+__vbaVarIndexLoadRefLock @470
+__vbaVarIndexStore @471
+__vbaVarIndexStoreObj @472
+__vbaVarInt @473
+__vbaVarLike @474
+__vbaVarLikeVar @475
+__vbaVarMod @476
+__vbaVarMul @477
+__vbaVarNeg @478
+__vbaVarNot @479
+__vbaVarOr @480
+__vbaVarPow @481
+__vbaVarSetObj @482
+__vbaVarSetObjAddref @483
+__vbaVarSetUnk @484
+__vbaVarSetUnkAddref @485
+__vbaVarSetVar @486
+__vbaVarSetVarAddref @487
+__vbaVarSub @488
+__vbaVarTextCmpEq @489
+__vbaVarTextCmpGe @490
+__vbaVarTextCmpGt @491
+__vbaVarTextCmpLe @492
+__vbaVarTextCmpLt @493
+__vbaVarTextCmpNe @494
+__vbaVarTextLike @495
+__vbaVarTextLikeVar @496
+__vbaVarTextTstEq @497
+__vbaVarTextTstGe @498
+__vbaVarTextTstGt @499
+__vbaVarTextTstLe @500
+__vbaVarTextTstLt @501
+__vbaVarTextTstNe @502
+__vbaVarTstEq @503
+__vbaVarTstGe @504
+__vbaVarTstGt @505
+__vbaVarTstLe @506
+__vbaVarTstLt @507
+__vbaVarTstNe @508
+__vbaVarXor @509
+__vbaVargObj @510
+__vbaVargObjAddref @511
+rtcLeftBstr @512
+rtcLeftVar @513
+rtcRightBstr @514
+rtcRightVar @515
+rtcAnsiValueBstr @516
+rtcLowerCaseBstr @517
+rtcLowerCaseVar @518
+rtcTrimBstr @519
+rtcTrimVar @520
+rtcLeftTrimBstr @521
+rtcLeftTrimVar @522
+rtcRightTrimBstr @523
+rtcRightTrimVar @524
+rtcSpaceBstr @525
+rtcSpaceVar @526
+rtcUpperCaseBstr @527
+rtcUpperCaseVar @528
+rtcKillFiles @529
+rtcChangeDir @530
+rtcMakeDir @531
+rtcRemoveDir @532
+rtcChangeDrive @533
+rtcBeep @534
+rtcGetTimer @535
+rtcStrFromVar @536
+rtcBstrFromAnsi @537
+rtcPackDate @538
+rtcPackTime @539
+rtcGetDateValue @540
+rtcGetTimeValue @541
+rtcGetDayOfMonth @542
+rtcGetHourOfDay @543
+rtcGetMinuteOfHour @544
+rtcGetMonthOfYear @545
+rtcGetPresentDate @546
+rtcGetSecondOfMinute @547
+rtcSetDateVar @548
+rtcSetDateBstr @549
+rtcSetTimeVar @550
+rtcSetTimeBstr @551
+rtcGetDayOfWeek @552
+rtcGetYear @553
+rtcFileReset @554
+rtcFileAttributes @555
+rtcIsArray @556
+rtcIsDate @557
+rtcIsEmpty @558
+rtcIsError @559
+rtcIsNull @560
+rtcIsNumeric @561
+rtcIsObject @562
+rtcVarType @563
+rtDecFromVar @564
+rtcFileWidth @565
+rtcInputCount @566
+rtcInputCountVar @567
+rtcFileSeek @568
+rtcFileLocation @569
+rtcFileLength @570
+rtcEndOfFile @571
+rtcHexBstrFromVar @572
+rtcHexVarFromVar @573
+rtcOctBstrFromVar @574
+rtcOctVarFromVar @575
+rtcFileCopy @576
+rtcFileDateTime @577
+rtcFileLen @578
+rtcGetFileAttr @579
+rtcSetFileAttr @580
+rtcR8ValFromBstr @581
+rtcSin @582
+rtcCos @583
+rtcTan @584
+rtcAtn @585
+rtcExp @586
+rtcLog @587
+rtcRgb @588
+rtcQBColor @589
+rtcMacId @590
+rtcTypeName @591
+rtcIsMissing @592
+rtcRandomNext @593
+rtcRandomize @594
+rtcMsgBox @595
+rtcInputBox @596
+rtcAppActivate @597
+rtcDoEvents @598
+rtcSendKeys @599
+rtcShell @600
+rtcArray @601
+__vbaVargUnk @602
+__vbaVargUnkAddref @603
+__vbaVerifyVarObj @604
+rtcGetErl @605
+rtcStringBstr @606
+rtcStringVar @607
+rtcVarBstrFromAnsi @608
+rtcGetDateBstr @609
+rtcGetDateVar @610
+rtcGetTimeBstr @611
+rtcGetTimeVar @612
+rtcVarStrFromVar @613
+rtcSqr @614
+rtcIMEStatus @615
+rtcLeftCharBstr @616
+rtcLeftCharVar @617
+rtcRightCharBstr @618
+rtcRightCharVar @619
+rtcInputCharCount @620
+rtcInputCharCountVar @621
+rtcStrConvVar @622
+__vbaWriteFile @623
+rtcGetHostLCID @624
+rtcCreateObject @625
+rtcGetObject @626
+rtcAppleScript @627
+rtcMidBstr @628
+rtcMidVar @629
+rtcInStr @630
+rtcMidCharBstr @631
+rtcMidCharVar @632
+rtcInStrChar @633
+rtBstrFromErrVar @634
+rtBoolFromErrVar @635
+rtCyFromErrVar @636
+rtI2FromErrVar @637
+rtI4FromErrVar @638
+rtR4FromErrVar @639
+rtR8FromErrVar @640
+rtcDateFromVar @641
+rtcVarFromVar @642
+rtcCVErrFromVar @643
+VarPtr @644
+rtcDir @645
+rtcCurrentDirBstr @646
+rtcCurrentDir @647
+rtcFreeFile @648
+rtcCompareBstr @649
+rtcBstrFromFormatVar @650
+rtcBstrFromError @651
+rtcVarFromError @652
+rtcLenCharVar @653
+rtcLenVar @654
+rtcFixVar @655
+rtcAbsVar @656
+rtcIntVar @657
+rtcSgnVar @658
+_adj_fdiv_m16i @659
+rtcVarFromFormatVar @660
+rtcDateAdd @661
+rtcDateDiff @662
+rtcDatePart @663
+rtcPartition @664
+rtcChoose @665
+rtcEnvironVar @666
+rtcEnvironBstr @667
+rtcSwitch @668
+rtcCommandBstr @669
+rtcCommandVar @670
+rtcSLN @671
+rtcSYD @672
+rtcDDB @673
+rtcIPMT @674
+rtcPPMT @675
+rtcPMT @676
+rtcPV @677
+rtcFV @678
+rtcNPer @679
+rtcRate @680
+rtcImmediateIf @681
+rtcIRR @682
+rtcMIRR @683
+rtcNPV @684
+rtcErrObj @685
+rtUI1FromErrVar @686
+rtcVarDateFromVar @687
+_adj_fdiv_m32 @688
+rtcGetSetting @689
+rtcSaveSetting @690
+rtcDeleteSetting @691
+rtcGetAllSettings @692
+rtcByteValueBstr @693
+rtcBstrFromByte @694
+rtcVarBstrFromByte @695
+rtcCharValueBstr @696
+rtcBstrFromChar @697
+rtcVarBstrFromChar @698
+rtcSetCurrentCalendar @699
+rtcGetCurrentCalendar @700
+_adj_fdiv_m32i @701
+rtcFormatNumber @702
+rtcFormatCurrency @703
+rtcFormatPercent @704
+rtcFormatDateTime @705
+rtcWeekdayName @706
+rtcMonthName @707
+rtcFilter @708
+rtcInStrRev @709
+rtcJoin @710
+rtcSplit @711
+rtcReplace @712
+rtcStrReverse @713
+rtcRound @714
+rtcCallByName @715
+rtcCreateObject2 @716
+rtcStrConvVar2 @717
+_adj_fdiv_m64 @718
+_adj_fdiv_r @719
+_adj_fdivr_m16i @720
+_adj_fdivr_m32 @721
+_adj_fdivr_m32i @722
+_adj_fdivr_m64 @723
+_adj_fpatan @724
+_adj_fprem @725
+_adj_fprem1 @726
+_adj_fptan @727
+_allmul = allmul @728
+TipInvokeMethod2 @999
+TipInvokeMethod @1016
+IID_IVbaHost @1024
+EbGetObjConnectionCounts @1025
+CreateIExprSrvObj @2000
+EbGetVBAObject @2010
+
+
+; ****
+;LIBRARY "bcrypt"
+; ****
+BCryptAddContextFunction 
+BCryptAddContextFunctionProvider 
+BCryptCloseAlgorithmProvider 
+BCryptConfigureContext 
+BCryptConfigureContextFunction 
+BCryptCreateContext 
+BCryptCreateHash 
+BCryptCreateMultiHash 
+BCryptDecrypt 
+BCryptDeleteContext 
+BCryptDeriveKey 
+BCryptDeriveKeyCapi 
+BCryptDeriveKeyPBKDF2 
+BCryptDestroyHash 
+BCryptDestroyKey 
+BCryptDestroySecret 
+BCryptDuplicateHash 
+BCryptDuplicateKey 
+BCryptEncrypt 
+BCryptEnumAlgorithms 
+BCryptEnumContextFunctionProviders 
+BCryptEnumContextFunctions 
+BCryptEnumContexts 
+BCryptEnumProviders 
+BCryptEnumRegisteredProviders 
+BCryptExportKey 
+BCryptFinalizeKeyPair 
+BCryptFinishHash 
+BCryptFreeBuffer 
+BCryptGenRandom 
+BCryptGenerateKeyPair 
+BCryptGenerateSymmetricKey 
+BCryptGetFipsAlgorithmMode 
+BCryptGetProperty 
+BCryptHash 
+BCryptHashData 
+BCryptImportKey 
+BCryptImportKeyPair 
+BCryptKeyDerivation 
+BCryptOpenAlgorithmProvider 
+BCryptProcessMultiOperations 
+BCryptQueryContextConfiguration 
+BCryptQueryContextFunctionConfiguration 
+BCryptQueryContextFunctionProperty 
+BCryptQueryProviderRegistration 
+BCryptRegisterConfigChangeNotify 
+BCryptRegisterProvider 
+BCryptRemoveContextFunction 
+BCryptRemoveContextFunctionProvider 
+BCryptResolveProviders 
+BCryptSecretAgreement 
+BCryptSetAuditingInterface 
+BCryptSetContextFunctionProperty 
+BCryptSetProperty 
+BCryptSignHash 
+BCryptUnregisterConfigChangeNotify 
+BCryptUnregisterProvider 
+BCryptVerifySignature 
+
+
+; ****
+;LIBRARY "cryptbase"
+; ****
+SystemFunction001
+SystemFunction002
+SystemFunction003
+SystemFunction004
+SystemFunction005
+SystemFunction028
+SystemFunction029
+SystemFunction034
+SystemFunction036
+SystemFunction040
+SystemFunction041
+
+
+; ****
+;LIBRARY "cryptsp"
+; ****
+CheckSignatureInFile 
+CryptAcquireContextA 
+CryptAcquireContextW 
+CryptContextAddRef 
+CryptCreateHash 
+CryptDecrypt 
+CryptDeriveKey 
+CryptDestroyHash 
+CryptDestroyKey 
+CryptDuplicateHash 
+CryptDuplicateKey 
+CryptEncrypt 
+CryptEnumProviderTypesA 
+CryptEnumProviderTypesW 
+CryptEnumProvidersA 
+CryptEnumProvidersW 
+CryptExportKey 
+CryptGenKey 
+CryptGenRandom 
+CryptGetDefaultProviderA 
+CryptGetDefaultProviderW 
+CryptGetHashParam 
+CryptGetKeyParam 
+CryptGetProvParam 
+CryptGetUserKey 
+CryptHashData 
+CryptHashSessionKey 
+CryptImportKey 
+CryptReleaseContext 
+CryptSetHashParam 
+CryptSetKeyParam 
+CryptSetProvParam 
+CryptSetProviderA 
+CryptSetProviderExA 
+CryptSetProviderExW 
+CryptSetProviderW 
+CryptSignHashA 
+CryptSignHashW 
+CryptVerifySignatureA 
+CryptVerifySignatureW 
+SystemFunction006 
+SystemFunction007 
+SystemFunction008 
+SystemFunction009 
+SystemFunction010 
+SystemFunction011 
+SystemFunction012 
+SystemFunction013 
+SystemFunction014 
+SystemFunction015 
+SystemFunction016 
+SystemFunction018 
+SystemFunction020 
+SystemFunction021 
+SystemFunction022 
+SystemFunction023 
+SystemFunction024 
+SystemFunction025 
+SystemFunction026 
+SystemFunction027 
+SystemFunction030 
+SystemFunction031 
+SystemFunction032 
+SystemFunction033 
+SystemFunction035 
+
+
+; ****
+;LIBRARY "d2d1"
+; ****
+D2D1CreateFactory
+D2D1MakeRotateMatrix
+D2D1MakeSkewMatrix
+D2D1IsMatrixInvertible
+D2D1InvertMatrix
+D2D1ConvertColorSpace
+D2D1CreateDevice
+D2D1CreateDeviceContext
+D2D1SinCos
+D2D1Tan
+D2D1Vec3Length
+D2D1ComputeMaximumScaleFactor
+D2D1GetGradientMeshInteriorPointsFromCoonsPatch
+D2DTkCreateOn12Device
+D2DTkCreateAlgorithmFactory
+
+
+; ****
+;LIBRARY "d3d8"
+; ****
+ValidatePixelShader
+ValidateVertexShader
+Direct3DCreate8
+
+
+; ****
+;LIBRARY "d3d9"
+; ****
+D3DPERF_BeginEvent
+D3DPERF_EndEvent
+D3DPERF_GetStatus
+D3DPERF_QueryRepeatFrame
+D3DPERF_SetMarker
+D3DPERF_SetOptions
+D3DPERF_SetRegion
+Direct3DCreate9
+Direct3DCreate9Ex
+Direct3DCreate9On12
+Direct3DCreate9On12Ex
+
+
+; ****
+;LIBRARY "dciman32"
+; ****
+DCIBeginAccess 
+DCICloseProvider 
+DCICreateOffscreen 
+DCICreateOverlay 
+DCICreatePrimary 
+DCIDestroy 
+DCIDraw 
+DCIEndAccess 
+DCIEnum 
+DCIOpenProvider 
+DCISetClipList 
+DCISetDestination 
+DCISetSrcDestClip 
+GetDCRegionData 
+GetWindowRegionData 
+WinWatchClose 
+WinWatchDidStatusChange 
+WinWatchGetClipList 
+WinWatchNotify 
+WinWatchOpen 
+
+
+; ****
+;LIBRARY "ddraw"
+; ****
+AcquireDDThreadLock
+CompleteCreateSysmemSurface
+D3DParseUnknownCommand
+DDGetAttachedSurfaceLcl
+DDInternalLock
+DDInternalUnlock
+DSoundHelp
+DirectDrawCreate
+DirectDrawCreateClipper
+DirectDrawCreateEx
+DirectDrawEnumerateA
+DirectDrawEnumerateExA
+DirectDrawEnumerateExW
+DirectDrawEnumerateW
+DllCanUnloadNow					PRIVATE
+DllGetClassObject				PRIVATE
+GetDDSurfaceLocal
+GetOLEThunkData
+GetSurfaceFromDC
+RegisterSpecialCase
+ReleaseDDThreadLock
+SetAppCompatData
+
+
+; ****
+;LIBRARY "dinput"
+; ****
+DirectInputCreateA
+DirectInputCreateEx
+DirectInputCreateW
+
+
+; ****
+;LIBRARY "dinput8"
+; ****
+DirectInput8Create
+GetdfDIJoystick
+
+
+; ****
+;LIBRARY "dplayx"
+; ****
+DirectPlayCreate
+DirectPlayEnumerate
+DirectPlayEnumerateA
+DirectPlayEnumerateW
+DirectPlayLobbyCreateA
+DirectPlayLobbyCreateW
+
+
+; ****
+;LIBRARY "dwmapi"
+; ****
+DllCanUnloadNow					PRIVATE
+DllGetClassObject				PRIVATE
+DwmAttachMilContent
+DwmDefWindowProc
+DwmDetachMilContent
+DwmEnableBlurBehindWindow
+DwmEnableComposition
+DwmEnableMMCSS
+DwmExtendFrameIntoClientArea
+DwmFlush
+DwmGetColorizationColor
+DwmGetCompositionTimingInfo
+DwmGetGraphicsStreamClient
+DwmGetGraphicsStreamTransformHint
+DwmGetTransportAttributes
+DwmGetUnmetTabRequirements
+DwmGetWindowAttribute
+DwmInvalidateIconicBitmaps
+DwmIsCompositionEnabled
+DwmModifyPreviousDxFrameDuration
+DwmQueryThumbnailSourceSize
+DwmRegisterThumbnail
+DwmRenderGesture
+DwmSetDxFrameDuration
+DwmSetIconicLivePreviewBitmap
+DwmSetIconicThumbnail
+DwmSetPresentParameters
+DwmSetWindowAttribute
+DwmShowContact
+DwmTetherContact
+DwmTetherTextContact
+DwmTransitionOwnedWindow
+DwmUnregisterThumbnail
+DwmUpdateThumbnailProperties
+DwmpAllocateSecurityDescriptor
+DwmpDxBindSwapChain
+DwmpDxGetWindowSharedSurface
+DwmpDxUnbindSwapChain
+DwmpDxUpdateWindowRedirectionBltSurface
+DwmpDxUpdateWindowSharedSurface
+DwmpDxgiIsThreadDesktopComposited
+DwmpEnableDDASupport
+DwmpFreeSecurityDescriptor
+DwmpGetColorizationParameters
+DwmpRenderFlick
+DwmpSetColorizationParameters
+
+
+; ****
+;LIBRARY "msacm32"
+; ****
+XRegThunkEntry
+acmDriverAddA
+acmDriverAddW
+acmDriverClose
+acmDriverDetailsA
+acmDriverDetailsW
+acmDriverEnum
+acmDriverID
+acmDriverMessage
+acmDriverOpen
+acmDriverPriority
+acmDriverRemove
+acmFilterChooseA
+acmFilterChooseW
+acmFilterDetailsA
+acmFilterDetailsW
+acmFilterEnumA
+acmFilterEnumW
+acmFilterTagDetailsA
+acmFilterTagDetailsW
+acmFilterTagEnumA
+acmFilterTagEnumW
+acmFormatChooseA
+acmFormatChooseW
+acmFormatDetailsA
+acmFormatDetailsW
+acmFormatEnumA
+acmFormatEnumW
+acmFormatSuggest
+acmFormatTagDetailsA
+acmFormatTagDetailsW
+acmFormatTagEnumA
+acmFormatTagEnumW
+acmGetVersion
+acmMessage32
+acmMetrics
+acmStreamClose
+acmStreamConvert
+acmStreamMessage
+acmStreamOpen
+acmStreamPrepareHeader
+acmStreamReset
+acmStreamSize
+acmStreamUnprepareHeader
+
+
+; ****
+;LIBRARY "msvfw32"
+; ****
+VideoForWindowsVersion
+DrawDibBegin
+DrawDibChangePalette
+DrawDibClose
+DrawDibDraw
+DrawDibEnd
+DrawDibGetBuffer
+DrawDibGetPalette
+DrawDibOpen
+DrawDibProfileDisplay
+DrawDibRealize
+DrawDibSetPalette
+DrawDibStart
+DrawDibStop
+DrawDibTime
+GetOpenFileNamePreview
+GetOpenFileNamePreviewA
+GetOpenFileNamePreviewW
+GetSaveFileNamePreviewA
+GetSaveFileNamePreviewW
+ICClose
+ICCompress
+ICCompressorChoose
+ICCompressorFree
+ICDecompress
+ICDraw
+ICDrawBegin
+ICGetDisplayFormat
+ICGetInfo
+ICImageCompress
+ICImageDecompress
+ICInfo
+ICInstall
+ICLocate
+ICMThunk32
+ICOpen
+ICOpenFunction
+ICRemove
+ICSendMessage
+ICSeqCompressFrame
+ICSeqCompressFrameEnd
+ICSeqCompressFrameStart
+MCIWndCreate
+MCIWndCreateA
+MCIWndCreateW
+MCIWndRegisterClass
+StretchDIB
+
+
+; ****
+;LIBRARY "version"
+; ****
+GetFileVersionInfoA
+GetFileVersionInfoByHandle
+GetFileVersionInfoExA
+GetFileVersionInfoExW
+GetFileVersionInfoSizeA
+GetFileVersionInfoSizeExA
+GetFileVersionInfoSizeExW
+GetFileVersionInfoSizeW
+GetFileVersionInfoW
+VerFindFileA
+VerFindFileW
+VerInstallFileA
+VerInstallFileW
+VerLanguageNameA
+VerLanguageNameW
+VerQueryValueA
+VerQueryValueW
+
+
+; ****
+;LIBRARY "wininet"
+; ****
+DispatchAPICall
+AppCacheCheckManifest
+AppCacheCloseHandle
+AppCacheCreateAndCommitFile
+AppCacheDeleteGroup
+AppCacheDeleteIEGroup
+AppCacheDuplicateHandle
+AppCacheFinalize
+AppCacheFreeDownloadList
+AppCacheFreeGroupList
+AppCacheFreeIESpace
+AppCacheFreeSpace
+AppCacheGetDownloadList
+AppCacheGetFallbackUrl
+AppCacheGetGroupList
+AppCacheGetIEGroupList
+AppCacheGetInfo
+AppCacheGetManifestUrl
+AppCacheLookup
+CommitUrlCacheEntryA
+CommitUrlCacheEntryBinaryBlob
+CommitUrlCacheEntryW
+CreateMD5SSOHash
+CreateUrlCacheContainerA
+CreateUrlCacheContainerW
+CreateUrlCacheEntryA
+CreateUrlCacheEntryExW
+CreateUrlCacheEntryW
+CreateUrlCacheGroup
+DeleteIE3Cache
+DeleteUrlCacheContainerA
+DeleteUrlCacheContainerW
+DeleteUrlCacheEntry
+DeleteUrlCacheEntryA
+DeleteUrlCacheEntryW
+DeleteUrlCacheGroup
+DeleteWpadCacheForNetworks
+DetectAutoProxyUrl
+DllCanUnloadNow					PRIVATE
+DllGetClassObject				PRIVATE
+DllInstall						PRIVATE
+DllRegisterServer				PRIVATE
+DllUnregisterServer				PRIVATE
+FindCloseUrlCache
+FindFirstUrlCacheContainerA
+FindFirstUrlCacheContainerW
+FindFirstUrlCacheEntryA
+FindFirstUrlCacheEntryExA
+FindFirstUrlCacheEntryExW
+FindFirstUrlCacheEntryW
+FindFirstUrlCacheGroup
+FindNextUrlCacheContainerA
+FindNextUrlCacheContainerW
+FindNextUrlCacheEntryA
+FindNextUrlCacheEntryExA
+FindNextUrlCacheEntryExW
+FindNextUrlCacheEntryW
+FindNextUrlCacheGroup
+ForceNexusLookup
+ForceNexusLookupExW
+FreeUrlCacheSpaceA
+FreeUrlCacheSpaceW
+FtpCommandA
+FtpCommandW
+FtpCreateDirectoryA
+FtpCreateDirectoryW
+FtpDeleteFileA
+FtpDeleteFileW
+FtpFindFirstFileA
+FtpFindFirstFileW
+FtpGetCurrentDirectoryA
+FtpGetCurrentDirectoryW
+FtpGetFileA
+FtpGetFileEx
+FtpGetFileSize
+FtpGetFileW
+FtpOpenFileA
+FtpOpenFileW
+FtpPutFileA
+FtpPutFileEx
+FtpPutFileW
+FtpRemoveDirectoryA
+FtpRemoveDirectoryW
+FtpRenameFileA
+FtpRenameFileW
+FtpSetCurrentDirectoryA
+FtpSetCurrentDirectoryW
+GetProxyDllInfo
+GetUrlCacheConfigInfoA
+GetUrlCacheConfigInfoW
+GetUrlCacheEntryBinaryBlob
+GetUrlCacheEntryInfoA
+GetUrlCacheEntryInfoExA
+GetUrlCacheEntryInfoExW
+GetUrlCacheEntryInfoW
+GetUrlCacheGroupAttributeA
+GetUrlCacheGroupAttributeW
+GetUrlCacheHeaderData
+GopherCreateLocatorA
+GopherCreateLocatorW
+GopherFindFirstFileA
+GopherFindFirstFileW
+GopherGetAttributeA
+GopherGetAttributeW
+GopherGetLocatorTypeA
+GopherGetLocatorTypeW
+GopherOpenFileA
+GopherOpenFileW
+HttpAddRequestHeadersA
+HttpAddRequestHeadersW
+HttpCheckDavCompliance
+HttpCloseDependencyHandle
+HttpDuplicateDependencyHandle
+HttpEndRequestA
+HttpEndRequestW
+HttpGetServerCredentials
+HttpGetTunnelSocket
+HttpIndicatePageLoadComplete
+HttpIsHostHstsEnabled
+HttpOpenDependencyHandle
+HttpOpenRequestA
+HttpOpenRequestW
+HttpPushClose
+HttpPushEnable
+HttpPushWait
+HttpQueryInfoA
+HttpQueryInfoW
+HttpSendRequestA
+HttpSendRequestExA
+HttpSendRequestExW
+HttpSendRequestW
+HttpWebSocketClose
+HttpWebSocketCompleteUpgrade
+HttpWebSocketQueryCloseStatus
+HttpWebSocketReceive
+HttpWebSocketSend
+HttpWebSocketShutdown
+IncrementUrlCacheHeaderData
+InternetAlgIdToStringA
+InternetAlgIdToStringW
+InternetAttemptConnect
+InternetAutodial
+InternetAutodialCallback
+InternetAutodialHangup
+InternetCanonicalizeUrlA
+InternetCanonicalizeUrlW
+InternetCheckConnectionA
+InternetCheckConnectionW
+InternetClearAllPerSiteCookieDecisions
+InternetCloseHandle
+InternetCombineUrlA
+InternetCombineUrlW
+InternetConfirmZoneCrossing
+InternetConfirmZoneCrossingA
+InternetConfirmZoneCrossingW
+InternetConnectA
+InternetConnectW
+InternetConvertUrlFromWireToWideChar
+InternetCrackUrlA
+InternetCrackUrlW
+InternetCreateUrlA
+InternetCreateUrlW
+InternetDial
+InternetDialA
+InternetDialW
+InternetEnumPerSiteCookieDecisionA
+InternetEnumPerSiteCookieDecisionW
+InternetErrorDlg
+InternetFindNextFileA
+InternetFindNextFileW
+InternetFortezzaCommand
+InternetFreeCookies
+InternetFreeProxyInfoList
+InternetGetCertByURL
+InternetGetCertByURLA
+InternetGetConnectedState
+InternetGetConnectedStateEx
+InternetGetConnectedStateExA
+InternetGetConnectedStateExW
+InternetGetCookieA
+InternetGetCookieEx2
+InternetGetCookieExA
+InternetGetCookieExW
+InternetGetCookieW
+InternetGetLastResponseInfoA
+InternetGetLastResponseInfoW
+InternetGetPerSiteCookieDecisionA
+InternetGetPerSiteCookieDecisionW
+InternetGetProxyForUrl
+InternetGetSecurityInfoByURL
+InternetGetSecurityInfoByURLA
+InternetGetSecurityInfoByURLW
+InternetGoOnline
+InternetGoOnlineA
+InternetGoOnlineW
+InternetHangUp
+InternetInitializeAutoProxyDll
+InternetLockRequestFile
+InternetOpenA
+InternetOpenUrlA
+InternetOpenUrlW
+InternetOpenW
+InternetQueryDataAvailable
+InternetQueryFortezzaStatus
+InternetQueryOptionA
+InternetQueryOptionW
+InternetReadFile
+InternetReadFileExA
+InternetReadFileExW
+InternetSecurityProtocolToStringA
+InternetSecurityProtocolToStringW
+InternetSetCookieA
+InternetSetCookieEx2
+InternetSetCookieExA
+InternetSetCookieExW
+InternetSetCookieW
+InternetSetDialState
+InternetSetDialStateA
+InternetSetDialStateW
+InternetSetFilePointer
+InternetSetOptionA
+InternetSetOptionExA
+InternetSetOptionExW
+InternetSetOptionW
+InternetSetPerSiteCookieDecisionA
+InternetSetPerSiteCookieDecisionW
+InternetSetStatusCallback
+InternetSetStatusCallbackA
+InternetSetStatusCallbackW
+InternetShowSecurityInfoByURL
+InternetShowSecurityInfoByURLA
+InternetShowSecurityInfoByURLW
+InternetTimeFromSystemTime
+InternetTimeFromSystemTimeA
+InternetTimeFromSystemTimeW
+InternetTimeToSystemTime
+InternetTimeToSystemTimeA
+InternetTimeToSystemTimeW
+InternetUnlockRequestFile
+InternetWriteFile
+InternetWriteFileExA
+InternetWriteFileExW
+IsHostInProxyBypassList
+IsUrlCacheEntryExpiredA
+IsUrlCacheEntryExpiredW
+LoadUrlCacheContent
+ParseX509EncodedCertificateForListBoxEntry
+PrivacyGetZonePreferenceW
+PrivacySetZonePreferenceW
+ReadUrlCacheEntryStream
+ReadUrlCacheEntryStreamEx
+RegisterUrlCacheNotification
+ResumeSuspendedDownload
+RetrieveUrlCacheEntryFileA
+RetrieveUrlCacheEntryFileW
+RetrieveUrlCacheEntryStreamA
+RetrieveUrlCacheEntryStreamW
+RunOnceUrlCache
+SetUrlCacheConfigInfoA
+SetUrlCacheConfigInfoW
+SetUrlCacheEntryGroup
+SetUrlCacheEntryGroupA
+SetUrlCacheEntryGroupW
+SetUrlCacheEntryInfoA
+SetUrlCacheEntryInfoW
+SetUrlCacheGroupAttributeA
+SetUrlCacheGroupAttributeW
+SetUrlCacheHeaderData
+ShowCertificate
+ShowClientAuthCerts
+ShowSecurityInfo
+ShowX509EncodedCertificate
+UnlockUrlCacheEntryFile
+UnlockUrlCacheEntryFileA
+UnlockUrlCacheEntryFileW
+UnlockUrlCacheEntryStream
+UpdateUrlCacheContentPath
+UrlCacheCheckEntriesExist
+UrlCacheCloseEntryHandle
+UrlCacheContainerSetEntryMaximumAge
+UrlCacheCreateContainer
+UrlCacheFindFirstEntry
+UrlCacheFindNextEntry
+UrlCacheFreeEntryInfo
+UrlCacheFreeGlobalSpace
+UrlCacheGetContentPaths
+UrlCacheGetEntryInfo
+UrlCacheGetGlobalCacheSize
+UrlCacheGetGlobalLimit
+UrlCacheReadEntryStream
+UrlCacheReloadSettings
+UrlCacheRetrieveEntryFile
+UrlCacheRetrieveEntryStream
+UrlCacheServer
+UrlCacheSetGlobalLimit
+UrlCacheUpdateEntryExtraData
+UrlZonesDetach
+_GetFileExtensionFromUrl
+
+
+; ****
+;LIBRARY "winmm"
+; ****
+CloseDriver 
+DefDriverProc 
+DriverCallback 
+DrvGetModuleHandle 
+GetDriverModuleHandle 
+NotifyCallbackData 
+OpenDriver 
+PlaySound 
+PlaySoundA 
+PlaySoundW 
+SendDriverMessage 
+WOW32DriverCallback 
+WOW32ResolveMultiMediaHandle 
+WOWAppExit 
+aux32Message 
+auxGetDevCapsA 
+auxGetDevCapsW 
+auxGetNumDevs 
+auxGetVolume 
+auxOutMessage 
+auxSetVolume 
+joy32Message 
+joyConfigChanged 
+joyGetDevCapsA 
+joyGetDevCapsW 
+joyGetNumDevs 
+joyGetPos 
+joyGetPosEx 
+joyGetThreshold 
+joyReleaseCapture 
+joySetCapture 
+joySetThreshold 
+mci32Message 
+mciDriverNotify 
+mciDriverYield 
+mciExecute 
+mciFreeCommandResource 
+mciGetCreatorTask 
+mciGetDeviceIDA 
+mciGetDeviceIDFromElementIDA 
+mciGetDeviceIDFromElementIDW 
+mciGetDeviceIDW 
+mciGetDriverData 
+mciGetErrorStringA 
+mciGetErrorStringW 
+mciGetYieldProc 
+mciLoadCommandResource 
+mciSendCommandA 
+mciSendCommandW 
+mciSendStringA 
+mciSendStringW 
+mciSetDriverData 
+mciSetYieldProc 
+mid32Message 
+midiConnect 
+midiDisconnect 
+midiInAddBuffer 
+midiInClose 
+midiInGetDevCapsA 
+midiInGetDevCapsW 
+midiInGetErrorTextA 
+midiInGetErrorTextW 
+midiInGetID 
+midiInGetNumDevs 
+midiInMessage 
+midiInOpen 
+midiInPrepareHeader 
+midiInReset 
+midiInStart 
+midiInStop 
+midiInUnprepareHeader 
+midiOutCacheDrumPatches 
+midiOutCachePatches 
+midiOutClose 
+midiOutGetDevCapsA 
+midiOutGetDevCapsW 
+midiOutGetErrorTextA 
+midiOutGetErrorTextW 
+midiOutGetID 
+midiOutGetNumDevs 
+midiOutGetVolume 
+midiOutLongMsg 
+midiOutMessage 
+midiOutOpen 
+midiOutPrepareHeader 
+midiOutReset 
+midiOutSetVolume 
+midiOutShortMsg 
+midiOutUnprepareHeader 
+midiStreamClose 
+midiStreamOpen 
+midiStreamOut 
+midiStreamPause 
+midiStreamPosition 
+midiStreamProperty 
+midiStreamRestart 
+midiStreamStop 
+mixerClose 
+mixerGetControlDetailsA 
+mixerGetControlDetailsW 
+mixerGetDevCapsA 
+mixerGetDevCapsW 
+mixerGetID 
+mixerGetLineControlsA 
+mixerGetLineControlsW 
+mixerGetLineInfoA 
+mixerGetLineInfoW 
+mixerGetNumDevs 
+mixerMessage 
+mixerOpen 
+mixerSetControlDetails 
+mmDrvInstall 
+mmGetCurrentTask 
+mmTaskBlock 
+mmTaskCreate 
+mmTaskSignal 
+mmTaskYield 
+mmioAdvance 
+mmioAscend 
+mmioClose 
+mmioCreateChunk 
+mmioDescend 
+mmioFlush 
+mmioGetInfo 
+mmioInstallIOProcA 
+mmioInstallIOProcW 
+mmioOpenA 
+mmioOpenW 
+mmioRead 
+mmioRenameA 
+mmioRenameW 
+mmioSeek 
+mmioSendMessage 
+mmioSetBuffer 
+mmioSetInfo 
+mmioStringToFOURCCA 
+mmioStringToFOURCCW 
+mmioWrite 
+mmsystemGetVersion 
+mod32Message 
+mxd32Message 
+sndPlaySoundA 
+sndPlaySoundW 
+tid32Message 
+timeBeginPeriod 
+timeEndPeriod 
+timeGetDevCaps 
+timeGetSystemTime 
+timeGetTime 
+timeKillEvent 
+timeSetEvent 
+waveInAddBuffer 
+waveInClose 
+waveInGetDevCapsA 
+waveInGetDevCapsW 
+waveInGetErrorTextA 
+waveInGetErrorTextW 
+waveInGetID 
+waveInGetNumDevs 
+waveInGetPosition 
+waveInMessage 
+waveInOpen 
+waveInPrepareHeader 
+waveInReset 
+waveInStart 
+waveInStop 
+waveInUnprepareHeader 
+waveOutBreakLoop 
+waveOutClose 
+waveOutGetDevCapsA 
+waveOutGetDevCapsW 
+waveOutGetErrorTextA 
+waveOutGetErrorTextW 
+waveOutGetID 
+waveOutGetNumDevs 
+waveOutGetPitch 
+waveOutGetPlaybackRate 
+waveOutGetPosition 
+waveOutGetVolume 
+waveOutMessage 
+waveOutOpen 
+waveOutPause 
+waveOutPrepareHeader 
+waveOutReset 
+waveOutRestart 
+waveOutSetPitch 
+waveOutSetPlaybackRate 
+waveOutSetVolume 
+waveOutUnprepareHeader 
+waveOutWrite 
+wid32Message 
+winmmDbgOut 
+winmmSetDebugLevel 
+wod32Message 
+
+
+; ****
+;LIBRARY "winmmbase"
+; ****
+CloseDriver
+DefDriverProc
+DriverCallback
+DrvGetModuleHandle
+GetDriverModuleHandle
+OpenDriver
+SendDriverMessage
+auxGetDevCapsA
+auxGetDevCapsW
+auxGetNumDevs
+auxGetVolume
+auxOutMessage
+auxSetVolume
+joyConfigChanged
+joyGetDevCapsA
+joyGetDevCapsW
+joyGetNumDevs
+joyGetPos
+joyGetPosEx
+joyGetThreshold
+joyReleaseCapture
+joySetCapture
+joySetThreshold
+midiConnect
+midiDisconnect
+midiInAddBuffer
+midiInClose
+midiInGetDevCapsA
+midiInGetDevCapsW
+midiInGetErrorTextA
+midiInGetErrorTextW
+midiInGetID
+midiInGetNumDevs
+midiInMessage
+midiInOpen
+midiInPrepareHeader
+midiInReset
+midiInStart
+midiInStop
+midiInUnprepareHeader
+midiOutCacheDrumPatches
+midiOutCachePatches
+midiOutClose
+midiOutGetDevCapsA
+midiOutGetDevCapsW
+midiOutGetErrorTextA
+midiOutGetErrorTextW
+midiOutGetID
+midiOutGetNumDevs
+midiOutGetVolume
+midiOutLongMsg
+midiOutMessage
+midiOutOpen
+midiOutPrepareHeader
+midiOutReset
+midiOutSetVolume
+midiOutShortMsg
+midiOutUnprepareHeader
+midiStreamClose
+midiStreamOpen
+midiStreamOut
+midiStreamPause
+midiStreamPosition
+midiStreamProperty
+midiStreamRestart
+midiStreamStop
+mixerClose
+mixerGetControlDetailsA
+mixerGetControlDetailsW
+mixerGetDevCapsA
+mixerGetDevCapsW
+mixerGetID
+mixerGetLineControlsA
+mixerGetLineControlsW
+mixerGetLineInfoA
+mixerGetLineInfoW
+mixerGetNumDevs
+mixerMessage
+mixerOpen
+mixerSetControlDetails
+mmDrvInstall
+mmGetCurrentTask
+mmTaskBlock
+mmTaskCreate
+mmTaskSignal
+mmTaskYield
+mmioAdvance
+mmioAscend
+mmioClose
+mmioCreateChunk
+mmioDescend
+mmioFlush
+mmioGetInfo
+mmioInstallIOProcA
+mmioInstallIOProcW
+mmioOpenA
+mmioOpenW
+mmioRead
+mmioRenameA
+mmioRenameW
+mmioSeek
+mmioSendMessage
+mmioSetBuffer
+mmioSetInfo
+mmioStringToFOURCCA
+mmioStringToFOURCCW
+mmioWrite
+sndOpenSound
+waveInAddBuffer
+waveInClose
+waveInGetDevCapsA
+waveInGetDevCapsW
+waveInGetErrorTextA
+waveInGetErrorTextW
+waveInGetID
+waveInGetNumDevs
+waveInGetPosition
+waveInMessage
+waveInOpen
+waveInPrepareHeader
+waveInReset
+waveInStart
+waveInStop
+waveInUnprepareHeader
+waveOutBreakLoop
+waveOutClose
+waveOutGetDevCapsA
+waveOutGetDevCapsW
+waveOutGetErrorTextA
+waveOutGetErrorTextW
+waveOutGetID
+waveOutGetNumDevs
+waveOutGetPitch
+waveOutGetPlaybackRate
+waveOutGetPosition
+waveOutGetVolume
+waveOutMessage
+waveOutOpen
+waveOutPause
+waveOutPrepareHeader
+waveOutReset
+waveOutRestart
+waveOutSetPitch
+waveOutSetPlaybackRate
+waveOutSetVolume
+waveOutUnprepareHeader
+waveOutWrite
+winmmbaseFreeMMEHandles
+winmmbaseGetWOWHandle
+winmmbaseHandle32FromHandle16
+winmmbaseSetWOWHandle
+
+
+; ****
+;LIBRARY "winspool"
+; ****
+ADVANCEDSETUPDIALOG
+AdvancedSetupDialog
+ConvertAnsiDevModeToUnicodeDevmode
+ConvertUnicodeDevModeToAnsiDevmode
+DEVICEMODE
+DeviceMode
+DocumentEvent
+PerfClose
+PerfCollect
+PerfOpen
+QueryColorProfile
+QueryRemoteFonts
+QuerySpoolMode
+SpoolerDevQueryPrintW
+StartDocDlgW
+AbortPrinter
+AddFormA
+AddFormW
+AddJobA
+AddJobW
+AddMonitorA
+AddMonitorW
+AddPortA
+AddPortExA
+AddPortExW
+AddPortW
+AddPrintProcessorA
+AddPrintProcessorW
+AddPrintProvidorA
+AddPrintProvidorW
+AddPrinterA
+AddPrinterConnection2A
+AddPrinterConnection2W
+AddPrinterConnectionA
+AddPrinterConnectionW
+AddPrinterDriverA
+AddPrinterDriverExA
+AddPrinterDriverExW
+AddPrinterDriverW
+AddPrinterW
+AdvancedDocumentPropertiesA
+AdvancedDocumentPropertiesW
+ClosePrinter
+CloseSpoolFileHandle
+CommitSpoolData
+ConfigurePortA
+ConfigurePortW
+ConnectToPrinterDlg
+CorePrinterDriverInstalledA
+CorePrinterDriverInstalledW
+CreatePrintAsyncNotifyChannel
+CreatePrinterIC
+DeleteFormA
+DeleteFormW
+DeleteJobNamedProperty
+DeleteMonitorA
+DeleteMonitorW
+DeletePortA
+DeletePortW
+DeletePrintProcessorA
+DeletePrintProcessorW
+DeletePrintProvidorA
+DeletePrintProvidorW
+DeletePrinter
+DeletePrinterConnectionA
+DeletePrinterConnectionW
+DeletePrinterDataA
+DeletePrinterDataExA
+DeletePrinterDataExW
+DeletePrinterDataW
+DeletePrinterDriverA
+DeletePrinterDriverExA
+DeletePrinterDriverExW
+DeletePrinterDriverPackageA
+DeletePrinterDriverPackageW
+DeletePrinterDriverW
+DeletePrinterIC
+DeletePrinterKeyA
+DeletePrinterKeyW
+DevQueryPrint
+DevQueryPrintEx
+DeviceCapabilities
+DeviceCapabilitiesA
+DeviceCapabilitiesW
+DevicePropertySheets
+DocumentPropertiesA
+DocumentPropertiesW
+DocumentPropertySheets
+EXTDEVICEMODE
+EndDocPrinter
+EndPagePrinter
+EnumFormsA
+EnumFormsW
+EnumJobNamedProperties
+EnumJobsA
+EnumJobsW
+EnumMonitorsA
+EnumMonitorsW
+EnumPortsA
+GetDefaultPrinterA
+SetDefaultPrinterA
+GetDefaultPrinterW
+SetDefaultPrinterW
+EnumPortsW
+EnumPrintProcessorDatatypesA
+EnumPrintProcessorDatatypesW
+EnumPrintProcessorsA
+EnumPrintProcessorsW
+EnumPrinterDataA
+EnumPrinterDataExA
+EnumPrinterDataExW
+EnumPrinterDataW
+EnumPrinterDriversA
+EnumPrinterDriversW
+EnumPrinterKeyA
+EnumPrinterKeyW
+EnumPrintersA
+EnumPrintersW
+ExtDeviceMode
+FindClosePrinterChangeNotification
+FindFirstPrinterChangeNotification
+FindNextPrinterChangeNotification
+FlushPrinter
+FreePrintNamedPropertyArray
+FreePrintPropertyValue
+FreePrinterNotifyInfo
+GetCorePrinterDriversA
+GetCorePrinterDriversW
+GetFormA
+GetFormW
+GetJobA
+GetJobNamedPropertyValue
+GetJobW
+GetPrintExecutionData
+GetPrintOutputInfo
+GetPrintProcessorDirectoryA
+GetPrintProcessorDirectoryW
+GetPrinterA
+GetPrinterDataA
+GetPrinterDataExA
+GetPrinterDataExW
+GetPrinterDataW
+GetPrinterDriver2A
+GetPrinterDriver2W
+GetPrinterDriverA
+GetPrinterDriverDirectoryA
+GetPrinterDriverDirectoryW
+GetPrinterDriverPackagePathA
+GetPrinterDriverPackagePathW
+GetPrinterDriverW
+GetPrinterW
+GetSpoolFileHandle
+InstallPrinterDriverFromPackageA
+InstallPrinterDriverFromPackageW
+IsValidDevmodeA
+IsValidDevmodeW
+OpenPrinter2A
+OpenPrinter2W
+OpenPrinterA
+OpenPrinterW
+PlayGdiScriptOnPrinterIC
+PrinterMessageBoxA
+PrinterMessageBoxW
+PrinterProperties
+ReadPrinter
+RegisterForPrintAsyncNotifications
+ReportJobProcessingProgress
+ResetPrinterA
+ResetPrinterW
+ScheduleJob
+SeekPrinter
+SetFormA
+SetFormW
+SetJobA
+SetJobNamedProperty
+SetJobW
+SetPortA
+SetPortW
+SetPrinterA
+SetPrinterDataA
+SetPrinterDataExA
+SetPrinterDataExW
+SetPrinterDataW
+SetPrinterW
+SplDriverUnloadComplete
+SpoolerPrinterEvent
+StartDocDlgA
+StartDocPrinterA
+StartDocPrinterW
+StartPagePrinter
+UnRegisterForPrintAsyncNotifications
+UploadPrinterDriverPackageA
+UploadPrinterDriverPackageW
+WaitForPrinterChange
+WritePrinter
+XcvDataW
+
+
+; ****
+;LIBRARY "wsock32"
+; ****
+accept
+bind
+closesocket
+connect
+getpeername
+getsockname
+getsockopt
+htonl
+htons
+inet_addr
+inet_ntoa
+ioctlsocket
+listen
+ntohl
+ntohs
+recv
+recvfrom
+select
+send
+sendto
+setsockopt
+shutdown
+socket
+MigrateWinsockConfiguration
+gethostbyaddr
+gethostbyname
+getprotobyname
+getprotobynumber
+getservbyname
+getservbyport
+gethostname
+WSAAsyncSelect
+WSAAsyncGetHostByAddr
+WSAAsyncGetHostByName
+WSAAsyncGetProtoByNumber
+WSAAsyncGetProtoByName
+WSAAsyncGetServByPort
+WSAAsyncGetServByName
+WSACancelAsyncRequest
+WSASetBlockingHook
+WSAUnhookBlockingHook
+WSAGetLastError
+WSASetLastError
+WSACancelBlockingCall
+WSAIsBlocking
+WSAStartup
+WSACleanup
+__WSAFDIsSet
+WEP
+WSApSetPostRoutine
+WsControl
+closesockinfo
+Arecv
+Asend
+WSHEnumProtocols
+inet_network
+getnetbyname
+rcmd
+rexec
+rresvport
+sethostname
+dn_expand
+WSARecvEx
+s_perror
+GetAddressByNameA
+GetAddressByNameW
+EnumProtocolsA
+EnumProtocolsW
+GetTypeByNameA
+GetTypeByNameW
+GetNameByTypeA
+GetNameByTypeW
+SetServiceA
+SetServiceW
+GetServiceA
+GetServiceW
+NPLoadNameSpaces
+NSPStartup
+TransmitFile
+AcceptEx
+GetAcceptExSockaddrs
