@@ -3455,10 +3455,10 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		// Set parameters for the current display mode
 		if (Device.IsWindowed || !hWnd)
 		{
-			// Copy swap
-			presParams.SwapEffect = D3DSWAPEFFECT_COPY;
 			// Window mode
 			presParams.Windowed = TRUE;
+			// Copy swap
+			presParams.SwapEffect = D3DSWAPEFFECT_COPY;
 			// Backbuffer
 			presParams.BackBufferFormat = D3DFMT_UNKNOWN;
 			// Display mode refresh
@@ -3466,10 +3466,10 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		}
 		else
 		{
-			// Discard swap
-			presParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
 			// Fullscreen
 			presParams.Windowed = FALSE;
+			// Discard swap
+			presParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
 			// Backbuffer
 			presParams.BackBufferFormat = D9DisplayFormat;
 			// Display mode refresh
@@ -5208,14 +5208,17 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 
 	LPRECT pDestRect = nullptr;
 	RECT DestRect = {};
-	if (PrimarySurface->ShouldPresentToWindow(true) && presParams.SwapEffect == D3DSWAPEFFECT_COPY)
+	if (PrimarySurface->ShouldPresentToWindow(true))
 	{
 		if (FAILED(PrimarySurface->GetPresentWindowRect(pRect, DestRect)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get present rect!");
 			return DDERR_GENERIC;
 		}
-		pDestRect = &DestRect;
+		if (presParams.SwapEffect == D3DSWAPEFFECT_COPY)
+		{
+			pDestRect = &DestRect;
+		}
 	}
 
 	// Begin scene
