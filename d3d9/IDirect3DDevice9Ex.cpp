@@ -915,6 +915,27 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 	{
 		Value = TRUE;
 	}
+	if (State == D3DRS_DEPTHBIAS)
+	{
+		union {
+			DWORD d;
+			float f;
+		} uValue = { Value };
+
+		if (isfinite(uValue.f))
+		{
+			if (fabsf(Config.DepthBiasDropOffValue) >= fabsf(uValue.f))
+			{
+				uValue.f = copysignf(0.0f, uValue.f);
+				Value = uValue.d;
+			}
+			else if (fabsf(Config.DepthBiasDivideFactor) > FLT_EPSILON)
+			{
+				uValue.f /= Config.DepthBiasDivideFactor;
+				Value = uValue.d;
+			}
+		}
+	}
 
 	HRESULT hr = ProxyInterface->SetRenderState(State, Value);
 

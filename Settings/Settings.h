@@ -84,6 +84,8 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(Dinput8HookSystem32) \
 	visit(DsoundHookSystem32) \
 	visit(SetSwapEffectShim) \
+	visit(DepthBiasDivideFactor) \
+	visit(DepthBiasDropOffValue) \
 	visit(DeviceLookupCacheTime) \
 	visit(DisableGameUX) \
 	visit(DisableGDIGammaRamp) \
@@ -299,6 +301,8 @@ struct CONFIG
 	DWORD DinputHookSystem32 = 0;				// Hooks the dinput.dll file in the Windows System32 folder
 	DWORD Dinput8HookSystem32 = 0;				// Hooks the dinput8.dll file in the Windows System32 folder
 	DWORD DsoundHookSystem32 = 0;				// Hooks the dsound.dll file in the Windows System32 folder
+	float DepthBiasDivideFactor = 0.0f;			// Divides DepthBias Render State by this number
+	float DepthBiasDropOffValue = 0.0f;			// Numbers between 0.0f and DepthBiasDropOffValue turn into zero
 	DWORD DeviceLookupCacheTime = 0;			// Number of seconds to cache the DeviceEnum callback data
 	bool DirectShowEmulation = false;			// Emulates DirectShow APIs
 	bool DisableGameUX = false;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
