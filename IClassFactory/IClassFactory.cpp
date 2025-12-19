@@ -35,6 +35,59 @@
 INITIALIZE_OUT_WRAPPED_PROC(CoGetClassObject, unused);
 INITIALIZE_OUT_WRAPPED_PROC(CoCreateInstance, unused);
 
+#ifdef _DEBUG
+#define LOG_GUID_LIMIT(iid, limit, msg) \
+	Logging::Log() << msg;
+#else
+#define LOG_GUID_LIMIT(iid, limit, msg) \
+	{ \
+		if (GuidLogLimit(iid, limit)) \
+		{ \
+			Logging::Log() << msg; \
+		} \
+	}
+#endif
+
+namespace {
+
+	struct GuidLogLimitEntry {
+		GUID iid = {};
+		DWORD Limit = 0;
+	};
+
+	// Global vector to store all logged GUIDs and their current limits
+	std::vector<GuidLogLimitEntry> g_GuidLogVector;
+
+	bool GuidLogLimit(REFIID riid, DWORD limitThreshold)
+	{
+		// Search for an existing entry
+		for (auto& entry : g_GuidLogVector)
+		{
+			if (IsEqualGUID(entry.iid, riid))
+			{
+				// Found existing entry
+				if (entry.Limit < limitThreshold)
+				{
+					entry.Limit++;
+					return true;
+				}
+				else
+				{
+					return false; // Limit reached
+				}
+			}
+		}
+
+		// No existing entry — create a new one
+		GuidLogLimitEntry newEntry;
+		newEntry.iid = riid;
+		newEntry.Limit = 1; // First use counts as 1
+		g_GuidLogVector.push_back(newEntry);
+
+		return true;
+	}
+}
+
 #ifdef DINPUT8
 namespace dinputto8
 {
@@ -42,7 +95,7 @@ namespace dinputto8
 }
 #endif
 
-REFIID ConvertAllREFIID(REFIID riid)
+static REFIID ConvertAllREFIID(REFIID riid)
 {
 #ifdef DINPUT8
 	if (Config.Dinputto8)
@@ -318,7 +371,7 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 
 HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	LOG_LIMIT(100 ,__FUNCTION__ << " Query for " << riid << " from " << WrapperID);
+	LOG_GUID_LIMIT(riid, 3, __FUNCTION__ << " Query for " << riid << " from " << WrapperID);
 
 	if (!ppvObj)
 	{
@@ -351,7 +404,7 @@ HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 			return S_OK;
 		}
 
-		Logging::Log() << __FUNCTION__ << " Query Not Implemented for " << riid << " from " << WrapperID;
+		LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << WrapperID);
 
 		return E_NOINTERFACE;
 	}
@@ -431,7 +484,7 @@ ULONG m_IClassFactory::Release()
 
 HRESULT m_IClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, void** ppvObject)
 {
-	LOG_LIMIT(100, __FUNCTION__ << " " << ClassID << " --> " << riid);
+	LOG_GUID_LIMIT(riid, 3, __FUNCTION__ << " " << ClassID << " --> " << riid);
 
 	if (!ppvObject)
 	{
@@ -453,7 +506,7 @@ HRESULT m_IClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, void**
 			return S_OK;
 		}
 
-		Logging::Log() << __FUNCTION__ << " Not Implemented for IID " << riid;
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented for IID " << riid);
 
 		return E_FAIL;
 	}
@@ -499,7 +552,7 @@ HRESULT m_IClassFactory::LockServer(BOOL fLock)
 
 	if (!ProxyInterface)
 	{
-		Logging::Log() << __FUNCTION__ << " Not Implemented";
+		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
 		return E_NOTIMPL;
 	}
 
@@ -508,7 +561,7 @@ HRESULT m_IClassFactory::LockServer(BOOL fLock)
 
 HRESULT WINAPI CoGetClassObjectHandle(REFCLSID rclsid, DWORD dwClsContext, LPVOID pvReserved, REFIID riid, LPVOID* ppv)
 {
-	LOG_LIMIT(100, __FUNCTION__ " " << rclsid << " -> " << riid);
+	LOG_GUID_LIMIT(rclsid, 3, __FUNCTION__ " " << rclsid << " -> " << riid);
 
 	DEFINE_STATIC_PROC_ADDRESS(CoGetClassObjectProc, CoGetClassObject, CoGetClassObject_out);
 
@@ -537,7 +590,7 @@ HRESULT WINAPI CoGetClassObjectHandle(REFCLSID rclsid, DWORD dwClsContext, LPVOI
 
 HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv)
 {
-	LOG_LIMIT(100, __FUNCTION__ " " << rclsid << " -> " << riid);
+	LOG_GUID_LIMIT(rclsid, 3, __FUNCTION__ " " << rclsid << " -> " << riid);
 
 	DEFINE_STATIC_PROC_ADDRESS(CoCreateInstanceProc, CoCreateInstance, CoCreateInstance_out);
 
