@@ -1781,7 +1781,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			{
 				MSG msg;
 				PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE | PM_NOYIELD);
-				SendMessage(hWnd, WM_NULL, 0, 0);
+				SendMessage(DisplayMode.hWnd, WM_NULL, 0, 0);
 			}
 		}
 
