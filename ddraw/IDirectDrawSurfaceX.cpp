@@ -544,6 +544,14 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return (c_hr == DDERR_SURFACELOST || s_hr == DDERR_SURFACELOST) ? DDERR_SURFACELOST : FAILED(c_hr) ? c_hr : s_hr;
 		}
 
+		// Ignore certian screen clears when not in exclusive mode
+		if ((dwFlags & DDBLT_COLORFILL) && IsPrimarySurface() && surface.IsUsingWindowedMode && surface.HasData)
+		{
+			// DirectDraw primary clears are logical only
+			LOG_LIMIT(3, __FUNCTION__ << " Skipping primary surface clear: " << lpDestRect);
+			return DD_OK;
+		}
+
 		// Handle depth stencil surface
 		if (IsDepthStencil())
 		{

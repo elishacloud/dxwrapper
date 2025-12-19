@@ -456,6 +456,33 @@ std::ostream& operator<<(std::ostream& os, const DDCOLORKEY& ck)
 		<< Logging::hex(ck.dwColorSpaceHighValue);
 }
 
+std::ostream& operator<<(std::ostream& os, const DDBLTFX& fx)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(fx.dwDDFX)
+		<< Logging::hex(fx.dwROP)
+		<< Logging::hex(fx.dwDDROP)
+		<< fx.dwRotationAngle
+		<< fx.dwZBufferOpCode
+		<< fx.dwZBufferLow
+		<< fx.dwZBufferHigh
+		<< fx.dwZBufferBaseDest
+		<< fx.dwZDestConstBitDepth
+		<< fx.dwZDestConst
+		<< fx.dwZSrcConstBitDepth
+		<< fx.dwZSrcConst
+		<< fx.dwAlphaEdgeBlendBitDepth
+		<< fx.dwAlphaEdgeBlend
+		<< fx.dwReserved
+		<< fx.dwAlphaDestConstBitDepth
+		<< fx.dwAlphaDestConst
+		<< fx.dwAlphaSrcConstBitDepth
+		<< fx.dwAlphaSrcConst
+		<< fx.dwFillColor
+		<< fx.ddckDestColorkey
+		<< fx.ddckSrcColorkey;
+}
+
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd)
 {
 	return Logging::LogStruct(os)
