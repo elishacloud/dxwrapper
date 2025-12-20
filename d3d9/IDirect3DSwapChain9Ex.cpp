@@ -16,6 +16,10 @@
 
 #include "d3d9.h"
 
+// ******************************
+// IUnknown functions
+// ******************************
+
 HRESULT m_IDirect3DSwapChain9Ex::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -77,6 +81,10 @@ ULONG m_IDirect3DSwapChain9Ex::Release(THIS)
 
 	return ref;
 }
+
+// ******************************
+// IDirect3DSwapChain9 methods
+// ******************************
 
 HRESULT m_IDirect3DSwapChain9Ex::Present(THIS_ CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion, DWORD dwFlags)
 {
@@ -164,6 +172,10 @@ HRESULT m_IDirect3DSwapChain9Ex::GetPresentParameters(THIS_ D3DPRESENT_PARAMETER
 
 	return ProxyInterface->GetPresentParameters(pPresentationParameters);
 }
+
+// ******************************
+// IDirect3DSwapChain9Ex methods
+// ******************************
 
 HRESULT m_IDirect3DSwapChain9Ex::GetLastPresentCount(THIS_ UINT* pLastPresentCount)
 {

@@ -63,8 +63,6 @@ extern std::unordered_map<UINT, std::unique_ptr<DEVICEDETAILS>> DeviceDetailsMap
 
 #include "IDirect3D9Ex.h"
 
-#define SHARED (*DeviceDetailsMap[DDKey].get())
-
 class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex, public AddressLookupTableD3d9Object
 {
 private:
@@ -124,8 +122,10 @@ private:
 	void ApplyPrePresentFixes();
 	void ApplyPostPresentFixes();
 
-	HRESULT CallBeginScene();
-	HRESULT CallEndScene();
+	void ApplyClipPlanes();
+
+	void AfterBeginScene();
+	void BeforeEndScene();
 
 	inline bool RequirePresentHandling() const { return ((Config.WindowModeGammaShader && IsGammaSet) || Config.ShowFPSCounter || ShadowBackbuffer.Count()); }
 
@@ -240,9 +240,6 @@ public:
 	STDMETHOD(UpdateTexture)(THIS_ IDirect3DBaseTexture9* pSourceTexture, IDirect3DBaseTexture9* pDestinationTexture);
 	STDMETHOD(GetRenderTargetData)(THIS_ IDirect3DSurface9* pRenderTarget, IDirect3DSurface9* pDestSurface);
 	STDMETHOD(GetFrontBufferData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
-	STDMETHOD(GetFrontBufferShadowData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
-	STDMETHOD(FakeGetFrontBufferData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
-	STDMETHOD(CopyRects)(THIS_ IDirect3DSurface9 *pSourceSurface, const RECT *pSourceRectsArray, UINT cRects, IDirect3DSurface9 *pDestinationSurface, const POINT *pDestPointsArray);
 	STDMETHOD(StretchRect)(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestSurface, CONST RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter);
 	STDMETHOD(ColorFill)(THIS_ IDirect3DSurface9* pSurface, CONST RECT* pRect, D3DCOLOR color);
 	STDMETHOD(CreateOffscreenPlainSurface)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DPOOL Pool, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle);
@@ -266,7 +263,6 @@ public:
 	STDMETHOD(GetLightEnable)(THIS_ DWORD Index, BOOL* pEnable);
 	STDMETHOD(SetClipPlane)(THIS_ DWORD Index, CONST float* pPlane);
 	STDMETHOD(GetClipPlane)(THIS_ DWORD Index, float* pPlane);
-	void ApplyClipPlanes();
 	STDMETHOD(SetRenderState)(THIS_ D3DRENDERSTATETYPE State, DWORD Value);
 	STDMETHOD(GetRenderState)(THIS_ D3DRENDERSTATETYPE State, DWORD* pValue);
 	STDMETHOD(CreateStateBlock)(THIS_ D3DSTATEBLOCKTYPE Type, IDirect3DStateBlock9** ppSB);
@@ -347,17 +343,21 @@ public:
 	STDMETHOD(ResetEx)(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX *pFullscreenDisplayMode);
 	STDMETHOD(GetDisplayModeEx)(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
 
-	// Helper functions
+	// Information functions
 	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
 	void InitInterface(void*, REFIID, UINT) {}	// Stub only
 	AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() const { return &SHARED.StateBlockTable; }
 	StateBlockCache* GetDeletedStateBlock() const { return &SHARED.DeletedStateBlocks; }
-	m_IDirect3DStateBlock9* GetCreateStateBlock(IDirect3DStateBlock9* pSB);
 	DWORD GetClientDXVersion() const { return SHARED.ClientDirectXVersion; }
 	REFIID GetIID() { return WrapperID; }
+
+	// Helper functions
+	HRESULT CopyRects(THIS_ IDirect3DSurface9* pSourceSurface, const RECT* pSourceRectsArray, UINT cRects, IDirect3DSurface9* pDestinationSurface, const POINT* pDestPointsArray);
+	HRESULT FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
+	HRESULT GetFrontBufferShadowData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
+	m_IDirect3DStateBlock9* GetCreateStateBlock(IDirect3DStateBlock9* pSB);
 
 	// Static functions
 	static void ModeExToMode(D3DDISPLAYMODEEX& ModeEx, D3DDISPLAYMODE& Mode);
 };
-#undef SHARED

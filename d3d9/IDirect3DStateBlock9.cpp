@@ -16,6 +16,10 @@
 
 #include "d3d9.h"
 
+// ******************************
+// IUnknown functions
+// ******************************
+
 HRESULT m_IDirect3DStateBlock9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -68,6 +72,10 @@ ULONG m_IDirect3DStateBlock9::Release(THIS)
 
 	return ref;
 }
+
+// ******************************
+// IDirect3DStateBlock9 methods
+// ******************************
 
 HRESULT m_IDirect3DStateBlock9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {

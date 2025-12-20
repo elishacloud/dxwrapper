@@ -16,6 +16,10 @@
 
 #include "d3d9.h"
 
+// ******************************
+// IUnknown functions
+// ******************************
+
 HRESULT m_IDirect3DVideoDevice9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -64,6 +68,10 @@ ULONG m_IDirect3DVideoDevice9::Release(THIS)
 
 	return ref;
 }
+
+// ******************************
+// IDirect3DVideoDevice9 methods
+// ******************************
 
 HRESULT m_IDirect3DVideoDevice9::CreateSurface(THIS_ UINT Width, UINT Height, UINT BackBuffers, D3DFORMAT Format, D3DPOOL Pool, DWORD Usage, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle)
 {

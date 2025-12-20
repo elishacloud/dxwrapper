@@ -26,7 +26,7 @@ public:
 	STDMETHOD_(ULONG, AddRef)(THIS);
 	STDMETHOD_(ULONG, Release)(THIS);
 
-	/*** IDirect3DBaseTexture9 methods ***/
+	/*** IDirect3DVolumeTexture9 methods ***/
 	STDMETHOD(GetDevice)(THIS_ IDirect3DDevice9** ppDevice);
 	STDMETHOD(SetPrivateData)(THIS_ REFGUID refguid, CONST void* pData, DWORD SizeOfData, DWORD Flags);
 	STDMETHOD(GetPrivateData)(THIS_ REFGUID refguid, void* pData, DWORD* pSizeOfData);

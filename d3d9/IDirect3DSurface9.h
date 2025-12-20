@@ -48,7 +48,7 @@ public:
 	STDMETHOD_(ULONG, AddRef)(THIS);
 	STDMETHOD_(ULONG, Release)(THIS);
 
-	/*** IDirect3DResource9 methods ***/
+	/*** IDirect3DSurface9 methods ***/
 	STDMETHOD(GetDevice)(THIS_ IDirect3DDevice9** ppDevice);
 	STDMETHOD(SetPrivateData)(THIS_ REFGUID refguid, CONST void* pData, DWORD SizeOfData, DWORD Flags);
 	STDMETHOD(GetPrivateData)(THIS_ REFGUID refguid, void* pData, DWORD* pSizeOfData);
@@ -64,42 +64,12 @@ public:
 	STDMETHOD(GetDC)(THIS_ HDC *phdc);
 	STDMETHOD(ReleaseDC)(THIS_ HDC hdc);
 
-	// Helper functions
+	// Information functions
 	LPDIRECT3DSURFACE9 GetProxyInterface() const { return ProxyInterface; }
-	LPDIRECT3DSURFACE9 GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags)
-	{
-		if (ShouldUseEmu && Desc.MultiSampleType && !(Desc.Usage & D3DUSAGE_DEPTHSTENCIL))
-		{
-			m_IDirect3DSurface9* pSurface = m_GetNonMultiSampledSurface(pSurfaceRect, Flags);
-			if (pSurface)
-			{
-				return pSurface->GetProxyInterface();
-			}
-			LOG_LIMIT(100, __FUNCTION__ << " Error: getting non-multi-sampled surface!");
-		}
-		return ProxyInterface;
-	}
-	HRESULT RestoreMultiSampleData();
 	void AllowEmulatedSurface() { ShouldUseEmu = true; }
-	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*)
-	{
-		m_pDeviceEx = Device;
 
-		if (FAILED(GetDesc(&Desc)))
-		{
-			LOG_LIMIT(3, __FUNCTION__ << " Failed to GetDesc()!" << this << ")");
-		}
-
-		if (Emu.pSurface)
-		{
-			ULONG eref = Emu.pSurface->Release();
-			if (eref)
-			{
-				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'Emu.pSurface' " << eref;
-			}
-			Emu.pSurface = nullptr;
-		}
-
-		ShouldUseEmu = false;
-	}
+	// Helper functions
+	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*);
+	LPDIRECT3DSURFACE9 GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags);
+	HRESULT RestoreMultiSampleData();
 };

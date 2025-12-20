@@ -106,6 +106,8 @@ typedef HRESULT(WINAPI* Direct3DCreate9ExProc)(UINT, IDirect3D9Ex**);
 typedef IDirect3D9* (WINAPI* Direct3DCreate9On12Proc)(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries);
 typedef HRESULT(WINAPI* Direct3DCreate9On12ExProc)(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries, IDirect3D9Ex** ppOutputInterface);
 
+#define SHARED (*DeviceDetailsMap[DDKey].get())
+
 constexpr UINT NO_MAP_VALUE = 0xFFFFFFFF;
 
 namespace D3d9Wrapper
