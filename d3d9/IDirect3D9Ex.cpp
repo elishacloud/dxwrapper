@@ -494,6 +494,12 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		DeviceDetails.IsWindowMode = IsWindowMode;
 
 		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
+
+		// Adjust window style after device creation
+		if (IsWindow(DeviceDetails.DeviceWindow))
+		{
+			AdjustWindowStyle(DeviceDetails.DeviceWindow);
+		}
 	}
 
 	// Update WndProc after creating device
@@ -842,20 +848,6 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 			ShowWindow(DeviceDetails.DeviceWindow, SW_RESTORE);
 		}
 
-		// Remove tool and topmost window
-		if (DeviceDetails.DeviceWindow != LastDeviceWindow)
-		{
-			LONG lExStyle = GetWindowLong(DeviceDetails.DeviceWindow, GWL_EXSTYLE);
-			if (lExStyle & (WS_EX_TOOLWINDOW | WS_EX_TOPMOST))
-			{
-				LOG_LIMIT(3, __FUNCTION__ << " Removing window" << ((lExStyle & WS_EX_TOOLWINDOW) ? " WS_EX_TOOLWINDOW" : "") << ((lExStyle & WS_EX_TOPMOST) ? " WS_EX_TOPMOST" : ""));
-
-				SetWindowLong(DeviceDetails.DeviceWindow, GWL_EXSTYLE, lExStyle & ~(WS_EX_TOOLWINDOW | WS_EX_TOPMOST));
-				SetWindowPos(DeviceDetails.DeviceWindow, ((lExStyle & WS_EX_TOPMOST) ? HWND_NOTOPMOST : HWND_TOP),
-					0, 0, 0, 0, ((lExStyle & WS_EX_TOPMOST) ? NULL : SWP_NOZORDER) | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
-			}
-		}
-
 		// Get window width and height
 		if (!DeviceDetails.BufferWidth || !DeviceDetails.BufferHeight)
 		{
@@ -932,38 +924,19 @@ void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DD
 	Mode.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
 }
 
-// Adjusting the window position for WindowMode
-void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool EnableWindowMode, bool FullscreenWindowMode)
+void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd)
 {
-	if (!IsWindow(MainhWnd) || !displayWidth || !displayHeight)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: could not set window size, nullptr.");
-		return;
-	}
+	const LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+	const LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 
-	// Verify monitor handle
-	if (!Utils::IsMonitorValid(hMonitor))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: monitor handle is invalid, using window location instead.");
-		hMonitor = Utils::GetMonitorFromWindow(MainhWnd);
-	}
-
-	// Remove clip children for popup windows
-	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
-	if ((lStyle & WS_POPUP) && (lStyle & WS_CLIPCHILDREN))
-	{
-		SetWindowLong(MainhWnd, GWL_STYLE, lStyle & ~WS_CLIPCHILDREN);
-		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
-	}
+	const bool IsStyleChange = ((lStyle & WS_POPUP) && (lStyle & WS_CLIPCHILDREN));
+	const bool IsExStyleChange = (lExStyle & (WS_EX_TOOLWINDOW | WS_EX_TOPMOST));
 
 	// Move window to top if not already topmost
-	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 	if (!(lExStyle & WS_EX_TOPMOST))
 	{
-		SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle | WS_EX_TOPMOST);
-		SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
-		SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle & ~WS_EX_TOPMOST);
-		SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+		SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+		SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 	}
 
 	// Set active and foreground if needed
@@ -991,6 +964,47 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		}
 	}
 
+	// Remove window styles
+	if (IsStyleChange || IsExStyleChange)
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " Removing window styles:" <<
+			((lExStyle & WS_EX_TOOLWINDOW) ? " WS_EX_TOOLWINDOW" : "") <<
+			((lExStyle & WS_EX_TOPMOST) ? " WS_EX_TOPMOST" : "") <<
+			(IsStyleChange ? " WS_CLIPCHILDREN" : ""));
+
+		// Remove clip children for popup windows
+		if (IsStyleChange)
+		{
+			SetWindowLong(MainhWnd, GWL_STYLE, lStyle & ~WS_CLIPCHILDREN);
+		}
+
+		// Remove tool and topmost window
+		if (IsExStyleChange)
+		{
+			SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle & ~(WS_EX_TOOLWINDOW | WS_EX_TOPMOST));
+		}
+
+		SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_NOTOPMOST : HWND_TOP),
+			0, 0, 0, 0, SWP_FRAMECHANGED | ((lExStyle & WS_EX_TOPMOST) ? NULL : SWP_NOZORDER) | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+	}
+}
+
+// Adjusting the window position for WindowMode
+void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool EnableWindowMode, bool FullscreenWindowMode)
+{
+	if (!IsWindow(MainhWnd) || !displayWidth || !displayHeight)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not set window size, nullptr.");
+		return;
+	}
+
+	// Verify monitor handle
+	if (!Utils::IsMonitorValid(hMonitor))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: monitor handle is invalid, using window location instead.");
+		hMonitor = Utils::GetMonitorFromWindow(MainhWnd);
+	}
+
 	// Get screen area and width and height
 	LONG screenWidth = 0, screenHeight = 0;
 	Utils::GetScreenSize(hMonitor, screenWidth, screenHeight);
@@ -1001,8 +1015,8 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 
 	// Get window style
 	LONG lOrgStyle = GetWindowLong(MainhWnd, GWL_STYLE);
-	lStyle = lOrgStyle;
-	lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+	LONG lStyle = lOrgStyle;
+	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 	BOOL HasMenu = (GetMenu(MainhWnd) != NULL);
 
 	// Set window style
@@ -1075,7 +1089,7 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		if (lOrgStyle != lStyle)
 		{
 			SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-			SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+			SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 		}
 	}
 
