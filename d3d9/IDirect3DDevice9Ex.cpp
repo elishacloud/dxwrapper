@@ -616,6 +616,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 	if (SUCCEEDED(hr))
 	{
 		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+
+		if (SHARED.DeviceMultiSampleType && (MultiSample == D3DMULTISAMPLE_NONE || SHARED.ClientDirectXVersion <= 7))
+		{
+			m_IDirect3DSurface9* pSurfaceX = reinterpret_cast<m_IDirect3DSurface9*>(*ppSurface);
+			pSurfaceX->AllowEmulatedSurface();
+		}
+
 		return D3D_OK;
 	}
 
@@ -2641,7 +2648,7 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Disable AntiAliasing when using point filtering
-	if (Config.AntiAliasing)
+	if (SHARED.DeviceMultiSampleType)
 	{
 		if (Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MAGFILTER)
 		{
@@ -3329,6 +3336,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 	if (SUCCEEDED(hr))
 	{
 		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+
+		if (SHARED.DeviceMultiSampleType && (MultiSample == D3DMULTISAMPLE_NONE || SHARED.ClientDirectXVersion <= 7))
+		{
+			m_IDirect3DSurface9* pSurfaceX = reinterpret_cast<m_IDirect3DSurface9*>(*ppSurface);
+			pSurfaceX->AllowEmulatedSurface();
+		}
+
 		return D3D_OK;
 	}
 

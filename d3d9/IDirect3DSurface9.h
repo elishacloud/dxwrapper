@@ -6,6 +6,7 @@ private:
 	LPDIRECT3DSURFACE9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	const IID WrapperID = IID_IDirect3DSurface9;
+	bool ShouldUseEmu = false;
 
 	// For fake emulated locking
 	D3DSURFACE_DESC Desc = {};
@@ -67,7 +68,7 @@ public:
 	LPDIRECT3DSURFACE9 GetProxyInterface() const { return ProxyInterface; }
 	LPDIRECT3DSURFACE9 GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags)
 	{
-		if (Desc.MultiSampleType && !(Desc.Usage & D3DUSAGE_DEPTHSTENCIL))
+		if (ShouldUseEmu && Desc.MultiSampleType && !(Desc.Usage & D3DUSAGE_DEPTHSTENCIL))
 		{
 			m_IDirect3DSurface9* pSurface = m_GetNonMultiSampledSurface(pSurfaceRect, Flags);
 			if (pSurface)
@@ -79,7 +80,9 @@ public:
 		return ProxyInterface;
 	}
 	HRESULT RestoreMultiSampleData();
-	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) {
+	void AllowEmulatedSurface() { ShouldUseEmu = true; }
+	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*)
+	{
 		m_pDeviceEx = Device;
 
 		if (FAILED(GetDesc(&Desc)))
@@ -96,5 +99,7 @@ public:
 			}
 			Emu.pSurface = nullptr;
 		}
+
+		ShouldUseEmu = false;
 	}
 };
