@@ -236,7 +236,7 @@ public:
 	STDMETHOD(CreateIndexBuffer)(THIS_ UINT Length, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DIndexBuffer9** ppIndexBuffer, HANDLE* pSharedHandle);
 	STDMETHOD(CreateRenderTarget)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Lockable, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle);
 	STDMETHOD(CreateDepthStencilSurface)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Discard, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle);
-	STDMETHOD(UpdateSurface)(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestinationSurface, CONST POINT* pDestPoint);
+	STDMETHOD(UpdateSurface)(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestSurface, CONST POINT* pDestPoint);
 	STDMETHOD(UpdateTexture)(THIS_ IDirect3DBaseTexture9* pSourceTexture, IDirect3DBaseTexture9* pDestinationTexture);
 	STDMETHOD(GetRenderTargetData)(THIS_ IDirect3DSurface9* pRenderTarget, IDirect3DSurface9* pDestSurface);
 	STDMETHOD(GetFrontBufferData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
@@ -353,7 +353,8 @@ public:
 	REFIID GetIID() { return WrapperID; }
 
 	// Helper functions
-	HRESULT CopyRects(THIS_ IDirect3DSurface9* pSourceSurface, const RECT* pSourceRectsArray, UINT cRects, IDirect3DSurface9* pDestinationSurface, const POINT* pDestPointsArray);
+	HRESULT CopyRect(THIS_ IDirect3DSurface9* pSourceSurface, const RECT* pSourceRect, IDirect3DSurface9* pDestSurface, const POINT* pDestPoint);
+	HRESULT CopyRects(THIS_ IDirect3DSurface9* pSourceSurface, const RECT* pSourceRectsArray, UINT cRects, IDirect3DSurface9* pDestSurface, const POINT* pDestPointsArray);
 	HRESULT FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
 	HRESULT GetFrontBufferShadowData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
 	m_IDirect3DStateBlock9* GetCreateStateBlock(IDirect3DStateBlock9* pSB);

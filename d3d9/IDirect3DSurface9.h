@@ -67,6 +67,7 @@ public:
 	// Information functions
 	LPDIRECT3DSURFACE9 GetProxyInterface() const { return ProxyInterface; }
 	void AllowEmulatedSurface() { ShouldUseEmu = true; }
+	bool IsEmulatedSurface() const { return (ShouldUseEmu && Desc.MultiSampleType && !(Desc.Usage & D3DUSAGE_DEPTHSTENCIL)); };
 
 	// Helper functions
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*);

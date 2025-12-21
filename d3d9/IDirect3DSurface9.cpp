@@ -278,7 +278,7 @@ void m_IDirect3DSurface9::InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, vo
 
 LPDIRECT3DSURFACE9 m_IDirect3DSurface9::GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags)
 {
-	if (ShouldUseEmu && Desc.MultiSampleType && !(Desc.Usage & D3DUSAGE_DEPTHSTENCIL))
+	if (IsEmulatedSurface())
 	{
 		m_IDirect3DSurface9* pSurface = m_GetNonMultiSampledSurface(pSurfaceRect, Flags);
 		if (pSurface)
@@ -306,7 +306,7 @@ m_IDirect3DSurface9* m_IDirect3DSurface9::m_GetNonMultiSampledSurface(const RECT
 		Emu.Rect = (pRect) ? *pRect : Emu.Rect;
 		Emu.pRect = (pRect) ? &Emu.Rect : nullptr;
 
-		if (FAILED(m_pDeviceEx->CopyRects(this, pRect, 1, Emu.pSurface, (LPPOINT)pRect)))
+		if (FAILED(m_pDeviceEx->CopyRect(ProxyInterface, pRect, Emu.pSurface, (LPPOINT)pRect)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: copying surface!");
 		}
@@ -323,7 +323,7 @@ HRESULT m_IDirect3DSurface9::RestoreMultiSampleData()
 {
 	if (Emu.pSurface && !Emu.ReadOnly)
 	{
-		if (FAILED(m_pDeviceEx->CopyRects(Emu.pSurface, Emu.pRect, 1, this, (LPPOINT)Emu.pRect)))
+		if (FAILED(m_pDeviceEx->CopyRect(Emu.pSurface, Emu.pRect, ProxyInterface, (LPPOINT)Emu.pRect)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: copying emulated surface!");
 			return D3DERR_INVALIDCALL;
