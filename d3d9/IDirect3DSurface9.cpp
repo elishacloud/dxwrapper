@@ -272,8 +272,6 @@ void m_IDirect3DSurface9::InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, vo
 		}
 		Emu = {};
 	}
-
-	ShouldUseEmu = false;
 }
 
 m_IDirect3DSurface9* m_IDirect3DSurface9::m_GetNonMultiSampledSurface(const RECT* pRect, DWORD Flags)
@@ -312,8 +310,6 @@ LPDIRECT3DSURFACE9 m_IDirect3DSurface9::GetNonMultiSampledSurface(const RECT* pS
 		m_IDirect3DSurface9* pSurface = m_GetNonMultiSampledSurface(pSurfaceRect, Flags);
 		if (pSurface)
 		{
-			Emu.IsBeingModified = true;
-
 			return pSurface->GetProxyInterface();
 		}
 		LOG_LIMIT(100, __FUNCTION__ << " Error: getting non-multi-sampled surface!");
@@ -323,14 +319,13 @@ LPDIRECT3DSURFACE9 m_IDirect3DSurface9::GetNonMultiSampledSurface(const RECT* pS
 
 HRESULT m_IDirect3DSurface9::RestoreMultiSampleData()
 {
-	if (Emu.pSurface && !Emu.ReadOnly && Emu.IsBeingModified)
+	if (Emu.pSurface && !Emu.ReadOnly)
 	{
 		if (FAILED(m_pDeviceEx->CopyRect(Emu.pSurface, Emu.pRect, ProxyInterface, (LPPOINT)Emu.pRect)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: copying emulated surface!");
 			return D3DERR_INVALIDCALL;
 		}
-		Emu.IsBeingModified = false;
 	}
 	return D3D_OK;
 }

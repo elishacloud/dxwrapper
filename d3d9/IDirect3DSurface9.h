@@ -6,13 +6,11 @@ private:
 	LPDIRECT3DSURFACE9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	const IID WrapperID = IID_IDirect3DSurface9;
-	bool ShouldUseEmu = false;
 
 	// For fake emulated locking
 	D3DSURFACE_DESC Desc = {};
 	struct {
 		bool ReadOnly = false;
-		bool IsBeingModified = false;
 		RECT* pRect = nullptr;
 		RECT Rect = {};
 		m_IDirect3DSurface9* pSurface = nullptr;
@@ -67,8 +65,7 @@ public:
 
 	// Information functions
 	LPDIRECT3DSURFACE9 GetProxyInterface() const { return ProxyInterface; }
-	void AllowEmulatedSurface() { ShouldUseEmu = true; }
-	bool IsEmulatedSurface() const { return (ShouldUseEmu && Desc.MultiSampleType && !(Desc.Usage & D3DUSAGE_DEPTHSTENCIL)); };
+	bool IsEmulatedSurface() const { return (Desc.MultiSampleType && !(Desc.Usage & D3DUSAGE_DEPTHSTENCIL)); };
 
 	// Helper functions
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*);
