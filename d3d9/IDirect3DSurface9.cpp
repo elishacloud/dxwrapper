@@ -262,6 +262,7 @@ void m_IDirect3DSurface9::InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, vo
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " Failed to GetDesc()!" << this << ")");
 	}
+	DeviceMultiSampleFlag = m_pDeviceEx->GetDeviceMultiSampleFlag();
 
 	if (Emu.pSurface)
 	{

@@ -8,6 +8,7 @@ private:
 	const IID WrapperID = IID_IDirect3DSurface9;
 
 	// For fake emulated locking
+	bool DeviceMultiSampleFlag = false;
 	D3DSURFACE_DESC Desc = {};
 	struct {
 		bool ReadOnly = false;
@@ -65,7 +66,7 @@ public:
 
 	// Information functions
 	LPDIRECT3DSURFACE9 GetProxyInterface() const { return ProxyInterface; }
-	bool IsEmulatedSurface() const { return (Desc.MultiSampleType && !(Desc.Usage & D3DUSAGE_DEPTHSTENCIL)); };
+	bool IsEmulatedSurface() const { return (Desc.MultiSampleType && DeviceMultiSampleFlag && !(Desc.Usage & D3DUSAGE_DEPTHSTENCIL)); };
 
 	// Helper functions
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*);

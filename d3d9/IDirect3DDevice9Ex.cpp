@@ -1561,7 +1561,7 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Disable AntiAliasing when using point filtering
-	if (SHARED.DeviceMultiSampleType)
+	if (SHARED.DeviceMultiSampleFlag)
 	{
 		if (Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MAGFILTER)
 		{

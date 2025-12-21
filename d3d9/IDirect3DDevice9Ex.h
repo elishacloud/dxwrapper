@@ -349,6 +349,7 @@ public:
 	AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() const { return &SHARED.StateBlockTable; }
 	StateBlockCache* GetDeletedStateBlock() const { return &SHARED.DeletedStateBlocks; }
+	bool GetDeviceMultiSampleFlag() const { return SHARED.DeviceMultiSampleFlag; }
 	DWORD GetClientDXVersion() const { return SHARED.ClientDirectXVersion; }
 	REFIID GetIID() { return WrapperID; }
 

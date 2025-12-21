@@ -4375,8 +4375,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	// Set lockable
 	surface.IsLockable = true;
 
-	// Anti-aliasing
-	if (IsRenderTarget())
+	// Anti-aliasing (enabling this causes Lock to fail on some games with the Primary/Backbuffer surfaces)
+	/*if (IsRenderTarget())
 	{
 		bool AntiAliasing = (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) || (surfaceDesc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK);
 		if (AntiAliasing && !surface.MultiSampleType)
@@ -4397,7 +4397,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			// Default to 8 samples as some games have issues with more samples
 			surface.MultiSampleType = ddrawParent->GetMultiSampleTypeQuality(Format, MaxSamples ? MaxSamples : D3DMULTISAMPLE_8_SAMPLES, surface.MultiSampleQuality);
 		}
-	}
+	}*/
 
 	// Set created by
 	ShouldEmulate = (ShouldEmulate == SC_NOT_CREATED) ? SC_DONT_FORCE : ShouldEmulate;
