@@ -2118,14 +2118,9 @@ HRESULT m_IDirect3DDevice9Ex::CreateQuery(THIS_ D3DQUERYTYPE Type, IDirect3DQuer
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppQuery)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
 	HRESULT hr = ProxyInterface->CreateQuery(Type, ppQuery);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppQuery)
 	{
 		*ppQuery = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DQuery9, m_IDirect3DDevice9Ex, LPVOID>(*ppQuery, this, IID_IDirect3DQuery9, nullptr);
 		return D3D_OK;
