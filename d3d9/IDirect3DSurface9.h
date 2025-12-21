@@ -12,6 +12,7 @@ private:
 	D3DSURFACE_DESC Desc = {};
 	struct {
 		bool ReadOnly = false;
+		bool IsBeingModified = false;
 		RECT* pRect = nullptr;
 		RECT Rect = {};
 		m_IDirect3DSurface9* pSurface = nullptr;

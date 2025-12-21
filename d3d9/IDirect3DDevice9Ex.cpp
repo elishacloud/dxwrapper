@@ -213,12 +213,12 @@ HRESULT m_IDirect3DDevice9Ex::GetDirect3D(IDirect3D9** ppD3D9)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppD3D9)
+	if (FAILED(m_pD3DEx->QueryInterface(WrapperID == IID_IDirect3DDevice9Ex ? IID_IDirect3D9Ex : IID_IDirect3D9, (LPVOID*)ppD3D9)))
 	{
 		return D3DERR_INVALIDCALL;
 	}
 
-	return m_pD3DEx->QueryInterface(WrapperID == IID_IDirect3DDevice9Ex ? IID_IDirect3D9Ex : IID_IDirect3D9, (LPVOID*)ppD3D9);
+	return D3D_OK;
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetDeviceCaps(D3DCAPS9* pCaps)
@@ -232,13 +232,8 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayMode(THIS_ UINT iSwapChain, D3DDISPLAYMO
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	if (Config.D3d9to9Ex && ProxyInterfaceEx && pMode)
 	{
-		if (!pMode)
-		{
-			return D3DERR_INVALIDCALL;
-		}
-
 		D3DDISPLAYMODEEX ModeEx = {};
 		ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
 		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
@@ -293,42 +288,44 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!pPresentationParameters || !ppSwapChain)
+	// Check fullscreen
+	bool ForceFullscreen = false;
+
+	// Setup presentation parameters
+	D3DPRESENT_PARAMETERS d3dpp = {};
+	D3DPRESENT_PARAMETERS* p_d3dpp = pPresentationParameters ? &d3dpp : nullptr;
+	if (pPresentationParameters)
 	{
-		return D3DERR_INVALIDCALL;
+		CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+
+		ForceFullscreen = m_pD3DEx->TestResolution(SHARED.Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
+
+		m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, SHARED.DeviceWindow, SHARED, false, ForceFullscreen, false);
 	}
 
 	HRESULT hr = D3DERR_INVALIDCALL;
 
-	// Check fullscreen
-	bool ForceFullscreen = false;
-	if (m_pD3DEx)
-	{
-		ForceFullscreen = m_pD3DEx->TestResolution(SHARED.Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
-	}
-
-	// Setup presentation parameters
-	D3DPRESENT_PARAMETERS d3dpp;
-	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, false, ForceFullscreen, false);
-
 	// Test for Multisample
-	if (SHARED.DeviceMultiSampleFlag)
+	if (SHARED.DeviceMultiSampleFlag && pPresentationParameters)
 	{
 		// Update Present Parameter for Multisample
-		m_IDirect3D9Ex::UpdatePresentParameterForMultisample(&d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
+		m_IDirect3D9Ex::UpdatePresentParameterForMultisample(p_d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
 
 		// Create CwapChain
-		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
+		hr = ProxyInterface->CreateAdditionalSwapChain(p_d3dpp, ppSwapChain);
 	}
 	
 	if (FAILED(hr))
 	{
-		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, false, ForceFullscreen, false);
+		if (pPresentationParameters)
+		{
+			CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+
+			m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, SHARED.DeviceWindow, SHARED, false, ForceFullscreen, false);
+		}
 
 		// Create CwapChain
-		hr = ProxyInterface->CreateAdditionalSwapChain(&d3dpp, ppSwapChain);
+		hr = ProxyInterface->CreateAdditionalSwapChain(p_d3dpp, ppSwapChain);
 
 		if (SUCCEEDED(hr) && SHARED.DeviceMultiSampleFlag)
 		{
@@ -338,23 +335,30 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 
 	if (SUCCEEDED(hr))
 	{
-		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
-
-		if (IDirect3DSwapChain9* pSwapChainQuery = nullptr; Config.D3d9to9Ex && WrapperID == IID_IDirect3DDevice9Ex && SUCCEEDED((*ppSwapChain)->QueryInterface(IID_IDirect3DSwapChain9Ex, (LPVOID*)&pSwapChainQuery)))
+		if (pPresentationParameters)
 		{
-			(*ppSwapChain)->Release();
-
-			*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>((IDirect3DSwapChain9Ex*)pSwapChainQuery, this, IID_IDirect3DSwapChain9Ex, nullptr);
+			CopyMemory(pPresentationParameters, p_d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 		}
-		else
+
+		if (ppSwapChain)
 		{
-			*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>((IDirect3DSwapChain9Ex*)*ppSwapChain, this, IID_IDirect3DSwapChain9, nullptr);
+			if (IDirect3DSwapChain9* pSwapChainQuery = nullptr; Config.D3d9to9Ex && WrapperID == IID_IDirect3DDevice9Ex && SUCCEEDED((*ppSwapChain)->QueryInterface(IID_IDirect3DSwapChain9Ex, (LPVOID*)&pSwapChainQuery)))
+			{
+				(*ppSwapChain)->Release();
+
+				*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>((IDirect3DSwapChain9Ex*)pSwapChainQuery, this, IID_IDirect3DSwapChain9Ex, nullptr);
+			}
+			else
+			{
+				*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>((IDirect3DSwapChain9Ex*)*ppSwapChain, this, IID_IDirect3DSwapChain9, nullptr);
+			}
 		}
 
 		return D3D_OK;
 	}
 
-	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << *pPresentationParameters;
+	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << pPresentationParameters;
+
 	return hr;
 }
 
@@ -380,14 +384,9 @@ HRESULT m_IDirect3DDevice9Ex::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapC
 
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppSwapChain)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
 	HRESULT hr = ProxyInterface->GetSwapChain(iSwapChain, ppSwapChain);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppSwapChain)
 	{
 		if (IDirect3DSwapChain9* pSwapChainQuery = nullptr; Config.D3d9to9Ex && WrapperID == IID_IDirect3DDevice9Ex && SUCCEEDED((*ppSwapChain)->QueryInterface(IID_IDirect3DSwapChain9Ex, (LPVOID*)&pSwapChainQuery)))
 		{
@@ -415,12 +414,7 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS* pPresentationParamete
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!pPresentationParameters)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
-	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	if (Config.D3d9to9Ex && ProxyInterfaceEx && pPresentationParameters)
 	{
 		D3DDISPLAYMODEEX FullscreenDisplayMode = {};
 
@@ -457,12 +451,8 @@ HRESULT m_IDirect3DDevice9Ex::GetBackBuffer(THIS_ UINT iSwapChain, UINT iBackBuf
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (iSwapChain == 0 && ShadowBackbuffer.Count())
+	if (iSwapChain == 0 && ppBackBuffer && ShadowBackbuffer.Count())
 	{
-		if (!ppBackBuffer)
-		{
-			return D3DERR_INVALIDCALL;
-		}
 		*ppBackBuffer = nullptr;
 
 		if (iBackBuffer >= SHARED.BackBufferCount)
@@ -564,11 +554,6 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppTexture)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
 	if (Config.D3d9to9Ex)
 	{
 		if (Pool == D3DPOOL_MANAGED)
@@ -586,24 +571,21 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 
 	HRESULT hr = ProxyInterface->CreateTexture(Width, Height, Levels, Usage, Format, Pool, ppTexture, pSharedHandle);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppTexture)
 	{
 		*ppTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DTexture9, nullptr);
+
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Width << " " << Height << " " << Levels << " " << Usage << " " << Format << " " << Pool << " " << pSharedHandle;
+
 	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::CreateVolumeTexture(THIS_ UINT Width, UINT Height, UINT Depth, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DVolumeTexture9** ppVolumeTexture, HANDLE* pSharedHandle)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!ppVolumeTexture)
-	{
-		return D3DERR_INVALIDCALL;
-	}
 
 	if (Config.D3d9to9Ex)
 	{
@@ -616,24 +598,21 @@ HRESULT m_IDirect3DDevice9Ex::CreateVolumeTexture(THIS_ UINT Width, UINT Height,
 
 	HRESULT hr = ProxyInterface->CreateVolumeTexture(Width, Height, Depth, Levels, Usage, Format, Pool, ppVolumeTexture, pSharedHandle);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppVolumeTexture)
 	{
 		*ppVolumeTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVolumeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppVolumeTexture, this, IID_IDirect3DVolumeTexture9, nullptr);
+
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Width << " " << Height << " " << Depth << " " << Levels << " " << Usage << " " << Format << " " << Pool << " " << pSharedHandle;
+
 	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::CreateCubeTexture(THIS_ UINT EdgeLength, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DCubeTexture9** ppCubeTexture, HANDLE* pSharedHandle)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!ppCubeTexture)
-	{
-		return D3DERR_INVALIDCALL;
-	}
 
 	if (Config.D3d9to9Ex)
 	{
@@ -652,24 +631,21 @@ HRESULT m_IDirect3DDevice9Ex::CreateCubeTexture(THIS_ UINT EdgeLength, UINT Leve
 
 	HRESULT hr = ProxyInterface->CreateCubeTexture(EdgeLength, Levels, Usage, Format, Pool, ppCubeTexture, pSharedHandle);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppCubeTexture)
 	{
 		*ppCubeTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppCubeTexture, this, IID_IDirect3DCubeTexture9, nullptr);
+
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << EdgeLength << " " << Levels << " " << Usage << " " << Format << " " << Pool << " " << pSharedHandle;
+
 	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::CreateVertexBuffer(THIS_ UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!ppVertexBuffer)
-	{
-		return D3DERR_INVALIDCALL;
-	}
 
 	if (Config.ForceSystemMemVertexCache && Pool == D3DPOOL_MANAGED)
 	{
@@ -688,24 +664,21 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexBuffer(THIS_ UINT Length, DWORD Usage,
 
 	HRESULT hr = ProxyInterface->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppVertexBuffer)
 	{
 		*ppVertexBuffer = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(*ppVertexBuffer, this, IID_IDirect3DVertexBuffer9, nullptr);
+
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Length << " " << Usage << " " << FVF << " " << Pool << " " << pSharedHandle;
+
 	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::CreateIndexBuffer(THIS_ UINT Length, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DIndexBuffer9** ppIndexBuffer, HANDLE* pSharedHandle)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!ppIndexBuffer)
-	{
-		return D3DERR_INVALIDCALL;
-	}
 
 	if (Config.D3d9to9Ex)
 	{
@@ -718,24 +691,21 @@ HRESULT m_IDirect3DDevice9Ex::CreateIndexBuffer(THIS_ UINT Length, DWORD Usage, 
 
 	HRESULT hr = ProxyInterface->CreateIndexBuffer(Length, Usage, Format, Pool, ppIndexBuffer, pSharedHandle);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppIndexBuffer)
 	{
 		*ppIndexBuffer = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DIndexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(*ppIndexBuffer, this, IID_IDirect3DIndexBuffer9, nullptr);
+
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Length << " " << Usage << " " << Format << " " << Pool << " " << pSharedHandle;
+
 	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Lockable, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!ppSurface)
-	{
-		return D3DERR_INVALIDCALL;
-	}
 
 	if (Config.D3d9to9Ex && ProxyInterfaceEx)
 	{
@@ -760,7 +730,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 		}
 	}
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppSurface)
 	{
 		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 
@@ -774,17 +744,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Width << " " << Height << " " << Format << " " << MultiSample << " " << MultisampleQuality << " " << Lockable << " " << pSharedHandle;
+
 	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Discard, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!ppSurface)
-	{
-		return D3DERR_INVALIDCALL;
-	}
 
 	if (Config.D3d9to9Ex && ProxyInterfaceEx)
 	{
@@ -795,6 +761,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 	if (Config.OverrideStencilFormat)
 	{
 		Format = (D3DFORMAT)Config.OverrideStencilFormat;
+
 		LOG_LIMIT(100, __FUNCTION__ << " Setting Stencil format: " << Format);
 	}
 
@@ -816,13 +783,15 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 		}
 	}
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppSurface)
 	{
 		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Width << " " << Height << " " << Format << " " << MultiSample << " " << MultisampleQuality << " " << Discard << " " << pSharedHandle;
+
 	return hr;
 }
 
@@ -1015,11 +984,6 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurface(THIS_ UINT Width, UINT
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppSurface)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
 	if (Config.D3d9to9Ex && ProxyInterfaceEx)
 	{
 		if (Width < 64 && Pool == D3DPOOL_SYSTEMMEM)
@@ -1031,13 +995,15 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurface(THIS_ UINT Width, UINT
 
 	HRESULT hr = ProxyInterface->CreateOffscreenPlainSurface(Width, Height, Format, Pool, ppSurface, pSharedHandle);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppSurface)
 	{
 		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Width << " " << Height << " " << Format << " " << Pool << " " << pSharedHandle;
+
 	return hr;
 }
 
@@ -1067,16 +1033,11 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppRenderTarget)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
 	ScopedCriticalSection ThreadLock(&SHARED.d9cs, RequirePresentHandling());
 
 	HRESULT hr = ProxyInterface->GetRenderTarget(RenderTargetIndex, ppRenderTarget);
 
-	if (ShadowBackbuffer.Count())
+	if (ShadowBackbuffer.Count() && ppRenderTarget)
 	{
 		auto it = std::find(BackBufferList.begin(), BackBufferList.end(), *ppRenderTarget);
 		if (it != BackBufferList.end())
@@ -1086,6 +1047,7 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 			(*ppRenderTarget)->Release();
 
 			*ppRenderTarget = ShadowBackbuffer.GetCurrentBackBuffer();
+
 			if (!*ppRenderTarget)
 			{
 				return D3DERR_INVALIDCALL;
@@ -1409,14 +1371,9 @@ HRESULT m_IDirect3DDevice9Ex::CreateStateBlock(THIS_ D3DSTATEBLOCKTYPE Type, IDi
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppSB)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
 	HRESULT hr = ProxyInterface->CreateStateBlock(Type, ppSB);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppSB)
 	{
 		m_IDirect3DStateBlock9* StateBlockX = GetCreateStateBlock(*ppSB);
 
@@ -1446,14 +1403,9 @@ HRESULT m_IDirect3DDevice9Ex::EndStateBlock(THIS_ IDirect3DStateBlock9** ppSB)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppSB)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
 	HRESULT hr = ProxyInterface->EndStateBlock(ppSB);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppSB)
 	{
 		m_IDirect3DStateBlock9* StateBlockX = GetCreateStateBlock(*ppSB);
 
@@ -1792,20 +1744,17 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexDeclaration(THIS_ CONST D3DVERTEXELEME
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppDecl)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
 	HRESULT hr = ProxyInterface->CreateVertexDeclaration(pVertexElements, ppDecl);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppDecl)
 	{
 		*ppDecl = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexDeclaration9, m_IDirect3DDevice9Ex, LPVOID>(*ppDecl, this, IID_IDirect3DVertexDeclaration9, nullptr);
+
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << pVertexElements;
+
 	return hr;
 }
 
@@ -1853,20 +1802,17 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexShader(THIS_ CONST DWORD* pFunction, I
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppShader)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
 	HRESULT hr = ProxyInterface->CreateVertexShader(pFunction, ppShader);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppShader)
 	{
 		*ppShader = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexShader9, m_IDirect3DDevice9Ex, LPVOID>(*ppShader, this, IID_IDirect3DVertexShader9, nullptr);
+
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << pFunction;
+
 	return hr;
 }
 
@@ -2008,20 +1954,17 @@ HRESULT m_IDirect3DDevice9Ex::CreatePixelShader(THIS_ CONST DWORD* pFunction, ID
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppShader)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
 	HRESULT hr = ProxyInterface->CreatePixelShader(pFunction, ppShader);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppShader)
 	{
 		*ppShader = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DPixelShader9, m_IDirect3DDevice9Ex, LPVOID>(*ppShader, this, IID_IDirect3DPixelShader9, nullptr);
+
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << pFunction;
+
 	return hr;
 }
 
@@ -2123,10 +2066,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateQuery(THIS_ D3DQUERYTYPE Type, IDirect3DQuer
 	if (SUCCEEDED(hr) && ppQuery)
 	{
 		*ppQuery = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DQuery9, m_IDirect3DDevice9Ex, LPVOID>(*ppQuery, this, IID_IDirect3DQuery9, nullptr);
+
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Type;
+
 	return hr;
 }
 
@@ -2345,11 +2290,6 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (!ppSurface)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Test for Multisample
@@ -2368,7 +2308,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 		}
 	}
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppSurface)
 	{
 		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 
@@ -2382,6 +2322,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Width << " " << Height << " " << Format << " " << MultiSample << " " << MultisampleQuality << " " << Lockable << " " << pSharedHandle << " " << Usage;
+
 	return hr;
 }
 
@@ -2395,11 +2336,6 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 		return D3DERR_INVALIDCALL;
 	}
 
-	if (!ppSurface)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
 	// Override stencil format
 	if (Config.OverrideStencilFormat && Usage == D3DUSAGE_DEPTHSTENCIL)
 	{
@@ -2408,13 +2344,15 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 
 	HRESULT hr = ProxyInterfaceEx->CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, Usage);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppSurface)
 	{
 		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Width << " " << Height << " " << Format << " " << Pool << " " << pSharedHandle << Usage;
+
 	return hr;
 }
 
@@ -2425,11 +2363,6 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 	if (!ProxyInterfaceEx)
 	{
 		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
-		return D3DERR_INVALIDCALL;
-	}
-
-	if (!ppSurface)
-	{
 		return D3DERR_INVALIDCALL;
 	}
 
@@ -2458,24 +2391,21 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 		}
 	}
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppSurface)
 	{
 		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+
 		return D3D_OK;
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Width << " " << Height << " " << Format << " " << MultiSample << " " << MultisampleQuality << " " << Discard << " " << pSharedHandle << " " << Usage;
+
 	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX *pFullscreenDisplayMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!pPresentationParameters)
-	{
-		return D3DERR_INVALIDCALL;
-	}
 
 	return ResetT<fResetEx>(nullptr, pPresentationParameters, true, pFullscreenDisplayMode);
 }
@@ -3473,10 +3403,8 @@ void m_IDirect3DDevice9Ex::ReleaseShadowBackbuffer()
 	}
 }
 
-void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters)
+void m_IDirect3DDevice9Ex::ClearVars()
 {
-	UNREFERENCED_PARAMETER(pPresentationParameters);
-
 	// Clear variables
 	ZeroMemory(&Caps, sizeof(D3DCAPS9));
 	MaxAnisotropy = 0;
@@ -3489,11 +3417,6 @@ void m_IDirect3DDevice9Ex::ClearVars(D3DPRESENT_PARAMETERS* pPresentationParamet
 template <typename T>
 HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentationParameters, bool IsEx, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
 {
-	if (!pPresentationParameters)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
 	ReleaseResources(true);
 
 #ifdef ENABLE_DEBUGOVERLAY
@@ -3511,42 +3434,50 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	if (WndDataStruct)
 	{
 		WndDataStruct->IsCreatingDevice = true;
-		WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
+		if (pPresentationParameters)
+		{
+			WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
+		}
 	}
 
 	HRESULT hr;
 
-	// Check fullscreen
-	bool ForceFullscreen = false;
-	if (m_pD3DEx)
-	{
-		ForceFullscreen = m_pD3DEx->TestResolution(SHARED.Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
-	}
-
 	// Check if display needs to be reset
-	bool IsSettingWindowMode = (pPresentationParameters->Windowed != FALSE);
+	bool IsSettingWindowMode = (pPresentationParameters ? pPresentationParameters->Windowed != FALSE : false);
 	bool IsWindowModeChanging = (SHARED.IsWindowMode != IsSettingWindowMode);
-	bool IsResolutionChanging = (SHARED.BufferWidth != (LONG)pPresentationParameters->BackBufferWidth || SHARED.BufferHeight != (LONG)pPresentationParameters->BackBufferHeight);
+	bool IsResolutionChanging = pPresentationParameters ?
+		(SHARED.BufferWidth != (LONG)pPresentationParameters->BackBufferWidth || SHARED.BufferHeight != (LONG)pPresentationParameters->BackBufferHeight) : false;
+
 	if ((IsWindowModeChanging && IsSettingWindowMode) || (Config.FullscreenWindowMode && IsResolutionChanging))
 	{
 		Utils::ResetDisplaySettings(SHARED.hMonitor);
 	}
 
+	// Check fullscreen
+	bool ForceFullscreen = false;
+
 	// Setup presentation parameters
-	D3DPRESENT_PARAMETERS d3dpp;
-	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, IsEx, ForceFullscreen, IsWindowModeChanging || IsResolutionChanging);
+	D3DPRESENT_PARAMETERS d3dpp = {};
+	D3DPRESENT_PARAMETERS* p_d3dpp = pPresentationParameters ? &d3dpp : nullptr;
+	if (pPresentationParameters)
+	{
+		CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+
+		ForceFullscreen = m_pD3DEx->TestResolution(SHARED.Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
+
+		m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, SHARED.DeviceWindow, SHARED, IsEx, ForceFullscreen, IsWindowModeChanging || IsResolutionChanging);
+	}
 
 	// Test for Multisample
-	if (SHARED.DeviceMultiSampleFlag)
+	if (SHARED.DeviceMultiSampleFlag && pPresentationParameters)
 	{
 		do {
 
 			// Update Present Parameter for Multisample
-			m_IDirect3D9Ex::UpdatePresentParameterForMultisample(&d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
+			m_IDirect3D9Ex::UpdatePresentParameterForMultisample(p_d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
 
 			// Reset device
-			hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
+			hr = ResetT(func, p_d3dpp, pFullscreenDisplayMode);
 
 			// Check if device was reset successfully
 			if (SUCCEEDED(hr))
@@ -3555,11 +3486,12 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 			}
 
 			// Reset presentation parameters
-			CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-			m_IDirect3D9Ex::UpdatePresentParameter(&d3dpp, SHARED.DeviceWindow, SHARED, IsEx, ForceFullscreen, false);
+			CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+
+			m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, SHARED.DeviceWindow, SHARED, IsEx, ForceFullscreen, false);
 
 			// Reset device
-			hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
+			hr = ResetT(func, p_d3dpp, pFullscreenDisplayMode);
 
 			if (SUCCEEDED(hr))
 			{
@@ -3576,23 +3508,26 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	else
 	{
 		// Reset device
-		hr = ResetT(func, &d3dpp, pFullscreenDisplayMode);
+		hr = ResetT(func, p_d3dpp, pFullscreenDisplayMode);
 	}
+
+	ClearVars();
 
 	if (SUCCEEDED(hr))
 	{
-		m_IDirect3D9Ex::GetFinalPresentParameter(&d3dpp, SHARED);
-
-		if (WndDataStruct && WndDataStruct->IsExclusiveMode)
+		if (pPresentationParameters)
 		{
-			d3dpp.Windowed = FALSE;
+			m_IDirect3D9Ex::GetFinalPresentParameter(p_d3dpp, SHARED);
+
+			if (WndDataStruct && WndDataStruct->IsExclusiveMode)
+			{
+				d3dpp.Windowed = FALSE;
+			}
+
+			SHARED.IsWindowMode = IsSettingWindowMode;
+
+			CopyMemory(pPresentationParameters, p_d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 		}
-
-		SHARED.IsWindowMode = IsSettingWindowMode;
-
-		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
-
-		ClearVars(pPresentationParameters);
 
 		ReInitInterface();
 	}

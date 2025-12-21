@@ -156,7 +156,7 @@ private:
 	void ReInitInterface();
 	void CreateShadowBackbuffer();
 	void ReleaseShadowBackbuffer();
-	void ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters);
+	void ClearVars();
 	typedef HRESULT(WINAPI* fReset)(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fResetEx)(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
 	template <typename T>

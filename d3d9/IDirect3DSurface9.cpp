@@ -107,12 +107,12 @@ HRESULT m_IDirect3DSurface9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppDevice)
+	if (FAILED(m_pDeviceEx->QueryInterface(m_pDeviceEx->GetIID(), (LPVOID*)ppDevice)))
 	{
 		return D3DERR_INVALIDCALL;
 	}
 
-	return m_pDeviceEx->QueryInterface(m_pDeviceEx->GetIID(), (LPVOID*)ppDevice);
+	return D3D_OK;
 }
 
 HRESULT m_IDirect3DSurface9::SetPrivateData(THIS_ REFGUID refguid, CONST void* pData, DWORD SizeOfData, DWORD Flags)
@@ -265,29 +265,15 @@ void m_IDirect3DSurface9::InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, vo
 
 	if (Emu.pSurface)
 	{
-		ULONG eref = Emu.pSurface->Release();
-		if (eref)
+		ULONG ref = Emu.pSurface->Release();
+		if (ref)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'Emu.pSurface' " << eref;
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'Emu.pSurface' " << ref;
 		}
-		Emu.pSurface = nullptr;
+		Emu = {};
 	}
 
 	ShouldUseEmu = false;
-}
-
-LPDIRECT3DSURFACE9 m_IDirect3DSurface9::GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags)
-{
-	if (IsEmulatedSurface())
-	{
-		m_IDirect3DSurface9* pSurface = m_GetNonMultiSampledSurface(pSurfaceRect, Flags);
-		if (pSurface)
-		{
-			return pSurface->GetProxyInterface();
-		}
-		LOG_LIMIT(100, __FUNCTION__ << " Error: getting non-multi-sampled surface!");
-	}
-	return ProxyInterface;
 }
 
 m_IDirect3DSurface9* m_IDirect3DSurface9::m_GetNonMultiSampledSurface(const RECT* pRect, DWORD Flags)
@@ -319,15 +305,32 @@ m_IDirect3DSurface9* m_IDirect3DSurface9::m_GetNonMultiSampledSurface(const RECT
 	return Emu.pSurface;
 }
 
+LPDIRECT3DSURFACE9 m_IDirect3DSurface9::GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags)
+{
+	if (IsEmulatedSurface())
+	{
+		m_IDirect3DSurface9* pSurface = m_GetNonMultiSampledSurface(pSurfaceRect, Flags);
+		if (pSurface)
+		{
+			Emu.IsBeingModified = true;
+
+			return pSurface->GetProxyInterface();
+		}
+		LOG_LIMIT(100, __FUNCTION__ << " Error: getting non-multi-sampled surface!");
+	}
+	return ProxyInterface;
+}
+
 HRESULT m_IDirect3DSurface9::RestoreMultiSampleData()
 {
-	if (Emu.pSurface && !Emu.ReadOnly)
+	if (Emu.pSurface && !Emu.ReadOnly && Emu.IsBeingModified)
 	{
 		if (FAILED(m_pDeviceEx->CopyRect(Emu.pSurface, Emu.pRect, ProxyInterface, (LPPOINT)Emu.pRect)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: copying emulated surface!");
 			return D3DERR_INVALIDCALL;
 		}
+		Emu.IsBeingModified = false;
 	}
 	return D3D_OK;
 }

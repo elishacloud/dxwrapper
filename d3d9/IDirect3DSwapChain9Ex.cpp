@@ -130,13 +130,8 @@ HRESULT m_IDirect3DSwapChain9Ex::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	if (Config.D3d9to9Ex && ProxyInterfaceEx && pMode)
 	{
-		if (!pMode)
-		{
-			return D3DERR_INVALIDCALL;
-		}
-
 		D3DDISPLAYMODEEX ModeEx = {};
 		ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
 		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
@@ -158,12 +153,12 @@ HRESULT m_IDirect3DSwapChain9Ex::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppDevice)
+	if (FAILED(m_pDeviceEx->QueryInterface(WrapperID == IID_IDirect3DSwapChain9Ex ? IID_IDirect3DDevice9Ex : m_pDeviceEx->GetIID(), (LPVOID*)ppDevice)))
 	{
 		return D3DERR_INVALIDCALL;
 	}
 
-	return m_pDeviceEx->QueryInterface(WrapperID == IID_IDirect3DSwapChain9Ex ? IID_IDirect3DDevice9Ex : m_pDeviceEx->GetIID(), (LPVOID*)ppDevice);
+	return D3D_OK;
 }
 
 HRESULT m_IDirect3DSwapChain9Ex::GetPresentParameters(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters)
