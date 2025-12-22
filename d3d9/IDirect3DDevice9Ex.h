@@ -70,7 +70,7 @@ private:
 	LPDIRECT3DDEVICE9EX ProxyInterfaceEx = nullptr;
 	m_IDirect3D9Ex* m_pD3DEx;
 	const IID WrapperID;
-	ShadowSurfaceStorage ShadowBackbuffer;
+	std::unique_ptr<ShadowSurfaceStorage> ShadowBackbuffer = std::make_unique<ShadowSurfaceStorage>();
 	std::vector<IDirect3DSurface9*> BackBufferList;
 
 	UINT DDKey;
@@ -127,7 +127,7 @@ private:
 	void AfterBeginScene();
 	void BeforeEndScene();
 
-	inline bool RequirePresentHandling() const { return ((Config.WindowModeGammaShader && IsGammaSet) || Config.ShowFPSCounter || ShadowBackbuffer.Count()); }
+	bool RequirePresentHandling() const;
 
 	// Limit frame rate
 	void LimitFrameRate() const;

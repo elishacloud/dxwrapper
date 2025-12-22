@@ -67,6 +67,7 @@ public:
 	// Information functions
 	LPDIRECT3DSURFACE9 GetProxyInterface() const { return ProxyInterface; }
 	bool IsEmulatedSurface() const { return (Desc.MultiSampleType && DeviceMultiSampleFlag && !(Desc.Usage & D3DUSAGE_DEPTHSTENCIL)); };
+	ULONG GetSurfaceCount() const { return Emu.pSurface ? 2 : 1; }
 
 	// Helper functions
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*);

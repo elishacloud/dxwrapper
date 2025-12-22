@@ -26,9 +26,9 @@ class m_IDirect3DVolume9;
 class m_IDirect3DVolumeTexture9;
 class m_IDirect3DVideoDevice9;
 class m_IDirect3DDXVADevice9;
+class ShadowSurfaceStorage;
 
 #include "AddressLookupTable.h"
-#include "ShadowSurfaceStorage.h"
 #include "IClassFactory\IClassFactory.h"
 #include "GDI\GDI.h"
 #include "Utils\Utils.h"
@@ -135,3 +135,4 @@ namespace D3d9Wrapper
 #include "IDirect3DVolumeTexture9.h"
 #include "IDirect3DVideoDevice9.h"
 #include "IDirect3DDXVADevice9.h"
+#include "ShadowSurfaceStorage.h"

@@ -72,6 +72,16 @@ public:
         return false;
     }
 
+    ULONG GetRefCount() const
+    {
+        ULONG ref = 0;
+        for (auto* s : surfaces)
+        {
+            if (s) ref += s->GetSurfaceCount();
+        }
+        return ref;
+    }
+
     // Release everything
     void ReleaseAll()
     {

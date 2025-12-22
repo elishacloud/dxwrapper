@@ -451,7 +451,7 @@ HRESULT m_IDirect3DDevice9Ex::GetBackBuffer(THIS_ UINT iSwapChain, UINT iBackBuf
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (iSwapChain == 0 && ppBackBuffer && ShadowBackbuffer.Count())
+	if (iSwapChain == 0 && ppBackBuffer && ShadowBackbuffer->Count())
 	{
 		*ppBackBuffer = nullptr;
 
@@ -466,7 +466,7 @@ HRESULT m_IDirect3DDevice9Ex::GetBackBuffer(THIS_ UINT iSwapChain, UINT iBackBuf
 		}
 
 		// For stereo buffers, we just return the mono shadow for simplicity
-		IDirect3DSurface9* pSurface = ShadowBackbuffer.GetSurface(iBackBuffer);
+		IDirect3DSurface9* pSurface = ShadowBackbuffer->GetSurface(iBackBuffer);
 		if (!pSurface)
 		{
 			return D3DERR_INVALIDCALL;
@@ -907,7 +907,7 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3
 	}
 	else
 	{
-		if (iSwapChain == 0 && ShadowBackbuffer.Count())
+		if (iSwapChain == 0 && ShadowBackbuffer->Count())
 		{
 			return GetFrontBufferShadowData(iSwapChain, pDestSurface);
 		}
@@ -1012,7 +1012,7 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 		pRenderTarget = static_cast<m_IDirect3DSurface9*>(pRenderTarget)->GetProxyInterface();
 	}
 
-	if (ShadowBackbuffer.Count() && pRenderTarget)
+	if (ShadowBackbuffer->Count() && pRenderTarget)
 	{
 		if (std::find(BackBufferList.begin(), BackBufferList.end(), pRenderTarget) != BackBufferList.end())
 		{
@@ -1031,7 +1031,7 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 
 	HRESULT hr = ProxyInterface->GetRenderTarget(RenderTargetIndex, ppRenderTarget);
 
-	if (ShadowBackbuffer.Count() && ppRenderTarget)
+	if (ShadowBackbuffer->Count() && ppRenderTarget)
 	{
 		auto it = std::find(BackBufferList.begin(), BackBufferList.end(), *ppRenderTarget);
 		if (it != BackBufferList.end())
@@ -1040,7 +1040,7 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 
 			(*ppRenderTarget)->Release();
 
-			*ppRenderTarget = ShadowBackbuffer.GetCurrentBackBuffer();
+			*ppRenderTarget = ShadowBackbuffer->GetCurrentBackBuffer();
 
 			if (!*ppRenderTarget)
 			{
@@ -2475,7 +2475,7 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 				}
 
 				// Apply brightness level
-				if (ShadowBackbuffer.Count() || IsGammaSet)
+				if (ShadowBackbuffer->Count() || IsGammaSet)
 				{
 					ApplyBrightnessLevel();
 				}
@@ -2523,26 +2523,26 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 
 void m_IDirect3DDevice9Ex::ApplyPostPresentFixes()
 {
-	if (ShadowBackbuffer.Count())
+	if (ShadowBackbuffer->Count())
 	{
 		if (SHARED.BackBufferCount == 1)
 		{
-			if (FAILED(ProxyInterface->StretchRect(ShadowBackbuffer.GetCurrentBackBuffer()->GetProxyInterface(), nullptr, ShadowBackbuffer.GetCurrentFrontBuffer()->GetProxyInterface(), nullptr, D3DTEXF_NONE)))
+			if (FAILED(ProxyInterface->StretchRect(ShadowBackbuffer->GetCurrentBackBuffer()->GetProxyInterface(), nullptr, ShadowBackbuffer->GetCurrentFrontBuffer()->GetProxyInterface(), nullptr, D3DTEXF_NONE)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: Failed to copy shadow backbuffer into shadow front buffer!");
 			}
 		}
 		else
 		{
-			ShadowBackbuffer.Rotate();
+			ShadowBackbuffer->Rotate();
 
 			ComPtr<IDirect3DSurface9> pSurface;
 			if (SUCCEEDED(ProxyInterface->GetRenderTarget(0, pSurface.GetAddressOf())))
 			{
-				if (pSurface.Get() == ShadowBackbuffer.GetCurrentFrontBuffer()->GetProxyInterface() ||
+				if (pSurface.Get() == ShadowBackbuffer->GetCurrentFrontBuffer()->GetProxyInterface() ||
 					std::find(BackBufferList.begin(), BackBufferList.end(), pSurface.Get()) != BackBufferList.end())
 				{
-					ProxyInterface->SetRenderTarget(0, ShadowBackbuffer.GetCurrentBackBuffer()->GetProxyInterface());
+					ProxyInterface->SetRenderTarget(0, ShadowBackbuffer->GetCurrentBackBuffer()->GetProxyInterface());
 				}
 			}
 		}
@@ -2599,6 +2599,11 @@ void m_IDirect3DDevice9Ex::BeforeEndScene()
 		DOverlay.EndScene();
 	}
 #endif
+}
+
+bool m_IDirect3DDevice9Ex::RequirePresentHandling() const
+{
+	return ((Config.WindowModeGammaShader && IsGammaSet) || Config.ShowFPSCounter || ShadowBackbuffer->Count());
 }
 
 void m_IDirect3DDevice9Ex::LimitFrameRate() const
@@ -3059,7 +3064,7 @@ DWORD m_IDirect3DDevice9Ex::GetResourceRefCount()
 		(pFont ? 1 + FontRefCount : 0) +
 		(pSprite ? 2 + SprintRefCount : 0) +
 		(pStateBlock ? 1 : 0) +
-		ShadowBackbuffer.Count();
+		ShadowBackbuffer->GetRefCount();
 }
 
 void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
@@ -3314,7 +3319,7 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 		DefaultRampData.blue[i] = value;
 	}
 
-	ShadowBackbuffer.ReleaseAll();
+	ShadowBackbuffer->ReleaseAll();
 
 	if (!SHARED.IsDirectDrawDevice && Config.UseShadowBackbuffer)
 	{
@@ -3354,7 +3359,7 @@ void m_IDirect3DDevice9Ex::CreateShadowBackbuffer()
 		}
 	}
 
-	ShadowBackbuffer.Initialize(BackBufferCount);
+	ShadowBackbuffer->Initialize(BackBufferCount);
 
 	for (size_t i = 0; i < BackBufferCount; ++i)
 	{
@@ -3362,10 +3367,10 @@ void m_IDirect3DDevice9Ex::CreateShadowBackbuffer()
 		if (FAILED(CreateRenderTarget(Desc.Width, Desc.Height, Desc.Format, Desc.MultiSampleType, Desc.MultiSampleQuality, FALSE, reinterpret_cast<IDirect3DSurface9**>(&surf), nullptr)))
 		{
 			Logging::Log() << __FUNCTION__ << " Error: failed to create render target!";
-			ShadowBackbuffer.ReleaseAll();
+			ShadowBackbuffer->ReleaseAll();
 			return;
 		}
-		ShadowBackbuffer.SetSurface(i, surf);
+		ShadowBackbuffer->SetSurface(i, surf);
 
 		ComPtr<IDirect3DSurface9> pBackbuffer;
 		if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, i, D3DBACKBUFFER_TYPE_MONO, pBackbuffer.GetAddressOf())))
@@ -3374,12 +3379,12 @@ void m_IDirect3DDevice9Ex::CreateShadowBackbuffer()
 		}
 	}
 
-	ProxyInterface->SetRenderTarget(0, ShadowBackbuffer.GetCurrentBackBuffer()->GetProxyInterface());
+	ProxyInterface->SetRenderTarget(0, ShadowBackbuffer->GetCurrentBackBuffer()->GetProxyInterface());
 }
 
 void m_IDirect3DDevice9Ex::ReleaseShadowBackbuffer()
 {
-	if (ShadowBackbuffer.Count())
+	if (ShadowBackbuffer->Count())
 	{
 		ComPtr<IDirect3DSurface9> pBackbuffer;
 		if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackbuffer.GetAddressOf())))
@@ -3387,7 +3392,7 @@ void m_IDirect3DDevice9Ex::ReleaseShadowBackbuffer()
 			ProxyInterface->SetRenderTarget(0, pBackbuffer.Get());
 		}
 
-		ShadowBackbuffer.ReleaseAll();
+		ShadowBackbuffer->ReleaseAll();
 	}
 }
 
@@ -3723,7 +3728,7 @@ HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDir
 	}
 
 	// Get FrontBuffer data to new surface
-	HRESULT hr = ShadowBackbuffer.Count() ?
+	HRESULT hr = ShadowBackbuffer->Count() ?
 		GetFrontBufferShadowData(iSwapChain, pSourceSurface.Get()) :
 		ProxyInterface->GetFrontBufferData(iSwapChain, pSourceSurface.Get());
 	if (FAILED(hr))
@@ -3808,7 +3813,7 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferShadowData(THIS_ UINT iSwapChain, ID
 		return D3DERR_INVALIDCALL;
 	}
 
-	IDirect3DSurface9* pShadowSurface = ShadowBackbuffer.GetCurrentFrontBuffer()->GetProxyInterface();
+	IDirect3DSurface9* pShadowSurface = ShadowBackbuffer->GetCurrentFrontBuffer()->GetProxyInterface();
 
 	// Copy shadow buffer into destination
 	return ProxyInterface->StretchRect(pShadowSurface, nullptr, pDestSurface, nullptr, D3DTEXF_NONE);
