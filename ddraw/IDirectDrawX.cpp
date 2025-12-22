@@ -80,10 +80,10 @@ namespace {
 #endif
 
 	struct DX_INDEX_BUFFER {
-		const DWORD MaxSize;
+		const DWORD MaxCount;
 		DWORD Size = 0;
 		LPDIRECT3DINDEXBUFFER9 Buffer = nullptr;
-		DX_INDEX_BUFFER(DWORD MaxSize) : MaxSize(MaxSize) {}
+		DX_INDEX_BUFFER(DWORD MaxCount) : MaxCount(MaxCount) {}
 	};
 
 	// Preset from another thread
@@ -118,7 +118,8 @@ namespace {
 		DX_INDEX_BUFFER(8192),
 		DX_INDEX_BUFFER(16384),
 		DX_INDEX_BUFFER(32768),
-		DX_INDEX_BUFFER(65536)
+		DX_INDEX_BUFFER(65536),
+		DX_INDEX_BUFFER(0xFFFFFFFF / sizeof(WORD))
 	};
 
 	// Direct3D9 flags
@@ -3129,7 +3130,7 @@ LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBuffer(LPWORD lpwIndices, DWORD d
 {
 	for (auto& entry : IndexBuffer)
 	{
-		if (dwIndexCount <= entry.MaxSize)
+		if (dwIndexCount <= entry.MaxCount)
 		{
 			return GetIndexBufferX(lpwIndices, dwIndexCount, entry.Size, entry.Buffer);
 		}
