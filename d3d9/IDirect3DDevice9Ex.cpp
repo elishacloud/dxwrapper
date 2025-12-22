@@ -799,7 +799,7 @@ HRESULT m_IDirect3DDevice9Ex::UpdateSurface(THIS_ IDirect3DSurface9* pSourceSurf
 
 	if (pSourceSurface)
 	{
-		pSourceSurface = static_cast<m_IDirect3DSurface9*>(pSourceSurface)->GetNonMultiSampledSurface(pSourceRect, D3DLOCK_READONLY);
+		pSourceSurface = static_cast<m_IDirect3DSurface9*>(pSourceSurface)->GetProxyInterface();
 	}
 
 	m_IDirect3DSurface9* m_pDestSurface = static_cast<m_IDirect3DSurface9*>(pDestSurface);
@@ -872,34 +872,29 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTargetData(THIS_ IDirect3DSurface9* pRend
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	const bool ShouldCriticalSection = pDestSurface ? static_cast<m_IDirect3DSurface9*>(pDestSurface)->IsEmulatedSurface() : false;
-
-	ScopedCriticalSection ThreadLock(&SHARED.d9cs, ShouldCriticalSection || RequirePresentHandling());
+	ScopedCriticalSection ThreadLock(&SHARED.d9cs, RequirePresentHandling());
 
 	if (pRenderTarget)
 	{
 		pRenderTarget = static_cast<m_IDirect3DSurface9*>(pRenderTarget)->GetNonMultiSampledSurface(nullptr, D3DLOCK_READONLY);
 	}
 
-	m_IDirect3DSurface9* m_pDestSurface = static_cast<m_IDirect3DSurface9*>(pDestSurface);
 	if (pDestSurface)
 	{
-		pDestSurface = m_pDestSurface->GetNonMultiSampledSurface(nullptr, 0);
+		pDestSurface = static_cast<m_IDirect3DSurface9*>(pDestSurface)->GetProxyInterface();
 	}
 
-	HRESULT hr = ProxyInterface->GetRenderTargetData(pRenderTarget, pDestSurface);
-
-	if (SUCCEEDED(hr) && m_pDestSurface)
-	{
-		m_pDestSurface->RestoreMultiSampleData();
-	}
-
-	return hr;
+	return ProxyInterface->GetRenderTargetData(pRenderTarget, pDestSurface);
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (pDestSurface)
+	{
+		pDestSurface = static_cast<m_IDirect3DSurface9*>(pDestSurface)->GetProxyInterface();
+	}
 
 	if (Config.EnableWindowMode && (SHARED.BufferWidth != SHARED.screenWidth || SHARED.BufferHeight != SHARED.screenHeight))
 	{
@@ -912,24 +907,7 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3
 			return GetFrontBufferShadowData(iSwapChain, pDestSurface);
 		}
 
-		const bool ShouldCriticalSection = pDestSurface ? static_cast<m_IDirect3DSurface9*>(pDestSurface)->IsEmulatedSurface() : false;
-
-		ScopedCriticalSection ThreadLock(&SHARED.d9cs, ShouldCriticalSection);
-
-		m_IDirect3DSurface9* m_pDestSurface = static_cast<m_IDirect3DSurface9*>(pDestSurface);
-		if (pDestSurface)
-		{
-			pDestSurface = m_pDestSurface->GetNonMultiSampledSurface(nullptr, 0);
-		}
-
-		HRESULT hr = ProxyInterface->GetFrontBufferData(iSwapChain, pDestSurface);
-
-		if (SUCCEEDED(hr) && m_pDestSurface)
-		{
-			m_pDestSurface->RestoreMultiSampleData();
-		}
-
-		return hr;
+		return ProxyInterface->GetFrontBufferData(iSwapChain, pDestSurface);
 	}
 }
 
@@ -2937,10 +2915,10 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		}
 		pBackBuffer = tmpBackBuffer.Get();
 
-		void* pVoid = nullptr;
-		if (SUCCEEDED(pBackBuffer->QueryInterface(IID_GetInterfaceX, &pVoid)))
+		m_IDirect3DSurface9* m_pBackBuffer = nullptr;
+		if (SUCCEEDED(pBackBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&m_pBackBuffer)))
 		{
-			pBackBuffer = static_cast<m_IDirect3DSurface9*>(pBackBuffer)->GetProxyInterface();
+			pBackBuffer = m_pBackBuffer->GetProxyInterface();
 		}
 	}
 
@@ -3550,9 +3528,10 @@ HRESULT m_IDirect3DDevice9Ex::CopyRect(THIS_ IDirect3DSurface9* pSourceSurface, 
 		return D3DERR_INVALIDCALL;
 	}
 
-	void* pVoid = nullptr;
-	const bool ShouldCriticalSection = pDestSurface && SUCCEEDED(pDestSurface->QueryInterface(IID_GetInterfaceX, &pVoid)) ?
-		static_cast<m_IDirect3DSurface9*>(pDestSurface)->IsEmulatedSurface() : false;
+	m_IDirect3DSurface9* m_pDestSurface = nullptr;
+	pDestSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&m_pDestSurface);
+
+	const bool ShouldCriticalSection = m_pDestSurface ? m_pDestSurface->IsEmulatedSurface() : false;
 
 	ScopedCriticalSection ThreadLock(&SHARED.d9cs, ShouldCriticalSection);
 
@@ -3570,8 +3549,7 @@ HRESULT m_IDirect3DDevice9Ex::CopyRect(THIS_ IDirect3DSurface9* pSourceSurface, 
 	{
 		pSourceSurface = m_pSourceSurface->GetNonMultiSampledSurface(&SourceRect, D3DLOCK_READONLY);
 	}
-	m_IDirect3DSurface9* m_pDestSurface = nullptr;
-	if (SUCCEEDED(pDestSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&m_pDestSurface)))
+	if (m_pDestSurface)
 	{
 		pDestSurface = m_pDestSurface->GetNonMultiSampledSurface(&DestRect, 0);
 	}
@@ -3611,9 +3589,10 @@ HRESULT m_IDirect3DDevice9Ex::CopyRects(THIS_ IDirect3DSurface9* pSourceSurface,
 		return D3DERR_INVALIDCALL;
 	}
 
-	void* pVoid = nullptr;
-	const bool ShouldCriticalSection = pDestSurface && SUCCEEDED(pDestSurface->QueryInterface(IID_GetInterfaceX, &pVoid)) ?
-		static_cast<m_IDirect3DSurface9*>(pDestSurface)->IsEmulatedSurface() : false;
+	m_IDirect3DSurface9* m_pDestSurface = nullptr;
+	pDestSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&m_pDestSurface);
+
+	const bool ShouldCriticalSection = m_pDestSurface ? m_pDestSurface->IsEmulatedSurface() : false;
 
 	ScopedCriticalSection ThreadLock(&SHARED.d9cs, ShouldCriticalSection);
 
@@ -3622,8 +3601,7 @@ HRESULT m_IDirect3DDevice9Ex::CopyRects(THIS_ IDirect3DSurface9* pSourceSurface,
 	{
 		pSourceSurface = m_pSourceSurface->GetNonMultiSampledSurface(nullptr, D3DLOCK_READONLY);
 	}
-	m_IDirect3DSurface9* m_pDestSurface = nullptr;
-	if (SUCCEEDED(pDestSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&m_pDestSurface)))
+	if (m_pDestSurface)
 	{
 		pDestSurface = m_pDestSurface->GetNonMultiSampledSurface(nullptr, 0);
 	}
@@ -3694,16 +3672,10 @@ HRESULT m_IDirect3DDevice9Ex::FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDir
 		return D3DERR_INVALIDCALL;
 	}
 
-	void* pVoid = nullptr;
-	const bool ShouldCriticalSection = pDestSurface && SUCCEEDED(pDestSurface->QueryInterface(IID_GetInterfaceX, &pVoid)) ?
-		static_cast<m_IDirect3DSurface9*>(pDestSurface)->IsEmulatedSurface() : false;
-
-	ScopedCriticalSection ThreadLock(&SHARED.d9cs, ShouldCriticalSection);
-
 	m_IDirect3DSurface9* m_pDestSurface = nullptr;
 	if (SUCCEEDED(pDestSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&m_pDestSurface)))
 	{
-		pDestSurface = m_pDestSurface->GetNonMultiSampledSurface(nullptr, 0);
+		pDestSurface = m_pDestSurface->GetProxyInterface();
 	}
 
 	// Get location of client window
@@ -3780,30 +3752,12 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferShadowData(THIS_ UINT iSwapChain, ID
 	m_IDirect3DSurface9* m_pDestSurface = nullptr;
 	if (SUCCEEDED(pDestSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&m_pDestSurface)))
 	{
-		pDestSurface = static_cast<m_IDirect3DSurface9*>(pDestSurface)->GetProxyInterface();
+		pDestSurface = m_pDestSurface->GetProxyInterface();
 	}
 
 	if (iSwapChain != 0)
 	{
-		void* pVoid = nullptr;
-		const bool ShouldCriticalSection = pDestSurface && SUCCEEDED(pDestSurface->QueryInterface(IID_GetInterfaceX, &pVoid)) ?
-			static_cast<m_IDirect3DSurface9*>(pDestSurface)->IsEmulatedSurface() : false;
-
-		ScopedCriticalSection ThreadLock(&SHARED.d9cs, ShouldCriticalSection);
-
-		if (m_pDestSurface)
-		{
-			pDestSurface = m_pDestSurface->GetNonMultiSampledSurface(nullptr, 0);
-		}
-
-		HRESULT hr = ProxyInterface->GetFrontBufferData(iSwapChain, pDestSurface);
-
-		if (SUCCEEDED(hr) && m_pDestSurface)
-		{
-			m_pDestSurface->RestoreMultiSampleData();
-		}
-
-		return hr;
+		return ProxyInterface->GetFrontBufferData(iSwapChain, pDestSurface);
 	}
 
 	if ((LONG)Desc.Width != SHARED.BufferWidth || (LONG)Desc.Height != SHARED.BufferHeight || Desc.Format != D3DFMT_A8R8G8B8)
