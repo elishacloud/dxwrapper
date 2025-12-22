@@ -107,20 +107,19 @@ namespace {
 	LPDIRECT3DPIXELSHADER9 gammaPixelShader = nullptr;
 	LPDIRECT3DVERTEXSHADER9 fixupVertexShader = nullptr;
 	LPDIRECT3DVERTEXBUFFER9 validateDeviceVertexBuffer = nullptr;
-	DX_INDEX_BUFFER IndexBuffer[] = {
-		DX_INDEX_BUFFER(64),
-		DX_INDEX_BUFFER(128),
-		DX_INDEX_BUFFER(256),
-		DX_INDEX_BUFFER(512),
-		DX_INDEX_BUFFER(1024),
-		DX_INDEX_BUFFER(2048),
-		DX_INDEX_BUFFER(4096),
-		DX_INDEX_BUFFER(8192),
-		DX_INDEX_BUFFER(16384),
-		DX_INDEX_BUFFER(32768),
-		DX_INDEX_BUFFER(65536),
-		DX_INDEX_BUFFER(0xFFFFFFFF / sizeof(WORD))
-	};
+	constexpr UINT IndexBufferRotationSize = 3;
+	struct {
+		DX_INDEX_BUFFER IndexBuffer[8] = {
+			DX_INDEX_BUFFER(64),
+			DX_INDEX_BUFFER(128),
+			DX_INDEX_BUFFER(256),
+			DX_INDEX_BUFFER(512),
+			DX_INDEX_BUFFER(1024),
+			DX_INDEX_BUFFER(2048),
+			DX_INDEX_BUFFER(4096),
+			DX_INDEX_BUFFER(0xFFFFFFFF / sizeof(WORD))
+		};
+	} Layer[IndexBufferRotationSize];
 
 	// Direct3D9 flags
 	bool EnableWaitVsync = false;
@@ -3128,7 +3127,8 @@ LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetValidateDeviceVertexBuffer(DWORD& FVF
 
 LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount)
 {
-	for (auto& entry : IndexBuffer)
+	static UINT x = 0;
+	for (auto& entry : Layer[++x % IndexBufferRotationSize].IndexBuffer)
 	{
 		if (dwIndexCount <= entry.MaxCount)
 		{
@@ -4264,9 +4264,12 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 	}
 
 	// Release index buffer
-	for (auto& entry : IndexBuffer)
+	for (UINT x = 0; x < IndexBufferRotationSize; x++)
 	{
-		ReleaseD3D9IndexBuffer(entry.Buffer, entry.Size);
+		for (auto& entry : Layer[x].IndexBuffer)
+		{
+			ReleaseD3D9IndexBuffer(entry.Buffer, entry.Size);
+		}
 	}
 
 	// Release palette pixel shader
