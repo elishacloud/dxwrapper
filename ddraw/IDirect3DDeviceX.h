@@ -226,6 +226,9 @@ private:
 	// Vector temporary buffer cache
 	std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexCache;
 
+	// The data used for rendering Homogeneous
+	CONVERTHOMOGENEOUS ConvertHomogeneous;
+
 	// Viewport array
 	std::vector<LPDIRECT3DVIEWPORT3> AttachedViewports;
 
