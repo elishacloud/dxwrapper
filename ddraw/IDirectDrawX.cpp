@@ -1751,37 +1751,44 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			// Just marking as non-exclusive
 			FullScreenWindowed = FullScreenWindowed || (hWnd && Exclusive.hWnd == hWnd && dwFlags == DDSCL_NORMAL);
 
-			// ModeX is always supported regardless of DDSCL_ALLOWMODEX or DDEDM_STANDARDVGAMODES flags
+			// Check if just marking as non-exclusive
+			bool MarkingUnexclusive = (hWnd && Exclusive.hWnd == hWnd && dwFlags == DDSCL_NORMAL);
 
-			// Set device flags
-			Device.MultiThreaded = Device.MultiThreaded || (dwFlags & DDSCL_MULTITHREADED);
-			// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
-			Device.FPUPreserve = Device.FPUPreserve || (dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion < 7;
-			/// The flag (DDSCL_FPUSETUP) is assumed by default in DirectX 6 and earlier.
-			if (!Device.FPUSetup && !d3d9Device && ((dwFlags & DDSCL_FPUSETUP) || DirectXVersion < 7))
+			// Don't change flags or device if just marking as non-exclusive
+			if (!MarkingUnexclusive)
 			{
-				Logging::Log() << __FUNCTION__ << " Setting single precision FPU and disabling FPU exceptions!";
-				Utils::ApplyFPUSetup();
-				Device.FPUSetup = true;
-			}
-			// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
-			Device.NoWindowChanges = (DisplayMode.hWnd == LasthWnd && Device.NoWindowChanges) || (dwFlags & DDSCL_NOWINDOWCHANGES);
+				// ModeX is always supported regardless of DDSCL_ALLOWMODEX or DDEDM_STANDARDVGAMODES flags
 
-			// Reset if mode was changed
-			if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) &&
-				(d3d9Device || !ExclusiveMode || (DisplayMode.Width && DisplayMode.Height)) &&	// Delay device creation when exclusive and no DisplayMode
-				(LastWindowed != Device.IsWindowed || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
-			{
-				WasDeviceCreated = true;
+				// Set device flags
+				Device.MultiThreaded = Device.MultiThreaded || (dwFlags & DDSCL_MULTITHREADED);
+				// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
+				Device.FPUPreserve = Device.FPUPreserve || (dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion < 7;
+				/// The flag (DDSCL_FPUSETUP) is assumed by default in DirectX 6 and earlier.
+				if (!Device.FPUSetup && !d3d9Device && ((dwFlags & DDSCL_FPUSETUP) || DirectXVersion < 7))
+				{
+					Logging::Log() << __FUNCTION__ << " Setting single precision FPU and disabling FPU exceptions!";
+					Utils::ApplyFPUSetup();
+					Device.FPUSetup = true;
+				}
+				// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
+				Device.NoWindowChanges = (DisplayMode.hWnd == LasthWnd && Device.NoWindowChanges) || (dwFlags & DDSCL_NOWINDOWCHANGES);
 
-				CreateD9Device(__FUNCTION__);
-			}
-			// Initialize the message queue when delaying device creation
-			else if (ExclusiveMode && !LasthWnd && Exclusive.hWnd != LasthWnd)
-			{
-				MSG msg;
-				PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE | PM_NOYIELD);
-				SendMessage(DisplayMode.hWnd, WM_NULL, 0, 0);
+				// Reset if mode was changed
+				if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) &&
+					(d3d9Device || !ExclusiveMode || (DisplayMode.Width && DisplayMode.Height)) &&	// Delay device creation when exclusive and no DisplayMode
+					(LastWindowed != Device.IsWindowed || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
+				{
+					WasDeviceCreated = true;
+
+					CreateD9Device(__FUNCTION__);
+				}
+				// Initialize the message queue when delaying device creation
+				else if (ExclusiveMode && !LasthWnd && Exclusive.hWnd != LasthWnd)
+				{
+					MSG msg;
+					PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE | PM_NOYIELD);
+					SendMessage(DisplayMode.hWnd, WM_NULL, 0, 0);
+				}
 			}
 		}
 
