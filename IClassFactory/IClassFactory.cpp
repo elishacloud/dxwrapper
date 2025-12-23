@@ -41,7 +41,7 @@ INITIALIZE_OUT_WRAPPED_PROC(CoCreateInstance, unused);
 #else
 #define LOG_GUID_LIMIT(iid, limit, msg) \
 	{ \
-		if (GuidLogLimit(iid, limit)) \
+		if (GuidLogLimit(iid, limit, __LINE__)) \
 		{ \
 			Logging::Log() << msg; \
 		} \
@@ -53,17 +53,18 @@ namespace {
 	struct GuidLogLimitEntry {
 		GUID iid = {};
 		DWORD Limit = 0;
+		DWORD Line = 0;
 	};
 
 	// Global vector to store all logged GUIDs and their current limits
 	std::vector<GuidLogLimitEntry> g_GuidLogVector;
 
-	bool GuidLogLimit(REFIID riid, DWORD limitThreshold)
+	bool GuidLogLimit(REFIID riid, DWORD limitThreshold, DWORD Line)
 	{
 		// Search for an existing entry
 		for (auto& entry : g_GuidLogVector)
 		{
-			if (IsEqualGUID(entry.iid, riid))
+			if (entry.Line == Line && IsEqualGUID(entry.iid, riid))
 			{
 				// Found existing entry
 				if (entry.Limit < limitThreshold)
@@ -82,6 +83,7 @@ namespace {
 		GuidLogLimitEntry newEntry;
 		newEntry.iid = riid;
 		newEntry.Limit = 1; // First use counts as 1
+		newEntry.Line = Line;
 		g_GuidLogVector.push_back(newEntry);
 
 		return true;
