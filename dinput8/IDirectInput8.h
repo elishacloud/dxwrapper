@@ -21,7 +21,6 @@ private:
 		DWORD dwFlags = (DWORD)-1;
 		std::vector<T> devices;
 	};
-	std::vector<int> devices;
 	
 	// Global or class member variable to store the cache for each template instantiation
 	CachedDeviceDataT<DIDEVICEINSTANCEA, LPDIENUMDEVICESCALLBACKA> cachedDataA;

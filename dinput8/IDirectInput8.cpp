@@ -96,58 +96,52 @@ HRESULT m_IDirectInput8::EnumDevicesT(DWORD dwDevType, V lpCallback, LPVOID pvRe
 		return DIERR_INVALIDPARAM;
 	}
 
-	auto now = std::chrono::steady_clock::now();
-	auto& cachedData = GetEnumCache(GetProxyInterface<T>());
-
-	// Check if cached data is valid
-	if (Config.DeviceLookupCacheTime && dwDevType == cachedData.dwDevType && dwFlags == cachedData.dwFlags && (now - cachedData.lastUpdate) < cacheDuration)
+	if (Config.DeviceLookupCacheTime)
 	{
-		// Use cached data
-		for (const auto& entry : cachedData.devices)
+		auto now = std::chrono::steady_clock::now();
+		auto& cachedData = GetEnumCache(GetProxyInterface<T>());
+
+		// Check if cached data is valid
+		if (dwDevType == cachedData.dwDevType && dwFlags == cachedData.dwFlags && (now - cachedData.lastUpdate) < cacheDuration)
 		{
-			if (lpCallback(&entry, pvRef) == DIENUM_STOP)
+			// Use cached data
+			for (const auto& entry : cachedData.devices)
 			{
-				break;
+				if (lpCallback(&entry, pvRef) == DIENUM_STOP)
+				{
+					break;
+				}
 			}
+			return DI_OK;
 		}
-		return DI_OK;
-	}
 
-	struct EnumDevices
-	{
-		LPVOID pvRef = nullptr;
-		V lpCallback = nullptr;
-		std::vector<D> CacheDevices;
-
-		static BOOL CALLBACK DIEnumDevicesCallback(const D* lpddi, LPVOID pvRef)
+		struct EnumDevices
 		{
-			EnumDevices* self = (EnumDevices*)pvRef;
+			LPVOID pvRef = nullptr;
+			V lpCallback = nullptr;
+			std::vector<D> CacheDevices;
 
-			if (Config.DeviceLookupCacheTime)
+			static BOOL CALLBACK DIEnumDevicesCallback(const D* lpddi, LPVOID pvRef)
 			{
+				EnumDevices* self = (EnumDevices*)pvRef;
+
 				if (lpddi)
 				{
 					D ddi = {};
-					memcpy(&ddi, lpddi, min(lpddi->dwSize, sizeof(ddi)));
-					ddi.dwSize = min(lpddi->dwSize, sizeof(ddi));
+					const DWORD copySize = min(lpddi->dwSize, sizeof(ddi));
+					memcpy(&ddi, lpddi, copySize);
+					ddi.dwSize = copySize;
 					self->CacheDevices.push_back(ddi);
 				}
 				return DIENUM_CONTINUE;
 			}
-			else
-			{
-				return self->lpCallback(lpddi, self->pvRef);
-			}
-		}
-	} CallbackContext;
-	CallbackContext.pvRef = pvRef;
-	CallbackContext.lpCallback = lpCallback;
+		} CallbackContext;
+		CallbackContext.pvRef = pvRef;
+		CallbackContext.lpCallback = lpCallback;
 
-	HRESULT hr = GetProxyInterface<T>()->EnumDevices(dwDevType, EnumDevices::DIEnumDevicesCallback, &CallbackContext, dwFlags);
+		HRESULT hr = GetProxyInterface<T>()->EnumDevices(dwDevType, EnumDevices::DIEnumDevicesCallback, &CallbackContext, dwFlags);
 
-	if (SUCCEEDED(hr))
-	{
-		if (Config.DeviceLookupCacheTime)
+		if (SUCCEEDED(hr))
 		{
 			// Update the cache
 			cachedData.lastUpdate = now;
@@ -164,9 +158,11 @@ HRESULT m_IDirectInput8::EnumDevicesT(DWORD dwDevType, V lpCallback, LPVOID pvRe
 				}
 			}
 		}
+
+		return hr;
 	}
 
-	return hr;
+	return GetProxyInterface<T>()->EnumDevices(dwDevType, lpCallback, pvRef, dwFlags);
 }
 
 HRESULT m_IDirectInput8::GetDeviceStatus(REFGUID rguidInstance)
@@ -214,9 +210,9 @@ HRESULT m_IDirectInput8::EnumDevicesBySemanticsT(V ptszUserName, W lpdiActionFor
 
 	struct EnumDevice
 	{
-		LPVOID pvRef;
-		X lpCallback;
-		GUID WrapperDeviceID;
+		LPVOID pvRef = nullptr;
+		X lpCallback = nullptr;
+		GUID WrapperDeviceID = {};
 
 		static BOOL CALLBACK EnumDeviceCallback(C lpddi, D lpdid, DWORD dwFlags, DWORD dwRemaining, LPVOID pvRef)
 		{
