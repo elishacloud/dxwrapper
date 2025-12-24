@@ -372,6 +372,12 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
 	auto DeviceDetails = std::make_unique<DEVICEDETAILS>();
 
 	HRESULT hr = CreateDeviceT(*DeviceDetails.get(), Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, true, pFullscreenDisplayMode, ppReturnedDeviceInterface);
@@ -525,22 +531,22 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 template <typename T>
 HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, bool IsEx, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface)
 {
-	HWND hWnd = (hFocusWindow ? hFocusWindow : (pPresentationParameters ? pPresentationParameters->hDeviceWindow : nullptr));
+	// Hook WndProc before creating device
+	HWND hWnd = (hFocusWindow && IsWindow(hFocusWindow) ? hFocusWindow :
+		(pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : nullptr));
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
 
-	// Hook WndProc before creating device
+	std::atomic<bool> tmpFlag;
+	ScopedFlagSet SetCreatingDevice(WndDataStruct ? WndDataStruct->IsCreatingDevice : tmpFlag, (WndDataStruct && !WndDataStruct->IsDirectDraw));
+
 	if (WndDataStruct)
 	{
 		WndDataStruct->IsDirect3D9 = true;
-		if (!WndDataStruct->IsDirectDraw)
+		WndDataStruct->DirectXVersion = ClientDirectXVersion;
+		if (pPresentationParameters && !WndDataStruct->IsDirectDraw)
 		{
 			// Already set by DirectDraw
-			WndDataStruct->IsCreatingDevice = true;
-			WndDataStruct->DirectXVersion = ClientDirectXVersion;
-			if (pPresentationParameters)
-			{
-				WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
-			}
+			WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
 		}
 		DeviceDetails.IsDirectDrawDevice = WndDataStruct->IsDirectDraw;
 	}
@@ -576,14 +582,14 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	D3DPRESENT_PARAMETERS* p_d3dpp = pPresentationParameters ? &d3dpp : nullptr;
 	if (pPresentationParameters)
 	{
-		CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+		DeviceDetails.AppRequestedWindowMode = pPresentationParameters->Windowed;
 
 		ForceFullscreen = TestResolution(Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
 
+		CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+
 		UpdatePresentParameter(p_d3dpp, hFocusWindow, DeviceDetails, IsEx, ForceFullscreen, true);
 	}
-
-	bool IsWindowMode = d3dpp.Windowed != FALSE;
 
 	bool MultiSampleFlag = false;
 
@@ -649,10 +655,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	{
 		GetFinalPresentParameter(p_d3dpp, DeviceDetails);
 
-		if (WndDataStruct && WndDataStruct->IsExclusiveMode)
-		{
-			d3dpp.Windowed = FALSE;
-		}
+		d3dpp.Windowed = DeviceDetails.AppRequestedWindowMode;
 
 		if (MultiSampleFlag)
 		{
@@ -661,8 +664,6 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 			DeviceDetails.DeviceMultiSampleQuality = d3dpp.MultiSampleQuality;
 		}
 
-		DeviceDetails.IsWindowMode = IsWindowMode;
-
 		CopyMemory(pPresentationParameters, p_d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 
 		// Adjust window style after device creation
@@ -670,13 +671,6 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		{
 			AdjustWindowStyle(DeviceDetails.DeviceWindow);
 		}
-	}
-
-	// Update WndProc after creating device
-	if (WndDataStruct && !WndDataStruct->IsDirectDraw)
-	{
-		// Already set by DirectDraw
-		WndDataStruct->IsCreatingDevice = false;
 	}
 
 	return hr;
@@ -897,11 +891,17 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 
 void m_IDirect3D9Ex::GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails)
 {
-	if (pPresentationParameters && (IsWindow(pPresentationParameters->hDeviceWindow) || IsWindow(DeviceDetails.DeviceWindow)))
+	if (!pPresentationParameters)
 	{
+		return;
+	}
+
+	if (IsWindow(pPresentationParameters->hDeviceWindow) || IsWindow(DeviceDetails.DeviceWindow))
+	{
+		DeviceDetails.DeviceWindow = (IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow;
 		DeviceDetails.BufferWidth = (pPresentationParameters->BackBufferWidth) ? pPresentationParameters->BackBufferWidth : DeviceDetails.BufferWidth;
 		DeviceDetails.BufferHeight = (pPresentationParameters->BackBufferHeight) ? pPresentationParameters->BackBufferHeight : DeviceDetails.BufferHeight;
-		DeviceDetails.DeviceWindow = (IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow;
+		DeviceDetails.IsWindowMode = pPresentationParameters->Windowed;
 	}
 }
 

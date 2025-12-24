@@ -1,19 +1,27 @@
 #pragma once
 
+template<typename T>
 struct ScopedFlagSet
 {
 private:
-    bool& flag;
+    bool enable;
+    T& flag;
 public:
     // Constructor sets the flag to true
-    ScopedFlagSet(bool& setflag) : flag(setflag)
+    ScopedFlagSet(T& setflag, bool setenable = true) : flag(setflag), enable(setenable)
     {
-        flag = true;
+        if (enable)
+        {
+            flag = true;
+        }
     }
     // Destructor sets the flag back to false
     ~ScopedFlagSet()
     {
-        flag = false;
+        if (enable)
+        {
+            flag = false;
+        }
     }
 };
 
@@ -46,13 +54,13 @@ public:
 struct ScopedCriticalSection
 {
 private:
-    bool flag;
+    bool enable;
     CRITICAL_SECTION* cs;
 public:
     // Constructor enters critical section
-    ScopedCriticalSection(CRITICAL_SECTION* cs, bool enable = true) : cs(cs), flag(enable)
+    ScopedCriticalSection(CRITICAL_SECTION* cs, bool setenable = true) : cs(cs), enable(setenable)
     {
-        if (flag && cs)
+        if (enable && cs)
         {
             EnterCriticalSection(cs);
         }
@@ -60,7 +68,7 @@ public:
     // Destructor leaves critical section
     ~ScopedCriticalSection()
     {
-        if (flag && cs)
+        if (enable && cs)
         {
             LeaveCriticalSection(cs);
         }
@@ -70,14 +78,14 @@ public:
 struct ScopedLeaveCriticalSection
 {
 private:
-    bool flag;
+    bool enable;
     CRITICAL_SECTION* cs;
 public:
-    ScopedLeaveCriticalSection(CRITICAL_SECTION* cs, bool enable = true) : cs(cs), flag(enable) {}
+    ScopedLeaveCriticalSection(CRITICAL_SECTION* cs, bool setenable = true) : cs(cs), enable(setenable) {}
     // Destructor leaves critical section
     ~ScopedLeaveCriticalSection()
     {
-        if (flag && cs)
+        if (enable && cs)
         {
             LeaveCriticalSection(cs);
         }

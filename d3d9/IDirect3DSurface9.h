@@ -12,12 +12,10 @@ private:
 	D3DSURFACE_DESC Desc = {};
 	struct {
 		bool ReadOnly = false;
-		RECT* pRect = nullptr;
-		RECT Rect = {};
 		m_IDirect3DSurface9* pSurface = nullptr;
 	} Emu;
 
-	m_IDirect3DSurface9* m_GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags);
+	m_IDirect3DSurface9* m_GetNonMultiSampledSurface(DWORD Flags);
 
 public:
 	m_IDirect3DSurface9(LPDIRECT3DSURFACE9 pSurface9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pSurface9), m_pDeviceEx(pDevice)
@@ -71,6 +69,6 @@ public:
 
 	// Helper functions
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*);
-	LPDIRECT3DSURFACE9 GetNonMultiSampledSurface(const RECT* pSurfaceRect, DWORD Flags);
+	LPDIRECT3DSURFACE9 GetNonMultiSampledSurface(DWORD Flags);
 	HRESULT RestoreMultiSampleData();
 };

@@ -21,6 +21,7 @@ struct DEVICEDETAILS
 	// Window handle and size
 	DWORD ClientDirectXVersion = 0;
 	bool IsWindowMode = false;
+	bool AppRequestedWindowMode = false;
 	bool IsDirectDrawDevice = false;
 	UINT Adapter = D3DADAPTER_DEFAULT;
 	D3DDEVTYPE DeviceType = D3DDEVTYPE_HAL;
@@ -127,7 +128,8 @@ private:
 	void AfterBeginScene();
 	void BeforeEndScene();
 
-	bool RequirePresentHandling() const;
+	inline bool RequirePresentHandling() const;
+	inline bool UsingShadowBackBuffer(DWORD iSwapChain = 0) const;
 
 	// Limit frame rate
 	void LimitFrameRate() const;
@@ -354,10 +356,8 @@ public:
 	REFIID GetIID() { return WrapperID; }
 
 	// Helper functions
-	HRESULT CopyRect(THIS_ IDirect3DSurface9* pSourceSurface, const RECT* pSourceRect, IDirect3DSurface9* pDestSurface, const POINT* pDestPoint);
-	HRESULT CopyRects(THIS_ IDirect3DSurface9* pSourceSurface, const RECT* pSourceRectsArray, UINT cRects, IDirect3DSurface9* pDestSurface, const POINT* pDestPointsArray);
-	HRESULT FakeGetFrontBufferData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
-	HRESULT GetFrontBufferShadowData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
+	HRESULT GetFakeFrontBufferData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
+	HRESULT GetShadowFrontBufferData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
 	m_IDirect3DStateBlock9* GetCreateStateBlock(IDirect3DStateBlock9* pSB);
 
 	// Static functions
