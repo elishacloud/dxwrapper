@@ -6246,6 +6246,8 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	// Need to always set viewport
 	(*d3d9Device)->SetViewport(&DeviceStates.Viewport.View);
 
+	const bool UsingColorKey = DeviceStates.RenderState[D3DRENDERSTATE_COLORKEYENABLE].State || DeviceStates.RenderState[D3DRENDERSTATE_COLORKEYBLENDENABLE].State;
+
 	if (Config.DdrawFixByteAlignment > 1)
 	{
 		for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
@@ -6260,12 +6262,12 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			}
 		}
 	}
-	if (CurrentTextureSurfaceX[0] &&
+	if (DirectXVersion < 7 && CurrentTextureSurfaceX[0] &&
 		DeviceStates.RenderState[D3DRENDERSTATE_TEXTUREMAPBLEND].State == D3DTBLEND_MODULATE &&
 		DeviceStates.TextureStageState[0][D3DTSS_ALPHAOP].Set == FALSE)
 	{
-		// texture alpha replaces; if no texture alpha, use vertex alpha.
-		if (CurrentTextureSurfaceX[0]->HasAlphaChannel())
+		// Texture alpha replaces; if no texture alpha, use vertex alpha.
+		if (CurrentTextureSurfaceX[0]->HasAlphaChannel(UsingColorKey))
 		{
 			(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
 		}
@@ -6295,8 +6297,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			(*d3d9Device)->SetTexture(x, nullptr);
 		}
 	}
-	if (DeviceStates.RenderState[D3DRENDERSTATE_COLORKEYENABLE].State ||
-		DeviceStates.RenderState[D3DRENDERSTATE_COLORKEYBLENDENABLE].State)
+	if (UsingColorKey)
 	{
 		// Check for color key alpha texture
 		for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)

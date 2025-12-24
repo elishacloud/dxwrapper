@@ -4955,7 +4955,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 }
 
 // Check surface for alpha channel
-bool m_IDirectDrawSurfaceX::HasAlphaChannel() const
+bool m_IDirectDrawSurfaceX::HasAlphaChannel(bool UsingColorKey) const
 {
 	if (surfaceDesc2.ddpfPixelFormat.dwFlags & DDPF_ALPHAPIXELS)
 	{
@@ -4970,6 +4970,10 @@ bool m_IDirectDrawSurfaceX::HasAlphaChannel() const
 	case D3DFMT_DXT4:
 	case D3DFMT_DXT5:
 		return true;
+	}
+	if (UsingColorKey)
+	{
+		return IsColorKeyTexture();
 	}
 	return false;
 }
