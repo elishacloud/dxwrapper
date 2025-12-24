@@ -97,5 +97,5 @@ public:
 	HRESULT m_IDirect3DTextureX::SetHandle(DWORD dwHandle);
 
 	// Surface functions
-	m_IDirectDrawSurfaceX *GetSurface() const { return parent3DSurface.Interface; }
+	m_IDirectDrawSurfaceX* GetSurface() const { return parent3DSurface.Interface; }
 };

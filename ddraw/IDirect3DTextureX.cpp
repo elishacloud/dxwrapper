@@ -52,6 +52,19 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 		return D3D_OK;
 	}
 
+	if (riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4 || riid == IID_IDirectDrawSurface7)
+	{
+		m_IDirectDrawSurfaceX* pSurface = GetSurface();
+
+		if (!pSurface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface!");
+			return E_NOINTERFACE;
+		}
+
+		return pSurface->QueryInterface(riid, ppvObj, GetGUIDVersion(riid));
+	}
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
