@@ -16,7 +16,8 @@ private:
 	template <class T, class V>
 	struct CachedDeviceDataT
 	{
-		std::chrono::steady_clock::time_point lastUpdate = std::chrono::steady_clock::now();
+		std::chrono::steady_clock::time_point lastUpdate = std::chrono::steady_clock::now() -
+			std::chrono::seconds(Config.DeviceLookupCacheTime ? Config.DeviceLookupCacheTime - 1 : 0);
 		DWORD dwDevType = (DWORD)-1;
 		DWORD dwFlags = (DWORD)-1;
 		std::vector<T> devices;

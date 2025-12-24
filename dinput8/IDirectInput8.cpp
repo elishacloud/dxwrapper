@@ -91,12 +91,7 @@ HRESULT m_IDirectInput8::EnumDevicesT(DWORD dwDevType, V lpCallback, LPVOID pvRe
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lpCallback)
-	{
-		return DIERR_INVALIDPARAM;
-	}
-
-	if (Config.DeviceLookupCacheTime)
+	if (Config.DeviceLookupCacheTime && lpCallback)
 	{
 		auto now = std::chrono::steady_clock::now();
 		auto& cachedData = GetEnumCache(GetProxyInterface<T>());
@@ -203,34 +198,34 @@ HRESULT m_IDirectInput8::EnumDevicesBySemanticsT(V ptszUserName, W lpdiActionFor
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!lpCallback)
+	if (lpCallback)
 	{
-		return DIERR_INVALIDPARAM;
+		struct EnumDevice
+		{
+			LPVOID pvRef = nullptr;
+			X lpCallback = nullptr;
+			GUID WrapperDeviceID = {};
+
+			static BOOL CALLBACK EnumDeviceCallback(C lpddi, D lpdid, DWORD dwFlags, DWORD dwRemaining, LPVOID pvRef)
+			{
+				EnumDevice* self = (EnumDevice*)pvRef;
+
+				if (lpdid)
+				{
+					lpdid = ProxyAddressLookupTableDinput8.FindAddress<m_IDirectInputDevice8>(lpdid, self->WrapperDeviceID);
+				}
+
+				return self->lpCallback(lpddi, lpdid, dwFlags, dwRemaining, self->pvRef);
+			}
+		} CallbackContext;
+		CallbackContext.pvRef = pvRef;
+		CallbackContext.lpCallback = lpCallback;
+		CallbackContext.WrapperDeviceID = WrapperDeviceID;
+
+		return GetProxyInterface<T>()->EnumDevicesBySemantics(ptszUserName, lpdiActionFormat, EnumDevice::EnumDeviceCallback, &CallbackContext, dwFlags);
 	}
 
-	struct EnumDevice
-	{
-		LPVOID pvRef = nullptr;
-		X lpCallback = nullptr;
-		GUID WrapperDeviceID = {};
-
-		static BOOL CALLBACK EnumDeviceCallback(C lpddi, D lpdid, DWORD dwFlags, DWORD dwRemaining, LPVOID pvRef)
-		{
-			EnumDevice *self = (EnumDevice*)pvRef;
-
-			if (lpdid)
-			{
-				lpdid = ProxyAddressLookupTableDinput8.FindAddress<m_IDirectInputDevice8>(lpdid, self->WrapperDeviceID);
-			}
-
-			return self->lpCallback(lpddi, lpdid, dwFlags, dwRemaining, self->pvRef);
-		}
-	} CallbackContext;
-	CallbackContext.pvRef = pvRef;
-	CallbackContext.lpCallback = lpCallback;
-	CallbackContext.WrapperDeviceID = WrapperDeviceID;
-
-	return GetProxyInterface<T>()->EnumDevicesBySemantics(ptszUserName, lpdiActionFormat, EnumDevice::EnumDeviceCallback, &CallbackContext, dwFlags);
+	return GetProxyInterface<T>()->EnumDevicesBySemantics(ptszUserName, lpdiActionFormat, lpCallback, pvRef, dwFlags);
 }
 
 template HRESULT m_IDirectInput8::ConfigureDevicesT<IDirectInput8A, LPDICONFIGUREDEVICESPARAMSA>(LPDICONFIGUREDEVICESCALLBACK, LPDICONFIGUREDEVICESPARAMSA, DWORD, LPVOID);

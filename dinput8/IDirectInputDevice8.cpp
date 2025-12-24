@@ -141,12 +141,13 @@ HRESULT m_IDirectInputDevice8::GetDeviceState(DWORD cbData, LPVOID lpvData)
 HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICEOBJECTDATA rgdod, LPDWORD pdwInOut, DWORD dwFlags)
 {
 	// Check arguments
-	if (!pdwInOut || (rgdod && cbObjectData != sizeof(DIDEVICEOBJECTDATA) && cbObjectData != sizeof(DIDEVICEOBJECTDATA_DX3)))
+	if (!pdwInOut)
 	{
-		if (pdwInOut)
-		{
-			*pdwInOut = 0;
-		}
+		return DIERR_INVALIDPARAM;
+	}
+	if (rgdod && cbObjectData != sizeof(DIDEVICEOBJECTDATA) && cbObjectData != sizeof(DIDEVICEOBJECTDATA_DX3))
+	{
+		*pdwInOut = 0;
 		return DIERR_INVALIDPARAM;
 	}
 	bool isPeek = (dwFlags == DIGDD_PEEK);
@@ -349,7 +350,7 @@ HRESULT m_IDirectInputDevice8::GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJEC
 		}
 	}
 
-	if (IsMouse && Config.FixHighFrequencyMouse)
+	if (Config.FixHighFrequencyMouse && IsMouse && pdwInOut)
 	{
 		return GetMouseDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
 	}
