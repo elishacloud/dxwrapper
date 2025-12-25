@@ -402,12 +402,14 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 		D3DEXECUTEDATA ExecuteData;
 		LPD3DSTATUS lpStatus;
 
-		// Check lock
-		bool IsLocked = false;
-		ScopedFlagSet(pExecuteBuffer->CheckLockStatus(IsLocked));
-		if (IsLocked)
+		// Set Executing flag
+		ScopedFlagSet SetExecuteLockFlag(pExecuteBuffer->GetExecuteLockFlag());
+
+		// Check execute lock
+		if (pExecuteBuffer->IsBufferLocked())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: execute buffer still locked!");
+			return D3DERR_EXECUTE_LOCKED;
 		}
 
 		// Get execute data and desc

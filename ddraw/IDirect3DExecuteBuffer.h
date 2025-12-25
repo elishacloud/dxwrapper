@@ -12,6 +12,7 @@ private:
 	D3DEXECUTEBUFFERDESC Desc = {};
 	std::vector<BYTE> MemoryData;
 	D3DEXECUTEDATA ExecuteData = {};
+	bool IsLocking = false;
 	DWORD LockedCount = 0;
 	DWORD LockedThread = 0;
 	bool IsExecuting = false;
@@ -93,6 +94,7 @@ public:
 	// Helper functions
 	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 	HRESULT GetBuffer(LPVOID* lplpData, D3DEXECUTEDATA& CurrentExecuteData, LPD3DSTATUS* lplpStatus);
-	bool& CheckLockStatus(bool& IsLocked) { if (LockedCount == 0) { IsLocked = false; return IsExecuting; } else { IsLocked = true; return tmpIsExecuting; } }
+	bool IsBufferLocked() const { return (IsLocking || LockedCount != 0); }
+	bool& GetExecuteLockFlag() { if (IsBufferLocked()) { return tmpIsExecuting; } else { return IsExecuting; } }
 	static m_IDirect3DExecuteBuffer* CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc);
 };

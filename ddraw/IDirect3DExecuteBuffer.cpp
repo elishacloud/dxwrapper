@@ -170,18 +170,22 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 		lpDesc->dwFlags = NULL;
 		lpDesc->lpData = nullptr;
 
+		// Check if the buffer is already locked
+		DWORD ThreadID = GetCurrentThreadId();
+		if (IsBufferLocked() && ThreadID != LockedThread)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is already locked! Thread: " << ThreadID << "->" << LockedThread);
+			return D3DERR_EXECUTE_LOCKED;
+		}
+
+		// Set Locking flag
+		ScopedFlagSet SetExecuteLockFlag(IsLocking);
+
+		// Check if the buffer is being executed
 		if (IsExecuting)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is still in use!");
 			return D3DERR_WASSTILLDRAWING;
-		}
-
-		// Check if the buffer is already locked
-		DWORD ThreadID = GetCurrentThreadId();
-		if (LockedThread && ThreadID != LockedThread)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is already locked! Thread: " << ThreadID << "->" << LockedThread);
-			return D3DERR_EXECUTE_LOCKED;
 		}
 
 		// Create buffer on first Lock
@@ -227,10 +231,9 @@ HRESULT m_IDirect3DExecuteBuffer::Unlock()
 	if (Config.Dd7to9)
 	{
 		// Check if the buffer is not locked
-		DWORD ThreadID = GetCurrentThreadId();
-		if (LockedCount == 0 || ThreadID != LockedThread)
+		if (!IsBufferLocked())
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is not locked! Thread: " << ThreadID << "->" << LockedThread);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is not locked!");
 			return D3DERR_EXECUTE_NOT_LOCKED;
 		}
 
