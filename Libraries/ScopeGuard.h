@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 template<typename T>
 struct ScopedFlagSet
 {
@@ -21,6 +23,37 @@ public:
         if (enable)
         {
             flag = false;
+        }
+    }
+};
+
+struct ScopedAtomicFlagSet
+{
+private:
+    bool enable;
+    std::atomic<bool>& flag;
+public:
+    // Constructor sets the flag to true
+    ScopedAtomicFlagSet(std::atomic<bool>& setflag, bool setenable = true) : flag(setflag), enable(setenable)
+    {
+        if (enable)
+        {
+            while (flag.exchange(true, std::memory_order_relaxed))
+            {
+#ifdef YieldProcessor
+                YieldProcessor();
+#else
+                _mm_pause();
+#endif
+            }
+        }
+    }
+    // Destructor sets the flag back to false
+    ~ScopedAtomicFlagSet()
+    {
+        if (enable)
+        {
+            flag.store(false, std::memory_order_relaxed);
         }
     }
 };

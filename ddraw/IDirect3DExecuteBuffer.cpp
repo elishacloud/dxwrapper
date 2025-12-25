@@ -170,16 +170,16 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 		lpDesc->dwFlags = NULL;
 		lpDesc->lpData = nullptr;
 
+		// Set Locking flag
+		ScopedAtomicFlagSet SetLockFlag(IsLocking);
+
 		// Check if the buffer is already locked
 		DWORD ThreadID = GetCurrentThreadId();
-		if (IsBufferLocked() && ThreadID != LockedThread)
+		if (LockedCount != 0 && ThreadID != LockedThread)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is already locked! Thread: " << ThreadID << "->" << LockedThread);
 			return D3DERR_EXECUTE_LOCKED;
 		}
-
-		// Set Locking flag
-		ScopedFlagSet SetExecuteLockFlag(IsLocking);
 
 		// Check if the buffer is being executed
 		if (IsExecuting)
@@ -231,7 +231,7 @@ HRESULT m_IDirect3DExecuteBuffer::Unlock()
 	if (Config.Dd7to9)
 	{
 		// Check if the buffer is not locked
-		if (!IsBufferLocked())
+		if (LockedCount == 0)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is not locked!");
 			return D3DERR_EXECUTE_NOT_LOCKED;
