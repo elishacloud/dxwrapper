@@ -38,7 +38,6 @@ namespace {
 
 	// Exclusive mode settings
 	HMONITOR hMonitor = nullptr;
-	DWORD LastCooperativeLevelFlags = 0;
 	bool ExclusiveMode = false;
 	bool FullScreenWindowed = false;
 	DISPLAYSETTINGS Exclusive = {};
@@ -1664,7 +1663,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 		// Store flags
 		bool WasDeviceCreated = false;
-		const DWORD OriginalFlags = dwFlags;
 		const HWND LasthWnd = DisplayMode.hWnd;
 		const bool LastFPUPreserve = Device.FPUPreserve;
 		const bool LastWindowed = Device.IsWindowed;
@@ -1708,13 +1706,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 			Exclusive.hWnd = hWnd;
 			Exclusive.SetBy = this;
 			FullScreenWindowed = false;
-		}
-
-		// Check for exclusive mode
-		if (LastCooperativeLevelFlags == ((OriginalFlags & ~DDSCL_NORMAL) | DDSCL_EXCLUSIVE) && hWnd == LasthWnd)
-		{
-			// No changes in flags, just replacing exclusive with normal
-			FullScreenWindowed = true;
 		}
 
 		// Check window handle
@@ -1797,9 +1788,6 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		{
 			RedrawWindow(DisplayMode.hWnd, nullptr, nullptr, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 		}
-
-		// Store flags
-		LastCooperativeLevelFlags = OriginalFlags;
 
 		return DD_OK;
 	}
@@ -2428,7 +2416,6 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 
 		// Exclusive mode
 		hMonitor = nullptr;
-		LastCooperativeLevelFlags = 0;
 		ExclusiveMode = false;
 		FullScreenWindowed = false;
 		Exclusive = {};
