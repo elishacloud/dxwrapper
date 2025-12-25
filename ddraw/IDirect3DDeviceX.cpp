@@ -2071,9 +2071,9 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			}
 			return SetStateBlockRenderState(dwRenderStateType, dwRenderState);
 		case D3DRENDERSTATE_WRAPU:				// 5
-			return SetD9RenderState(D3DRS_WRAP0, (dwRenderState ? D3DWRAP_U : 0) | (DeviceStates.RenderState[D3DRENDERSTATE_WRAPV].State ? D3DWRAP_V : 0));
+			return SetD9RenderState(D3DRS_WRAP0, (dwRenderState ? D3DWRAP_U : 0) | (DeviceStates.RenderState[D3DRS_WRAP0].State & D3DWRAP_V));
 		case D3DRENDERSTATE_WRAPV:				// 6
-			return SetD9RenderState(D3DRS_WRAP0, (DeviceStates.RenderState[D3DRENDERSTATE_WRAPU].State ? D3DWRAP_U : 0) | (dwRenderState ? D3DWRAP_V : 0));
+			return SetD9RenderState(D3DRS_WRAP0, (DeviceStates.RenderState[D3DRS_WRAP0].State & D3DWRAP_U) | (dwRenderState ? D3DWRAP_V : 0));
 		case D3DRENDERSTATE_LINEPATTERN:		// 10
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != 0)
@@ -6165,6 +6165,9 @@ void m_IDirect3DDeviceX::SetDefaults()
 			}
 		}
 	}
+
+	// Required to default to 0 because of how D3DRENDERSTATE_WRAPU and D3DRENDERSTATE_WRAPV uses it
+	DeviceStates.RenderState[D3DRS_WRAP0].State = 0;
 
 	// Set DirectDraw defaults
 	for (UINT x = 1; x < D3DHAL_TSS_MAXSTAGES; x++)
