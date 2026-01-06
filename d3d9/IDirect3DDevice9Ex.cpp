@@ -1300,9 +1300,9 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 				uValue.f = copysignf(0.0f, uValue.f);
 				Value = uValue.d;
 			}
-			else if (fabsf(Config.DepthBiasDivideFactor) > FLT_EPSILON)
+			else if (fabsf(Config.DepthBiasFactor) > FLT_EPSILON)
 			{
-				uValue.f /= Config.DepthBiasDivideFactor;
+				uValue.f *= Config.DepthBiasFactor;
 				Value = uValue.d;
 			}
 		}
