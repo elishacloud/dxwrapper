@@ -15,6 +15,7 @@
 */
 
 #include "dinput8.h"
+#include "ScopeGuard.h"
 #include "GDI\WndProc.h"
 
 constexpr DWORD SignBit = 0x80000000;
@@ -153,7 +154,7 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 	bool isPeek = (dwFlags == DIGDD_PEEK);
 
 	// Lock for concurrency
-	EnterCriticalSection(&dics);
+	ScopedCriticalSection ThreadLock(&dics);
 
 	// Get latest mouse data from the DirectInput8 buffer
 	if (*pdwInOut > dod.size())
@@ -168,9 +169,6 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 		HRESULT hr = ProxyInterface->GetDeviceData(cbObjectData, lpdod, &dwItems, 0);
 		if (FAILED(hr))
 		{
-			// Unlock
-			LeaveCriticalSection(&dics);
-
 			return hr;
 		}
 
@@ -321,9 +319,6 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 		}
 	}
 
-	// Unlock
-	LeaveCriticalSection(&dics);
-
 	*pdwInOut = dwOut;
 
 	return DI_OK;
@@ -350,7 +345,7 @@ HRESULT m_IDirectInputDevice8::GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJEC
 		}
 	}
 
-	if (Config.FixHighFrequencyMouse && IsMouse && pdwInOut)
+	if (Config.FixHighFrequencyMouse && IsMouse)
 	{
 		return GetMouseDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
 	}
