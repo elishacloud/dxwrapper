@@ -1363,7 +1363,7 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 			HMONITOR hm = GetHMonitor();
 			Utils::GetScreenSize(hm, (LONG&)lpDDSurfaceDesc2->dwWidth, (LONG&)lpDDSurfaceDesc2->dwHeight);
 			lpDDSurfaceDesc2->dwRefreshRate = Utils::GetRefreshRate(hm);
-			displayModeBits = GetDisplayBPP();
+			displayModeBits = GetDisplayBPP(hm);
 		}
 
 		// Force color mode
@@ -2866,11 +2866,6 @@ HDC m_IDirectDrawX::GetDC()
 	return IsWindow(DisplayMode.hWnd) && WindowFromDC(DisplayMode.DC) ? DisplayMode.DC : nullptr;
 }
 
-DWORD m_IDirectDrawX::GetDisplayBPP()
-{
-	return (ExclusiveMode && Exclusive.BPP) ? Exclusive.BPP : Utils::GetBitCount(GetHMonitor());
-}
-
 bool m_IDirectDrawX::IsExclusiveMode()
 {
 	return ExclusiveMode;
@@ -2911,7 +2906,7 @@ void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, 
 			Width = presParams.BackBufferWidth;
 			Height = presParams.BackBufferHeight;
 		}
-		BPP = (DisplayMode.BPP) ? DisplayMode.BPP : GetDisplayBPP();
+		BPP = (DisplayMode.BPP) ? DisplayMode.BPP : GetDisplayBPP(GetHMonitor());
 	}
 
 	// Force color mode
@@ -3305,18 +3300,6 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 
 	// Return
 	return hr;
-}
-
-void m_IDirectDrawX::FixWindowPos(HWND hWnd, int X, int Y, int cx, int cy)
-{
-	if (DontWindowRePosition || !d3d9Device)
-	{
-		return;
-	}
-
-	Utils::SetWindowPosToMonitor(hMonitor, hWnd, HWND_TOP, X, Y, cx, cy, SWP_NOZORDER | SWP_NOACTIVATE);
-
-	DontWindowRePosition = true;
 }
 
 HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
@@ -5545,6 +5528,18 @@ bool m_IDirectDrawX::CheckDirectDrawXInterface(void* pInterface)
 	return false;
 }
 
+void m_IDirectDrawX::FixWindowPos(HWND hWnd, int X, int Y, int cx, int cy)
+{
+	if (DontWindowRePosition || !d3d9Device)
+	{
+		return;
+	}
+
+	Utils::SetWindowPosToMonitor(hMonitor, hWnd, HWND_TOP, X, Y, cx, cy, SWP_NOZORDER | SWP_NOACTIVATE);
+
+	DontWindowRePosition = true;
+}
+
 void m_IDirectDrawX::CheckWindowPosChange(HWND hWnd, WINDOWPOS* wPos)
 {
 	// If incorrect param or incorrect device
@@ -5569,17 +5564,17 @@ void m_IDirectDrawX::CheckWindowPosChange(HWND hWnd, WINDOWPOS* wPos)
 
 		if (X != wPos->x || Y != wPos->y || cx != wPos->cx || cy != wPos->cy)
 		{
-			ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
-
-			for (const auto& entry : DDrawVector)
+			if (!DDrawVector.empty() && IsWindow(DisplayMode.hWnd))
 			{
-				if (entry == CreationInterface)
-				{
-					return entry->FixWindowPos(hWnd, X, Y, cx, cy);
-				}
+				return FixWindowPos(hWnd, X, Y, cx, cy);
 			}
 		}
 	}
+}
+
+DWORD m_IDirectDrawX::GetDisplayBPP(HMONITOR hMon)
+{
+	return (ExclusiveMode && Exclusive.BPP) ? Exclusive.BPP : Utils::GetBitCount(hMon);
 }
 
 DWORD m_IDirectDrawX::GetDDrawBitsPixel(HWND hWnd)
@@ -5601,12 +5596,7 @@ DWORD m_IDirectDrawX::GetDDrawBitsPixel(HWND hWnd)
 
 	if (!DDrawVector.empty() && IsWindow(DisplayMode.hWnd))
 	{
-		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
-
-		for (const auto& entry : DDrawVector)
-		{
-			return entry->GetDisplayBPP();
-		}
+		return GetDisplayBPP(hMonitor);
 	}
 
 	return 0;

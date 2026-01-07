@@ -3861,7 +3861,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 		DDPIXELFORMAT ddpfPixelFormat = {};
 		ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
-		bool IsDirectDraw8bit = (ddrawParent->GetDisplayBPP() == 8);
+		bool IsDirectDraw8bit = (ddrawParent->GetDisplayBPP(ddrawParent->GetHMonitor()) == 8);
 
 		for (D3DFORMAT format : TextureList)
 		{
