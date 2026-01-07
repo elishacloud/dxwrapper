@@ -306,14 +306,15 @@ DWORD GetDepthBias(DWORD ZBias, DWORD DepthBitCount)
 	{
 	case 32:
 	case 24:
-		DepthEpsilon = -10.0f / (1 << 16);
+		// Bit shifting by 24 is too small for float precision. A shift of 20 seems to work best.
+		DepthEpsilon = -1.0f / ((1 << 20) - 1);
 		break;
 	default:
 	case 16:
-		DepthEpsilon = -20.0f / (1 << 16);
+		DepthEpsilon = -1.0f / ((1 << 16) - 1);
 		break;
 	case 15:
-		DepthEpsilon = -25.0f / (1 << 16);
+		DepthEpsilon = -1.0f / ((1 << 15) - 1);
 		break;
 	}
 	float DepthBias = min(ZBias, 16UL) * DepthEpsilon;
