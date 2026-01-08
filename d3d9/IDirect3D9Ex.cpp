@@ -123,7 +123,7 @@ UINT m_IDirect3D9Ex::GetAdapterModeCount(THIS_ UINT Adapter, D3DFORMAT Format)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.LimitDisplayModeCount || Config.OverrideRefreshRate)
+	if (Config.LimitDisplayModeCount)
 	{
 		return GetAdapterModeCache(Adapter, Format, false, nullptr);
 	}
@@ -135,7 +135,7 @@ HRESULT m_IDirect3D9Ex::EnumAdapterModes(THIS_ UINT Adapter, D3DFORMAT Format, U
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((Config.LimitDisplayModeCount || Config.OverrideRefreshRate) && pMode)
+	if ((Config.LimitDisplayModeCount) && pMode)
 	{
 		// Required to build the cache, if it doesn't exist
 		if (Mode >= GetAdapterModeCache(Adapter, Format, false, nullptr))
@@ -309,7 +309,7 @@ UINT m_IDirect3D9Ex::GetAdapterModeCountEx(THIS_ UINT Adapter, CONST D3DDISPLAYM
 		return 0;
 	}
 
-	if (Config.LimitDisplayModeCount || Config.OverrideRefreshRate)
+	if (Config.LimitDisplayModeCount)
 	{
 		return GetAdapterModeCache(Adapter, D3DFMT_UNKNOWN, true, pFilter);
 	}
@@ -327,7 +327,7 @@ HRESULT m_IDirect3D9Ex::EnumAdapterModesEx(THIS_ UINT Adapter, CONST D3DDISPLAYM
 		return D3DERR_INVALIDCALL;
 	}
 
-	if ((Config.LimitDisplayModeCount || Config.OverrideRefreshRate) && pMode)
+	if ((Config.LimitDisplayModeCount) && pMode)
 	{
 		// Required to build the cache, if it doesn't exist
 		if (Mode >= GetAdapterModeCache(Adapter, D3DFMT_UNKNOWN, true, pFilter))
@@ -801,6 +801,12 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 	{
 		pPresentationParameters->Windowed = TRUE;
 		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
+	}
+
+	// Set refresh rate if using exclusive fullscreen mode
+	if (Config.OverrideRefreshRate && !pPresentationParameters->Windowed)
+	{
+		pPresentationParameters->FullScreen_RefreshRateInHz = Config.OverrideRefreshRate;
 	}
 
 	// Get Backbuffer count before setting FlipEx (must be at least 1)
