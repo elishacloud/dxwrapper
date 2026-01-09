@@ -362,9 +362,10 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Some games don't properly handle app activate in exclusive mode
 		if (pDataStruct->IsDirectDraw)
 		{
-			static WPARAM isActive = TRUE;
+			static WPARAM isActive = FALSE;
 			if (wParam == isActive || (pDataStruct->IsCreatingDevice && pDataStruct->IsExclusiveMode) || isForcingWindowedMode)
 			{
+				isActive = wParam;
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
 			isActive = wParam;
@@ -377,10 +378,14 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			SetKeyboardLayoutFocus(hWnd, LOWORD(wParam) != WA_INACTIVE);
 		}
-		// Filter some messages while creating a Direct3D9 device or forcing windowed mode
-		if (pDataStruct->IsDirectDraw && (pDataStruct->IsCreatingDevice || isForcingWindowedMode))
+		// Filter duplicate messages when using DirectDraw
+		if (pDataStruct->IsDirectDraw)
 		{
-			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+			if (pDataStruct->isActive == LOWORD(wParam))
+			{
+				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+			}
+			pDataStruct->isActive = LOWORD(wParam);
 		}
 
 		// Special handling for iconic state to prevent issues with some games

@@ -3400,7 +3400,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	HWND hWnd = (pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : SHARED.DeviceWindow);
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
 
-	std::atomic<bool> tmpFlag;
+	bool tmpFlag = false;
 	ScopedFlagSet SetCreatingDevice(WndDataStruct ? WndDataStruct->IsCreatingDevice : tmpFlag, (WndDataStruct && !WndDataStruct->IsDirectDraw));
 
 	if (WndDataStruct && !WndDataStruct->IsDirectDraw)

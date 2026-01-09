@@ -536,7 +536,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		(pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : nullptr));
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
 
-	std::atomic<bool> tmpFlag;
+	bool tmpFlag = false;
 	ScopedFlagSet SetCreatingDevice(WndDataStruct ? WndDataStruct->IsCreatingDevice : tmpFlag, (WndDataStruct && !WndDataStruct->IsDirectDraw));
 
 	if (WndDataStruct)

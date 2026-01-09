@@ -1,6 +1,7 @@
 #pragma once
 
-#include <atomic>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
 
 #define WM_APP_CREATE_D3D9_DEVICE (WM_APP + 0xFFF - 0x123)
 #define WM_APP_SET_KEYBOARD_LAYOUT (WM_APP + 0xFFF - 0x124)
@@ -11,12 +12,13 @@
 namespace WndProc
 {
 	struct DATASTRUCT {
-		std::atomic<bool> IsDirectDraw = false;
-		std::atomic<bool> IsDirect3D9 = false;
-		std::atomic<bool> IsCreatingDevice = false;
-		std::atomic<bool> IsExclusiveMode = false;
-		std::atomic<bool> NoWindowChanges = false;
-		std::atomic<DWORD> DirectXVersion = 0;
+		bool IsDirectDraw = false;
+		bool IsDirect3D9 = false;
+		bool IsCreatingDevice = false;
+		bool IsExclusiveMode = false;
+		bool NoWindowChanges = false;
+		WORD isActive = WA_INACTIVE;
+		DWORD DirectXVersion = 0;
 	};
 
 	extern bool SwitchingResolution;
