@@ -17,7 +17,7 @@ namespace WndProc
 		bool IsCreatingDevice = false;
 		bool IsExclusiveMode = false;
 		bool NoWindowChanges = false;
-		WORD isActive = WA_INACTIVE;
+		WORD IsActive = WA_INACTIVE;
 		DWORD DirectXVersion = 0;
 	};
 

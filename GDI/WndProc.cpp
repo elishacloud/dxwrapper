@@ -325,7 +325,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 	}
 
-	const bool isForcingWindowedMode = (Config.EnableWindowMode && pDataStruct->IsExclusiveMode);
+	const bool IsForcingWindowedMode = (Config.EnableWindowMode && pDataStruct->IsExclusiveMode);
 
 	switch (Msg)
 	{
@@ -362,13 +362,14 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Some games don't properly handle app activate in exclusive mode
 		if (pDataStruct->IsDirectDraw)
 		{
-			static WPARAM isActive = FALSE;
-			if (wParam == isActive || (pDataStruct->IsCreatingDevice && pDataStruct->IsExclusiveMode) || isForcingWindowedMode)
+			static WPARAM IsActive = FALSE;
+			const bool IsDuplicateMessage = (wParam == IsActive);
+			IsActive = wParam;
+
+			if (IsDuplicateMessage || (pDataStruct->IsCreatingDevice && pDataStruct->IsExclusiveMode) || IsForcingWindowedMode)
 			{
-				isActive = wParam;
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
-			isActive = wParam;
 		}
 		break;
 
@@ -381,11 +382,11 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Filter duplicate messages when using DirectDraw
 		if (pDataStruct->IsDirectDraw)
 		{
-			if (pDataStruct->isActive == LOWORD(wParam))
+			if (pDataStruct->IsActive == LOWORD(wParam))
 			{
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
-			pDataStruct->isActive = LOWORD(wParam);
+			pDataStruct->IsActive = LOWORD(wParam);
 		}
 
 		// Special handling for iconic state to prevent issues with some games
@@ -410,7 +411,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_NCACTIVATE:
 		// Filter some messages while forcing windowed mode
-		if (pDataStruct->IsDirectDraw && isForcingWindowedMode)
+		if (pDataStruct->IsDirectDraw && IsForcingWindowedMode)
 		{
 			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 		}
@@ -440,7 +441,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	case WM_SIZE:
 	case WM_WINDOWPOSCHANGING:
 		// Filter some messages while forcing windowed mode
-		if (pDataStruct->IsCreatingDevice && isForcingWindowedMode)
+		if (pDataStruct->IsCreatingDevice && IsForcingWindowedMode)
 		{
 			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 		}
@@ -454,7 +455,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		}
 
 		// Filter some messages while forcing windowed mode
-		if (pDataStruct->IsCreatingDevice && isForcingWindowedMode)
+		if (pDataStruct->IsCreatingDevice && IsForcingWindowedMode)
 		{
 			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 		}
