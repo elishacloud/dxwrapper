@@ -368,6 +368,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 			if (IsDuplicateMessage || (pDataStruct->IsCreatingDevice && pDataStruct->IsExclusiveMode) || IsForcingWindowedMode)
 			{
+				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering " << (IsDuplicateMessage ? "duplicate " : "") << "'WM_ACTIVATEAPP': " << wParam);
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
 		}
@@ -384,6 +385,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			if (pDataStruct->IsActive == LOWORD(wParam))
 			{
+				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering duplicate 'WM_ACTIVATE': " << LOWORD(wParam));
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
 			pDataStruct->IsActive = LOWORD(wParam);
