@@ -65,21 +65,26 @@ namespace WndProc
 		};
 		LONG* pFunctVar = (LONG*)&FunctCode[5];
 		int* pFunctCall = (int*)&FunctCode[22];
-		DWORD oldProtect = 0;
 		HWND hWnd = nullptr;
 		WNDPROC MyWndProc = nullptr;
 		WNDPROC AppWndProc = nullptr;
-		DATASTRUCT DataStruct = {};
+		DATASTRUCT DataStruct;	// Use initialization from struct
 		bool Active = true;
 		bool Exiting = false;
 	public:
 		WNDPROCSTRUCT(HWND p_hWnd, WNDPROC p_AppWndProc) : hWnd(p_hWnd), AppWndProc(p_AppWndProc)
 		{
-			// Set memory protection to make it executable
+			DWORD oldProtect = 0;
 			if (VirtualProtect(FunctCode, sizeof(FunctCode), PAGE_EXECUTE_READWRITE, &oldProtect))
 			{
+				// CFG registration
+				Utils::MarkAsValidCallTarget(FunctCode, sizeof(FunctCode), 0);
+
+				// Patch code
 				*pFunctVar = (LONG)this;
 				*pFunctCall = (int)&Handler - ((int)pFunctCall + 4);
+
+				// Set function pointer
 				MyWndProc = reinterpret_cast<WNDPROC>((LONG)FunctCode);
 			}
 		}
@@ -100,12 +105,6 @@ namespace WndProc
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
 				SetWndProc(hWnd, AppWndProc);
-			}
-			// Restore the memory protection
-			if (MyWndProc)
-			{
-				DWORD tmpProtect = 0;
-				VirtualProtect(FunctCode, sizeof(FunctCode), oldProtect, &tmpProtect);
 			}
 		}
 		HWND GetHWnd() const { return hWnd; }
@@ -220,7 +219,30 @@ WndProc::DATASTRUCT* WndProc::AddWndProc(HWND hWnd)
 	WNDPROC NewAppWndProc = GetWndProc(hWnd);
 
 	// Create new struct
-	auto NewEntry = std::make_shared<WNDPROCSTRUCT>(hWnd, NewAppWndProc);
+	WNDPROCSTRUCT* raw = static_cast<WNDPROCSTRUCT*>(
+		VirtualAlloc(nullptr, sizeof(WNDPROCSTRUCT), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
+		);
+
+	if (!raw)
+	{
+		return nullptr;
+	}
+
+	// Construct the object in-place
+	new (raw) WNDPROCSTRUCT(hWnd, NewAppWndProc);
+
+	auto deleter = [](WNDPROCSTRUCT* p)
+		{
+			if (!p) return;
+
+			// Explicit destructor call
+			p->~WNDPROCSTRUCT();
+
+			// Free executable memory
+			VirtualFree(p, 0, MEM_RELEASE);
+		};
+
+	std::shared_ptr<WNDPROCSTRUCT> NewEntry(raw, deleter);
 
 	// Get new WndProc
 	WNDPROC NewWndProc = NewEntry->GetMyWndProc();

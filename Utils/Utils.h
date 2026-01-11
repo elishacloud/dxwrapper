@@ -62,6 +62,7 @@ namespace Utils
 	ULONGLONG WINAPI kernel_GetTickCount64();
 	DWORD WINAPI winmm_timeGetTime();
 	MMRESULT WINAPI winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt);
+	void MarkAsValidCallTarget(void* allocationBase, size_t regionSize, size_t entryOffset);
 	void SetCustomExceptionHandler();
 	void RemoveCustomExceptionHandler();
 	LONG WINAPI Vectored_Exception_Handler(EXCEPTION_POINTERS* ExceptionInfo);

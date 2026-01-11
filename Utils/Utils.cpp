@@ -81,6 +81,14 @@ typedef DWORD(WINAPI* GetTickCountProc)();
 typedef LONGLONG(WINAPI* GetTickCount64Proc)();
 typedef DWORD(WINAPI* timeGetTimeProc)();
 typedef MMRESULT(WINAPI* timeGetSystemTimeProc)(LPMMTIME pmmt, UINT cbmmt);
+#ifndef CFG_CALL_TARGET_VALID
+#define CFG_CALL_TARGET_VALID                               (0x00000001)
+typedef struct _CFG_CALL_TARGET_INFO {
+	ULONG_PTR Offset;
+	ULONG_PTR Flags;
+} CFG_CALL_TARGET_INFO, * PCFG_CALL_TARGET_INFO;
+#endif
+typedef BOOL(WINAPI* PFN_SetProcessValidCallTargets)(HANDLE Process, PVOID VirtualAddress, SIZE_T RegionSize, ULONG NumberOfOffsets, PCFG_CALL_TARGET_INFO OffsetInformation);
 
 namespace Utils
 {
@@ -727,6 +735,30 @@ MMRESULT WINAPI Utils::winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt)
 		}
 	}
 	return result;
+}
+
+void Utils::MarkAsValidCallTarget(void* allocationBase, size_t regionSize, size_t entryOffset)
+{
+	// CFG does not exist pre Win8.1
+	static HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
+	if (!hKernel32)
+	{
+		return;
+	}
+
+	static auto pSetProcessValidCallTargets = reinterpret_cast<PFN_SetProcessValidCallTargets>(GetProcAddress(hKernel32, "SetProcessValidCallTargets"));
+
+	if (!pSetProcessValidCallTargets)
+	{
+		// Older OS (XP, Vista, 7, 8.0) ? CFG not supported
+		return;
+	}
+
+	CFG_CALL_TARGET_INFO info = {};
+	info.Offset = static_cast<ULONG_PTR>(entryOffset);
+	info.Flags = CFG_CALL_TARGET_VALID;
+
+	pSetProcessValidCallTargets(GetCurrentProcess(), allocationBase, regionSize, 1, &info);
 }
 
 static inline void ToLower(char* str)
