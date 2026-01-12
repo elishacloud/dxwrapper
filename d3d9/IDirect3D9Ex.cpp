@@ -669,7 +669,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		// Adjust window style after device creation
 		if (IsWindow(DeviceDetails.DeviceWindow))
 		{
-			AdjustWindowStyle(DeviceDetails.DeviceWindow);
+			AdjustWindowStyle(DeviceDetails.DeviceWindow, !DeviceDetails.AppRequestedWindowMode);
 		}
 	}
 
@@ -946,68 +946,79 @@ void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DD
 	Mode.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
 }
 
-void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd)
+void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd, bool IsExclusiveFullscreen)
 {
-	const LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
-	const LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+	LONG style = GetWindowLong(MainhWnd, GWL_STYLE);
+	LONG exStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 
-	const bool IsStyleChange = ((lStyle & WS_POPUP) && (lStyle & WS_CLIPCHILDREN));
-	const bool IsExStyleChange = (lExStyle & (WS_EX_TOOLWINDOW | WS_EX_TOPMOST));
+	bool styleChanged = false;
 
-	// Move window to top if not already topmost
-	if (!(lExStyle & WS_EX_TOPMOST))
+	// Remove WS_CLIPCHILDREN for popup windows
+	if ((style & WS_POPUP) && (style & WS_CLIPCHILDREN))
 	{
-		SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-		SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+		LOG_LIMIT(3, __FUNCTION__ << " Removing window style: WS_CLIPCHILDREN");
+
+		style &= ~WS_CLIPCHILDREN;
+		SetWindowLong(MainhWnd, GWL_STYLE, style);
+		styleChanged = true;
 	}
 
-	// Set active and foreground if needed
-	if (MainhWnd != GetFocus() || MainhWnd != GetActiveWindow())
+	// Remove tool window style
+	if (exStyle & WS_EX_TOOLWINDOW)
 	{
-		DWORD currentThreadId = GetCurrentThreadId();
-		DWORD foregroundThreadId = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
+		LOG_LIMIT(3, __FUNCTION__ << " Removing window style: WS_EX_TOOLWINDOW");
 
-		bool shouldAttachThreadID = currentThreadId != foregroundThreadId;
+		exStyle &= ~WS_EX_TOOLWINDOW;
+		SetWindowLong(MainhWnd, GWL_EXSTYLE, exStyle);
+		styleChanged = true;
+	}
 
-		// Attach the input of the foreground window and current window
-		if (shouldAttachThreadID)
+	// Apply changes without frame recalculation
+	if (styleChanged)
+	{
+		SetWindowPos(MainhWnd, nullptr, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+	}
+
+	// Refresh styles after change
+	exStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+
+	// Remove topmost if set
+	if (exStyle & WS_EX_TOPMOST)
+	{
+		SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+	}
+	// Move window to top if not already topmost
+	else
+	{
+		SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+		SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+	}
+
+	// Validate once at the end
+	if (IsExclusiveFullscreen)
+	{
+		ValidateRect(MainhWnd, nullptr);
+	}
+
+	// Ensure focus if needed
+	if (MainhWnd != GetFocus() && MainhWnd != GetActiveWindow())
+	{
+		DWORD currentThread = GetCurrentThreadId();
+		DWORD foregroundThread = GetWindowThreadProcessId(GetForegroundWindow(), nullptr);
+
+		if (currentThread != foregroundThread)
 		{
-			AttachThreadInput(currentThreadId, foregroundThreadId, TRUE);
+			AttachThreadInput(currentThread, foregroundThread, TRUE);
 		}
 
 		SetFocus(MainhWnd);
 		SetActiveWindow(MainhWnd);
 		BringWindowToTop(MainhWnd);
 
-		// Detach the input from the foreground window
-		if (shouldAttachThreadID)
+		if (currentThread != foregroundThread)
 		{
-			AttachThreadInput(currentThreadId, foregroundThreadId, FALSE);
+			AttachThreadInput(currentThread, foregroundThread, FALSE);
 		}
-	}
-
-	// Remove window styles
-	if (IsStyleChange || IsExStyleChange)
-	{
-		LOG_LIMIT(3, __FUNCTION__ << " Removing window styles:" <<
-			((lExStyle & WS_EX_TOOLWINDOW) ? " WS_EX_TOOLWINDOW" : "") <<
-			((lExStyle & WS_EX_TOPMOST) ? " WS_EX_TOPMOST" : "") <<
-			(IsStyleChange ? " WS_CLIPCHILDREN" : ""));
-
-		// Remove clip children for popup windows
-		if (IsStyleChange)
-		{
-			SetWindowLong(MainhWnd, GWL_STYLE, lStyle & ~WS_CLIPCHILDREN);
-		}
-
-		// Remove tool and topmost window
-		if (IsExStyleChange)
-		{
-			SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle & ~(WS_EX_TOOLWINDOW | WS_EX_TOPMOST));
-		}
-
-		SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_NOTOPMOST : HWND_TOP),
-			0, 0, 0, 0, SWP_FRAMECHANGED | ((lExStyle & WS_EX_TOPMOST) ? NULL : SWP_NOZORDER) | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
 }
 
