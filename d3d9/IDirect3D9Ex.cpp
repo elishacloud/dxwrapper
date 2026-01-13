@@ -669,7 +669,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		// Adjust window style after device creation
 		if (IsWindow(DeviceDetails.DeviceWindow))
 		{
-			AdjustWindowStyle(DeviceDetails.DeviceWindow, !DeviceDetails.AppRequestedWindowMode);
+			AdjustWindowStyle(DeviceDetails.DeviceWindow);
 		}
 	}
 
@@ -946,7 +946,7 @@ void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DD
 	Mode.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
 }
 
-void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd, bool IsExclusiveFullscreen)
+void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd)
 {
 	LONG style = GetWindowLong(MainhWnd, GWL_STYLE);
 	LONG exStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
@@ -992,12 +992,6 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd, bool IsExclusiveFullscreen
 	{
 		SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 		SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-	}
-
-	// Validate once at the end
-	if (IsExclusiveFullscreen)
-	{
-		ValidateRect(MainhWnd, nullptr);
 	}
 
 	// Ensure focus if needed
