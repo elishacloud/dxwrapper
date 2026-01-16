@@ -532,7 +532,7 @@ template <typename T>
 HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, bool IsEx, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface)
 {
 	// Hook WndProc before creating device
-	HWND hWnd = (hFocusWindow && IsWindow(hFocusWindow) ? hFocusWindow :
+	const HWND hWnd = (hFocusWindow && IsWindow(hFocusWindow) ? hFocusWindow :
 		(pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : nullptr));
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
 
@@ -576,6 +576,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 
 	// Check fullscreen
 	bool ForceFullscreen = false;
+	bool MultiSampleFlag = false;
 
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp = {};
@@ -589,87 +590,88 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 
 		UpdatePresentParameter(p_d3dpp, hFocusWindow, DeviceDetails, IsEx, ForceFullscreen, true);
-	}
 
-	bool MultiSampleFlag = false;
-
-	// Check for AntiAliasing (doesn't work with FlipEx)
-	if (Config.AntiAliasing && pPresentationParameters && !(IsEx && Config.FlipEx))
-	{
-		DWORD QualityLevels = 0;
-
-		// Check AntiAliasing quality
-		for (int x = min(D3DMULTISAMPLE_16_SAMPLES, Config.AntiAliasing); x > 0; x--)
+		// Check for AntiAliasing (doesn't work with FlipEx)
+		if (Config.AntiAliasing)
 		{
-			D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
-			D3DFORMAT BufferFormat = (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8;
-			D3DFORMAT StencilFormat = (d3dpp.AutoDepthStencilFormat) ? d3dpp.AutoDepthStencilFormat : D3DFMT_X8R8G8B8;
-
-			if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, BufferFormat, d3dpp.Windowed, Samples, &QualityLevels)) &&
-				SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, StencilFormat, d3dpp.Windowed, Samples, &QualityLevels)))
+			if (IsEx && Config.FlipEx)
 			{
-				// Update Present Parameter for Multisample
-				UpdatePresentParameterForMultisample(p_d3dpp, Samples, (QualityLevels > 0) ? QualityLevels - 1 : 0);
+				LOG_LIMIT(3, __FUNCTION__ << " Warning: AntiAliasing is not supported on FlipEx presentation mode!");
+			}
+			else
+			{
+				DWORD QualityLevels = 0;
 
-				// Create Device
-				hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, p_d3dpp, (d3dpp.Windowed ? nullptr : pFullscreenDisplayMode), ppReturnedDeviceInterface);
-
-				// Check if device was created successfully
-				if (SUCCEEDED(hr) && ppReturnedDeviceInterface)
+				// Check AntiAliasing quality
+				for (int x = min(D3DMULTISAMPLE_16_SAMPLES, Config.AntiAliasing); x > 0; x--)
 				{
-					MultiSampleFlag = true;
+					D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
+					D3DFORMAT BufferFormat = (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8;
+					D3DFORMAT StencilFormat = (d3dpp.AutoDepthStencilFormat) ? d3dpp.AutoDepthStencilFormat : D3DFMT_X8R8G8B8;
 
-					(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+					if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, BufferFormat, d3dpp.Windowed, Samples, &QualityLevels)) &&
+						SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, StencilFormat, d3dpp.Windowed, Samples, &QualityLevels)))
+					{
+						// Update Present Parameter for Multisample
+						UpdatePresentParameterForMultisample(p_d3dpp, Samples, (QualityLevels > 0) ? QualityLevels - 1 : 0);
 
-					LOG_LIMIT(3, "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality);
+						// Create Device
+						hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, p_d3dpp, (d3dpp.Windowed ? nullptr : pFullscreenDisplayMode), ppReturnedDeviceInterface);
 
-					break;
+						// Check if device was created successfully
+						if (SUCCEEDED(hr) && ppReturnedDeviceInterface)
+						{
+							MultiSampleFlag = true;
+
+							(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+
+							LOG_LIMIT(3, "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality);
+
+							break;
+						}
+					}
+				}
+				if (FAILED(hr))
+				{
+					// Reset presentation parameters
+					CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+
+					UpdatePresentParameter(p_d3dpp, hFocusWindow, DeviceDetails, IsEx, ForceFullscreen, false);
+
+					LOG_LIMIT(100, __FUNCTION__ << " Failed to enable AntiAliasing!");
 				}
 			}
 		}
-		if (FAILED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to enable AntiAliasing!");
-		}
-	}
-	else if (Config.AntiAliasing && IsEx && Config.FlipEx)
-	{
-		LOG_LIMIT(3, __FUNCTION__ << " Warning: AntiAliasing is not supported on FlipEx presentation mode!");
 	}
 
 	// Create Device
 	if (FAILED(hr))
 	{
-		// Update presentation parameters
-		if (pPresentationParameters)
-		{
-			CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-			UpdatePresentParameter(p_d3dpp, hFocusWindow, DeviceDetails, IsEx, ForceFullscreen, false);
-		}
-
-		// Create Device
 		hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, p_d3dpp, (d3dpp.Windowed ? nullptr : pFullscreenDisplayMode), ppReturnedDeviceInterface);
 	}
 
-	if (SUCCEEDED(hr) && pPresentationParameters)
+	if (SUCCEEDED(hr))
 	{
-		GetFinalPresentParameter(p_d3dpp, DeviceDetails);
-
-		d3dpp.Windowed = DeviceDetails.AppRequestedWindowMode;
-
-		if (MultiSampleFlag)
+		if (pPresentationParameters)
 		{
-			DeviceDetails.DeviceMultiSampleFlag = true;
-			DeviceDetails.DeviceMultiSampleType = d3dpp.MultiSampleType;
-			DeviceDetails.DeviceMultiSampleQuality = d3dpp.MultiSampleQuality;
-		}
+			GetFinalPresentParameter(p_d3dpp, DeviceDetails);
 
-		CopyMemory(pPresentationParameters, p_d3dpp, sizeof(D3DPRESENT_PARAMETERS));
+			d3dpp.Windowed = DeviceDetails.AppRequestedWindowMode;
 
-		// Adjust window style after device creation
-		if (IsWindow(DeviceDetails.DeviceWindow))
-		{
-			AdjustWindowStyle(DeviceDetails.DeviceWindow);
+			if (MultiSampleFlag)
+			{
+				DeviceDetails.DeviceMultiSampleFlag = true;
+				DeviceDetails.DeviceMultiSampleType = d3dpp.MultiSampleType;
+				DeviceDetails.DeviceMultiSampleQuality = d3dpp.MultiSampleQuality;
+			}
+
+			CopyMemory(pPresentationParameters, p_d3dpp, sizeof(D3DPRESENT_PARAMETERS));
+
+			// Adjust window style after device creation
+			if (IsWindow(DeviceDetails.DeviceWindow))
+			{
+				AdjustWindowStyle(DeviceDetails.DeviceWindow);
+			}
 		}
 	}
 

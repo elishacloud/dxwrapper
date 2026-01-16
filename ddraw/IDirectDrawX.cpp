@@ -3352,384 +3352,380 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	FindMonitorHandle();
 	HMONITOR hm = GetHMonitor();
 
-	HRESULT hr = DD_OK;
-	do {
-		// Last call variables
-		HWND LasthWnd = hFocusWindow;
-		DWORD LastBehaviorFlags = BehaviorFlags;
+	// Last call variables
+	HWND LasthWnd = hFocusWindow;
+	DWORD LastBehaviorFlags = BehaviorFlags;
 
-		// Device already exists
-		bool IsCurrentDevice = (d3d9Device != nullptr);
+	// Device already exists
+	bool IsCurrentDevice = (d3d9Device != nullptr);
 
-		// Backup last present parameters
-		D3DPRESENT_PARAMETERS presParamsBackup = presParams;
+	// Backup last present parameters
+	D3DPRESENT_PARAMETERS presParamsBackup = presParams;
 
-		// Store new focus window
-		hFocusWindow = hWnd;
+	// Store new focus window
+	hFocusWindow = hWnd;
 
-		// Get current resolution and rect
-		DWORD CurrentWidth = 0, CurrentHeight = 0;
-		Utils::GetScreenSize(hm, (LONG&)CurrentWidth, (LONG&)CurrentHeight);
+	// Get current resolution and rect
+	DWORD CurrentWidth = 0, CurrentHeight = 0;
+	Utils::GetScreenSize(hm, (LONG&)CurrentWidth, (LONG&)CurrentHeight);
 
-		// Get current window size
-		RECT LastClientRect = {};
-		if (hWnd)
+	// Get current window size
+	RECT LastClientRect = {};
+	if (hWnd)
+	{
+		GetWindowRect(hWnd, &LastWindowRect);
+		GetClientRect(hWnd, &LastClientRect);
+	}
+
+	// Get width and height
+	DWORD BackBufferWidth = 0;
+	DWORD BackBufferHeight = 0;
+	if (Device.Width && Device.Height)
+	{
+		BackBufferWidth = Device.Width;
+		BackBufferHeight = Device.Height;
+	}
+	else
+	{
+		// Use default desktop resolution
+		if (ExclusiveMode || Config.FullscreenWindowMode || Config.ForceExclusiveFullscreen)
 		{
-			GetWindowRect(hWnd, &LastWindowRect);
-			GetClientRect(hWnd, &LastClientRect);
-		}
-
-		// Get width and height
-		DWORD BackBufferWidth = 0;
-		DWORD BackBufferHeight = 0;
-		if (Device.Width && Device.Height)
-		{
-			BackBufferWidth = Device.Width;
-			BackBufferHeight = Device.Height;
+			BackBufferWidth = InitWidth;
+			BackBufferHeight = InitHeight;
 		}
 		else
 		{
-			// Use default desktop resolution
-			if (ExclusiveMode || Config.FullscreenWindowMode || Config.ForceExclusiveFullscreen)
+			// Reset display to get proper screen size
+			if (d3d9Device && !presParamsBackup.Windowed && !Config.EnableWindowMode)
 			{
-				BackBufferWidth = InitWidth;
-				BackBufferHeight = InitHeight;
+				ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
 			}
-			else
-			{
-				// Reset display to get proper screen size
-				if (d3d9Device && !presParamsBackup.Windowed && !Config.EnableWindowMode)
-				{
-					ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
-				}
-				BackBufferWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-				BackBufferHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-				FullScreenWindowed = false;
-			}
+			BackBufferWidth = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+			BackBufferHeight = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+			FullScreenWindowed = false;
 		}
+	}
 
-		// Set display window
-		presParams = {};
+	// Set display window
+	presParams = {};
 
-		// Width/height
-		presParams.BackBufferWidth = BackBufferWidth;
-		presParams.BackBufferHeight = BackBufferHeight;
+	// Width/height
+	presParams.BackBufferWidth = BackBufferWidth;
+	presParams.BackBufferHeight = BackBufferHeight;
+	// Backbuffer
+	presParams.BackBufferCount = 1;
+	// Auto stencel format
+	presParams.AutoDepthStencilFormat = Config.DdrawOverrideStencilFormat ? (D3DFORMAT)Config.DdrawOverrideStencilFormat : D3DFMT_UNKNOWN;
+	// Auto stencel
+	presParams.EnableAutoDepthStencil = Config.DdrawOverrideStencilFormat ? TRUE : FALSE;
+	// Interval level
+	presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
+	// Anti-aliasing
+	presParams.MultiSampleType = D3DMULTISAMPLE_NONE;
+	presParams.MultiSampleQuality = 0;
+	// Present flags
+	presParams.Flags = 0;
+	// Window handle
+	presParams.hDeviceWindow = hWnd;
+
+	// Set parameters for the current display mode
+	if (Device.IsWindowed || !hWnd)
+	{
+		// Window mode
+		presParams.Windowed = TRUE;
+		// Copy swap
+		presParams.SwapEffect = D3DSWAPEFFECT_COPY;
 		// Backbuffer
-		presParams.BackBufferCount = 1;
-		// Auto stencel format
-		presParams.AutoDepthStencilFormat = Config.DdrawOverrideStencilFormat ? (D3DFORMAT)Config.DdrawOverrideStencilFormat : D3DFMT_UNKNOWN;
-		// Auto stencel
-		presParams.EnableAutoDepthStencil = Config.DdrawOverrideStencilFormat ? TRUE : FALSE;
-		// Interval level
-		presParams.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
-		// Anti-aliasing
-		presParams.MultiSampleType = D3DMULTISAMPLE_NONE;
-		presParams.MultiSampleQuality = 0;
-		// Present flags
-		presParams.Flags = 0;
-		// Window handle
-		presParams.hDeviceWindow = hWnd;
+		presParams.BackBufferFormat = D3DFMT_UNKNOWN;
+		// Display mode refresh
+		presParams.FullScreen_RefreshRateInHz = 0;
+	}
+	else
+	{
+		// Fullscreen
+		presParams.Windowed = FALSE;
+		// Discard swap
+		presParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
+		// Backbuffer
+		presParams.BackBufferFormat = D9DisplayFormat;
+		// Display mode refresh
+		presParams.FullScreen_RefreshRateInHz = Device.RefreshRate;
+	}
 
-		// Set parameters for the current display mode
-		if (Device.IsWindowed || !hWnd)
+	// Enable antialiasing
+	if (Device.AntiAliasing)
+	{
+		DWORD QualityLevels = 0;
+
+		// Check AntiAliasing quality
+		if (SUCCEEDED(d3d9Object->CheckDeviceMultiSampleType(AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, presParams.Windowed, D3DMULTISAMPLE_NONMASKABLE, &QualityLevels)))
 		{
-			// Window mode
-			presParams.Windowed = TRUE;
-			// Copy swap
-			presParams.SwapEffect = D3DSWAPEFFECT_COPY;
-			// Backbuffer
-			presParams.BackBufferFormat = D3DFMT_UNKNOWN;
-			// Display mode refresh
-			presParams.FullScreen_RefreshRateInHz = 0;
+			presParams.MultiSampleType = D3DMULTISAMPLE_NONMASKABLE;
+			presParams.MultiSampleQuality = QualityLevels ? QualityLevels - 1 : 0;
 		}
-		else
+	}
+
+	// Check device caps for vertex processing support
+	D3DCAPS9 d3dcaps = {};
+	HRESULT hr = d3d9Object->GetDeviceCaps(AdapterIndex, D3DDEVTYPE_HAL, &d3dcaps);
+	if (FAILED(hr))
+	{
+		Logging::Log() << __FUNCTION__ << " Failed to get Direct3D9 device caps: " << (DDERR)hr;
+	}
+
+	// Set behavior flags
+	BehaviorFlags = ((d3dcaps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
+		(Device.FPUPreserve ? D3DCREATE_FPU_PRESERVE : NULL) |
+		(Device.MultiThreaded || !Config.DdrawNoMultiThreaded ? D3DCREATE_MULTITHREADED : NULL);
+
+	Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
+		presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
+		" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
+
+	// Check if there are any device changes
+	HRESULT hr_test = D3D_OK;
+	if (d3d9Device)
+	{
+		hr_test = TestD3D9CooperativeLevel();
+		if ((hr_test == D3D_OK || hr_test == DDERR_NOEXCLUSIVEMODE) &&
+			presParamsBackup.BackBufferWidth == presParams.BackBufferWidth &&
+			presParamsBackup.BackBufferHeight == presParams.BackBufferHeight &&
+			presParamsBackup.Windowed == presParams.Windowed &&
+			presParamsBackup.hDeviceWindow == presParams.hDeviceWindow &&
+			presParamsBackup.FullScreen_RefreshRateInHz == presParams.FullScreen_RefreshRateInHz &&
+			LastBehaviorFlags == BehaviorFlags)
 		{
-			// Fullscreen
-			presParams.Windowed = FALSE;
-			// Discard swap
-			presParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
-			// Backbuffer
-			presParams.BackBufferFormat = D9DisplayFormat;
-			// Display mode refresh
-			presParams.FullScreen_RefreshRateInHz = Device.RefreshRate;
+			return DD_OK;
 		}
+	}
 
-		// Enable antialiasing
-		if (Device.AntiAliasing)
-		{
-			DWORD QualityLevels = 0;
+	// Create or Reset d3d9Device
+	{
+		// Mark as creating device
+		bool tmpFlag = false;
+		ScopedFlagSet SetCreatingDevice(WndDataStruct ? WndDataStruct->IsCreatingDevice : tmpFlag);
 
-			// Check AntiAliasing quality
-			if (SUCCEEDED(d3d9Object->CheckDeviceMultiSampleType(AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, presParams.Windowed, D3DMULTISAMPLE_NONMASKABLE, &QualityLevels)))
-			{
-				presParams.MultiSampleType = D3DMULTISAMPLE_NONMASKABLE;
-				presParams.MultiSampleQuality = QualityLevels ? QualityLevels - 1 : 0;
-			}
-		}
-
-		// Check device caps for vertex processing support
-		D3DCAPS9 d3dcaps = {};
-		hr = d3d9Object->GetDeviceCaps(AdapterIndex, D3DDEVTYPE_HAL, &d3dcaps);
-		if (FAILED(hr))
-		{
-			Logging::Log() << __FUNCTION__ << " Failed to get Direct3D9 device caps: " << (DDERR)hr;
-		}
-
-		// Set behavior flags
-		BehaviorFlags = ((d3dcaps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT) ? D3DCREATE_HARDWARE_VERTEXPROCESSING : D3DCREATE_SOFTWARE_VERTEXPROCESSING) |
-			(Device.FPUPreserve ? D3DCREATE_FPU_PRESERVE : NULL) |
-			(Device.MultiThreaded || !Config.DdrawNoMultiThreaded ? D3DCREATE_MULTITHREADED : NULL);
-
-		Logging::Log() << __FUNCTION__ << " Direct3D9 device! " <<
-			presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
-			" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags);
-
-		// Check if there are any device changes
-		HRESULT hr_test = D3D_OK;
+		// Check if existing device exists
 		if (d3d9Device)
 		{
-			hr_test = TestD3D9CooperativeLevel();
-			if ((hr_test == D3D_OK || hr_test == DDERR_NOEXCLUSIVEMODE) &&
-				presParamsBackup.BackBufferWidth == presParams.BackBufferWidth &&
-				presParamsBackup.BackBufferHeight == presParams.BackBufferHeight &&
+			// Check if device needs to be reset
+			if ((hr_test == D3D_OK || hr_test == DDERR_NOEXCLUSIVEMODE || hr_test == D3DERR_DEVICENOTRESET) &&
 				presParamsBackup.Windowed == presParams.Windowed &&
 				presParamsBackup.hDeviceWindow == presParams.hDeviceWindow &&
-				presParamsBackup.FullScreen_RefreshRateInHz == presParams.FullScreen_RefreshRateInHz &&
 				LastBehaviorFlags == BehaviorFlags)
 			{
-				hr = DD_OK;
-				break;
-			}
-		}
+				Logging::Log() << __FUNCTION__ << " Resetting device! Last create: " << LasthWnd << "->" << hWnd << " " <<
+					" Windowed: " << presParamsBackup.Windowed << "->" << presParams.Windowed << " " <<
+					presParamsBackup.BackBufferWidth << "x" << presParamsBackup.BackBufferHeight << "->" <<
+					presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " <<
+					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-		{
-			// Mark as creating device
-			bool tmpFlag = false;
-			ScopedFlagSet SetCreatingDevice(WndDataStruct ? WndDataStruct->IsCreatingDevice : tmpFlag);
+				ReleaseAllD9Resources(true, false);
 
-			// Check if existing device exists
-			if (d3d9Device)
-			{
-				// Check if device needs to be reset
-				if ((hr_test == D3D_OK || hr_test == DDERR_NOEXCLUSIVEMODE || hr_test == D3DERR_DEVICENOTRESET) &&
-					presParamsBackup.Windowed == presParams.Windowed &&
-					presParamsBackup.hDeviceWindow == presParams.hDeviceWindow &&
-					LastBehaviorFlags == BehaviorFlags)
+				hr = d3d9Device->Reset(&presParams);
+
+				if (FAILED(hr))
 				{
-					Logging::Log() << __FUNCTION__ << " Resetting device! Last create: " << LasthWnd << "->" << hWnd << " " <<
-						" Windowed: " << presParamsBackup.Windowed << "->" << presParams.Windowed << " " <<
-						presParamsBackup.BackBufferWidth << "x" << presParamsBackup.BackBufferHeight << "->" <<
-						presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " <<
-						Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device! " << (DDERR)hr << " " <<
+						presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
+						" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags));
 
-					ReleaseAllD9Resources(true, false);
-
-					hr = d3d9Device->Reset(&presParams);
-
-					if (FAILED(hr))
-					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device! " << (DDERR)hr << " " <<
-							presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
-							" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags));
-
-						ReleaseD9Device();
-					}
-				}
-				// Just release device and recreate it
-				else
-				{
-					Logging::Log() << __FUNCTION__ << " Recreate device! Last create: " << LasthWnd << "->" << hWnd << " " <<
-						" Windowed: " << presParamsBackup.Windowed << "->" << presParams.Windowed << " " <<
-						presParamsBackup.BackBufferWidth << "x" << presParamsBackup.BackBufferHeight << "->" <<
-						presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " <<
-						Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
-
-					ReleaseAllD9Resources(true, false);
 					ReleaseD9Device();
 				}
 			}
-
-			// Reset display mode after release when display mode is already setup and there is a primary surface
-			if (IsCurrentDevice && !d3d9Device &&	// Device needs to be recreated
-				presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)) &&
-				!Config.EnableWindowMode)
+			// Just release device and recreate it
+			else
 			{
-				Utils::SetDisplaySettings(hm, DisplayMode.Width, DisplayMode.Height);
-			}
+				Logging::Log() << __FUNCTION__ << " Recreate device! Last create: " << LasthWnd << "->" << hWnd << " " <<
+					" Windowed: " << presParamsBackup.Windowed << "->" << presParams.Windowed << " " <<
+					presParamsBackup.BackBufferWidth << "x" << presParamsBackup.BackBufferHeight << "->" <<
+					presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " <<
+					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-			struct SetWindowFullScreen {
-				static void FullScreen(HMONITOR hMon, HWND hWnd, DWORD Width, DWORD Height)
+				ReleaseAllD9Resources(true, false);
+				ReleaseD9Device();
+			}
+		}
+
+		// Reset display mode after release when display mode is already setup and there is a primary surface
+		if (IsCurrentDevice && !d3d9Device &&	// Device needs to be recreated
+			presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)) &&
+			!Config.EnableWindowMode)
+		{
+			Utils::SetDisplaySettings(hm, DisplayMode.Width, DisplayMode.Height);
+		}
+
+		struct SetWindowFullScreen {
+			static void FullScreen(HMONITOR hMon, HWND hWnd, DWORD Width, DWORD Height)
+			{
+				if (Config.FullscreenWindowMode || !Config.EnableWindowMode)
 				{
-					if (Config.FullscreenWindowMode || !Config.EnableWindowMode)
-					{
-						Utils::SetDisplaySettings(hMon, Width, Height);
+					Utils::SetDisplaySettings(hMon, Width, Height);
 
-						LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
+					LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
 
-						m_IDirect3D9Ex::AdjustWindow(hMon, hWnd, Width, Height, false, true);
+					m_IDirect3D9Ex::AdjustWindow(hMon, hWnd, Width, Height, false, true);
 
-						SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_BORDER);
-						SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-					}
-					else
-					{
-						m_IDirect3D9Ex::AdjustWindow(hMon, hWnd, Width, Height, true, false);
-					}
+					SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_BORDER);
+					SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 				}
-			};
-
-			// Prepare window and display size
-			if ((!presParams.Windowed || FullScreenWindowed) && !Config.EnableWindowMode)
-			{
-				SetWindowFullScreen::FullScreen(hm, hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
+				else
+				{
+					m_IDirect3D9Ex::AdjustWindow(hMon, hWnd, Width, Height, true, false);
+				}
 			}
+		};
 
-			// Create d3d9 Device
-			if (!d3d9Device)
+		// Prepare window and display size
+		if ((!presParams.Windowed || FullScreenWindowed) && !Config.EnableWindowMode)
+		{
+			SetWindowFullScreen::FullScreen(hm, hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
+		}
+
+		// Create d3d9 Device
+		if (!d3d9Device)
+		{
+			// Attempt to create a device
+			hr = d3d9Object->CreateDevice(AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+			// If using unsupported refresh rate
+			if (hr == D3DERR_INVALIDCALL && presParams.FullScreen_RefreshRateInHz)
 			{
-				// Attempt to create a device
+				presParams.FullScreen_RefreshRateInHz = 0;
 				hr = d3d9Object->CreateDevice(AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
-				// If using unsupported refresh rate
-				if (hr == D3DERR_INVALIDCALL && presParams.FullScreen_RefreshRateInHz)
+				if (SUCCEEDED(hr))
 				{
-					presParams.FullScreen_RefreshRateInHz = 0;
-					hr = d3d9Object->CreateDevice(AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
-					if (SUCCEEDED(hr))
-					{
-						Device.RefreshRate = 0;
-						DisplayMode.RefreshRate = 0;
-						Exclusive.RefreshRate = 0;
-					}
-				}
-				// If exclusive fullscreen mode doesn't work
-				if (hr == D3DERR_DEVICELOST && !presParams.Windowed)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: Creating exclusive Direct3D9 device in fullscreen window mode! " <<
-						presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz);
-					FullScreenWindowed = true;
-					presParams.Windowed = TRUE;
-					presParams.BackBufferFormat = D3DFMT_UNKNOWN;
-					presParams.FullScreen_RefreshRateInHz = 0;
-					hr = d3d9Object->CreateDevice(AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
-					if (SUCCEEDED(hr))
-					{
-						SetWindowFullScreen::FullScreen(hm, hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
-					}
+					Device.RefreshRate = 0;
+					DisplayMode.RefreshRate = 0;
+					Exclusive.RefreshRate = 0;
 				}
 			}
-		}
-
-		if (FAILED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create Direct3D9 device! " << (DDERR)hr << " " <<
-				presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
-				" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags) <<
-				" Iconized: " << IsIconic(hWnd) << " IsActive: " << (hWnd == GetActiveWindow()) << " IsFocus: " << (hWnd == GetFocus()) <<
-				" IsForeground: " << (hWnd == GetForegroundWindow()) << " WindowID: " << GetWindowThreadProcessId(hWnd, nullptr));
-			break;
-		}
-
-		// Reset flags after creating device
-		CreationInterface = this;
-		IsDeviceLost = false;
-		WndProc::SwitchingResolution = false;
-		LastUsedHWnd = hWnd;
-		IsDeviceVerticesSet = false;
-		EnableWaitVsync = false;
-		FourCCsList.clear();
-
-		// Create dummy memory (2x larger)
-		m_IDirectDrawSurfaceX::SizeDummySurface(presParams.BackBufferWidth * presParams.BackBufferHeight * 4 * 2);
-
-		// Copy GDI data to back buffer
-		if (CopyGDISurface && PrimarySurface && !presParams.Windowed)
-		{
-			PrimarySurface->CopyGDIToPrimaryAndBackbuffer();
-		}
-		CopyGDISurface = false;
-
-
-		// Create default state block
-		GetDefaultStates();
-
-		// Set render target
-		SetCurrentRenderTarget();
-
-		// Reset D3D device settings
-		RestoreD3DDeviceState();
-
-		// Send window change messages for exclusive windows
-		if (!Device.NoWindowChanges && !presParams.Windowed && !Config.EnableWindowMode)
-		{
-			// Get window size
-			RECT NewWindowRect = {};
-			GetWindowRect(hWnd, &NewWindowRect);
-			RECT NewClientRect = {};
-			GetClientRect(hWnd, &NewClientRect);
-
-			// Check for window position change
-			bool bWindowMove =
-				LastWindowRect.left != NewWindowRect.left ||
-				LastWindowRect.top != NewWindowRect.top;
-			bool bWindowSize =
-				(LONG)presParams.BackBufferWidth != NewClientRect.right ||
-				(LONG)presParams.BackBufferHeight != NewClientRect.bottom ||
-				LastClientRect.right != NewClientRect.right ||
-				LastClientRect.bottom != NewClientRect.bottom;
-			bool bIsNewWindow = LasthWnd != hFocusWindow;
-
-			// Post window messages
-			if (bWindowMove || bWindowSize)
+			// If exclusive fullscreen mode doesn't work
+			if (hr == D3DERR_DEVICELOST && !presParams.Windowed)
 			{
-				// Window position variables
-				HWND WindowInsert = GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
-				static WINDOWPOS winpos;
-				winpos = { hWnd, WindowInsert, NewWindowRect.left, NewWindowRect.top, NewWindowRect.right - NewWindowRect.left, NewWindowRect.bottom - NewWindowRect.top, WM_NULL };
-				static NCCALCSIZE_PARAMS NCCalc;
-				NCCalc = { { NewWindowRect, LastWindowRect, LastWindowRect }, &winpos };
-				
-				// Window placement
-				WINDOWPLACEMENT wp = {};
-				wp.length = sizeof(WINDOWPLACEMENT);
-				GetWindowPlacement(hWnd, &wp);
-				UINT SizeFlag = wp.showCmd == SW_SHOWMAXIMIZED ? SIZE_MAXIMIZED : wp.showCmd == SW_SHOWMINIMIZED ? SIZE_MINIMIZED : SIZE_RESTORED;
-
-				// Notify window position
-				PostMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
-				PostMessage(hWnd, WM_NCCALCSIZE, TRUE, (LPARAM)&NCCalc);
-				PostMessage(hWnd, WM_NCPAINT, TRUE, NULL);
-				PostMessage(hWnd, WM_ERASEBKGND, TRUE, NULL);
-				PostMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
-
-				// Notify window move
-				if (bWindowMove)
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: Creating exclusive Direct3D9 device in fullscreen window mode! " <<
+					presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz);
+				FullScreenWindowed = true;
+				presParams.Windowed = TRUE;
+				presParams.BackBufferFormat = D3DFMT_UNKNOWN;
+				presParams.FullScreen_RefreshRateInHz = 0;
+				hr = d3d9Object->CreateDevice(AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+				if (SUCCEEDED(hr))
 				{
-					POINT ClientPoint = { NewClientRect.left, NewClientRect.top };
-					MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&ClientPoint, 1);
-					PostMessage(hWnd, WM_MOVE, 0, MAKELPARAM(ClientPoint.x, ClientPoint.y));
-				}
-
-				// Notify window size
-				if (bWindowSize)
-				{
-					PostMessage(hWnd, WM_SIZE, SizeFlag, MAKELPARAM(NewClientRect.right, NewClientRect.bottom));
+					SetWindowFullScreen::FullScreen(hm, hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
 				}
 			}
+		}
+	}
 
-			// Window focus
-			if (bIsNewWindow)
+	if (FAILED(hr))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create Direct3D9 device! " << (DDERR)hr << " " <<
+			presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
+			" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags) <<
+			" Iconized: " << IsIconic(hWnd) << " IsActive: " << (hWnd == GetActiveWindow()) << " IsFocus: " << (hWnd == GetFocus()) <<
+			" IsForeground: " << (hWnd == GetForegroundWindow()) << " WindowID: " << GetWindowThreadProcessId(hWnd, nullptr));
+		return hr;
+	}
+
+	// Reset flags after creating device
+	CreationInterface = this;
+	IsDeviceLost = false;
+	WndProc::SwitchingResolution = false;
+	LastUsedHWnd = hWnd;
+	IsDeviceVerticesSet = false;
+	EnableWaitVsync = false;
+	FourCCsList.clear();
+
+	// Create dummy memory (2x larger)
+	m_IDirectDrawSurfaceX::SizeDummySurface(presParams.BackBufferWidth * presParams.BackBufferHeight * 4 * 2);
+
+	// Copy GDI data to back buffer
+	if (CopyGDISurface && PrimarySurface && !presParams.Windowed)
+	{
+		PrimarySurface->CopyGDIToPrimaryAndBackbuffer();
+	}
+	CopyGDISurface = false;
+
+
+	// Create default state block
+	GetDefaultStates();
+
+	// Set render target
+	SetCurrentRenderTarget();
+
+	// Reset D3D device settings
+	RestoreD3DDeviceState();
+
+	// Send window change messages for exclusive windows
+	if (!Device.NoWindowChanges && !presParams.Windowed && !Config.EnableWindowMode)
+	{
+		// Get window size
+		RECT NewWindowRect = {};
+		GetWindowRect(hWnd, &NewWindowRect);
+		RECT NewClientRect = {};
+		GetClientRect(hWnd, &NewClientRect);
+
+		// Check for window position change
+		bool bWindowMove =
+			LastWindowRect.left != NewWindowRect.left ||
+			LastWindowRect.top != NewWindowRect.top;
+		bool bWindowSize =
+			(LONG)presParams.BackBufferWidth != NewClientRect.right ||
+			(LONG)presParams.BackBufferHeight != NewClientRect.bottom ||
+			LastClientRect.right != NewClientRect.right ||
+			LastClientRect.bottom != NewClientRect.bottom;
+		bool bIsNewWindow = LasthWnd != hFocusWindow;
+
+		// Post window messages
+		if (bWindowMove || bWindowSize)
+		{
+			// Window position variables
+			HWND WindowInsert = GetWindowLong(hWnd, GWL_EXSTYLE) & WS_EX_TOPMOST ? HWND_TOPMOST : HWND_TOP;
+			static WINDOWPOS winpos;
+			winpos = { hWnd, WindowInsert, NewWindowRect.left, NewWindowRect.top, NewWindowRect.right - NewWindowRect.left, NewWindowRect.bottom - NewWindowRect.top, WM_NULL };
+			static NCCALCSIZE_PARAMS NCCalc;
+			NCCalc = { { NewWindowRect, LastWindowRect, LastWindowRect }, &winpos };
+
+			// Window placement
+			WINDOWPLACEMENT wp = {};
+			wp.length = sizeof(WINDOWPLACEMENT);
+			GetWindowPlacement(hWnd, &wp);
+			UINT SizeFlag = wp.showCmd == SW_SHOWMAXIMIZED ? SIZE_MAXIMIZED : wp.showCmd == SW_SHOWMINIMIZED ? SIZE_MINIMIZED : SIZE_RESTORED;
+
+			// Notify window position
+			PostMessage(hWnd, WM_WINDOWPOSCHANGING, 0, (LPARAM)&winpos);
+			PostMessage(hWnd, WM_NCCALCSIZE, TRUE, (LPARAM)&NCCalc);
+			PostMessage(hWnd, WM_NCPAINT, TRUE, NULL);
+			PostMessage(hWnd, WM_ERASEBKGND, TRUE, NULL);
+			PostMessage(hWnd, WM_WINDOWPOSCHANGED, 0, (LPARAM)&winpos);
+
+			// Notify window move
+			if (bWindowMove)
 			{
-				PostMessage(hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
-				PostMessage(hWnd, WM_SETFOCUS, NULL, NULL);
-				PostMessage(hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
+				POINT ClientPoint = { NewClientRect.left, NewClientRect.top };
+				MapWindowPoints(hWnd, HWND_DESKTOP, (LPPOINT)&ClientPoint, 1);
+				PostMessage(hWnd, WM_MOVE, 0, MAKELPARAM(ClientPoint.x, ClientPoint.y));
+			}
+
+			// Notify window size
+			if (bWindowSize)
+			{
+				PostMessage(hWnd, WM_SIZE, SizeFlag, MAKELPARAM(NewClientRect.right, NewClientRect.bottom));
 			}
 		}
 
-		// Store display frequency
-		DWORD RefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(hm);
-		Counter.PerFrameMS = 1000.0 / (RefreshRate ? RefreshRate : 60);
+		// Window focus
+		if (bIsNewWindow)
+		{
+			PostMessage(hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
+			PostMessage(hWnd, WM_SETFOCUS, NULL, NULL);
+			PostMessage(hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
+		}
+	}
 
-	} while (false);
+	// Store display frequency
+	DWORD RefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(hm);
+	Counter.PerFrameMS = 1000.0 / (RefreshRate ? RefreshRate : 60);
 
 	// Return result
 	return hr;
@@ -3989,61 +3985,54 @@ void m_IDirectDrawX::SetCurrentRenderTarget()
 
 HRESULT m_IDirectDrawX::SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface)
 {
+	// Remove render target
+	if (!lpSurface)
+	{
+		ClearRenderTarget();
+		SetDepthStencilSurface(nullptr);
+
+		RenderTargetSurface = nullptr;
+		DepthStencilSurface = nullptr;
+
+		return D3D_OK;
+	}
+
+	// Check for Direct3D surface
+	if (!lpSurface->IsSurface3D())
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not a Direct3D surface!");
+		return DDERR_INVALIDPARAMS;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " Setting 3D Device Surface: " << RenderTargetSurface;
+
+	// Set surface as render target
+	RenderTargetSurface = lpSurface;
+	RenderTargetSurface->SetAsRenderTarget();
+
+	// Set new render target
 	HRESULT hr = D3D_OK;
-
-	do {
-		// Remove render target
-		if (!lpSurface)
+	if (d3d9Device)
+	{
+		LPDIRECT3DSURFACE9 pSurfaceD9 = RenderTargetSurface->GetD3d9Surface();
+		if (pSurfaceD9)
 		{
-			ClearRenderTarget();
-			SetDepthStencilSurface(nullptr);
+			hr = d3d9Device->SetRenderTarget(0, pSurfaceD9);
 
-			RenderTargetSurface = nullptr;
-			DepthStencilSurface = nullptr;
-
-			hr = D3D_OK;
-			break;
-		}
-
-		// Check for Direct3D surface
-		if (!lpSurface->IsSurface3D())
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not a Direct3D surface!");
-			hr = DDERR_INVALIDPARAMS;
-			break;
-		}
-
-		// Set surface as render target
-		RenderTargetSurface = lpSurface;
-		RenderTargetSurface->SetAsRenderTarget();
-
-		Logging::LogDebug() << __FUNCTION__ << " Setting 3D Device Surface: " << RenderTargetSurface;
-
-		// Set new render target
-		if (d3d9Device)
-		{
-			LPDIRECT3DSURFACE9 pSurfaceD9 = RenderTargetSurface->GetD3d9Surface();
-			if (pSurfaceD9)
+			if (FAILED(hr))
 			{
-				hr = d3d9Device->SetRenderTarget(0, pSurfaceD9);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set render target: " << (D3DERR)hr);
 			}
 		}
+	}
 
-		if (FAILED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set render target: " << (D3DERR)hr);
-			break;
-		}
+	m_IDirectDrawSurfaceX* pSurfaceZBuffer = RenderTargetSurface->GetAttachedDepthStencil();
+	hr = SetDepthStencilSurface(pSurfaceZBuffer);
 
-		m_IDirectDrawSurfaceX* pSurfaceZBuffer = RenderTargetSurface->GetAttachedDepthStencil();
-		hr = SetDepthStencilSurface(pSurfaceZBuffer);
-
-		if (FAILED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set depth stencil surface: " << (D3DERR)hr);
-			break;
-		}
-	} while (false);
+	if (FAILED(hr))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set depth stencil surface: " << (D3DERR)hr);
+	}
 
 	return hr;
 }
@@ -4064,9 +4053,9 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 	}
 	else if (lpSurface->IsDepthStencil())
 	{
-		DepthStencilSurface = lpSurface;
-
 		Logging::LogDebug() << __FUNCTION__ << " Setting Depth Stencil Surface: " << DepthStencilSurface;
+
+		DepthStencilSurface = lpSurface;
 
 		if (d3d9Device)
 		{

@@ -3388,16 +3388,16 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 
 	ProxyInterface->EndScene();		// Required for some games when using WineD3D
 
-	HRESULT hr;
+	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Check if display needs to be reset
-	bool IsSettingWindowMode = (pPresentationParameters ? pPresentationParameters->Windowed != FALSE : false);
-	bool IsWindowModeChanging = (SHARED.IsWindowMode != IsSettingWindowMode);
-	bool IsResolutionChanging = pPresentationParameters ?
+	const bool IsSettingWindowMode = (pPresentationParameters ? pPresentationParameters->Windowed != FALSE : false);
+	const bool IsWindowModeChanging = (SHARED.IsWindowMode != IsSettingWindowMode);
+	const bool IsResolutionChanging = pPresentationParameters ?
 		(SHARED.BufferWidth != (LONG)pPresentationParameters->BackBufferWidth || SHARED.BufferHeight != (LONG)pPresentationParameters->BackBufferHeight) : false;
 
 	// Hook WndProc before creating device
-	HWND hWnd = (pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : SHARED.DeviceWindow);
+	const HWND hWnd = (pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : SHARED.DeviceWindow);
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
 
 	bool tmpFlag = false;
@@ -3417,6 +3417,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 
 	// Check fullscreen
 	bool ForceFullscreen = false;
+	bool ClearMultiSampled = (pPresentationParameters != nullptr);	// Don't clear if pPresentationParameters is null
 
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp = {};
@@ -3428,13 +3429,10 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 		CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 
 		m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, SHARED.DeviceWindow, SHARED, IsEx, ForceFullscreen, IsWindowModeChanging || IsResolutionChanging);
-	}
 
-	// Test for Multisample
-	if (SHARED.DeviceMultiSampleFlag && pPresentationParameters)
-	{
-		do {
-
+		// Test for Multisample
+		if (SHARED.DeviceMultiSampleFlag)
+		{
 			// Update Present Parameter for Multisample
 			m_IDirect3D9Ex::UpdatePresentParameterForMultisample(p_d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
 
@@ -3442,35 +3440,34 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 			hr = ResetT(func, p_d3dpp, pFullscreenDisplayMode);
 
 			// Check if device was reset successfully
-			if (SUCCEEDED(hr))
+			if (FAILED(hr))
 			{
-				break;
+				// Reset presentation parameters
+				CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+
+				m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, SHARED.DeviceWindow, SHARED, IsEx, ForceFullscreen, false);
+
+				ClearMultiSampled = true;
 			}
-
-			// Reset presentation parameters
-			CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-
-			m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, SHARED.DeviceWindow, SHARED, IsEx, ForceFullscreen, false);
-
-			// Reset device
-			hr = ResetT(func, p_d3dpp, pFullscreenDisplayMode);
-
-			if (SUCCEEDED(hr))
-			{
-				LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing...");
-				SHARED.DeviceMultiSampleFlag = false;
-				SHARED.DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
-				SHARED.DeviceMultiSampleQuality = 0;
-				SHARED.SetSSAA = false;
-				SHARED.SetATOC = false;
-			}
-
-		} while (false);
+		}
 	}
-	else
+
+	// Reset device
+	if (FAILED(hr))
 	{
 		// Reset device
 		hr = ResetT(func, p_d3dpp, pFullscreenDisplayMode);
+
+		// Clear multi-sampled variables
+		if (ClearMultiSampled)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing...");
+			SHARED.DeviceMultiSampleFlag = false;
+			SHARED.DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
+			SHARED.DeviceMultiSampleQuality = 0;
+			SHARED.SetSSAA = false;
+			SHARED.SetATOC = false;
+		}
 	}
 
 	ClearVars();
