@@ -2242,6 +2242,8 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 		HRESULT hr = TestD3D9CooperativeLevel();
 		if (hr == D3DERR_DEVICENOTRESET)
 		{
+			ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 			hr = ResetD9Device();
 		}
 
@@ -3221,8 +3223,6 @@ D3DMULTISAMPLE_TYPE m_IDirectDrawX::GetMultiSampleTypeQuality(D3DFORMAT Format, 
 HRESULT m_IDirectDrawX::ResetD9Device()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, true)))

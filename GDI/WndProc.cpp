@@ -385,7 +385,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		if (pDataStruct->IsDirectDraw)
 		{
 			static WPARAM IsActive = 0xFFFF;
-			Logging::Log() << __FUNCTION__ << " WM_ACTIVATEAPP IsExclusiveMode: " << pDataStruct->IsExclusiveMode << " IsCreatingDevice: " << pDataStruct->IsCreatingDevice << " " << IsActive << " -> " << wParam;
 			const bool IsDuplicateMessage = (IsActive == wParam);
 			if (IsDuplicateMessage || IsForcingWindowedMode)
 			{

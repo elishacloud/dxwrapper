@@ -5495,8 +5495,6 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(LPRECT lpDestRect, bool IsSkipScen
 	// Set present flag
 	ScopedFlagSet ScopedFlag(IsPresentRunning);
 
-	ScopedCriticalSection ThreadLock(GetCriticalSection());
-
 	// Present to d3d9
 	HRESULT hr = ddrawParent->PresentScene(lpDestRect);
 	if (FAILED(hr))

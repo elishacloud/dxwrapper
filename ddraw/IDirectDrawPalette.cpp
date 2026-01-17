@@ -259,9 +259,11 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 		}
 
 		// Present new palette
-		if (ddrawParent)
+		if (ddrawParent && (paletteCaps & DDPCAPS_PRIMARYSURFACE))
 		{
-			if (paletteCaps & DDPCAPS_PRIMARYSURFACE)
+			ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+			if (ddrawParent)
 			{
 				if (paletteCaps & DDPCAPS_VSYNC)
 				{
