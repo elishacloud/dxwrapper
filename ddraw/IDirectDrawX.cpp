@@ -3313,7 +3313,8 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	}
 
 	// Get hwnd
-	HWND hWnd = GetHwnd();
+	const HWND hWnd = GetHwnd();
+	const HWND LastActiveWindow = GetActiveWindow();
 
 	// Set DirectX version
 	m_IDirect3D9Ex* D3DX = nullptr;
@@ -3350,17 +3351,17 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 	// Get monitor handle
 	FindMonitorHandle();
-	HMONITOR hm = GetHMonitor();
+	const HMONITOR hm = GetHMonitor();
 
 	// Last call variables
-	HWND LasthWnd = hFocusWindow;
-	DWORD LastBehaviorFlags = BehaviorFlags;
+	const HWND LasthWnd = hFocusWindow;
+	const DWORD LastBehaviorFlags = BehaviorFlags;
 
 	// Device already exists
-	bool IsCurrentDevice = (d3d9Device != nullptr);
+	const bool IsCurrentDevice = (d3d9Device != nullptr);
 
 	// Backup last present parameters
-	D3DPRESENT_PARAMETERS presParamsBackup = presParams;
+	const D3DPRESENT_PARAMETERS presParamsBackup = presParams;
 
 	// Store new focus window
 	hFocusWindow = hWnd;
@@ -3499,120 +3500,117 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		}
 	}
 
-	// Create or Reset d3d9Device
+	// Mark as creating device
+	bool tmpFlag = false;
+	ScopedFlagSet SetCreatingDevice(WndDataStruct ? WndDataStruct->IsCreatingDevice : tmpFlag);
+
+	// Check if existing device exists
+	if (d3d9Device)
 	{
-		// Mark as creating device
-		bool tmpFlag = false;
-		ScopedFlagSet SetCreatingDevice(WndDataStruct ? WndDataStruct->IsCreatingDevice : tmpFlag);
-
-		// Check if existing device exists
-		if (d3d9Device)
+		// Check if device needs to be reset
+		if ((hr_test == D3D_OK || hr_test == DDERR_NOEXCLUSIVEMODE || hr_test == D3DERR_DEVICENOTRESET) &&
+			presParamsBackup.Windowed == presParams.Windowed &&
+			presParamsBackup.hDeviceWindow == presParams.hDeviceWindow &&
+			LastBehaviorFlags == BehaviorFlags)
 		{
-			// Check if device needs to be reset
-			if ((hr_test == D3D_OK || hr_test == DDERR_NOEXCLUSIVEMODE || hr_test == D3DERR_DEVICENOTRESET) &&
-				presParamsBackup.Windowed == presParams.Windowed &&
-				presParamsBackup.hDeviceWindow == presParams.hDeviceWindow &&
-				LastBehaviorFlags == BehaviorFlags)
+			Logging::Log() << __FUNCTION__ << " Resetting device! Last create: " << LasthWnd << "->" << hWnd << " " <<
+				" Windowed: " << presParamsBackup.Windowed << "->" << presParams.Windowed << " " <<
+				presParamsBackup.BackBufferWidth << "x" << presParamsBackup.BackBufferHeight << "->" <<
+				presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " <<
+				Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
+
+			ReleaseAllD9Resources(true, false);
+
+			hr = d3d9Device->Reset(&presParams);
+
+			if (FAILED(hr))
 			{
-				Logging::Log() << __FUNCTION__ << " Resetting device! Last create: " << LasthWnd << "->" << hWnd << " " <<
-					" Windowed: " << presParamsBackup.Windowed << "->" << presParams.Windowed << " " <<
-					presParamsBackup.BackBufferWidth << "x" << presParamsBackup.BackBufferHeight << "->" <<
-					presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " <<
-					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device! " << (DDERR)hr << " " <<
+					presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
+					" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags));
 
-				ReleaseAllD9Resources(true, false);
-
-				hr = d3d9Device->Reset(&presParams);
-
-				if (FAILED(hr))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to reset Direct3D9 device! " << (DDERR)hr << " " <<
-						presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz <<
-						" format: " << presParams.BackBufferFormat << " wnd: " << hWnd << " params: " << presParams << " flags: " << Logging::hex(BehaviorFlags));
-
-					ReleaseD9Device();
-				}
-			}
-			// Just release device and recreate it
-			else
-			{
-				Logging::Log() << __FUNCTION__ << " Recreate device! Last create: " << LasthWnd << "->" << hWnd << " " <<
-					" Windowed: " << presParamsBackup.Windowed << "->" << presParams.Windowed << " " <<
-					presParamsBackup.BackBufferWidth << "x" << presParamsBackup.BackBufferHeight << "->" <<
-					presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " <<
-					Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
-
-				ReleaseAllD9Resources(true, false);
 				ReleaseD9Device();
 			}
 		}
-
-		// Reset display mode after release when display mode is already setup and there is a primary surface
-		if (IsCurrentDevice && !d3d9Device &&	// Device needs to be recreated
-			presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)) &&
-			!Config.EnableWindowMode)
+		// Just release device and recreate it
+		else
 		{
-			Utils::SetDisplaySettings(hm, DisplayMode.Width, DisplayMode.Height);
-		}
+			Logging::Log() << __FUNCTION__ << " Recreate device! Last create: " << LasthWnd << "->" << hWnd << " " <<
+				" Windowed: " << presParamsBackup.Windowed << "->" << presParams.Windowed << " " <<
+				presParamsBackup.BackBufferWidth << "x" << presParamsBackup.BackBufferHeight << "->" <<
+				presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " " <<
+				Logging::hex(LastBehaviorFlags) << "->" << Logging::hex(BehaviorFlags);
 
-		struct SetWindowFullScreen {
-			static void FullScreen(HMONITOR hMon, HWND hWnd, DWORD Width, DWORD Height)
+			ReleaseAllD9Resources(true, false);
+			ReleaseD9Device();
+		}
+	}
+
+	// Reset display mode after release when display mode is already setup and there is a primary surface
+	if (IsCurrentDevice && !d3d9Device &&	// Device needs to be recreated
+		presParams.Windowed && (FullScreenWindowed || (PrimarySurface && DisplayMode.Width == CurrentWidth && DisplayMode.Height == CurrentHeight)) &&
+		!Config.EnableWindowMode)
+	{
+		Utils::SetDisplaySettings(hm, DisplayMode.Width, DisplayMode.Height);
+	}
+
+	struct SetWindowFullScreen {
+		static void FullScreen(HMONITOR hMon, HWND hWnd, DWORD Width, DWORD Height)
+		{
+			if (Config.FullscreenWindowMode || !Config.EnableWindowMode)
 			{
-				if (Config.FullscreenWindowMode || !Config.EnableWindowMode)
-				{
-					Utils::SetDisplaySettings(hMon, Width, Height);
+				Utils::SetDisplaySettings(hMon, Width, Height);
 
-					LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
+				LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
 
-					m_IDirect3D9Ex::AdjustWindow(hMon, hWnd, Width, Height, false, true);
+				m_IDirect3D9Ex::AdjustWindow(hMon, hWnd, Width, Height, false, true);
 
-					SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_BORDER);
-					SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-				}
-				else
-				{
-					m_IDirect3D9Ex::AdjustWindow(hMon, hWnd, Width, Height, true, false);
-				}
+				SetWindowLong(hWnd, GWL_STYLE, lStyle & ~WS_BORDER);
+				SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 			}
-		};
-
-		// Prepare window and display size
-		if ((!presParams.Windowed || FullScreenWindowed) && !Config.EnableWindowMode)
-		{
-			SetWindowFullScreen::FullScreen(hm, hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
+			else
+			{
+				m_IDirect3D9Ex::AdjustWindow(hMon, hWnd, Width, Height, true, false);
+			}
 		}
+	};
 
-		// Create d3d9 Device
-		if (!d3d9Device)
+	// Prepare window and display size
+	if ((!presParams.Windowed || FullScreenWindowed) && !Config.EnableWindowMode)
+	{
+		SetWindowFullScreen::FullScreen(hm, hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
+	}
+
+	// Create d3d9 Device
+	if (!d3d9Device)
+	{
+		// Attempt to create a device
+		hr = d3d9Object->CreateDevice(AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+		// If using unsupported refresh rate
+		if (hr == D3DERR_INVALIDCALL && presParams.FullScreen_RefreshRateInHz)
 		{
-			// Attempt to create a device
+			presParams.FullScreen_RefreshRateInHz = 0;
 			hr = d3d9Object->CreateDevice(AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
-			// If using unsupported refresh rate
-			if (hr == D3DERR_INVALIDCALL && presParams.FullScreen_RefreshRateInHz)
+			if (SUCCEEDED(hr))
 			{
-				presParams.FullScreen_RefreshRateInHz = 0;
-				hr = d3d9Object->CreateDevice(AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
-				if (SUCCEEDED(hr))
-				{
-					Device.RefreshRate = 0;
-					DisplayMode.RefreshRate = 0;
-					Exclusive.RefreshRate = 0;
-				}
+				Device.RefreshRate = 0;
+				DisplayMode.RefreshRate = 0;
+				Exclusive.RefreshRate = 0;
 			}
-			// If exclusive fullscreen mode doesn't work
-			if (hr == D3DERR_DEVICELOST && !presParams.Windowed)
+		}
+		// If exclusive fullscreen mode doesn't work
+		if (hr == D3DERR_DEVICELOST && !presParams.Windowed)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Creating exclusive Direct3D9 device in fullscreen window mode! " <<
+				presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz);
+			FullScreenWindowed = true;
+			presParams.Windowed = TRUE;
+			presParams.BackBufferFormat = D3DFMT_UNKNOWN;
+			presParams.FullScreen_RefreshRateInHz = 0;
+			hr = d3d9Object->CreateDevice(AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
+			if (SUCCEEDED(hr))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: Creating exclusive Direct3D9 device in fullscreen window mode! " <<
-					presParams.BackBufferWidth << "x" << presParams.BackBufferHeight << " refresh: " << presParams.FullScreen_RefreshRateInHz);
-				FullScreenWindowed = true;
-				presParams.Windowed = TRUE;
-				presParams.BackBufferFormat = D3DFMT_UNKNOWN;
-				presParams.FullScreen_RefreshRateInHz = 0;
-				hr = d3d9Object->CreateDevice(AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
-				if (SUCCEEDED(hr))
-				{
-					SetWindowFullScreen::FullScreen(hm, hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
-				}
+				SetWindowFullScreen::FullScreen(hm, hWnd, presParams.BackBufferWidth, presParams.BackBufferHeight);
 			}
 		}
 	}
