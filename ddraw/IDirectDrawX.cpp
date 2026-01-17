@@ -1726,6 +1726,14 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		// Check window handle
 		if (IsWindow(DisplayMode.hWnd) && ((!hWnd && Config.DdrawIntroVideoFix) || DisplayMode.hWnd == hWnd))
 		{
+			// Hook WndProc
+			WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
+			if (WndDataStruct)
+			{
+				WndDataStruct->IsDirectDraw = true;
+				WndDataStruct->DirectXVersion = ClientDirectXVersion;
+			}
+
 			// Set exclusive mode resolution
 			if (ExclusiveMode && DisplayMode.Width && DisplayMode.Height && DisplayMode.BPP)
 			{
@@ -3247,6 +3255,13 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 		return DDERR_WRONGMODE;
 	}
 
+	// Hook WndProc before creating device
+	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(GetHwnd());
+
+	// Mark as creating device
+	bool tmpFlag = false;
+	ScopedFlagSet SetCreatingDevice(WndDataStruct ? WndDataStruct->IsCreatingDevice : tmpFlag);
+
 	// Reset device if current thread matches creation thread
 	if (IsWindow(hFocusWindow) && FocusWindowThreadID == GetCurrentThreadId())
 	{
@@ -3644,7 +3659,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	}
 	CopyGDISurface = false;
 
-
 	// Create default state block
 	GetDefaultStates();
 
@@ -3718,6 +3732,12 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			PostMessage(hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
 			PostMessage(hWnd, WM_SETFOCUS, NULL, NULL);
 			PostMessage(hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
+		}
+
+		// Activate app
+		if (ExclusiveMode && ClientDirectXVersion < 4 && LasthWnd != hFocusWindow)
+		{
+			PostMessage(hWnd, WM_ACTIVATEAPP, TRUE, (LPARAM)GetWindowThreadProcessId(LastActiveWindow, nullptr));
 		}
 	}
 

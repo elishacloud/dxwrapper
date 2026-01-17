@@ -384,15 +384,15 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Some games don't properly handle app activate in exclusive mode
 		if (pDataStruct->IsDirectDraw)
 		{
-			static WPARAM IsActive = FALSE;
-			const bool IsDuplicateMessage = (wParam == IsActive);
-			IsActive = wParam;
-
-			if (IsDuplicateMessage || (pDataStruct->IsCreatingDevice && pDataStruct->IsExclusiveMode) || IsForcingWindowedMode)
+			static WPARAM IsActive = 0xFFFF;
+			Logging::Log() << __FUNCTION__ << " WM_ACTIVATEAPP IsExclusiveMode: " << pDataStruct->IsExclusiveMode << " IsCreatingDevice: " << pDataStruct->IsCreatingDevice << " " << IsActive << " -> " << wParam;
+			const bool IsDuplicateMessage = (IsActive == wParam);
+			if (IsDuplicateMessage || IsForcingWindowedMode)
 			{
-				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering " << (IsDuplicateMessage ? "duplicate " : "") << "'WM_ACTIVATEAPP': " << wParam);
-				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering " << (IsDuplicateMessage ? "duplicate " : "") << "WM_ACTIVATEAPP: " << wParam);
+				return NULL;
 			}
+			IsActive = wParam;
 		}
 		break;
 
@@ -407,7 +407,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			if (pDataStruct->IsActive == LOWORD(wParam))
 			{
-				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering duplicate 'WM_ACTIVATE': " << LOWORD(wParam));
+				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering duplicate WM_ACTIVATE: " << LOWORD(wParam));
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
 			pDataStruct->IsActive = LOWORD(wParam);
