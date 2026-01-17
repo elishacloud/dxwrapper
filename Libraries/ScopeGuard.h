@@ -58,30 +58,44 @@ public:
     }
 };
 
+#define CreateScopedHeapBuffer(type, name, size) \
+    __HeapBuffer<type> name##_heap(size); \
+    type* const name = name##_heap.buffer;
+
 template<typename T>
-struct HeapBuffer
+struct __HeapBuffer
 {
-private:
-    T* buffer = nullptr;
-public:
-    // Constructor: allocate and initialize buffer
-    HeapBuffer(size_t bufferSize)
+    T* buffer;
+
+    explicit __HeapBuffer(size_t count)
+        : buffer(new T[count]()) // zero-initialize
     {
-        buffer = new T[bufferSize](); // value-initialized
     }
-    // Destructor: free memory
-    ~HeapBuffer()
+
+    ~__HeapBuffer()
     {
         delete[] buffer;
     }
-    // Get buffer pointer
-    T* data()
+
+    // Disable copy
+    __HeapBuffer(const __HeapBuffer&) = delete;
+    __HeapBuffer& operator=(const __HeapBuffer&) = delete;
+
+    // Allow move
+    __HeapBuffer(__HeapBuffer&& other) noexcept : buffer(other.buffer)
     {
-        return buffer;
+        other.buffer = nullptr;
     }
-    // Disable copy to prevent accidental copies
-    HeapBuffer(const HeapBuffer&) = delete;
-    HeapBuffer& operator=(const HeapBuffer&) = delete;
+    __HeapBuffer& operator=(__HeapBuffer&& other) noexcept
+    {
+        if (this != &other)
+        {
+            delete[] buffer;
+            buffer = other.buffer;
+            other.buffer = nullptr;
+        }
+        return *this;
+    }
 };
 
 struct ScopedCriticalSection

@@ -37,6 +37,7 @@
 #include "dinput8\dinput8External.h"
 #include "d3d8\d3d8External.h"
 #include "dsound\dsoundExternal.h"
+#include "Libraries\ScopeGuard.h"
 #include "dxwrapper.h"
 
 #include <sstream>
@@ -94,16 +95,18 @@ static HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSyste
 
 	if (dllname)
 	{
-		char path[MAX_PATH];
-		GetSystemDirectory(path, MAX_PATH);
-		PathAppend(path, dllname);
-
-		if (Config.IsSet(HookSystem32) || (HookSystem32 == NOT_EXIST && GetModuleHandleA(path)))
+		CreateScopedHeapBuffer(char, path, MAX_PATH);
+		if (GetSystemDirectoryA(path, MAX_PATH))
 		{
-			HMODULE lib = LoadLibrary(path);
-			if (lib)
+			PathAppend(path, dllname);
+
+			if (Config.IsSet(HookSystem32) || (HookSystem32 == NOT_EXIST && GetModuleHandleA(path)))
 			{
-				dll = lib;
+				HMODULE lib = LoadLibrary(path);
+				if (lib)
+				{
+					dll = lib;
+				}
 			}
 		}
 	}
@@ -119,7 +122,7 @@ static HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSyste
 static bool CheckForDuplicateLoad(HMODULE hModule, HANDLE& hMutex)
 {
 	// Get mutex name
-	char MutexName[MAX_PATH] = { 0 };
+	CreateScopedHeapBuffer(char, MutexName, MAX_PATH);
 	if (Config.RealWrapperMode == dtype.dxwrapper)
 	{
 		sprintf_s(MutexName, MAX_PATH, "DxWrapper_%d", GetCurrentProcessId());
@@ -137,7 +140,7 @@ static bool CheckForDuplicateLoad(HMODULE hModule, HANDLE& hMutex)
 
 		// Prepare message
 		std::stringstream message;
-		char dllPath[MAX_PATH] = { 0 };
+		CreateScopedHeapBuffer(char, dllPath, MAX_PATH);
 
 		// Get the DLL path if possible
 		if (GetModuleFileNameA(hModule, dllPath, MAX_PATH))
@@ -224,7 +227,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		bool IsRunningFromMemory = false;
 		Logging::Log() << "Starting DxWrapper v" << APP_VERSION;
 		{
-			char path[MAX_PATH] = {};
+			CreateScopedHeapBuffer(char, path, MAX_PATH);
 			SetLastError(0);
 			DWORD size = GetModuleFileName(hModule, path, MAX_PATH);
 			DWORD errorCode = GetLastError();

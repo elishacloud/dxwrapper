@@ -35,6 +35,7 @@
 #include "d3d9\d3d9External.h"
 #include "External\Hooking\Hook.h"
 #include "External\Hooking\Disasm.h"
+#include "Libraries\ScopeGuard.h"
 #include "Logging\Logging.h"
 
 #undef LoadLibrary
@@ -785,26 +786,32 @@ bool Utils::CheckIfSystemModuleLoaded(const char* moduleName)
 	}
 
 	// Build: <System32>\<moduleName>
-	char sysDir[MAX_PATH] = {};
-	GetSystemDirectoryA(sysDir, MAX_PATH);
+	CreateScopedHeapBuffer(char, sysDir, MAX_PATH);
+	if (GetSystemDirectoryA(sysDir, MAX_PATH) == 0)
+	{
+		return false; // couldn't get system directory
+	}
 	std::string sysPath = sysDir;
 	sysPath += "\\";
 	sysPath += moduleName;
 	// lowercase
-	char sysPathC[MAX_PATH];
-	strncpy_s(sysPathC, sysPath.c_str(), MAX_PATH);
+	CreateScopedHeapBuffer(char, sysPathC, MAX_PATH);
+	strncpy_s(sysPathC, MAX_PATH, sysPath.c_str(), _TRUNCATE);
 	sysPathC[MAX_PATH - 1] = 0;
 	ToLower(sysPathC);
 
 	// Build: <Windows>\SysWOW64\<moduleName>
-	char windowsDir[MAX_PATH] = {};
-	GetWindowsDirectoryA(windowsDir, MAX_PATH);
+	CreateScopedHeapBuffer(char, windowsDir, MAX_PATH);
+	if (GetWindowsDirectoryA(windowsDir, MAX_PATH) == 0)
+	{
+		return false; // couldn't get windows directory
+	}
 	std::string wowPath = windowsDir;
 	wowPath += "\\SysWOW64\\";
 	wowPath += moduleName;
 	// lowercase
-	char wowPathC[MAX_PATH];
-	strncpy_s(wowPathC, wowPath.c_str(), MAX_PATH);
+	CreateScopedHeapBuffer(char, wowPathC, MAX_PATH);
+	strncpy_s(wowPathC, MAX_PATH, wowPath.c_str(), _TRUNCATE);
 	wowPathC[MAX_PATH - 1] = 0;
 	ToLower(wowPathC);
 
@@ -835,7 +842,7 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 	// Declare vars
 	HMODULE dll = nullptr;
 	const char *loadpath;
-	char path[MAX_PATH] = { 0 };
+	CreateScopedHeapBuffer(char, path, MAX_PATH);
 
 	// Check if dll is already loaded
 	for (size_t x = 0; x < custom_dll.size(); x++)
@@ -860,10 +867,9 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 	}
 
 	// Load system dll
-	if (!dll)
+	if (!dll && GetSystemDirectoryA(path, MAX_PATH))
 	{
 		//Load library
-		GetSystemDirectory(path, MAX_PATH);
 		strcat_s(path, MAX_PATH, "\\");
 		strcat_s(path, MAX_PATH, dllname);
 		loadpath = path;
@@ -926,7 +932,7 @@ void Utils::InitializeASI(HMODULE hModule)
 // Find asi plugins to load
 void Utils::FindFiles(WIN32_FIND_DATA* fd)
 {
-	char dir[MAX_PATH];
+	CreateScopedHeapBuffer(char, dir, MAX_PATH);
 	if (!GetCurrentDirectoryA(MAX_PATH, dir))
 	{
 		Logging::Log() << "Failed to get current directory.";
@@ -950,7 +956,7 @@ void Utils::FindFiles(WIN32_FIND_DATA* fd)
 		// Check for ".asi" extension (case-insensitive)
 		if (len >= 4 && _stricmp(&filename[len - 4], ".asi") == 0)
 		{
-			char fullPath[MAX_PATH];
+			CreateScopedHeapBuffer(char, fullPath, MAX_PATH);
 			snprintf(fullPath, MAX_PATH, "%s\\%s", dir, filename);
 
 			HMODULE h = LoadLibraryA(fullPath);
@@ -978,7 +984,7 @@ void Utils::LoadPlugins()
 {
 	Logging::Log() << "Loading ASI Plugins";
 
-	char originalDir[MAX_PATH];
+	CreateScopedHeapBuffer(char, originalDir, MAX_PATH);
 	if (!GetCurrentDirectoryA(MAX_PATH, originalDir))
 	{
 		Logging::Log() << "Failed to get current directory.";
@@ -986,15 +992,15 @@ void Utils::LoadPlugins()
 	}
 
 	// Get directory of the DLL
-	char selfPath[MAX_PATH];
+	CreateScopedHeapBuffer(char, selfPath, MAX_PATH);
 	if (!GetModuleFileNameA(hModule_dll, selfPath, MAX_PATH))
 	{
 		Logging::Log() << "Failed to get module file name.";
 		return;
 	}
 
-	char baseDir[MAX_PATH];
-	strcpy_s(baseDir, selfPath);
+	CreateScopedHeapBuffer(char, baseDir, MAX_PATH);
+	strcpy_s(baseDir, MAX_PATH, selfPath);
 	char* lastSlash = strrchr(baseDir, '\\');
 	if (lastSlash) *lastSlash = '\0'; // remove the filename
 
@@ -1011,7 +1017,7 @@ void Utils::LoadPlugins()
 	const char* subDirs[] = { "scripts", "plugins" };
 	for (const auto& dir : subDirs)
 	{
-		char fullPath[MAX_PATH];
+		CreateScopedHeapBuffer(char, fullPath, MAX_PATH);
 		if (PathCombineA(fullPath, baseDir, dir) && SetCurrentDirectoryA(fullPath))
 		{
 			FindFiles(&fd);
@@ -1409,7 +1415,7 @@ static BOOL WINAPI kernel_CreateProcessA(LPCSTR lpApplicationName, LPSTR lpComma
 	{
 		Logging::Log() << __FUNCTION__ << " " << lpCommandLine;
 
-		char CommandLine[MAX_PATH] = { '\0' };
+		CreateScopedHeapBuffer(char, CommandLine, MAX_PATH);
 
 		for (int x = 0; x < MAX_PATH && lpCommandLine && lpCommandLine[x] != ',' && lpCommandLine[x] != '\0'; x++)
 		{
@@ -1448,7 +1454,7 @@ static BOOL WINAPI kernel_CreateProcessW(LPCWSTR lpApplicationName, LPWSTR lpCom
 	{
 		Logging::Log() << __FUNCTION__ << " " << lpCommandLine;
 
-		wchar_t CommandLine[MAX_PATH] = { '\0' };
+		CreateScopedHeapBuffer(wchar_t, CommandLine, MAX_PATH);
 
 		for (int x = 0; x < MAX_PATH && lpCommandLine && lpCommandLine[x] != ',' && lpCommandLine[x] != '\0'; x++)
 		{

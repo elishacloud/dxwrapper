@@ -541,23 +541,21 @@ void CONFIG::Init()
 	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)Settings::ClearConfigSettings, &hModule);
 
 	// Declare variables
-	HeapBuffer<char> p_wName(MAX_PATH);
-	HeapBuffer<char> p_pName(MAX_PATH);
+	CreateScopedHeapBuffer(char, p_wName, MAX_PATH);
+	CreateScopedHeapBuffer(char, p_pName, MAX_PATH);
 
 	// Get module name
-	HeapBuffer<char> wrappername(MAX_PATH);
-	GetModuleFileName(hModule, wrappername.data(), MAX_PATH);
-	if (strrchr(wrappername.data(), '\\'))
+	CreateScopedHeapBuffer(char, wrappername, MAX_PATH);
+	if (GetModuleFileName(hModule, wrappername, MAX_PATH) && strrchr(wrappername, '\\'))
 	{
-		strcpy_s(p_wName.data(), MAX_PATH, strrchr(wrappername.data(), '\\') + 1);
+		strcpy_s(p_wName, MAX_PATH, strrchr(wrappername, '\\') + 1);
 	}
 
 	// Get process name
-	HeapBuffer<char> processname(MAX_PATH);
-	GetModuleFileName(nullptr, processname.data(), MAX_PATH);
-	if (strrchr(processname.data(), '\\'))
+	CreateScopedHeapBuffer(char, processname, MAX_PATH);
+	if (GetModuleFileName(nullptr, processname, MAX_PATH) && strrchr(processname, '\\'))
 	{
-		strcpy_s(p_pName.data(), MAX_PATH, strrchr(processname.data(), '\\') + 1);
+		strcpy_s(p_pName, MAX_PATH, strrchr(processname, '\\') + 1);
 	}
 
 	// Set default settings
@@ -568,15 +566,15 @@ void CONFIG::Init()
 	{
 		const char* szEnvPrefix = "DXWRAPPER_";
 		char* szEnvVar = p_envStrings;
-		HeapBuffer<char> szSetting(MAX_ENV_VAR);
+		CreateScopedHeapBuffer(char, szSetting, MAX_PATH);
 
 		while (*szEnvVar)
 		{
 			if (!_strnicmp(szEnvVar, szEnvPrefix, strlen(szEnvPrefix)))
 			{
 				szEnvVar += strlen(szEnvPrefix);
-				strcpy_s(szSetting.data(), MAX_ENV_VAR, szEnvVar);
-				Parse(szSetting.data(), ParseCallback);
+				strcpy_s(szSetting, MAX_ENV_VAR, szEnvVar);
+				Parse(szSetting, ParseCallback);
 			}
 			szEnvVar += strlen(szEnvVar) + 1;
 		}
@@ -585,16 +583,16 @@ void CONFIG::Init()
 	}
 
 	// Check for memory loading
-	if (_stricmp(p_wName.data(), p_pName.data()) == 0)
+	if (_stricmp(p_wName, p_pName) == 0)
 	{
-		strcpy_s(wrappername.data(), MAX_PATH, processname.data());
-		strcpy_s(strrchr(wrappername.data(), '\\'), MAX_PATH - strlen(wrappername.data()), "\\dxwrapper.dll");
+		strcpy_s(wrappername, MAX_PATH, processname);
+		strcpy_s(strrchr(wrappername, '\\'), MAX_PATH - strlen(wrappername), "\\dxwrapper.dll");
 	}
 
 	// Get config path to include process name
-	strcpy_s(configpath, MAX_PATH, wrappername.data());
+	strcpy_s(configpath, MAX_PATH, wrappername);
 	strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), "-");
-	strcat_s(configpath, MAX_PATH, p_pName.data());
+	strcat_s(configpath, MAX_PATH, p_pName);
 	strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), ".ini");
 
 	// Read defualt config file
@@ -611,7 +609,7 @@ void CONFIG::Init()
 	else
 	{
 		// Get config file path
-		strcpy_s(configpath, MAX_PATH, wrappername.data());
+		strcpy_s(configpath, MAX_PATH, wrappername);
 		strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), ".ini");
 
 		// Open config file
@@ -627,13 +625,13 @@ void CONFIG::Init()
 	}
 
 	// Set module name
-	if (_stricmp(p_wName.data(), p_pName.data()) == 0)
+	if (_stricmp(p_wName, p_pName) == 0)
 	{
 		WrapperName.assign("dxwrapper.dll");
 	}
 	else
 	{
-		WrapperName.assign(p_wName.data());
+		WrapperName.assign(p_wName);
 		std::transform(WrapperName.begin(), WrapperName.end(), WrapperName.begin(),
 			[](char c) {return static_cast<char>(::tolower(c)); });
 	}
@@ -663,8 +661,8 @@ void CONFIG::Init()
 	// Check if process should be excluded or not included
 	// if so, then clear all settings (disable everything)
 	ProcessExcluded = false;
-	if ((ExcludeProcess.size() != 0 && IfStringExistsInList(p_pName.data(), ExcludeProcess, false)) ||
-		(IncludeProcess.size() != 0 && !IfStringExistsInList(p_pName.data(), IncludeProcess, false)))
+	if ((ExcludeProcess.size() != 0 && IfStringExistsInList(p_pName, ExcludeProcess, false)) ||
+		(IncludeProcess.size() != 0 && !IfStringExistsInList(p_pName, IncludeProcess, false)))
 	{
 		ProcessExcluded = true;
 	}
