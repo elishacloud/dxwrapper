@@ -296,7 +296,12 @@ void AddressLookupTableD3d9::DeleteAddress(T* Wrapper)
 
 StateBlockCache::~StateBlockCache()
 {
-	stateBlocks.clear();
+	while (stateBlocks.size())
+	{
+		m_IDirect3DStateBlock9* Interface = stateBlocks.back();
+		RemoveStateBlock(Interface);
+		Interface->DeleteMe();
+	}
 }
 
 void StateBlockCache::AddStateBlock(m_IDirect3DStateBlock9* stateBlock)
