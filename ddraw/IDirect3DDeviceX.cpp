@@ -1895,7 +1895,7 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			return D3D_OK;
 		case D3DRENDERSTATE_WRAPV:				// 6
 			GetD9RenderState(D3DRS_WRAP0, lpdwRenderState);
-			*lpdwRenderState = (bool)(*lpdwRenderState & D3DWRAP_V);
+			*lpdwRenderState = ((*lpdwRenderState & D3DWRAP_V) != 0);
 			return D3D_OK;
 		case D3DRENDERSTATE_OLDALPHABLENDENABLE:// 42
 			if (DeviceStates.RenderState[D3DRENDERSTATE_OLDALPHABLENDENABLE].State == (DWORD)-1)
