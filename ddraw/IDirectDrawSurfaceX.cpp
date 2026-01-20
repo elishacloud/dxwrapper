@@ -5442,6 +5442,17 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(LPRECT lpDestRect, bool IsSkipScen
 			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 			if (lpDDSrcSurfaceX)
 			{
+				bool ShouldLeaveCriticalSection = false;
+				if (GetCriticalSection() != DdrawWrapper::GetDDCriticalSection())
+				{
+					if (TryEnterCriticalSection(DdrawWrapper::GetDDCriticalSection()) == FALSE)
+					{
+						return DD_OK;
+					}
+					ShouldLeaveCriticalSection = true;
+				}
+				ScopedLeaveCriticalSection ThreadLock(DdrawWrapper::GetDDCriticalSection(), ShouldLeaveCriticalSection);
+
 				return lpDDSrcSurfaceX->PresentSurface(lpDestRect, IsSkipScene);
 			}
 		}
