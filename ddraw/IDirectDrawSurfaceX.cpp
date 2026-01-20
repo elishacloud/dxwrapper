@@ -1289,95 +1289,86 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		// Present before write if needed
 		BeginWritePresent(false);
 
-		HRESULT hr = DD_OK;
-
-		do {
-			// Check if locked from other thread
-			if (FlipWait)
+		// Check if locked from other thread
+		if (FlipWait)
+		{
+			// Wait for locks from other threads
+			DWORD beginTime = timeGetTime();
+			while (FlipSurfacesAreLockedFromOtherThread())
 			{
-				// Wait for locks from other threads
-				DWORD beginTime = timeGetTime();
-				while (FlipSurfacesAreLockedFromOtherThread())
-				{
-					Utils::BusyWaitYield((DWORD)-1);
+				Utils::BusyWaitYield((DWORD)-1);
 
-					// Break once timeout has passed
-					if ((timeGetTime() - beginTime) >= SurfaceWaitTimeoutMS)
-					{
-						break;
-					}
-				}
-			}
-
-			// Check if any surface is busy
-			for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
-			{
-				if (pSurfaceX->IsSurfaceBusy())
+				// Break once timeout has passed
+				if ((timeGetTime() - beginTime) >= SurfaceWaitTimeoutMS)
 				{
-					if (FlipWait)
-					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy: " <<
-							pSurfaceX->IsSurfaceLocked() << " DC: " << pSurfaceX->IsSurfaceInDC() << " Blt: " << pSurfaceX->IsSurfaceBlitting());
-						hr = DDERR_WASSTILLDRAWING;
-						break;
-					}
-					hr = IsLost() == DDERR_SURFACELOST ? DDERR_SURFACELOST : DDERR_GENERIC;
 					break;
 				}
 			}
+		}
 
+		// Check if any surface is busy
+		for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
+		{
+			if (pSurfaceX->IsSurfaceBusy())
 			{
-				// Set flip flag
-				ScopedFlagSet AutoSet(IsInFlip);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy: " <<
+					pSurfaceX->IsSurfaceLocked() << " DC: " << pSurfaceX->IsSurfaceInDC() << " Blt: " << pSurfaceX->IsSurfaceBlitting());
 
-				// Clear surface before flip if system memory
-				if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
-				{
-					if (FAILED(ColorFill(nullptr, Config.DdrawFlipFillColor, 0)))
-					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface.");
-					}
-					ClearDirtyFlags();
-				}
-
-				// Execute flip
-				for (size_t x = 0; x < FlipList.size() - 1; x++)
-				{
-					SwapAddresses(&FlipList[x]->surface, &FlipList[x + 1]->surface);
-				}
+				return !FlipWait ? DDERR_WASSTILLDRAWING : IsLost() == DDERR_SURFACELOST ? DDERR_SURFACELOST : DDERR_GENERIC;
 			}
+		}
+
+		{
+			// Set flip flag
+			ScopedFlagSet AutoSet(IsInFlip);
+
+			// Clear surface before flip if system memory
+			if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
+			{
+				if (FAILED(ColorFill(nullptr, Config.DdrawFlipFillColor, 0)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface.");
+				}
+				ClearDirtyFlags();
+			}
+
+			// Execute flip
+			for (size_t x = 0; x < FlipList.size() - 1; x++)
+			{
+				SwapAddresses(&FlipList[x]->surface, &FlipList[x + 1]->surface);
+			}
+		}
 
 #ifdef ENABLE_PROFILING
-			Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr;
+		HRESULT hr = DD_OK;
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr;
 #endif
 
-			// If texture is not dirty then mark it as dirty in case the game wrote to the memory directly (Nox does this)
-			bool EndWriteSurfaceSync = false;
-			if (!surface.IsDirtyFlag)
+		// If texture is not dirty then mark it as dirty in case the game wrote to the memory directly (Nox does this)
+		bool EndWriteSurfaceSync = false;
+		if (!surface.IsDirtyFlag)
+		{
+			EndWriteSurfaceSync = true;
+
+			// Add dirty rect
+			LPDIRECT3DTEXTURE9 displayTexture = Get3DTexture();
+			if (displayTexture)
 			{
-				EndWriteSurfaceSync = true;
-
-				// Add dirty rect
-				LPDIRECT3DTEXTURE9 displayTexture = Get3DTexture();
-				if (displayTexture)
-				{
-					displayTexture->AddDirtyRect(nullptr);
-				}
+				displayTexture->AddDirtyRect(nullptr);
 			}
+		}
 
-			const bool SetVsync = ((dwFlags & DDFLIP_NOVSYNC) == 0);
+		const bool SetVsync = ((dwFlags & DDFLIP_NOVSYNC) == 0);
 
-			// Present surface
-			EndWritePresent(nullptr, 0, EndWriteSurfaceSync, SetVsync, false);
+		// Present surface
+		EndWritePresent(nullptr, 0, EndWriteSurfaceSync, SetVsync, false);
 
-			if (IsRenderTarget())
-			{
-				ddrawParent->SetCurrentRenderTarget();
-			}
+		if (IsRenderTarget())
+		{
+			ddrawParent->SetCurrentRenderTarget();
+		}
 
-		} while (false);
-
-		return hr;
+		return DD_OK;
 	}
 
 	if (lpDDSurfaceTargetOverride)
@@ -2648,56 +2639,47 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC, DWORD MipMapLevel)
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		HRESULT hr = DD_OK;
-
-		do {
-			if (IsUsingEmulation() || DCRequiresEmulation)
+		if (IsUsingEmulation() || DCRequiresEmulation)
+		{
+			if (!IsUsingEmulation())
 			{
-				if (!IsUsingEmulation())
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: surface not using emulated DC!");
-					break;
-				}
-
-				// Restore DC
-				UnsetEmulationGameDC();
-			}
-			else
-			{
-				// Get surface
-				ScopedGetMipMapContext Dest(this, MipMapLevel);
-				if (!Dest.GetSurface())
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-					hr = DDERR_GENERIC;
-					break;
-				}
-
-				// Release device context
-				if (FAILED(Dest.GetSurface()->ReleaseDC(hDC)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release surface DC!");
-					hr = IsSurfaceBusy(MipMapLevel) ? DDERR_SURFACEBUSY : IsLost() == DDERR_SURFACELOST ? DDERR_SURFACELOST : DDERR_GENERIC;
-					break;
-				}
+				LOG_LIMIT(100, __FUNCTION__ << " Error: surface not using emulated DC!");
+				return DDERR_GENERIC;
 			}
 
-			// Clear DC level
-			GetDCLevel[MipMapLevel] = nullptr;
+			// Restore DC
+			UnsetEmulationGameDC();
+		}
+		else
+		{
+			// Get surface
+			ScopedGetMipMapContext Dest(this, MipMapLevel);
+			if (!Dest.GetSurface())
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
+				return DDERR_GENERIC;
+			}
 
-		} while (false);
+			// Release device context
+			if (FAILED(Dest.GetSurface()->ReleaseDC(hDC)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release surface DC!");
+				return IsSurfaceBusy(MipMapLevel) ? DDERR_SURFACEBUSY : IsLost() == DDERR_SURFACELOST ? DDERR_SURFACELOST : DDERR_GENERIC;
+			}
+		}
+
+		// Clear DC level
+		GetDCLevel[MipMapLevel] = nullptr;
 
 #ifdef ENABLE_PROFILING
+		HRESULT hr = DD_OK;
 		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
 #endif
 
-		if (SUCCEEDED(hr))
-		{
-			// Present surface
-			EndWritePresent(nullptr, MipMapLevel, true, false, false);
-		}
+		// Present surface
+		EndWritePresent(nullptr, MipMapLevel, true, false, false);
 
-		return hr;
+		return DD_OK;
 	}
 
 	return ProxyInterface->ReleaseDC(hDC);
@@ -3002,114 +2984,102 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		HRESULT hr = DD_OK;
+		// Check rect
+		if (!lpRect && LastLock.LockRectList.size() > 1)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Rect cannot be NULL when locked with a specific rect!");
+			return DDERR_INVALIDRECT;
+		}
 
-		do {
-			// Check rect
-			if (!lpRect && LastLock.LockRectList.size() > 1)
+		// Check stored rect
+		if (lpRect && LastLock.LockRectList.size() > 1)
+		{
+			auto it = std::find_if(LastLock.LockRectList.begin(), LastLock.LockRectList.end(),
+				[=](auto Rect) -> bool { return (Rect.left == lpRect->left && Rect.top == lpRect->top && Rect.right == lpRect->right && Rect.bottom == lpRect->bottom); });
+
+			if (it != std::end(LastLock.LockRectList))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: Rect cannot be NULL when locked with a specific rect!");
-				hr = DDERR_INVALIDRECT;
-				break;
-			}
+				LastLock.LockRectList.erase(it);
 
-			// Check stored rect
-			if (lpRect && LastLock.LockRectList.size() > 1)
-			{
-				auto it = std::find_if(LastLock.LockRectList.begin(), LastLock.LockRectList.end(),
-					[=](auto Rect) -> bool { return (Rect.left == lpRect->left && Rect.top == lpRect->top && Rect.right == lpRect->right && Rect.bottom == lpRect->bottom); });
-
-				if (it != std::end(LastLock.LockRectList))
+				// Unlock once all rects have been unlocked
+				if (!LastLock.LockRectList.empty())
 				{
-					LastLock.LockRectList.erase(it);
-
-					// Unlock once all rects have been unlocked
-					if (!LastLock.LockRectList.empty())
-					{
-						LOG_LIMIT(100, __FUNCTION__ << " Warning: multiple locked rects found: " << LastLock.LockRectList.size());
-						hr = DD_OK;
-						break;
-					}
-				}
-				else
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: Rect does not match locked rect: " << lpRect);
-					hr = DDERR_INVALIDRECT;
-					break;
-				}
-			}
-
-			// Emulate unlock
-			if (EmuLock.Locked && MipMapLevel == 0)
-			{
-				UnlockEmuLock();
-			}
-
-			// Remove scanlines before unlocking surface
-			if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer() && MipMapLevel == 0)
-			{
-				RemoveScanlines(LastLock);
-			}
-
-			// Emulated surface
-			if (IsUsingEmulation())
-			{
-				// No need to unlock emulated surface
-			}
-			// Lock surface
-			else if (surface.Surface || surface.Texture)
-			{
-				HRESULT ret = UnLockD3d9Surface(MipMapLevel);
-				if (FAILED(ret))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock surface texture." <<
-						" Rect = " << lpRect <<
-						" MipMapLevel = " << MipMapLevel <<
-						" hr = " << (DDERR)ret);
-					hr = (ret == DDERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
-						IsLost() == DDERR_SURFACELOST ? DDERR_SURFACELOST : DDERR_GENERIC;
-					break;
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: multiple locked rects found: " << LastLock.LockRectList.size());
+					return DD_OK;
 				}
 			}
 			else
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-				hr = DDERR_GENERIC;
-				break;
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Rect does not match locked rect: " << lpRect);
+				return DDERR_INVALIDRECT;
 			}
+		}
 
-			// Clear memory pointer
-			LastLock.LockedRect.pBits = nullptr;
+		// Emulate unlock
+		if (EmuLock.Locked && MipMapLevel == 0)
+		{
+			UnlockEmuLock();
+		}
 
-			// Clear vector
-			LastLock.LockRectList.clear();
+		// Remove scanlines before unlocking surface
+		if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer() && MipMapLevel == 0)
+		{
+			RemoveScanlines(LastLock);
+		}
 
-			// Reset locked flag
-			LastLock.IsLocked = false;
-
-			// Reset locked thread ID
-			if (!IsSurfaceBlitting() && !IsSurfaceLocked(MipMapLevel))
+		// Emulated surface
+		if (IsUsingEmulation())
+		{
+			// No need to unlock emulated surface
+		}
+		// Lock surface
+		else if (surface.Surface || surface.Texture)
+		{
+			HRESULT ret = UnLockD3d9Surface(MipMapLevel);
+			if (FAILED(ret))
 			{
-				LastLock.LockedWithID = 0;
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock surface texture." <<
+					" Rect = " << lpRect <<
+					" MipMapLevel = " << MipMapLevel <<
+					" hr = " << (DDERR)ret);
+				return (ret == DDERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
+					IsLost() == DDERR_SURFACELOST ? DDERR_SURFACELOST : DDERR_GENERIC;
 			}
+		}
+		else
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
+			return DDERR_GENERIC;
+		}
 
-		} while (false);
+		// Clear memory pointer
+		LastLock.LockedRect.pBits = nullptr;
+
+		// Clear vector
+		LastLock.LockRectList.clear();
+
+		// Reset locked flag
+		LastLock.IsLocked = false;
+
+		// Reset locked thread ID
+		if (!IsSurfaceBlitting() && !IsSurfaceLocked(MipMapLevel))
+		{
+			LastLock.LockedWithID = 0;
+		}
 
 #ifdef ENABLE_PROFILING
+		HRESULT hr = DD_OK;
 		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
 #endif
 
 		// If surface was changed
-		if (SUCCEEDED(hr))
+		if (!LastLock.ReadOnly)
 		{
-			if (!LastLock.ReadOnly)
-			{
-				// Present surface
-				EndWritePresent(&LastLock.Rect, MipMapLevel, true, false, LastLock.IsSkipScene);
-			}
+			// Present surface
+			EndWritePresent(&LastLock.Rect, MipMapLevel, true, false, LastLock.IsSkipScene);
 		}
 
-		return hr;
+		return DD_OK;
 	}
 
 	return ProxyInterface->Unlock(lpRect);
@@ -7836,76 +7806,66 @@ HRESULT m_IDirectDrawSurfaceX::CopyEmulatedPaletteSurface(LPRECT lpDestRect)
 		return DDERR_GENERIC;
 	}
 
-	HRESULT hr = DD_OK;
+	ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
 
-	do {
-		ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
+	// Set new palette data
+	UpdatePaletteData();
 
-		// Set new palette data
-		UpdatePaletteData();
+	// Check for palette entry data
+	if (!surface.PaletteEntryArray)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get palette data!");
+		return DDERR_GENERIC;
+	}
 
-		// Check for palette entry data
-		if (!surface.PaletteEntryArray)
+	// Create emulated texture for palettes
+	if (!surface.DisplayTexture)
+	{
+		const D3DPOOL TexturePool = IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
+			(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
+		const DWORD Width = surface.Width;
+		const DWORD Height = surfaceDesc2.dwHeight;
+		LOG_LIMIT(3, __FUNCTION__ << " Creating palette display surface texture. Size: " << Width << "x" << Height << " dwCaps: " << surfaceDesc2.ddsCaps);
+		if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, D3DFMT_X8R8G8B8, TexturePool, &surface.DisplayTexture, nullptr))))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get palette data!");
-			hr = DDERR_GENERIC;
-			break;
-		}
-
-		// Create emulated texture for palettes
-		if (!surface.DisplayTexture)
-		{
-			const D3DPOOL TexturePool = IsPrimaryOrBackBuffer() ? D3DPOOL_MANAGED :
-				(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
-			const DWORD Width = surface.Width;
-			const DWORD Height = surfaceDesc2.dwHeight;
-			LOG_LIMIT(3, __FUNCTION__ << " Creating palette display surface texture. Size: " << Width << "x" << Height << " dwCaps: " << surfaceDesc2.ddsCaps);
-			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, D3DFMT_X8R8G8B8, TexturePool, &surface.DisplayTexture, nullptr))))
+			// Try failover format
+			if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, GetFailoverFormat(D3DFMT_X8R8G8B8), TexturePool, &surface.DisplayTexture, nullptr))))
 			{
-				// Try failover format
-				if (FAILED(((*d3d9Device)->CreateTexture(Width, Height, 1, 0, GetFailoverFormat(D3DFMT_X8R8G8B8), TexturePool, &surface.DisplayTexture, nullptr))))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette display surface texture. Size: " << Width << "x" << Height << " Format: " << D3DFMT_X8R8G8B8 << " dwCaps: " << surfaceDesc2.ddsCaps);
-					hr = DDERR_GENERIC;
-					break;
-				}
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create palette display surface texture. Size: " << Width << "x" << Height << " Format: " << D3DFMT_X8R8G8B8 << " dwCaps: " << surfaceDesc2.ddsCaps);
+				return DDERR_GENERIC;
 			}
 		}
+	}
 
-		// Update rect, if palette surface is dirty then update the whole surface
-		RECT DestRect = {};
-		if (!CheckCoordinates(DestRect, (surface.IsPaletteDirty ? nullptr : lpDestRect), nullptr))
+	// Update rect, if palette surface is dirty then update the whole surface
+	RECT DestRect = {};
+	if (!CheckCoordinates(DestRect, (surface.IsPaletteDirty ? nullptr : lpDestRect), nullptr))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
+		return DDERR_INVALIDRECT;
+	}
+
+	// Get palette display context surface
+	if (!surface.DisplayContext)
+	{
+		if (FAILED(surface.DisplayTexture->GetSurfaceLevel(0, &surface.DisplayContext)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
-			hr = DDERR_INVALIDRECT;
-			break;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get palette display context surface!");
+			return DDERR_GENERIC;
 		}
+	}
 
-		// Get palette display context surface
-		if (!surface.DisplayContext)
-		{
-			if (FAILED(surface.DisplayTexture->GetSurfaceLevel(0, &surface.DisplayContext)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get palette display context surface!");
-				hr = DDERR_GENERIC;
-				break;
-			}
-		}
+	// Use LoadSurfaceFromMemory to copy to the surface
+	if (FAILED(LoadSurfaceFromMemory(surface.DisplayContext, DestRect, surface.emu->pBits, D3DFMT_P8, surface.emu->Pitch)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: could not copy palette display texture: " << surface.Format);
+		return DDERR_GENERIC;
+	}
 
-		// Use LoadSurfaceFromMemory to copy to the surface
-		if (FAILED(LoadSurfaceFromMemory(surface.DisplayContext, DestRect, surface.emu->pBits, D3DFMT_P8, surface.emu->Pitch)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: could not copy palette display texture: " << surface.Format);
-			hr = DDERR_GENERIC;
-			break;
-		}
+	// Reset palette texture dirty flag
+	surface.IsPaletteDirty = false;
 
-		// Reset palette texture dirty flag
-		surface.IsPaletteDirty = false;
-
-	} while (false);
-
-	return hr;
+	return DD_OK;
 }
 
 HRESULT m_IDirectDrawSurfaceX::GetFlipList(std::vector<m_IDirectDrawSurfaceX*>& FlipList, LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverride)
