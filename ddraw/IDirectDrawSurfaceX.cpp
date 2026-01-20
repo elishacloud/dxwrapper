@@ -759,8 +759,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags, DWORD MipMapLevel)
 {
-	UNREFERENCED_PARAMETER(dwFlags);
-
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (!lpDDBltBatch)
@@ -768,57 +766,84 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 		return DDERR_INVALIDPARAMS;
 	}
 
-	// Check for device interface before doing batch
-	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-	if (FAILED(c_hr))
+	if (dwCount)
 	{
-		return c_hr;
+		return DD_OK;
 	}
 
-	HRESULT hr = DD_OK;
-
-	bool IsSkipScene = false;
-
-	ScopedCriticalSection ThreadLock(GetCriticalSection());
-
-	// Present before write if needed
-	BeginWritePresent(IsSkipScene);
-
-	RECT Dest = {};
-	LPRECT lpDest = &Dest;
+	if (Config.Dd7to9)
 	{
-		// Set blt flag
-		ScopedFlagSet AutoSet(IsInBltBatch);
-
-		for (DWORD x = 0; x < dwCount; x++)
+		// Check for device interface before doing batch
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
+		if (FAILED(c_hr))
 		{
-			IsSkipScene |= (lpDDBltBatch[x].lprDest) ? CheckRectforSkipScene(*lpDDBltBatch[x].lprDest) : false;
+			return c_hr;
+		}
 
-			if (lpDDBltBatch[x].lprDest)
-			{
-				UnionRectFast(Dest, *lpDDBltBatch[x].lprDest);
-			}
-			else
-			{
-				lpDest = nullptr;
-			}
+		HRESULT hr = DD_OK;
 
-			hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags | DDBLT_DONOTWAIT, lpDDBltBatch[x].lpDDBltFx, MipMapLevel, false);
-			if (FAILED(hr))
+		bool IsSkipScene = false;
+
+		ScopedCriticalSection ThreadLock(GetCriticalSection());
+
+		// Present before write if needed
+		BeginWritePresent(IsSkipScene);
+
+		RECT Dest = {};
+		LPRECT lpDest = &Dest;
+		{
+			// Set blt flag
+			ScopedFlagSet AutoSet(IsInBltBatch);
+
+			for (DWORD x = 0; x < dwCount; x++)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: BltBatch failed before the end! " << x << " of " << dwCount << " " << (DDERR)hr);
-				break;
+				IsSkipScene |= (lpDDBltBatch[x].lprDest) ? CheckRectforSkipScene(*lpDDBltBatch[x].lprDest) : false;
+
+				if (lpDDBltBatch[x].lprDest)
+				{
+					UnionRectFast(Dest, *lpDDBltBatch[x].lprDest);
+				}
+				else
+				{
+					lpDest = nullptr;
+				}
+
+				hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags | DDBLT_DONOTWAIT, lpDDBltBatch[x].lpDDBltFx, MipMapLevel, false);
+				if (FAILED(hr))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: BltBatch failed before the end! " << x << " of " << dwCount << " " << (DDERR)hr);
+					break;
+				}
 			}
+		}
+
+		if (SUCCEEDED(hr))
+		{
+			// Present surface
+			EndWritePresent(lpDest, MipMapLevel, true, false, IsSkipScene);
+		}
+
+		return hr;
+	}
+
+	CreateScopedHeapBuffer(DDBLTBATCH, DDBltBatch, dwCount);
+
+	memcpy(DDBltBatch, lpDDBltBatch, sizeof(DDBLTBATCH) * dwCount);
+
+	for (DWORD x = 0; x < dwCount; x++)
+	{
+		if (DDBltBatch[x].lpDDSSrc)
+		{
+			if (!ProxyAddressLookupTable.CheckSurfaceExists((LPDIRECTDRAWSURFACE7)DDBltBatch[x].lpDDSSrc))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << DDBltBatch[x].lpDDSSrc);
+				return DDERR_INVALIDPARAMS;
+			}
+			DDBltBatch[x].lpDDSSrc->QueryInterface(IID_GetRealInterface, (LPVOID*)&DDBltBatch[x].lpDDSSrc);
 		}
 	}
 
-	if (SUCCEEDED(hr))
-	{
-		// Present surface
-		EndWritePresent(lpDest, MipMapLevel, true, false, IsSkipScene);
-	}
-
-	return hr;
+	return ProxyInterface->BltBatch(DDBltBatch, dwCount, dwFlags);
 }
 
 HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, DWORD MipMapLevel)
