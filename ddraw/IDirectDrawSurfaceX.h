@@ -278,6 +278,15 @@ private:
 	}
 	HRESULT CheckBackBufferForFlip(m_IDirectDrawSurfaceX* lpTargetSurface);
 
+	// Union of rects
+	inline void UnionRectFast(RECT& dst, const RECT& src)
+	{
+		if (src.left < dst.left) dst.left = src.left;
+		if (src.top < dst.top) dst.top = src.top;
+		if (src.right > dst.right) dst.right = src.right;
+		if (src.bottom > dst.bottom) dst.bottom = src.bottom;
+	}
+
 	// Locking rect coordinates
 	bool CheckCoordinates(LPRECT lpInRect)
 	{
@@ -493,7 +502,7 @@ public:
 	HRESULT PresentSurface(LPRECT lpDestRect, bool IsSkipScene);
 	void ResetSurfaceDisplay();
 	void SetDirtyFlag(DWORD MipMapLevel);
-	void EndWritePresent(LPRECT lpDestRect, bool IsSkipScene);
+	void EndWritePresent(LPRECT lpDestRect, DWORD MipMapLevel, bool EndWriteSurfaceSync, bool SetVsync, bool IsSkipScene);
 
 	// Surface information functions
 	bool IsPrimarySurface() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }

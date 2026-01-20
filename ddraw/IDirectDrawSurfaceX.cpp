@@ -679,19 +679,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			// If successful
 			if (SUCCEEDED(hr))
 			{
-				// Set vertical sync wait timer
-				if (SUCCEEDED(c_hr) && (dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING))
-				{
-					ddrawParent->SetVsync();
-				}
-
 				if (PresentBlt)
 				{
-					// Set dirty flag
-					SetDirtyFlag(MipMapLevel);
+					const bool SetVsync = SUCCEEDED(c_hr) && (dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING);
 
 					// Present surface
-					EndWritePresent(lpDestRect, IsSkipScene);
+					EndWritePresent(lpDestRect, MipMapLevel, true, SetVsync, IsSkipScene);
 				}
 			}
 
@@ -791,6 +784,8 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 	// Present before write if needed
 	BeginWritePresent(IsSkipScene);
 
+	RECT Dest = {};
+	LPRECT lpDest = &Dest;
 	{
 		// Set blt flag
 		ScopedFlagSet AutoSet(IsInBltBatch);
@@ -798,6 +793,15 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 		for (DWORD x = 0; x < dwCount; x++)
 		{
 			IsSkipScene |= (lpDDBltBatch[x].lprDest) ? CheckRectforSkipScene(*lpDDBltBatch[x].lprDest) : false;
+
+			if (lpDDBltBatch[x].lprDest)
+			{
+				UnionRectFast(Dest, *lpDDBltBatch[x].lprDest);
+			}
+			else
+			{
+				lpDest = nullptr;
+			}
 
 			hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags | DDBLT_DONOTWAIT, lpDDBltBatch[x].lpDDBltFx, MipMapLevel, false);
 			if (FAILED(hr))
@@ -810,11 +814,8 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 
 	if (SUCCEEDED(hr))
 	{
-		// Set dirty flag
-		SetDirtyFlag(MipMapLevel);
-
 		// Present surface
-		EndWritePresent(nullptr, IsSkipScene);
+		EndWritePresent(lpDest, MipMapLevel, true, false, IsSkipScene);
 	}
 
 	return hr;
@@ -1351,13 +1352,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 #endif
 
 			// If texture is not dirty then mark it as dirty in case the game wrote to the memory directly (Nox does this)
+			bool EndWriteSurfaceSync = false;
 			if (!surface.IsDirtyFlag)
 			{
-				// Set dirty flag
-				SetDirtyFlag(0);
-
-				// Keep surface insync
-				EndWriteSyncSurfaces(nullptr);
+				EndWriteSurfaceSync = true;
 
 				// Add dirty rect
 				LPDIRECT3DTEXTURE9 displayTexture = Get3DTexture();
@@ -1367,14 +1365,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				}
 			}
 
-			// Set vertical sync wait timer
-			if ((dwFlags & DDFLIP_NOVSYNC) == 0)
-			{
-				ddrawParent->SetVsync();
-			}
+			const bool SetVsync = ((dwFlags & DDFLIP_NOVSYNC) == 0);
 
 			// Present surface
-			EndWritePresent(nullptr, false);
+			EndWritePresent(nullptr, 0, EndWriteSurfaceSync, SetVsync, false);
 
 			if (IsRenderTarget())
 			{
@@ -2699,17 +2693,8 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC, DWORD MipMapLevel)
 
 		if (SUCCEEDED(hr))
 		{
-			// Set dirty flag
-			SetDirtyFlag(MipMapLevel);
-
-			if (MipMapLevel == 0)
-			{
-				// Keep surface insync
-				EndWriteSyncSurfaces(nullptr);
-
-				// Present surface
-				EndWritePresent(nullptr, false);
-			}
+			// Present surface
+			EndWritePresent(nullptr, MipMapLevel, true, false, false);
 		}
 
 		return hr;
@@ -3119,17 +3104,8 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 		{
 			if (!LastLock.ReadOnly)
 			{
-				// Set dirty flag
-				SetDirtyFlag(LastLock.MipMapLevel);
-
-				if (LastLock.MipMapLevel == 0)
-				{
-					// Keep surface insync
-					EndWriteSyncSurfaces(&LastLock.Rect);
-
-					// Present surface
-					EndWritePresent(&LastLock.Rect, LastLock.IsSkipScene);
-				}
+				// Present surface
+				EndWritePresent(&LastLock.Rect, MipMapLevel, true, false, LastLock.IsSkipScene);
 			}
 		}
 
@@ -5946,28 +5922,6 @@ void m_IDirectDrawSurfaceX::BeginWritePresent(bool IsSkipScene)
 	}
 }
 
-void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, bool IsSkipScene)
-{
-	// Handle overlays
-	PresentOverlay(lpDestRect);
-
-	if (ShouldWriteToGDI())
-	{
-		if (IsPrimaryOrBackBuffer())
-		{
-			CopyEmulatedSurfaceToGDI(lpDestRect);
-		}
-	}
-	// Present surface after each draw unless removing interlacing
-	else if (PresentOnUnlock || !Config.DdrawRemoveInterlacing)
-	{
-		PresentSurface(lpDestRect, IsSkipScene);
-
-		// Reset endscene lock
-		PresentOnUnlock = false;
-	}
-}
-
 void m_IDirectDrawSurfaceX::EndWriteSyncSurfaces(LPRECT lpDestRect)
 {
 	// Copy emulated surface to real surface
@@ -5980,6 +5934,46 @@ void m_IDirectDrawSurfaceX::EndWriteSyncSurfaces(LPRECT lpDestRect)
 	if (Using3D && IsSurfaceTexture() && IsColorKeyTexture() && !IsPrimaryOrBackBuffer() && !IsRenderTarget())
 	{
 		GetD3d9DrawTexture();
+	}
+}
+
+void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, DWORD MipMapLevel, bool EndWriteSurfaceSync, bool SetVsync, bool IsSkipScene)
+{
+	// Set dirty flag
+	SetDirtyFlag(MipMapLevel);
+
+	// Set vertical sync wait timer
+	if (SetVsync)
+	{
+		ddrawParent->SetVsync();
+	}
+
+	if (MipMapLevel == 0)
+	{
+		// Keep surface insync
+		if (EndWriteSurfaceSync)
+		{
+			EndWriteSyncSurfaces(nullptr);
+		}
+
+		// Handle overlays
+		PresentOverlay(lpDestRect);
+
+		if (ShouldWriteToGDI())
+		{
+			if (IsPrimaryOrBackBuffer())
+			{
+				CopyEmulatedSurfaceToGDI(lpDestRect);
+			}
+		}
+		// Present surface after each draw unless removing interlacing
+		else if (PresentOnUnlock || !Config.DdrawRemoveInterlacing)
+		{
+			PresentSurface(lpDestRect, IsSkipScene);
+
+			// Reset endscene lock
+			PresentOnUnlock = false;
+		}
 	}
 }
 
