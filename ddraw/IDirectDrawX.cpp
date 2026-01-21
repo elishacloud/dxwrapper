@@ -1606,6 +1606,8 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		// Release d3d9 device
 		if (d3d9Device)
 		{
+			ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
 			ReleaseAllD9Resources(true, false);
 			ReleaseD9Device();
 
@@ -2620,11 +2622,6 @@ void m_IDirectDrawX::ReleaseInterface()
 		DisplayMode.SetBy = Exclusive.SetBy;
 		Device.IsWindowed = false;
 		FullScreenWindowed = false;
-
-		if (d3d9Device)
-		{
-			CreateD9Device(__FUNCTION__);
-		}
 	}
 
 	// Clear SetBy handles
@@ -3225,7 +3222,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true)))
+	if (!d3d9Device)
 	{
 		return DDERR_WRONGMODE;
 	}
@@ -3278,7 +3275,6 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Reset failed: " << (D3DERR)hr);
 			ReleaseAllD9Resources(false, false);	// Cannot backup surface after a failed Reset
 			ReleaseD9Device();
-			hr = CreateD9Device(__FUNCTION__);
 		}
 		else
 		{
@@ -3310,7 +3306,6 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 	{
 		ReleaseAllD9Resources(true, false);
 		ReleaseD9Device();
-		hr = CreateD9Device(__FUNCTION__);
 	}
 
 	// Return
@@ -4161,8 +4156,6 @@ void m_IDirectDrawX::ReleaseD3D9IndexBuffer(LPDIRECT3DINDEXBUFFER9& d3d9IndexBuf
 
 void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 {
-	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
-
 	// Remove render target and depth stencil surfaces
 	if (d3d9Device && ResetInterface && (RenderTargetSurface || DepthStencilSurface))
 	{
@@ -5207,7 +5200,7 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 	d3d9Device->BeginScene();
 
 	// Copy or draw primary surface before presenting
-	if (IsPrimaryRenderTarget() && !PrimarySurface->GetD3d9Texture())
+	if (IsPrimaryRenderTarget() && !PrimarySurface->GetD3d9Texture(false))
 	{
 		if (IsGammaSet && GammaControlInterface)
 		{
@@ -5409,7 +5402,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	}
 
 	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true)))
+	if (!d3d9Device)
 	{
 		return DDERR_GENERIC;
 	}

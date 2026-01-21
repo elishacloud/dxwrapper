@@ -253,6 +253,8 @@ private:
 	void Release3DMipMapSurface(LPDIRECT3DSURFACE9 pSurfaceD9, DWORD MipMapLevel);
 	LPDIRECT3DTEXTURE9 Get3DTexture();
 	void CheckMipMapLevelGen();
+	HRESULT CheckLostInterface(char* FunctionName);
+	HRESULT CheckOnlyInterface(char* FunctionName, bool CheckLostSurface);
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DSurface, bool CheckLostSurface);
 	HRESULT CreateD9AuxiliarySurfaces();
 	HRESULT CreateD9Surface();
@@ -298,7 +300,7 @@ private:
 	bool CheckRectforSkipScene(RECT& DestRect);
 	HRESULT PresentOverlay(LPRECT lpSrcRect);
 	void BeginWritePresent(bool IsSkipScene);
-	void EndWriteSyncSurfaces(LPRECT lpDestRect);
+	void EndWriteSyncSurfaces(LPRECT lpDestRect, DWORD MipMapLevel, bool EndWriteSurfaceSync);
 
 	// Surface information functions
 	bool IsSurfaceLocked(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS);
@@ -499,10 +501,10 @@ public:
 	void SetAsRenderTarget();
 	void ReleaseD9AuxiliarySurfaces();
 	void ReleaseD9Surface(bool BackupData, bool ResetSurface);
-	HRESULT PresentSurface(LPRECT lpDestRect, bool IsSkipScene);
+	HRESULT PresentSurface(LPRECT lpDestRect, bool IsSkipScene, bool SkipCriticalSection);
 	void ResetSurfaceDisplay();
 	void SetDirtyFlag(DWORD MipMapLevel);
-	void EndWritePresent(LPRECT lpDestRect, DWORD MipMapLevel, bool EndWriteSurfaceSync, bool SetVsync, bool IsSkipScene);
+	void EndWritePresent(LPRECT lpDestRect, DWORD MipMapLevel, bool SetVsync, bool IsSkipScene, bool SkipCriticalSection = false);
 
 	// Surface information functions
 	bool IsPrimarySurface() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }

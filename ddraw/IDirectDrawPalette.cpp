@@ -261,20 +261,12 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 		// Present new palette
 		if (ddrawParent && (paletteCaps & DDPCAPS_PRIMARYSURFACE))
 		{
-			ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+			const bool SetVsync = (paletteCaps & DDPCAPS_VSYNC);
 
-			if (ddrawParent)
+			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
+			if (lpDDSrcSurfaceX)
 			{
-				if (paletteCaps & DDPCAPS_VSYNC)
-				{
-					ddrawParent->SetVsync();
-				}
-
-				m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
-				if (lpDDSrcSurfaceX)
-				{
-					lpDDSrcSurfaceX->EndWritePresent(nullptr, 0, false, false, false);
-				}
+				lpDDSrcSurfaceX->EndWritePresent(nullptr, 0, SetVsync, false);
 			}
 		}
 

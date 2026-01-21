@@ -19,6 +19,24 @@
 #include <fstream>
 #include "Utils\Utils.h"
 
+#define CheckCreateInterface(interfacex, name, device, surface, lost) \
+{ \
+	HRESULT c_hr = CheckInterface(name, device, surface, lost); \
+	if (FAILED(c_hr)) \
+	{ \
+		return c_hr; \
+	} \
+}
+
+#define CheckOnlyInterfaceSafty(interfacex, name, lost) \
+{ \
+	HRESULT hr_c = interfacex->CheckOnlyInterface(name, lost); \
+	if (FAILED(hr_c)) \
+	{ \
+		return hr_c; \
+	} \
+}
+
 namespace {
 	constexpr DWORD ExtraHeightPadding = 4;
 	constexpr DWORD SurfaceWaitTimeoutMS = 4;
@@ -491,21 +509,24 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return DDERR_UNSUPPORTED;
 		}
 
-		// Get source mipmap level
-		DWORD SrcMipMapLevel = 0;
-		if (lpDDSrcSurface)
-		{
-			lpDDSrcSurface->QueryInterface(IID_GetMipMapLevel, (LPVOID*)&SrcMipMapLevel);
-		}
-
 		// Typically, Blt returns immediately with an error if the bitbltter is busy and the bitblt could not be set up. Specify the DDBLT_WAIT flag to request a synchronous bitblt.
 		const bool BltWait = ((dwFlags & DDBLT_WAIT) && (dwFlags & DDBLT_DONOTWAIT) == 0);
+
+		// Check if vsync should be enabled
+		const bool SetVsync = (dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING);
 
 		// Check if the scene needs to be presented
 		const bool IsSkipScene = (lpDestRect) ? CheckRectforSkipScene(*lpDestRect) : false;
 
 		// Other flags, not yet implemented in dxwrapper
 		// DDBLT_ASYNC - Current dxwrapper implementation never does async if calling from multiple threads
+
+		// Get source mipmap level
+		DWORD SrcMipMapLevel = 0;
+		if (lpDDSrcSurface)
+		{
+			lpDDSrcSurface->QueryInterface(IID_GetMipMapLevel, (LPVOID*)&SrcMipMapLevel);
+		}
 
 		// Get source surface
 		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
@@ -537,11 +558,10 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		}
 
 		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-		HRESULT s_hr = (lpDDSrcSurfaceX == this) ? c_hr : lpDDSrcSurfaceX->CheckInterface(__FUNCTION__, true, true, true);
-		if (FAILED(c_hr) || FAILED(s_hr))
+		CheckCreateInterface(this, __FUNCTION__, true, true, true);
+		if (lpDDSrcSurfaceX != this)
 		{
-			return (c_hr == DDERR_SURFACELOST || s_hr == DDERR_SURFACELOST) ? DDERR_SURFACELOST : FAILED(c_hr) ? c_hr : s_hr;
+			CheckCreateInterface(lpDDSrcSurfaceX, __FUNCTION__, true, true, true);
 		}
 
 		// Ignore certian screen clears when not in exclusive mode
@@ -558,46 +578,54 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			return CopyZBuffer(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, (dwFlags & DDBLT_DEPTHFILL), lpDDBltFx ? lpDDBltFx->dwFillDepth : 0);
 		}
 
-		// Set critical section
-		ScopedCriticalSection ThreadLock(GetCriticalSection());
-		ScopedCriticalSection ThreadLockSrc(lpDDSrcSurfaceX->GetCriticalSection());
-
 		// Present before write if needed
 		if (PresentBlt)
 		{
 			BeginWritePresent(IsSkipScene);
 		}
 
-#ifdef ENABLE_PROFILING
-		auto startTime = std::chrono::high_resolution_clock::now();
-		bool CopySurfaceFlag = false;
-#endif
+		// Check if locked from other thread
+		if (BltWait)
+		{
+			// Wait for lock from other thread
+			DWORD beginTime = timeGetTime();
+			while (IsLockedFromOtherThread(MipMapLevel) || lpDDSrcSurfaceX->IsLockedFromOtherThread(MipMapLevel))
+			{
+				Utils::BusyWaitYield((DWORD)-1);
 
-		HRESULT hr = DD_OK;
+				// Break once timeout has passed
+				if ((timeGetTime() - beginTime) >= SurfaceWaitTimeoutMS)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: wait time exceeded!");
+					return DD_OK;
+				}
+			}
+		}
+
+		HRESULT hr = DDERR_GENERIC;
 
 		do {
-			// Check if locked from other thread
-			if (BltWait)
-			{
-				// Wait for lock from other thread
-				DWORD beginTime = timeGetTime();
-				while (IsLockedFromOtherThread(MipMapLevel) || lpDDSrcSurfaceX->IsLockedFromOtherThread(MipMapLevel))
-				{
-					Utils::BusyWaitYield((DWORD)-1);
+#ifdef ENABLE_PROFILING
+			auto startTime = std::chrono::high_resolution_clock::now();
+			bool CopySurfaceFlag = false;
+#endif
 
-					// Break once timeout has passed
-					if ((timeGetTime() - beginTime) >= SurfaceWaitTimeoutMS)
-					{
-						break;
-					}
-				}
+			// Set critical section
+			ScopedCriticalSection ThreadLock(GetCriticalSection());
+			ScopedCriticalSection ThreadLockSrc(lpDDSrcSurfaceX->GetCriticalSection());
+
+			// Set blt flag
+			ScopedFlagSet AutoSet(IsInBlt);
+			ScopedFlagSet AutoSetSrc(lpDDSrcSurfaceX->IsInBlt);
+
+			// Check interface after critical section
+			CheckOnlyInterfaceSafty(this, __FUNCTION__, false);
+			if (lpDDSrcSurfaceX != this)
+			{
+				CheckOnlyInterfaceSafty(lpDDSrcSurfaceX, __FUNCTION__, false);
 			}
 
 			do {
-				// Set blt flag
-				ScopedFlagSet AutoSet(IsInBlt);
-				ScopedFlagSet AutoSetSrc(lpDDSrcSurfaceX->IsInBlt);
-
 				// Do color fill
 				if (dwFlags & DDBLT_COLORFILL)
 				{
@@ -610,7 +638,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				{
 					if (lpDDBltFx->dwROP == SRCCOPY)
 					{
-						// Do nothing
+						// Do nothing normal surface copy / blt
 					}
 					else if (lpDDBltFx->dwROP == BLACKNESS)
 					{
@@ -662,11 +690,18 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				D3DTEXTUREFILTERTYPE Filter = ((dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_ARITHSTRETCHY)) ? D3DTEXF_LINEAR : D3DTEXF_NONE;
 
 				hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, Filter, ColorKey.dwColorSpaceLowValue, Flags, SrcMipMapLevel, MipMapLevel);
+
 #ifdef ENABLE_PROFILING
 				CopySurfaceFlag = true;
 #endif
 
 			} while (false);
+
+			// Keep surface insync
+			if (SUCCEEDED(hr) && PresentBlt)
+			{
+				EndWriteSyncSurfaces(lpDestRect, MipMapLevel, true);
+			}
 
 #ifdef ENABLE_PROFILING
 			Logging::Log() << __FUNCTION__ << " (" << lpDDSrcSurfaceX << ") -> (" << this << ")" <<
@@ -676,19 +711,13 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				" Timing = " << Logging::GetTimeLapseInMS(startTime);
 #endif
 
-			// If successful
-			if (SUCCEEDED(hr))
-			{
-				if (PresentBlt)
-				{
-					const bool SetVsync = SUCCEEDED(c_hr) && (dwFlags & DDBLT_DDFX) && (lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING);
-
-					// Present surface
-					EndWritePresent(lpDestRect, MipMapLevel, true, SetVsync, IsSkipScene);
-				}
-			}
-
 		} while (false);
+
+		// Present surface
+		if (SUCCEEDED(hr) && PresentBlt)
+		{
+			EndWritePresent(lpDestRect, MipMapLevel, SetVsync, IsSkipScene);
+		}
 
 		// Check invalid rect
 		if (hr == DDERR_INVALIDRECT)
@@ -774,23 +803,20 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 	if (Config.Dd7to9)
 	{
 		// Check for device interface before doing batch
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-		if (FAILED(c_hr))
-		{
-			return c_hr;
-		}
+		CheckCreateInterface(this, __FUNCTION__, true, true, true);
 
 		HRESULT hr = DD_OK;
 
 		bool IsSkipScene = false;
 
-		ScopedCriticalSection ThreadLock(GetCriticalSection());
+		bool SetVsync = false;
+
+		RECT DestRect = {};
+		LPRECT lpDestRect = &DestRect;
 
 		// Present before write if needed
 		BeginWritePresent(IsSkipScene);
 
-		RECT Dest = {};
-		LPRECT lpDest = &Dest;
 		{
 			// Set blt flag
 			ScopedFlagSet AutoSet(IsInBltBatch);
@@ -799,28 +825,36 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 			{
 				IsSkipScene |= (lpDDBltBatch[x].lprDest) ? CheckRectforSkipScene(*lpDDBltBatch[x].lprDest) : false;
 
-				if (lpDDBltBatch[x].lprDest)
-				{
-					UnionRectFast(Dest, *lpDDBltBatch[x].lprDest);
-				}
-				else
-				{
-					lpDest = nullptr;
-				}
-
 				hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags | DDBLT_DONOTWAIT, lpDDBltBatch[x].lpDDBltFx, MipMapLevel, false);
 				if (FAILED(hr))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: BltBatch failed before the end! " << x << " of " << dwCount << " " << (DDERR)hr);
 					break;
 				}
+
+				if (lpDDBltBatch[x].lprDest)
+				{
+					UnionRectFast(DestRect, *lpDDBltBatch[x].lprDest);
+				}
+				else
+				{
+					lpDestRect = nullptr;
+				}
+
+				SetVsync |= (lpDDBltBatch[x].dwFlags & DDBLT_DDFX) && lpDDBltBatch[x].lpDDBltFx && (lpDDBltBatch[x].lpDDBltFx->dwDDFX & DDBLTFX_NOTEARING);
+			}
+
+			// Keep surface insync
+			if (!lpDestRect || (DestRect.right && DestRect.bottom))
+			{
+				EndWriteSyncSurfaces(lpDestRect, MipMapLevel, true);
 			}
 		}
 
+		// Present surface
 		if (SUCCEEDED(hr))
 		{
-			// Present surface
-			EndWritePresent(lpDest, MipMapLevel, true, false, IsSkipScene);
+			EndWritePresent(lpDestRect, MipMapLevel, SetVsync, IsSkipScene);
 		}
 
 		return hr;
@@ -1247,11 +1281,15 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 		const bool FlipWait = (((dwFlags & DDFLIP_WAIT) || DirectXVersion == 7) && (dwFlags & DDFLIP_DONOTWAIT) == 0);
 
+		const bool SetVsync = ((dwFlags & DDFLIP_NOVSYNC) == 0);
+
 		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-		if (FAILED(c_hr))
 		{
-			return c_hr;
+			HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
+			if (FAILED(c_hr))
+			{
+				return c_hr;
+			}
 		}
 
 		// Check if is in scene
@@ -1278,26 +1316,49 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 
 		// Create flip list
 		std::vector<m_IDirectDrawSurfaceX*> FlipList;
-		c_hr = GetFlipList(FlipList, lpDDSurfaceTargetOverride);
-		if (FAILED(c_hr))
 		{
-			return c_hr;
-		}
-		if (FlipList.size() < 2)
-		{
-			return DDERR_NOTFLIPPABLE;
+			HRESULT c_hr = GetFlipList(FlipList, lpDDSurfaceTargetOverride);
+			if (FAILED(c_hr))
+			{
+				return c_hr;
+			}
+			if (FlipList.size() < 2)
+			{
+				return DDERR_NOTFLIPPABLE;
+			}
 		}
 
-		// Lambda function to check if any surface is busy
-		auto FlipSurfacesAreLockedFromOtherThread = [&FlipList]() {
-			for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
-			{
-				if (pSurfaceX->IsLockedFromOtherThread(0))
+		// Present before write if needed
+		BeginWritePresent(false);
+
+		// Check if locked from other thread
+		if (FlipWait)
+		{
+			// Lambda function to check if any surface is busy
+			auto FlipSurfacesAreLockedFromOtherThread = [&FlipList]() {
+				for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
 				{
-					return true;
+					if (pSurfaceX->IsLockedFromOtherThread(0))
+					{
+						return true;
+					}
+				}
+				return false; };
+
+			// Wait for locks from other threads
+			DWORD beginTime = timeGetTime();
+			while (FlipSurfacesAreLockedFromOtherThread())
+			{
+				Utils::BusyWaitYield((DWORD)-1);
+
+				// Break once timeout has passed
+				if ((timeGetTime() - beginTime) >= SurfaceWaitTimeoutMS)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: wait time exceeded!");
+					return DD_OK;
 				}
 			}
-			return false; };
+		}
 
 		// Prepare critical sections
 		std::vector<ScopedCriticalSection> ThreadLocks;
@@ -1311,69 +1372,40 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			ThreadLocks.emplace_back(pSurfaceX->GetCriticalSection());
 		}
 
-		// Present before write if needed
-		BeginWritePresent(false);
+		// Set flip flag
+		ScopedFlagSet AutoSet(IsInFlip);
 
-		// Check if locked from other thread
-		if (FlipWait)
-		{
-			// Wait for locks from other threads
-			DWORD beginTime = timeGetTime();
-			while (FlipSurfacesAreLockedFromOtherThread())
-			{
-				Utils::BusyWaitYield((DWORD)-1);
-
-				// Break once timeout has passed
-				if ((timeGetTime() - beginTime) >= SurfaceWaitTimeoutMS)
-				{
-					break;
-				}
-			}
-		}
-
-		// Check if any surface is busy
+		// Check interface after critical section
 		for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
 		{
-			if (pSurfaceX->IsSurfaceBusy())
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: surface is busy: " <<
-					pSurfaceX->IsSurfaceLocked() << " DC: " << pSurfaceX->IsSurfaceInDC() << " Blt: " << pSurfaceX->IsSurfaceBlitting());
-
-				return !FlipWait ? DDERR_WASSTILLDRAWING : IsLost() == DDERR_SURFACELOST ? DDERR_SURFACELOST : DDERR_GENERIC;
-			}
+			CheckOnlyInterfaceSafty(pSurfaceX, __FUNCTION__, false);
 		}
 
+		// Clear surface before flip if system memory
+		if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
 		{
-			// Set flip flag
-			ScopedFlagSet AutoSet(IsInFlip);
-
-			// Clear surface before flip if system memory
-			if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
+			if (FAILED(ColorFill(nullptr, Config.DdrawFlipFillColor, 0)))
 			{
-				if (FAILED(ColorFill(nullptr, Config.DdrawFlipFillColor, 0)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface.");
-				}
-				ClearDirtyFlags();
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill surface.");
 			}
 
-			// Execute flip
-			for (size_t x = 0; x < FlipList.size() - 1; x++)
-			{
-				SwapAddresses(&FlipList[x]->surface, &FlipList[x + 1]->surface);
-			}
+			// Keep surface insync
+			EndWriteSyncSurfaces(nullptr, 0, true);
+
+			ClearDirtyFlags();
 		}
 
-#ifdef ENABLE_PROFILING
-		HRESULT hr = DD_OK;
-		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr;
-#endif
+		// Execute flip
+		for (size_t x = 0; x < FlipList.size() - 1; x++)
+		{
+			SwapAddresses(&FlipList[x]->surface, &FlipList[x + 1]->surface);
+		}
 
 		// If texture is not dirty then mark it as dirty in case the game wrote to the memory directly (Nox does this)
-		bool EndWriteSurfaceSync = false;
 		if (!surface.IsDirtyFlag)
 		{
-			EndWriteSurfaceSync = true;
+			// Keep surface insync
+			EndWriteSyncSurfaces(nullptr, 0, true);
 
 			// Add dirty rect
 			LPDIRECT3DTEXTURE9 displayTexture = Get3DTexture();
@@ -1383,10 +1415,13 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			}
 		}
 
-		const bool SetVsync = ((dwFlags & DDFLIP_NOVSYNC) == 0);
+#ifdef ENABLE_PROFILING
+		HRESULT hr = DD_OK;
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr;
+#endif
 
 		// Present surface
-		EndWritePresent(nullptr, 0, EndWriteSurfaceSync, SetVsync, false);
+		EndWritePresent(nullptr, 0, SetVsync, false, true);
 
 		if (IsRenderTarget())
 		{
@@ -1745,13 +1780,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 		*lphDC = nullptr;
 
 		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-		if (FAILED(c_hr))
-		{
-			return c_hr;
-		}
-
-		ScopedCriticalSection ThreadLock(GetCriticalSection());
+		CheckCreateInterface(this, __FUNCTION__, true, true, true);
 
 		// MipMap level support
 		if (MipMapLevel && (IsUsingEmulation() || DCRequiresEmulation || IsDummyMipMap(MipMapLevel)))
@@ -1782,6 +1811,11 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
+
+		ScopedCriticalSection ThreadLock(GetCriticalSection());
+
+		// Check interface after critical section
+		CheckOnlyInterfaceSafty(this, __FUNCTION__, false);
 
 		// Check if render target should use shadow
 		if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !IsUsingShadowSurface())
@@ -2335,7 +2369,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		}
 
 		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, false);
+		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
 
 		// Prepare surfaceDesc
 		GetSurfaceDesc2(lpDDSurfaceDesc2, MipMapLevel, DirectXVersion);
@@ -2370,8 +2404,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Clear lpSurface
 		if (!surface.UsingSurfaceMemory &&
 			(!(lpDDSurfaceDesc2->dwFlags & DDSD_LPSURFACE) || !(lpDDSurfaceDesc2->dwFlags & DDSD_PITCH) ||
-			!lpDDSurfaceDesc2->lpSurface || !lpDDSurfaceDesc2->lPitch ||
-			(DWORD)lpDDSurfaceDesc2->lPitch > lpDDSurfaceDesc2->dwWidth * 4 + 128))
+				!lpDDSurfaceDesc2->lpSurface || !lpDDSurfaceDesc2->lPitch ||
+				(DWORD)lpDDSurfaceDesc2->lPitch > lpDDSurfaceDesc2->dwWidth * 4 + 128))
 		{
 			lpDDSurfaceDesc2->dwFlags &= ~DDSD_LPSURFACE;
 			lpDDSurfaceDesc2->lpSurface = nullptr;
@@ -2386,10 +2420,9 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Check for video memory zbuffers
 		if ((IsDepthStencil() || (surface.Usage & D3DUSAGE_DEPTHSTENCIL)) && IsD9UsingVideoMemory())
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: locking depth stencil surface is not implemented!");
 			return DDERR_UNSUPPORTED;
 		}
-
-		ScopedCriticalSection ThreadLock(GetCriticalSection());
 
 		LASTLOCK& LastLock = LockedLevel[MipMapLevel];
 
@@ -2404,7 +2437,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		RECT DestRect = {};
 		if (!CheckCoordinates(DestRect, lpDestRect, lpDDSurfaceDesc2) || (lpDestRect && (lpDestRect->left < 0 || lpDestRect->top < 0 ||
 			lpDestRect->right <= lpDestRect->left || lpDestRect->bottom <= lpDestRect->top ||
-			lpDestRect->right > (LONG)lpDDSurfaceDesc2->dwWidth || lpDestRect->bottom > (LONG)lpDDSurfaceDesc2->dwHeight)))
+			lpDestRect->right >(LONG)lpDDSurfaceDesc2->dwWidth || lpDestRect->bottom >(LONG)lpDDSurfaceDesc2->dwHeight)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid rect: " << lpDestRect);
 			return DDERR_INVALIDRECT;
@@ -2439,9 +2472,31 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Present before write if needed
 		BeginWritePresent(IsSkipScene);
 
+		// Check if locked from other thread
+		if (LockWait)
+		{
+			// Wait for lock from other thread
+			DWORD beginTime = timeGetTime();
+			while (IsLockedFromOtherThread(MipMapLevel))
+			{
+				Utils::BusyWaitYield((DWORD)-1);
+
+				// Break once timeout has passed
+				if ((timeGetTime() - beginTime) >= SurfaceWaitTimeoutMS)
+				{
+					break;
+				}
+			}
+		}
+
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
+
+		ScopedCriticalSection ThreadLock(GetCriticalSection());
+
+		// Check interface after critical section
+		CheckOnlyInterfaceSafty(this, __FUNCTION__, false);
 
 		// Check if render target should use shadow
 		if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET))
@@ -2461,23 +2516,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		HRESULT hr = DD_OK;
 
 		do {
-			// Check if locked from other thread
-			if (LockWait)
-			{
-				// Wait for lock from other thread
-				DWORD beginTime = timeGetTime();
-				while (IsLockedFromOtherThread(MipMapLevel))
-				{
-					Utils::BusyWaitYield((DWORD)-1);
-
-					// Break once timeout has passed
-					if ((timeGetTime() - beginTime) >= SurfaceWaitTimeoutMS)
-					{
-						break;
-					}
-				}
-			}
-
 			// Emulated surface
 			D3DLOCKED_RECT LockedRect = {};
 			if (IsUsingEmulation())
@@ -2636,11 +2674,7 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC, DWORD MipMapLevel)
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-		if (FAILED(c_hr))
-		{
-			return c_hr;
-		}
+		CheckCreateInterface(this, __FUNCTION__, true, true, false);
 
 		// Check struct
 		if (GetDCLevel.find(MipMapLevel) == GetDCLevel.end())
@@ -2660,49 +2694,59 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC, DWORD MipMapLevel)
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: HDC doesn't match: " << GetDCLevel[MipMapLevel] << " -> " << hDC);
 		}
 
+		{
 #ifdef ENABLE_PROFILING
-		auto startTime = std::chrono::high_resolution_clock::now();
+			auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		if (IsUsingEmulation() || DCRequiresEmulation)
-		{
-			if (!IsUsingEmulation())
+			ScopedCriticalSection ThreadLock(GetCriticalSection());
+
+			// Check interface after critical section
+			CheckOnlyInterfaceSafty(this, __FUNCTION__, false);
+
+			if (IsUsingEmulation() || DCRequiresEmulation)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: surface not using emulated DC!");
-				return DDERR_GENERIC;
+				if (!IsUsingEmulation())
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: surface not using emulated DC!");
+					return DDERR_GENERIC;
+				}
+
+				// Restore DC
+				UnsetEmulationGameDC();
+			}
+			else
+			{
+				// Get surface
+				ScopedGetMipMapContext Dest(this, MipMapLevel);
+				if (!Dest.GetSurface())
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
+					return DDERR_GENERIC;
+				}
+
+				// Release device context
+				if (FAILED(Dest.GetSurface()->ReleaseDC(hDC)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release surface DC!");
+					return IsSurfaceBusy(MipMapLevel) ? DDERR_SURFACEBUSY : IsLost() == DDERR_SURFACELOST ? DDERR_SURFACELOST : DDERR_GENERIC;
+				}
 			}
 
-			// Restore DC
-			UnsetEmulationGameDC();
-		}
-		else
-		{
-			// Get surface
-			ScopedGetMipMapContext Dest(this, MipMapLevel);
-			if (!Dest.GetSurface())
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-				return DDERR_GENERIC;
-			}
+			// Clear DC level
+			GetDCLevel[MipMapLevel] = nullptr;
 
-			// Release device context
-			if (FAILED(Dest.GetSurface()->ReleaseDC(hDC)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to release surface DC!");
-				return IsSurfaceBusy(MipMapLevel) ? DDERR_SURFACEBUSY : IsLost() == DDERR_SURFACELOST ? DDERR_SURFACELOST : DDERR_GENERIC;
-			}
-		}
-
-		// Clear DC level
-		GetDCLevel[MipMapLevel] = nullptr;
+			// Keep surface insync
+			EndWriteSyncSurfaces(nullptr, MipMapLevel, true);
 
 #ifdef ENABLE_PROFILING
-		HRESULT hr = DD_OK;
-		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+			HRESULT hr = DD_OK;
+			Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
 #endif
+		}
 
 		// Present surface
-		EndWritePresent(nullptr, MipMapLevel, true, false, false);
+		EndWritePresent(nullptr, MipMapLevel, false, false);
 
 		return DD_OK;
 	}
@@ -2990,11 +3034,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 		}
 
 		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, false);
-		if (FAILED(c_hr))
-		{
-			return c_hr;
-		}
+		CheckCreateInterface(this, __FUNCTION__, true, true, false);
 
 		// Check struct
 		if (LockedLevel.find(MipMapLevel) == LockedLevel.end())
@@ -3004,10 +3044,6 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 		}
 
 		LASTLOCK& LastLock = LockedLevel[MipMapLevel];
-
-#ifdef ENABLE_PROFILING
-		auto startTime = std::chrono::high_resolution_clock::now();
-#endif
 
 		// Check rect
 		if (!lpRect && LastLock.LockRectList.size() > 1)
@@ -3040,68 +3076,86 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 			}
 		}
 
-		// Emulate unlock
-		if (EmuLock.Locked && MipMapLevel == 0)
 		{
-			UnlockEmuLock();
-		}
+#ifdef ENABLE_PROFILING
+			auto startTime = std::chrono::high_resolution_clock::now();
+#endif
 
-		// Remove scanlines before unlocking surface
-		if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer() && MipMapLevel == 0)
-		{
-			RemoveScanlines(LastLock);
-		}
+			ScopedCriticalSection ThreadLock(GetCriticalSection());
 
-		// Emulated surface
-		if (IsUsingEmulation())
-		{
-			// No need to unlock emulated surface
-		}
-		// Lock surface
-		else if (surface.Surface || surface.Texture)
-		{
-			HRESULT ret = UnLockD3d9Surface(MipMapLevel);
-			if (FAILED(ret))
+			// Check interface after critical section
+			CheckOnlyInterfaceSafty(this, __FUNCTION__, false);
+
+			// Emulate unlock
+			if (EmuLock.Locked && MipMapLevel == 0)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock surface texture." <<
-					" Rect = " << lpRect <<
-					" MipMapLevel = " << MipMapLevel <<
-					" hr = " << (DDERR)ret);
-				return (ret == DDERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
-					IsLost() == DDERR_SURFACELOST ? DDERR_SURFACELOST : DDERR_GENERIC;
+				UnlockEmuLock();
 			}
-		}
-		else
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-			return DDERR_GENERIC;
-		}
 
-		// Clear memory pointer
-		LastLock.LockedRect.pBits = nullptr;
+			// Remove scanlines before unlocking surface
+			if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer() && MipMapLevel == 0)
+			{
+				RemoveScanlines(LastLock);
+			}
 
-		// Clear vector
-		LastLock.LockRectList.clear();
+			// Emulated surface
+			if (IsUsingEmulation())
+			{
+				// No need to unlock emulated surface
+			}
+			// Lock surface
+			else if (surface.Surface || surface.Texture)
+			{
+				HRESULT ret = UnLockD3d9Surface(MipMapLevel);
+				if (FAILED(ret))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to unlock surface texture." <<
+						" Rect = " << lpRect <<
+						" MipMapLevel = " << MipMapLevel <<
+						" hr = " << (DDERR)ret);
+					return (ret == DDERR_WASSTILLDRAWING) ? DDERR_WASSTILLDRAWING :
+						IsLost() == DDERR_SURFACELOST ? DDERR_SURFACELOST : DDERR_GENERIC;
+				}
+			}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
+				return DDERR_GENERIC;
+			}
 
-		// Reset locked flag
-		LastLock.IsLocked = false;
+			// Clear memory pointer
+			LastLock.LockedRect.pBits = nullptr;
 
-		// Reset locked thread ID
-		if (!IsSurfaceBlitting() && !IsSurfaceLocked(MipMapLevel))
-		{
-			LastLock.LockedWithID = 0;
-		}
+			// Clear vector
+			LastLock.LockRectList.clear();
+
+			// Reset locked flag
+			LastLock.IsLocked = false;
+
+			// Reset locked thread ID
+			if (!IsSurfaceBlitting() && !IsSurfaceLocked(MipMapLevel))
+			{
+				LastLock.LockedWithID = 0;
+			}
+
+			// If surface was changed
+			if (!LastLock.ReadOnly)
+			{
+				// Keep surface insync
+				EndWriteSyncSurfaces(&LastLock.Rect, MipMapLevel, true);
+			}
 
 #ifdef ENABLE_PROFILING
-		HRESULT hr = DD_OK;
-		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
+			HRESULT hr = DD_OK;
+			Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
 #endif
+		}
 
 		// If surface was changed
 		if (!LastLock.ReadOnly)
 		{
 			// Present surface
-			EndWritePresent(&LastLock.Rect, MipMapLevel, true, false, LastLock.IsSkipScene);
+			EndWritePresent(&LastLock.Rect, MipMapLevel, false, LastLock.IsSkipScene);
 		}
 
 		return DD_OK;
@@ -3183,7 +3237,15 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 		if (dwFlags & (DDOVER_REFRESHALL | DDOVER_REFRESHDIRTYRECTS))
 		{
 			// Just refresh whole surface
-			return PresentOverlay(nullptr);
+			HRESULT hr = PresentOverlay(nullptr);
+
+			// Present surface
+			if (SUCCEEDED(hr))
+			{
+				EndWritePresent(lpDestRect, 0, false, false);
+			}
+
+			return hr;
 		}
 
 		// Check dirty flag
@@ -3807,46 +3869,99 @@ void m_IDirectDrawSurfaceX::InitInterface(DWORD DirectXVersion)
 
 void m_IDirectDrawSurfaceX::ReleaseInterface()
 {
+	if (Config.Exiting)
 	{
-		ScopedCriticalSection ThreadLock(GetCriticalSection(), Config.Dd7to9);
+		return;
+	}
 
-		if (Config.Exiting)
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface);
+	SaveInterfaceAddress(WrapperInterface2);
+	SaveInterfaceAddress(WrapperInterface3);
+	SaveInterfaceAddress(WrapperInterface4);
+	SaveInterfaceAddress(WrapperInterface7);
+
+	// Clean up mipmaps
+	if (!MipMaps.empty())
+	{
+		for (auto& entry : MipMaps)
 		{
-			return;
-		}
-
-		// Don't delete wrapper interface
-		SaveInterfaceAddress(WrapperInterface);
-		SaveInterfaceAddress(WrapperInterface2);
-		SaveInterfaceAddress(WrapperInterface3);
-		SaveInterfaceAddress(WrapperInterface4);
-		SaveInterfaceAddress(WrapperInterface7);
-
-		// Clean up mipmaps
-		if (!MipMaps.empty())
-		{
-			for (auto& entry : MipMaps)
-			{
-				if (entry.Addr) entry.Addr->DeleteMe();
-				if (entry.Addr2) entry.Addr2->DeleteMe();
-				if (entry.Addr3) entry.Addr3->DeleteMe();
-				if (entry.Addr4) entry.Addr4->DeleteMe();
-				if (entry.Addr7) entry.Addr7->DeleteMe();
-			}
-		}
-
-		ReleaseDirectDrawResources();
-
-		if (Config.Dd7to9)
-		{
-			ReleaseD9Surface(false, false);
+			if (entry.Addr) entry.Addr->DeleteMe();
+			if (entry.Addr2) entry.Addr2->DeleteMe();
+			if (entry.Addr3) entry.Addr3->DeleteMe();
+			if (entry.Addr4) entry.Addr4->DeleteMe();
+			if (entry.Addr7) entry.Addr7->DeleteMe();
 		}
 	}
+
+	ReleaseDirectDrawResources();
+
+	if (Config.Dd7to9)
+	{
+		ReleaseD9Surface(false, false);
+	}
+
 	if (Config.Dd7to9)
 	{
 		// Delete critical section last
 		DeleteCriticalSection(&ddscs);
 	}
+}
+
+HRESULT m_IDirectDrawSurfaceX::CheckLostInterface(char* FunctionName)
+{
+	// Check if device is lost
+	if (CanSurfaceBeLost())
+	{
+		HRESULT hr = ddrawParent->TestD3D9CooperativeLevel();
+		switch (hr)
+		{
+		case DD_OK:
+		case DDERR_NOEXCLUSIVEMODE:
+			break;
+		case D3DERR_DEVICENOTRESET:
+			if (SUCCEEDED(ddrawParent->ResetD9Device()))
+			{
+				break;
+			}
+			[[fallthrough]];
+		case D3DERR_DEVICELOST:
+			return DDERR_SURFACELOST;
+		default:
+			LOG_LIMIT(100, FunctionName << " Error: TestCooperativeLevel = " << (D3DERR)hr);
+			return DDERR_WRONGMODE;
+		}
+
+		if (IsSurfaceLost && !LostDeviceBackup.empty())
+		{
+			LOG_LIMIT(100, FunctionName << " Warning: surface is lost and there is no backup for it!");
+			return DDERR_SURFACELOST;
+		}
+	}
+
+	return DD_OK;
+}
+
+HRESULT m_IDirectDrawSurfaceX::CheckOnlyInterface(char* FunctionName, bool CheckLostSurface)
+{
+	// Check for device interface
+	if (!ddrawParent || !d3d9Device || !*d3d9Device || (!surface.Surface && !surface.Texture))
+	{
+		LOG_LIMIT(100, FunctionName << " Error: failed to get interface!");
+		return DDERR_GENERIC;
+	}
+
+	// Check if device is lost
+	if (CheckLostSurface)
+	{
+		HRESULT hr = CheckLostInterface(FunctionName);
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+	}
+
+	return DD_OK;
 }
 
 HRESULT m_IDirectDrawSurfaceX::CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DSurface, bool CheckLostSurface)
@@ -3898,31 +4013,12 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char* FunctionName, bool CheckD3DD
 	}
 
 	// Check if device is lost
-	if (CheckLostSurface && CanSurfaceBeLost())
+	if (CheckLostSurface)
 	{
-		HRESULT hr = ddrawParent->TestD3D9CooperativeLevel();
-		switch (hr)
+		HRESULT hr = CheckLostInterface(FunctionName);
+		if (FAILED(hr))
 		{
-		case DD_OK:
-		case DDERR_NOEXCLUSIVEMODE:
-			break;
-		case D3DERR_DEVICENOTRESET:
-			if (SUCCEEDED(ddrawParent->ResetD9Device()))
-			{
-				break;
-			}
-			[[fallthrough]];
-		case D3DERR_DEVICELOST:
-			return DDERR_SURFACELOST;
-		default:
-			LOG_LIMIT(100, FunctionName << " Error: TestCooperativeLevel = " << (D3DERR)hr);
-			return DDERR_WRONGMODE;
-		}
-
-		if (IsSurfaceLost && !LostDeviceBackup.empty())
-		{
-			LOG_LIMIT(100, FunctionName << " Warning: surface is lost and there is no backup for it!");
-			return DDERR_SURFACELOST;
+			return hr;
 		}
 	}
 
@@ -5255,6 +5351,8 @@ void m_IDirectDrawSurfaceX::ReleaseD9AuxiliarySurfaces()
 
 void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 {
+	ScopedCriticalSection ThreadLock(GetCriticalSection(), Config.Dd7to9);
+
 	// Check if surface is busy
 	if (IsSurfaceBusy())
 	{
@@ -5414,7 +5512,7 @@ void m_IDirectDrawSurfaceX::ReleaseDCSurface()
 	}
 }
 
-HRESULT m_IDirectDrawSurfaceX::PresentSurface(LPRECT lpDestRect, bool IsSkipScene)
+HRESULT m_IDirectDrawSurfaceX::PresentSurface(LPRECT lpDestRect, bool IsSkipScene, bool SkipCriticalSection)
 {
 	// Check for device interface
 	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
@@ -5442,18 +5540,7 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(LPRECT lpDestRect, bool IsSkipScen
 			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 			if (lpDDSrcSurfaceX)
 			{
-				bool ShouldLeaveCriticalSection = false;
-				if (GetCriticalSection() != DdrawWrapper::GetDDCriticalSection())
-				{
-					if (TryEnterCriticalSection(DdrawWrapper::GetDDCriticalSection()) == FALSE)
-					{
-						return DD_OK;
-					}
-					ShouldLeaveCriticalSection = true;
-				}
-				ScopedLeaveCriticalSection ThreadLock(DdrawWrapper::GetDDCriticalSection(), ShouldLeaveCriticalSection);
-
-				return lpDDSrcSurfaceX->PresentSurface(lpDestRect, IsSkipScene);
+				return lpDDSrcSurfaceX->PresentSurface(lpDestRect, IsSkipScene, false);
 			}
 		}
 		return DDERR_GENERIC;
@@ -5474,8 +5561,13 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(LPRECT lpDestRect, bool IsSkipScen
 		return DDERR_SURFACEBUSY;
 	}
 
+	ScopedCriticalSection ThreadLock(GetCriticalSection(), !SkipCriticalSection);
+
 	// Set present flag
 	ScopedFlagSet ScopedFlag(IsPresentRunning);
+
+	// Check interface after critical section
+	CheckOnlyInterfaceSafty(this, __FUNCTION__, false);
 
 	// Present to d3d9
 	HRESULT hr = ddrawParent->PresentScene(lpDestRect);
@@ -5921,33 +6013,37 @@ void m_IDirectDrawSurfaceX::BeginWritePresent(bool IsSkipScene)
 	// Check if data needs to be presented before write
 	if (dirtyFlag)
 	{
-		if (FAILED(PresentSurface(nullptr, IsSkipScene)))
+		if (FAILED(PresentSurface(nullptr, IsSkipScene, false)))
 		{
 			PresentOnUnlock = true;
 		}
 	}
 }
 
-void m_IDirectDrawSurfaceX::EndWriteSyncSurfaces(LPRECT lpDestRect)
+void m_IDirectDrawSurfaceX::EndWriteSyncSurfaces(LPRECT lpDestRect, DWORD MipMapLevel, bool EndWriteSurfaceSync)
 {
-	// Copy emulated surface to real surface
-	if (IsUsingEmulation())
+	// Keep surface insync
+	if (EndWriteSurfaceSync && MipMapLevel == 0)
 	{
-		CopyFromEmulatedSurface(lpDestRect);
+		// Copy emulated surface to real surface
+		if (IsUsingEmulation())
+		{
+			CopyFromEmulatedSurface(lpDestRect);
+		}
+
+		// Pre-populate draw texture
+		if (Using3D && IsSurfaceTexture() && IsColorKeyTexture() && !IsPrimaryOrBackBuffer() && !IsRenderTarget())
+		{
+			GetD3d9DrawTexture();
+		}
 	}
 
-	// Pre-populate draw texture
-	if (Using3D && IsSurfaceTexture() && IsColorKeyTexture() && !IsPrimaryOrBackBuffer() && !IsRenderTarget())
-	{
-		GetD3d9DrawTexture();
-	}
-}
-
-void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, DWORD MipMapLevel, bool EndWriteSurfaceSync, bool SetVsync, bool IsSkipScene)
-{
 	// Set dirty flag
 	SetDirtyFlag(MipMapLevel);
+}
 
+void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, DWORD MipMapLevel, bool SetVsync, bool IsSkipScene, bool SkipCriticalSection)
+{
 	// Set vertical sync wait timer
 	if (SetVsync)
 	{
@@ -5956,12 +6052,6 @@ void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, DWORD MipMapLevel
 
 	if (MipMapLevel == 0)
 	{
-		// Keep surface insync
-		if (EndWriteSurfaceSync)
-		{
-			EndWriteSyncSurfaces(nullptr);
-		}
-
 		// Handle overlays
 		PresentOverlay(lpDestRect);
 
@@ -5975,7 +6065,7 @@ void m_IDirectDrawSurfaceX::EndWritePresent(LPRECT lpDestRect, DWORD MipMapLevel
 		// Present surface after each draw unless removing interlacing
 		else if (PresentOnUnlock || !Config.DdrawRemoveInterlacing)
 		{
-			PresentSurface(lpDestRect, IsSkipScene);
+			PresentSurface(lpDestRect, IsSkipScene, SkipCriticalSection);
 
 			// Reset endscene lock
 			PresentOnUnlock = false;
@@ -6268,11 +6358,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Check for device interface
-	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-	if (FAILED(c_hr))
-	{
-		return c_hr;
-	}
+	CheckOnlyInterfaceSafty(this, __FUNCTION__, false);
 
 	// Get surface desc for mipmap
 	DDSURFACEDESC2 Desc2 = {};
@@ -6424,12 +6510,6 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 		{
 			UnLockD3d9Surface(MipMapLevel);
 		}
-	}
-
-	if (MipMapLevel == 0)
-	{
-		// Keep surface insync
-		EndWriteSyncSurfaces(&DestRect);
 	}
 
 	return DD_OK;
@@ -6604,15 +6684,10 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	}
 
 	// Check for device interface
-	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-	HRESULT s_hr = (pSourceSurface == this) ? c_hr : pSourceSurface->CheckInterface(__FUNCTION__, true, true, true);
-	if (FAILED(c_hr) || FAILED(s_hr))
+	CheckOnlyInterfaceSafty(this, __FUNCTION__, false);
+	if (pSourceSurface != this)
 	{
-		if (c_hr == DDERR_SURFACELOST || s_hr == DDERR_SURFACELOST)
-		{
-			return DDERR_SURFACELOST;
-		}
-		return FAILED(c_hr) ? c_hr : s_hr;
+		CheckOnlyInterfaceSafty(pSourceSurface, __FUNCTION__, false);
 	}
 
 	// Get surface desc for mipmap
@@ -6887,7 +6962,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 						BYTE* SrcBytes = (BYTE*)SrcLockedRect.pBits;
 						BYTE* DestBytes = (BYTE*)DestLockedRect.pBits;
 						size_t Size = DestRectWidth * surface.BitCount / 8;
-						for (int x = 0; x < DestRectHeight ; x++)
+						for (int x = 0; x < DestRectHeight; x++)
 						{
 							memcpy(DestBytes, SrcBytes, Size);
 							SrcBytes += SrcLockedRect.Pitch;
@@ -7234,15 +7309,6 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		IsUsingEmulation() ? DD_OK : UnLockD3d9Surface(MipMapLevel);
 	}
 
-	if (SUCCEEDED(hr))
-	{
-		if (MipMapLevel == 0)
-		{
-			// Keep surface insync
-			EndWriteSyncSurfaces(&DestRect);
-		}
-	}
-
 	// Return
 	return hr;
 }
@@ -7254,18 +7320,6 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid parameters!");
 		return DDERR_INVALIDPARAMS;
-	}
-
-	// Check for device interface
-	HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-	HRESULT s_hr = (pSourceSurface == this) ? c_hr : pSourceSurface->CheckInterface(__FUNCTION__, true, true, true);
-	if (FAILED(c_hr) || FAILED(s_hr))
-	{
-		if (c_hr == DDERR_SURFACELOST || s_hr == DDERR_SURFACELOST)
-		{
-			return DDERR_SURFACELOST;
-		}
-		return FAILED(c_hr) ? c_hr : s_hr;
 	}
 
 	// Check rect
@@ -7340,6 +7394,16 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 	SrcRect.bottom = SrcRect.top + Height;
 	DestRect.right = DestRect.left + Width;
 	DestRect.bottom = DestRect.top + Height;
+
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection(), DdrawWrapper::GetDDCriticalSection() != GetCriticalSection());
+	ScopedCriticalSection ThreadLock(GetCriticalSection());
+
+	// Check interface after critical section
+	CheckOnlyInterfaceSafty(this, __FUNCTION__, false);
+	if (pSourceSurface != this)
+	{
+		CheckOnlyInterfaceSafty(pSourceSurface, __FUNCTION__, false);
+	}
 
 	// Handle system memory copy
 	if (surface.Pool == D3DPOOL_SYSTEMMEM)
@@ -7416,8 +7480,6 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		LOG_LIMIT(100, __FUNCTION__ << " Error: video memory zbuffer Blt not implemented!");
 		return DDERR_UNSUPPORTED;
 	}
-
-	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 	bool IsUsingCurrentZBuffer =
 		(ddrawParent->GetDepthStencilSurface() != this && ddrawParent->GetDepthStencilSurface() != GetAttachedDepthStencil());
@@ -8638,7 +8700,10 @@ HRESULT m_IDirectDrawSurfaceX::PresentOverlay(LPRECT lpSrcRect)
 				}
 			}
 
-			SurfaceOverlay.lpDDDestSurfaceX->Blt(lpNewDestRect, (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(0), lpNewSrcRect, DDBltFxFlags, &DDBltFx, 0);
+			SurfaceOverlay.lpDDDestSurfaceX->Blt(lpNewDestRect, (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(0), lpNewSrcRect, DDBltFxFlags, &DDBltFx, 0, false);
+
+			// Keep surface insync
+			EndWriteSyncSurfaces(lpNewDestRect, 0, true);
 		}
 	}
 	return DD_OK;
