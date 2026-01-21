@@ -303,6 +303,7 @@ private:
 	void EndWriteSyncSurfaces(LPRECT lpDestRect, DWORD MipMapLevel, bool EndWriteSurfaceSync);
 
 	// Surface information functions
+	HRESULT LockReturnValue(HRESULT hr, DWORD MipMapLevel, m_IDirectDrawSurfaceX* pSrcSurface, DWORD SrcMipMapLevel, bool LockWait);
 	bool IsSurfaceLocked(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS);
 	bool IsSurfaceBlitting() const { return (IsInBlt || IsInBltBatch); }
 	bool IsSurfaceInDC(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS);
