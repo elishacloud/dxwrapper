@@ -436,7 +436,7 @@ HRESULT m_IDirectDrawSurfaceX::AddOverlayDirtyRect(LPRECT lpRect)
 	return ProxyInterface->AddOverlayDirtyRect(lpRect);
 }
 
-HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx, DWORD MipMapLevel, bool PresentBlt)
+HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx, DWORD MipMapLevel, bool SyncSurfaces, bool PresentBlt)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")" <<
 		" DestRect = " << lpDestRect <<
@@ -445,6 +445,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		" Flags = " << Logging::hex(dwFlags) <<
 		" BltFX = " << lpDDBltFx <<
 		" MipMapLevel = " << MipMapLevel <<
+		" SyncSurfaces = " << SyncSurfaces <<
 		" PresentBlt = " << PresentBlt;
 
 	// Check if source Surface exists
@@ -698,7 +699,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			} while (false);
 
 			// Keep surface insync
-			if (SUCCEEDED(hr) && PresentBlt)
+			if (SUCCEEDED(hr) && SyncSurfaces)
 			{
 				EndWriteSyncSurfaces(lpDestRect, MipMapLevel, true);
 			}
@@ -818,7 +819,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 			{
 				IsSkipScene |= (lpDDBltBatch[x].lprDest) ? CheckRectforSkipScene(*lpDDBltBatch[x].lprDest) : false;
 
-				hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags | DDBLT_DONOTWAIT, lpDDBltBatch[x].lpDDBltFx, MipMapLevel, false);
+				hr = Blt(lpDDBltBatch[x].lprDest, (LPDIRECTDRAWSURFACE7)lpDDBltBatch[x].lpDDSSrc, lpDDBltBatch[x].lprSrc, lpDDBltBatch[x].dwFlags | DDBLT_DONOTWAIT, lpDDBltBatch[x].lpDDBltFx, MipMapLevel, false, false);
 				if (FAILED(hr))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: BltBatch failed before the end! " << x << " of " << dwCount << " " << (DDERR)hr);
@@ -3238,16 +3239,10 @@ HRESULT m_IDirectDrawSurfaceX::UpdateOverlay(LPRECT lpSrcRect, LPDIRECTDRAWSURFA
 		// Handle refresh flags
 		if (dwFlags & (DDOVER_REFRESHALL | DDOVER_REFRESHDIRTYRECTS))
 		{
-			// Just refresh whole surface
-			HRESULT hr = PresentOverlay(nullptr);
-
 			// Present surface
-			if (SUCCEEDED(hr))
-			{
-				EndWritePresent(lpDestRect, 0, false, false);
-			}
+			EndWritePresent(nullptr, 0, false, false);
 
-			return hr;
+			return DD_OK;
 		}
 
 		// Check dirty flag
@@ -8681,6 +8676,7 @@ HRESULT m_IDirectDrawSurfaceX::UnLockD3d9Surface(DWORD MipMapLevel)
 
 HRESULT m_IDirectDrawSurfaceX::PresentOverlay(LPRECT lpSrcRect)
 {
+	HRESULT hr = DD_OK;
 	if (SurfaceOverlay.OverlayEnabled)
 	{
 		RECT SrcRect = {};
@@ -8707,13 +8703,10 @@ HRESULT m_IDirectDrawSurfaceX::PresentOverlay(LPRECT lpSrcRect)
 				}
 			}
 
-			SurfaceOverlay.lpDDDestSurfaceX->Blt(lpNewDestRect, (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(0), lpNewSrcRect, DDBltFxFlags, &DDBltFx, 0, false);
-
-			// Keep surface insync
-			EndWriteSyncSurfaces(lpNewDestRect, 0, true);
+			return SurfaceOverlay.lpDDDestSurfaceX->Blt(lpNewDestRect, (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(0), lpNewSrcRect, DDBltFxFlags, &DDBltFx, 0, true, false);
 		}
 	}
-	return DD_OK;
+	return hr;
 }
 
 // ******************************
