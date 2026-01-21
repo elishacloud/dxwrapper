@@ -3853,6 +3853,7 @@ void m_IDirectDrawSurfaceX::InitInterface(DWORD DirectXVersion)
 
 		if (!InitializeCriticalSectionAndSpinCount(&ddscs, 4000))
 		{
+			Logging::Log() << __FUNCTION__ << " Warning: failed to initialize CriticalSectionAndSpinCount for ddscs.  Failing over to CriticalSection!";
 			InitializeCriticalSection(&ddscs);
 		}
 

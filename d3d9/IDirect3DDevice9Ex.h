@@ -10,6 +10,7 @@ struct DEVICEDETAILS
 	{
 		if (!InitializeCriticalSectionAndSpinCount(&d9cs, 4000))
 		{
+			Logging::Log() << __FUNCTION__ << " Warning: failed to initialize CriticalSectionAndSpinCount for d9cs.  Failing over to CriticalSection!";
 			InitializeCriticalSection(&d9cs);
 		}
 	}

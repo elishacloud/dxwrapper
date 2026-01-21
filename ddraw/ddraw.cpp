@@ -741,10 +741,12 @@ void InitDDraw()
 	{
 		if (!InitializeCriticalSectionAndSpinCount(&ddcs, 4000))
 		{
+			Logging::Log() << __FUNCTION__ << " Warning: failed to initialize CriticalSectionAndSpinCount for ddcs.  Failing over to CriticalSection!";
 			InitializeCriticalSection(&ddcs);
 		}
 		if (!InitializeCriticalSectionAndSpinCount(&pecs, 4000))
 		{
+			Logging::Log() << __FUNCTION__ << " Warning: failed to initialize CriticalSectionAndSpinCount for pecs.  Failing over to CriticalSection!";
 			InitializeCriticalSection(&pecs);
 		}
 		IsInitialized = true;

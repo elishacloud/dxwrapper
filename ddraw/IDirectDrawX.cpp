@@ -2252,6 +2252,13 @@ HRESULT m_IDirectDrawX::RestoreAllSurfaces()
 		// Check device status
 		if (hr == DD_OK || hr == DDERR_NOEXCLUSIVEMODE)
 		{
+			// Recreate device, if needed
+			if (!d3d9Device)
+			{
+				CreateD9Device(__FUNCTION__);
+			}
+
+			// Restore all surfaces
 			for (const auto& pDDraw : DDrawVector)
 			{
 				for (const auto& pSurface : pDDraw->SurfaceList)
@@ -2622,6 +2629,17 @@ void m_IDirectDrawX::ReleaseInterface()
 		DisplayMode.SetBy = Exclusive.SetBy;
 		Device.IsWindowed = false;
 		FullScreenWindowed = false;
+
+		if (d3d9Device)
+		{
+			const HWND hWnd = GetHwnd();
+			if (IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) == GetCurrentThreadId())
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: creating d3d9Device from ReleaseInterface()!");
+
+				Exclusive.SetBy->CreateD9Device(__FUNCTION__);
+			}
+		}
 	}
 
 	// Clear SetBy handles
@@ -3275,37 +3293,37 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Reset failed: " << (D3DERR)hr);
 			ReleaseAllD9Resources(false, false);	// Cannot backup surface after a failed Reset
 			ReleaseD9Device();
+			return DDERR_GENERIC;
 		}
-		else
+
+		CreationInterface = this;
+		IsDeviceLost = false;
+		WndProc::SwitchingResolution = false;
+		IsDeviceVerticesSet = false;
+		EnableWaitVsync = false;
+
+		// Copy GDI data to back buffer
+		if (PrimarySurface && !presParams.Windowed)
 		{
-			CreationInterface = this;
-			IsDeviceLost = false;
-			WndProc::SwitchingResolution = false;
-			IsDeviceVerticesSet = false;
-			EnableWaitVsync = false;
-
-			// Copy GDI data to back buffer
-			if (PrimarySurface && !presParams.Windowed)
-			{
-				PrimarySurface->CopyGDIToPrimaryAndBackbuffer();
-			}
-			CopyGDISurface = false;
-
-			// Create default state block
-			GetDefaultStates();
-
-			// Set render target
-			SetCurrentRenderTarget();
-
-			// Reset D3D device settings
-			RestoreD3DDeviceState();
+			PrimarySurface->CopyGDIToPrimaryAndBackbuffer();
 		}
+		CopyGDISurface = false;
+
+		// Create default state block
+		GetDefaultStates();
+
+		// Set render target
+		SetCurrentRenderTarget();
+
+		// Reset D3D device settings
+		RestoreD3DDeviceState();
 	}
 	// Release and recreate device
 	else
 	{
 		ReleaseAllD9Resources(true, false);
 		ReleaseD9Device();
+		return DDERR_GENERIC;
 	}
 
 	// Return
@@ -5464,6 +5482,8 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	presentTime = std::chrono::high_resolution_clock::now();
 #endif
 
+	const HWND hWnd = GetHwnd();
+
 	// Test cooperative level
 	if (hr == D3DERR_DEVICELOST)
 	{
@@ -5475,6 +5495,16 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	if (hr == D3DERR_DEVICENOTRESET)
 	{
 		hr = ResetD9Device();
+
+		if (!d3d9Device)
+		{
+			if (IsWindow(hWnd) && GetWindowThreadProcessId(hWnd, nullptr) == GetCurrentThreadId())
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: creating d3d9Device from Present()!");
+
+				hr = CreateD9Device(__FUNCTION__);
+			}
+		}
 	}
 
 	// Present failure
@@ -5485,7 +5515,6 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 	}
 
 	// Redraw window if it has moved from its last location
-	HWND hWnd = GetHwnd();
 	RECT ClientRect = {};
 	if (ReDrawNextPresent || (presParams.Windowed && !ExclusiveMode && !IsIconic(hWnd) && GetWindowRect(hWnd, &ClientRect) && LastWindowRect.right > 0 && LastWindowRect.bottom > 0))
 	{
