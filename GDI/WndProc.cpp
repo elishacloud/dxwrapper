@@ -329,7 +329,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 {
 	if (Msg != WM_PAINT)
 	{
-		Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd);
+		//Logging::Log() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd);
 	}
 
 	if (!AppWndProcInstance || !hWnd)
@@ -418,6 +418,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			// Tell Windows & game to fully restore
 			if (LOWORD(wParam) == WA_ACTIVE || LOWORD(wParam) == WA_CLICKACTIVE)
 			{
+				LOG_LIMIT(3, __FUNCTION__ << " Activating window because WM_ACTIVATE (" << LOWORD(wParam) << ") message detected when window is iconic: " << hWnd);
 				CallWndProc(pWndProc, hWnd, Msg, WA_ACTIVE, NULL);
 				CallWndProc(nullptr, hWnd, WM_SYSCOMMAND, SC_RESTORE, NULL);
 				SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
@@ -427,6 +428,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			// Some games require filtering this when iconic, other games require this message to see when the window is activated
 			if (pDataStruct->DirectXVersion <= 4)
 			{
+				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_ACTIVATE when iconic: " << LOWORD(wParam));
 				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 			}
 		}
@@ -436,6 +438,8 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Filter some messages while forcing windowed mode
 		if (pDataStruct->IsDirectDraw && IsForcingWindowedMode)
 		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_NCACTIVATE when forcing windowed mode. " <<
+				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
 			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 		}
 		break;
@@ -466,6 +470,8 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Filter some messages while forcing windowed mode
 		if (pDataStruct->IsCreatingDevice && IsForcingWindowedMode)
 		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when forcing windowed mode. " <<
+				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
 			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 		}
 		break;
@@ -480,6 +486,8 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Filter some messages while forcing windowed mode
 		if (pDataStruct->IsCreatingDevice && IsForcingWindowedMode)
 		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_WINDOWPOSCHANGED when forcing windowed mode. " <<
+				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
 			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
 		}
 		break;
