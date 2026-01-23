@@ -1096,7 +1096,10 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 		// Set for Multisample
 		if (SHARED.DeviceMultiSampleFlag)
 		{
-			ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+			if (SHARED.SetMultiSampleState && !SHARED.UseAppMultiSampleState)
+			{
+				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+			}
 			if (SHARED.SetSSAA)
 			{
 				ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('S', 'S', 'A', 'A'));
@@ -1278,13 +1281,16 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Set for Multisample
-	if (SHARED.DeviceMultiSampleFlag && State == D3DRS_MULTISAMPLEANTIALIAS)
+	if (SHARED.DeviceMultiSampleFlag)
 	{
-		Value = TRUE;
-	}
-	if (SHARED.SetATOC && State == D3DRS_ALPHATESTENABLE && Config.EnableMultisamplingATOC == 2)
-	{
-		Value = TRUE;
+		if (State == D3DRS_MULTISAMPLEANTIALIAS && !SHARED.UseAppMultiSampleState)
+		{
+			return D3D_OK;
+		}
+		if (State == D3DRS_ALPHATESTENABLE && SHARED.SetATOC && Config.EnableMultisamplingATOC == 2)
+		{
+			return D3D_OK;
+		}
 	}
 	if (State == D3DRS_DEPTHBIAS)
 	{
@@ -1526,23 +1532,25 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Disable AntiAliasing when using point filtering
-	if (SHARED.DeviceMultiSampleFlag)
+	if (SHARED.DeviceMultiSampleFlag && !SHARED.UseAppMultiSampleState && Sampler == 0)
 	{
 		if (Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MAGFILTER)
 		{
 			if (Value == D3DTEXF_NONE || Value == D3DTEXF_POINT)
 			{
+				SHARED.SetMultiSampleState = false;
 				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, FALSE);
 			}
 			else
 			{
+				SHARED.SetMultiSampleState = true;
 				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
 			}
 		}
 	}
 
 	// Enable Anisotropic Filtering
-	if (MaxAnisotropy)
+	if (MaxAnisotropy && Sampler == 0)
 	{
 		if (Type == D3DSAMP_MAXANISOTROPY)
 		{

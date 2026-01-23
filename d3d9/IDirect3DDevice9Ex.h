@@ -55,6 +55,8 @@ struct DEVICEDETAILS
 
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;
+	bool SetMultiSampleState = false;
+	bool UseAppMultiSampleState = false;
 	bool SetSSAA = false;
 	bool SetATOC = false;
 	D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;

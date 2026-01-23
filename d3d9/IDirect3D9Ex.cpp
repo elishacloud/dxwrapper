@@ -584,6 +584,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	if (pPresentationParameters)
 	{
 		DeviceDetails.AppRequestedWindowMode = pPresentationParameters->Windowed;
+		DeviceDetails.UseAppMultiSampleState = (pPresentationParameters->MultiSampleType != D3DMULTISAMPLE_NONE);
 
 		ForceFullscreen = TestResolution(Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
 
@@ -661,6 +662,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 			if (MultiSampleFlag)
 			{
 				DeviceDetails.DeviceMultiSampleFlag = true;
+				DeviceDetails.SetMultiSampleState = true;
 				DeviceDetails.DeviceMultiSampleType = d3dpp.MultiSampleType;
 				DeviceDetails.DeviceMultiSampleQuality = d3dpp.MultiSampleQuality;
 			}
