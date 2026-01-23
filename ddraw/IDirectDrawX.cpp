@@ -4956,21 +4956,21 @@ void m_IDirectDrawX::RestoreState(DRAWSTATEBACKUP& DrawStates)
 	d3d9Device->SetTransform(D3DTS_PROJECTION, &DrawStates.ProjectionMatrix);
 }
 
-HRESULT m_IDirectDrawX::DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture)
+HRESULT m_IDirectDrawX::DrawPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurface, LPDIRECT3DTEXTURE9 pDisplayTexture)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!pPrimarySurface)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: no primary surface!");
+		return DDERR_GENERIC;
+	}
 
 	bool IsUsingPalette = false;
 	if (!pDisplayTexture)
 	{
-		if (!PrimarySurface)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no primary surface!");
-			return DDERR_GENERIC;
-		}
-
 		// Get surface texture
-		pDisplayTexture = PrimarySurface->GetD3d9Texture(false);
+		pDisplayTexture = pPrimarySurface->GetD3d9Texture(false);
 		if (!pDisplayTexture)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface texture!");
@@ -4978,7 +4978,7 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture)
 		}
 
 		// Check palette
-		IsUsingPalette = PrimarySurface->IsPalette();
+		IsUsingPalette = pPrimarySurface->IsPalette();
 	}
 
 	// Get texture desc
@@ -5001,13 +5001,13 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture)
 	if (IsUsingPalette)
 	{
 		// Get palette texture
-		LPDIRECT3DTEXTURE9 PaletteTexture = PrimarySurface->GetD3d9PaletteTexture();
+		LPDIRECT3DTEXTURE9 PaletteTexture = pPrimarySurface->GetD3d9PaletteTexture();
 
 		// Set palette texture
 		if (PaletteTexture && CreatePalettePixelShader())
 		{
 			// Set palette texture
-			PrimarySurface->UpdatePaletteData();
+			pPrimarySurface->UpdatePaletteData();
 			d3d9Device->SetTexture(1, PaletteTexture);
 
 			// Set pixel shader
@@ -5068,7 +5068,7 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture)
 	// Reset dirty flags
 	if (SUCCEEDED(hr))
 	{
-		PrimarySurface->ClearDirtyFlags();
+		pPrimarySurface->ClearDirtyFlags();
 	}
 	else
 	{
@@ -5088,18 +5088,18 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture)
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer)
+HRESULT m_IDirectDrawX::CopyPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurface, LPDIRECT3DSURFACE9 pDestBuffer)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!PrimarySurface)
+	if (!pPrimarySurface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: no primary surface!");
 		return DDERR_GENERIC;
 	}
 
 	// Get backbuffer render target
-	IDirect3DSurface9* pRenderTarget = PrimarySurface->GetD3d9Surface();
+	IDirect3DSurface9* pRenderTarget = pPrimarySurface->GetD3d9Surface();
 	if (!pRenderTarget)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: no render target on primary surface!");
@@ -5121,7 +5121,7 @@ HRESULT m_IDirectDrawX::CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer)
 
 	// Get source rect
 	RECT* pSrcRect = nullptr;
-	RECT SrcRect = { 0, 0, (LONG)PrimarySurface->GetD3d9Width(), (LONG)PrimarySurface->GetD3d9Height() };
+	RECT SrcRect = { 0, 0, (LONG)pPrimarySurface->GetD3d9Width(), (LONG)pPrimarySurface->GetD3d9Height() };
 	if (!ExclusiveMode && hWnd && !IsIconic(hWnd))
 	{
 		// Clip rect
@@ -5162,14 +5162,14 @@ HRESULT m_IDirectDrawX::CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer)
 	{
 		if (SUCCEEDED(hr))
 		{
-			PrimarySurface->ClearDirtyFlags();
+			pPrimarySurface->ClearDirtyFlags();
 		}
 	}
 
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
+HRESULT m_IDirectDrawX::PresentScene(m_IDirectDrawSurfaceX* pPrimarySurface, RECT* pRect)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -5180,16 +5180,15 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 		return DD_OK;
 	}
 
-	if (!PrimarySurface)
+	if (!pPrimarySurface)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: no primary surface!");
 		return DDERR_GENERIC;
 	}
 
-	if (IsInScene())
+	if (PrimarySurface != pPrimarySurface)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: is in Direct3D scene already! PresentToWindow: " << PrimarySurface->ShouldPresentToWindow(true));
-		return DDERR_GENERIC;
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: primary surface doesn't match: " << PrimarySurface << " -> " << pPrimarySurface);
 	}
 
 #ifdef ENABLE_PROFILING
@@ -5197,13 +5196,13 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 #endif
 
 	// Prepare primary surface render target before presenting
-	PrimarySurface->PrepareRenderTarget();
+	pPrimarySurface->PrepareRenderTarget();
 
 	LPRECT pDestRect = nullptr;
 	RECT DestRect = {};
-	if (PrimarySurface->ShouldPresentToWindow(true))
+	if (pPrimarySurface->ShouldPresentToWindow(true))
 	{
-		if (FAILED(PrimarySurface->GetPresentWindowRect(pRect, DestRect)))
+		if (FAILED(pPrimarySurface->GetPresentWindowRect(pRect, DestRect)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get present rect!");
 			return DDERR_GENERIC;
@@ -5218,7 +5217,7 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 	d3d9Device->BeginScene();
 
 	// Copy or draw primary surface before presenting
-	if (IsPrimaryRenderTarget() && !PrimarySurface->GetD3d9Texture(false))
+	if (IsPrimaryRenderTarget() && !pPrimarySurface->GetD3d9Texture(false))
 	{
 		if (IsGammaSet && GammaControlInterface)
 		{
@@ -5242,22 +5241,22 @@ HRESULT m_IDirectDrawX::PresentScene(RECT* pRect)
 					ComPtr<IDirect3DSurface9> pCopySurface;
 					if (SUCCEEDED(ScreenCopyTexture->GetSurfaceLevel(0, pCopySurface.GetAddressOf())))
 					{
-						hr = CopyPrimarySurface(pCopySurface.Get());
+						hr = CopyPrimarySurface(pPrimarySurface, pCopySurface.Get());
 					}
 
 					// Draw surface
-					hr = DrawPrimarySurface(ScreenCopyTexture);
+					hr = DrawPrimarySurface(pPrimarySurface, ScreenCopyTexture);
 				}
 			}
 		}
 		else
 		{
-			hr = CopyPrimarySurface(nullptr);
+			hr = CopyPrimarySurface(pPrimarySurface, nullptr);
 		}
 	}
 	else
 	{
-		hr = DrawPrimarySurface(nullptr);
+		hr = DrawPrimarySurface(pPrimarySurface, nullptr);
 	}
 	if (FAILED(hr))
 	{
@@ -5365,7 +5364,7 @@ DWORD WINAPI m_IDirectDrawX::PresentThreadFunction(LPVOID)
 							d3d9Device->BeginScene();
 
 							// Draw surface before presenting
-							pDDraw->DrawPrimarySurface(nullptr);
+							pDDraw->DrawPrimarySurface(pPrimarySurface, nullptr);
 
 							// End scene
 							d3d9Device->EndScene();

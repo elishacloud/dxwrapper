@@ -76,8 +76,8 @@ private:
 	HRESULT CreateD9Object();
 	void BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height);
 	void RestoreState(DRAWSTATEBACKUP& DrawStates);
-	HRESULT CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer);
-	HRESULT DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture);
+	HRESULT CopyPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurface, LPDIRECT3DSURFACE9 pDestBuffer);
+	HRESULT DrawPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurface, LPDIRECT3DTEXTURE9 pDisplayTexture);
 	static DWORD WINAPI PresentThreadFunction(LPVOID);
 	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
 	void RestoreD3DDeviceState();
@@ -306,7 +306,7 @@ public:
 	HRESULT GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
 	HRESULT SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
 	bool IsUsingThreadPresent();
-	HRESULT PresentScene(RECT* pRect);
+	HRESULT PresentScene(m_IDirectDrawSurfaceX* pPrimarySurface, RECT* pRect);
 
 	// External static functions
 	static bool CheckDirectDrawXInterface(void* pInterface);

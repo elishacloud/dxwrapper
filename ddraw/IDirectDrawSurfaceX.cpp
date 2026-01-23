@@ -5515,18 +5515,13 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(LPRECT lpDestRect, bool IsSkipScen
 	// Check for device interface
 	CheckCreateInterface(this, __FUNCTION__, true, true, true);
 
-	bool ShouldSkipScene = ((IsSkipScene && !SceneReady) || IsPresentRunning);
-
-	// Check if is not primary surface or if scene should be skipped
-	if (ShouldWriteToGDI() || ddrawParent->IsInScene())
+	// Check if scene should be skipped
+	if ((IsSkipScene && !SceneReady) || IsPresentRunning)
 	{
-		// Never present when writing to GDI, presenting to a window or using Direct3D and InScene
-		if (IsPrimarySurface() && !ShouldSkipScene)
-		{
-			SceneReady = true;
-		}
+		Logging::LogDebug() << __FUNCTION__ << " Skipping scene!";
 		return DD_OK;
 	}
+	// Check if is not primary surface
 	else if (!IsPrimarySurface())
 	{
 		if (SceneReady && !IsPresentRunning)
@@ -5537,23 +5532,11 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(LPRECT lpDestRect, bool IsSkipScen
 				return lpDDSrcSurfaceX->PresentSurface(lpDestRect, IsSkipScene, false);
 			}
 		}
-		return DDERR_GENERIC;
-	}
-	else if (ShouldSkipScene)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Skipping scene!";
-		return DDERR_GENERIC;
+		return DD_OK;
 	}
 
 	// Set scene ready
 	SceneReady = true;
-
-	// Check if surface is locked or has an open DC
-	if (IsSurfaceBusy())
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Surface is busy!";
-		return DDERR_SURFACEBUSY;
-	}
 
 	ScopedCriticalSection ThreadLock(GetCriticalSection(), !SkipCriticalSection);
 
@@ -5563,8 +5546,22 @@ HRESULT m_IDirectDrawSurfaceX::PresentSurface(LPRECT lpDestRect, bool IsSkipScen
 	// Check interface after critical section
 	CheckOnlyInterfaceSafty(this, __FUNCTION__, false);
 
+	// Check if surface is locked or has an open DC
+	if (IsSurfaceBusy())
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Surface is busy!";
+		return DDERR_SURFACEBUSY;
+	}
+
+	// Check if device is inscene
+	if (ddrawParent->IsInScene())
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: is in Direct3D scene already! PresentToWindow: " << ShouldPresentToWindow(true));
+		return DDERR_GENERIC;
+	}
+
 	// Present to d3d9
-	HRESULT hr = ddrawParent->PresentScene(lpDestRect);
+	HRESULT hr = ddrawParent->PresentScene(this, lpDestRect);
 	if (FAILED(hr))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to present 2D scene!");
@@ -6005,7 +6002,7 @@ bool m_IDirectDrawSurfaceX::CheckRectforSkipScene(RECT& DestRect)
 void m_IDirectDrawSurfaceX::BeginWritePresent(bool IsSkipScene)
 {
 	// Check if data needs to be presented before write
-	if (dirtyFlag)
+	if (dirtyFlag && !ShouldWriteToGDI())
 	{
 		if (FAILED(PresentSurface(nullptr, IsSkipScene, false)))
 		{
