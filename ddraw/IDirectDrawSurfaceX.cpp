@@ -5483,7 +5483,6 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	if (ResetDisplayFlags && !ResetSurface)
 	{
 		surfaceDesc2.dwFlags &= ~ResetDisplayFlags;
-		ClearUnusedValues(surfaceDesc2);
 	}
 
 	if (surfaceDesc2.dwFlags & DDSD_REFRESHRATE)
