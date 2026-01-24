@@ -5075,10 +5075,18 @@ void m_IDirectDrawSurfaceX::UpdateAttachedDepthStencil(m_IDirectDrawSurfaceX* lp
 
 void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 {
+	// Get surface flags
 	bool IsChanged = false;
+	DWORD Flags = surfaceDesc2.dwFlags;
+	if (ShouldResetDisplayFlags)
+	{
+		Flags &= ~ResetDisplayFlags;
+	}
+
+	// Add missing flags
 	if (SUCCEEDED(CheckInterface(__FUNCTION__, false, false, false)) &&
-		((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) ||
-		((surfaceDesc2.dwFlags & DDSD_REFRESHRATE) && !surfaceDesc2.dwRefreshRate)))
+		((Flags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) ||
+		((Flags & DDSD_REFRESHRATE) && !surfaceDesc2.dwRefreshRate)))
 	{
 		// Get resolution
 		DWORD Width, Height, RefreshRate, BPP;
@@ -5086,26 +5094,26 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 
 		// Set Height and Width
 		if (Width && Height &&
-			(surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) != (DDSD_WIDTH | DDSD_HEIGHT))
+			(Flags & (DDSD_WIDTH | DDSD_HEIGHT)) != (DDSD_WIDTH | DDSD_HEIGHT))
 		{
 			ResetDisplayFlags |= DDSD_WIDTH | DDSD_HEIGHT;
-			surfaceDesc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
+			Flags |= DDSD_WIDTH | DDSD_HEIGHT;
 			surfaceDesc2.dwWidth = Width;
 			surfaceDesc2.dwHeight = Height;
 			surfaceDesc2.lPitch = 0;
 			IsChanged = true;
 		}
 		// Set Refresh Rate
-		if (RefreshRate && ((surfaceDesc2.dwFlags & DDSD_REFRESHRATE) || IsPrimaryOrBackBuffer()))
+		if (RefreshRate && ((Flags & DDSD_REFRESHRATE) || IsPrimaryOrBackBuffer()))
 		{
-			surfaceDesc2.dwFlags |= DDSD_REFRESHRATE;
+			Flags |= DDSD_REFRESHRATE;
 			surfaceDesc2.dwRefreshRate = RefreshRate;
 		}
 		// Set PixelFormat
-		if (BPP && !(surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
+		if (BPP && !(Flags & DDSD_PIXELFORMAT))
 		{
 			ResetDisplayFlags |= DDSD_PIXELFORMAT;
-			surfaceDesc2.dwFlags |= DDSD_PIXELFORMAT;
+			Flags |= DDSD_PIXELFORMAT;
 			ddrawParent->GetDisplayPixelFormat(surfaceDesc2.ddpfPixelFormat, BPP);
 			surfaceDesc2.lPitch = 0;
 			IsChanged = true;
@@ -5124,34 +5132,34 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	// Remove surface memory pointer
 	if (!surface.UsingSurfaceMemory)
 	{
-		surfaceDesc2.dwFlags &= ~DDSD_LPSURFACE;
+		Flags &= ~DDSD_LPSURFACE;
 		surfaceDesc2.lpSurface = nullptr;
 	}
 	// Unset lPitch
-	if ((((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) ||
-		!(surfaceDesc2.dwFlags & DDSD_PITCH)) && !(surfaceDesc2.dwFlags & DDSD_LINEARSIZE)) || !surfaceDesc2.lPitch)
+	if ((((Flags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) ||
+		!(Flags & DDSD_PITCH)) && !(Flags & DDSD_LINEARSIZE)) || !surfaceDesc2.lPitch)
 	{
-		surfaceDesc2.dwFlags &= ~(DDSD_PITCH | DDSD_LINEARSIZE);
+		Flags &= ~(DDSD_PITCH | DDSD_LINEARSIZE);
 		surfaceDesc2.lPitch = 0;
 	}
 	// Set lPitch
-	if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
-		!(surfaceDesc2.dwFlags & DDSD_LINEARSIZE) && !(surfaceDesc2.dwFlags & DDSD_PITCH))
+	if ((Flags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) == (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) &&
+		!(Flags & DDSD_LINEARSIZE) && !(Flags & DDSD_PITCH))
 	{
 		DWORD Pitch = ComputePitch(GetDisplayFormat(surfaceDesc2.ddpfPixelFormat), surfaceDesc2.dwWidth, surfaceDesc2.dwHeight);
 		if (Pitch)
 		{
-			surfaceDesc2.dwFlags |= DDSD_PITCH;
+			Flags |= DDSD_PITCH;
 			surfaceDesc2.lPitch = Pitch;
 		}
 	}
 	// Set surface format
-	if (surface.Format == D3DFMT_UNKNOWN && (surfaceDesc2.dwFlags & DDSD_PIXELFORMAT))
+	if (surface.Format == D3DFMT_UNKNOWN && (Flags & DDSD_PIXELFORMAT))
 	{
 		surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	}
 	// Set attached stencil surface size
-	if (IsChanged && (surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT))
+	if (IsChanged && (Flags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT))
 	{
 		m_IDirectDrawSurfaceX* lpAttachedSurfaceX = GetAttachedDepthStencil();
 		if (lpAttachedSurfaceX && (surfaceDesc2.dwWidth != lpAttachedSurfaceX->surfaceDesc2.dwWidth ||
@@ -5167,6 +5175,15 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 				ddrawParent->SetDepthStencilSurface(lpAttachedSurfaceX);
 			}
 		}
+	}
+
+	// Add flags to surface desc
+	surfaceDesc2.dwFlags |= Flags;
+
+	// Clear reset flag
+	if ((Flags & ResetDisplayFlags) == ResetDisplayFlags)
+	{
+		ShouldResetDisplayFlags = false;
 	}
 }
 
@@ -5482,7 +5499,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	// Reset display flags
 	if (ResetDisplayFlags && !ResetSurface)
 	{
-		surfaceDesc2.dwFlags &= ~ResetDisplayFlags;
+		ShouldResetDisplayFlags = true;
 	}
 
 	if (surfaceDesc2.dwFlags & DDSD_REFRESHRATE)
