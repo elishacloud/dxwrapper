@@ -3337,8 +3337,9 @@ void m_IDirect3DDevice9Ex::CreateShadowBackbuffer()
 
 	for (size_t i = 0; i < BackBufferCount; ++i)
 	{
+		const BOOL IsLockable = (Desc.MultiSampleType == D3DMULTISAMPLE_NONE ? TRUE : FALSE);
 		m_IDirect3DSurface9* surf = nullptr;
-		if (FAILED(CreateRenderTarget(Desc.Width, Desc.Height, Desc.Format, Desc.MultiSampleType, Desc.MultiSampleQuality, FALSE, reinterpret_cast<IDirect3DSurface9**>(&surf), nullptr)))
+		if (FAILED(CreateRenderTarget(Desc.Width, Desc.Height, Desc.Format, Desc.MultiSampleType, Desc.MultiSampleQuality, IsLockable, reinterpret_cast<IDirect3DSurface9**>(&surf), nullptr)))
 		{
 			Logging::Log() << __FUNCTION__ << " Error: failed to create render target!";
 			ShadowBackbuffer->ReleaseAll();
