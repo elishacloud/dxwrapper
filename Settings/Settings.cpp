@@ -833,7 +833,6 @@ void CONFIG::SetConfig()
 	// Set unset options
 	CacheClipPlane = (CacheClipPlane != 0);
 	DdrawForceMipMapAutoGen = DdrawForceMipMapAutoGen || ForceMipMapAutoGen;
-	ForceMipMapAutoGen = ForceMipMapAutoGen;
 	DdrawResolutionHack = (DdrawResolutionHack != 0);
 	LimitStateBlocks = (LimitStateBlocks != NOT_EXIST) ? LimitStateBlocks : (Dd7to9 || D3d8to9);
 	WindowModeGammaShader = (WindowModeGammaShader != NOT_EXIST) ? WindowModeGammaShader : 1;
