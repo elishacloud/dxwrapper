@@ -586,6 +586,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 	}
 
 	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Width << " " << Height << " " << Levels << " " << Usage << " " << Format << " " << Pool << " " << pSharedHandle;
+
 	return hr;
 }
 
