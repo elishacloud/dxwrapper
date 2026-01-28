@@ -4405,9 +4405,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	UpdateSurfaceDesc();
 
 	// Get texture format
+	const bool IsMipMapEnabled = (surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && surfaceDesc2.dwMipMapCount != 1 && IsSurfaceTexture();
 	surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surface.BitCount = GetBitCount(surface.Format);
-	SurfaceRequiresEmulation = (CanSurfaceUseEmulation() && (Config.DdrawEmulateSurface || ShouldEmulate == SC_FORCE_EMULATED ||
+	SurfaceRequiresEmulation = (CanSurfaceUseEmulation() && ((!IsMipMapEnabled && (Config.DdrawEmulateSurface || ShouldEmulate == SC_FORCE_EMULATED)) ||
 		surface.Format == D3DFMT_A8B8G8R8 || surface.Format == D3DFMT_X8B8G8R8 || surface.Format == D3DFMT_B8G8R8 || surface.Format == D3DFMT_R8G8B8));
 	const bool CreateSurfaceEmulated = (CanSurfaceUseEmulation() && (SurfaceRequiresEmulation ||
 		(IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI || Config.DdrawRemoveScanlines))));
@@ -4528,12 +4529,11 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 		else if (IsTexture)
 		{
 			surface.Type = D3DTYPE_TEXTURE;
-			DWORD MipMapCount = (surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) ? surfaceDesc2.dwMipMapCount : 1;
-			DWORD MipMapLevel = (CreateSurfaceEmulated || !MipMapCount) ? 1 : MipMapCount;
+			DWORD MipMapLevel = IsMipMapEnabled && !CreateSurfaceEmulated ? surfaceDesc2.dwMipMapCount : 1;
 			HRESULT hr_t;
 			do {
-				surface.Usage = (Config.DdrawForceMipMapAutoGen && MipMapLevel > 1) ? D3DUSAGE_AUTOGENMIPMAP : 0;
-				DWORD Level = ((surface.Usage & D3DUSAGE_AUTOGENMIPMAP) && MipMapLevel == MipMapCount) ? 0 : MipMapLevel;
+				surface.Usage = (Config.DdrawForceMipMapAutoGen && MipMapLevel != 1) ? D3DUSAGE_AUTOGENMIPMAP : 0;
+				DWORD Level = (surface.Usage & D3DUSAGE_AUTOGENMIPMAP) == 0 ? MipMapLevel : 0;
 				// Create texture
 				hr_t = (*d3d9Device)->CreateTexture(surface.Width, surface.Height, Level, surface.Usage, Format, surface.Pool, &surface.Texture, nullptr);
 				if (FAILED(hr_t))
@@ -4547,7 +4547,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 				hr = DDERR_GENERIC;
 				break;
 			}
-			MaxMipMapLevel = (MipMapLevel > 1 && !IsMipMapAutogen()) ? MipMapLevel - 1 : 0;
+			MaxMipMapLevel = (!IsMipMapEnabled || IsMipMapAutogen() || CreateSurfaceEmulated ? 1 : MipMapLevel > 0 ? MipMapLevel : surface.Texture->GetLevelCount()) - 1;
 			while (MipMaps.size() < MaxMipMapLevel)
 			{
 				MIPMAP MipMap;
