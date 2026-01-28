@@ -1078,21 +1078,6 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 	{
 		AfterBeginScene();
 
-		// Get DeviceCaps
-		if (Caps.DeviceType == NULL)
-		{
-			if (SUCCEEDED(ProxyInterface->GetDeviceCaps(&Caps)))
-			{
-				// Set for Anisotropic Filtering
-				MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
-			}
-			else
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: Falied to get DeviceCaps (" << this << ")");
-				ZeroMemory(&Caps, sizeof(D3DCAPS9));
-			}
-		}
-
 		// Set for Multisample
 		if (SHARED.DeviceMultiSampleFlag)
 		{
@@ -3293,6 +3278,16 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 		DefaultRampData.blue[i] = value;
 	}
 
+	if (FAILED(ProxyInterface->GetDeviceCaps(&Caps)))
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Falied to get DeviceCaps (" << this << ")";
+	}
+
+	if (Config.AnisotropicFiltering)
+	{
+		MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
+	}
+
 	ShadowBackbuffer->ReleaseAll();
 
 	if (!SHARED.IsDirectDrawDevice && Config.UseShadowBackbuffer)
@@ -3374,8 +3369,6 @@ void m_IDirect3DDevice9Ex::ReleaseShadowBackbuffer()
 void m_IDirect3DDevice9Ex::ClearVars()
 {
 	// Clear variables
-	ZeroMemory(&Caps, sizeof(D3DCAPS9));
-	MaxAnisotropy = 0;
 	isAnisotropySet = false;
 	AnisotropyDisabledFlag = false;
 	isClipPlaneSet = false;
