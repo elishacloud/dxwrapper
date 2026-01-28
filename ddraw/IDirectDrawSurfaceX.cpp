@@ -4532,7 +4532,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			DWORD MipMapLevel = IsMipMapEnabled && !CreateSurfaceEmulated ? surfaceDesc2.dwMipMapCount : 1;
 			HRESULT hr_t;
 			do {
-				surface.Usage = (Config.DdrawForceMipMapAutoGen && MipMapLevel != 1) ? D3DUSAGE_AUTOGENMIPMAP : 0;
+				surface.Usage = (Config.DdrawForceMipMapAutoGen && MipMapLevel != 1 && (surface.Pool == D3DPOOL_DEFAULT || surface.Pool == D3DPOOL_MANAGED)) ? D3DUSAGE_AUTOGENMIPMAP : 0;
 				DWORD Level = (surface.Usage & D3DUSAGE_AUTOGENMIPMAP) == 0 ? MipMapLevel : 0;
 				// Create texture
 				hr_t = (*d3d9Device)->CreateTexture(surface.Width, surface.Height, Level, surface.Usage, Format, surface.Pool, &surface.Texture, nullptr);
