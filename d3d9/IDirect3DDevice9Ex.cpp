@@ -569,14 +569,17 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 		Format = (D3DFORMAT)Config.OverrideStencilFormat;
 	}
 
-	// ===== FORCE MIPMAPS =====
-	// Only safe for default pool, non-render-target/non-depth-stencil textures
-	if (!(Usage & D3DUSAGE_RENDERTARGET) && !(Usage & D3DUSAGE_DEPTHSTENCIL) && Pool == D3DPOOL_DEFAULT && Levels <= 1)
+	// Only safe for default/managed pool, non-render-target/non-depth-stencil textures
+	if (Config.ForceMipMapAutoGen &&
+		!(Usage & D3DUSAGE_RENDERTARGET) &&
+		!(Usage & D3DUSAGE_DEPTHSTENCIL) &&
+		!(Usage & D3DUSAGE_DYNAMIC) &&
+		(Pool == D3DPOOL_DEFAULT || Pool == D3DPOOL_MANAGED) &&
+		Levels != 1)
 	{
-		Levels = 0;                  // full mip chain
-		Usage |= D3DUSAGE_AUTOGENMIPMAP; // let DX generate mips automatically
+		Levels = 0;
+		Usage |= D3DUSAGE_AUTOGENMIPMAP;
 	}
-	// ==========================
 
 	HRESULT hr = ProxyInterface->CreateTexture(Width, Height, Levels, Usage, Format, Pool, ppTexture, pSharedHandle);
 

@@ -106,6 +106,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(ExcludeProcess) \
 	visit(ForceExclusiveFullscreen) \
 	visit(ForceKeyboardLayout) \
+	visit(ForceMipMapAutoGen) \
 	visit(ForceMixedVertexProcessing) \
 	visit(ForceSystemMemVertexCache) \
 	visit(ForceSingleBeginEndScene) \
@@ -293,7 +294,7 @@ struct CONFIG
 	DWORD OverrideStencilFormat = 0;			// Force Direct3d9 to use this AutoStencilFormat
 	DWORD DdrawOverrideStencilFormat = 0;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
 	DWORD DdrawFlipFillColor = 0;				// Color used to fill the primary surface before flipping
-	bool DdrawForceMipMapAutoGen = false;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
+	bool DdrawForceMipMapAutoGen = false;		// Force Direct3d9 to use this AutoGenMipMap when using Dd7to9
 	bool DdrawEnableMouseHook = false;			// Allow to hook into mouse to limit it to the chosen resolution
 	DWORD DdrawHookSystem32 = 0;				// Hooks the ddraw.dll file in the Windows System32 folder
 	DWORD D3d8HookSystem32 = 0;					// Hooks the d3d8.dll file in the Windows System32 folder
@@ -329,6 +330,7 @@ struct CONFIG
 	DWORD FixPerfCounterUptime = 0;				// Reduces uptime counters to prevent slowdowns in games
 	bool ForceExclusiveFullscreen = false;		// Forces exclusive fullscreen mode in d3d9
 	DHEX ForceKeyboardLayout = {};				// Force specific keyboard layout
+	bool ForceMipMapAutoGen = false;			// Force Direct3d9 to use this AutoGenMipMap
 	bool ForceMixedVertexProcessing = false;	// Forces Mixed mode for vertex processing in d3d9
 	bool ForceSystemMemVertexCache = false;		// Forces System Memory caching for vertexes in d3d9
 	bool ForceSingleBeginEndScene = false;		// Ensures that only a single EndScene/BeginScene pair are called per frame
