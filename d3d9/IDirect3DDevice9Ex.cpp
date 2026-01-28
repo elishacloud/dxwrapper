@@ -573,7 +573,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 	if (Config.ForceMipMapAutoGen &&
 		!(Usage & D3DUSAGE_RENDERTARGET) &&
 		!(Usage & D3DUSAGE_DEPTHSTENCIL) &&
-		!(Usage & D3DUSAGE_DYNAMIC) &&
+		//!(Usage & D3DUSAGE_DYNAMIC) &&
 		(Pool == D3DPOOL_DEFAULT || Pool == D3DPOOL_MANAGED) &&
 		Levels != 1)
 	{
