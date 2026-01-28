@@ -575,7 +575,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 		!(Usage & D3DUSAGE_DEPTHSTENCIL) &&
 		//!(Usage & D3DUSAGE_DYNAMIC) &&
 		(Pool == D3DPOOL_DEFAULT || Pool == D3DPOOL_MANAGED) &&
-		Levels != 1)
+		Levels <= 1)
 	{
 		Levels = 0;
 		Usage |= D3DUSAGE_AUTOGENMIPMAP;
