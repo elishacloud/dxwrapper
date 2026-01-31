@@ -1642,7 +1642,7 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 
 HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD DirectXVersion)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << hWnd << " " << Logging::hex(dwFlags);
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << hWnd << " " << Logging::hex(dwFlags) << " " << DirectXVersion;
 
 	if (Config.Dd7to9)
 	{
@@ -1762,15 +1762,9 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 				// Set device flags
 				Device.MultiThreaded = Device.MultiThreaded || (dwFlags & DDSCL_MULTITHREADED);
+				// The flag (DDSCL_FPUSETUP) is assumed by default in DirectX 7.
 				// The flag (DDSCL_FPUPRESERVE) is assumed by default in DirectX 6 and earlier.
-				Device.FPUPreserve = Device.FPUPreserve || (dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion < 7;
-				/// The flag (DDSCL_FPUSETUP) is assumed by default in DirectX 6 and earlier.
-				if (!Device.FPUSetup && !d3d9Device && ((dwFlags & DDSCL_FPUSETUP) || DirectXVersion < 7))
-				{
-					Logging::Log() << __FUNCTION__ << " Setting single precision FPU and disabling FPU exceptions!";
-					Utils::ApplyFPUSetup();
-					Device.FPUSetup = true;
-				}
+				Device.FPUPreserve = Device.FPUPreserve || (!(dwFlags & DDSCL_FPUSETUP) && ((dwFlags & DDSCL_FPUPRESERVE) || DirectXVersion < 7));
 				// The flag (DDSCL_NOWINDOWCHANGES) means DirectDraw is not allowed to minimize or restore the application window on activation.
 				Device.NoWindowChanges = (DisplayMode.hWnd == LasthWnd && Device.NoWindowChanges) || (dwFlags & DDSCL_NOWINDOWCHANGES);
 
@@ -2448,8 +2442,15 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		LastSetBPP = 0;
 
 		// Device settings
-		Device = {};
-		Device.IsWindowed = true;
+		{
+			// Make multi-threaded and FPU preserve flags sticky across calls once initiated
+			bool MultiThreaded = Device.MultiThreaded;
+			bool FPUPreserve = Device.FPUPreserve;
+			Device = {};
+			Device.IsWindowed = true;
+			Device.MultiThreaded = MultiThreaded;
+			Device.FPUPreserve = FPUPreserve;
+		}
 
 		// Default gamma
 		IsGammaSet = false;

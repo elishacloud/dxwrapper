@@ -160,7 +160,6 @@ struct DEVICESETTINGS
 	bool AntiAliasing;
 	bool MultiThreaded;
 	bool FPUPreserve;
-	bool FPUSetup;
 	bool NoWindowChanges;
 	DWORD Width;
 	DWORD Height;
