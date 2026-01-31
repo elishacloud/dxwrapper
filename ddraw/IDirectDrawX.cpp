@@ -3654,6 +3654,12 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		return hr;
 	}
 
+	// Log when FPU precision is disabled as it permanently changes the FPU computing
+	if (!(BehaviorFlags & D3DCREATE_FPU_PRESERVE))
+	{
+		LOG_ONCE(__FUNCTION__ << " Setting single precision FPU!");
+	}
+
 	// Reset flags after creating device
 	CreationInterface = this;
 	IsDeviceLost = false;
