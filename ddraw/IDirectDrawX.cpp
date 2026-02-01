@@ -3484,7 +3484,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	}
 
 	// Enable antialiasing (only works when using discard swap effect)
-	if (Device.AntiAliasing && !presParams.Windowed)
+	if (Device.AntiAliasing)
 	{
 		for (int x = D9SampleType; x > 0; x--)
 		{
@@ -3495,6 +3495,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			{
 				presParams.MultiSampleType = Samples;
 				presParams.MultiSampleQuality = (QualityLevels > 0) ? QualityLevels - 1 : 0;
+				presParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
 				LOG_ONCE(__FUNCTION__ << " Enabling antialiasing " << presParams.MultiSampleType << " samples " << presParams.MultiSampleQuality << " quality!");
 				break;
 			}
@@ -5220,7 +5221,7 @@ HRESULT m_IDirectDrawX::PresentScene(m_IDirectDrawSurfaceX* pPrimarySurface, REC
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get present rect!");
 			return DDERR_GENERIC;
 		}
-		if (presParams.SwapEffect == D3DSWAPEFFECT_COPY)
+		if (presParams.Windowed && !FullScreenWindowed)
 		{
 			pDestRect = &DestRect;
 		}
