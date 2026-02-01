@@ -9,6 +9,8 @@ static constexpr DWORD MinUsedVidMemory = 8 * 1024;			// 8 KBs
 
 static constexpr D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
 
+static constexpr D3DMULTISAMPLE_TYPE D9SampleType = D3DMULTISAMPLE_4_SAMPLES;
+
 static constexpr DWORD MaxPaletteSize = 256;
 
 static constexpr DWORD DXW_ALL_SURFACE_LEVELS = 0xFFFF;

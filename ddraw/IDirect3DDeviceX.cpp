@@ -1619,8 +1619,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 
 			lpCurrentRenderTargetX = lpDDSrcSurfaceX;
 
-			RenderTargetMultiSampleType = lpDDSrcSurfaceX->GetMultiSampleType();
-
 			DWORD OldDepthBits = DepthBitCount;
 
 			DepthBitCount = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
@@ -4767,8 +4765,6 @@ void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 
 					lpCurrentRenderTargetX = lpDDSrcSurfaceX;
 
-					RenderTargetMultiSampleType = lpDDSrcSurfaceX->GetMultiSampleType();
-
 					DepthBitCount = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
 
 					ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
@@ -6244,12 +6240,12 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		{
 			(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, DeviceStates.RenderState[D3DRS_ZENABLE].State);
 		}
-	}
 
-	// Check Multi-Sample Type
-	if (RenderTargetMultiSampleType == D3DMULTISAMPLE_NONE && DeviceStates.RenderState[D3DRS_MULTISAMPLEANTIALIAS].State)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: MultiSample render state enabled on a non-MultiSample render target!");
+		// Check Multi-Sample Type
+		if (DeviceStates.RenderState[D3DRS_MULTISAMPLEANTIALIAS].State && lpCurrentRenderTargetX->GetMultiSampleType() == D3DMULTISAMPLE_NONE)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: MultiSample render state enabled on a non-MultiSample render target!");
+		}
 	}
 
 	// Need to always set viewport

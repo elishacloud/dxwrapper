@@ -608,6 +608,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			}
 		}
 
+		// Check for antialiasing
+		/*if ((Desc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) && ((Desc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) || (Desc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK)))
+		{
+			Device.AntiAliasing = true;
+		}*/
+
 		// Updates for surface description
 		Desc2.dwFlags |= DDSD_CAPS;
 		Desc2.ddsCaps.dwCaps4 = DDSCAPS4_CREATESURFACE;		// Indicates surface was created using CreateSurface()
@@ -2444,12 +2450,13 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		// Device settings
 		{
 			// Make multi-threaded and FPU preserve flags sticky across calls once initiated
-			bool MultiThreaded = Device.MultiThreaded;
-			bool FPUPreserve = Device.FPUPreserve;
+			const bool MultiThreaded = Device.MultiThreaded;
+			const bool FPUPreserve = Device.FPUPreserve;
 			Device = {};
 			Device.IsWindowed = true;
 			Device.MultiThreaded = MultiThreaded;
 			Device.FPUPreserve = FPUPreserve;
+			Device.AntiAliasing = Config.DdrawAllowMultiSampling;
 		}
 
 		// Default gamma
@@ -3216,24 +3223,18 @@ DWORD m_IDirectDrawX::GetHwndThreadID()
 	return FocusWindowThreadID;
 }
 
-D3DMULTISAMPLE_TYPE m_IDirectDrawX::GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels) const
+void m_IDirectDrawX::GetMultiSampleTypeQuality(D3DMULTISAMPLE_TYPE& MaxSampleType, DWORD& QualityLevels) const
 {
-	if (d3d9Object)
+	if (d3d9Device && Device.AntiAliasing)
 	{
-		for (int x = min(D3DMULTISAMPLE_16_SAMPLES, MaxSampleType); x > 0; x--)
-		{
-			D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
-
-			if (SUCCEEDED(d3d9Object->CheckDeviceMultiSampleType(AdapterIndex, D3DDEVTYPE_HAL, Format, presParams.Windowed, Samples, &QualityLevels)))
-			{
-				QualityLevels = (QualityLevels > 0) ? QualityLevels - 1 : 0;
-				return Samples;
-			}
-		}
+		MaxSampleType = presParams.MultiSampleType;
+		QualityLevels = presParams.MultiSampleQuality;
 	}
-
-	QualityLevels = 0;
-	return D3DMULTISAMPLE_NONE;
+	else
+	{
+		MaxSampleType = D3DMULTISAMPLE_NONE;
+		QualityLevels = 0;
+	}
 }
 
 HRESULT m_IDirectDrawX::ResetD9Device()
@@ -3482,16 +3483,21 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		presParams.FullScreen_RefreshRateInHz = Device.RefreshRate;
 	}
 
-	// Enable antialiasing
-	if (Device.AntiAliasing)
+	// Enable antialiasing (only works when using discard swap effect)
+	if (Device.AntiAliasing && !presParams.Windowed)
 	{
-		DWORD QualityLevels = 0;
-
-		// Check AntiAliasing quality
-		if (SUCCEEDED(d3d9Object->CheckDeviceMultiSampleType(AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, presParams.Windowed, D3DMULTISAMPLE_NONMASKABLE, &QualityLevels)))
+		for (int x = D9SampleType; x > 0; x--)
 		{
-			presParams.MultiSampleType = D3DMULTISAMPLE_NONMASKABLE;
-			presParams.MultiSampleQuality = QualityLevels ? QualityLevels - 1 : 0;
+			D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
+			DWORD QualityLevels = 0;
+
+			if (SUCCEEDED(d3d9Object->CheckDeviceMultiSampleType(AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, presParams.Windowed, Samples, &QualityLevels)))
+			{
+				presParams.MultiSampleType = Samples;
+				presParams.MultiSampleQuality = (QualityLevels > 0) ? QualityLevels - 1 : 0;
+				LOG_ONCE(__FUNCTION__ << " Enabling antialiasing " << presParams.MultiSampleType << " samples " << presParams.MultiSampleQuality << " quality!");
+				break;
+			}
 		}
 	}
 

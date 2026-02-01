@@ -721,8 +721,8 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 
 	HRESULT hr = D3DERR_INVALIDCALL;
 
-	// Test for Multisample
-	if (SHARED.DeviceMultiSampleFlag)
+	// Try Multisampling
+	if (SHARED.DeviceMultiSampleFlag && (MultiSample || !SHARED.UseAppMultiSampleState))
 	{
 		hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality, FALSE, ppSurface, pSharedHandle);
 	}
@@ -768,8 +768,8 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 
 	HRESULT hr = D3DERR_INVALIDCALL;
 
-	// Test for Multisample
-	if (SHARED.DeviceMultiSampleFlag)
+	// Try Multisample
+	if (SHARED.DeviceMultiSampleFlag && (MultiSample || !SHARED.UseAppMultiSampleState))
 	{
 		hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality, TRUE, ppSurface, pSharedHandle);
 	}
@@ -2247,8 +2247,8 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 
 	HRESULT hr = D3DERR_INVALIDCALL;
 
-	// Test for Multisample
-	if (SHARED.DeviceMultiSampleFlag)
+	// Try Multisampling
+	if (SHARED.DeviceMultiSampleFlag && (MultiSample || !SHARED.UseAppMultiSampleState))
 	{
 		hr = ProxyInterfaceEx->CreateRenderTargetEx(Width, Height, Format, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality, FALSE, ppSurface, pSharedHandle, Usage);
 	}
@@ -2324,8 +2324,8 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 
 	HRESULT hr = D3DERR_INVALIDCALL;
 
-	// Test for Multisample
-	if (SHARED.DeviceMultiSampleFlag)
+	// Try Multisampling
+	if (SHARED.DeviceMultiSampleFlag && (MultiSample || !SHARED.UseAppMultiSampleState))
 	{
 		hr = ProxyInterfaceEx->CreateDepthStencilSurfaceEx(Width, Height, Format, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality, TRUE, ppSurface, pSharedHandle, Usage);
 	}

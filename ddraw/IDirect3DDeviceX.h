@@ -197,7 +197,6 @@ private:
 	// Render target
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
 	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
-	D3DMULTISAMPLE_TYPE RenderTargetMultiSampleType = D3DMULTISAMPLE_NONE;
 	DWORD DepthBitCount = 0;
 
 	// SetTexture array

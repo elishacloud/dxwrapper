@@ -40,6 +40,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DDrawCompat32) \
 	visit(DDrawCompatDisableGDIHook) \
 	visit(DDrawCompatNoProcAffinity) \
+	visit(DdrawAllowMultiSampling) \
 	visit(DdrawAlternatePixelCenter) \
 	visit(DdrawAutoFrameSkip) \
 	visit(DdrawClampVertexZDepth) \
@@ -257,6 +258,7 @@ struct CONFIG
 	bool DDrawCompat32 = false;					// Enables DDrawCompat v0.3.2
 	bool DDrawCompatDisableGDIHook = false;		// Disables DDrawCompat GDI hooks
 	bool DDrawCompatNoProcAffinity = false;		// Disables DDrawCompat single processor affinity
+	bool DdrawAllowMultiSampling = false;		// Allows the game to use anti-aliasing if it enables it via the render state
 	bool DdrawAlternatePixelCenter = false;		// Enables alternate pixel center -0.5f vs 0.0
 	DWORD DdrawClampVertexZDepth = 0;			// 1) Clamps z depth to a max of 1.0f, 2) Clamps the z depth between 0.0f and 1.0f and recomputes w/rhw
 	bool DdrawAutoFrameSkip = false;			// Automatically skips frames to reduce input lag

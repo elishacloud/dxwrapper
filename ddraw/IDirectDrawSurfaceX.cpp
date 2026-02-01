@@ -4479,8 +4479,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			surface.Type = D3DTYPE_DEPTHSTENCIL;
 			surface.Usage = D3DUSAGE_DEPTHSTENCIL;
 			surface.Pool = D3DPOOL_DEFAULT;
-			if (FAILED((*d3d9Device)->CreateDepthStencilSurface(surface.Width, surface.Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, surface.MultiSampleType ? TRUE : FALSE, &surface.Surface, nullptr)) &&
-				FAILED((*d3d9Device)->CreateDepthStencilSurface(surface.Width, surface.Height, GetFailoverFormat(Format), surface.MultiSampleType, surface.MultiSampleQuality, surface.MultiSampleType ? TRUE : FALSE, &surface.Surface, nullptr)))
+			ddrawParent->GetMultiSampleTypeQuality(surface.MultiSampleType, surface.MultiSampleQuality);
+			BOOL Discard = surface.MultiSampleType != D3DMULTISAMPLE_NONE;
+			if (FAILED((*d3d9Device)->CreateDepthStencilSurface(surface.Width, surface.Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, Discard, &surface.Surface, nullptr)) &&
+				FAILED((*d3d9Device)->CreateDepthStencilSurface(surface.Width, surface.Height, GetFailoverFormat(Format), surface.MultiSampleType, surface.MultiSampleQuality, Discard, &surface.Surface, nullptr)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create depth stencil surface. Size: " << surface.Width << "x" << surface.Height << " Format: " << Format << " dwCaps: " << surfaceDesc2.ddsCaps);
 				hr = DDERR_GENERIC;
@@ -4507,9 +4509,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			}
 			else
 			{
-				BOOL IsLockable = (surface.MultiSampleType || Config.DdrawUseShadowSurface || (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE)) ? FALSE : TRUE;
-				surface.IsLockable = (IsLockable == TRUE);
 				surface.Type = D3DTYPE_RENDERTARGET;
+				ddrawParent->GetMultiSampleTypeQuality(surface.MultiSampleType, surface.MultiSampleQuality);
+				BOOL IsLockable = (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE) == 0 && surface.MultiSampleType == D3DMULTISAMPLE_NONE;
+				surface.IsLockable = IsLockable != FALSE;
 				if (FAILED((*d3d9Device)->CreateRenderTarget(surface.Width, surface.Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)) &&
 					FAILED((*d3d9Device)->CreateRenderTarget(surface.Width, surface.Height, GetFailoverFormat(Format), surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)))
 				{

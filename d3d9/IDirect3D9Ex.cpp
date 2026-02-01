@@ -569,6 +569,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	}
 
 	// Needs to be set before updating present parameters
+	DeviceDetails.IsDirectDrawDevice = (DeviceDetails.IsDirectDrawDevice || ClientDirectXVersion <= 7);
 	DeviceDetails.ClientDirectXVersion = ClientDirectXVersion;
 	DeviceDetails.Adapter = Adapter;
 	DeviceDetails.DeviceType = DeviceType;
@@ -671,7 +672,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 				DeviceDetails.BackBufferFormat = desc.Format;
 			}
 
-			if (MultiSampleFlag)
+			if (MultiSampleFlag || (pPresentationParameters->MultiSampleType && DeviceDetails.IsDirectDrawDevice))
 			{
 				DeviceDetails.DeviceMultiSampleFlag = true;
 				DeviceDetails.SetMultiSampleState = true;
