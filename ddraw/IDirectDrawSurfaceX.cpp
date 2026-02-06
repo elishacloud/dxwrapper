@@ -2410,6 +2410,13 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			}
 		}
 
+		// Check if surface is not lockable
+		if (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: surface is not lockable!");
+			return DDERR_CANTLOCKSURFACE;
+		}
+
 		// Check for video memory zbuffers
 		if ((IsDepthStencil() || (surface.Usage & D3DUSAGE_DEPTHSTENCIL)) && IsD9UsingVideoMemory())
 		{
