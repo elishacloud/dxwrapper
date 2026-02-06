@@ -1817,7 +1817,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 			CheckOnlyInterfaceSafty(this, __FUNCTION__, false);
 
 			// Check if render target should use shadow
-			if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !IsUsingShadowSurface())
+			if (ShouldUseShadowSurface(MipMapLevel))
 			{
 				SetRenderTargetShadow();
 			}
@@ -2496,18 +2496,15 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			CheckOnlyInterfaceSafty(this, __FUNCTION__, false);
 
 			// Check if render target should use shadow
-			if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET))
+			if (surface.IsLockable && !Config.DdrawUseShadowSurface)
 			{
-				if (surface.IsLockable)
-				{
-					// Don't use shadow for Lock()
-					// Some games write to surface without locking so we don't want to give them a shadow surface or it could make the shadow surface out of sync
-					PrepareRenderTarget();
-				}
-				else if (!IsUsingShadowSurface())
-				{
-					SetRenderTargetShadow();
-				}
+				// Don't use shadow for Lock()
+				// Some games write to surface without locking so we don't want to give them a shadow surface or it could make the shadow surface out of sync
+				PrepareRenderTarget();
+			}
+			else if (ShouldUseShadowSurface(MipMapLevel))
+			{
+				SetRenderTargetShadow();
 			}
 
 			// Emulated surface
@@ -4511,8 +4508,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			{
 				surface.Type = D3DTYPE_RENDERTARGET;
 				ddrawParent->GetMultiSampleTypeQuality(surface.MultiSampleType, surface.MultiSampleQuality);
-				BOOL IsLockable = (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE) == 0 && surface.MultiSampleType == D3DMULTISAMPLE_NONE;
-				surface.IsLockable = IsLockable != FALSE;
+				BOOL IsLockable = surface.MultiSampleType == D3DMULTISAMPLE_NONE && !Config.DdrawUseShadowSurface;
 				if (FAILED((*d3d9Device)->CreateRenderTarget(surface.Width, surface.Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)) &&
 					FAILED((*d3d9Device)->CreateRenderTarget(surface.Width, surface.Height, GetFailoverFormat(Format), surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)))
 				{
@@ -4711,7 +4707,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 				for (UINT Level = 0; Level < LostDeviceBackup.size(); Level++)
 				{
 					// Check if render target should use shadow
-					if (Level == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !surface.IsLockable && !IsUsingShadowSurface())
+					if (ShouldUseShadowSurface(Level))
 					{
 						SetRenderTargetShadow();
 					}
@@ -5422,7 +5418,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 				for (UINT Level = 0; Level < ((IsMipMapAutogen() || !MaxMipMapLevel) ? 1 : MaxMipMapLevel); Level++)
 				{
 					// Check if render target should use shadow
-					if (Level == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !surface.IsLockable && !IsUsingShadowSurface())
+					if (ShouldUseShadowSurface(Level))
 					{
 						SetRenderTargetShadow();
 					}
@@ -7009,13 +7005,13 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Check if source render target should use shadow
-		if (SrcMipMapLevel == 0 && (pSourceSurface->surface.Usage & D3DUSAGE_RENDERTARGET) && !pSourceSurface->IsUsingShadowSurface())
+		if (pSourceSurface->ShouldUseShadowSurface(SrcMipMapLevel))
 		{
 			pSourceSurface->SetRenderTargetShadow();
 		}
 
 		// Check if render target should use shadow
-		if (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && !IsUsingShadowSurface())
+		if (ShouldUseShadowSurface(MipMapLevel))
 		{
 			SetRenderTargetShadow();
 		}
