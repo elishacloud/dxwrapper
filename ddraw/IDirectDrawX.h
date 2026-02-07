@@ -244,6 +244,7 @@ public:
 	HWND GetHwnd();
 	DWORD GetHwndThreadID();
 	HDC GetDC();
+	DWORD GetPresentUSN();
 	bool IsExclusiveMode();
 	DWORD GetLastDrawDevice();
 	void SetLastDrawDevice(DWORD DrawDevice);

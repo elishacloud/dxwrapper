@@ -129,6 +129,7 @@ namespace {
 	HWND hFocusWindow = nullptr;
 	DWORD FocusWindowThreadID = 0;
 	DWORD LastDrawDevice = 0;
+	DWORD PresentUSN = 0;
 
 	std::unordered_map<HWND, m_IDirectDrawX*> g_hookmap;
 }
@@ -2899,6 +2900,11 @@ HDC m_IDirectDrawX::GetDC()
 	return IsWindow(DisplayMode.hWnd) && WindowFromDC(DisplayMode.DC) ? DisplayMode.DC : nullptr;
 }
 
+DWORD m_IDirectDrawX::GetPresentUSN()
+{
+	return PresentUSN;
+}
+
 bool m_IDirectDrawX::IsExclusiveMode()
 {
 	return ExclusiveMode;
@@ -5188,6 +5194,8 @@ HRESULT m_IDirectDrawX::PresentScene(m_IDirectDrawSurfaceX* pPrimarySurface, REC
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	HRESULT hr = DDERR_GENERIC;
+
+	PresentUSN++;
 
 	if (IsUsingThreadPresent())
 	{

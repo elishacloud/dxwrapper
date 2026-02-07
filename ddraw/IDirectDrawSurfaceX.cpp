@@ -626,11 +626,17 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				CheckOnlyInterfaceSafty(lpDDSrcSurfaceX, __FUNCTION__, false);
 			}
 
+			// Compute new surface write
+			if (surface.SurfaceWrites)
+			{
+				ComputeSurfaceWrites();
+			}
+
 			do {
 				// Do color fill
 				if (dwFlags & DDBLT_COLORFILL)
 				{
-					hr = ColorFill(lpDestRect, lpDDBltFx->dwFillColor, MipMapLevel);
+					hr = ColorFill(lpDestRect, lpDDBltFx->dwFillColor, MipMapLevel, true);
 					break;
 				}
 
@@ -643,12 +649,12 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 					}
 					else if (lpDDBltFx->dwROP == BLACKNESS)
 					{
-						hr = ColorFill(lpDestRect, 0x00000000, MipMapLevel);
+						hr = ColorFill(lpDestRect, 0x00000000, MipMapLevel, true);
 						break;
 					}
 					else if (lpDDBltFx->dwROP == WHITENESS)
 					{
-						hr = ColorFill(lpDestRect, 0xFFFFFFFF, MipMapLevel);
+						hr = ColorFill(lpDestRect, 0xFFFFFFFF, MipMapLevel, true);
 						break;
 					}
 					else
@@ -1816,8 +1822,14 @@ HRESULT m_IDirectDrawSurfaceX::GetDC(HDC FAR* lphDC, DWORD MipMapLevel)
 			// Check interface after critical section
 			CheckOnlyInterfaceSafty(this, __FUNCTION__, false);
 
+			// Compute new surface write
+			if (surface.SurfaceWrites)
+			{
+				ComputeSurfaceWrites();
+			}
+
 			// Check if render target should use shadow
-			if (ShouldUseShadowSurface(MipMapLevel))
+			if (ShouldUseShadowSurface(MipMapLevel, true))
 			{
 				SetRenderTargetShadow();
 			}
@@ -2502,14 +2514,19 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			// Check interface after critical section
 			CheckOnlyInterfaceSafty(this, __FUNCTION__, false);
 
-			// Check if render target should use shadow
-			if (surface.IsLockable && !Config.DdrawUseShadowSurface)
+			// Compute new surface write
+			ComputeSurfaceWrites();
+
+			const bool TooManyWrites = (surface.SurfaceWrites > 2);
+
+			// Check if render target should use shadow (if not too many surface writes)
+			if (surface.IsLockable && !Config.DdrawUseShadowSurface && !TooManyWrites)
 			{
 				// Don't use shadow for Lock()
 				// Some games write to surface without locking so we don't want to give them a shadow surface or it could make the shadow surface out of sync
 				PrepareRenderTarget();
 			}
-			else if (ShouldUseShadowSurface(MipMapLevel))
+			else if (ShouldUseShadowSurface(MipMapLevel, TooManyWrites))
 			{
 				SetRenderTargetShadow();
 			}
@@ -4515,7 +4532,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			{
 				surface.Type = D3DTYPE_RENDERTARGET;
 				ddrawParent->GetMultiSampleTypeQuality(surface.MultiSampleType, surface.MultiSampleQuality);
-				BOOL IsLockable = surface.MultiSampleType == D3DMULTISAMPLE_NONE && !Config.DdrawUseShadowSurface;
+				BOOL IsLockable = !surface.MultiSampleType && !Config.DdrawUseShadowSurface && !(surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE);
 				if (FAILED((*d3d9Device)->CreateRenderTarget(surface.Width, surface.Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)) &&
 					FAILED((*d3d9Device)->CreateRenderTarget(surface.Width, surface.Height, GetFailoverFormat(Format), surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)))
 				{
@@ -4714,7 +4731,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 				for (UINT Level = 0; Level < LostDeviceBackup.size(); Level++)
 				{
 					// Check if render target should use shadow
-					if (ShouldUseShadowSurface(Level))
+					if (ShouldUseShadowSurface(Level, false))
 					{
 						SetRenderTargetShadow();
 					}
@@ -5425,7 +5442,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 				for (UINT Level = 0; Level < ((IsMipMapAutogen() || !MaxMipMapLevel) ? 1 : MaxMipMapLevel); Level++)
 				{
 					// Check if render target should use shadow
-					if (ShouldUseShadowSurface(Level))
+					if (ShouldUseShadowSurface(Level, false))
 					{
 						SetRenderTargetShadow();
 					}
@@ -6021,6 +6038,22 @@ bool m_IDirectDrawSurfaceX::CheckRectforSkipScene(RECT& DestRect)
 	return Config.DdrawRemoveInterlacing ? isSingleLine : false;
 }
 
+void m_IDirectDrawSurfaceX::ComputeSurfaceWrites()
+{
+	DWORD PresentUSN = 0;
+	if (ddrawParent)
+	{
+		PresentUSN = ddrawParent->GetPresentUSN();
+	}
+
+	if (surface.LastPresentUSN != PresentUSN)
+	{
+		surface.SurfaceWrites = 0;
+		surface.LastPresentUSN = PresentUSN;
+	}
+	surface.SurfaceWrites++;
+}
+
 void m_IDirectDrawSurfaceX::BeginWritePresent(bool IsSkipScene)
 {
 	// Check if data needs to be presented before write
@@ -6374,7 +6407,7 @@ bool m_IDirectDrawSurfaceX::DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSur
 	return lpTargetSurface->DoesFlipBackBufferExist(lpSurfaceX);
 }
 
-HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWORD MipMapLevel)
+HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWORD MipMapLevel, bool IsBlt)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -6442,6 +6475,12 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid bit count: " << surface.BitCount << " Width: " << FillWidth);
 			return DDERR_GENERIC;
+		}
+
+		// Check if render target should use shadow
+		if (ShouldUseShadowSurface(MipMapLevel, IsBlt))
+		{
+			SetRenderTargetShadow();
 		}
 
 		// Check if surface is not locked then lock it
@@ -7012,13 +7051,13 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Check if source render target should use shadow
-		if (pSourceSurface->ShouldUseShadowSurface(SrcMipMapLevel))
+		if (pSourceSurface->ShouldUseShadowSurface(SrcMipMapLevel, true))
 		{
 			pSourceSurface->SetRenderTargetShadow();
 		}
 
 		// Check if render target should use shadow
-		if (ShouldUseShadowSurface(MipMapLevel))
+		if (ShouldUseShadowSurface(MipMapLevel, true))
 		{
 			SetRenderTargetShadow();
 		}

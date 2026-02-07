@@ -170,6 +170,8 @@ private:
 		D3DPOOL Pool = D3DPOOL_DEFAULT;						// Memory pool texture was created with
 		D3DMULTISAMPLE_TYPE MultiSampleType = D3DMULTISAMPLE_NONE;
 		DWORD MultiSampleQuality = 0;
+		DWORD SurfaceWrites = 0;
+		DWORD LastPresentUSN = 0;
 		DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
 		const PALETTEENTRY* PaletteEntryArray = nullptr;	// Used to store palette data address
 		EMUSURFACE* emu = nullptr;							// Emulated surface using device context
@@ -309,7 +311,9 @@ private:
 	bool IsSurfaceBlitting() const { return (IsInBlt || IsInBltBatch); }
 	bool IsSurfaceInDC(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS);
 	bool IsD9UsingVideoMemory() const { return ((surface.Surface || surface.Texture) ? surface.Pool == D3DPOOL_DEFAULT : false); }
-	bool ShouldUseShadowSurface(DWORD MipMapLevel) const { return (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && (!surface.IsLockable || Config.DdrawUseShadowSurface) && !IsUsingShadowSurface()); }
+	void ComputeSurfaceWrites();
+	bool ShouldUseShadowSurface(DWORD MipMapLevel, bool AlwaysUseShadow) const
+	{ return (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && (AlwaysUseShadow || !surface.IsLockable || Config.DdrawUseShadowSurface) && !IsUsingShadowSurface()); }
 	bool IsUsingShadowSurface() const { return (surface.UsingShadowSurface && surface.Shadow); }
 	bool IsLockedFromOtherThread(DWORD MipMapLevel);
 	bool IsDummyMipMap(DWORD MipMapLevel) { return (MipMapLevel > MaxMipMapLevel || ((MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1 < MipMaps.size() && MipMaps[(MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1].IsDummy)); }
@@ -583,7 +587,7 @@ public:
 	}
 
 	// Draw 2D DirectDraw surface
-	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWORD MipMapLevel);
+	HRESULT ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWORD MipMapLevel, bool IsBlt = false);
 
 	// Attached surfaces
 	void RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX);
