@@ -982,13 +982,23 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 	if (pRenderTarget)
 	{
 		pRenderTarget = static_cast<m_IDirect3DSurface9*>(pRenderTarget)->GetProxyInterface();
-	}
 
-	if (UsingShadowBackBuffer() && pRenderTarget)
-	{
-		if (std::find(BackBufferList.begin(), BackBufferList.end(), pRenderTarget) != BackBufferList.end())
+		if (SHARED.DeviceMultiSampleFlag)
 		{
-			Logging::Log() << __FUNCTION__ << " Warning: application is sending the real render target!";
+			D3DSURFACE_DESC Desc = {};
+
+			if (SUCCEEDED(pRenderTarget->GetDesc(&Desc)) && Desc.MultiSampleType == D3DMULTISAMPLE_NONE)
+			{
+				LOG_LIMIT(3, __FUNCTION__ << " Warning: setting non-MultiSampled render target!");
+			}
+		}
+
+		if (UsingShadowBackBuffer())
+		{
+			if (std::find(BackBufferList.begin(), BackBufferList.end(), pRenderTarget) != BackBufferList.end())
+			{
+				Logging::Log() << __FUNCTION__ << " Warning: application is sending the real render target!";
+			}
 		}
 	}
 
@@ -1003,26 +1013,26 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 
 	HRESULT hr = ProxyInterface->GetRenderTarget(RenderTargetIndex, ppRenderTarget);
 
-	if (UsingShadowBackBuffer() && ppRenderTarget)
-	{
-		auto it = std::find(BackBufferList.begin(), BackBufferList.end(), *ppRenderTarget);
-		if (it != BackBufferList.end())
-		{
-			Logging::Log() << __FUNCTION__ << " Warning: GetRenderTarget is returning the real render target!";
-
-			(*ppRenderTarget)->Release();
-
-			*ppRenderTarget = ShadowBackbuffer->GetCurrentBackBuffer();
-
-			if (!*ppRenderTarget)
-			{
-				return D3DERR_INVALIDCALL;
-			}
-		}
-	}
-
 	if (SUCCEEDED(hr) && ppRenderTarget)
 	{
+		if (UsingShadowBackBuffer())
+		{
+			auto it = std::find(BackBufferList.begin(), BackBufferList.end(), *ppRenderTarget);
+			if (it != BackBufferList.end())
+			{
+				Logging::Log() << __FUNCTION__ << " Warning: GetRenderTarget is returning the real render target!";
+
+				(*ppRenderTarget)->Release();
+
+				*ppRenderTarget = ShadowBackbuffer->GetCurrentBackBuffer();
+
+				if (!*ppRenderTarget)
+				{
+					return D3DERR_INVALIDCALL;
+				}
+			}
+		}
+
 		*ppRenderTarget = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppRenderTarget, this, IID_IDirect3DSurface9, nullptr);
 	}
 
@@ -1036,6 +1046,16 @@ HRESULT m_IDirect3DDevice9Ex::SetDepthStencilSurface(THIS_ IDirect3DSurface9* pN
 	if (pNewZStencil)
 	{
 		pNewZStencil = static_cast<m_IDirect3DSurface9*>(pNewZStencil)->GetProxyInterface();
+
+		if (SHARED.DeviceMultiSampleFlag)
+		{
+			D3DSURFACE_DESC Desc = {};
+
+			if (SUCCEEDED(pNewZStencil->GetDesc(&Desc)) && Desc.MultiSampleType == D3DMULTISAMPLE_NONE)
+			{
+				LOG_LIMIT(3, __FUNCTION__ << " Warning: setting non-MultiSampled depth stencil!");
+			}
+		}
 	}
 
 	return ProxyInterface->SetDepthStencilSurface(pNewZStencil);
