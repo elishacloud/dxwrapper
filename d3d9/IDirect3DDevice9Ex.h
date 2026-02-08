@@ -123,7 +123,14 @@ private:
 	bool isAnisotropySet = false;
 	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
 
-	void ApplyDrawFixes();
+	// Antialiasing
+	bool RenderTargetNonMultiSampled = false;
+	bool DepthStencilNonMultiSampled = false;
+	bool NullDepthStencil = false;
+	m_IDirect3DSurface9* CurrentRenderTarget = nullptr;
+
+	void ApplyPreDrawFixes();
+	void ApplyPostDrawFixes();
 	void ApplyPrePresentFixes();
 	void ApplyPostPresentFixes();
 
@@ -356,6 +363,8 @@ public:
 	StateBlockCache* GetStateBlockTable() const { return &SHARED.StateBlockTable; }
 	StateBlockCache* GetDeletedStateBlock() const { return &SHARED.DeletedStateBlocks; }
 	bool GetDeviceMultiSampleFlag() const { return SHARED.DeviceMultiSampleFlag; }
+	D3DMULTISAMPLE_TYPE GetDeviceMultiSampleType() const { return SHARED.DeviceMultiSampleType; }
+	DWORD GetDeviceMultiSampleQuality() const { return SHARED.DeviceMultiSampleQuality; }
 	DWORD GetClientDXVersion() const { return SHARED.ClientDirectXVersion; }
 	REFIID GetIID() { return WrapperID; }
 

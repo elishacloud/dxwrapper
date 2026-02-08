@@ -6,16 +6,20 @@ private:
 	LPDIRECT3DSURFACE9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	const IID WrapperID = IID_IDirect3DSurface9;
+	bool IsInterfaceReleased = false;
 
 	// For fake emulated locking
 	bool DeviceMultiSampleFlag = false;
+	D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
+	DWORD DeviceMultiSampleQuality = 0;
 	D3DSURFACE_DESC Desc = {};
 	struct {
 		bool ReadOnly = false;
 		m_IDirect3DSurface9* pSurface = nullptr;
 	} Emu;
 
-	m_IDirect3DSurface9* m_GetNonMultiSampledSurface(DWORD Flags);
+	bool ShouldEmulateMultiSampledSurface() const { return (DeviceMultiSampleFlag && Desc.MultiSampleType && (Desc.Usage & D3DUSAGE_RENDERTARGET)); };
+	bool ShouldEmulateNonMultiSampledSurface() const { return (DeviceMultiSampleFlag && !Desc.MultiSampleType && (Desc.Usage & D3DUSAGE_RENDERTARGET)); };
 
 public:
 	m_IDirect3DSurface9(LPDIRECT3DSURFACE9 pSurface9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pSurface9), m_pDeviceEx(pDevice)
@@ -64,11 +68,12 @@ public:
 
 	// Information functions
 	LPDIRECT3DSURFACE9 GetProxyInterface() const { return ProxyInterface; }
-	bool IsEmulatedSurface() const { return (Desc.MultiSampleType && DeviceMultiSampleFlag && !(Desc.Usage & D3DUSAGE_DEPTHSTENCIL)); };
 	ULONG GetSurfaceCount() const { return Emu.pSurface ? 2 : 1; }
+	bool IsValidInterface() const { return !IsInterfaceReleased; }
 
 	// Helper functions
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*);
 	LPDIRECT3DSURFACE9 GetNonMultiSampledSurface(DWORD Flags);
+	LPDIRECT3DSURFACE9 GetMultiSampledSurface();
 	HRESULT RestoreMultiSampleData();
 };

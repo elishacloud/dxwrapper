@@ -979,30 +979,39 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 
 	ScopedCriticalSection ThreadLock(&SHARED.d9cs, RequirePresentHandling());
 
+	m_IDirect3DSurface9* pSurface = static_cast<m_IDirect3DSurface9*>(pRenderTarget);
+
 	if (pRenderTarget)
 	{
-		pRenderTarget = static_cast<m_IDirect3DSurface9*>(pRenderTarget)->GetProxyInterface();
-
-		if (SHARED.DeviceMultiSampleFlag)
-		{
-			D3DSURFACE_DESC Desc = {};
-
-			if (SUCCEEDED(pRenderTarget->GetDesc(&Desc)) && Desc.MultiSampleType == D3DMULTISAMPLE_NONE)
-			{
-				LOG_LIMIT(3, __FUNCTION__ << " Warning: setting non-MultiSampled render target!");
-			}
-		}
+		pRenderTarget = pSurface->GetProxyInterface();
 
 		if (UsingShadowBackBuffer())
 		{
 			if (std::find(BackBufferList.begin(), BackBufferList.end(), pRenderTarget) != BackBufferList.end())
 			{
-				Logging::Log() << __FUNCTION__ << " Warning: application is sending the real render target!";
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: application is sending the real render target!");
 			}
 		}
 	}
 
-	return ProxyInterface->SetRenderTarget(RenderTargetIndex, pRenderTarget);
+	HRESULT hr = ProxyInterface->SetRenderTarget(RenderTargetIndex, pRenderTarget);
+
+	if (SUCCEEDED(hr) && RenderTargetIndex == 0)
+	{
+		CurrentRenderTarget = pSurface;
+
+		if (SHARED.DeviceMultiSampleFlag && pSurface)
+		{
+			D3DSURFACE_DESC Desc = {};
+
+			if (SUCCEEDED(pSurface->GetDesc(&Desc)))
+			{
+				RenderTargetNonMultiSampled = (Desc.MultiSampleType == D3DMULTISAMPLE_NONE);
+			}
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDirect3DSurface9** ppRenderTarget)
@@ -1020,7 +1029,7 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 			auto it = std::find(BackBufferList.begin(), BackBufferList.end(), *ppRenderTarget);
 			if (it != BackBufferList.end())
 			{
-				Logging::Log() << __FUNCTION__ << " Warning: GetRenderTarget is returning the real render target!";
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: GetRenderTarget is returning the real render target!");
 
 				(*ppRenderTarget)->Release();
 
@@ -1043,22 +1052,31 @@ HRESULT m_IDirect3DDevice9Ex::SetDepthStencilSurface(THIS_ IDirect3DSurface9* pN
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	m_IDirect3DSurface9* pSurface = static_cast<m_IDirect3DSurface9*>(pNewZStencil);
+
 	if (pNewZStencil)
 	{
-		pNewZStencil = static_cast<m_IDirect3DSurface9*>(pNewZStencil)->GetProxyInterface();
+		pNewZStencil = pSurface->GetProxyInterface();
+	}
 
-		if (SHARED.DeviceMultiSampleFlag)
+	HRESULT hr = ProxyInterface->SetDepthStencilSurface(pNewZStencil);
+
+	if (SUCCEEDED(hr))
+	{
+		NullDepthStencil = (pSurface == nullptr);
+
+		if (SHARED.DeviceMultiSampleFlag && pSurface)
 		{
 			D3DSURFACE_DESC Desc = {};
 
-			if (SUCCEEDED(pNewZStencil->GetDesc(&Desc)) && Desc.MultiSampleType == D3DMULTISAMPLE_NONE)
+			if (SUCCEEDED(pSurface->GetDesc(&Desc)))
 			{
-				LOG_LIMIT(3, __FUNCTION__ << " Warning: setting non-MultiSampled depth stencil!");
+				DepthStencilNonMultiSampled = (Desc.MultiSampleType == D3DMULTISAMPLE_NONE);
 			}
 		}
 	}
 
-	return ProxyInterface->SetDepthStencilSurface(pNewZStencil);
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetDepthStencilSurface(IDirect3DSurface9** ppZStencilSurface)
@@ -1670,36 +1688,64 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ApplyDrawFixes();
+	ApplyPreDrawFixes();
 
-	return ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
+	HRESULT hr = ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
+
+	if (SUCCEEDED(hr))
+	{
+		ApplyPostDrawFixes();
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ApplyDrawFixes();
+	ApplyPreDrawFixes();
 
-	return ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
+	HRESULT hr = ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
+
+	if (SUCCEEDED(hr))
+	{
+		ApplyPostDrawFixes();
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, CONST void* pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ApplyDrawFixes();
+	ApplyPreDrawFixes();
 
-	return ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
+	HRESULT hr = ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
+
+	if (SUCCEEDED(hr))
+	{
+		ApplyPostDrawFixes();
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT MinIndex, UINT NumVertices, UINT PrimitiveCount, CONST void* pIndexData, D3DFORMAT IndexDataFormat, CONST void* pVertexStreamZeroData, UINT VertexStreamZeroStride)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ApplyDrawFixes();
+	ApplyPreDrawFixes();
 
-	return ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinIndex, NumVertices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
+	HRESULT hr = ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinIndex, NumVertices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
+
+	if (SUCCEEDED(hr))
+	{
+		ApplyPostDrawFixes();
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DDevice9Ex::ProcessVertices(THIS_ UINT SrcStartIndex, UINT DestIndex, UINT VertexCount, IDirect3DVertexBuffer9* pDestBuffer, IDirect3DVertexDeclaration9* pVertexDecl, DWORD Flags)
@@ -2396,7 +2442,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 // Helper functions
 // ******************************
 
-void m_IDirect3DDevice9Ex::ApplyDrawFixes()
+void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 {
 	// CacheClipPlane
 	if (Config.CacheClipPlane && isClipPlaneSet)
@@ -2414,6 +2460,52 @@ void m_IDirect3DDevice9Ex::ApplyDrawFixes()
 	if (Config.EnvironmentCubeMapFix)
 	{
 		SetEnvironmentCubeMapTexture();
+	}
+
+	// Handle render target and depth stencil mismatch
+	if (SHARED.DeviceMultiSampleFlag && CurrentRenderTarget)
+	{
+		if (!CurrentRenderTarget->IsValidInterface())
+		{
+			CurrentRenderTarget = nullptr;
+		}
+		else if (RenderTargetNonMultiSampled != DepthStencilNonMultiSampled && !NullDepthStencil)
+		{
+			LPDIRECT3DSURFACE9 pSurface = RenderTargetNonMultiSampled ? CurrentRenderTarget->GetMultiSampledSurface() : CurrentRenderTarget->GetNonMultiSampledSurface(0);
+			if (pSurface)
+			{
+				m_IDirect3DSurface9* m_pSurface = nullptr;
+				if (SUCCEEDED(pSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&m_pSurface)))
+				{
+					pSurface = m_pSurface->GetProxyInterface();
+				}
+				if (FAILED(ProxyInterface->SetRenderTarget(0, pSurface)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set emulated render target!");
+				}
+			}
+		}
+	}
+}
+
+void m_IDirect3DDevice9Ex::ApplyPostDrawFixes()
+{
+	// Resync surface after render target and depth stencil mismatch
+	if (SHARED.DeviceMultiSampleFlag && CurrentRenderTarget)
+	{
+		if (RenderTargetNonMultiSampled != DepthStencilNonMultiSampled && !NullDepthStencil)
+		{
+			CurrentRenderTarget->RestoreMultiSampleData();
+
+			LPDIRECT3DSURFACE9 pSurface = CurrentRenderTarget->GetProxyInterface();
+			if (pSurface)
+			{
+				if (FAILED(ProxyInterface->SetRenderTarget(0, pSurface)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to reset render target!");
+				}
+			}
+		}
 	}
 }
 
@@ -3322,6 +3414,30 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 		CreateShadowBackbuffer();
 	}
 
+	if (SHARED.DeviceMultiSampleFlag)
+	{
+		// Handle render target
+		{
+			ComPtr<IDirect3DSurface9> pSurface;
+			if (SUCCEEDED(GetRenderTarget(0, pSurface.GetAddressOf())))
+			{
+				CurrentRenderTarget = static_cast<m_IDirect3DSurface9*>(pSurface.Get());
+			}
+		}
+		// Handle depth stencil surface
+		{
+			ComPtr<IDirect3DSurface9> pSurface;
+			if (SUCCEEDED(ProxyInterface->GetDepthStencilSurface(pSurface.GetAddressOf())) && pSurface.Get() != nullptr)
+			{
+				NullDepthStencil = true;
+			}
+			else
+			{
+				NullDepthStencil = false;
+			}
+		}
+	}
+
 	if (Config.ShowFPSCounter)
 	{
 		ApplyPrePresentFixes();	// Loads fonts for FPS counter to get accurate ref count
@@ -3400,6 +3516,10 @@ void m_IDirect3DDevice9Ex::ClearVars()
 	AnisotropyDisabledFlag = false;
 	isClipPlaneSet = false;
 	ClipPlaneRenderState = 0;
+	RenderTargetNonMultiSampled = false;
+	DepthStencilNonMultiSampled = false;
+	NullDepthStencil = false;
+	CurrentRenderTarget = nullptr;
 }
 
 template <typename T>
