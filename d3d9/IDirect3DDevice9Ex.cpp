@@ -84,7 +84,7 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 	{
 		if (riid == IID_IDirect3DDevice9 || riid == IID_IDirect3DDevice9Ex)
 		{
-			*ppvObj = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DDevice9Ex, m_IDirect3D9Ex, UINT>(*ppvObj, m_pD3DEx, riid, DDKey);
+			*ppvObj = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DDevice9Ex, m_IDirect3D9Ex, UINT>(static_cast<IUnknown*>(*ppvObj), m_pD3DEx, riid, DDKey);
 		}
 		else
 		{

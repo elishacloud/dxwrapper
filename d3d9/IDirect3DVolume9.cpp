@@ -112,7 +112,7 @@ HRESULT m_IDirect3DVolume9::GetContainer(THIS_ REFIID riid, void** ppContainer)
 
 	HRESULT hr = ProxyInterface->GetContainer(riid, ppContainer);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && ppContainer)
 	{
 		D3d9Wrapper::genericQueryInterface(riid, ppContainer, m_pDeviceEx);
 	}

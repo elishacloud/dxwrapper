@@ -191,7 +191,7 @@ HRESULT m_IDirect3DTexture9::GetSurfaceLevel(THIS_ UINT Level, IDirect3DSurface9
 
 	if (SUCCEEDED(hr) && ppSurfaceLevel)
 	{
-		*ppSurfaceLevel = m_pDeviceEx->GetLookupTable()->FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurfaceLevel, m_pDeviceEx, IID_IDirect3DSurface9, nullptr);
+		D3d9Wrapper::genericQueryInterface(IID_IDirect3DSurface9, (LPVOID*)ppSurfaceLevel, m_pDeviceEx);
 	}
 
 	return hr;

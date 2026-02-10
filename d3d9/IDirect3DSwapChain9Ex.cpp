@@ -48,7 +48,7 @@ HRESULT m_IDirect3DSwapChain9Ex::QueryInterface(THIS_ REFIID riid, void** ppvObj
 	{
 		if (riid == IID_IDirect3DSwapChain9 || riid == IID_IDirect3DSwapChain9Ex)
 		{
-			*ppvObj = m_pDeviceEx->GetLookupTable()->FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(*ppvObj, m_pDeviceEx, riid, nullptr);
+			*ppvObj = m_pDeviceEx->GetLookupTable()->FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(static_cast<IUnknown*>(*ppvObj), m_pDeviceEx, riid, nullptr);
 		}
 		else
 		{

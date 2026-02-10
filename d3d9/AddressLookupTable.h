@@ -16,16 +16,16 @@ public:
 	~AddressLookupTableD3d9();
 
 	template <typename T, typename D, typename L>
-	T* FindCreateAddress(void* Proxy, D* Device, REFIID riid, L Data);
+	T* FindCreateAddress(IUnknown* Proxy, D* Device, REFIID riid, L Data);
 
 	template <typename T>
-	T* FindAddress(void* Proxy);
+	T* FindAddress(IUnknown* Proxy);
 
 	template <typename T, typename M>
 	M* GetSafeProxyInterface(T* WrapperInterface);
 
 	template <typename T>
-	void SaveAddress(T* Wrapper, void* Proxy);
+	void SaveAddress(T* Wrapper, IUnknown* Proxy);
 
 	template <typename T>
 	void DeleteAddress(T* Wrapper);
