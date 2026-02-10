@@ -998,15 +998,13 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 
 	if (SUCCEEDED(hr) && RenderTargetIndex == 0)
 	{
-		CurrentRenderTarget = pSurface;
-
 		if (SHARED.DeviceMultiSampleFlag && pSurface)
 		{
 			D3DSURFACE_DESC Desc = {};
 
 			if (SUCCEEDED(pSurface->GetDesc(&Desc)))
 			{
-				RenderTargetNonMultiSampled = (Desc.MultiSampleType == D3DMULTISAMPLE_NONE);
+				msaa.RenderTargetNonMultiSampled = (Desc.MultiSampleType == D3DMULTISAMPLE_NONE);
 			}
 		}
 	}
@@ -1063,7 +1061,7 @@ HRESULT m_IDirect3DDevice9Ex::SetDepthStencilSurface(THIS_ IDirect3DSurface9* pN
 
 	if (SUCCEEDED(hr))
 	{
-		NullDepthStencil = (pSurface == nullptr);
+		msaa.NullDepthStencil = (pSurface == nullptr);
 
 		if (SHARED.DeviceMultiSampleFlag && pSurface)
 		{
@@ -1071,7 +1069,7 @@ HRESULT m_IDirect3DDevice9Ex::SetDepthStencilSurface(THIS_ IDirect3DSurface9* pN
 
 			if (SUCCEEDED(pSurface->GetDesc(&Desc)))
 			{
-				DepthStencilNonMultiSampled = (Desc.MultiSampleType == D3DMULTISAMPLE_NONE);
+				msaa.DepthStencilNonMultiSampled = (Desc.MultiSampleType == D3DMULTISAMPLE_NONE);
 			}
 		}
 	}
@@ -1692,10 +1690,7 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitive(D3DPRIMITIVETYPE PrimitiveType, UINT
 
 	HRESULT hr = ProxyInterface->DrawPrimitive(PrimitiveType, StartVertex, PrimitiveCount);
 
-	if (SUCCEEDED(hr))
-	{
-		ApplyPostDrawFixes();
-	}
+	ApplyPostDrawFixes();
 
 	return hr;
 }
@@ -1708,10 +1703,7 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitive(THIS_ D3DPRIMITIVETYPE Type, 
 
 	HRESULT hr = ProxyInterface->DrawIndexedPrimitive(Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 
-	if (SUCCEEDED(hr))
-	{
-		ApplyPostDrawFixes();
-	}
+	ApplyPostDrawFixes();
 
 	return hr;
 }
@@ -1724,10 +1716,7 @@ HRESULT m_IDirect3DDevice9Ex::DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UI
 
 	HRESULT hr = ProxyInterface->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
 
-	if (SUCCEEDED(hr))
-	{
-		ApplyPostDrawFixes();
-	}
+	ApplyPostDrawFixes();
 
 	return hr;
 }
@@ -1740,10 +1729,7 @@ HRESULT m_IDirect3DDevice9Ex::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE PrimitiveT
 
 	HRESULT hr = ProxyInterface->DrawIndexedPrimitiveUP(PrimitiveType, MinIndex, NumVertices, PrimitiveCount, pIndexData, IndexDataFormat, pVertexStreamZeroData, VertexStreamZeroStride);
 
-	if (SUCCEEDED(hr))
-	{
-		ApplyPostDrawFixes();
-	}
+	ApplyPostDrawFixes();
 
 	return hr;
 }
@@ -2453,7 +2439,7 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 	// Reenable Anisotropic Filtering
 	if (MaxAnisotropy)
 	{
-		ReeableAnisotropicSamplerState();
+		ReenableAnisotropicSamplerState();
 	}
 
 	// Fix environment map cubes
@@ -2463,25 +2449,25 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 	}
 
 	// Handle render target and depth stencil mismatch
-	if (SHARED.DeviceMultiSampleFlag && CurrentRenderTarget)
+	if (SHARED.DeviceMultiSampleFlag)
 	{
-		if (!CurrentRenderTarget->IsValidInterface())
+		msaa.RenderTarget = nullptr;
+		msaa.MultiSampleMismatch = msaa.RenderTargetNonMultiSampled != msaa.DepthStencilNonMultiSampled && !msaa.NullDepthStencil;
+
+		if (msaa.MultiSampleMismatch)
 		{
-			CurrentRenderTarget = nullptr;
-		}
-		else if (RenderTargetNonMultiSampled != DepthStencilNonMultiSampled && !NullDepthStencil)
-		{
-			LPDIRECT3DSURFACE9 pSurface = RenderTargetNonMultiSampled ? CurrentRenderTarget->GetMultiSampledSurface() : CurrentRenderTarget->GetNonMultiSampledSurface(0);
-			if (pSurface)
+			ComPtr<IDirect3DSurface9> pSurface;
+			if (SUCCEEDED(GetRenderTarget(0, pSurface.GetAddressOf())) && pSurface.Get())
 			{
-				m_IDirect3DSurface9* m_pSurface = nullptr;
-				if (SUCCEEDED(pSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&m_pSurface)))
+				msaa.RenderTarget = static_cast<m_IDirect3DSurface9*>(pSurface.Get());
+
+				LPDIRECT3DSURFACE9 pRenderTarget = msaa.RenderTargetNonMultiSampled ? msaa.RenderTarget->GetMultiSampledSurface() : msaa.RenderTarget->GetNonMultiSampledSurface(0);
+				if (pRenderTarget)
 				{
-					pSurface = m_pSurface->GetProxyInterface();
-				}
-				if (FAILED(ProxyInterface->SetRenderTarget(0, pSurface)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set emulated render target!");
+					if (FAILED(ProxyInterface->SetRenderTarget(0, pRenderTarget)))
+					{
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set emulated render target!");
+					}
 				}
 			}
 		}
@@ -2491,13 +2477,13 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 void m_IDirect3DDevice9Ex::ApplyPostDrawFixes()
 {
 	// Resync surface after render target and depth stencil mismatch
-	if (SHARED.DeviceMultiSampleFlag && CurrentRenderTarget)
+	if (SHARED.DeviceMultiSampleFlag && msaa.RenderTarget)
 	{
-		if (RenderTargetNonMultiSampled != DepthStencilNonMultiSampled && !NullDepthStencil)
+		if (msaa.MultiSampleMismatch)
 		{
-			CurrentRenderTarget->RestoreMultiSampleData();
+			msaa.RenderTarget->RestoreMultiSampleData();
 
-			LPDIRECT3DSURFACE9 pSurface = CurrentRenderTarget->GetProxyInterface();
+			LPDIRECT3DSURFACE9 pSurface = msaa.RenderTarget->GetProxyInterface();
 			if (pSurface)
 			{
 				if (FAILED(ProxyInterface->SetRenderTarget(0, pSurface)))
@@ -2506,6 +2492,7 @@ void m_IDirect3DDevice9Ex::ApplyPostDrawFixes()
 				}
 			}
 		}
+		msaa.RenderTarget = nullptr;
 	}
 }
 
@@ -2897,7 +2884,7 @@ void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bo
 	}
 }
 
-void m_IDirect3DDevice9Ex::ReeableAnisotropicSamplerState()
+void m_IDirect3DDevice9Ex::ReenableAnisotropicSamplerState()
 {
 	if (AnisotropyDisabledFlag)
 	{
@@ -3419,21 +3406,27 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 		// Handle render target
 		{
 			ComPtr<IDirect3DSurface9> pSurface;
-			if (SUCCEEDED(GetRenderTarget(0, pSurface.GetAddressOf())))
+			if (SUCCEEDED(GetRenderTarget(0, pSurface.GetAddressOf())) && pSurface.Get())
 			{
-				CurrentRenderTarget = static_cast<m_IDirect3DSurface9*>(pSurface.Get());
+				D3DSURFACE_DESC Desc = {};
+				pSurface->GetDesc(&Desc);
+				msaa.RenderTargetNonMultiSampled = (Desc.MultiSampleType == D3DMULTISAMPLE_NONE);
 			}
 		}
 		// Handle depth stencil surface
 		{
 			ComPtr<IDirect3DSurface9> pSurface;
-			if (SUCCEEDED(ProxyInterface->GetDepthStencilSurface(pSurface.GetAddressOf())) && pSurface.Get() != nullptr)
+			if (SUCCEEDED(ProxyInterface->GetDepthStencilSurface(pSurface.GetAddressOf())) && pSurface.Get())
 			{
-				NullDepthStencil = true;
+				msaa.NullDepthStencil = false;
+
+				D3DSURFACE_DESC Desc = {};
+				pSurface->GetDesc(&Desc);
+				msaa.DepthStencilNonMultiSampled = (Desc.MultiSampleType == D3DMULTISAMPLE_NONE);
 			}
 			else
 			{
-				NullDepthStencil = false;
+				msaa.NullDepthStencil = true;
 			}
 		}
 	}
@@ -3516,10 +3509,6 @@ void m_IDirect3DDevice9Ex::ClearVars()
 	AnisotropyDisabledFlag = false;
 	isClipPlaneSet = false;
 	ClipPlaneRenderState = 0;
-	RenderTargetNonMultiSampled = false;
-	DepthStencilNonMultiSampled = false;
-	NullDepthStencil = false;
-	CurrentRenderTarget = nullptr;
 }
 
 template <typename T>
@@ -3608,7 +3597,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 		hr = ResetT(func, p_d3dpp, pFullscreenDisplayMode);
 
 		// Clear multi-sampled variables
-		if (ClearMultiSampled)
+		if (SUCCEEDED(hr) && ClearMultiSampled)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing...");
 			SHARED.DeviceMultiSampleFlag = false;

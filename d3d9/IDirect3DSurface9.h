@@ -6,7 +6,6 @@ private:
 	LPDIRECT3DSURFACE9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	const IID WrapperID = IID_IDirect3DSurface9;
-	bool IsInterfaceReleased = false;
 
 	// For fake emulated locking
 	bool DeviceMultiSampleFlag = false;
@@ -69,7 +68,6 @@ public:
 	// Information functions
 	LPDIRECT3DSURFACE9 GetProxyInterface() const { return ProxyInterface; }
 	ULONG GetSurfaceCount() const { return Emu.pSurface ? 2 : 1; }
-	bool IsValidInterface() const { return !IsInterfaceReleased; }
 
 	// Helper functions
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*);

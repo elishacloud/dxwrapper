@@ -78,8 +78,6 @@ ULONG m_IDirect3DSurface9::Release(THIS)
 
 	if (ref == 0)
 	{
-		IsInterfaceReleased = true;
-
 		if (Emu.pSurface)
 		{
 			ULONG eref = Emu.pSurface->Release();
@@ -277,7 +275,6 @@ void m_IDirect3DSurface9::InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, vo
 		}
 		Emu = {};
 	}
-	IsInterfaceReleased = false;
 }
 
 LPDIRECT3DSURFACE9 m_IDirect3DSurface9::GetNonMultiSampledSurface(DWORD Flags)

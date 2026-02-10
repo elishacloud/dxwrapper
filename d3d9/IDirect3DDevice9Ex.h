@@ -124,10 +124,13 @@ private:
 	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
 
 	// Antialiasing
-	bool RenderTargetNonMultiSampled = false;
-	bool DepthStencilNonMultiSampled = false;
-	bool NullDepthStencil = false;
-	m_IDirect3DSurface9* CurrentRenderTarget = nullptr;
+	struct {
+		bool MultiSampleMismatch = false;
+		bool RenderTargetNonMultiSampled = false;
+		bool DepthStencilNonMultiSampled = false;
+		bool NullDepthStencil = false;
+		m_IDirect3DSurface9* RenderTarget = nullptr;
+	} msaa;
 
 	void ApplyPreDrawFixes();
 	void ApplyPostDrawFixes();
@@ -151,7 +154,7 @@ private:
 
 	// Anisotropic Filtering
 	void DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag);
-	void ReeableAnisotropicSamplerState();
+	void ReenableAnisotropicSamplerState();
 
 	// Gamma
 	HRESULT SetBrightnessLevel(D3DGAMMARAMP& Ramp);
