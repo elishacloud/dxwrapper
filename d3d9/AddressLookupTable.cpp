@@ -191,6 +191,8 @@ T* AddressLookupTableD3d9::FindCreateAddress(IUnknown* Proxy, D* Device, REFIID 
 	{
 		T* addr = static_cast<T*>(it->second);
 		addr->InitInterface(Device, riid, Data);
+		addr->AddRef();
+		Proxy->Release();
 		return addr;
 	}
 
@@ -201,7 +203,10 @@ T* AddressLookupTableD3d9::FindCreateAddress(IUnknown* Proxy, D* Device, REFIID 
 		return CreateInterface((T*)Object, Device, riid, Data);
 	}
 
-	return CreateInterface((T*)Proxy, Device, riid, Data);
+	T* addr = CreateInterface((T*)Proxy, Device, riid, Data);
+	addr->AddRef();
+	Proxy->Release();
+	return addr;
 }
 
 template m_IDirect3D9Ex* AddressLookupTableD3d9::FindAddress<m_IDirect3D9Ex>(IUnknown*);
@@ -247,7 +252,10 @@ T* AddressLookupTableD3d9::FindAddress(IUnknown* Proxy)
 
 	if (it != std::end(g_map[CacheIndex]))
 	{
-		return static_cast<T*>(it->second);
+		T* addr = static_cast<T*>(it->second);
+		addr->AddRef();
+		Proxy->Release();
+		return addr;
 	}
 
 	LOG_LIMIT(100, __FUNCTION__ << " Error: could not find interface for index: " << CacheIndex);
