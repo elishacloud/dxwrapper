@@ -78,6 +78,11 @@ ULONG m_IDirect3DSurface9::Release(THIS)
 
 	if (ref == 0)
 	{
+		if (Emu.pTextureContainer)
+		{
+			Emu.pTextureContainer = nullptr;
+		}
+
 		if (Emu.pSurface)
 		{
 			ULONG eref = Emu.pSurface->Release();
@@ -87,6 +92,7 @@ ULONG m_IDirect3DSurface9::Release(THIS)
 			}
 			Emu.pSurface = nullptr;
 		}
+		Emu = {};
 
 		if (m_pDeviceEx->GetClientDXVersion() < 8)
 		{
@@ -262,19 +268,31 @@ void m_IDirect3DSurface9::InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, vo
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " Failed to GetDesc()!" << this << ")");
 	}
+
 	DeviceMultiSampleFlag = m_pDeviceEx->GetDeviceMultiSampleFlag();
 	DeviceMultiSampleType = m_pDeviceEx->GetDeviceMultiSampleType();
 	DeviceMultiSampleQuality = m_pDeviceEx->GetDeviceMultiSampleQuality();
 
-	if (Emu.pSurface)
-	{
-		ULONG ref = Emu.pSurface->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'Emu.pSurface' " << ref;
-		}
-		Emu = {};
-	}
+	ComPtr<IUnknown> pTexture;
+	HRESULT hr = ProxyInterface->GetContainer(IID_IDirect3DBaseTexture9, reinterpret_cast<void**>(pTexture.GetAddressOf()));
+	Emu.IsSurfaceTexture = (SUCCEEDED(hr) && pTexture);
+}
+
+bool m_IDirect3DSurface9::ShouldEmulateMultiSampledSurface() const
+{
+	return (DeviceMultiSampleFlag &&
+		Desc.MultiSampleType &&
+		(Desc.Usage & D3DUSAGE_RENDERTARGET) &&
+		(Desc.Pool == D3DPOOL_DEFAULT));
+}
+
+bool m_IDirect3DSurface9::ShouldEmulateNonMultiSampledSurface() const
+{
+	return (DeviceMultiSampleFlag &&
+		!Desc.MultiSampleType &&
+		(Desc.Usage & D3DUSAGE_RENDERTARGET) &&
+		(Desc.Pool == D3DPOOL_DEFAULT) &&
+		(!Emu.IsSurfaceTexture || Emu.pTextureContainer));
 }
 
 LPDIRECT3DSURFACE9 m_IDirect3DSurface9::GetNonMultiSampledSurface(DWORD Flags)
@@ -292,10 +310,8 @@ LPDIRECT3DSURFACE9 m_IDirect3DSurface9::GetNonMultiSampledSurface(DWORD Flags)
 		{
 			Emu.ReadOnly = (Flags & D3DLOCK_READONLY);
 
-			if (FAILED(m_pDeviceEx->GetProxyInterface()->StretchRect(ProxyInterface, nullptr, Emu.pSurface->GetProxyInterface(), nullptr, D3DTEXF_NONE)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: copying surface!");
-			}
+			CopyMultiSampleData();
+
 			return Emu.pSurface->GetProxyInterface();
 		}
 		else
@@ -320,15 +336,22 @@ LPDIRECT3DSURFACE9 m_IDirect3DSurface9::GetMultiSampledSurface()
 		}
 		if (Emu.pSurface)
 		{
-			if (FAILED(m_pDeviceEx->GetProxyInterface()->StretchRect(ProxyInterface, nullptr, Emu.pSurface->GetProxyInterface(), nullptr, D3DTEXF_NONE)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: copying surface!");
-			}
+			CopyMultiSampleData();
+
 			return Emu.pSurface->GetProxyInterface();
 		}
 		LOG_LIMIT(100, __FUNCTION__ << " Error: getting multi-sampled render target!");
 	}
 	return ProxyInterface;
+}
+
+HRESULT m_IDirect3DSurface9::CopyMultiSampleData()
+{
+	if (FAILED(m_pDeviceEx->GetProxyInterface()->StretchRect(ProxyInterface, nullptr, Emu.pSurface->GetProxyInterface(), nullptr, D3DTEXF_NONE)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: copying surface!");
+	}
+	return D3D_OK;
 }
 
 HRESULT m_IDirect3DSurface9::RestoreMultiSampleData()

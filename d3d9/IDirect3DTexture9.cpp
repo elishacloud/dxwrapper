@@ -192,6 +192,11 @@ HRESULT m_IDirect3DTexture9::GetSurfaceLevel(THIS_ UINT Level, IDirect3DSurface9
 	if (SUCCEEDED(hr) && ppSurfaceLevel)
 	{
 		D3d9Wrapper::genericQueryInterface(IID_IDirect3DSurface9, (LPVOID*)ppSurfaceLevel, m_pDeviceEx);
+
+		if (Level == 0)
+		{
+			reinterpret_cast<m_IDirect3DSurface9*>(*ppSurfaceLevel)->SetTextureContainer(this);
+		}
 	}
 
 	return hr;

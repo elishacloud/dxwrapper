@@ -6,19 +6,23 @@ private:
 	LPDIRECT3DSURFACE9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	const IID WrapperID = IID_IDirect3DSurface9;
+	D3DSURFACE_DESC Desc = {};
 
-	// For fake emulated locking
+	// For multi-sampling
 	bool DeviceMultiSampleFlag = false;
 	D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
 	DWORD DeviceMultiSampleQuality = 0;
-	D3DSURFACE_DESC Desc = {};
+
+	// For fake emulated locking
 	struct {
 		bool ReadOnly = false;
+		bool IsSurfaceTexture = false;
+		m_IDirect3DTexture9* pTextureContainer = nullptr;
 		m_IDirect3DSurface9* pSurface = nullptr;
 	} Emu;
 
-	bool ShouldEmulateMultiSampledSurface() const { return (DeviceMultiSampleFlag && Desc.MultiSampleType && (Desc.Usage & D3DUSAGE_RENDERTARGET)); };
-	bool ShouldEmulateNonMultiSampledSurface() const { return (DeviceMultiSampleFlag && !Desc.MultiSampleType && (Desc.Usage & D3DUSAGE_RENDERTARGET)); };
+	inline bool ShouldEmulateMultiSampledSurface() const;
+	inline bool ShouldEmulateNonMultiSampledSurface() const;
 
 public:
 	m_IDirect3DSurface9(LPDIRECT3DSURFACE9 pSurface9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pSurface9), m_pDeviceEx(pDevice)
@@ -73,5 +77,7 @@ public:
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*);
 	LPDIRECT3DSURFACE9 GetNonMultiSampledSurface(DWORD Flags);
 	LPDIRECT3DSURFACE9 GetMultiSampledSurface();
+	HRESULT CopyMultiSampleData();
 	HRESULT RestoreMultiSampleData();
+	void SetTextureContainer(m_IDirect3DTexture9* pTexture) { Emu.pTextureContainer = pTexture; }
 };

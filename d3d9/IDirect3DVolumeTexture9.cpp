@@ -191,7 +191,7 @@ HRESULT m_IDirect3DVolumeTexture9::GetVolumeLevel(THIS_ UINT Level, IDirect3DVol
 
 	if (SUCCEEDED(hr) && ppVolumeLevel)
 	{
-		*ppVolumeLevel = m_pDeviceEx->GetLookupTable()->FindCreateAddress<m_IDirect3DVolume9, m_IDirect3DDevice9Ex, LPVOID>(*ppVolumeLevel, m_pDeviceEx, IID_IDirect3DVolume9, nullptr);
+		D3d9Wrapper::genericQueryInterface(IID_IDirect3DVolume9, (LPVOID*)ppVolumeLevel, m_pDeviceEx);
 	}
 
 	return hr;
