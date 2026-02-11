@@ -2449,7 +2449,7 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 	}
 
 	// Handle render target and depth stencil mismatch
-	if (SHARED.DeviceMultiSampleFlag)
+	if (SHARED.DeviceMultiSampleFlag && Config.AntiAliasing > 1 && Config.AntiAliasing % 2 == 1)
 	{
 		msaa.RenderTarget = nullptr;
 		msaa.MultiSampleMismatch = msaa.RenderTargetNonMultiSampled != msaa.DepthStencilNonMultiSampled && !msaa.NullDepthStencil;
@@ -2477,19 +2477,16 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 void m_IDirect3DDevice9Ex::ApplyPostDrawFixes()
 {
 	// Resync surface after render target and depth stencil mismatch
-	if (SHARED.DeviceMultiSampleFlag && msaa.RenderTarget)
+	if (msaa.MultiSampleMismatch && msaa.RenderTarget)
 	{
-		if (msaa.MultiSampleMismatch)
-		{
-			msaa.RenderTarget->RestoreMultiSampleData();
+		msaa.RenderTarget->RestoreMultiSampleData();
 
-			LPDIRECT3DSURFACE9 pSurface = msaa.RenderTarget->GetProxyInterface();
-			if (pSurface)
+		LPDIRECT3DSURFACE9 pSurface = msaa.RenderTarget->GetProxyInterface();
+		if (pSurface)
+		{
+			if (FAILED(ProxyInterface->SetRenderTarget(0, pSurface)))
 			{
-				if (FAILED(ProxyInterface->SetRenderTarget(0, pSurface)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to reset render target!");
-				}
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to reset render target!");
 			}
 		}
 		msaa.RenderTarget = nullptr;
