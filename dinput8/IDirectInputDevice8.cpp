@@ -176,17 +176,14 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 		for (UINT x = 0; x < dod.size(); x++)
 		{
 			// Movement record exists
-			if (dod[x].dwOfs == DIMOFS_X || dod[x].dwOfs == DIMOFS_Y || dod[x].dwOfs == DIMOFS_Z)
+			if (dod[x].wasPeeked == false && (dod[x].dwOfs == DIMOFS_X || dod[x].dwOfs == DIMOFS_Y || dod[x].dwOfs == DIMOFS_Z))
 			{
-				int v = dod[x].dwOfs == DIMOFS_X ? 0 : dod[x].dwOfs == DIMOFS_Y ? 1 : 2;
+				const int v = dod[x].dwOfs == DIMOFS_X ? 0 : dod[x].dwOfs == DIMOFS_Y ? 1 : 2;
 
-				if (!dod[x].wasPeeked)
-				{
-					isSet[v] = true;
-					Loc[v] = x;
-				}
+				isSet[v] = true;
+				Loc[v] = x;
 			}
-			// Button press found, reset records
+			// Button press or peeked record found, clear record location
 			else
 			{
 				isSet[0] = false;
@@ -201,23 +198,17 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 			// Storing movement data
 			if (lpdod->dwOfs == DIMOFS_X || lpdod->dwOfs == DIMOFS_Y || lpdod->dwOfs == DIMOFS_Z)
 			{
-				int v = lpdod->dwOfs == DIMOFS_X ? 0 : lpdod->dwOfs == DIMOFS_Y ? 1 : 2;
+				const int v = lpdod->dwOfs == DIMOFS_X ? 0 : lpdod->dwOfs == DIMOFS_Y ? 1 : 2;
 
-				// Merge records
+				// Merge data only
 				if (isSet[v])
 				{
 					dod[Loc[v]].lData += (LONG)lpdod->dwData;
-					dod[Loc[v]].dwTimeStamp = lpdod->dwTimeStamp;
-					dod[Loc[v]].dwSequence = lpdod->dwSequence;
-					if (cbObjectData == sizeof(DIDEVICEOBJECTDATA))
-					{
-						dod[Loc[v]].uAppData = lpdod->uAppData;
-					}
 				}
 				// Storing new movement data
 				else
 				{
-					dod.push_back({ (LONG)lpdod->dwData, lpdod->dwOfs, lpdod->dwTimeStamp, lpdod->dwSequence, (cbObjectData == sizeof(DIDEVICEOBJECTDATA)) ? lpdod->uAppData : NULL, isPeek });
+					dod.push_back({ (LONG)lpdod->dwData, lpdod->dwOfs, lpdod->dwTimeStamp, lpdod->dwSequence, (cbObjectData == sizeof(DIDEVICEOBJECTDATA)) ? lpdod->uAppData : NULL, false });
 					isSet[v] = true;
 					Loc[v] = dod.size() - 1;
 				}
@@ -225,7 +216,7 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 			// Storing button data
 			else
 			{
-				dod.push_back({ (LONG)lpdod->dwData, lpdod->dwOfs, lpdod->dwTimeStamp, lpdod->dwSequence, (cbObjectData == sizeof(DIDEVICEOBJECTDATA)) ? lpdod->uAppData : NULL, isPeek });
+				dod.push_back({ (LONG)lpdod->dwData, lpdod->dwOfs, lpdod->dwTimeStamp, lpdod->dwSequence, (cbObjectData == sizeof(DIDEVICEOBJECTDATA)) ? lpdod->uAppData : NULL, false });
 
 				// Reset records
 				isSet[0] = false;
@@ -263,24 +254,17 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 			if (dwOut < dod.size())
 			{
 				p_rgdod->dwOfs = dod[dwOut].dwOfs;
-				if (p_rgdod->dwOfs == DIMOFS_X || p_rgdod->dwOfs == DIMOFS_Y)
+				if (dod[dwOut].lData != 0 && (p_rgdod->dwOfs == DIMOFS_X || p_rgdod->dwOfs == DIMOFS_Y))
 				{
-					if (dod[dwOut].lData != 0)
+					double factor = (p_rgdod->dwOfs == DIMOFS_Y) ? Config.MouseMovementFactor : abs(Config.MouseMovementFactor);
+					LONG baseMovement = (LONG)round(dod[dwOut].lData * factor);
+					if (abs(baseMovement) < (LONG)Config.MouseMovementPadding)
 					{
-						double factor = (p_rgdod->dwOfs == DIMOFS_Y) ? Config.MouseMovementFactor : abs(Config.MouseMovementFactor);
-						LONG baseMovement = (LONG)round(dod[dwOut].lData * factor);
-						if (abs(baseMovement) < (LONG)Config.MouseMovementPadding)
-						{
-							p_rgdod->dwData = (baseMovement < 0) ? -(LONG)Config.MouseMovementPadding : (LONG)Config.MouseMovementPadding;
-						}
-						else
-						{
-							p_rgdod->dwData = baseMovement;
-						}
+						p_rgdod->dwData = (baseMovement < 0) ? -(LONG)Config.MouseMovementPadding : (LONG)Config.MouseMovementPadding;
 					}
 					else
 					{
-						p_rgdod->dwData = 0;
+						p_rgdod->dwData = baseMovement;
 					}
 				}
 				else
@@ -294,6 +278,11 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 					p_rgdod->uAppData = dod[dwOut].uAppData;
 				}
 
+				if (isPeek)
+				{
+					dod[dwOut].wasPeeked = true;
+				}
+
 				dwOut++;
 			}
 			// No more data to sent
@@ -305,7 +294,7 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 		}
 
 		// Remove used entries from buffer
-		if (dwOut)
+		if (dwOut && !isPeek)
 		{
 			if (dwOut < dod.size())
 			{
