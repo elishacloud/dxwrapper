@@ -18,8 +18,6 @@
 #include "ScopeGuard.h"
 #include "GDI\WndProc.h"
 
-constexpr DWORD SignBit = 0x80000000;
-
 HRESULT m_IDirectInputDevice8::QueryInterface(REFIID riid, LPVOID* ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -157,7 +155,6 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 	ScopedCriticalSection ThreadLock(&dics);
 
 	// Get latest mouse data from the DirectInput8 buffer
-	if (*pdwInOut > dod.size())
 	{
 		// Get buffer
 		DWORD dwItems = 0;
@@ -175,7 +172,7 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 		bool isSet[3] = { false };
 		DWORD Loc[3] = { 0 };
 
-		// Check for existing records to merge
+		// Get location of existing records
 		for (UINT x = 0; x < dod.size(); x++)
 		{
 			// Movement record exists
@@ -207,8 +204,7 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 				int v = lpdod->dwOfs == DIMOFS_X ? 0 : lpdod->dwOfs == DIMOFS_Y ? 1 : 2;
 
 				// Merge records
-				if (isSet[v] &&														// Check if there is an existing record
-					(dod[Loc[v]].lData & SignBit) == (lpdod->dwData & SignBit))		// Check if the mouse direction is the same
+				if (isSet[v])
 				{
 					dod[Loc[v]].lData += (LONG)lpdod->dwData;
 					dod[Loc[v]].dwTimeStamp = lpdod->dwTimeStamp;
@@ -236,32 +232,32 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 				isSet[1] = false;
 				isSet[2] = false;
 			}
-			lpdod = (LPDIDEVICEOBJECTDATA)((DWORD)lpdod + cbObjectData);
+			lpdod = (LPDIDEVICEOBJECTDATA)((BYTE*)lpdod + cbObjectData);
 		}
 	}
 
 	DWORD dwOut = 0;
 
-	// Checking for overflow
-	if (rgdod == nullptr && *pdwInOut == 0)
+	// Checking for device object data
+	if (rgdod == nullptr)
 	{
-		// Never return overflow
-	}
-	// Flush buffer
-	else if (rgdod == nullptr && *pdwInOut == INFINITE && !isPeek)
-	{
-		dod.clear();
-	}
-	// Number of records in the buffer
-	else if (rgdod == nullptr && *pdwInOut == INFINITE && isPeek)
-	{
-		dwOut = dod.size();
+		// Flush buffer
+		if (*pdwInOut == INFINITE && !isPeek)
+		{
+			dod.clear();
+		}
+		// Get number of records in the buffer
+		else
+		{
+			dwOut = dod.size();
+		}
 	}
 	// Fill device object data
-	else if (rgdod)
+	else
 	{
 		LPDIDEVICEOBJECTDATA p_rgdod = rgdod;
 
+		// Loop through each object
 		for (DWORD i = 0; i < *pdwInOut; i++)
 		{
 			if (dwOut < dod.size())
@@ -269,14 +265,13 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 				p_rgdod->dwOfs = dod[dwOut].dwOfs;
 				if (p_rgdod->dwOfs == DIMOFS_X || p_rgdod->dwOfs == DIMOFS_Y)
 				{
-					double factor = (p_rgdod->dwOfs == DIMOFS_Y) ? Config.MouseMovementFactor : abs(Config.MouseMovementFactor);
-					LONG baseMovement = (LONG)round(dod[dwOut].lData * factor);
-					if (baseMovement != 0)
+					if (dod[dwOut].lData != 0)
 					{
+						double factor = (p_rgdod->dwOfs == DIMOFS_Y) ? Config.MouseMovementFactor : abs(Config.MouseMovementFactor);
+						LONG baseMovement = (LONG)round(dod[dwOut].lData * factor);
 						if (abs(baseMovement) < (LONG)Config.MouseMovementPadding)
 						{
-							LONG Sign = (baseMovement < 0) ? -1 : 1;
-							p_rgdod->dwData = Sign * (LONG)Config.MouseMovementPadding;
+							p_rgdod->dwData = (baseMovement < 0) ? -(LONG)Config.MouseMovementPadding : (LONG)Config.MouseMovementPadding;
 						}
 						else
 						{
@@ -306,27 +301,20 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 			{
 				break;
 			}
-			p_rgdod = (LPDIDEVICEOBJECTDATA)((DWORD)p_rgdod + cbObjectData);
+			p_rgdod = (LPDIDEVICEOBJECTDATA)((BYTE*)p_rgdod + cbObjectData);
 		}
-	}
 
-	// Remove used entries from buffer
-	if (!isPeek && dwOut)
-	{
-		// Save unsent mouse data
-		if (dwOut < dod.size())
+		// Remove used entries from buffer
+		if (dwOut)
 		{
-			std::vector<MOUSECACHEDATA> tmp_dod;
-			for (size_t x = dwOut; x < dod.size(); x++)
+			if (dwOut < dod.size())
 			{
-				tmp_dod.push_back(dod[x]);
+				dod.erase(dod.begin(), dod.begin() + dwOut);
 			}
-			dod = std::move(tmp_dod);
-		}
-		// Clear buffer if all entries were used
-		else
-		{
-			dod.clear();
+			else
+			{
+				dod.clear();
+			}
 		}
 	}
 
