@@ -176,9 +176,9 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 		for (UINT x = 0; x < dod.size(); x++)
 		{
 			// Movement record exists
-			if (dod[x].wasPeeked == false && (dod[x].dwOfs == DIMOFS_X || dod[x].dwOfs == DIMOFS_Y || dod[x].dwOfs == DIMOFS_Z))
+			if (dod[x].wasPeeked == false && (dod[x].dwOfs == Ofs.x || dod[x].dwOfs == Ofs.y || dod[x].dwOfs == Ofs.z))
 			{
-				const int v = dod[x].dwOfs == DIMOFS_X ? 0 : dod[x].dwOfs == DIMOFS_Y ? 1 : 2;
+				const int v = dod[x].dwOfs == Ofs.x ? 0 : dod[x].dwOfs == Ofs.y ? 1 : 2;
 
 				isSet[v] = true;
 				Loc[v] = x;
@@ -196,9 +196,9 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 		for (UINT x = 0; x < dwItems; x++)
 		{
 			// Storing movement data
-			if (lpdod->dwOfs == DIMOFS_X || lpdod->dwOfs == DIMOFS_Y || lpdod->dwOfs == DIMOFS_Z)
+			if (lpdod->dwOfs == Ofs.x || lpdod->dwOfs == Ofs.y || lpdod->dwOfs == Ofs.z)
 			{
-				const int v = lpdod->dwOfs == DIMOFS_X ? 0 : lpdod->dwOfs == DIMOFS_Y ? 1 : 2;
+				const int v = lpdod->dwOfs == Ofs.x ? 0 : lpdod->dwOfs == Ofs.y ? 1 : 2;
 
 				// Merge data only
 				if (isSet[v])
@@ -254,9 +254,9 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 			if (dwOut < dod.size())
 			{
 				p_rgdod->dwOfs = dod[dwOut].dwOfs;
-				if (dod[dwOut].lData != 0 && (p_rgdod->dwOfs == DIMOFS_X || p_rgdod->dwOfs == DIMOFS_Y))
+				if (abs(dod[dwOut].lData) != 0 && (p_rgdod->dwOfs == Ofs.x || p_rgdod->dwOfs == Ofs.y))
 				{
-					double factor = (p_rgdod->dwOfs == DIMOFS_Y) ? Config.MouseMovementFactor : abs(Config.MouseMovementFactor);
+					double factor = (p_rgdod->dwOfs == Ofs.y) ? Config.MouseMovementFactor : abs(Config.MouseMovementFactor);
 					LONG baseMovement = (LONG)round(dod[dwOut].lData * factor);
 					if (abs(baseMovement) < (LONG)Config.MouseMovementPadding)
 					{
@@ -345,7 +345,37 @@ HRESULT m_IDirectInputDevice8::SetDataFormat(LPCDIDATAFORMAT lpdf)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->SetDataFormat(lpdf);
+	HRESULT hr = ProxyInterface->SetDataFormat(lpdf);
+
+	if (SUCCEEDED(hr))
+	{
+		if (IsMouse && lpdf && lpdf->rgodf && lpdf->dwNumObjs)
+		{
+			for (DWORD i = 0; i < lpdf->dwNumObjs; i++)
+			{
+				const DIOBJECTDATAFORMAT& obj = lpdf->rgodf[i];
+
+				// Check if this object is an axis (relative)
+				if (DIDFT_GETTYPE(obj.dwType) & DIDFT_RELAXIS)
+				{
+					if (obj.pguid && IsEqualGUID(GUID_XAxis, *obj.pguid))
+					{
+						Ofs.x = obj.dwOfs;
+					}
+					else if (obj.pguid && IsEqualGUID(GUID_YAxis, *obj.pguid))
+					{
+						Ofs.y = obj.dwOfs;
+					}
+					else if (obj.pguid && IsEqualGUID(GUID_ZAxis, *obj.pguid))
+					{
+						Ofs.z = obj.dwOfs;
+					}
+				}
+			}
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectInputDevice8::SetEventNotification(HANDLE hEvent)

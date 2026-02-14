@@ -75,7 +75,27 @@ HRESULT m_IDirectInput8::CreateDeviceT(REFGUID rguid, V lplpDirectInputDevice, L
 
 		*lplpDirectInputDevice = pAddressX;
 
-		if (IsEqualIID(GUID_SysMouse, rguid) || IsEqualIID(GUID_SysMouseEm, rguid) || IsEqualIID(GUID_SysMouseEm2, rguid))
+		bool isMouse = false;
+
+		if (IsEqualGUID(GUID_SysMouse, rguid) || IsEqualIID(GUID_SysMouseEm, rguid) || IsEqualIID(GUID_SysMouseEm2, rguid))
+		{
+			isMouse = true;
+		}
+		else
+		{
+			DIDEVCAPS caps = {};
+			caps.dwSize = sizeof(DIDEVCAPS);
+
+			if (SUCCEEDED(pAddressX->GetCapabilities(&caps)))
+			{
+				if (GET_DIDEVICE_TYPE(caps.dwDevType) == DI8DEVTYPE_MOUSE)
+				{
+					isMouse = true;
+				}
+			}
+		}
+
+		if (isMouse)
 		{
 			pAddressX->SetAsMouse();
 		}

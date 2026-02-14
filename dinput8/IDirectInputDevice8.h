@@ -21,6 +21,12 @@ private:
 
 	bool IsMouse = false;
 	DWORD MouseBufferSize = 0;
+	struct {
+		DWORD x = DIMOFS_X;
+		DWORD y = DIMOFS_Y;
+		DWORD z = DIMOFS_Z;
+	} Ofs;
+	std::vector<DWORD> cachedAxisOffsets;
 	std::vector<MOUSECACHEDATA> dod;
 	std::vector<DIDEVICEOBJECTDATA_DX3> dod_dx3;
 	std::vector<DIDEVICEOBJECTDATA> dod_dx8;
