@@ -254,13 +254,13 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 			if (dwOut < dod.size())
 			{
 				p_rgdod->dwOfs = dod[dwOut].dwOfs;
-				if (abs(dod[dwOut].lData) != 0 && (p_rgdod->dwOfs == Ofs.x || p_rgdod->dwOfs == Ofs.y))
+				if (dod[dwOut].lData != 0 && (p_rgdod->dwOfs == Ofs.x || p_rgdod->dwOfs == Ofs.y))
 				{
 					double factor = (p_rgdod->dwOfs == Ofs.y) ? Config.MouseMovementFactor : abs(Config.MouseMovementFactor);
 					LONG baseMovement = (LONG)round(dod[dwOut].lData * factor);
 					if (abs(baseMovement) < (LONG)Config.MouseMovementPadding)
 					{
-						p_rgdod->dwData = (baseMovement < 0) ? -(LONG)Config.MouseMovementPadding : (LONG)Config.MouseMovementPadding;
+						p_rgdod->dwData = (dod[dwOut].lData < 0) ? -(LONG)Config.MouseMovementPadding : (LONG)Config.MouseMovementPadding;
 					}
 					else
 					{

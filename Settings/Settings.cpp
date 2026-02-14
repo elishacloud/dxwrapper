@@ -826,10 +826,6 @@ void CONFIG::SetConfig()
 	{
 		FixHighFrequencyMouse = true;
 	}
-	else if (FixHighFrequencyMouse)
-	{
-		MouseMovementPadding = 1;
-	}
 
 	// Windows Lie
 	WinVersionLieSP = (WinVersionLieSP > 0 && WinVersionLieSP <= 5) ? WinVersionLieSP : 0;
