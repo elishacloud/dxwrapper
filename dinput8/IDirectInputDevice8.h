@@ -10,34 +10,34 @@ private:
 
 	DWORD ProcessID;
 
-	struct MOUSECACHEDATA {
-		LONG lData;
+	struct MOUSECACHEDATA_DX3 {
 		DWORD dwOfs;
+		LONG lData;
+		DWORD dwTimeStamp;
+		DWORD dwSequence;
+	};
+
+	struct MOUSECACHEDATA {
+		DWORD dwOfs;
+		LONG lData;
 		DWORD dwTimeStamp;
 		DWORD dwSequence;
 		UINT_PTR uAppData;
-		bool wasPeeked;
 	};
 
 	bool IsMouse = false;
 	DWORD MouseBufferSize = 0;
+	DWORD RequestedMouseBufferSize = 0;
+	DWORD LastObjectSize = 0;
 	struct {
 		DWORD x = DIMOFS_X;
 		DWORD y = DIMOFS_Y;
 		DWORD z = DIMOFS_Z;
 	} Ofs;
 	std::vector<DWORD> cachedAxisOffsets;
-	std::vector<MOUSECACHEDATA> dod;
-	std::vector<DIDEVICEOBJECTDATA_DX3> dod_dx3;
-	std::vector<DIDEVICEOBJECTDATA> dod_dx8;
-
-	template <class T>
-	inline LPDIDEVICEOBJECTDATA GetObjectDataBuffer(T& dod, DWORD dwBufferSize, DWORD& dwItems)
-	{
-		if (dod.size() < dwBufferSize) dod.resize(dwBufferSize);
-		dwItems = dod.size();
-		return (LPDIDEVICEOBJECTDATA)dod.data();
-	}
+	std::vector<MOUSECACHEDATA_DX3> dod_dx3;
+	std::vector<MOUSECACHEDATA> dod_dx8;
+	std::vector<BYTE> tmp_dod;
 
 	template <class T>
 	inline auto* GetProxyInterface() { return (T*)ProxyInterface; }
@@ -117,7 +117,8 @@ public:
 	STDMETHOD(Acquire)(THIS);
 	STDMETHOD(Unacquire)(THIS);
 	STDMETHOD(GetDeviceState)(THIS_ DWORD, LPVOID);
-	STDMETHOD(GetMouseDeviceData)(THIS_ DWORD, LPDIDEVICEOBJECTDATA, LPDWORD, DWORD);
+	template <class T>
+	HRESULT GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICEOBJECTDATA rgdod, LPDWORD pdwInOut, DWORD dwFlags, std::vector<T>& dod);
 	STDMETHOD(GetDeviceData)(THIS_ DWORD, LPDIDEVICEOBJECTDATA, LPDWORD, DWORD);
 	STDMETHOD(SetDataFormat)(THIS_ LPCDIDATAFORMAT);
 	STDMETHOD(SetEventNotification)(THIS_ HANDLE);
