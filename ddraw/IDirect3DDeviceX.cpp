@@ -2057,7 +2057,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			return SetTextureHandle(dwRenderState);
 		case D3DRENDERSTATE_ANTIALIAS:			// 2
 		{
-			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			BOOL AntiAliasEnabled = (
 				(D3DANTIALIASMODE)dwRenderState == D3DANTIALIAS_SORTDEPENDENT ||
 				(D3DANTIALIASMODE)dwRenderState == D3DANTIALIAS_SORTINDEPENDENT) ? TRUE : FALSE;
@@ -2068,7 +2067,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			SetD9SamplerState(0, D3DSAMP_ADDRESSU, dwRenderState);
 			return SetD9SamplerState(0, D3DSAMP_ADDRESSV, dwRenderState);
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:	// 4
-			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_TEXTUREPERSPECTIVE' not implemented: " << dwRenderState);
@@ -2079,7 +2077,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_WRAPV:				// 6
 			return SetD9RenderState(D3DRS_WRAP0, (DeviceStates.RenderState[D3DRS_WRAP0].State & D3DWRAP_U) | (dwRenderState ? D3DWRAP_V : 0));
 		case D3DRENDERSTATE_LINEPATTERN:		// 10
-			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != 0)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_LINEPATTERN' not implemented: " << dwRenderState);
@@ -2243,7 +2240,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			}
 			break;
 		case D3DRENDERSTATE_ZVISIBLE:			// 30
-			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_ZVISIBLE' not implemented: " << dwRenderState);
@@ -2264,7 +2260,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_STIPPLEDALPHA:		// 33
-			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_STIPPLEDALPHA' not implemented! " << dwRenderState);
@@ -2285,7 +2280,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			}
 			return D3D_OK;
 		case D3DRENDERSTATE_COLORKEYENABLE:		// 41
-			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return SetStateBlockRenderState(dwRenderStateType, dwRenderState);
 		case D3DRENDERSTATE_OLDALPHABLENDENABLE:// 42
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
@@ -2303,7 +2297,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			{
 				SetD9RenderState(D3DRS_DEPTHBIAS, GetDepthBias(dwRenderState, DepthBitCount));
 			}
-			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return SetStateBlockRenderState(dwRenderStateType, dwRenderState);
 		case D3DRENDERSTATE_ANISOTROPY:			// 49
 			return SetD9SamplerState(0, D3DSAMP_MAXANISOTROPY, dwRenderState);
@@ -2364,14 +2357,12 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			return D3D_OK;
 		case D3DRENDERSTATE_EXTENTS:			// 138
 			// ToDo: use this to enable/disable clip plane extents set by SetClipStatus()
-			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			if (dwRenderState != FALSE)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DRENDERSTATE_EXTENTS' not implemented! " << dwRenderState);
 			}
 			return SetStateBlockRenderState(dwRenderStateType, dwRenderState);
 		case D3DRENDERSTATE_COLORKEYBLENDENABLE:// 144
-			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
 			return SetStateBlockRenderState(dwRenderStateType, dwRenderState);
 		}
 
@@ -5543,7 +5534,10 @@ HRESULT m_IDirect3DDeviceX::SetStateBlockRenderState(D3DRENDERSTATETYPE State, D
 	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().UnmappedRenderState[State] = Value;
+		return D3D_OK;
 	}
+
+	DeviceStates.RenderState[State].State = Value;
 
 	return D3D_OK;
 }
@@ -5582,6 +5576,7 @@ HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Val
 	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().RenderState[State] = Value;
+		return D3D_OK;
 	}
 
 	BatchStates.RenderState[State] = Value;
@@ -5626,6 +5621,7 @@ HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().TextureStageState[Stage][Type] = Value;
+		return D3D_OK;
 	}
 
 	BatchStates.TextureStageState[Stage][Type] = Value;
@@ -5670,6 +5666,7 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().SamplerState[Sampler][Type] = Value;
+		return D3D_OK;
 	}
 
 	BatchStates.SamplerState[Sampler][Type] = FixSamplerState(Type, Value);
@@ -5707,6 +5704,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT9* lpLight)
 	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Light[Index] = *lpLight;
+		return D3D_OK;
 	}
 
 	BatchStates.Light[Index] = FixLight(*lpLight);
@@ -5741,6 +5739,7 @@ HRESULT m_IDirect3DDeviceX::D9LightEnable(DWORD Index, BOOL Enable)
 	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().LightEnable[Index] = Enable;
+		return D3D_OK;
 	}
 
 	BatchStates.LightEnable[Index] = Enable;
@@ -5784,6 +5783,7 @@ HRESULT m_IDirect3DDeviceX::SetD9ClipPlane(DWORD Index, const float* lpPlane)
 	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().ClipPlane[Index] = *(FLOAT4*)lpPlane;
+		return D3D_OK;
 	}
 
 	BatchStates.ClipPlane[Index] = *(FLOAT4*)lpPlane;
@@ -5823,6 +5823,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Viewport(const D3DVIEWPORT9* lpViewport)
 	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Viewport[0] = *lpViewport;
+		return D3D_OK;
 	}
 
 	DeviceStates.Viewport.Set = true;
@@ -5860,6 +5861,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Material(const D3DMATERIAL9* lpMaterial)
 	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Material[0] = *lpMaterial;
+		return D3D_OK;
 	}
 
 	BatchStates.Material.Set = true;
@@ -5905,6 +5907,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Transform(D3DTRANSFORMSTATETYPE State, const D3
 	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Matrix[State] = *lpMatrix;
+		return D3D_OK;
 	}
 
 	BatchStates.Matrix[State] = FixMatrix(*lpMatrix, State, DeviceStates.Viewport.ViewportScale, DeviceStates.Viewport.UseViewportScale);
@@ -5932,6 +5935,7 @@ HRESULT m_IDirect3DDeviceX::D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, con
 		if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
 		{
 			StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Matrix[State] = result;
+			return D3D_OK;
 		}
 
 		BatchStates.Matrix[State] = FixMatrix(result, State, DeviceStates.Viewport.ViewportScale, DeviceStates.Viewport.UseViewportScale);
