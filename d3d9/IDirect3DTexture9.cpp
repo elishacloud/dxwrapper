@@ -195,7 +195,7 @@ HRESULT m_IDirect3DTexture9::GetSurfaceLevel(THIS_ UINT Level, IDirect3DSurface9
 
 		if (Level == 0)
 		{
-			reinterpret_cast<m_IDirect3DSurface9*>(*ppSurfaceLevel)->SetTextureContainer(this);
+			reinterpret_cast<m_IDirect3DSurface9*>(*ppSurfaceLevel)->SetTextureContainer();
 		}
 	}
 
