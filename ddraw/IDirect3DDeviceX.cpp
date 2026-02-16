@@ -1916,25 +1916,28 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 			return GetD9SamplerState(0, D3DSAMP_MIPMAPLODBIAS, lpdwRenderState);
 		case D3DRENDERSTATE_ANISOTROPY:			// 49
 			return GetD9SamplerState(0, D3DSAMP_MAXANISOTROPY, lpdwRenderState);
-		case D3DRENDERSTATE_NONE:				// 0
-		case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
 		case D3DRENDERSTATE_ANTIALIAS:			// 2
 		case D3DRENDERSTATE_TEXTUREPERSPECTIVE:	// 4
 		case D3DRENDERSTATE_LINEPATTERN:		// 10
+		case D3DRENDERSTATE_ZVISIBLE:			// 30
+		case D3DRENDERSTATE_STIPPLEDALPHA:		// 33
+		case D3DRENDERSTATE_COLORKEYENABLE:		// 41
+		case D3DRENDERSTATE_ZBIAS:				// 47
+		case D3DRENDERSTATE_EXTENTS:			// 138
+		case D3DRENDERSTATE_COLORKEYBLENDENABLE:// 144
+			return GetStateBlockRenderState(dwRenderStateType, lpdwRenderState);
+		case D3DRENDERSTATE_NONE:				// 0
+		case D3DRENDERSTATE_TEXTUREHANDLE:		// 1
 		case D3DRENDERSTATE_MONOENABLE:			// 11
 		case D3DRENDERSTATE_ROP2:				// 12
 		case D3DRENDERSTATE_PLANEMASK:			// 13
 		case D3DRENDERSTATE_TEXTUREMAG:			// 17
 		case D3DRENDERSTATE_TEXTUREMIN:			// 18
 		case D3DRENDERSTATE_TEXTUREMAPBLEND:	// 21
-		case D3DRENDERSTATE_ZVISIBLE:			// 30
 		case D3DRENDERSTATE_SUBPIXEL:			// 31
 		case D3DRENDERSTATE_SUBPIXELX:			// 32
-		case D3DRENDERSTATE_STIPPLEDALPHA:		// 33
 		case D3DRENDERSTATE_STIPPLEENABLE:		// 39
 		case D3DRENDERSTATE_EDGEANTIALIAS:		// 40
-		case D3DRENDERSTATE_COLORKEYENABLE:		// 41
-		case D3DRENDERSTATE_ZBIAS:				// 47
 		case D3DRENDERSTATE_FLUSHBATCH:			// 50
 		case D3DRENDERSTATE_TRANSLUCENTSORTINDEPENDENT:	// 51
 		case 61:
@@ -1972,8 +1975,6 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		case D3DRENDERSTATE_STIPPLEPATTERN29:	// 93
 		case D3DRENDERSTATE_STIPPLEPATTERN30:	// 94
 		case D3DRENDERSTATE_STIPPLEPATTERN31:	// 95
-		case D3DRENDERSTATE_EXTENTS:			// 138
-		case D3DRENDERSTATE_COLORKEYBLENDENABLE:// 144
 			*lpdwRenderState = DeviceStates.RenderState[dwRenderStateType].State;
 			return D3D_OK;
 		}
@@ -5524,6 +5525,33 @@ HRESULT m_IDirect3DDeviceX::SetMaterialHandle(DWORD MatHandle)
 	return D3D_OK;
 }
 
+HRESULT m_IDirect3DDeviceX::GetStateBlockRenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue)
+{
+	if (!lpValue)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+	if ((UINT)State >= D3D_MAXRENDERSTATES)
+	{
+		*lpValue = (DWORD)-1;
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (StateBlock.IsRecording)
+	{
+		auto it = StateBlock.Data[StateBlock.RecordingToken].RecordState.value().UnmappedRenderState.find(State);
+		if (it != StateBlock.Data[StateBlock.RecordingToken].RecordState.value().UnmappedRenderState.end())
+		{
+			*lpValue = it->second;
+			return D3D_OK;
+		}
+	}
+
+	*lpValue = DeviceStates.RenderState[State].State;
+
+	return D3D_OK;
+}
+
 HRESULT m_IDirect3DDeviceX::SetStateBlockRenderState(D3DRENDERSTATETYPE State, DWORD Value)
 {
 	if ((UINT)State >= D3D_MAXRENDERSTATES)
@@ -5531,7 +5559,7 @@ HRESULT m_IDirect3DDeviceX::SetStateBlockRenderState(D3DRENDERSTATETYPE State, D
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
+	if (StateBlock.IsRecording)
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().UnmappedRenderState[State] = Value;
 		return D3D_OK;
@@ -5542,7 +5570,7 @@ HRESULT m_IDirect3DDeviceX::SetStateBlockRenderState(D3DRENDERSTATETYPE State, D
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue) const
+HRESULT m_IDirect3DDeviceX::GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue)
 {
 	if (!lpValue)
 	{
@@ -5552,6 +5580,16 @@ HRESULT m_IDirect3DDeviceX::GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD l
 	{
 		*lpValue = (DWORD)-1;
 		return DDERR_INVALIDPARAMS;
+	}
+
+	if (StateBlock.IsRecording)
+	{
+		auto it = StateBlock.Data[StateBlock.RecordingToken].RecordState.value().RenderState.find(State);
+		if (it != StateBlock.Data[StateBlock.RecordingToken].RecordState.value().RenderState.end())
+		{
+			*lpValue = it->second;
+			return D3D_OK;
+		}
 	}
 
 	if (DeviceStates.RenderState[State].Set)
@@ -5573,7 +5611,7 @@ HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Val
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
+	if (StateBlock.IsRecording)
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().RenderState[State] = Value;
 		return D3D_OK;
@@ -5587,7 +5625,7 @@ HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Val
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue) const
+HRESULT m_IDirect3DDeviceX::GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue)
 {
 	if (!lpValue)
 	{
@@ -5597,6 +5635,16 @@ HRESULT m_IDirect3DDeviceX::GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 	{
 		*lpValue = (DWORD)-1;
 		return DDERR_INVALIDPARAMS;
+	}
+
+	if (StateBlock.IsRecording)
+	{
+		auto it = StateBlock.Data[StateBlock.RecordingToken].RecordState.value().TextureStageState[Stage].find(Type);
+		if (it != StateBlock.Data[StateBlock.RecordingToken].RecordState.value().TextureStageState[Stage].end())
+		{
+			*lpValue = it->second;
+			return D3D_OK;
+		}
 	}
 
 	if (DeviceStates.TextureStageState[Stage][Type].Set)
@@ -5618,7 +5666,7 @@ HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
+	if (StateBlock.IsRecording)
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().TextureStageState[Stage][Type] = Value;
 		return D3D_OK;
@@ -5632,7 +5680,7 @@ HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue) const
+HRESULT m_IDirect3DDeviceX::GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue)
 {
 	if (!lpValue)
 	{
@@ -5642,6 +5690,16 @@ HRESULT m_IDirect3DDeviceX::GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 	{
 		*lpValue = (DWORD)-1;
 		return DDERR_INVALIDPARAMS;
+	}
+
+	if (StateBlock.IsRecording)
+	{
+		auto it = StateBlock.Data[StateBlock.RecordingToken].RecordState.value().SamplerState[Sampler].find(Type);
+		if (it != StateBlock.Data[StateBlock.RecordingToken].RecordState.value().SamplerState[Sampler].end())
+		{
+			*lpValue = it->second;
+			return D3D_OK;
+		}
 	}
 
 	if (DeviceStates.SamplerState[Sampler][Type].Set)
@@ -5677,11 +5735,21 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::GetD9Light(DWORD Index, D3DLIGHT9* lpLight) const
+HRESULT m_IDirect3DDeviceX::GetD9Light(DWORD Index, D3DLIGHT9* lpLight)
 {
 	if (!lpLight)
 	{
 		return DDERR_INVALIDPARAMS;
+	}
+
+	if (StateBlock.IsRecording)
+	{
+		auto it = StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Light.find(Index);
+		if (it != StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Light.end())
+		{
+			*lpLight = it->second;
+			return D3D_OK;
+		}
 	}
 
 	auto it = DeviceStates.Light.find(Index);
@@ -5701,7 +5769,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT9* lpLight)
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
+	if (StateBlock.IsRecording)
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Light[Index] = *lpLight;
 		return D3D_OK;
@@ -5714,11 +5782,21 @@ HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT9* lpLight)
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::GetD9LightEnable(DWORD Index, LPBOOL lpEnable) const
+HRESULT m_IDirect3DDeviceX::GetD9LightEnable(DWORD Index, LPBOOL lpEnable)
 {
 	if (!lpEnable)
 	{
 		return DDERR_INVALIDPARAMS;
+	}
+
+	if (StateBlock.IsRecording)
+	{
+		auto it = StateBlock.Data[StateBlock.RecordingToken].RecordState.value().LightEnable.find(Index);
+		if (it != StateBlock.Data[StateBlock.RecordingToken].RecordState.value().LightEnable.end())
+		{
+			*lpEnable = it->second;
+			return D3D_OK;
+		}
 	}
 
 	auto it = DeviceStates.LightEnable.find(Index);
@@ -5736,7 +5814,7 @@ HRESULT m_IDirect3DDeviceX::GetD9LightEnable(DWORD Index, LPBOOL lpEnable) const
 
 HRESULT m_IDirect3DDeviceX::D9LightEnable(DWORD Index, BOOL Enable)
 {
-	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
+	if (StateBlock.IsRecording)
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().LightEnable[Index] = Enable;
 		return D3D_OK;
@@ -5749,7 +5827,7 @@ HRESULT m_IDirect3DDeviceX::D9LightEnable(DWORD Index, BOOL Enable)
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::GetD9ClipPlane(DWORD Index, float* lpPlane) const
+HRESULT m_IDirect3DDeviceX::GetD9ClipPlane(DWORD Index, float* lpPlane)
 {
 	if (!lpPlane)
 	{
@@ -5759,6 +5837,16 @@ HRESULT m_IDirect3DDeviceX::GetD9ClipPlane(DWORD Index, float* lpPlane) const
 	{
 		*(FLOAT4*)lpPlane = {};
 		return DDERR_INVALIDPARAMS;
+	}
+
+	if (StateBlock.IsRecording)
+	{
+		auto it = StateBlock.Data[StateBlock.RecordingToken].RecordState.value().ClipPlane.find(Index);
+		if (it != StateBlock.Data[StateBlock.RecordingToken].RecordState.value().ClipPlane.end())
+		{
+			*(FLOAT4*)lpPlane = it->second;
+			return D3D_OK;
+		}
 	}
 
 	if (DeviceStates.ClipPlane[Index].Set)
@@ -5780,7 +5868,7 @@ HRESULT m_IDirect3DDeviceX::SetD9ClipPlane(DWORD Index, const float* lpPlane)
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
+	if (StateBlock.IsRecording)
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().ClipPlane[Index] = *(FLOAT4*)lpPlane;
 		return D3D_OK;
@@ -5794,11 +5882,21 @@ HRESULT m_IDirect3DDeviceX::SetD9ClipPlane(DWORD Index, const float* lpPlane)
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::GetD9Viewport(D3DVIEWPORT9* lpViewport) const
+HRESULT m_IDirect3DDeviceX::GetD9Viewport(D3DVIEWPORT9* lpViewport)
 {
 	if (!lpViewport)
 	{
 		return DDERR_INVALIDPARAMS;
+	}
+
+	if (StateBlock.IsRecording)
+	{
+		auto it = StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Viewport.find(0);
+		if (it != StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Viewport.end())
+		{
+			*lpViewport = it->second;
+			return D3D_OK;
+		}
 	}
 
 	if (DeviceStates.Viewport.Set)
@@ -5820,7 +5918,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Viewport(const D3DVIEWPORT9* lpViewport)
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
+	if (StateBlock.IsRecording)
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Viewport[0] = *lpViewport;
 		return D3D_OK;
@@ -5832,11 +5930,21 @@ HRESULT m_IDirect3DDeviceX::SetD9Viewport(const D3DVIEWPORT9* lpViewport)
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::GetD9Material(D3DMATERIAL9* lpMaterial) const
+HRESULT m_IDirect3DDeviceX::GetD9Material(D3DMATERIAL9* lpMaterial)
 {
 	if (!lpMaterial)
 	{
 		return DDERR_INVALIDPARAMS;
+	}
+
+	if (StateBlock.IsRecording)
+	{
+		auto it = StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Material.find(0);
+		if (it != StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Material.end())
+		{
+			*lpMaterial = it->second;
+			return D3D_OK;
+		}
 	}
 
 	if (DeviceStates.Material.Set)
@@ -5858,7 +5966,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Material(const D3DMATERIAL9* lpMaterial)
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
+	if (StateBlock.IsRecording)
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Material[0] = *lpMaterial;
 		return D3D_OK;
@@ -5872,7 +5980,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Material(const D3DMATERIAL9* lpMaterial)
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* lpMatrix) const
+HRESULT m_IDirect3DDeviceX::GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* lpMatrix)
 {
 	if (!lpMatrix)
 	{
@@ -5882,6 +5990,16 @@ HRESULT m_IDirect3DDeviceX::GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRI
 	{
 		*lpMatrix = {};
 		return DDERR_INVALIDPARAMS;
+	}
+
+	if (StateBlock.IsRecording)
+	{
+		auto it = StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Matrix.find(State);
+		if (it != StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Matrix.end())
+		{
+			*lpMatrix = it->second;
+			return D3D_OK;
+		}
 	}
 
 	auto it = DeviceStates.Matrix.find(State);
@@ -5904,7 +6022,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Transform(D3DTRANSFORMSTATETYPE State, const D3
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
+	if (StateBlock.IsRecording)
 	{
 		StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Matrix[State] = *lpMatrix;
 		return D3D_OK;
@@ -5932,7 +6050,7 @@ HRESULT m_IDirect3DDeviceX::D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, con
 		D3DMATRIX result = {};
 		D3DXMatrixMultiply(&result, lpMatrix, &Matrix);
 
-		if (StateBlock.IsRecording && StateBlock.Data[StateBlock.RecordingToken].RecordState.has_value())
+		if (StateBlock.IsRecording)
 		{
 			StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Matrix[State] = result;
 			return D3D_OK;
