@@ -59,11 +59,19 @@ ULONG m_IDirect3DTexture9::Release(THIS)
 
 	ULONG ref = ProxyInterface->Release();
 
-	if (ref == 0 && m_pDeviceEx->GetClientDXVersion() < 8)
+	if (ref == 0)
 	{
-		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
+		for (const auto& pSurface : SurfaceLevelList)
+		{
+			pSurface->ClearTextureContainer();
+		}
 
-		delete this;
+		if (m_pDeviceEx->GetClientDXVersion() < 8)
+		{
+			m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
+
+			delete this;
+		}
 	}
 
 	return ref;
@@ -195,7 +203,7 @@ HRESULT m_IDirect3DTexture9::GetSurfaceLevel(THIS_ UINT Level, IDirect3DSurface9
 
 		if (Level == 0)
 		{
-			reinterpret_cast<m_IDirect3DSurface9*>(*ppSurfaceLevel)->SetTextureContainer();
+			reinterpret_cast<m_IDirect3DSurface9*>(*ppSurfaceLevel)->SetTextureContainer(this);
 		}
 	}
 

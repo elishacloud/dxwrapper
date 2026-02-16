@@ -78,6 +78,12 @@ ULONG m_IDirect3DSurface9::Release(THIS)
 
 	if (ref == 0)
 	{
+		if (Emu.pTextureContainer)
+		{
+			Emu.pTextureContainer->RemoveSurfaceFromList(this);
+			Emu.pTextureContainer = nullptr;
+		}
+
 		if (Emu.pSurface)
 		{
 			ULONG eref = Emu.pSurface->Release();
@@ -273,6 +279,12 @@ void m_IDirect3DSurface9::InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, vo
 	Emu.IsSurfaceTexture = (SUCCEEDED(hr) && pTexture);
 }
 
+void m_IDirect3DSurface9::SetTextureContainer(m_IDirect3DTexture9* pTexture)
+{
+	Emu.pTextureContainer = pTexture;
+	Emu.pTextureContainer->AddSurfaceToList(this);
+}
+
 bool m_IDirect3DSurface9::ShouldEmulateMultiSampledSurface() const
 {
 	return (DeviceMultiSampleFlag &&
@@ -287,7 +299,7 @@ bool m_IDirect3DSurface9::ShouldEmulateNonMultiSampledSurface() const
 		!Desc.MultiSampleType &&
 		(Desc.Usage & D3DUSAGE_RENDERTARGET) &&
 		(Desc.Pool == D3DPOOL_DEFAULT) &&
-		Emu.IsSurfaceTexture && Emu.IsSupportedTextureContainer);
+		Emu.IsSurfaceTexture && Emu.pTextureContainer);
 }
 
 LPDIRECT3DSURFACE9 m_IDirect3DSurface9::GetNonMultiSampledSurface(DWORD Flags)

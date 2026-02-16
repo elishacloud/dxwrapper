@@ -17,7 +17,7 @@ private:
 	struct {
 		bool ReadOnly = false;
 		bool IsSurfaceTexture = false;
-		bool IsSupportedTextureContainer = false;
+		m_IDirect3DTexture9* pTextureContainer = nullptr;
 		m_IDirect3DSurface9* pSurface = nullptr;
 	} Emu;
 
@@ -75,9 +75,10 @@ public:
 
 	// Helper functions
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*);
+	void SetTextureContainer(m_IDirect3DTexture9* pTexture);
+	void ClearTextureContainer() { Emu.pTextureContainer = nullptr; }
 	LPDIRECT3DSURFACE9 GetNonMultiSampledSurface(DWORD Flags);
 	LPDIRECT3DSURFACE9 GetMultiSampledSurface();
 	HRESULT CopyMultiSampleData();
 	HRESULT RestoreMultiSampleData();
-	void SetTextureContainer() { Emu.IsSupportedTextureContainer = true; }
 };
