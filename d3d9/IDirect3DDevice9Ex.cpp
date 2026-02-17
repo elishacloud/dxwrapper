@@ -3252,6 +3252,17 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 
 	if (isReset)
 	{
+		// Release emulated surfaces
+		while (!SHARED.EmulatedSurfaceList.empty())
+		{
+			auto it = SHARED.EmulatedSurfaceList.begin();
+			auto* pSurface = *it;
+
+			pSurface->ReleaseEmulatedSurface();
+
+			SHARED.EmulatedSurfaceList.erase(it);
+		}
+
 		// Anisotropic Filtering
 		isAnisotropySet = false;
 		AnisotropyDisabledFlag = false;

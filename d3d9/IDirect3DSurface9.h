@@ -14,13 +14,13 @@ private:
 	DWORD DeviceMultiSampleQuality = 0;
 
 	// For fake emulated locking
+	bool IsSurfaceTexture = false;
+	m_IDirect3DTexture9* pTextureContainer = nullptr;
 	struct {
 		bool UsingEmulatedSurface = false;
 		bool ReadOnly = false;
-		bool IsSurfaceTexture = false;
 		DWORD SurfaceUSN = 0;
-		m_IDirect3DTexture9* pTextureContainer = nullptr;
-		m_IDirect3DSurface9* pSurface = nullptr;
+		LPDIRECT3DSURFACE9 pSurface = nullptr;
 	} Emu;
 
 	inline bool ShouldEmulateMultiSampledSurface() const;
@@ -79,7 +79,8 @@ public:
 	// Helper functions
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*);
 	void SetTextureContainer(m_IDirect3DTexture9* pTexture);
-	void ClearTextureContainer() { Emu.pTextureContainer = nullptr; }
+	void ClearTextureContainer() { pTextureContainer = nullptr; }
+	void ReleaseEmulatedSurface();
 	void PrepareReadingFromSurface();
 	void PrepareWritingToSurface(bool IncreamentUSN);
 	LPDIRECT3DSURFACE9 GetNonMultiSampledSurface(DWORD Flags);
