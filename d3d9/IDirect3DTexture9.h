@@ -7,6 +7,11 @@ private:
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	const IID WrapperID = IID_IDirect3DTexture9;
 
+	DWORD TextureUSN = 0;
+	std::unordered_set<m_IDirect3DSurface9*> SurfaceLevelList;
+
+	inline void IncrementTextureUSN() { TextureUSN++; }
+
 public:
 	m_IDirect3DTexture9(LPDIRECT3DTEXTURE9 pTexture9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pTexture9), m_pDeviceEx(pDevice)
 	{
@@ -50,4 +55,9 @@ public:
 	// Helper functions
 	LPDIRECT3DTEXTURE9 GetProxyInterface() const { return ProxyInterface; }
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
+	DWORD GetTextureUSN() const { return TextureUSN; }
+	void AddSurfaceToList(m_IDirect3DSurface9* pSurface) { SurfaceLevelList.insert(pSurface); }
+	void RemoveSurfaceFromList(m_IDirect3DSurface9* pSurface) { SurfaceLevelList.erase(pSurface); }
+	void PrepareReadingFromTexture();
+	void PrepareWritingToTexture(bool IncreamentUSN);
 };

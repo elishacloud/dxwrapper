@@ -6,6 +6,7 @@
 #include "d3d9Shared.h"
 #include <Dxva.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <deque>
 #include <algorithm>
 

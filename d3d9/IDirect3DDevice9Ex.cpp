@@ -802,6 +802,7 @@ HRESULT m_IDirect3DDevice9Ex::UpdateSurface(THIS_ IDirect3DSurface9* pSourceSurf
 
 	if (pSourceSurface)
 	{
+		static_cast<m_IDirect3DSurface9*>(pSourceSurface)->PrepareReadingFromSurface();
 		pSourceSurface = static_cast<m_IDirect3DSurface9*>(pSourceSurface)->GetProxyInterface();
 	}
 
@@ -830,6 +831,7 @@ HRESULT m_IDirect3DDevice9Ex::UpdateTexture(IDirect3DBaseTexture9* pSourceTextur
 		switch (pSourceTexture->GetType())
 		{
 		case D3DRTYPE_TEXTURE:
+			static_cast<m_IDirect3DTexture9*>(pSourceTexture)->PrepareReadingFromTexture();
 			pSourceTexture = static_cast<m_IDirect3DTexture9*>(pSourceTexture)->GetProxyInterface();
 			break;
 		case D3DRTYPE_VOLUMETEXTURE:
@@ -847,6 +849,7 @@ HRESULT m_IDirect3DDevice9Ex::UpdateTexture(IDirect3DBaseTexture9* pSourceTextur
 		switch (pDestinationTexture->GetType())
 		{
 		case D3DRTYPE_TEXTURE:
+			static_cast<m_IDirect3DTexture9*>(pDestinationTexture)->PrepareWritingToTexture(true);
 			pDestinationTexture = static_cast<m_IDirect3DTexture9*>(pDestinationTexture)->GetProxyInterface();
 			break;
 		case D3DRTYPE_VOLUMETEXTURE:
@@ -907,6 +910,7 @@ HRESULT m_IDirect3DDevice9Ex::StretchRect(THIS_ IDirect3DSurface9* pSourceSurfac
 
 	if (pSourceSurface)
 	{
+		static_cast<m_IDirect3DSurface9*>(pSourceSurface)->PrepareReadingFromSurface();
 		pSourceSurface = static_cast<m_IDirect3DSurface9*>(pSourceSurface)->GetProxyInterface();
 	}
 
@@ -996,9 +1000,9 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 
 	HRESULT hr = ProxyInterface->SetRenderTarget(RenderTargetIndex, pRenderTarget);
 
-	if (SUCCEEDED(hr) && RenderTargetIndex == 0)
+	if (SUCCEEDED(hr))
 	{
-		if (SHARED.DeviceMultiSampleFlag && pSurface)
+		if (SHARED.DeviceMultiSampleFlag && RenderTargetIndex == 0 && pSurface)
 		{
 			D3DSURFACE_DESC Desc = {};
 
@@ -1170,6 +1174,16 @@ HRESULT m_IDirect3DDevice9Ex::EndScene()
 HRESULT m_IDirect3DDevice9Ex::Clear(DWORD Count, CONST D3DRECT* pRects, DWORD Flags, D3DCOLOR Color, float Z, DWORD Stencil)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	// Handle render target sync
+	if (SHARED.DeviceMultiSampleFlag && (Flags & D3DCLEAR_TARGET))
+	{
+		ComPtr<IDirect3DSurface9> pSurface;
+		if (SUCCEEDED(GetRenderTarget(0, pSurface.GetAddressOf())) && pSurface.Get())
+		{
+			static_cast<m_IDirect3DSurface9*>(pSurface.Get())->PrepareWritingToSurface(true);
+		}
+	}
 
 	return ProxyInterface->Clear(Count, pRects, Flags, Color, Z, Stencil);
 }
@@ -2449,10 +2463,10 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 	}
 
 	// Handle render target and depth stencil mismatch
-	if (SHARED.DeviceMultiSampleFlag && Config.AntiAliasing > 1 && Config.AntiAliasing % 2 == 1)
+	if (SHARED.DeviceMultiSampleFlag)
 	{
 		msaa.RenderTarget = nullptr;
-		msaa.MultiSampleMismatch = msaa.RenderTargetNonMultiSampled != msaa.DepthStencilNonMultiSampled && !msaa.NullDepthStencil;
+		msaa.MultiSampleMismatch = msaa.RenderTargetNonMultiSampled && !msaa.DepthStencilNonMultiSampled && !msaa.NullDepthStencil;
 
 		if (msaa.MultiSampleMismatch)
 		{
@@ -2461,12 +2475,39 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 			{
 				msaa.RenderTarget = static_cast<m_IDirect3DSurface9*>(pSurface.Get());
 
-				LPDIRECT3DSURFACE9 pRenderTarget = msaa.RenderTargetNonMultiSampled ? msaa.RenderTarget->GetMultiSampledSurface() : msaa.RenderTarget->GetNonMultiSampledSurface(0);
+				LPDIRECT3DSURFACE9 pRenderTarget = msaa.RenderTarget->GetMultiSampledSurface();
 				if (pRenderTarget)
 				{
 					if (FAILED(ProxyInterface->SetRenderTarget(0, pRenderTarget)))
 					{
 						LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set emulated render target!");
+					}
+				}
+			}
+		}
+
+		for (DWORD x = 1; x < 4; x++)
+		{
+			ComPtr<IDirect3DSurface9> pSurface;
+			if (SUCCEEDED(GetRenderTarget(x, pSurface.GetAddressOf())) && pSurface.Get())
+			{
+				static_cast<m_IDirect3DSurface9*>(pSurface.Get())->PrepareWritingToSurface(true);
+			}
+		}
+
+		for (DWORD x = 0; x < 8; x++)
+		{
+			ComPtr<IDirect3DBaseTexture9> pBaseTexture;
+
+			if (SUCCEEDED(ProxyInterface->GetTexture(x, pBaseTexture.GetAddressOf())) && pBaseTexture.Get())
+			{
+				if (pBaseTexture->GetType() == D3DRTYPE_TEXTURE)
+				{
+					IDirect3DTexture9* pTexture = static_cast<IDirect3DTexture9*>(pBaseTexture.Get());
+
+					if (auto* wrapper = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DTexture9>(pTexture))
+					{
+						wrapper->PrepareReadingFromTexture();
 					}
 				}
 			}
@@ -2479,8 +2520,6 @@ void m_IDirect3DDevice9Ex::ApplyPostDrawFixes()
 	// Resync surface after render target and depth stencil mismatch
 	if (msaa.MultiSampleMismatch && msaa.RenderTarget)
 	{
-		msaa.RenderTarget->RestoreMultiSampleData();
-
 		LPDIRECT3DSURFACE9 pSurface = msaa.RenderTarget->GetProxyInterface();
 		if (pSurface)
 		{
@@ -3213,6 +3252,17 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 
 	if (isReset)
 	{
+		// Release emulated surfaces
+		while (!SHARED.EmulatedSurfaceList.empty())
+		{
+			auto it = SHARED.EmulatedSurfaceList.begin();
+			auto* pSurface = *it;
+
+			pSurface->ReleaseEmulatedSurface();
+
+			SHARED.EmulatedSurfaceList.erase(it);
+		}
+
 		// Anisotropic Filtering
 		isAnisotropySet = false;
 		AnisotropyDisabledFlag = false;
