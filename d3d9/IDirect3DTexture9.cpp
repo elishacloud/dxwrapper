@@ -214,7 +214,15 @@ HRESULT m_IDirect3DTexture9::LockRect(THIS_ UINT Level, D3DLOCKED_RECT* pLockedR
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->LockRect(Level, pLockedRect, pRect, Flags);
+	HRESULT hr = ProxyInterface->LockRect(Level, pLockedRect, pRect, Flags);
+
+	if (SUCCEEDED(hr))
+	{
+		const bool IncreamentUSN = !(Flags & D3DLOCK_READONLY);
+		PrepareWritingToTexture(IncreamentUSN);
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DTexture9::UnlockRect(THIS_ UINT Level)
@@ -229,4 +237,25 @@ HRESULT m_IDirect3DTexture9::AddDirtyRect(THIS_ CONST RECT* pDirtyRect)
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->AddDirtyRect(pDirtyRect);
+}
+
+// Helper functions
+void m_IDirect3DTexture9::PrepareReadingFromTexture()
+{
+	for (const auto& pSurface : SurfaceLevelList)
+	{
+		pSurface->CopyToRealSurface();
+	}
+}
+
+void m_IDirect3DTexture9::PrepareWritingToTexture(bool IncreamentUSN)
+{
+	for (const auto& pSurface : SurfaceLevelList)
+	{
+		pSurface->CopyToRealSurface();
+	}
+	if (IncreamentUSN)
+	{
+		IncrementTextureUSN();
+	}
 }

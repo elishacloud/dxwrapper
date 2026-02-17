@@ -15,14 +15,17 @@ private:
 
 	// For fake emulated locking
 	struct {
+		bool UsingEmulatedSurface = false;
 		bool ReadOnly = false;
 		bool IsSurfaceTexture = false;
+		DWORD SurfaceUSN = 0;
 		m_IDirect3DTexture9* pTextureContainer = nullptr;
 		m_IDirect3DSurface9* pSurface = nullptr;
 	} Emu;
 
 	inline bool ShouldEmulateMultiSampledSurface() const;
 	inline bool ShouldEmulateNonMultiSampledSurface() const;
+	inline bool IsEmulatedSurfaceOutofDate() const;
 
 public:
 	m_IDirect3DSurface9(LPDIRECT3DSURFACE9 pSurface9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pSurface9), m_pDeviceEx(pDevice)
@@ -77,8 +80,11 @@ public:
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*);
 	void SetTextureContainer(m_IDirect3DTexture9* pTexture);
 	void ClearTextureContainer() { Emu.pTextureContainer = nullptr; }
+	void PrepareReadingFromSurface();
+	void PrepareWritingToSurface(bool IncreamentUSN);
 	LPDIRECT3DSURFACE9 GetNonMultiSampledSurface(DWORD Flags);
 	LPDIRECT3DSURFACE9 GetMultiSampledSurface();
-	HRESULT CopyMultiSampleData();
+	HRESULT CopyToEmulatedSurface();
+	HRESULT CopyToRealSurface();
 	HRESULT RestoreMultiSampleData();
 };
