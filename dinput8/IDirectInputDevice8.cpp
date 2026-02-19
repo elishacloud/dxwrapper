@@ -154,7 +154,7 @@ template <class T>
 HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICEOBJECTDATA rgdod, LPDWORD pdwInOut, DWORD dwFlags, std::vector<T>& dod)
 {
 	// Check arguments
-	if (!pdwInOut)
+	if (!pdwInOut || (rgdod && *pdwInOut == 0))
 	{
 		return DIERR_INVALIDPARAM;
 	}
@@ -169,27 +169,20 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 	// Lock for concurrency
 	ScopedCriticalSection ThreadLock(&dics);
 
-	// Determine number of records to store
-	DWORD dwItems = MouseBufferSize;
-	if (MouseBufferSize == 0)
-	{
-		DIPROPDWORD dipdw = {};
-		dipdw.diph.dwSize = sizeof(DIPROPDWORD);
-		dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
-		dipdw.diph.dwObj = 0;
-		dipdw.diph.dwHow = DIPH_DEVICE;
+	bool isBufferOverflow = false;
+	DWORD dwItems = INFINITE;
 
-		if (SUCCEEDED(ProxyInterface->GetProperty(DIPROP_BUFFERSIZE, &dipdw.diph)))
-		{
-			MouseBufferSize = dipdw.dwData;
-			RequestedMouseBufferSize = dipdw.dwData;
-		}
-		else
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to get default mouse buffer size!");
-		}
+	// Determine number of records to store
+	HRESULT hr = ProxyInterface->GetDeviceData(cbObjectData, nullptr, &dwItems, DIGDD_PEEK);
+	if (hr == DI_BUFFEROVERFLOW)
+	{
+		isBufferOverflow = true;
 	}
-	dwItems = MouseBufferSize ? min(dwItems, MouseBufferSize) : dwItems;
+	else if (FAILED(hr))
+	{
+		*pdwInOut = 0;
+		return hr;
+	}
 
 	// Ensure buffer is large enough
 	const DWORD requiredBytes = dwItems * cbObjectData;
@@ -202,8 +195,12 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 	LPDIDEVICEOBJECTDATA lpdod = reinterpret_cast<LPDIDEVICEOBJECTDATA>(tmp_dod.data());
 
 	// Get device data from buffer
-	HRESULT hr = ProxyInterface->GetDeviceData(cbObjectData, lpdod, &dwItems, 0);
-	if (FAILED(hr))
+	hr = ProxyInterface->GetDeviceData(cbObjectData, lpdod, &dwItems, 0);
+	if (hr == DI_BUFFEROVERFLOW)
+	{
+		isBufferOverflow = true;
+	}
+	else if (FAILED(hr))
 	{
 		*pdwInOut = 0;
 		return hr;
@@ -302,11 +299,31 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 	// Fill device object data
 	else
 	{
-		dwOut = min(dod.size(), *pdwInOut);
-		if (*pdwInOut > 0x10000 && RequestedMouseBufferSize)
+		if (MouseBufferSize == 0)
 		{
-			dwOut = min(dwOut, RequestedMouseBufferSize);
+			DIPROPDWORD dipdw = {};
+			dipdw.diph.dwSize = sizeof(DIPROPDWORD);
+			dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+			dipdw.diph.dwObj = 0;
+			dipdw.diph.dwHow = DIPH_DEVICE;
+
+			if (SUCCEEDED(ProxyInterface->GetProperty(DIPROP_BUFFERSIZE, &dipdw.diph)))
+			{
+				MouseBufferSize = dipdw.dwData;
+				RequestedMouseBufferSize = dipdw.dwData;
+			}
+			else
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to get default mouse buffer size!");
+			}
 		}
+
+		DWORD dwRequested = *pdwInOut;
+		if (dwRequested == INFINITE && RequestedMouseBufferSize)
+		{
+			dwRequested = RequestedMouseBufferSize;
+		}
+		dwOut = min(dod.size(), dwRequested);
 
 		memcpy(rgdod, dod.data(), sizeof(T) * dwOut);
 
@@ -325,6 +342,11 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 	}
 
 	*pdwInOut = dwOut;
+
+	if (isBufferOverflow)
+	{
+		return DI_BUFFEROVERFLOW;
+	}
 
 	return DI_OK;
 }
