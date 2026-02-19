@@ -139,8 +139,6 @@ namespace Utils
 
 	DWORD SubtractTimeInMS_gtc = 0;
 	int64_t SubtractTimeInMS_gtc64 = 0;
-	DWORD SubtractTimeInMS_tmt = 0;
-	DWORD SubtractTimeInMS_mmt = 0;
 	int64_t SubtractTimeInTicks_qpc = 0;
 	bool IsPerformanceFrequencyCapped = false;
 	uint64_t PerformanceFrequency_real = 0;
@@ -535,7 +533,7 @@ SIZE_T WINAPI Utils::kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem)
 
 bool Utils::InitUpTimeOffsets()
 {
-	const uint64_t MS_PER_DAY = 86400000ULL;
+	constexpr uint64_t MS_PER_HOUR = 1000ULL * 60 * 60;
 
 	// Gather system uptime values
 	LARGE_INTEGER qpc, freq;
@@ -547,33 +545,12 @@ bool Utils::InitUpTimeOffsets()
 	}
 	uint64_t ms_qpc = (qpc.QuadPart * 1000ULL) / freq.QuadPart;
 
-	MMTIME mmt = {};
-	mmt.wType = TIME_MS;
-	if (timeGetSystemTime(&mmt, sizeof(mmt)) != MMSYSERR_NOERROR || mmt.wType != TIME_MS)
-	{
-		Logging::Log() << __FUNCTION__ << " Error: timeGetSystemTime failed!";
-
-		return false;
-	}
-
-	DWORD tmt = timeGetTime();
-
-	DWORD gtc = GetTickCount();
-#if (_WIN32_WINNT >= 0x0502)
-	ULONGLONG gtc64 = GetTickCount64();
-#endif
-
 	// Calculate full days from uptime in ms
-	uint64_t timeInDays = ms_qpc / MS_PER_DAY;
-	uint64_t timeInMS = timeInDays * MS_PER_DAY;
-	uint64_t remainderTimeMS = ms_qpc - timeInMS;
+	uint64_t timeInHours = ms_qpc / MS_PER_HOUR;  // total hours since boot
+	uint64_t timeInMS = timeInHours * MS_PER_HOUR;  // milliseconds in those hours
 
-	SubtractTimeInMS_gtc = static_cast<DWORD>(gtc - remainderTimeMS);
-#if (_WIN32_WINNT >= 0x0502)
-	SubtractTimeInMS_gtc64 = gtc64 - remainderTimeMS;
-#endif
-	SubtractTimeInMS_tmt = static_cast<DWORD>(tmt - remainderTimeMS);
-	SubtractTimeInMS_mmt = static_cast<DWORD>(mmt.u.ms - remainderTimeMS);
+	SubtractTimeInMS_gtc = static_cast<DWORD>(timeInMS);
+	SubtractTimeInMS_gtc64 = timeInMS;
 	SubtractTimeInTicks_qpc = (timeInMS * freq.QuadPart) / 1000ULL;
 
 	PerformanceFrequency_real = freq.QuadPart;
@@ -588,7 +565,7 @@ bool Utils::InitUpTimeOffsets()
 			" Capped: " << ((double)PerformanceFrequency_cap / 1'000'000'000.0) << " GHz";
 	}
 
-	Logging::Log() << __FUNCTION__ << " Found " << timeInDays << " day" << (timeInDays == 1 ? "" : "s") << " system up time!";
+	Logging::Log() << __FUNCTION__ << " Found " << timeInHours << " hours" << (timeInHours == 1 ? "" : "s") << " system up time!";
 
 	return true;
 }
@@ -715,7 +692,7 @@ DWORD WINAPI Utils::winmm_timeGetTime()
 		return 0;
 	}
 
-	return timeGetTime() - SubtractTimeInMS_tmt;
+	return timeGetTime() - SubtractTimeInMS_gtc;
 }
 
 MMRESULT WINAPI Utils::winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt)
@@ -732,7 +709,7 @@ MMRESULT WINAPI Utils::winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt)
 	{
 		if (cbmmt == sizeof(MMTIME) && pmmt->wType == TIME_MS)
 		{
-			pmmt->u.ms -= SubtractTimeInMS_mmt;
+			pmmt->u.ms -= SubtractTimeInMS_gtc;
 		}
 	}
 	return result;
