@@ -210,4 +210,5 @@ public:
 
 	// Helper functions
 	void SetAsMouse() { IsMouse = true; }
+	void AdjustMouseAxis(LONG& value, bool isY);
 };

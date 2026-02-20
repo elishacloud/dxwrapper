@@ -184,7 +184,25 @@ HRESULT m_IDirectInputDevice8::GetDeviceState(DWORD cbData, LPVOID lpvData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetDeviceState(cbData, lpvData);
+	HRESULT hr = ProxyInterface->GetDeviceState(cbData, lpvData);
+
+	if (SUCCEEDED(hr) && lpvData)
+	{
+		if (IsMouse && Config.FixHighFrequencyMouse)
+		{
+			// Apply movement adjustment using stored offsets
+			if (Ofs.x >= 0)
+			{
+				AdjustMouseAxis(*((LONG*)((BYTE*)lpvData + Ofs.x)), false);
+			}
+			if (Ofs.y >= 0)
+			{
+				AdjustMouseAxis(*((LONG*)((BYTE*)lpvData + Ofs.y)), true);
+			}
+		}
+	}
+
+	return hr;
 }
 
 template <class T>
@@ -308,20 +326,7 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 
 			if (isSet[v])
 			{
-				if (dod[Loc[v]].lData != 0)
-				{
-					double factor = (item == Ofs.y) ? Config.MouseMovementFactor : std::abs(Config.MouseMovementFactor);
-					LONG baseMovement = (LONG)round(dod[Loc[v]].lData * factor);
-
-					if (std::abs(baseMovement) < (LONG)Config.MouseMovementPadding)
-					{
-						dod[Loc[v]].lData = (dod[Loc[v]].lData < 0) ? -(LONG)Config.MouseMovementPadding : (LONG)Config.MouseMovementPadding;
-					}
-					else
-					{
-						dod[Loc[v]].lData = baseMovement;
-					}
-				}
+				AdjustMouseAxis(dod[Loc[v]].lData, (item == Ofs.y));
 			}
 		}
 	}
@@ -423,7 +428,7 @@ HRESULT m_IDirectInputDevice8::GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJEC
 		}
 	}
 
-	if (Config.FixHighFrequencyMouse && IsMouse)
+	if (IsMouse && Config.FixHighFrequencyMouse)
 	{
 		if (rgdod && cbObjectData != sizeof(DIDEVICEOBJECTDATA_DX3) && cbObjectData != sizeof(DIDEVICEOBJECTDATA))
 		{
@@ -702,4 +707,23 @@ HRESULT m_IDirectInputDevice8::GetImageInfoT(V lpdiDevImageInfoHeader)
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return GetProxyInterface<T>()->GetImageInfo(lpdiDevImageInfoHeader);
+}
+
+// Helper functions
+void m_IDirectInputDevice8::AdjustMouseAxis(LONG& value, bool isY)
+{
+	if (value != 0)
+	{
+		double factor = isY ? Config.MouseMovementFactor : std::abs(Config.MouseMovementFactor);
+		LONG baseMovement = (LONG)round(value * factor);
+
+		if (std::abs(baseMovement) < (LONG)Config.MouseMovementPadding)
+		{
+			value = (value < 0) ? -(LONG)Config.MouseMovementPadding : (LONG)Config.MouseMovementPadding;
+		}
+		else
+		{
+			value = baseMovement;
+		}
+	}
 }
