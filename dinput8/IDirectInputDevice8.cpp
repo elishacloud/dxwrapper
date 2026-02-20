@@ -385,7 +385,6 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 	if (isBufferOverflow)
 	{
 		SequenceCounter += 5;	// Simulate overflow
-		return DI_BUFFEROVERFLOW;
 	}
 
 	return DI_OK;
