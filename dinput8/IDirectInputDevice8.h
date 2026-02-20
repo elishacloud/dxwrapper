@@ -26,6 +26,7 @@ private:
 	};
 
 	bool IsMouse = false;
+	bool SentBufferOverflow = false;
 	DWORD MouseBufferSize = 0;
 	DWORD RequestedMouseBufferSize = 0;
 	DWORD SequenceCounter = 0;

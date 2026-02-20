@@ -143,6 +143,11 @@ HRESULT m_IDirectInputDevice8::SetProperty(REFGUID rguidProp, LPCDIPROPHEADER pd
 
 				if (SUCCEEDED(hr))
 				{
+					if (dipdw.dwData > MouseBufferSize)
+					{
+						SentBufferOverflow = false;		// Send buffer overflow message again once buffer size is increased
+					}
+
 					RequestedMouseBufferSize = requested;
 					MouseBufferSize = dipdw.dwData;
 				}
@@ -197,6 +202,7 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 	}
 	const bool isPeek = (dwFlags == DIGDD_PEEK);
 	const bool isFlushingData = (rgdod == nullptr && *pdwInOut == INFINITE && !isPeek);
+	const bool isRequestingOverflow = (rgdod == nullptr && *pdwInOut == 0);
 
 	// Lock for concurrency
 	ScopedCriticalSection ThreadLock(&dics);
@@ -385,6 +391,12 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 	if (isBufferOverflow)
 	{
 		SequenceCounter += 5;	// Simulate overflow
+
+		if (isRequestingOverflow || !SentBufferOverflow)
+		{
+			SentBufferOverflow = true;
+			return DI_BUFFEROVERFLOW;
+		}
 	}
 
 	return DI_OK;
