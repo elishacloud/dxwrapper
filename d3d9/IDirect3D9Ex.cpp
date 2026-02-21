@@ -44,7 +44,7 @@ HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 		return D3D_OK;
 	}
 
-	if (riid == IID_IUnknown || riid == WrapperID || (Config.D3d9to9Ex && riid == IID_IDirect3D9))
+	if (riid == IID_IUnknown || riid == WrapperID || (IsForcingD3d9to9Ex() && riid == IID_IDirect3D9))
 	{
 		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
 
@@ -240,7 +240,7 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex)
+	if (IsForcingD3d9to9Ex())
 	{
 		D3DDISPLAYMODEEX* pFullscreenMode = nullptr;
 		D3DDISPLAYMODEEX FullscreenDisplayMode = {};
@@ -266,7 +266,7 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 	{
 		GUID riid = IID_IDirect3DDevice9;
 
-		if (Config.D3d9to9Ex)
+		if (IsForcingD3d9to9Ex())
 		{
 			IDirect3DDevice9* pD3DD = *ppReturnedDeviceInterface;
 			IDirect3DDevice9Ex* pD3DDEx = nullptr;

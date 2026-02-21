@@ -8,6 +8,9 @@ private:
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	IID WrapperID;
 
+	// Information
+	inline bool IsForcingD3d9to9Ex() const { return (Config.D3d9to9Ex && ProxyInterface == ProxyInterfaceEx); }
+
 public:
 	m_IDirect3DSwapChain9Ex(LPDIRECT3DSWAPCHAIN9EX pSwapChain9, m_IDirect3DDevice9Ex* pDevice, REFIID DeviceID) : ProxyInterface(pSwapChain9), m_pDeviceEx(pDevice), WrapperID(DeviceID)
 	{
@@ -46,7 +49,7 @@ public:
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID riid, void*) {
 		m_pDeviceEx = Device;
 		WrapperID == riid;
-		if (riid == IID_IDirect3DSwapChain9Ex || ProxyInterfaceEx == ProxyInterface)
+		if (riid == IID_IDirect3DSwapChain9Ex || ProxyInterface == ProxyInterfaceEx)
 		{
 			ProxyInterfaceEx = reinterpret_cast<LPDIRECT3DSWAPCHAIN9EX>(ProxyInterface);
 		}

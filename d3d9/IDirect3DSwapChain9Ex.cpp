@@ -30,7 +30,7 @@ HRESULT m_IDirect3DSwapChain9Ex::QueryInterface(THIS_ REFIID riid, void** ppvObj
 	}
 	*ppvObj = nullptr;
 
-	if (riid == IID_IUnknown || riid == WrapperID || (Config.D3d9to9Ex && riid == IID_IDirect3DSwapChain9))
+	if (riid == IID_IUnknown || riid == WrapperID || (IsForcingD3d9to9Ex() && riid == IID_IDirect3DSwapChain9))
 	{
 		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
 
@@ -130,7 +130,7 @@ HRESULT m_IDirect3DSwapChain9Ex::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex && ProxyInterfaceEx && pMode)
+	if (IsForcingD3d9to9Ex() && pMode)
 	{
 		D3DDISPLAYMODEEX ModeEx = {};
 		ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
@@ -141,9 +141,9 @@ HRESULT m_IDirect3DSwapChain9Ex::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
 		if (SUCCEEDED(hr))
 		{
 			m_IDirect3DDevice9Ex::ModeExToMode(ModeEx, *pMode);
-		}
 
-		return hr;
+			return hr;
+		}
 	}
 
 	return ProxyInterface->GetDisplayMode(pMode);

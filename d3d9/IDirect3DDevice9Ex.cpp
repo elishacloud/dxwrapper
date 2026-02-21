@@ -53,7 +53,7 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 		return D3D_OK;
 	}
 
-	if (riid == IID_IUnknown || riid == WrapperID || (Config.D3d9to9Ex && riid == IID_IDirect3DDevice9))
+	if (riid == IID_IUnknown || riid == WrapperID || (IsForcingD3d9to9Ex() && riid == IID_IDirect3DDevice9))
 	{
 		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
 
@@ -232,7 +232,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayMode(THIS_ UINT iSwapChain, D3DDISPLAYMO
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex && ProxyInterfaceEx && pMode)
+	if (IsForcingD3d9to9Ex() && pMode)
 	{
 		D3DDISPLAYMODEEX ModeEx = {};
 		ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
@@ -243,9 +243,9 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayMode(THIS_ UINT iSwapChain, D3DDISPLAYMO
 		if (SUCCEEDED(hr))
 		{
 			ModeExToMode(ModeEx, *pMode);
-		}
 
-		return hr;
+			return hr;
+		}
 	}
 
 	return ProxyInterface->GetDisplayMode(iSwapChain, pMode);
@@ -342,7 +342,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 
 		if (ppSwapChain)
 		{
-			if (IDirect3DSwapChain9* pSwapChainQuery = nullptr; Config.D3d9to9Ex && WrapperID == IID_IDirect3DDevice9Ex && SUCCEEDED((*ppSwapChain)->QueryInterface(IID_IDirect3DSwapChain9Ex, (LPVOID*)&pSwapChainQuery)))
+			if (IDirect3DSwapChain9* pSwapChainQuery = nullptr; IsForcingD3d9to9Ex() && SUCCEEDED((*ppSwapChain)->QueryInterface(IID_IDirect3DSwapChain9Ex, (LPVOID*)&pSwapChainQuery)))
 			{
 				(*ppSwapChain)->Release();
 
@@ -388,7 +388,7 @@ HRESULT m_IDirect3DDevice9Ex::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapC
 
 	if (SUCCEEDED(hr) && ppSwapChain)
 	{
-		if (IDirect3DSwapChain9* pSwapChainQuery = nullptr; Config.D3d9to9Ex && WrapperID == IID_IDirect3DDevice9Ex && SUCCEEDED((*ppSwapChain)->QueryInterface(IID_IDirect3DSwapChain9Ex, (LPVOID*)&pSwapChainQuery)))
+		if (IDirect3DSwapChain9* pSwapChainQuery = nullptr; IsForcingD3d9to9Ex() && SUCCEEDED((*ppSwapChain)->QueryInterface(IID_IDirect3DSwapChain9Ex, (LPVOID*)&pSwapChainQuery)))
 		{
 			(*ppSwapChain)->Release();
 
@@ -414,13 +414,16 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS* pPresentationParamete
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex && ProxyInterfaceEx && pPresentationParameters)
+	if (IsForcingD3d9to9Ex() && pPresentationParameters)
 	{
 		D3DDISPLAYMODEEX FullscreenDisplayMode = {};
 
 		m_IDirect3D9Ex::GetFullscreenDisplayMode(*pPresentationParameters, FullscreenDisplayMode);
 
-		return ResetEx(pPresentationParameters, &FullscreenDisplayMode);
+		if (SUCCEEDED(ResetEx(pPresentationParameters, &FullscreenDisplayMode)))
+		{
+			return D3D_OK;
+		}
 	}
 
 	return ResetT<fReset>(nullptr, pPresentationParameters, false, nullptr);
@@ -430,9 +433,12 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT* pSourceRect, CONST RECT* pDest
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	if (IsForcingD3d9to9Ex())
 	{
-		return PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, 0);
+		if (SUCCEEDED(PresentEx(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion, 0)))
+		{
+			return D3D_OK;
+		}
 	}
 
 	ApplyPrePresentFixes();
@@ -554,15 +560,6 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex)
-	{
-		if (Pool == D3DPOOL_MANAGED)
-		{
-			Pool = D3DPOOL_DEFAULT;
-			Usage |= D3DUSAGE_DYNAMIC;
-		}
-	}
-
 	// Override stencil format
 	if (Config.OverrideStencilFormat && Usage == D3DUSAGE_DEPTHSTENCIL)
 	{
@@ -574,6 +571,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 	{
 		Levels = 0;
 		Usage |= D3DUSAGE_AUTOGENMIPMAP;
+	}
+
+	if (IsForcingD3d9to9Ex() && Pool == D3DPOOL_MANAGED)
+	{
+		Pool = D3DPOOL_DEFAULT;
+		Usage |= D3DUSAGE_DYNAMIC;
 	}
 
 	HRESULT hr = ProxyInterface->CreateTexture(Width, Height, Levels, Usage, Format, Pool, ppTexture, pSharedHandle);
@@ -594,13 +597,10 @@ HRESULT m_IDirect3DDevice9Ex::CreateVolumeTexture(THIS_ UINT Width, UINT Height,
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex)
+	if (IsForcingD3d9to9Ex() && Pool == D3DPOOL_MANAGED)
 	{
-		if (Pool == D3DPOOL_MANAGED)
-		{
-			Pool = D3DPOOL_DEFAULT;
-			Usage |= D3DUSAGE_DYNAMIC;
-		}
+		Pool = D3DPOOL_DEFAULT;
+		Usage |= D3DUSAGE_DYNAMIC;
 	}
 
 	HRESULT hr = ProxyInterface->CreateVolumeTexture(Width, Height, Depth, Levels, Usage, Format, Pool, ppVolumeTexture, pSharedHandle);
@@ -621,13 +621,10 @@ HRESULT m_IDirect3DDevice9Ex::CreateCubeTexture(THIS_ UINT EdgeLength, UINT Leve
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex)
+	if (IsForcingD3d9to9Ex() && Pool == D3DPOOL_MANAGED)
 	{
-		if (Pool == D3DPOOL_MANAGED)
-		{
-			Pool = D3DPOOL_DEFAULT;
-			Usage |= D3DUSAGE_DYNAMIC;
-		}
+		Pool = D3DPOOL_DEFAULT;
+		Usage |= D3DUSAGE_DYNAMIC;
 	}
 
 	// Override stencil format
@@ -657,16 +654,11 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexBuffer(THIS_ UINT Length, DWORD Usage,
 	if (Config.ForceSystemMemVertexCache && Pool == D3DPOOL_MANAGED)
 	{
 		Pool = D3DPOOL_SYSTEMMEM;
-		Usage = D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY;
 	}
 
-	if (Config.D3d9to9Ex)
+	if (IsForcingD3d9to9Ex() && Pool == D3DPOOL_MANAGED)
 	{
-		if (Pool == D3DPOOL_MANAGED)
-		{
-			Pool = D3DPOOL_DEFAULT;
-			Usage |= D3DUSAGE_DYNAMIC;
-		}
+		Pool = D3DPOOL_DEFAULT;
 	}
 
 	HRESULT hr = ProxyInterface->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
@@ -687,13 +679,9 @@ HRESULT m_IDirect3DDevice9Ex::CreateIndexBuffer(THIS_ UINT Length, DWORD Usage, 
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex)
+	if (IsForcingD3d9to9Ex() && Pool == D3DPOOL_MANAGED)
 	{
-		if (Pool == D3DPOOL_MANAGED)
-		{
-			Pool = D3DPOOL_DEFAULT;
-			Usage |= D3DUSAGE_DYNAMIC;
-		}
+		Pool = D3DPOOL_DEFAULT;
 	}
 
 	HRESULT hr = ProxyInterface->CreateIndexBuffer(Length, Usage, Format, Pool, ppIndexBuffer, pSharedHandle);
@@ -714,9 +702,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	if (IsForcingD3d9to9Ex())
 	{
-		return CreateRenderTargetEx(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle, 0);
+		if (SUCCEEDED(CreateRenderTargetEx(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle, D3DUSAGE_RENDERTARGET)))
+		{
+			return D3D_OK;
+		}
 	}
 
 	HRESULT hr = D3DERR_INVALIDCALL;
@@ -753,9 +744,12 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	if (IsForcingD3d9to9Ex())
 	{
-		return CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, 0);
+		if (SUCCEEDED(CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, D3DUSAGE_DEPTHSTENCIL)))
+		{
+			return D3D_OK;
+		}
 	}
 
 	// Override stencil format
@@ -954,16 +948,20 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurface(THIS_ UINT Width, UINT
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	if (IsForcingD3d9to9Ex())
 	{
-		if (Width < 64 && Pool == D3DPOOL_SYSTEMMEM)
+		if (SUCCEEDED(CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, 0)))
 		{
-			Pool = D3DPOOL_DEFAULT;
+			return D3D_OK;
 		}
-		return CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, 0);
 	}
 
 	HRESULT hr = ProxyInterface->CreateOffscreenPlainSurface(Width, Height, Format, Pool, ppSurface, pSharedHandle);
+
+	if (FAILED(hr) && IsForcingD3d9to9Ex() && Width < 64 && Pool == D3DPOOL_SYSTEMMEM)
+	{
+		hr = ProxyInterface->CreateOffscreenPlainSurface(Width, Height, Format, D3DPOOL_DEFAULT, ppSurface, pSharedHandle);
+	}
 
 	if (SUCCEEDED(hr) && ppSurface)
 	{
@@ -2359,6 +2357,11 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 
 	HRESULT hr = ProxyInterfaceEx->CreateOffscreenPlainSurfaceEx(Width, Height, Format, Pool, ppSurface, pSharedHandle, Usage);
 
+	if (FAILED(hr) && IsForcingD3d9to9Ex() && Width < 64 && Pool == D3DPOOL_SYSTEMMEM)
+	{
+		hr = ProxyInterfaceEx->CreateOffscreenPlainSurfaceEx(Width, Height, Format, D3DPOOL_DEFAULT, ppSurface, pSharedHandle, Usage);
+	}
+
 	if (SUCCEEDED(hr) && ppSurface)
 	{
 		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
@@ -2950,8 +2953,8 @@ HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
 	// Create or update the gamma LUT texture
 	if (!GammaLUTTexture)
 	{
-		DWORD Usage = (Config.D3d9to9Ex ? D3DUSAGE_DYNAMIC : 0);
-		D3DPOOL Pool = (Config.D3d9to9Ex ? D3DPOOL_DEFAULT : D3DPOOL_MANAGED);
+		const DWORD Usage = (IsForcingD3d9to9Ex() ? D3DUSAGE_DYNAMIC : 0);
+		const D3DPOOL Pool = (IsForcingD3d9to9Ex() ? D3DPOOL_DEFAULT : D3DPOOL_MANAGED);
 
 		if (SUCCEEDED(ProxyInterface->CreateTexture(256, 1, 1, Usage, D3DFMT_A32B32G32R32F, Pool, &GammaLUTTexture, nullptr)))
 		{
@@ -3371,8 +3374,8 @@ void m_IDirect3DDevice9Ex::SetEnvironmentCubeMapTexture()
 		if (!BlankTexture)
 		{
 			const UINT CubeSize = 64;
-			const DWORD Usage = (Config.D3d9to9Ex ? D3DUSAGE_DYNAMIC : 0);
-			const D3DPOOL Pool = (Config.D3d9to9Ex ? D3DPOOL_DEFAULT : D3DPOOL_MANAGED);
+			const DWORD Usage = (IsForcingD3d9to9Ex() ? D3DUSAGE_DYNAMIC : 0);
+			const D3DPOOL Pool = (IsForcingD3d9to9Ex() ? D3DPOOL_DEFAULT : D3DPOOL_MANAGED);
 
 			HRESULT hr = ProxyInterface->CreateCubeTexture(CubeSize, 1, Usage, D3DFMT_A8R8G8B8, Pool, &BlankTexture, nullptr);
 			if (FAILED(hr))
