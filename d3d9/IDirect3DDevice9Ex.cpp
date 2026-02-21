@@ -232,17 +232,23 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayMode(THIS_ UINT iSwapChain, D3DDISPLAYMO
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (IsForcingD3d9to9Ex() && pMode)
+	if (IsForcingD3d9to9Ex())
 	{
 		D3DDISPLAYMODEEX ModeEx = {};
 		ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
-		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
+		D3DDISPLAYMODEEX* pModeEx = pMode ? &ModeEx : nullptr;
 
-		HRESULT hr = GetDisplayModeEx(iSwapChain, &ModeEx, &Rotation);
+		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
+		D3DDISPLAYROTATION* pRotation = pMode ? &Rotation : nullptr;
+
+		HRESULT hr = GetDisplayModeEx(iSwapChain, pModeEx, pRotation);
 
 		if (SUCCEEDED(hr))
 		{
-			ModeExToMode(ModeEx, *pMode);
+			if (pMode)
+			{
+				ModeExToMode(ModeEx, *pMode);
+			}
 
 			return hr;
 		}
@@ -414,16 +420,20 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS* pPresentationParamete
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (IsForcingD3d9to9Ex() && pPresentationParameters)
+	if (IsForcingD3d9to9Ex())
 	{
 		D3DDISPLAYMODEEX FullscreenDisplayMode = {};
+		D3DDISPLAYMODEEX* pFullscreenDisplayMode = nullptr;
 
-		m_IDirect3D9Ex::GetFullscreenDisplayMode(*pPresentationParameters, FullscreenDisplayMode);
-
-		if (SUCCEEDED(ResetEx(pPresentationParameters, &FullscreenDisplayMode)))
+		if (pPresentationParameters)
 		{
-			return D3D_OK;
+			pFullscreenDisplayMode = &FullscreenDisplayMode;
+			m_IDirect3D9Ex::GetFullscreenDisplayMode(*pPresentationParameters, FullscreenDisplayMode);
 		}
+
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: Calling Reset() when using D3d9to9Ex.  Managed interfaces converted to the default pool will be lost!");
+
+		return ResetEx(pPresentationParameters, pFullscreenDisplayMode);
 	}
 
 	return ResetT<fReset>(nullptr, pPresentationParameters, false, nullptr);
@@ -3420,6 +3430,11 @@ void m_IDirect3DDevice9Ex::SetEnvironmentCubeMapTexture()
 // Runs when device is created and on every successful Reset()
 void m_IDirect3DDevice9Ex::ReInitInterface()
 {
+	if (Config.D3d9to9Ex && !IsForcingD3d9to9Ex())
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: Creating non-Ex interface when using D3d9to9Ex!");
+	}
+
 	Utils::GetScreenSize(SHARED.hMonitor, SHARED.screenWidth, SHARED.screenHeight);
 
 	IsGammaSet = false;

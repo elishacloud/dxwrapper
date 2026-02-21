@@ -57,5 +57,9 @@ public:
 		{
 			ProxyInterfaceEx = nullptr;
 		}
+		if (Config.D3d9to9Ex && !IsForcingD3d9to9Ex())
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: Creating non-Ex interface when using D3d9to9Ex!");
+		}
 	}
 };

@@ -417,6 +417,11 @@ HRESULT m_IDirect3D9Ex::GetAdapterLUID(THIS_ UINT Adapter, LUID * pLUID)
 
 void m_IDirect3D9Ex::InitInterface()
 {
+	if (Config.D3d9to9Ex && !IsForcingD3d9to9Ex())
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: Creating non-Ex interface when using D3d9to9Ex!");
+	}
+
 	ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
 }
 

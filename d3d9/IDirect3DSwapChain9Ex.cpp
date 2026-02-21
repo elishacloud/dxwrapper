@@ -130,17 +130,23 @@ HRESULT m_IDirect3DSwapChain9Ex::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (IsForcingD3d9to9Ex() && pMode)
+	if (IsForcingD3d9to9Ex())
 	{
 		D3DDISPLAYMODEEX ModeEx = {};
 		ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
-		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
+		D3DDISPLAYMODEEX* pModeEx = pMode ? &ModeEx : nullptr;
 
-		HRESULT hr = GetDisplayModeEx(&ModeEx, &Rotation);
+		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
+		D3DDISPLAYROTATION* pRotation = pMode ? &Rotation : nullptr;
+
+		HRESULT hr = GetDisplayModeEx(pModeEx, pRotation);
 
 		if (SUCCEEDED(hr))
 		{
-			m_IDirect3DDevice9Ex::ModeExToMode(ModeEx, *pMode);
+			if (pMode)
+			{
+				m_IDirect3DDevice9Ex::ModeExToMode(ModeEx, *pMode);
+			}
 
 			return hr;
 		}
