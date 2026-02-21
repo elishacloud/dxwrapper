@@ -853,6 +853,13 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: FlipEx presentation mode is only supported with windowed mode!");
 		}
 	}
+	else if (IsEx && Config.D3d9to9Ex)
+	{
+		if (pPresentationParameters->SwapEffect == D3DSWAPEFFECT_FLIP)
+		{
+			pPresentationParameters->SwapEffect = D3DSWAPEFFECT_FLIPEX;
+		}
+	}
 
 	// Override stencil format
 	if (Config.OverrideStencilFormat && pPresentationParameters->EnableAutoDepthStencil)
