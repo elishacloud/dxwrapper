@@ -228,6 +228,11 @@ const char *Wrapper::GetWrapperName(const char *WrapperMode)
 
 	VISIT_DLLS(CHECK_WRAPPER);
 
+#ifdef VISIT_PROCS_DPLAYX
+	// Special handling for dplay.dll because it is sharing procs from dplayx
+	{ using namespace dplayx; if (_stricmp(WrapperMode, "dplay.dll") == 0) { return "dplayx.dll"; } }
+#endif
+
 #ifdef VISIT_PROCS_WINMM
 	// Special handling for winmm.dll because sometimes it is changed to win32 or winnm or some other name
 	if (strlen(WrapperMode) > 8)
