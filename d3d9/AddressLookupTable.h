@@ -72,7 +72,10 @@ private:
 
 	// General template function for CreateInterface
 	template <typename T, typename D, typename L>
-	T* CreateInterface(T* Proxy, D* Device, REFIID riid, L Data);
+	inline T* CreateInterface(T* Proxy, D* Device, REFIID riid, L Data);
+
+	template <typename T>
+	inline IUnknown* GetIndentityInterface(IUnknown* Proxy);
 
 	bool ConstructorFlag = false;
 	std::unordered_map<void*, class AddressLookupTableD3d9Object*> g_map[MaxIndex];

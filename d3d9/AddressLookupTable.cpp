@@ -146,6 +146,25 @@ m_IDirect3DDXVADevice9* AddressLookupTableD3d9::CreateInterface<m_IDirect3DDXVAD
 	return new m_IDirect3DDXVADevice9(static_cast<m_IDirect3DDXVADevice9*>(Proxy), Device);
 }
 
+template <typename T>
+IUnknown* AddressLookupTableD3d9::GetIndentityInterface(IUnknown* Proxy)
+{
+	constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
+
+	if constexpr (CacheIndex != AddressCacheIndex<m_IDirect3D9Ex>::CacheIndex &&
+		CacheIndex != AddressCacheIndex<m_IDirect3DDevice9Ex>::CacheIndex &&
+		CacheIndex != AddressCacheIndex<m_IDirect3DSwapChain9Ex>::CacheIndex)
+	{
+		ComPtr<IUnknown> pAddress;
+		if (SUCCEEDED(Proxy->QueryInterface(IID_IUnknown, (void**)pAddress.GetAddressOf())) && pAddress.Get())
+		{
+			return pAddress.Get();
+		}
+	}
+
+	return Proxy;
+}
+
 template m_IDirect3D9Ex* AddressLookupTableD3d9::FindCreateAddress<m_IDirect3D9Ex, void, LPVOID>(IUnknown*, void*, REFIID, LPVOID);
 template m_IDirect3DDevice9Ex* AddressLookupTableD3d9::FindCreateAddress<m_IDirect3DDevice9Ex, m_IDirect3D9Ex, UINT>(IUnknown*, m_IDirect3D9Ex*, REFIID, UINT);
 template m_IDirect3DCubeTexture9* AddressLookupTableD3d9::FindCreateAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(IUnknown*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
@@ -173,20 +192,7 @@ T* AddressLookupTableD3d9::FindCreateAddress(IUnknown* Proxy, D* Device, REFIID 
 
 	constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
-	IUnknown* identity = Proxy;
-	if constexpr (CacheIndex != AddressCacheIndex<m_IDirect3D9Ex>::CacheIndex &&
-		CacheIndex != AddressCacheIndex<m_IDirect3DDevice9Ex>::CacheIndex &&
-		CacheIndex != AddressCacheIndex<m_IDirect3DSwapChain9Ex>::CacheIndex)
-	{
-		ComPtr<IUnknown> pAddress;
-		if (SUCCEEDED(Proxy->QueryInterface(IID_IUnknown, (void**)pAddress.GetAddressOf())))
-		{
-			identity = pAddress.Get();
-		}
-	}
-
-	auto it = g_map[CacheIndex].find(identity);
-
+	auto it = g_map[CacheIndex].find(GetIndentityInterface<T>(Proxy));
 	if (it != std::end(g_map[CacheIndex]))
 	{
 		T* addr = static_cast<T*>(it->second);
@@ -196,17 +202,14 @@ T* AddressLookupTableD3d9::FindCreateAddress(IUnknown* Proxy, D* Device, REFIID 
 		return addr;
 	}
 
-	IUnknown* Object = nullptr;
-	if (SUCCEEDED(Proxy->QueryInterface(riid, (void**)&Object)))
+	IUnknown* object = nullptr;
+	if (SUCCEEDED(Proxy->QueryInterface(riid, (void**)&object)) && object)
 	{
 		Proxy->Release();
-		return CreateInterface((T*)Object, Device, riid, Data);
+		return CreateInterface((T*)object, Device, riid, Data);
 	}
 
-	T* addr = CreateInterface((T*)Proxy, Device, riid, Data);
-	addr->AddRef();
-	Proxy->Release();
-	return addr;
+	return CreateInterface((T*)Proxy, Device, riid, Data);
 }
 
 template m_IDirect3D9Ex* AddressLookupTableD3d9::FindAddress<m_IDirect3D9Ex>(IUnknown*);
@@ -236,20 +239,7 @@ T* AddressLookupTableD3d9::FindAddress(IUnknown* Proxy)
 
 	constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
-	IUnknown* identity = Proxy;
-	if constexpr (CacheIndex != AddressCacheIndex<m_IDirect3D9Ex>::CacheIndex &&
-		CacheIndex != AddressCacheIndex<m_IDirect3DDevice9Ex>::CacheIndex &&
-		CacheIndex != AddressCacheIndex<m_IDirect3DSwapChain9Ex>::CacheIndex)
-	{
-		ComPtr<IUnknown> pAddress;
-		if (SUCCEEDED(Proxy->QueryInterface(IID_IUnknown, (void**)pAddress.GetAddressOf())))
-		{
-			identity = pAddress.Get();
-		}
-	}
-
-	auto it = g_map[CacheIndex].find(identity);
-
+	auto it = g_map[CacheIndex].find(GetIndentityInterface<T>(Proxy));
 	if (it != std::end(g_map[CacheIndex]))
 	{
 		T* addr = static_cast<T*>(it->second);
@@ -283,35 +273,28 @@ template void AddressLookupTableD3d9::SaveAddress<m_IDirect3D9Ex>(m_IDirect3D9Ex
 template <typename T>
 void AddressLookupTableD3d9::SaveAddress(T* Wrapper, IUnknown* Proxy)
 {
-	constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-	if (Wrapper && Proxy)
+	if (!Wrapper || !Proxy)
 	{
-		IUnknown* identity = Proxy;
-		if constexpr (CacheIndex != AddressCacheIndex<m_IDirect3D9Ex>::CacheIndex &&
-			CacheIndex != AddressCacheIndex<m_IDirect3DDevice9Ex>::CacheIndex &&
-			CacheIndex != AddressCacheIndex<m_IDirect3DSwapChain9Ex>::CacheIndex)
-		{
-			ComPtr<IUnknown> pAddress;
-			if (SUCCEEDED(Proxy->QueryInterface(IID_IUnknown, (void**)pAddress.GetAddressOf())))
-			{
-				identity = pAddress.Get();
-			}
-		}
-
-		// Check if the entry already exists in the map
-		auto it = g_map[CacheIndex].find(identity);
-		if (it != g_map[CacheIndex].end())
-		{
-			// If the entry exists, call DeleteMe() on the existing object
-			if (it->second)
-			{
-				it->second->DeleteMe();
-			}
-		}
-
-		// Now save the new entry in the map
-		g_map[CacheIndex][identity] = Wrapper;
+		return;
 	}
+
+	constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
+
+	IUnknown* identity = GetIndentityInterface<T>(Proxy);
+
+	// Check if the entry already exists in the map
+	auto it = g_map[CacheIndex].find(identity);
+	if (it != g_map[CacheIndex].end())
+	{
+		// If the entry exists, call DeleteMe() on the existing object
+		if (it->second)
+		{
+			it->second->DeleteMe();
+		}
+	}
+
+	// Now save the new entry in the map
+	g_map[CacheIndex][identity] = Wrapper;
 }
 
 template void AddressLookupTableD3d9::DeleteAddress<m_IDirect3D9Ex>(m_IDirect3D9Ex*);
