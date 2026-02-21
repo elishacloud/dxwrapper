@@ -77,6 +77,9 @@ private:
 	template <typename T>
 	inline IUnknown* GetIndentityInterface(IUnknown* Proxy);
 
+	template <typename T>
+	inline T* FindInterface(IUnknown* Proxy);
+
 	bool ConstructorFlag = false;
 	std::unordered_map<void*, class AddressLookupTableD3d9Object*> g_map[MaxIndex];
 };

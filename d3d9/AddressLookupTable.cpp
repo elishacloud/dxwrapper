@@ -165,6 +165,23 @@ IUnknown* AddressLookupTableD3d9::GetIndentityInterface(IUnknown* Proxy)
 	return Proxy;
 }
 
+template <typename T>
+T* AddressLookupTableD3d9::FindInterface(IUnknown* Proxy)
+{
+	constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
+
+	auto it = g_map[CacheIndex].find(GetIndentityInterface<T>(Proxy));
+	if (it != std::end(g_map[CacheIndex]))
+	{
+		T* addr = static_cast<T*>(it->second);
+		addr->AddRef();
+		Proxy->Release();
+		return addr;
+	}
+
+	return nullptr;
+}
+
 template m_IDirect3D9Ex* AddressLookupTableD3d9::FindCreateAddress<m_IDirect3D9Ex, void, LPVOID>(IUnknown*, void*, REFIID, LPVOID);
 template m_IDirect3DDevice9Ex* AddressLookupTableD3d9::FindCreateAddress<m_IDirect3DDevice9Ex, m_IDirect3D9Ex, UINT>(IUnknown*, m_IDirect3D9Ex*, REFIID, UINT);
 template m_IDirect3DCubeTexture9* AddressLookupTableD3d9::FindCreateAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(IUnknown*, m_IDirect3DDevice9Ex*, REFIID, LPVOID);
@@ -190,15 +207,10 @@ T* AddressLookupTableD3d9::FindCreateAddress(IUnknown* Proxy, D* Device, REFIID 
 		return nullptr;
 	}
 
-	constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-
-	auto it = g_map[CacheIndex].find(GetIndentityInterface<T>(Proxy));
-	if (it != std::end(g_map[CacheIndex]))
+	T* addr = FindInterface<T>(Proxy);
+	if (addr)
 	{
-		T* addr = static_cast<T*>(it->second);
 		addr->InitInterface(Device, riid, Data);
-		addr->AddRef();
-		Proxy->Release();
 		return addr;
 	}
 
@@ -237,18 +249,13 @@ T* AddressLookupTableD3d9::FindAddress(IUnknown* Proxy)
 		return nullptr;
 	}
 
-	constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-
-	auto it = g_map[CacheIndex].find(GetIndentityInterface<T>(Proxy));
-	if (it != std::end(g_map[CacheIndex]))
+	T* addr = FindInterface<T>(Proxy);
+	if (addr)
 	{
-		T* addr = static_cast<T*>(it->second);
-		addr->AddRef();
-		Proxy->Release();
 		return addr;
 	}
 
-	LOG_LIMIT(100, __FUNCTION__ << " Error: could not find interface for index: " << CacheIndex);
+	LOG_LIMIT(100, __FUNCTION__ << " Error: could not find interface for index: " << AddressCacheIndex<T>::CacheIndex);
 	return nullptr;
 }
 
@@ -322,12 +329,12 @@ void AddressLookupTableD3d9::DeleteAddress(T* Wrapper)
 	}
 
 	constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
+
 	auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
 		[=](auto& Map) -> bool { return Map.second == Wrapper; });
-
 	if (it != std::end(g_map[CacheIndex]))
 	{
-		it = g_map[CacheIndex].erase(it);
+		g_map[CacheIndex].erase(it);
 	}
 }
 
