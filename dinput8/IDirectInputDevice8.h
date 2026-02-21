@@ -30,7 +30,6 @@ private:
 	DWORD MouseBufferSize = 0;
 	DWORD RequestedMouseBufferSize = 0;
 	DWORD SequenceCounter = 0;
-	DWORD LastSentSequenceCounter = 0;
 	DWORD LastObjectSize = 0;
 	struct {
 		DWORD x = DIMOFS_X;

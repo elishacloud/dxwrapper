@@ -276,14 +276,12 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 		{
 			SequenceCounter = lpdod->dwSequence;
 		}
-		if (LastSentSequenceCounter && std::abs((LONG)LastSentSequenceCounter - (LONG)lpdod->dwSequence) > 1)
-		{
-			isBufferOverflow = true;
-		}
 
 		// Loop through buffer and merge like data
 		for (UINT x = 0; x < dwItems; x++)
 		{
+			bool InsertNewRecord = true;
+
 			// Handle movement data
 			if (lpdod->dwOfs == Ofs.x || lpdod->dwOfs == Ofs.y || lpdod->dwOfs == Ofs.z)
 			{
@@ -292,10 +290,8 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 				// Merge data only
 				if (isSet[v])
 				{
+					InsertNewRecord = false;
 					dod[Loc[v]].lData += (LONG)lpdod->dwData;
-
-					lpdod = (LPDIDEVICEOBJECTDATA)((BYTE*)lpdod + cbObjectData);
-					continue;
 				}
 				// Storing new movement data
 				else
@@ -306,15 +302,17 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 			}
 
 			// Store data
-			if constexpr (std::is_same_v<T, MOUSECACHEDATA_DX3>)
+			if (InsertNewRecord)
 			{
-				dod.push_back({ lpdod->dwOfs, (LONG)lpdod->dwData, lpdod->dwTimeStamp, SequenceCounter++ });
+				if constexpr (std::is_same_v<T, MOUSECACHEDATA_DX3>)
+				{
+					dod.push_back({ lpdod->dwOfs, (LONG)lpdod->dwData, lpdod->dwTimeStamp, SequenceCounter++ });
+				}
+				else
+				{
+					dod.push_back({ lpdod->dwOfs, (LONG)lpdod->dwData, lpdod->dwTimeStamp, SequenceCounter++, lpdod->uAppData });
+				}
 			}
-			else
-			{
-				dod.push_back({ lpdod->dwOfs, (LONG)lpdod->dwData, lpdod->dwTimeStamp, SequenceCounter++, lpdod->uAppData });
-			}
-			LastSentSequenceCounter = lpdod->dwSequence;
 
 			lpdod = (LPDIDEVICEOBJECTDATA)((BYTE*)lpdod + cbObjectData);
 		}
@@ -343,12 +341,6 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 		SetProperty(DIPROP_BUFFERSIZE, &dipdw.diph);
 	}
 
-	// Check for buffer overflow
-	if (RequestedMouseBufferSize && RequestedMouseBufferSize < dod.size())
-	{
-		isBufferOverflow = true;
-	}
-
 	DWORD dwOut = 0;
 
 	// Checking for device object data
@@ -366,7 +358,7 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 		}
 	}
 	// Fill device object data
-	else
+	else if (*pdwInOut)
 	{
 		DWORD requested = *pdwInOut;
 		if (requested == INFINITE && RequestedMouseBufferSize)
@@ -374,6 +366,12 @@ HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICE
 			requested = RequestedMouseBufferSize;
 		}
 		dwOut = min(dod.size(), requested);
+
+		// Check for buffer overflow (attempt to handle buffer starvation case)
+		if (dwOut < dod.size() && (!RequestedMouseBufferSize || RequestedMouseBufferSize < dod.size()))
+		{
+			isBufferOverflow = true;
+		}
 
 		memcpy(rgdod, dod.data(), sizeof(T) * dwOut);
 
