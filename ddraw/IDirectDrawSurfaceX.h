@@ -49,6 +49,33 @@ private:
 		std::vector<BYTE, aligned_allocator<BYTE, 4>> OddScanLine;
 	};
 
+	// PrivateData
+	struct PRIVATE_DATA_ENTRY
+	{
+		std::vector<BYTE> Data;
+		DWORD Flags = 0;
+		bool Expired = false;
+	};
+
+	// PrivateData for use with MipMap levels
+	struct PRIVATE_DATA_MIPMAP
+	{
+		struct GUIDHasher
+		{
+			size_t operator()(const GUID& guid) const noexcept
+			{
+				const uint64_t* p = reinterpret_cast<const uint64_t*>(&guid);
+
+				uint64_t h1 = std::hash<uint64_t>()(p[0]);
+				uint64_t h2 = std::hash<uint64_t>()(p[1]);
+
+				return static_cast<size_t>((h1 & 0xFFFFFFFF) ^ (h1 >> 32) ^ (h2 & 0xFFFFFFFF) ^ (h2 >> 32));
+			}
+		};
+
+		std::unordered_map<GUID, PRIVATE_DATA_ENTRY, GUIDHasher> Data;
+	};
+
 	// Mipmap struct
 	struct MIPMAP
 	{
@@ -198,6 +225,8 @@ private:
 	std::vector<MIPMAP> MipMaps;						// MipMaps structure with addresses
 	std::unordered_map<DWORD, LASTLOCK> LockedLevel;	// LastLocked MipMap levels
 	std::unordered_map<DWORD, HDC> GetDCLevel;			// DC in MipMap levels
+	std::unordered_map<DWORD,
+		PRIVATE_DATA_MIPMAP> PrivateDataMap;			// For emulating PrivateData
 	DWORD MaxMipMapLevel = 0;							// Total number of manually created MipMap levels
 	bool IsMipMapReadyToUse = false;					// Used for MipMap filtering
 	bool RecreateAuxiliarySurfaces = false;
@@ -304,6 +333,8 @@ private:
 	HRESULT PresentOverlay(LPRECT lpSrcRect);
 	void BeginWritePresent(bool IsSkipScene);
 	void EndWriteSyncSurfaces(LPRECT lpDestRect, DWORD MipMapLevel, bool EndWriteSurfaceSync);
+	void ExpireVolatilePrivateData(DWORD MipMapLevel);
+	void ReleaseIUnknownPrivateData(PRIVATE_DATA_ENTRY& Data);
 
 	// Surface information functions
 	HRESULT LockReturnValue(HRESULT hr, DWORD MipMapLevel, m_IDirectDrawSurfaceX* pSrcSurface, DWORD SrcMipMapLevel, bool LockWait);
@@ -473,9 +504,9 @@ public:
 	HRESULT SetSurfaceDesc2(LPDDSURFACEDESC2, DWORD);
 
 	/*** Added in the v4 interface ***/
-	STDMETHOD(SetPrivateData)(THIS_ REFGUID, LPVOID, DWORD, DWORD);
-	STDMETHOD(GetPrivateData)(THIS_ REFGUID, LPVOID, LPDWORD);
-	STDMETHOD(FreePrivateData)(THIS_ REFGUID);
+	STDMETHOD(SetPrivateData)(THIS_ REFGUID, LPVOID, DWORD, DWORD, DWORD MipMapLevel);
+	STDMETHOD(GetPrivateData)(THIS_ REFGUID, LPVOID, LPDWORD, DWORD MipMapLevel);
+	STDMETHOD(FreePrivateData)(THIS_ REFGUID, DWORD MipMapLevel);
 	STDMETHOD(GetUniquenessValue)(THIS_ LPDWORD, DWORD MipMapLevel);
 	STDMETHOD(ChangeUniquenessValue)(THIS_ DWORD MipMapLevel);
 

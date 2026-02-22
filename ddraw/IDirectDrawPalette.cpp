@@ -15,6 +15,7 @@
 */
 
 #include "ddraw.h"
+#include "Utils\Utils.h"
 
 // ******************************
 // IUnknown functions
@@ -292,7 +293,7 @@ void m_IDirectDrawPalette::InitInterface(DWORD dwFlags, LPPALETTEENTRY lpDDColor
 		paletteCaps = (dwFlags & ~DDPCAPS_INITIALIZE);
 
 		// Compute new USN number
-		PaletteUSN = ComputeRND(PaletteUSN, (DWORD)this);
+		PaletteUSN = Utils::ComputeRND(PaletteUSN, (DWORD)this);
 
 		// Create palette of requested bit size
 		if ((paletteCaps & DDPCAPS_8BIT) || (paletteCaps & DDPCAPS_ALLOW256))

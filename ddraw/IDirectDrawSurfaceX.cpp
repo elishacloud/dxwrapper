@@ -1415,6 +1415,16 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 					displayTexture->AddDirtyRect(nullptr);
 				}
 			}
+
+			// Mark content of surface changed
+			for (m_IDirectDrawSurfaceX*& pSurfaceX : FlipList)
+			{
+				// Expire volitile private data
+				pSurfaceX->ExpireVolatilePrivateData(0);
+
+				// Update Uniqueness Value
+				pSurfaceX->ChangeUniquenessValue(0);
+			}
 		}
 
 #ifdef ENABLE_PROFILING
@@ -3590,96 +3600,130 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 // IDirectDrawSurface v4 functions
 // ******************************
 
-HRESULT m_IDirectDrawSurfaceX::SetPrivateData(REFGUID guidTag, LPVOID lpData, DWORD cbSize, DWORD dwFlags)
+HRESULT m_IDirectDrawSurfaceX::SetPrivateData(REFGUID guidTag, LPVOID lpData, DWORD cbSize, DWORD dwFlags, DWORD MipMapLevel)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-		if (FAILED(c_hr))
+		if (!lpData || cbSize == 0)
 		{
-			return c_hr;
+			return DDERR_INVALIDPARAMS;
 		}
 
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: private data may not be preserved!");
+		if ((dwFlags & DDSPD_IUNKNOWNPOINTER) && cbSize < sizeof(DWORD_PTR))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
 
-		if (surface.Surface)
+		// Release old IUnknown if replacing
 		{
-			return surface.Surface->SetPrivateData(guidTag, lpData, cbSize, dwFlags);
+			auto item = PrivateDataMap.find(MipMapLevel);
+			if (item != PrivateDataMap.end())
+			{
+				auto it = item->second.Data.find(guidTag);
+				if (it != item->second.Data.end())
+				{
+					ReleaseIUnknownPrivateData(it->second);
+				}
+			}
 		}
-		else if (surface.Texture)
+
+		PRIVATE_DATA_ENTRY entry;
+		entry.Flags = dwFlags;
+
+		entry.Data.resize(cbSize);
+		memcpy(entry.Data.data(), lpData, cbSize);
+
+		if (dwFlags & DDSPD_IUNKNOWNPOINTER)
 		{
-			return surface.Texture->SetPrivateData(guidTag, lpData, cbSize, dwFlags);
+			IUnknown* pUnk = reinterpret_cast<IUnknown*>(*(DWORD_PTR*)entry.Data.data());
+			if (pUnk)
+			{
+				pUnk->AddRef();
+			}
 		}
-		else
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-			return DDERR_GENERIC;
-		}
+
+		PrivateDataMap[MipMapLevel].Data[guidTag] = std::move(entry);
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->SetPrivateData(guidTag, lpData, cbSize, dwFlags);
 }
 
-HRESULT m_IDirectDrawSurfaceX::GetPrivateData(REFGUID guidTag, LPVOID lpBuffer, LPDWORD lpcbBufferSize)
+HRESULT m_IDirectDrawSurfaceX::GetPrivateData(REFGUID guidTag, LPVOID lpData, LPDWORD lpcbSize, DWORD MipMapLevel)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-		if (FAILED(c_hr))
+		if (!lpcbSize)
 		{
-			return c_hr;
+			return DDERR_INVALIDPARAMS;
 		}
 
-		if (surface.Surface)
+		auto item = PrivateDataMap.find(MipMapLevel);
+		if (item == PrivateDataMap.end())
 		{
-			return surface.Surface->GetPrivateData(guidTag, lpBuffer, lpcbBufferSize);
+			return DDERR_NOTFOUND;
 		}
-		else if (surface.Texture)
+		auto it = item->second.Data.find(guidTag);
+		if (it == item->second.Data.end())
 		{
-			return surface.Texture->GetPrivateData(guidTag, lpBuffer, lpcbBufferSize);
+			return DDERR_NOTFOUND;
 		}
-		else
+
+		const PRIVATE_DATA_ENTRY& entry = it->second;
+
+		if ((entry.Flags & DDSPD_VOLATILE) && entry.Expired)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-			return DDERR_GENERIC;
+			return DDERR_EXPIRED;
 		}
+
+		DWORD size = static_cast<DWORD>(entry.Data.size());
+
+		if (!lpData || *lpcbSize < size)
+		{
+			*lpcbSize = size;
+			return DDERR_MOREDATA;
+		}
+
+		memcpy(lpData, entry.Data.data(), size);
+		*lpcbSize = size;
+
+		return DD_OK;
 	}
 
-	return ProxyInterface->GetPrivateData(guidTag, lpBuffer, lpcbBufferSize);
+	return ProxyInterface->GetPrivateData(guidTag, lpData, lpcbSize);
 }
 
-HRESULT m_IDirectDrawSurfaceX::FreePrivateData(REFGUID guidTag)
+HRESULT m_IDirectDrawSurfaceX::FreePrivateData(REFGUID guidTag, DWORD MipMapLevel)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-		if (FAILED(c_hr))
+		Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+		auto item = PrivateDataMap.find(MipMapLevel);
+		if (item == PrivateDataMap.end())
 		{
-			return c_hr;
+			return DDERR_NOTFOUND;
+		}
+		auto it = item->second.Data.find(guidTag);
+		if (it == item->second.Data.end())
+		{
+			return DDERR_NOTFOUND;
 		}
 
-		if (surface.Surface)
-		{
-			return surface.Surface->FreePrivateData(guidTag);
-		}
-		else if (surface.Texture)
-		{
-			return surface.Texture->FreePrivateData(guidTag);
-		}
-		else
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find surface!");
-			return DDERR_GENERIC;
-		}
+		// Release IUnknown if needed
+		ReleaseIUnknownPrivateData(it->second);
+
+		// Remove the entry
+		item->second.Data.erase(it);
+
+		return DD_OK;
 	}
 
 	return ProxyInterface->FreePrivateData(guidTag);
@@ -3696,22 +3740,17 @@ HRESULT m_IDirectDrawSurfaceX::GetUniquenessValue(LPDWORD lpValue, DWORD MipMapL
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (IsSurfaceBusy() || (MipMapLevel && MipMapLevel > MipMaps.size()))
+		// The only defined uniqueness value is 0, which indicates that the surface is likely to be changing beyond the control of DirectDraw.
+
+		if (MipMapLevel == 0)
 		{
-			// The only defined uniqueness value is 0, which indicates that the surface is likely to be changing beyond the control of DirectDraw.
-			*lpValue = 0;
+			*lpValue = UniquenessValue;
 		}
 		else
 		{
-			if (MipMapLevel == 0)
-			{
-				*lpValue = UniquenessValue;
-			}
-			else
-			{
-				*lpValue = MipMaps[MipMapLevel - 1].UniquenessValue;
-			}
+			*lpValue = MipMaps[MipMapLevel - 1].UniquenessValue;
 		}
+
 		return DD_OK;
 	}
 
@@ -3729,6 +3768,24 @@ HRESULT m_IDirectDrawSurfaceX::ChangeUniquenessValue(DWORD MipMapLevel)
 		{
 			UniquenessValue++;
 		}
+
+		// Mark mipmap data flag
+		if (MipMaps.size())
+		{
+			if (MipMapLevel && MipMapLevel <= MipMaps.size())
+			{
+				if (MipMaps[MipMapLevel - 1].UniquenessValue == UniquenessValue)
+				{
+					MipMaps[MipMapLevel - 1].UniquenessValue++;
+				}
+				else if (MipMaps[MipMapLevel - 1].UniquenessValue < UniquenessValue)
+				{
+					MipMaps[MipMapLevel - 1].UniquenessValue = UniquenessValue;
+				}
+			}
+			CheckMipMapLevelGen();
+		}
+
 		return DD_OK;
 	}
 
@@ -4163,6 +4220,14 @@ void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 	if (ddrawParent)
 	{
 		ddrawParent->ClearSurface(this);
+	}
+
+	for (auto& item : PrivateDataMap)
+	{
+		for (auto& [guid, entry] : item.second.Data)
+		{
+			ReleaseIUnknownPrivateData(entry);
+		}
 	}
 
 	while (!AttachedSurfaceMap.empty())
@@ -5428,6 +5493,22 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	GetDCLevel[0] = nullptr;
 	IsInFlip = false;
 
+	// Mark content of surface changed
+	if (surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_VIDEOMEMORY | DDSCAPS_LOCALVIDMEM))
+	{
+		for (UINT x = 0; x < MaxMipMapLevel + 1; x++)
+		{
+			// Expire volitile private data
+			ExpireVolatilePrivateData(x);
+
+			// Update Uniqueness Value
+			if (IsMipMapReadyToUse)
+			{
+				ChangeUniquenessValue(x);
+			}
+		}
+	}
+
 	const bool ShouldReleaseMainSurface = (!ResetSurface || IsD9UsingVideoMemory());
 
 	// Backup d3d9 surface texture
@@ -5967,6 +6048,40 @@ void m_IDirectDrawSurfaceX::SetRenderTargetShadow()
 	}
 }
 
+void m_IDirectDrawSurfaceX::ExpireVolatilePrivateData(DWORD MipMapLevel)
+{
+	auto item = PrivateDataMap.find(MipMapLevel);
+	if (item != PrivateDataMap.end())
+	{
+		for (auto& [guid, entry] : item->second.Data)
+		{
+			if ((entry.Flags & DDSPD_VOLATILE) && !entry.Expired)
+			{
+				// Release IUnknown pointer if present
+				ReleaseIUnknownPrivateData(entry);
+
+				// Mark as expired
+				entry.Expired = true;
+				entry.Data.clear();
+			}
+		}
+	}
+}
+
+void m_IDirectDrawSurfaceX::ReleaseIUnknownPrivateData(PRIVATE_DATA_ENTRY& Data)
+{
+	// Release IUnknown pointer if present
+	if (Data.Flags & DDSPD_IUNKNOWNPOINTER)
+	{
+		IUnknown* pUnk = reinterpret_cast<IUnknown*>(*(DWORD_PTR*)Data.Data.data());
+		if (pUnk)
+		{
+			pUnk->Release();
+		}
+		Data.Flags &= ~DDSPD_IUNKNOWNPOINTER;	// To prevent second release
+	}
+}
+
 void m_IDirectDrawSurfaceX::SetDirtyFlag(DWORD MipMapLevel)
 {
 	if (MipMapLevel == 0)
@@ -5979,26 +6094,13 @@ void m_IDirectDrawSurfaceX::SetDirtyFlag(DWORD MipMapLevel)
 		surface.HasData = true;
 		surface.IsDrawTextureDirty = true;
 		IsMipMapReadyToUse = (IsMipMapAutogen() || MipMaps.empty());
+	}
 
-		// Update Uniqueness Value
-		ChangeUniquenessValue(0);
-	}
-	// Mark mipmap data flag
-	if (MipMaps.size())
-	{
-		if (MipMapLevel && MipMapLevel <= MipMaps.size())
-		{
-			if (MipMaps[MipMapLevel - 1].UniquenessValue == UniquenessValue)
-			{
-				MipMaps[MipMapLevel - 1].UniquenessValue++;
-			}
-			else if (MipMaps[MipMapLevel - 1].UniquenessValue < UniquenessValue)
-			{
-				MipMaps[MipMapLevel - 1].UniquenessValue = UniquenessValue;
-			}
-		}
-		CheckMipMapLevelGen();
-	}
+	// Update Uniqueness Value
+	ChangeUniquenessValue(MipMapLevel);
+
+	// Expire volitile private data
+	ExpireVolatilePrivateData(MipMapLevel);
 }
 
 void m_IDirectDrawSurfaceX::ClearDirtyFlags()

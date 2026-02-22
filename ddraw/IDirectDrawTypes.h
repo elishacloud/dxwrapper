@@ -253,7 +253,6 @@ void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLock
 DWORD GetDepthFillValue(float depthValue, D3DFORMAT Format);
 template <typename T>
 HRESULT ComplexZBufferCopy(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format);
-DWORD ComputeRND(DWORD Seed, DWORD Num);
 bool DoRectsMatch(const RECT& lhs, const RECT& rhs);
 bool GetOverlappingRect(const RECT& rect1, const RECT& rect2, RECT& outOverlapRect);
 bool ClipRectToBounds(RECT* r, LONG width, LONG height);

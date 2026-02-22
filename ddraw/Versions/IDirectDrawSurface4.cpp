@@ -440,7 +440,7 @@ HRESULT m_IDirectDrawSurface4::SetPrivateData(REFGUID a, LPVOID b, DWORD c, DWOR
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->SetPrivateData(a, b, c, d);
+	return ProxyInterface->SetPrivateData(a, b, c, d, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface4::GetPrivateData(REFGUID a, LPVOID b, LPDWORD c)
@@ -449,7 +449,7 @@ HRESULT m_IDirectDrawSurface4::GetPrivateData(REFGUID a, LPVOID b, LPDWORD c)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetPrivateData(a, b, c);
+	return ProxyInterface->GetPrivateData(a, b, c, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface4::FreePrivateData(REFGUID a)
@@ -458,7 +458,7 @@ HRESULT m_IDirectDrawSurface4::FreePrivateData(REFGUID a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->FreePrivateData(a);
+	return ProxyInterface->FreePrivateData(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface4::GetUniquenessValue(LPDWORD a)

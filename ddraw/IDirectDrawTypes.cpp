@@ -258,14 +258,6 @@ HRESULT ComplexZBufferCopy(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSou
 	return DD_OK;
 }
 
-DWORD ComputeRND(DWORD Seed, DWORD Num)
-{
-	LARGE_INTEGER PerformanceCount = {};
-	QueryPerformanceCounter(&PerformanceCount);
-	DWORD NewSeed = PerformanceCount.HighPart ^ PerformanceCount.LowPart;
-	return (Seed ^ NewSeed) + (Num ^ ((NewSeed << 16) + (NewSeed >> 16))) + Utils::ReverseBits(NewSeed);
-}
-
 bool DoRectsMatch(const RECT& lhs, const RECT& rhs)
 {
 	return lhs.left == rhs.left && lhs.top == rhs.top &&

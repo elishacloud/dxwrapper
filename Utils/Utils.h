@@ -75,6 +75,7 @@ namespace Utils
 	HMEMORYMODULE LoadMemoryToDLL(LPVOID pMemory, DWORD Size);
 	HMEMORYMODULE LoadResourceToMemory(DWORD ResID);
 	DWORD ReverseBits(DWORD v);
+	DWORD ComputeRND(DWORD Seed, DWORD Num);
 	void DDrawResolutionHack(HMODULE hD3DIm);
 	void ResetInvalidFPUState();
 	void CheckMessageQueue(HWND hWnd);

@@ -16,6 +16,7 @@
 
 #include "ddraw.h"
 #include "d3d9\d3d9External.h"
+#include "Utils\Utils.h"
 
 // ******************************
 // IUnknown functions
@@ -1192,7 +1193,7 @@ HRESULT m_IDirect3DDeviceX::CreateMatrix(LPD3DMATRIXHANDLE lpD3DMatHandle)
 			0.0f, 0.0f, 0.0f, 1.0f
 		};
 
-		D3DMATRIXHANDLE D3DMatHandle = ComputeRND((DWORD)&Matrix, (DWORD)lpD3DMatHandle);
+		D3DMATRIXHANDLE D3DMatHandle = Utils::ComputeRND((DWORD)&Matrix, (DWORD)lpD3DMatHandle);
 
 		// Make sure the material handle is unique
 		while (D3DMatHandle == NULL || GetMatrix(D3DMatHandle))

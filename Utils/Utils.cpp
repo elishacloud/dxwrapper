@@ -1103,6 +1103,16 @@ DWORD Utils::ReverseBits(DWORD v)
 	return (v >> 16) | (v << 16);							// swap 2-byte long pairs
 }
 
+DWORD Utils::ComputeRND(DWORD Seed, DWORD Num)
+{
+	LARGE_INTEGER pc = {};
+	QueryPerformanceCounter(&pc);
+
+	DWORD newSeed = pc.LowPart ^ pc.HighPart;
+	DWORD rotated = (newSeed << 16) | (newSeed >> 16);
+	return (Seed ^ newSeed) ^ (Num ^ rotated) ^ ReverseBits(newSeed);
+}
+
 // Removes the artificial resolution limit from Direct3D7 and below
 void Utils::DDrawResolutionHack(HMODULE hD3DIm)
 {
