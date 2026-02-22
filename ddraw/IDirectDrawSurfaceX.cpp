@@ -6094,6 +6094,11 @@ void m_IDirectDrawSurfaceX::SetDirtyFlag(DWORD MipMapLevel)
 		surface.HasData = true;
 		surface.IsDrawTextureDirty = true;
 		IsMipMapReadyToUse = (IsMipMapAutogen() || MipMaps.empty());
+
+		if (IsMipMapAutogen() && surface.Texture)
+		{
+			surface.Texture->GenerateMipSubLevels();
+		}
 	}
 
 	// Update Uniqueness Value
