@@ -540,13 +540,15 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Check for Cube map
 		if (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & (DDSCAPS2_CUBEMAP | DDSCAPS2_CUBEMAP_ALLFACES))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Cube map not Implemented.");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Cube map not Implemented.");
+			return DDERR_INVALIDCAPS;
 		}
 
 		// Check for Volume
 		if (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & DDSCAPS2_VOLUME)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Volume not Implemented.");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Volume not Implemented.");
+			return DDERR_INVALIDCAPS;
 		}
 
 		// Check for own dc
