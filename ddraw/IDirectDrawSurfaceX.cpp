@@ -1548,6 +1548,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 						return DD_OK;
 					}
 				}
+				return DDERR_NOTFOUND;
 			}
 
 			// Don't log error from non-mipmap created surface (originalDesc2) when querying for a mipmap surface
