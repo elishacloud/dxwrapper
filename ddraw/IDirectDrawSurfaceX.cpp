@@ -4555,17 +4555,28 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	HRESULT hr = DD_OK;
 
 	do {
-		// Create depth stencil
+		// Create depth stencil surface
 		if (IsDepthStencil() && surface.Pool != D3DPOOL_SYSTEMMEM)
 		{
 			surface.IsLockable = false;
 			surface.Type = D3DTYPE_DEPTHSTENCIL;
 			surface.Usage = D3DUSAGE_DEPTHSTENCIL;
 			surface.Pool = D3DPOOL_DEFAULT;
+
+			// Get multisample type and quality
 			ddrawParent->GetMultiSampleTypeQuality(surface.MultiSampleType, surface.MultiSampleQuality);
+
 			BOOL Discard = surface.MultiSampleType != D3DMULTISAMPLE_NONE;
-			if (FAILED((*d3d9Device)->CreateDepthStencilSurface(surface.Width, surface.Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, Discard, &surface.Surface, nullptr)) &&
-				FAILED((*d3d9Device)->CreateDepthStencilSurface(surface.Width, surface.Height, GetFailoverFormat(Format), surface.MultiSampleType, surface.MultiSampleQuality, Discard, &surface.Surface, nullptr)))
+
+			HRESULT hr_ds = (*d3d9Device)->CreateDepthStencilSurface(surface.Width, surface.Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, Discard, &surface.Surface, nullptr);
+
+			// Failover format if needed
+			if (FAILED(hr_ds))
+			{
+				hr_ds = (*d3d9Device)->CreateDepthStencilSurface(surface.Width, surface.Height, GetFailoverFormat(Format), surface.MultiSampleType, surface.MultiSampleQuality, Discard, &surface.Surface, nullptr);
+			}
+
+			if (FAILED(hr_ds))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create depth stencil surface. Size: " << surface.Width << "x" << surface.Height << " Format: " << Format << " dwCaps: " << surfaceDesc2.ddsCaps);
 				hr = DDERR_GENERIC;
@@ -4582,8 +4593,16 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			{
 				surface.IsLockable = false;
 				surface.Type = D3DTYPE_TEXTURE;
-				if (FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, 1, surface.Usage, Format, surface.Pool, &surface.Texture, nullptr)) &&
-					FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, 1, surface.Usage, GetFailoverFormat(Format), surface.Pool, &surface.Texture, nullptr)))
+
+				HRESULT hr_tex = (*d3d9Device)->CreateTexture(surface.Width, surface.Height, 1, surface.Usage, Format, surface.Pool, &surface.Texture, nullptr);
+
+				// Failover format if needed
+				if (FAILED(hr_tex))
+				{
+					hr_tex = (*d3d9Device)->CreateTexture(surface.Width, surface.Height, 1, surface.Usage, GetFailoverFormat(Format), surface.Pool, &surface.Texture, nullptr);
+				}
+
+				if (FAILED(hr_tex))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create render target texture. Size: " << surface.Width << "x" << surface.Height << " Format: " << Format << " dwCaps: " << surfaceDesc2.ddsCaps);
 					hr = DDERR_GENERIC;
@@ -4593,10 +4612,22 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			else
 			{
 				surface.Type = D3DTYPE_RENDERTARGET;
+
+				// Get multisample info
 				ddrawParent->GetMultiSampleTypeQuality(surface.MultiSampleType, surface.MultiSampleQuality);
+
+				// Determine if lockable
 				BOOL IsLockable = !surface.MultiSampleType && !Config.DdrawUseShadowSurface && !(surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE);
-				if (FAILED((*d3d9Device)->CreateRenderTarget(surface.Width, surface.Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)) &&
-					FAILED((*d3d9Device)->CreateRenderTarget(surface.Width, surface.Height, GetFailoverFormat(Format), surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr)))
+
+				HRESULT hr_rt = (*d3d9Device)->CreateRenderTarget(surface.Width, surface.Height, Format, surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr);
+
+				// Failover format if needed
+				if (FAILED(hr_rt))
+				{
+					hr_rt = (*d3d9Device)->CreateRenderTarget(surface.Width, surface.Height, GetFailoverFormat(Format), surface.MultiSampleType, surface.MultiSampleQuality, IsLockable, &surface.Surface, nullptr);
+				}
+
+				if (FAILED(hr_rt))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create render target surface. Size: " << surface.Width << "x" << surface.Height << " Format: " << Format << " dwCaps: " << surfaceDesc2.ddsCaps);
 					hr = DDERR_GENERIC;
@@ -4614,58 +4645,77 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 		else if (IsTexture)
 		{
 			surface.Type = D3DTYPE_TEXTURE;
-			DWORD MipMapLevel = IsMipMapEnabled && !CreateSurfaceEmulated ? surfaceDesc2.dwMipMapCount : 1;
-			HRESULT hr_t;
-			do {
-				surface.Usage = (Config.DdrawForceMipMapAutoGen && MipMapLevel != 1 && (surface.Pool == D3DPOOL_DEFAULT || surface.Pool == D3DPOOL_MANAGED)) ? D3DUSAGE_AUTOGENMIPMAP : 0;
-				DWORD Level = (surface.Usage & D3DUSAGE_AUTOGENMIPMAP) == 0 ? MipMapLevel : 0;
-				// Create texture
-				hr_t = (*d3d9Device)->CreateTexture(surface.Width, surface.Height, Level, surface.Usage, Format, surface.Pool, &surface.Texture, nullptr);
-				if (FAILED(hr_t))
-				{
-					hr_t = (*d3d9Device)->CreateTexture(surface.Width, surface.Height, Level, surface.Usage, GetFailoverFormat(Format), surface.Pool, &surface.Texture, nullptr);
-				}
-			} while (FAILED(hr_t) && ((!MipMapLevel && ++MipMapLevel) || --MipMapLevel > 0));
+
+			// Determine mip levels
+			DWORD MipMapLevel = (IsMipMapEnabled && !CreateSurfaceEmulated) ? surfaceDesc2.dwMipMapCount : 1;
+
+			// Determine usage
+			surface.Usage = 0;
+			if (Config.DdrawForceMipMapAutoGen && MipMapLevel > 1 && (surface.Pool == D3DPOOL_DEFAULT || surface.Pool == D3DPOOL_MANAGED))
+			{
+				surface.Usage = D3DUSAGE_AUTOGENMIPMAP;
+			}
+
+			// Adjust levels for autogen mip
+			DWORD Levels = (surface.Usage & D3DUSAGE_AUTOGENMIPMAP) ? 0 : MipMapLevel;
+
+			HRESULT hr_t = (*d3d9Device)->CreateTexture(surface.Width, surface.Height, Levels, surface.Usage, Format, surface.Pool, &surface.Texture, nullptr);
+
+			// Failover format if needed
+			if (FAILED(hr_t))
+			{
+				hr_t = (*d3d9Device)->CreateTexture(surface.Width, surface.Height, Levels, surface.Usage, GetFailoverFormat(Format), surface.Pool, &surface.Texture, nullptr);
+			}
+
 			if (FAILED(hr_t))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << surface.Width << "x" << surface.Height << " Format: " << Format << " dwCaps: " << surfaceDesc2.ddsCaps);
 				hr = DDERR_GENERIC;
 				break;
 			}
+
+			// Set max mip level
 			MaxMipMapLevel = (!IsMipMapEnabled || IsMipMapAutogen() || CreateSurfaceEmulated ? 1 : MipMapLevel > 0 ? MipMapLevel : surface.Texture->GetLevelCount()) - 1;
+
+			// Ensure MipMaps vector has correct size
 			while (MipMaps.size() < MaxMipMapLevel)
 			{
-				MIPMAP MipMap;
-				MipMaps.push_back(MipMap);
+				MipMaps.emplace_back();
 			}
-			if ((surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && !IsMipMapAutogen())
-			{
-				surfaceDesc2.dwMipMapCount = MipMapLevel;
-			}
+
 			// Set current LOD level
 			if (LODLevel != 0)
 			{
 				surface.Texture->SetLOD(LODLevel);
 			}
+
 			// Set current priority
 			if (Priority != 0)
 			{
 				surface.Texture->SetPriority(Priority);
 			}
 		}
+		// Create offscreen plain surface
 		else
 		{
 			const D3DFORMAT NewFormat = IsDepthStencil() ? GetStencilEmulatedFormat(surface.BitCount) : Format;
 			surface.Type = D3DTYPE_OFFPLAINSURFACE;
-			if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(surface.Width, surface.Height, NewFormat, surface.Pool, &surface.Surface, nullptr)) &&
-				FAILED((*d3d9Device)->CreateOffscreenPlainSurface(surface.Width, surface.Height, GetFailoverFormat(NewFormat), surface.Pool, &surface.Surface, nullptr)))
+
+			HRESULT hr_off = (*d3d9Device)->CreateOffscreenPlainSurface(surface.Width, surface.Height, NewFormat, surface.Pool, &surface.Surface, nullptr);
+
+			// Failover format if needed
+			if (FAILED(hr_off))
+			{
+				hr_off = (*d3d9Device)->CreateOffscreenPlainSurface(surface.Width, surface.Height, GetFailoverFormat(NewFormat), surface.Pool, &surface.Surface, nullptr);
+			}
+
+			if (FAILED(hr_off))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create offplain surface. Size: " << surface.Width << "x" << surface.Height << " Format: " << NewFormat << " dwCaps: " << surfaceDesc2.ddsCaps);
 				hr = DDERR_GENERIC;
 				break;
 			}
 		}
-
 		if (FAILED(CreateD9AuxiliarySurfaces()))
 		{
 			hr = DDERR_GENERIC;
@@ -6363,40 +6413,15 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		surfaceDesc2.dwBackBufferCount = 0;
 	}
 
-	// Handle mipmaps
-	if ((!(surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) || ((surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && surfaceDesc2.dwMipMapCount != 1)) &&
-		(surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE)) == (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE))
-	{
-		// Compute width and height
-		if ((!(surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) || (!surfaceDesc2.dwWidth && !surfaceDesc2.dwHeight)) &&
-			(surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && surfaceDesc2.dwMipMapCount > 0)
-		{
-			surfaceDesc2.dwFlags |= DDSD_WIDTH | DDSD_HEIGHT;
-			surfaceDesc2.dwWidth = (DWORD)pow(2, surfaceDesc2.dwMipMapCount - 1);
-			surfaceDesc2.dwHeight = surfaceDesc2.dwWidth;
-		}
-		// Compute mipcount
-		DWORD MipMapLevelCount = ((surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && surfaceDesc2.dwMipMapCount) ? surfaceDesc2.dwMipMapCount :
-			GetMaxMipMapLevel(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight);
-		MaxMipMapLevel = MipMapLevelCount - 1;
-		surfaceDesc2.dwMipMapCount = MaxMipMapLevel + 1;
-		surfaceDesc2.dwFlags |= DDSD_MIPMAPCOUNT;
-	}
 	// Mipmap textures
-	else if (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP)
+	if ((surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && (surfaceDesc2.dwMipMapCount > 1) &&
+		((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE)) == (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE)))
 	{
-		if (surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT)
-		{
-			surfaceDesc2.dwMipMapCount = 1;
-		}
+		MaxMipMapLevel = surfaceDesc2.dwMipMapCount - 1;
 	}
 	// No mipmaps
 	else
 	{
-		if (surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT)
-		{
-			surfaceDesc2.dwMipMapCount = 0;
-		}
 		surfaceDesc2.dwFlags &= ~DDSD_MIPMAPCOUNT;
 		surfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_MIPMAP;
 	}
