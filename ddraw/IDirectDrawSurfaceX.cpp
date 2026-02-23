@@ -3802,13 +3802,19 @@ HRESULT m_IDirectDrawSurfaceX::SetPriority(DWORD dwPriority)
 
 	if (Config.Dd7to9)
 	{
-		// Applications can call this method only for managed textures (those surfaces that were created with the DDSCAPS2_TEXTUREMANAGE flag).
-		if ((surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) == 0)
+		// Applications can call this method only for managed textures (those that were created with the DDSCAPS2_TEXTUREMANAGE flag).
+		// Calling this method on a nonmanaged texture causes the method to fail and return DDERR_INVALIDOBJECT. 
+		if (!IsSurfaceTexture() || !IsSurfaceManaged())
 		{
 			return DDERR_INVALIDOBJECT;
 		}
 
 		Priority = dwPriority;
+
+		if (surface.Texture)
+		{
+			surface.Texture->SetPriority(Priority);
+		}
 
 		return DD_OK;
 	}
@@ -3827,8 +3833,9 @@ HRESULT m_IDirectDrawSurfaceX::GetPriority(LPDWORD lpdwPriority)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Applications can call this method only for managed textures (those surfaces that were created with the DDSCAPS2_TEXTUREMANAGE flag).
-		if ((surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) == 0)
+		// Applications can call this method only for managed textures (those that were created with the DDSCAPS2_TEXTUREMANAGE flag).
+		// Calling this method on a nonmanaged texture causes the method to fail and return DDERR_INVALIDOBJECT. 
+		if (!IsSurfaceTexture() || !IsSurfaceManaged())
 		{
 			return DDERR_INVALIDOBJECT;
 		}
@@ -3847,22 +3854,21 @@ HRESULT m_IDirectDrawSurfaceX::SetLOD(DWORD dwMaxLOD)
 
 	if (Config.Dd7to9)
 	{
-		// Applications can call this method only for managed textures (those surfaces that were created with the DDSCAPS2_TEXTUREMANAGE flag).
-		if ((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_TEXTUREMANAGE) == 0)
+		// Applications can call this method only for managed textures (those that were created with the DDSCAPS2_TEXTUREMANAGE flag).
+		// Calling this method on a nonmanaged texture causes the method to fail and return DDERR_INVALIDOBJECT. 
+		if (!IsSurfaceTexture() || !IsSurfaceManaged())
 		{
 			return DDERR_INVALIDOBJECT;
 		}
 
-		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-		if (FAILED(c_hr))
-		{
-			return c_hr;
-		}
+		DWORD levelCount = GetLevelCount();
+		DWORD maxLOD = (levelCount > 0) ? (levelCount - 1) : 0;
+
+		LODLevel = min(dwMaxLOD, maxLOD);
 
 		if (surface.Texture)
 		{
-			surface.Texture->SetLOD(dwMaxLOD);
+			surface.Texture->SetLOD(LODLevel);
 		}
 
 		return DD_OK;
@@ -3882,24 +3888,15 @@ HRESULT m_IDirectDrawSurfaceX::GetLOD(LPDWORD lpdwMaxLOD)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Applications can call this method only for managed textures (those surfaces that were created with the DDSCAPS2_TEXTUREMANAGE flag).
-		if ((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_TEXTUREMANAGE) == 0)
+		// Applications can call this method only for managed textures (those that were created with the DDSCAPS2_TEXTUREMANAGE flag).
+		// Calling this method on a nonmanaged texture causes the method to fail and return DDERR_INVALIDOBJECT. 
+		if (!IsSurfaceTexture() || !IsSurfaceManaged())
 		{
 			return DDERR_INVALIDOBJECT;
 		}
 
-		// Check for device interface
-		HRESULT c_hr = CheckInterface(__FUNCTION__, true, true, true);
-		if (FAILED(c_hr))
-		{
-			return c_hr;
-		}
-
-		*lpdwMaxLOD = 0;
-		if (surface.Texture)
-		{
-			*lpdwMaxLOD = surface.Texture->GetLOD();
-		}
+		// Send LOD value
+		*lpdwMaxLOD = LODLevel;
 
 		return DD_OK;
 	}
@@ -4509,7 +4506,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	// Get memory pool
 	bool UseVideoMemory = IsRenderTarget() || IsDepthStencil();
 	surface.Pool = (IsPrimaryOrBackBuffer() && ShouldPresentToWindow(false)) ? D3DPOOL_SYSTEMMEM :
-		(surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) ? D3DPOOL_MANAGED :
+		IsSurfaceManaged() ? D3DPOOL_MANAGED :
 		UseVideoMemory ? (((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY) || IsPrimaryOrBackBuffer()) ? D3DPOOL_DEFAULT :
 			(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_DEFAULT) :
 		((IsPrimaryOrBackBuffer() || IsSurfaceTexture()) ? D3DPOOL_MANAGED :									// For now use managed for all textures
@@ -4644,6 +4641,16 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			if ((surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && !IsMipMapAutogen())
 			{
 				surfaceDesc2.dwMipMapCount = MipMapLevel;
+			}
+			// Set current LOD level
+			if (LODLevel != 0)
+			{
+				surface.Texture->SetLOD(LODLevel);
+			}
+			// Set current priority
+			if (Priority != 0)
+			{
+				surface.Texture->SetPriority(Priority);
 			}
 		}
 		else

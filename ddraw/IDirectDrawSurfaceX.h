@@ -227,6 +227,8 @@ private:
 	std::unordered_map<DWORD, HDC> GetDCLevel;			// DC in MipMap levels
 	std::unordered_map<DWORD,
 		PRIVATE_DATA_MIPMAP> PrivateDataMap;			// For emulating PrivateData
+	DWORD Priority = 0;									// For managed texture priority
+	DWORD LODLevel = 0;									// For managed texture LOD level
 	DWORD MaxMipMapLevel = 0;							// Total number of manually created MipMap levels
 	bool IsMipMapReadyToUse = false;					// Used for MipMap filtering
 	bool RecreateAuxiliarySurfaces = false;
@@ -245,7 +247,6 @@ private:
 	DWORD UniquenessValue = 0;
 	LONG overlayX = 0;
 	LONG overlayY = 0;
-	DWORD Priority = 0;
 
 	bool Using3D = false;								// Direct3D is being used on top of DirectDraw
 	bool DCRequiresEmulation = false;
@@ -342,6 +343,7 @@ private:
 	bool IsSurfaceBlitting() const { return (IsInBlt || IsInBltBatch); }
 	bool IsSurfaceInDC(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS);
 	bool IsD9UsingVideoMemory() const { return ((surface.Surface || surface.Texture) ? surface.Pool == D3DPOOL_DEFAULT : false); }
+	DWORD GetLevelCount() const { return !(surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) || surfaceDesc2.dwMipMapCount == 0 ? 1 : surfaceDesc2.dwMipMapCount; }
 	void ComputeSurfaceWrites();
 	bool ShouldUseShadowSurface(DWORD MipMapLevel, bool AlwaysUseShadow) const
 	{ return (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && (AlwaysUseShadow || !surface.IsLockable || Config.DdrawUseShadowSurface) && !IsUsingShadowSurface()); }
@@ -548,18 +550,18 @@ public:
 	bool IsPrimarySurface() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
 	bool IsBackBuffer() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER) != 0; }
 	bool IsPrimaryOrBackBuffer() const { return (IsPrimarySurface() || IsBackBuffer()); }
-	bool IsRenderTarget() const { return surface.CanBeRenderTarget; }
 	bool IsFlipSurface() const { return ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) == (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)); }
 	bool IsSurface3D() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) != 0; }
+	bool IsRenderTarget() const { return surface.CanBeRenderTarget; }
+	bool IsDepthStencil() const { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	bool IsSurfaceTexture() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
+	bool IsSurfaceManaged() const { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	bool IsSurfaceCreated() const { return (surface.Texture || surface.Surface); }
 	bool HasAlphaChannel(bool UsingColorKey) const;
 	bool IsColorKeyTexture() const { return (IsSurfaceTexture() && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)); }
 	bool IsPalette() const { return (surface.Format == D3DFMT_P8); }
-	bool IsDepthStencil() const { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
 	DWORD GetAttachedStencilSurfaceZBits();
 	D3DMULTISAMPLE_TYPE GetMultiSampleType() const { return surface.MultiSampleType; }
-	bool IsSurfaceManaged() const { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	bool IsSurfaceBusy(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS) { return (IsSurfaceBlitting() || IsSurfaceLocked(MipMapLevel) || IsSurfaceInDC(MipMapLevel)); }
 	bool CanSurfaceBeDeleted() const { return !ComplexChild; }
 	bool CanSurfaceUseEmulation() const
