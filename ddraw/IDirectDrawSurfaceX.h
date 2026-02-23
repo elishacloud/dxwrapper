@@ -241,6 +241,7 @@ private:
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper
 	m_IDirect3DTextureX *attached3DTexture = nullptr;	// Associated texture
 	m_IDirect3DDeviceX *attached3DDevice = nullptr;		// Associated device
+	DDSURFACEDESC2 originalDesc2 = {};					// Original surface description for this surface
 	DDSURFACEDESC2 surfaceDesc2 = {};					// Surface description for this surface
 	bool ShouldResetDisplayFlags = false;				// Determines when flags should be reset
 	DWORD ResetDisplayFlags = 0;						// Flags that need to be reset when display mode changes
@@ -435,6 +436,7 @@ public:
 		// Copy surface description, needs to run before InitInterface()
 		if (lpDDSurfaceDesc2)
 		{
+			originalDesc2 = *lpDDSurfaceDesc2;
 			surfaceDesc2 = *lpDDSurfaceDesc2;
 		}
 
