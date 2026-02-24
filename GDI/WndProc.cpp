@@ -25,6 +25,8 @@
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
+#undef DefWindowProc
+
 namespace WndProc
 {
 	struct WNDPROCSTRUCT;
@@ -33,7 +35,9 @@ namespace WndProc
 	WNDPROC GetWndProc(HWND hWnd);
 	LONG SetWndProc(HWND hWnd, WNDPROC ProcAddress);
 	LRESULT CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+	LRESULT DefWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 	bool IsExecutableAddress(void* address);
+	inline bool CheckFocusLoss(WINDOWPOS* wp);
 
 	bool SwitchingResolution = false;
 
@@ -172,6 +176,13 @@ LRESULT WndProc::CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM 
 		(lpPrevWndFunc ?
 			CallWindowProcA(lpPrevWndFunc, hWnd, Msg, wParam, lParam) :
 			DefWindowProcA(hWnd, Msg, wParam, lParam)));
+}
+
+LRESULT WndProc::DefWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+	return (IsWindowUnicode(hWnd) ?
+		DefWindowProcW(hWnd, Msg, wParam, lParam) :
+		DefWindowProcA(hWnd, Msg, wParam, lParam));
 }
 
 bool WndProc::ShouldHook(HWND hWnd)
@@ -325,6 +336,22 @@ void WndProc::SetKeyboardLayoutFocus(HWND hWnd, bool IsActivating)
 	}
 }
 
+bool WndProc::CheckFocusLoss(WINDOWPOS* wp)
+{
+	if (!wp)
+	{
+		return false;
+	}
+
+	// Window is being hidden
+	if (wp->flags & SWP_HIDEWINDOW)
+	{
+		return true;
+	}
+
+	return false;
+}
+
 LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
 {
 	if (Msg != WM_PAINT)
@@ -393,6 +420,11 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			}
 			IsActive = wParam;
 		}
+		// Filter messages for loss of focus or minimize
+		if (Config.HideWindowFocusChanges && wParam == FALSE)
+		{
+			return DefWndProc(hWnd, Msg, wParam, lParam);
+		}
 		break;
 
 	case WM_ACTIVATE:
@@ -407,9 +439,14 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			if (pDataStruct->IsActive == LOWORD(wParam))
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering duplicate WM_ACTIVATE: " << LOWORD(wParam));
-				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+				return DefWndProc(hWnd, Msg, wParam, lParam);
 			}
 			pDataStruct->IsActive = LOWORD(wParam);
+		}
+		// Filter messages for loss of focus or minimize
+		if (Config.HideWindowFocusChanges && LOWORD(wParam) == WA_INACTIVE)
+		{
+			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
 
 		// Special handling for iconic state to prevent issues with some games
@@ -420,7 +457,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Activating window because WM_ACTIVATE (" << LOWORD(wParam) << ") message detected when window is iconic: " << hWnd);
 				CallWndProc(pWndProc, hWnd, Msg, WA_ACTIVE, NULL);
-				CallWndProc(nullptr, hWnd, WM_SYSCOMMAND, SC_RESTORE, NULL);
+				DefWndProc(hWnd, WM_SYSCOMMAND, SC_RESTORE, NULL);
 				SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
 				SetForegroundWindow(hWnd);
 				return NULL;
@@ -429,18 +466,23 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			if (pDataStruct->DirectXVersion <= 4)
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_ACTIVATE when iconic: " << LOWORD(wParam));
-				return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+				return DefWndProc(hWnd, Msg, wParam, lParam);
 			}
 		}
 		break;
 
 	case WM_NCACTIVATE:
+		// Filter messages for loss of focus or minimize
+		if (Config.HideWindowFocusChanges && wParam == FALSE)
+		{
+			return DefWndProc(hWnd, Msg, wParam, lParam);
+		}
 		// Filter some messages while forcing windowed mode
 		if (pDataStruct->IsDirectDraw && IsForcingWindowedMode)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_NCACTIVATE when forcing windowed mode. " <<
 				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
-			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
 		break;
 
@@ -458,6 +500,19 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			SetKeyboardLayoutFocus(hWnd, false);
 		}
+		// Filter messages for loss of focus or minimize
+		if (Config.HideWindowFocusChanges && wParam == FALSE)
+		{
+			return DefWndProc(hWnd, Msg, wParam, lParam);
+		}
+		break;
+
+	case WM_SHOWWINDOW:
+		// Filter messages for loss of focus or minimize
+		if (Config.HideWindowFocusChanges && wParam == FALSE)
+		{
+			return DefWndProc(hWnd, Msg, wParam, lParam);
+		}
 		break;
 
 	case WM_STYLECHANGING:
@@ -467,16 +522,28 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	case WM_SIZING:
 	case WM_SIZE:
 	case WM_WINDOWPOSCHANGING:
+		// Filter messages for loss of focus or minimize
+		if (Config.HideWindowFocusChanges && 
+			((Msg == WM_SIZE && wParam == SIZE_MINIMIZED) ||
+			(Msg == WM_WINDOWPOSCHANGING && CheckFocusLoss(reinterpret_cast<WINDOWPOS*>(lParam)))))
+		{
+			return DefWndProc(hWnd, Msg, wParam, lParam);
+		}
 		// Filter some messages while forcing windowed mode
 		if (pDataStruct->IsCreatingDevice && IsForcingWindowedMode)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when forcing windowed mode. " <<
 				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
-			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
 		break;
 
 	case WM_WINDOWPOSCHANGED:
+		// Filter messages for loss of focus or minimize
+		if (Config.HideWindowFocusChanges && CheckFocusLoss(reinterpret_cast<WINDOWPOS*>(lParam)))
+		{
+			return DefWndProc(hWnd, Msg, wParam, lParam);
+		}
 		// Handle exclusive mode cases where the window is resized to be different than the display size
 		if (pDataStruct->IsDirectDraw && pDataStruct->IsExclusiveMode)
 		{
@@ -488,7 +555,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_WINDOWPOSCHANGED when forcing windowed mode. " <<
 				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
-			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
 		break;
 
@@ -496,13 +563,13 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Some games hang when attempting to paint while iconic
 		if (pDataStruct->IsDirectDraw && IsIconic(hWnd))
 		{
-			return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
 		break;
 
 	case WM_SYNCPAINT:
 		// Send WM_SYNCPAINT to DefWindowProc
-		return CallWndProc(nullptr, hWnd, Msg, wParam, lParam);
+		return DefWndProc(hWnd, Msg, wParam, lParam);
 
 	case WM_DISPLAYCHANGE:
 		// Handle cases where monitor gets disconnected during resolution change
@@ -517,6 +584,11 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		if (wParam == SC_CLOSE && hWnd == hWndInstance)
 		{
 			AppWndProcInstance->SetInactive();
+		}
+		// Filter messages for loss of focus or minimize
+		if (Config.HideWindowFocusChanges && (wParam & 0xFFF0) == SC_MINIMIZE)
+		{
+			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
 		break;
 

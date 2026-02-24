@@ -130,6 +130,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(FullscreenWindowMode) \
 	visit(GraphicsHybridAdapter) \
 	visit(HandleExceptions) \
+	visit(HideWindowFocusChanges) \
 	visit(IgnoreWindowName) \
 	visit(IncludeProcess) \
 	visit(InitialWindowPositionLeft) \
@@ -343,6 +344,7 @@ struct CONFIG
 	bool ForceVsyncMode = false;				// Forces d3d9 game to use EnableVsync option
 	DWORD GraphicsHybridAdapter = 0;			// Sets the Direct3D9 Hybrid Enumeration Mode to allow using a secondary display adapter
 	bool HandleExceptions = false;				// Handles unhandled exceptions in the application
+	bool HideWindowFocusChanges = false;		// Hide windows messages about losing focus or getting minimized
 	bool isAppCompatDataSet = false;			// Flag that holds tells whether any of the AppCompatData flags are set
 	bool LimitDisplayModeCount = false;			// Limits the number of display modes sent to program, some games crash when you feed them with too many resolutions
 	float LimitPerFrameFPS = 0;					// Limits each frame by adding a delay if the frame is to fast
