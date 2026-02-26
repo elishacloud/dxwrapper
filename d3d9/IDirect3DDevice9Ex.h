@@ -26,7 +26,6 @@ struct DEVICEDETAILS
 	bool IsDirectDrawDevice = false;
 	UINT Adapter = D3DADAPTER_DEFAULT;
 	D3DDEVTYPE DeviceType = D3DDEVTYPE_HAL;
-	D3DFORMAT BackBufferFormat = D3DFMT_UNKNOWN;
 	DWORD BackBufferCount = 0;
 	HMONITOR hMonitor = nullptr;
 	HWND DeviceWindow = nullptr;

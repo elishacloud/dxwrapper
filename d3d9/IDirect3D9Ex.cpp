@@ -665,18 +665,6 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 
 			d3dpp.Windowed = DeviceDetails.AppRequestedWindowMode;
 
-			DeviceDetails.BackBufferFormat = p_d3dpp->BackBufferFormat;
-			if (DeviceDetails.BackBufferFormat == D3DFMT_UNKNOWN && ppReturnedDeviceInterface)
-			{
-				ComPtr<IDirect3DSurface9> pBbackBuffer;
-				(*ppReturnedDeviceInterface)->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBbackBuffer.GetAddressOf());
-
-				D3DSURFACE_DESC desc = {};
-				pBbackBuffer->GetDesc(&desc);
-
-				DeviceDetails.BackBufferFormat = desc.Format;
-			}
-
 			if (MultiSampleFlag || (pPresentationParameters->MultiSampleType && DeviceDetails.IsDirectDrawDevice))
 			{
 				DeviceDetails.DeviceMultiSampleFlag = true;
