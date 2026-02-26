@@ -217,6 +217,20 @@ void ConvertViewport(D3DVIEWPORT7& Viewport, const D3DVIEWPORT7& Viewport7)
 	Viewport.dvMaxZ = Viewport7.dvMaxZ;
 }
 
+D3DVIEWPORT9 FixViewport(const D3DVIEWPORT9& Viewport)
+{
+	D3DVIEWPORT9 result = Viewport;
+
+	// Some games (e.g. Empire of the Ants [1.0f, 1000000.0f]) use large MaxZ values, so normalize the depth range to [0.0f, 1.0f].
+	if (Viewport.MaxZ > 1.0f)
+	{
+		result.MinZ = Viewport.MinZ / Viewport.MaxZ;
+		result.MaxZ = 1.0f;
+	}
+
+	return result;
+}
+
 bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion)
 {
 	if (dwRenderStateType >= D3D_MAXRENDERSTATES)

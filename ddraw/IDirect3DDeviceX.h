@@ -46,6 +46,7 @@ private:
 	struct VIEWPORTSTRUCT {
 		bool Set = false;
 		D3DVIEWPORT9 View = {};
+		D3DVIEWPORT9 FixedView = {};
 		D3DVIEWPORT ViewportScale = {};
 		bool UseViewportScale = false;
 	};

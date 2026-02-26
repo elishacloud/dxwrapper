@@ -403,6 +403,7 @@ void ConvertViewport(D3DVIEWPORT2& Viewport2, const D3DVIEWPORT7& Viewport7);
 void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT& Viewport);
 void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT2& Viewport2);
 void ConvertViewport(D3DVIEWPORT7& Viewport, const D3DVIEWPORT7& Viewport7);
+D3DVIEWPORT9 FixViewport(const D3DVIEWPORT9& Viewport);
 bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
 bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
 DWORD GetDepthBias(DWORD ZBias, DWORD DepthBitCount);

@@ -3902,7 +3902,7 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
 		// Clear respects the current viewport
-		(*d3d9Device)->SetViewport(&DeviceStates.Viewport.View);
+		(*d3d9Device)->SetViewport(&DeviceStates.Viewport.FixedView);
 
 		if (lpCurrentRenderTargetX && (dwFlags & D3DCLEAR_TARGET))
 		{
@@ -5927,6 +5927,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Viewport(const D3DVIEWPORT9* lpViewport)
 
 	DeviceStates.Viewport.Set = true;
 	DeviceStates.Viewport.View = *lpViewport;
+	DeviceStates.Viewport.FixedView = FixViewport(*lpViewport);
 
 	return D3D_OK;
 }
@@ -6194,7 +6195,7 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	// Restore viewport
 	if (DeviceStates.Viewport.Set)
 	{
-		(*d3d9Device)->SetViewport(&DeviceStates.Viewport.View);
+		(*d3d9Device)->SetViewport(&DeviceStates.Viewport.FixedView);
 	}
 
 	// Restore material
@@ -6221,7 +6222,7 @@ void m_IDirect3DDeviceX::AfterResetDevice()
 	// If viewport isn't set then set to default
 	if (!DeviceStates.Viewport.Set)
 	{
-		DeviceStates.Viewport.View = DefaultViewport;
+		DeviceStates.Viewport.FixedView = DefaultViewport;
 	}
 }
 
@@ -6318,7 +6319,7 @@ void m_IDirect3DDeviceX::SetDefaults()
 	ddrawParent->GetDefaultViewport(&DefaultViewport);
 
 	// Set defaults
-	DeviceStates.Viewport.View = DefaultViewport;
+	DeviceStates.Viewport.FixedView = DefaultViewport;
 }
 
 void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion)
@@ -6372,7 +6373,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	}
 
 	// Need to always set viewport
-	(*d3d9Device)->SetViewport(&DeviceStates.Viewport.View);
+	(*d3d9Device)->SetViewport(&DeviceStates.Viewport.FixedView);
 
 	const bool UsingColorKey = DeviceStates.RenderState[D3DRENDERSTATE_COLORKEYENABLE].State || DeviceStates.RenderState[D3DRENDERSTATE_COLORKEYBLENDENABLE].State;
 
