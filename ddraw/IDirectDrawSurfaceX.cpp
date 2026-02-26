@@ -3752,7 +3752,12 @@ HRESULT m_IDirectDrawSurfaceX::GetUniquenessValue(LPDWORD lpValue, DWORD MipMapL
 		}
 		else
 		{
-			*lpValue = MipMaps[MipMapLevel - 1].UniquenessValue;
+			*lpValue = 0;
+
+			if (MipMapLevel <= MipMaps.size())
+			{
+				*lpValue = MipMaps[MipMapLevel - 1].UniquenessValue;
+			}
 		}
 
 		return DD_OK;
@@ -3774,20 +3779,9 @@ HRESULT m_IDirectDrawSurfaceX::ChangeUniquenessValue(DWORD MipMapLevel)
 		}
 
 		// Mark mipmap data flag
-		if (MipMaps.size())
+		if (MipMapLevel && MipMapLevel <= MipMaps.size())
 		{
-			if (MipMapLevel && MipMapLevel <= MipMaps.size())
-			{
-				if (MipMaps[MipMapLevel - 1].UniquenessValue == UniquenessValue)
-				{
-					MipMaps[MipMapLevel - 1].UniquenessValue++;
-				}
-				else if (MipMaps[MipMapLevel - 1].UniquenessValue < UniquenessValue)
-				{
-					MipMaps[MipMapLevel - 1].UniquenessValue = UniquenessValue;
-				}
-			}
-			CheckMipMapLevelGen();
+			MipMaps[MipMapLevel - 1].UniquenessValue++;
 		}
 
 		return DD_OK;
@@ -4320,9 +4314,13 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD3d9DrawTexture()
 		DWORD Level = IsMipMapAutogen() ? 0 : MaxMipMapLevel + 1;
 		if (FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, Level, surface.Usage, D3DFMT_A8R8G8B8, surface.Pool, &surface.DrawTexture, nullptr)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create surface texture. Size: " << surface.Width << "x" << surface.Height <<
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create alpha color key texture. Size: " << surface.Width << "x" << surface.Height <<
 				" Format: " << surface.Format << " dwCaps: " << surfaceDesc2.ddsCaps);
 			return nullptr;
+		}
+		if (Level != 1)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: alpha color key texture using MipMaps. MipMap level: " << Level);
 		}
 		if (FAILED(CopyToDrawTexture(nullptr)))
 		{
@@ -4388,9 +4386,9 @@ void m_IDirectDrawSurfaceX::CheckMipMapLevelGen()
 {
 	if (!IsMipMapReadyToUse)
 	{
-		for (UINT x = 0; x < min(MaxMipMapLevel, MipMaps.size()); x++)
+		for (UINT x = LODLevel ? LODLevel - 1 : 0; x < min(MaxMipMapLevel, MipMaps.size()); x++)
 		{
-			if (!MipMaps[x].IsDummy && MipMaps[x].UniquenessValue < UniquenessValue)
+			if (!MipMaps[x].IsDummy && MipMaps[x].MipMapUSN != CurrentSurfaceUSN)
 			{
 				return;
 			}
@@ -4401,6 +4399,11 @@ void m_IDirectDrawSurfaceX::CheckMipMapLevelGen()
 
 HRESULT m_IDirectDrawSurfaceX::GenerateMipMapLevels()
 {
+	if (IsMipMapAutogen())
+	{
+		return DD_OK;
+	}
+
 	IDirect3DSurface9* pSourceSurfaceD9 = Get3DMipMapSurface(0);
 	if (!pSourceSurfaceD9)
 	{
@@ -4408,18 +4411,18 @@ HRESULT m_IDirectDrawSurfaceX::GenerateMipMapLevels()
 		return DDERR_GENERIC;
 	}
 
-	for (UINT x = 0; x < min(MaxMipMapLevel, MipMaps.size()); x++)
+	for (UINT x = LODLevel ? LODLevel - 1 : 0; x < min(MaxMipMapLevel, MipMaps.size()); x++)
 	{
-		if (!MipMaps[x].IsDummy && MipMaps[x].UniquenessValue < UniquenessValue)
+		if (!MipMaps[x].IsDummy && MipMaps[x].MipMapUSN != CurrentSurfaceUSN)
 		{
 			ScopedGetMipMapContext Dest(this, x + 1);
 			if (Dest.GetSurface())
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: attempting to add missing data to MipMap surface level: " << (x + 1) <<
-					" UniquenessValue: " << MipMaps[x].UniquenessValue << " -> " << UniquenessValue);
+					" USN: " << MipMaps[x].MipMapUSN << " -> " << CurrentSurfaceUSN);
 				if (SUCCEEDED(D3DXLoadSurfaceFromSurface(Dest.GetSurface(), nullptr, nullptr, pSourceSurfaceD9, nullptr, nullptr, D3DX_FILTER_LINEAR, 0x00000000)))
 				{
-					MipMaps[x].UniquenessValue = UniquenessValue;
+					MipMaps[x].MipMapUSN = CurrentSurfaceUSN;
 				}
 				else
 				{
@@ -5563,10 +5566,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 			ExpireVolatilePrivateData(x);
 
 			// Update Uniqueness Value
-			if (IsMipMapReadyToUse)
-			{
-				ChangeUniquenessValue(x);
-			}
+			ChangeUniquenessValue(x);
 		}
 	}
 
@@ -6145,8 +6145,15 @@ void m_IDirectDrawSurfaceX::ReleaseIUnknownPrivateData(PRIVATE_DATA_ENTRY& Data)
 
 void m_IDirectDrawSurfaceX::SetDirtyFlag(DWORD MipMapLevel)
 {
+	const bool AutoMipMap = IsMipMapAutogen();
+
 	if (MipMapLevel == 0)
 	{
+		if (AutoMipMap && surface.Texture)
+		{
+			surface.Texture->GenerateMipSubLevels();
+		}
+
 		if (IsPrimarySurface() && ddrawParent && !ddrawParent->IsInScene())
 		{
 			dirtyFlag = true;
@@ -6154,12 +6161,15 @@ void m_IDirectDrawSurfaceX::SetDirtyFlag(DWORD MipMapLevel)
 		surface.IsDirtyFlag = true;
 		surface.HasData = true;
 		surface.IsDrawTextureDirty = true;
-		IsMipMapReadyToUse = (IsMipMapAutogen() || MipMaps.empty());
+		IsMipMapReadyToUse = (AutoMipMap || MipMaps.empty());
 
-		if (IsMipMapAutogen() && surface.Texture)
-		{
-			surface.Texture->GenerateMipSubLevels();
-		}
+		CurrentSurfaceUSN++;
+	}
+	else if (!AutoMipMap && MipMapLevel <= MipMaps.size())
+	{
+		MipMaps[MipMapLevel - 1].MipMapUSN++;
+
+		CheckMipMapLevelGen();
 	}
 
 	// Update Uniqueness Value

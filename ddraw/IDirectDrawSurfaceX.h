@@ -88,6 +88,7 @@ private:
 		DWORD dwHeight = 0;
 		LONG lPitch = 0;
 		DWORD UniquenessValue = 0;
+		DWORD MipMapUSN = 0;
 		bool IsDummy = false;
 	};
 
@@ -230,6 +231,7 @@ private:
 	DWORD Priority = 0;									// For managed texture priority
 	DWORD LODLevel = 0;									// For managed texture LOD level
 	DWORD MaxMipMapLevel = 0;							// Total number of manually created MipMap levels
+	DWORD CurrentSurfaceUSN = 0;						// Used for detecting when MipMap is out-of-date
 	bool IsMipMapReadyToUse = false;					// Used for MipMap filtering
 	bool RecreateAuxiliarySurfaces = false;
 	struct {
