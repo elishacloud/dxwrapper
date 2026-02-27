@@ -66,27 +66,24 @@ void KeyboardLayout::ForceKeyboardLayout(DWORD layoutID)
 		return;
 	}
 
-	// Try GetKeyboardLayoutList to check if this layout is installed
-	{
-		HKL foundID = FindInstalledHKL(langId);
-		if (!foundID)
-		{
-			WCHAR klidStr[16] = {}; swprintf_s(klidStr, L"%08X", layoutID);
-			HKL test = LoadKeyboardLayoutW(klidStr, KLF_NOTELLSHELL | KLF_SUBSTITUTE_OK);
+	// Convert LANGID to HKL form if only low word is provided
+	HKL foundID = FindInstalledHKL(langId);
 
-			if (!test)
-			{
-				Logging::Log() << __FUNCTION__ << " Keyboard layout not supported: " << std::hex << layoutID;
-				return;
-			}
-		}
+	if (!foundID)
+	{
+		WCHAR klidStr[16] = {};
+		swprintf_s(klidStr, L"%08X", layoutID);
+
+		foundID = LoadKeyboardLayoutW(klidStr, KLF_NOTELLSHELL | KLF_SUBSTITUTE_OK);
 	}
 
-	// Convert LANGID to HKL form if only low word is provided
-	// Many Windows APIs expect HKL = (DWORD)((device<<16) | langid)
-	// If user provides only 0x0409, convert to 0x04090409
-	g_ForcedHKL = reinterpret_cast<HKL>((HIWORD(layoutID) == 0) ? MAKELONG(langId, langId) : layoutID);
+	if (!foundID)
+	{
+		Logging::Log() << __FUNCTION__ << " Keyboard layout not supported: " << std::hex << layoutID;
+		return;
+	}
 
+	g_ForcedHKL = foundID;
 	g_Enabled = true;
 
 	Logging::Log() << __FUNCTION__ << " Successfully forced keyboard layout: " << std::uppercase << Logging::hex(layoutID) << std::nouppercase;
