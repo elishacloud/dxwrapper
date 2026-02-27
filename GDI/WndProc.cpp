@@ -491,6 +491,11 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		break;
 
 	case WM_NCACTIVATE:
+		// Handle keyboard layout
+		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		{
+			SetKeyboardLayoutFocus(hWnd, LOWORD(wParam) != FALSE);
+		}
 		// Filter messages for loss of focus or minimize
 		if (Config.HideWindowFocusChanges && wParam == FALSE)
 		{
