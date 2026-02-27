@@ -859,7 +859,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Unhook keyboard layout
 		if (Config.ForceKeyboardLayout)
 		{
-			KeyboardLayout::DisableForcedKeyboardLayout();
+			// Use WndProc for disabling so it can be done from the foreground window
+			WndProc::DisableForcedKeyboardLayout();
 		}
 
 		// Unload exception handler

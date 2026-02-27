@@ -20,6 +20,7 @@
 #include <sstream>
 #include "External\Hooking\Hook.h"
 #include "Utils.h"
+#include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
 namespace {
@@ -93,7 +94,11 @@ void KeyboardLayout::ForceKeyboardLayout(DWORD layoutID)
 
 void KeyboardLayout::SetForcedKeyboardLayout()
 {
-	if (g_Enabled)
+	if (Config.Exiting)
+	{
+		DisableForcedKeyboardLayout();
+	}
+	else if (g_Enabled)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Forcing keyboard layout!");
 
@@ -106,7 +111,7 @@ void KeyboardLayout::SetForcedKeyboardLayout()
 	}
 }
 
-void KeyboardLayout::UnSetForcedKeyboardLayout()
+static void UnSetLayout()
 {
 	if (g_PreviousHKL)
 	{
@@ -116,11 +121,32 @@ void KeyboardLayout::UnSetForcedKeyboardLayout()
 	}
 }
 
+void KeyboardLayout::UnSetForcedKeyboardLayout()
+{
+	if (Config.Exiting)
+	{
+		DisableForcedKeyboardLayout();
+	}
+	else
+	{
+		UnSetLayout();
+	}
+}
+
 void KeyboardLayout::DisableForcedKeyboardLayout()
 {
 	if (g_Enabled)
 	{
 		g_Enabled = false;
-		UnSetForcedKeyboardLayout();
+
+		HWND hwndForeground = GetForegroundWindow();
+		DWORD fgThread = GetWindowThreadProcessId(hwndForeground, NULL);
+		DWORD curThread = GetCurrentThreadId();
+
+		AttachThreadInput(curThread, fgThread, TRUE);
+
+		UnSetLayout();
+
+		AttachThreadInput(curThread, fgThread, FALSE);
 	}
 }

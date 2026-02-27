@@ -5,6 +5,7 @@
 
 #define WM_APP_CREATE_D3D9_DEVICE (WM_APP + 0xFFF - 0x123)
 #define WM_APP_SET_KEYBOARD_LAYOUT (WM_APP + 0xFFF - 0x124)
+#define WM_APP_DISABLE_KEYBOARD_LAYOUT (WM_APP + 0xFFF - 0x125)
 
 #define WM_MAKE_KEY(Val1, Val2) \
 	(LPARAM)WndProc::MakeKey((DWORD)Val1, (DWORD)Val2)
@@ -17,7 +18,7 @@ namespace WndProc
 		bool IsCreatingDevice = false;
 		bool IsExclusiveMode = false;
 		bool NoWindowChanges = false;
-		WORD IsActive = WA_INACTIVE;
+		WORD IsWindowActive = WA_INACTIVE;
 		DWORD DirectXVersion = 0;
 	};
 
@@ -29,4 +30,5 @@ namespace WndProc
 	DATASTRUCT* GetWndProctStruct(HWND hWnd);
 	DWORD MakeKey(DWORD Val1, DWORD Val2);
 	WNDPROC CheckWndProc(HWND hWnd, LONG dwNewLong);
+	void DisableForcedKeyboardLayout();
 }
