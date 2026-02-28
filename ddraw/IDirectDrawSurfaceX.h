@@ -199,7 +199,9 @@ private:
 		D3DMULTISAMPLE_TYPE MultiSampleType = D3DMULTISAMPLE_NONE;
 		DWORD MultiSampleQuality = 0;
 		DWORD SurfaceWrites = 0;
+		DWORD SurfaceUSN = 0;
 		DWORD LastPresentUSN = 0;
+		DWORD LastShadowUSN = 0;
 		DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
 		const PALETTEENTRY* PaletteEntryArray = nullptr;	// Used to store palette data address
 		EMUSURFACE* emu = nullptr;							// Emulated surface using device context

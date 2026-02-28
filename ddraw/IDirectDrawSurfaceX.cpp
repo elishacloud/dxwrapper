@@ -4744,6 +4744,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	// Reset flags
 	surface.HasData = false;
 	surface.UsingShadowSurface = false;
+	surface.LastShadowUSN = 0;
 
 	// Restore d3d9 surface texture data
 	if (surface.Surface || surface.Texture)
@@ -5415,6 +5416,7 @@ void m_IDirectDrawSurfaceX::ReleaseD9AuxiliarySurfaces()
 		}
 		surface.Shadow = nullptr;
 		surface.UsingShadowSurface = false;
+		surface.LastShadowUSN = 0;
 	}
 
 	// Release d3d9 tmp shadow surface when surface is released
@@ -6073,9 +6075,15 @@ void m_IDirectDrawSurfaceX::PrepareRenderTarget()
 {
 	if (surface.UsingShadowSurface && surface.Shadow)
 	{
-		if (SUCCEEDED((*d3d9Device)->UpdateSurface(surface.Shadow, nullptr, Get3DSurface(), nullptr)))
+		if (surface.LastShadowUSN == surface.SurfaceUSN)
 		{
 			surface.UsingShadowSurface = false;
+			return;
+		}
+		else if (SUCCEEDED((*d3d9Device)->UpdateSurface(surface.Shadow, nullptr, Get3DSurface(), nullptr)))
+		{
+			surface.UsingShadowSurface = false;
+			surface.LastShadowUSN = surface.SurfaceUSN;
 			return;
 		}
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to update render target!");
@@ -6099,9 +6107,15 @@ void m_IDirectDrawSurfaceX::SetRenderTargetShadow()
 		}
 		if (surface.Shadow)
 		{
-			if (SUCCEEDED((*d3d9Device)->GetRenderTargetData(Get3DSurface(), surface.Shadow)))
+			if (surface.LastShadowUSN == surface.SurfaceUSN)
 			{
 				surface.UsingShadowSurface = true;
+				return;
+			}
+			else if (SUCCEEDED((*d3d9Device)->GetRenderTargetData(Get3DSurface(), surface.Shadow)))
+			{
+				surface.UsingShadowSurface = true;
+				surface.LastShadowUSN = surface.SurfaceUSN;
 				return;
 			}
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get render target data!");
@@ -6163,6 +6177,7 @@ void m_IDirectDrawSurfaceX::SetDirtyFlag(DWORD MipMapLevel)
 		surface.IsDrawTextureDirty = true;
 		IsMipMapReadyToUse = (AutoMipMap || MipMaps.empty());
 
+		surface.SurfaceUSN++;
 		CurrentSurfaceUSN++;
 	}
 	else if (!AutoMipMap && MipMapLevel <= MipMaps.size())
