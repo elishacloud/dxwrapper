@@ -3128,7 +3128,7 @@ LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetValidateDeviceVertexBuffer(DWORD& FVF
 	if (!validateDeviceVertexBuffer)
 	{
 		// Create in video memory and then use discard when locking to improve system performance
-		HRESULT hr = d3d9Device->CreateVertexBuffer(sizeof(vertices), D3DUSAGE_DYNAMIC, D3DFVF_XYZ | D3DFVF_DIFFUSE, D3DPOOL_DEFAULT, &validateDeviceVertexBuffer, NULL);
+		HRESULT hr = d3d9Device->CreateVertexBuffer(sizeof(vertices), D3DUSAGE_WRITEONLY, D3DFVF_XYZ | D3DFVF_DIFFUSE, D3DPOOL_DEFAULT, &validateDeviceVertexBuffer, NULL);
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create vertex buffer: " << (DDERR)hr);
@@ -3189,7 +3189,7 @@ LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBufferX(LPWORD lpwIndices, DWORD 
 	{
 		ReleaseD3D9IndexBuffer(d3d9IndexBuffer, IndexBufferSize);
 		// Create in video memory and then use discard when locking to improve system performance
-		hr = d3d9Device->CreateIndexBuffer(NewIndexSize, D3DUSAGE_DYNAMIC, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &d3d9IndexBuffer, nullptr);
+		hr = d3d9Device->CreateIndexBuffer(NewIndexSize, D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &d3d9IndexBuffer, nullptr);
 	}
 
 	if (FAILED(hr))
