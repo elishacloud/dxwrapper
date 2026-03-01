@@ -386,6 +386,18 @@ typedef enum _D3DSURFACETYPE {
     D3DTYPE_DEPTHSTENCIL = 4
 } D3DSURFACETYPE;
 
+struct CONVERTHOMOGENEOUS
+{
+    bool IsTransformViewSet = false;					// Remembers if game sets the view matrix
+    D3DMATRIX ToWorld_ProjectionMatrix;					// Store the projection matrix used to transform the geometry on the gpu
+    D3DMATRIX ToWorld_ViewMatrix;						// Store the view matrix used to transform the geometry on the gpu
+    D3DMATRIX ToWorld_ViewMatrixOriginal;				// Store the original view matrix, so we can restore it
+    DirectX::XMMATRIX ToWorld_ViewMatrixInverse;		// Store the inverse view matrix to transform the geometry on the cpu
+    std::vector<uint8_t> ToWorld_IntermediateGeometry;	// Intermediate buffer for the geometry conversion
+    float ToWorld_GameCameraYaw = 0.0f;
+    float ToWorld_GameCameraPitch = 0.0f;
+};
+
 #define CLAMP(val,zmin,zmax) (max((zmin),min((zmax),(val))))
 
 // Clamp rhw values

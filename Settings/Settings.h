@@ -73,11 +73,19 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DdrawOverrideHeight) \
 	visit(DdrawOverrideStencilFormat) \
 	visit(DdrawResolutionHack) \
+	visit(DdrawConvertHomogeneousW) \
+	visit(DdrawConvertHomogeneousToWorld) \
+	visit(DdrawConvertHomogeneousToWorldUseGameCamera) \
+	visit(DdrawConvertHomogeneousToWorldFOV) \
+	visit(DdrawConvertHomogeneousToWorldNearPlane) \
+	visit(DdrawConvertHomogeneousToWorldFarPlane) \
+	visit(DdrawConvertHomogeneousToWorldDepthOffset) \
 	visit(DdrawUseDirect3D9Caps) \
 	visit(DdrawUseShadowSurface) \
 	visit(DdrawUseNativeResolution) \
 	visit(DdrawVertexLockDiscard) \
 	visit(DdrawEnableMouseHook) \
+	visit(DdrawDisableLighting) \
 	visit(DdrawHookSystem32) \
 	visit(D3d8HookSystem32) \
 	visit(D3d9HookSystem32) \
@@ -277,6 +285,13 @@ struct CONFIG
 	bool DdrawWriteToGDI = false;				// Blt surface directly to GDI rather than Direct3D9
 	bool DdrawIntegerScalingClamp = false;		// Scales the screen by an integer value to help preserve video quality
 	bool DdrawMaintainAspectRatio = false;		// Keeps the current DirectDraw aspect ratio when overriding the game's resolution
+	bool DdrawConvertHomogeneousW = false;		// Convert primites using D3DFVF_XYZRHW to D3DFVF_XYZW.
+	bool DdrawConvertHomogeneousToWorld = false;				// Convert primitives back into a world space. Needed for RTX.
+	bool DdrawConvertHomogeneousToWorldUseGameCamera = false;	// Use the game's view matrix instead of replacing it with our own.
+	float DdrawConvertHomogeneousToWorldFOV = 0.0f;				// The field of view of the camera used to reconstruct the original 3D world.
+	float DdrawConvertHomogeneousToWorldNearPlane = 0.0f;		// The near plane of the camera used to reconstruct the original 3D world.
+	float DdrawConvertHomogeneousToWorldFarPlane = 0.0f;		// The far plane of the camera used to reconstruct the original 3D world.
+	float DdrawConvertHomogeneousToWorldDepthOffset = 0.0f;		// The offset to add to the geometry so it does not clip into the near plane.
 	bool DdrawNoDrawBufferSysLock = false;		// Disables Draw CriticalSection and sets NOSYSLOCK on Index and Vertex Buffer locks
 	bool DdrawNoMultiThreaded = false;			// Don't add D3DCREATE_MULTITHREADED flag when creating Direct3D9 device unless the game requests it
 	bool DdrawUseDirect3D9Caps = false;			// Use Direct3D9 (Dd7to9) for GetCaps
@@ -299,6 +314,7 @@ struct CONFIG
 	DWORD DdrawFlipFillColor = 0;				// Color used to fill the primary surface before flipping
 	bool DdrawForceMipMapAutoGen = false;		// Force Direct3d9 to use this AutoGenMipMap when using Dd7to9
 	bool DdrawEnableMouseHook = false;			// Allow to hook into mouse to limit it to the chosen resolution
+	bool DdrawDisableLighting = false;			// Allow to disable lighting
 	DWORD DdrawHookSystem32 = 0;				// Hooks the ddraw.dll file in the Windows System32 folder
 	DWORD D3d8HookSystem32 = 0;					// Hooks the d3d8.dll file in the Windows System32 folder
 	DWORD D3d9HookSystem32 = 0;					// Hooks the d3d9.dll file in the Windows System32 folder
