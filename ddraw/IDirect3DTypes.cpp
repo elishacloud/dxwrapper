@@ -221,12 +221,38 @@ D3DVIEWPORT9 FixViewport(const D3DVIEWPORT9& Viewport)
 {
 	D3DVIEWPORT9 result = Viewport;
 
-	// Some games (e.g. Empire of the Ants [1.0f, 1000000.0f]) use large MaxZ values, so normalize the depth range to [0.0f, 1.0f].
-	if (Viewport.MaxZ > 1.0f)
+	const float minZ = Viewport.MinZ;
+	const float maxZ = Viewport.MaxZ;
+
+	// Degenerate
+	// Some games (e.g. The Summoner) sets both to 0.0f, so Normalize the depth range to [0.0f, 1.0f].
+	if (minZ >= maxZ)
 	{
-		result.MinZ = Viewport.MinZ / Viewport.MaxZ;
+		result.MinZ = 0.0f;
 		result.MaxZ = 1.0f;
+		return result;
 	}
+
+	// Scale problem
+	// Some games (e.g. Empire of the Ants [1.0f, 1000000.0f]) use large MaxZ values, so normalize the depth range to [0.0f, 1.0f].
+	if (minZ >= 0.0f && maxZ > 1.0f)
+	{
+		float scale = 1.0f / maxZ;
+		result.MinZ = minZ * scale;
+		result.MaxZ = 1.0f;
+		return result;
+	}
+
+	// Shifted interval
+	if (minZ < 0.0f || maxZ > 1.0f)
+	{
+		float range = maxZ - minZ;
+		result.MinZ = -minZ / range;
+		result.MaxZ = (1.0f - minZ) / range;
+	}
+
+	result.MinZ = CLAMP(result.MinZ, 0.0f, 1.0f);
+	result.MaxZ = CLAMP(result.MaxZ, 0.0f, 1.0f);
 
 	return result;
 }
