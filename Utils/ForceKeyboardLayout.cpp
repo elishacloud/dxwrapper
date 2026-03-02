@@ -25,6 +25,7 @@
 
 namespace {
 	bool g_Enabled = false;
+	bool g_UnloadHKL = false;
 	HKL g_ForcedHKL = nullptr;
 	HKL g_PreviousHKL = nullptr;
 };
@@ -74,6 +75,7 @@ void KeyboardLayout::ForceKeyboardLayout(DWORD layoutID)
 		WCHAR klidStr[16] = {};
 		swprintf_s(klidStr, L"%08X", layoutID);
 
+		g_UnloadHKL = true;
 		foundID = LoadKeyboardLayoutW(klidStr, KLF_NOTELLSHELL | KLF_SUBSTITUTE_OK);
 	}
 
@@ -143,6 +145,11 @@ void KeyboardLayout::DisableForcedKeyboardLayout()
 		AttachThreadInput(curThread, fgThread, TRUE);
 
 		UnSetLayout();
+
+		if (g_UnloadHKL && g_ForcedHKL)
+		{
+			UnloadKeyboardLayout(g_ForcedHKL);
+		}
 
 		AttachThreadInput(curThread, fgThread, FALSE);
 	}
