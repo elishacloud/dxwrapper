@@ -697,6 +697,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 				" ddsCaps: " << Logging::hex(Desc2.ddsCaps.dwCaps) << ", " << Logging::hex(Desc2.ddsCaps.dwCaps2) << ", " << LOWORD(Desc2.ddsCaps.dwVolumeDepth);
 		}
 
+		// Need to add the 3D device caps for older dx because these versions didn't use this flag (e.g. The Longest Journey)
+		if ((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && DirectXVersion < 3)
+		{
+			Desc2.ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
+		}
+
 		DWORD DxVersion = DirectXVersion > 3 ? DirectXVersion : 1;	// The first 3 versions create interface version 1
 
 		m_IDirectDrawSurfaceX *Interface = new m_IDirectDrawSurfaceX(this, DxVersion, &Desc2);
