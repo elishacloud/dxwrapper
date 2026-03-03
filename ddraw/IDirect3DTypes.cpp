@@ -363,36 +363,34 @@ DWORD GetDepthBias(DWORD ZBias, DWORD DepthBitCount)
 
 DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value)
 {
-	if (Type == D3DSAMP_MAGFILTER)
+	switch (Type)
 	{
+	case D3DSAMP_MAGFILTER:
 		switch (Value)
 		{
+		default:
 		case D3DTFG_POINT:
+			return D3DTEXF_POINT;
 		case D3DTFG_LINEAR:
-			return Value;
+			return D3DTEXF_LINEAR;
 		case D3DTFG_FLATCUBIC:
 		case D3DTFG_GAUSSIANCUBIC:
 			return D3DTEXF_LINEAR;
 		case D3DTFG_ANISOTROPIC:
 			return D3DTEXF_ANISOTROPIC;
-		default:
-			return D3DTEXF_NONE;
 		}
-	}
-	if (Type == D3DSAMP_MINFILTER)
-	{
+	case D3DSAMP_MINFILTER:
 		switch (Value)
 		{
-		case D3DTFN_POINT:
-		case D3DTFN_LINEAR:
-		case D3DTFN_ANISOTROPIC:
-			return Value;
 		default:
-			return D3DTEXF_NONE;
+		case D3DTFN_POINT:
+			return D3DTEXF_POINT;
+		case D3DTFN_LINEAR:
+			return D3DTEXF_LINEAR;
+		case D3DTFN_ANISOTROPIC:
+			return D3DTEXF_ANISOTROPIC;
 		}
-	}
-	if (Type == D3DSAMP_MIPFILTER)
-	{
+	case D3DSAMP_MIPFILTER:
 		switch (Value)
 		{
 		default:
