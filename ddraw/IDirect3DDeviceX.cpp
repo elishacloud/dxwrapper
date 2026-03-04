@@ -18,6 +18,8 @@
 #include "d3d9\d3d9External.h"
 #include "Utils\Utils.h"
 
+const DWORD ReserveCount = 64;
+
 // ******************************
 // IUnknown functions
 // ******************************
@@ -1699,14 +1701,71 @@ HRESULT m_IDirect3DDeviceX::GetRenderTarget(LPDIRECTDRAWSURFACE7* lplpRenderTarg
 	return hr;
 }
 
-HRESULT m_IDirect3DDeviceX::Begin(D3DPRIMITIVETYPE d3dpt, DWORD d3dvt, DWORD dwFlags)
+HRESULT m_IDirect3DDeviceX::Begin(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dvtVertexType, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (VertexStreamInfo.IsInBegin)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Vertex is already in stream!");
+		}
+
+		DWORD Stride = 0;
+
+		if (DirectXVersion == 2)
+		{
+			if (dvtVertexType != D3DVT_VERTEX && dvtVertexType != D3DVT_LVERTEX && dvtVertexType != D3DVT_TLVERTEX)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: Invalid vertex type: " << dvtVertexType;
+				return DDERR_INVALIDPARAMS;
+			}
+
+			// All vertices here are the same size
+			Stride = sizeof(D3DVERTEX);
+		}
+		else
+		{
+			if (dvtVertexType == D3DVT_VERTEX || dvtVertexType == D3DVT_LVERTEX || dvtVertexType == D3DVT_TLVERTEX)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: Invalid vertex type: " << dvtVertexType;
+				return DDERR_INVALIDPARAMS;
+			}
+
+			// Check stride
+			Stride = GetVertexStride(dvtVertexType);
+			if (!Stride)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF stride: " << Stride << " FVF: " << Logging::hex(dvtVertexType));
+				return DDERR_INVALIDPARAMS;
+			}
+
+			// Check for device interface
+			if (FAILED(CheckInterface(__FUNCTION__, true)))
+			{
+				return DDERR_INVALIDOBJECT;
+			}
+
+			// Set critical section before setting FVF
+			ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+			// Test fixed function vertex type
+			if (FAILED((*d3d9Device)->SetFVF(dvtVertexType)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dvtVertexType));
+				return DDERR_INVALIDPARAMS;
+			}
+		}
+
+		VertexStreamInfo.IsInBegin = true;
+		VertexStreamInfo.d3dpt = dptPrimitiveType;
+		VertexStreamInfo.d3dvt = (D3DVERTEXTYPE)dvtVertexType;
+		VertexStreamInfo.VertexStride = Stride;
+		VertexStreamInfo.Stream.clear();
+		VertexStreamInfo.dwFlags = dwFlags;
+
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1715,20 +1774,74 @@ HRESULT m_IDirect3DDeviceX::Begin(D3DPRIMITIVETYPE d3dpt, DWORD d3dvt, DWORD dwF
 	default:
 		return DDERR_GENERIC;
 	case 2:
-		return GetProxyInterfaceV2()->Begin(d3dpt, (D3DVERTEXTYPE)d3dvt, dwFlags);
+		return GetProxyInterfaceV2()->Begin(dptPrimitiveType, (D3DVERTEXTYPE)dvtVertexType, dwFlags);
 	case 3:
-		return GetProxyInterfaceV3()->Begin(d3dpt, d3dvt, dwFlags);
+		return GetProxyInterfaceV3()->Begin(dptPrimitiveType, dvtVertexType, dwFlags);
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::BeginIndexed(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dvtVertexType, LPVOID lpvVertices, DWORD dwNumVertices, DWORD dwFlags)
+HRESULT m_IDirect3DDeviceX::BeginIndexed(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dvtVertexType, LPVOID lpvVertices, DWORD dwNumVertices, DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (dwNumVertices && !lpvVertices)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (IndexStreamInfo.IsInBegin)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Index is already in stream!");
+		}
+
+		if (DirectXVersion == 2)
+		{
+			if (dvtVertexType != D3DVT_VERTEX && dvtVertexType != D3DVT_LVERTEX && dvtVertexType != D3DVT_TLVERTEX)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: Invalid vertex type: " << dvtVertexType;
+				return DDERR_INVALIDPARAMS;
+			}
+		}
+		else
+		{
+			if (dvtVertexType == D3DVT_VERTEX || dvtVertexType == D3DVT_LVERTEX || dvtVertexType == D3DVT_TLVERTEX)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: Invalid vertex type: " << dvtVertexType;
+				return DDERR_INVALIDPARAMS;
+			}
+
+			// Check for device interface
+			if (FAILED(CheckInterface(__FUNCTION__, true)))
+			{
+				return DDERR_INVALIDOBJECT;
+			}
+
+			// Set critical section before setting FVF
+			ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+			// Test fixed function vertex type
+			if (FAILED((*d3d9Device)->SetFVF(dvtVertexType)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dvtVertexType));
+				return DDERR_INVALIDPARAMS;
+			}
+		}
+
+		IndexStreamInfo.IsInBegin = true;
+		IndexStreamInfo.d3dpt = dptPrimitiveType;
+		IndexStreamInfo.d3dvt = (D3DVERTEXTYPE)dvtVertexType;
+		IndexStreamInfo.Stream.clear();
+		IndexStreamInfo.Stream.reserve(((dwNumVertices / ReserveCount) + 1) * ReserveCount);
+		if (dwNumVertices)
+		{
+			IndexStreamInfo.Stream.resize(dwNumVertices * sizeof(WORD));
+			memcpy(IndexStreamInfo.Stream.data(), reinterpret_cast<const WORD*>(lpvVertices), dwNumVertices * sizeof(WORD));
+		}
+		IndexStreamInfo.dwFlags = dwFlags;
+
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1749,8 +1862,27 @@ HRESULT m_IDirect3DDeviceX::Vertex(LPVOID lpVertexType)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!lpVertexType)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (!VertexStreamInfo.IsInBegin)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Vertex is not in stream!");
+			return DDERR_INVALIDPARAMS;
+		}
+		
+		const size_t oldSize = VertexStreamInfo.Stream.size();
+		if ((oldSize / VertexStreamInfo.VertexStride) % ReserveCount == 0)
+		{
+			VertexStreamInfo.Stream.reserve(oldSize + (ReserveCount * VertexStreamInfo.VertexStride));
+		}
+
+		VertexStreamInfo.Stream.resize(oldSize + VertexStreamInfo.VertexStride);
+		memcpy(VertexStreamInfo.Stream.data() + oldSize, reinterpret_cast<BYTE*>(lpVertexType), VertexStreamInfo.VertexStride);
+
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1771,8 +1903,20 @@ HRESULT m_IDirect3DDeviceX::Index(WORD wVertexIndex)
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!IndexStreamInfo.IsInBegin)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Index is not in stream!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (IndexStreamInfo.Stream.size() % ReserveCount == 0)
+		{
+			IndexStreamInfo.Stream.reserve(IndexStreamInfo.Stream.size() + ReserveCount);
+		}
+
+		IndexStreamInfo.Stream.push_back(wVertexIndex);
+
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -1787,14 +1931,62 @@ HRESULT m_IDirect3DDeviceX::Index(WORD wVertexIndex)
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::End(DWORD dwFlags)
+HRESULT m_IDirect3DDeviceX::End(DWORD dwFlags, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.Dd7to9)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented");
-		return DDERR_UNSUPPORTED;
+		if (!VertexStreamInfo.IsInBegin)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		bool IsUsingIndex = IndexStreamInfo.IsInBegin;
+		if (IsUsingIndex)
+		{
+			if (VertexStreamInfo.d3dpt != IndexStreamInfo.d3dpt)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: Primitive type doesn't match: " << VertexStreamInfo.d3dpt << " -> " << IndexStreamInfo.d3dpt);
+			}
+			if (VertexStreamInfo.d3dvt != IndexStreamInfo.d3dvt)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: Vertex type doesn't match: " << VertexStreamInfo.d3dvt << " -> " << IndexStreamInfo.d3dvt);
+			}
+			if (VertexStreamInfo.dwFlags != IndexStreamInfo.dwFlags)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: Flags don't match: " << VertexStreamInfo.dwFlags << " -> " << IndexStreamInfo.dwFlags);
+			}
+			if (IndexStreamInfo.Stream.empty())
+			{
+				IsUsingIndex = false;	// Don't use indices if not supplied
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: Index stream is empty!");
+			}
+		}
+
+		LPVOID lpVertices = VertexStreamInfo.Stream.data();
+		DWORD dwVertexCount = VertexStreamInfo.Stream.size() / VertexStreamInfo.VertexStride;
+
+		HRESULT hr;
+		
+		if (IsUsingIndex)
+		{
+			LPWORD lpIndices = IndexStreamInfo.Stream.data();
+			DWORD dwIndexCount = IndexStreamInfo.Stream.size();
+
+			hr = DrawIndexedPrimitive(VertexStreamInfo.d3dpt, VertexStreamInfo.d3dvt, lpVertices, dwVertexCount, lpIndices, dwIndexCount, VertexStreamInfo.dwFlags, DirectXVersion);
+		}
+		else
+		{
+			hr = DrawPrimitive(VertexStreamInfo.d3dpt, VertexStreamInfo.d3dvt, lpVertices, dwVertexCount, VertexStreamInfo.dwFlags, DirectXVersion);
+		}
+
+		VertexStreamInfo.Stream.clear();
+		IndexStreamInfo.Stream.clear();
+		VertexStreamInfo.IsInBegin = false;
+		IndexStreamInfo.IsInBegin = false;
+
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)

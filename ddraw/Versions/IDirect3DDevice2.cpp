@@ -191,7 +191,7 @@ HRESULT m_IDirect3DDevice2::Begin(D3DPRIMITIVETYPE a, D3DVERTEXTYPE b, DWORD c)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->Begin(a, b, c);
+	return ProxyInterface->Begin(a, b, c, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice2::BeginIndexed(D3DPRIMITIVETYPE a, D3DVERTEXTYPE b, LPVOID c, DWORD d, DWORD e)
@@ -200,7 +200,7 @@ HRESULT m_IDirect3DDevice2::BeginIndexed(D3DPRIMITIVETYPE a, D3DVERTEXTYPE b, LP
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->BeginIndexed(a, b, c, d, e);
+	return ProxyInterface->BeginIndexed(a, b, c, d, e, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice2::Vertex(LPVOID a)
@@ -227,7 +227,7 @@ HRESULT m_IDirect3DDevice2::End(DWORD a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->End(a);
+	return ProxyInterface->End(a, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice2::GetRenderState(D3DRENDERSTATETYPE a, LPDWORD b)

@@ -378,6 +378,23 @@ struct TLVERTEX
     float u, v;
 };
 
+struct VERTEXSTREAMINFO {
+    bool IsInBegin = false;
+    D3DPRIMITIVETYPE d3dpt = {};
+    D3DVERTEXTYPE d3dvt = {};
+    DWORD VertexStride = 0;
+    std::vector<BYTE> Stream;
+    DWORD dwFlags = 0;
+};
+
+struct INDEXSTREAMINFO {
+    bool IsInBegin = false;
+    D3DPRIMITIVETYPE d3dpt = {};
+    D3DVERTEXTYPE d3dvt = {};
+    std::vector<WORD> Stream;
+    DWORD dwFlags = 0;
+};
+
 typedef enum _D3DSURFACETYPE {
     D3DTYPE_NONE = 0,
     D3DTYPE_OFFPLAINSURFACE = 1,
