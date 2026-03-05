@@ -993,7 +993,7 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd)
 	// Apply changes without frame recalculation
 	if (styleChanged)
 	{
-		SetWindowPos(MainhWnd, nullptr, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
 
 	// Refresh styles after change
@@ -1161,7 +1161,7 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 	}
 
 	// Ensure the window doesn't cross over the desktop client area
-	if (!FullscreenWindowMode)
+	if (!FullscreenWindowMode && EnableWindowMode)
 	{
 		if (!clientWidthOverlap)
 		{

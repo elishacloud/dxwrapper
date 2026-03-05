@@ -571,22 +571,27 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_WINDOWPOSCHANGING:
 	case WM_WINDOWPOSCHANGED:
-		// Handle exclusive mode cases where the window is resized to be different than the display size
-		if (pDataStruct->IsDirectDraw && pDataStruct->IsExclusiveMode)
-		{
-			m_IDirectDrawX::CheckWindowPosChange(hWnd, (WINDOWPOS*)lParam);
-		}
 		if (lParam)
 		{
-			const DWORD posFlags = reinterpret_cast<WINDOWPOS*>(lParam)->flags;
+			WINDOWPOS* WinPos = reinterpret_cast<WINDOWPOS*>(lParam);
 
-			// Handle keyboard layout
-			if (Config.ForceKeyboardLayout && hWnd == hWndInstance && (posFlags & (SWP_SHOWWINDOW | SWP_HIDEWINDOW)))
+			// Disallow negative top, some games (e.g. The Summoner [-20]) will overwrite the y coordinate to a negative number
+			if (WinPos->y < 0 && !GetMenu(hWnd))
 			{
-				SetKeyboardLayoutFocus(hWnd, (posFlags & SWP_SHOWWINDOW));
+				WinPos->y = 0;
+			}
+			// Handle keyboard layout
+			if (Config.ForceKeyboardLayout && hWnd == hWndInstance && (WinPos->flags & (SWP_SHOWWINDOW | SWP_HIDEWINDOW)))
+			{
+				SetKeyboardLayoutFocus(hWnd, (WinPos->flags & SWP_SHOWWINDOW));
+			}
+			// Handle exclusive mode cases where the window is resized to be different than the display size
+			if (pDataStruct->IsDirectDraw && pDataStruct->IsExclusiveMode)
+			{
+				m_IDirectDrawX::CheckWindowPosChange(hWnd, WinPos);
 			}
 			// Filter messages for loss of focus or minimize
-			if (Config.HideWindowFocusChanges && (posFlags & SWP_HIDEWINDOW))
+			if (Config.HideWindowFocusChanges && (WinPos->flags & SWP_HIDEWINDOW))
 			{
 				return DefWndProc(hWnd, Msg, wParam, lParam);
 			}
