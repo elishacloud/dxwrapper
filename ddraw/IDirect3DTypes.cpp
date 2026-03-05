@@ -1137,39 +1137,51 @@ DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType)
 
 bool IsValidFVF(DWORD dwVertexTypeDesc)
 {
-	// Must specify position format
-	DWORD posType = dwVertexTypeDesc & D3DFVF_POSITION_MASK;
-	if (posType != D3DFVF_XYZ &&
-		posType != D3DFVF_XYZRHW &&
-		(posType < D3DFVF_XYZB1 || posType > D3DFVF_XYZB5))
-	{
-		return false;
-	}
-
 	// Reject reserved/invalid bits (only allow known FVF bits)
 	if (dwVertexTypeDesc & ~D3DFVF_SUPPORTED_BIT_MASK)
 	{
 		return false;
 	}
 
-	// Reject if XYZRHW and reserved1 or normal are set
-	if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && (dwVertexTypeDesc & (D3DFVF_RESERVED1 | D3DFVF_NORMAL)))
+	// Must specify position format
+	const DWORD posType = dwVertexTypeDesc & D3DFVF_POSITION_MASK;
+	if (posType != D3DFVF_XYZ &&
+		posType != D3DFVF_XYZRHW &&
+		posType != D3DFVF_XYZB1 &&
+		posType != D3DFVF_XYZB2 &&
+		posType != D3DFVF_XYZB3 &&
+		posType != D3DFVF_XYZB4 &&
+		posType != D3DFVF_XYZB5)
+	{
+		return false;
+	}
+
+	// Reject if XYZRHW and reserved1, normal or blend are used
+	if ((posType == D3DFVF_XYZRHW) &&
+		(dwVertexTypeDesc & (D3DFVF_RESERVED1 | D3DFVF_NORMAL | D3DFVF_XYZB1 | D3DFVF_XYZB2 | D3DFVF_XYZB3 | D3DFVF_XYZB4 | D3DFVF_XYZB5)))
+	{
+		return false;
+	}
+
+	// Reject if blend and normal are used together
+	if ((posType & (D3DFVF_XYZB1 | D3DFVF_XYZB2 | D3DFVF_XYZB3 | D3DFVF_XYZB4 | D3DFVF_XYZB5)) &&
+		(dwVertexTypeDesc & D3DFVF_NORMAL))
 	{
 		return false;
 	}
 
 	// Validate texture count is 0-8
-	DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
+	const DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
 	if (texCount > D3DDP_MAXTEXCOORD)
 	{
 		return false;
 	}
 
-	// Validate each texture coordinate size
-	for (DWORD t = 0; t < texCount; ++t)
+	// Check for texture bits outside of texture count
+	const DWORD bitsOutsideTexCount = dwVertexTypeDesc >> (16 + texCount * 2);
+	if (bitsOutsideTexCount)
 	{
-		DWORD sizeFlag = (dwVertexTypeDesc >> (16 + t * 2)) & 0x3;
-		if (sizeFlag > 3) return false;
+		return false;
 	}
 
 	return true;
@@ -1199,7 +1211,9 @@ UINT GetVertexPositionStride(DWORD dwVertexTypeDesc)
 	case D3DFVF_XYZB3:   return sizeof(float) * 6;
 	case D3DFVF_XYZB4:   return sizeof(float) * 6 + sizeof(DWORD);
 	case D3DFVF_XYZB5:   return sizeof(float) * 7 + sizeof(DWORD);
+	case 0:              return 0;
 	}
+	LOG_LIMIT(100, __FUNCTION__ <<" Warning: Unknown FVF position type: " << (dwVertexTypeDesc & D3DFVF_POSITION_MASK));
 	return 0;
 }
 

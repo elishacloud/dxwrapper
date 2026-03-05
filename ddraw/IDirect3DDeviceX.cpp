@@ -1733,27 +1733,18 @@ HRESULT m_IDirect3DDeviceX::Begin(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dvtVe
 				return DDERR_INVALIDPARAMS;
 			}
 
+			// Validate vertex type
+			if (!IsValidFVF(dvtVertexType))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dvtVertexType));
+				return DDERR_INVALIDPARAMS;
+			}
+
 			// Check stride
 			Stride = GetVertexStride(dvtVertexType);
 			if (!Stride)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF stride: " << Stride << " FVF: " << Logging::hex(dvtVertexType));
-				return DDERR_INVALIDPARAMS;
-			}
-
-			// Check for device interface
-			if (FAILED(CheckInterface(__FUNCTION__, true)))
-			{
-				return DDERR_INVALIDOBJECT;
-			}
-
-			// Set critical section before setting FVF
-			ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
-
-			// Test fixed function vertex type
-			if (FAILED((*d3d9Device)->SetFVF(dvtVertexType)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dvtVertexType));
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid or unsupported vertex buffer FVF: " << Stride << " FVF: " << Logging::hex(dvtVertexType));
 				return DDERR_INVALIDPARAMS;
 			}
 		}
@@ -1812,19 +1803,10 @@ HRESULT m_IDirect3DDeviceX::BeginIndexed(D3DPRIMITIVETYPE dptPrimitiveType, DWOR
 				return DDERR_INVALIDPARAMS;
 			}
 
-			// Check for device interface
-			if (FAILED(CheckInterface(__FUNCTION__, true)))
+			// Validate vertex type
+			if (!IsValidFVF(dvtVertexType))
 			{
-				return DDERR_INVALIDOBJECT;
-			}
-
-			// Set critical section before setting FVF
-			ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
-
-			// Test fixed function vertex type
-			if (FAILED((*d3d9Device)->SetFVF(dvtVertexType)))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dvtVertexType));
+				LOG_LIMIT(100, __FUNCTION__ << " Error: invalid or unsupported vertex buffer FVF: " << Logging::hex(dvtVertexType));
 				return DDERR_INVALIDPARAMS;
 			}
 		}
