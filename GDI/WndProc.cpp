@@ -575,11 +575,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			WINDOWPOS* WinPos = reinterpret_cast<WINDOWPOS*>(lParam);
 
-			// Disallow negative top, some games (e.g. The Summoner [-20]) will overwrite the y coordinate to a negative number
-			if (WinPos->y < 0 && !GetMenu(hWnd))
-			{
-				WinPos->y = 0;
-			}
 			// Handle keyboard layout
 			if (Config.ForceKeyboardLayout && hWnd == hWndInstance && (WinPos->flags & (SWP_SHOWWINDOW | SWP_HIDEWINDOW)))
 			{
@@ -588,7 +583,12 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			// Handle exclusive mode cases where the window is resized to be different than the display size
 			if (pDataStruct->IsDirectDraw && pDataStruct->IsExclusiveMode)
 			{
-				m_IDirectDrawX::CheckWindowPosChange(hWnd, WinPos);
+				m_IDirectDrawX::CheckFixWindowPos(hWnd, WinPos);
+			}
+			// Disallow negative top, some games (e.g. The Summoner [-20]) will overwrite the y coordinate to a negative number
+			if (WinPos->y < 0 && !GetMenu(hWnd))
+			{
+				WinPos->y = 0;
 			}
 			// Filter messages for loss of focus or minimize
 			if (Config.HideWindowFocusChanges && (WinPos->flags & SWP_HIDEWINDOW))

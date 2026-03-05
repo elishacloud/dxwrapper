@@ -92,7 +92,6 @@ namespace {
 	bool IsDeviceLost = false;
 	bool ReDrawNextPresent = false;
 	bool CopyGDISurface = false;
-	bool DontWindowRePosition = false;
 	m_IDirectDrawX* CreationInterface = nullptr;
 	LPDIRECT3D9 d3d9Object = nullptr;
 	LPDIRECT3DDEVICE9 d3d9Device = nullptr;
@@ -2493,7 +2492,6 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 
 		// Direct3D9 Objects
 		CreationInterface = nullptr;
-		DontWindowRePosition = false;
 		IsDeviceVerticesSet = false;
 
 		// Display resolution
@@ -5556,7 +5554,6 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 		}
 	}
 	LastWindowRect = ClientRect;
-	DontWindowRePosition = false;
 
 	// Store new click time after frame draw is complete
 	QueryPerformanceCounter(&Counter.LastPresentTime);
@@ -5580,22 +5577,10 @@ bool m_IDirectDrawX::CheckDirectDrawXInterface(void* pInterface)
 	return false;
 }
 
-void m_IDirectDrawX::FixWindowPos(HWND hWnd, int X, int Y, int cx, int cy)
-{
-	if (DontWindowRePosition || !d3d9Device)
-	{
-		return;
-	}
-
-	Utils::SetWindowPosToMonitor(hMonitor, hWnd, HWND_TOP, X, Y, cx, cy, SWP_NOZORDER | SWP_NOACTIVATE);
-
-	DontWindowRePosition = true;
-}
-
-void m_IDirectDrawX::CheckWindowPosChange(HWND hWnd, WINDOWPOS* wPos)
+void m_IDirectDrawX::CheckFixWindowPos(HWND hWnd, WINDOWPOS* wPos)
 {
 	// If incorrect param or incorrect device
-	if (!wPos || !ExclusiveMode || !CreationInterface || hWnd != presParams.hDeviceWindow || (Config.EnableWindowMode && !Config.FullscreenWindowMode))
+	if (!wPos || !ExclusiveMode || !CreationInterface || hWnd != presParams.hDeviceWindow || !IsWindow(DisplayMode.hWnd) || (Config.EnableWindowMode && !Config.FullscreenWindowMode))
 	{
 		return;
 	}
@@ -5609,17 +5594,17 @@ void m_IDirectDrawX::CheckWindowPosChange(HWND hWnd, WINDOWPOS* wPos)
 		DWORD exStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
 
 		AdjustWindowRectEx(&rcClient, style, GetMenu(hWnd) != NULL, exStyle);
-		int X = rcClient.left;
-		int Y = rcClient.top;
+		int x = rcClient.left;
+		int y = rcClient.top;
 		int cx = rcClient.right - rcClient.left;
 		int cy = rcClient.bottom - rcClient.top;
 
-		if (X != wPos->x || Y != wPos->y || cx != wPos->cx || cy != wPos->cy)
+		if (x != wPos->x || y != wPos->y || cx != wPos->cx || cy != wPos->cy)
 		{
-			if (!DDrawVector.empty() && IsWindow(DisplayMode.hWnd))
-			{
-				return FixWindowPos(hWnd, X, Y, cx, cy);
-			}
+			wPos->x = x;
+			wPos->y = y;
+			wPos->cx = cx;
+			wPos->cy = cy;
 		}
 	}
 }
