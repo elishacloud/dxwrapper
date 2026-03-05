@@ -1145,27 +1145,26 @@ bool IsValidFVF(DWORD dwVertexTypeDesc)
 
 	// Must specify position format
 	const DWORD posType = dwVertexTypeDesc & D3DFVF_POSITION_MASK;
+	const bool IsPosBlend = (posType != D3DFVF_XYZB1 &&
+			posType != D3DFVF_XYZB2 &&
+			posType != D3DFVF_XYZB3 &&
+			posType != D3DFVF_XYZB4 &&
+			posType != D3DFVF_XYZB5) ? false : true;
 	if (posType != D3DFVF_XYZ &&
 		posType != D3DFVF_XYZRHW &&
-		posType != D3DFVF_XYZB1 &&
-		posType != D3DFVF_XYZB2 &&
-		posType != D3DFVF_XYZB3 &&
-		posType != D3DFVF_XYZB4 &&
-		posType != D3DFVF_XYZB5)
+		!IsPosBlend)
 	{
 		return false;
 	}
 
-	// Reject if XYZRHW and reserved1, normal or blend are used
-	if ((posType == D3DFVF_XYZRHW) &&
-		(dwVertexTypeDesc & (D3DFVF_RESERVED1 | D3DFVF_NORMAL | D3DFVF_XYZB1 | D3DFVF_XYZB2 | D3DFVF_XYZB3 | D3DFVF_XYZB4 | D3DFVF_XYZB5)))
+	// Reject if XYZRHW and reserved1 or normal are used
+	if ((posType == D3DFVF_XYZRHW) && (dwVertexTypeDesc & (D3DFVF_RESERVED1 | D3DFVF_NORMAL)))
 	{
 		return false;
 	}
 
 	// Reject if blend and normal are used together
-	if ((posType & (D3DFVF_XYZB1 | D3DFVF_XYZB2 | D3DFVF_XYZB3 | D3DFVF_XYZB4 | D3DFVF_XYZB5)) &&
-		(dwVertexTypeDesc & D3DFVF_NORMAL))
+	if (IsPosBlend && (dwVertexTypeDesc & D3DFVF_NORMAL))
 	{
 		return false;
 	}
