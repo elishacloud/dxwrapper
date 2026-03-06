@@ -8933,7 +8933,9 @@ HRESULT m_IDirectDrawSurfaceX::PresentOverlay(LPRECT lpSrcRect)
 				}
 			}
 
-			return SurfaceOverlay.lpDDDestSurfaceX->Blt(lpNewDestRect, (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(0), lpNewSrcRect, DDBltFxFlags, &DDBltFx, 0, true, false);
+			const bool ShouldPresent = SurfaceOverlay.lpDDDestSurfaceX != this;
+
+			hr = SurfaceOverlay.lpDDDestSurfaceX->Blt(lpNewDestRect, (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(0), lpNewSrcRect, DDBltFxFlags, &DDBltFx, 0, true, ShouldPresent);
 		}
 	}
 	return hr;
