@@ -3289,7 +3289,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 
 	// Mark as creating device
 	bool tmpFlag = false;
-	ScopedFlagSet SetCreatingDevice(WndDataStruct ? WndDataStruct->IsCreatingDevice : tmpFlag);
+	ScopedFlagSet SetCreatingDevice(WndDataStruct && !WndDataStruct->IsCreatingDevice ? WndDataStruct->IsCreatingDevice : tmpFlag);
 
 	// Reset device if current thread matches creation thread
 	if (IsWindow(hFocusWindow) && FocusWindowThreadID == GetCurrentThreadId())
@@ -3550,7 +3550,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 	// Mark as creating device
 	bool tmpFlag = false;
-	ScopedFlagSet SetCreatingDevice(WndDataStruct ? WndDataStruct->IsCreatingDevice : tmpFlag);
+	ScopedFlagSet SetCreatingDevice(WndDataStruct && !WndDataStruct->IsCreatingDevice ? WndDataStruct->IsCreatingDevice : tmpFlag);
 
 	// Check if existing device exists
 	if (d3d9Device)
