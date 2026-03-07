@@ -3774,7 +3774,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		}
 
 		// Activate app
-		if (ExclusiveMode && ClientDirectXVersion < 4 && LasthWnd != hFocusWindow)
+		if (ExclusiveMode && LasthWnd != hFocusWindow)
 		{
 			PostMessage(hWnd, WM_ACTIVATEAPP, TRUE, (LPARAM)GetWindowThreadProcessId(LastActiveWindow, nullptr));
 		}
