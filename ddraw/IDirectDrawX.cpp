@@ -3356,7 +3356,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 	// Get hwnd
 	const HWND hWnd = GetHwnd();
-	const HWND LastActiveWindow = GetActiveWindow();
 
 	// Set DirectX version
 	m_IDirect3D9Ex* D3DX = nullptr;
@@ -3771,12 +3770,6 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 			PostMessage(hWnd, WM_IME_SETCONTEXT, TRUE, ISC_SHOWUIALL);
 			PostMessage(hWnd, WM_SETFOCUS, NULL, NULL);
 			PostMessage(hWnd, WM_SYNCPAINT, (WPARAM)32, NULL);
-		}
-
-		// Activate app
-		if (ExclusiveMode && LasthWnd != hFocusWindow)
-		{
-			PostMessage(hWnd, WM_ACTIVATEAPP, TRUE, (LPARAM)GetWindowThreadProcessId(LastActiveWindow, nullptr));
 		}
 	}
 

@@ -434,7 +434,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			static WPARAM IsActive = 0xFFFF;
 			const bool IsDuplicateMessage = (IsActive == wParam);
 
-			if (IsDuplicateMessage || (pDataStruct->IsCreatingDevice && pDataStruct->IsExclusiveMode && pDataStruct->DirectXVersion >= 4))
+			if (IsDuplicateMessage || (pDataStruct->IsExclusiveMode && pDataStruct->DirectXVersion >= 4))
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering " << (IsDuplicateMessage ? "duplicate " : "") << "WM_ACTIVATEAPP: " << wParam);
 				return NULL;
@@ -457,12 +457,14 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Filter duplicate messages when using DirectDraw
 		if (pDataStruct->IsDirectDraw)
 		{
-			if (pDataStruct->IsWindowActive == LOWORD(wParam))
+			const bool IsWindowIconic = IsIconic(hWnd);
+			if (pDataStruct->IsWindowActive == LOWORD(wParam) && pDataStruct->IsWindowIconic == IsWindowIconic)
 			{
-				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering duplicate WM_ACTIVATE: " << LOWORD(wParam));
+				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering duplicate WM_ACTIVATE: " << LOWORD(wParam) << " IsIconic: " << IsWindowIconic);
 				return DefWndProc(hWnd, Msg, wParam, lParam);
 			}
 			pDataStruct->IsWindowActive = LOWORD(wParam);
+			pDataStruct->IsWindowIconic = IsWindowIconic;
 		}
 		// Special handling for iconic state to prevent issues with some games
 		if (pDataStruct->IsDirectDraw && IsIconic(hWnd))
