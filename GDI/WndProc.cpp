@@ -457,7 +457,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Filter duplicate messages when using DirectDraw
 		if (pDataStruct->IsDirectDraw)
 		{
-			const bool IsWindowIconic = IsIconic(hWnd);
+			const WORD IsWindowIconic = static_cast<WORD>(IsIconic(hWnd));
 			if (pDataStruct->IsWindowActive == LOWORD(wParam) && pDataStruct->IsWindowIconic == IsWindowIconic)
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering duplicate WM_ACTIVATE: " << LOWORD(wParam) << " IsIconic: " << IsWindowIconic);
