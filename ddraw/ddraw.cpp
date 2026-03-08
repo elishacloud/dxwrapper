@@ -18,6 +18,7 @@
 */
 
 #include "ddraw.h"
+#include "deque"
 #include "Dllmain\Dllmain.h"
 #include "d3d9\d3d9External.h"
 #include "Utils\Utils.h"
@@ -51,7 +52,8 @@ namespace DdrawWrapper
 		}
 	};
 
-	std::vector<DDDeviceInfo> g_DeviceCache;
+	// Use deque to ensure that existing records aren't relocated when adding new records
+	std::deque<DDDeviceInfo> g_DeviceCache;
 
 	CRITICAL_SECTION* GetDDCriticalSection()
 	{
