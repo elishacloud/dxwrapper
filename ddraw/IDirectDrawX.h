@@ -221,7 +221,7 @@ public:
 	bool IsInScene();
 
 	// Direct3D9 interfaces
-	UINT GetAdapterIndex() const { return AdapterIndex; }
+	UINT GetAdapterIndex() const;
 	bool CheckD9Device(char* FunctionName);
 	LPDIRECT3D9 GetDirectD9Object();
 	LPDIRECT3DDEVICE9 *GetDirectD9Device();
