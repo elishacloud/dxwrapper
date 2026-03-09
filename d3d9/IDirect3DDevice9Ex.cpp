@@ -661,7 +661,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexBuffer(THIS_ UINT Length, DWORD Usage,
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.ForceSystemMemVertexCache && Pool == D3DPOOL_MANAGED)
+	if (Config.ForceSystemMemVertexCache)
 	{
 		Pool = D3DPOOL_SYSTEMMEM;
 	}

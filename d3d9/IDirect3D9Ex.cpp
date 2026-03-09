@@ -757,7 +757,9 @@ DWORD m_IDirect3D9Ex::AdjustPOW2Caps(DWORD OriginalCaps)
 
 DWORD m_IDirect3D9Ex::UpdateBehaviorFlags(DWORD BehaviorFlags)
 {
-	if (Config.ForceMixedVertexProcessing || (BehaviorFlags & D3DCREATE_MIXED_VERTEXPROCESSING) ||
+	if (Config.ForceMixedVertexProcessing ||
+		(Config.ForceSystemMemVertexCache && (BehaviorFlags & D3DCREATE_HARDWARE_VERTEXPROCESSING)) ||
+		(BehaviorFlags & D3DCREATE_MIXED_VERTEXPROCESSING) ||
 		((BehaviorFlags & D3DCREATE_SOFTWARE_VERTEXPROCESSING) && (BehaviorFlags & D3DCREATE_HARDWARE_VERTEXPROCESSING)))
 	{
 		BehaviorFlags &= ~(D3DCREATE_PUREDEVICE | D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
