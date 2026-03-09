@@ -353,6 +353,7 @@ private:
 	bool ShouldUseShadowSurface(DWORD MipMapLevel, bool AlwaysUseShadow) const
 	{ return (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && (AlwaysUseShadow || !surface.IsLockable || Config.DdrawUseShadowSurface) && !IsUsingShadowSurface()); }
 	bool IsUsingShadowSurface() const { return (surface.UsingShadowSurface && surface.Shadow); }
+	bool CanUseRenderTargetSurface() const { return (!surface.UsingShadowSurface || surface.LastShadowUSN == surface.SurfaceUSN); }
 	bool IsLockedFromOtherThread(DWORD MipMapLevel);
 	bool IsDummyMipMap(DWORD MipMapLevel) { return (MipMapLevel > MaxMipMapLevel || ((MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1 < MipMaps.size() && MipMaps[(MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1].IsDummy)); }
 	DWORD GetD3d9MipMapLevel(DWORD MipMapLevel) const { return min(MipMapLevel, MaxMipMapLevel); }

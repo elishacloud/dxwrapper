@@ -6619,9 +6619,12 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 	HRESULT hr = DDERR_GENERIC;
 
 	// Use GPU ColorFill
-	if (!IsUsingShadowSurface() && ((surface.Usage & D3DUSAGE_RENDERTARGET) || surface.Type == D3DTYPE_OFFPLAINSURFACE) && surface.Pool == D3DPOOL_DEFAULT)
+	if (CanUseRenderTargetSurface() && ((surface.Usage & D3DUSAGE_RENDERTARGET) || surface.Type == D3DTYPE_OFFPLAINSURFACE) && surface.Pool == D3DPOOL_DEFAULT)
 	{
 		ScopedGetMipMapContext Dest(this, MipMapLevel);
+
+		PrepareRenderTarget();
+
 		if (Dest.GetSurface())
 		{
 			hr = (*d3d9Device)->ColorFill(Dest.GetSurface(), &DestRect, dwFillColor);
@@ -7068,7 +7071,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 
 	do {
 		// Use StretchRect for video memory to prevent copying out of video memory
-		if (!IsUsingEmulation() && !IsUsingShadowSurface() && !pSourceSurface->IsUsingShadowSurface() &&
+		if (!IsUsingEmulation() && CanUseRenderTargetSurface() && pSourceSurface->CanUseRenderTargetSurface() &&
 			(pSourceSurface->surface.Pool == D3DPOOL_DEFAULT && surface.Pool == D3DPOOL_DEFAULT) &&
 			(pSourceSurface->surface.Type == surface.Type || (pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE && (surface.Usage & D3DUSAGE_RENDERTARGET))) &&
 			(!IsStretchRect || (this != pSourceSurface && !ISDXTEX(SrcFormat) && !ISDXTEX(DestFormat) && (surface.Usage & D3DUSAGE_RENDERTARGET))) &&
@@ -7078,6 +7081,9 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		{
 			ScopedGetMipMapContext Src(pSourceSurface, SrcMipMapLevel);
 			ScopedGetMipMapContext Dest(this, MipMapLevel);
+
+			pSourceSurface->PrepareRenderTarget();
+			PrepareRenderTarget();
 
 			if (Src.GetSurface() && Dest.GetSurface())
 			{
@@ -7155,7 +7161,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// Use UpdateSurface for copying system memory to video memory
-		if (!IsUsingEmulation() && !IsUsingShadowSurface() && surface.Pool == D3DPOOL_DEFAULT &&
+		if (!IsUsingEmulation() && CanUseRenderTargetSurface() && surface.Pool == D3DPOOL_DEFAULT &&
 			(pSourceSurface->surface.Pool == D3DPOOL_SYSTEMMEM || pSourceSurface->IsUsingShadowSurface() ||
 				(pSourceSurface->surface.Pool == D3DPOOL_MANAGED && surface.Shadow && (surface.BitCount == 8 || surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32))) &&
 			(pSourceSurface->surface.Type != D3DTYPE_DEPTHSTENCIL && surface.Type != D3DTYPE_DEPTHSTENCIL) &&
@@ -7165,6 +7171,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		{
 			ScopedGetMipMapContext Src(pSourceSurface, SrcMipMapLevel);
 			ScopedGetMipMapContext Dest(this, MipMapLevel);
+
+			PrepareRenderTarget();
 
 			if (Src.GetSurface() && Dest.GetSurface())
 			{
