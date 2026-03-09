@@ -911,6 +911,21 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 				Utils::SetDisplaySettings(DeviceDetails.hMonitor, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight);
 			}
 		}
+
+		// Add border if vulkan is being used
+		LONG style = GetWindowLong(DeviceDetails.DeviceWindow, GWL_STYLE);
+		if ((style & WS_POPUP) && !(style & WS_BORDER))
+		{
+			if (Utils::IsVulkanModuleLoaded())
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: Vulkan detected, adding WS_BORDER!");
+
+				style |= WS_BORDER;
+				SetWindowLong(DeviceDetails.DeviceWindow, GWL_STYLE, style);
+
+				SetWindowPos(DeviceDetails.DeviceWindow, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+			}
+		}
 	}
 }
 
@@ -1129,6 +1144,17 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		{
 			// Remove window border only
 			lStyle &= ~WS_BORDER;
+		}
+
+		// Add border if vulkan is being used
+		if ((lStyle & WS_POPUP) && !(lStyle & WS_BORDER))
+		{
+			if (Utils::IsVulkanModuleLoaded())
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: Vulkan detected, adding WS_BORDER!");
+
+				lStyle |= WS_BORDER;
+			}
 		}
 
 		// Set style if it needs to change

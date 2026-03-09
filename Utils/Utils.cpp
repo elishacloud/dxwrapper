@@ -19,6 +19,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <psapi.h>
 #include <cctype>
 #include <iomanip>
 #include <tlhelp32.h>
@@ -1049,6 +1050,29 @@ HMEMORYMODULE Utils::LoadResourceToMemory(DWORD ResID)
 		}
 	}
 	return nullptr;
+}
+
+bool Utils::IsVulkanModuleLoaded()
+{
+	HMODULE hMods[1024];
+	DWORD cbNeeded;
+	HANDLE hProcess = GetCurrentProcess();
+
+	if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded))
+	{
+		for (DWORD i = 0; i < (cbNeeded / sizeof(HMODULE)); ++i)
+		{
+			char szModName[MAX_PATH] = {};
+			if (GetModuleFileNameExA(hProcess, hMods[i], szModName, sizeof(szModName)))
+			{
+				if (stristr(szModName, "vulkan", MAX_PATH))
+				{
+					return true;
+				}
+			}
+		}
+	}
+	return false;
 }
 
 // Searches the memory
