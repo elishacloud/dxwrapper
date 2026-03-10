@@ -7,10 +7,46 @@ private:
 	ULONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawPalette;
 
+	struct DXPALETTEENTRY : public PALETTEENTRY
+	{
+		// Default constructor
+		DXPALETTEENTRY() {}
+
+		// Construct from PALETTEENTRY
+		DXPALETTEENTRY(const PALETTEENTRY& pe)
+		{
+			*reinterpret_cast<DWORD*>(this) = *reinterpret_cast<const DWORD*>(&pe);
+		}
+
+		// Assignment from PALETTEENTRY
+		DXPALETTEENTRY& operator=(const PALETTEENTRY& pe)
+		{
+			*reinterpret_cast<DWORD*>(this) = *reinterpret_cast<const DWORD*>(&pe);
+			return *this;
+		}
+
+		// Conversion to RGBQUAD
+		operator RGBQUAD() const
+		{
+			return RGBQUAD{ peBlue, peGreen, peRed, peFlags };
+		}
+
+		// Equality operators
+		bool operator==(const DXPALETTEENTRY& other) const
+		{
+			return *reinterpret_cast<const DWORD*>(this) == *reinterpret_cast<const DWORD*>(&other);
+		}
+
+		bool operator!=(const DXPALETTEENTRY& other) const
+		{
+			return !(*this == other);
+		}
+	};
+
 	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;
 	DWORD paletteCaps = 0;							// Palette flags
-	PALETTEENTRY rawPalette[MaxPaletteSize] = {};	// Raw palette data
+	DXPALETTEENTRY rawPalette[MaxPaletteSize] = {};	// Raw palette data
 	RGBQUAD rgbPalette[MaxPaletteSize] = {};		// Rgb translated palette
 	DWORD PaletteUSN;								// The USN that's used to see if the palette data was updated (don't initialize)
 	DWORD entryCount = MaxPaletteSize;				// Number of palette entries (Default to 256 entries)

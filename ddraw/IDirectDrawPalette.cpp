@@ -226,48 +226,55 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 			End = min(255, End);
 		}
 
-		// lpEntries array location
-		DWORD x = (Start - dwStartingEntry);
-
-		// Check if new palette data found
-		if (!(Start < End) || memcmp(&(rawPalette[Start]), &lpEntries[x], (End - Start) * sizeof(PALETTEENTRY)) == S_OK)
+		// Check new palette range
+		if (Start >= End)
 		{
-			return DD_OK;	// No new data found
+			return DD_OK;
 		}
 
 		// Update palette data
+		bool FoundNewRecords = false;
 		{
+			const bool UsingAlpha = (paletteCaps & DDPCAPS_ALPHA);
+
+			// lpEntries array location
+			DWORD x = (Start - dwStartingEntry);
+
 			ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
 
 			// Translate new raw pallete entries to RGB
 			for (UINT i = Start; i < End; i++, x++)
 			{
-				BYTE alpha = (paletteCaps & DDPCAPS_ALPHA) ? lpEntries[x].peFlags : 0xFF;
+				DXPALETTEENTRY SingleEntry = lpEntries[x];
+				SingleEntry.peFlags = UsingAlpha ? SingleEntry.peFlags : 0xFF;
+
+				FoundNewRecords = FoundNewRecords || rawPalette[i] != SingleEntry;
+
 				// Palette entry
-				rawPalette[i].peFlags = alpha;
-				rawPalette[i].peRed = lpEntries[x].peRed;
-				rawPalette[i].peGreen = lpEntries[x].peGreen;
-				rawPalette[i].peBlue = lpEntries[x].peBlue;
+				rawPalette[i] = SingleEntry;
 				// RGB palette
-				rgbPalette[i].rgbBlue = lpEntries[x].peBlue;
-				rgbPalette[i].rgbGreen = lpEntries[x].peGreen;
-				rgbPalette[i].rgbRed = lpEntries[x].peRed;
-				rgbPalette[i].rgbReserved = alpha;
+				rgbPalette[i] = SingleEntry;
 			}
 
 			// Note that there is new palette data
-			PaletteUSN++;
+			if (FoundNewRecords)
+			{
+				PaletteUSN++;
+			}
 		}
 
-		// Present new palette
-		if (ddrawParent && (paletteCaps & DDPCAPS_PRIMARYSURFACE))
+		// Present new palette updates
+		if (FoundNewRecords)
 		{
-			const bool SetVsync = (paletteCaps & DDPCAPS_VSYNC);
-
-			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
-			if (lpDDSrcSurfaceX)
+			if (ddrawParent && (paletteCaps & DDPCAPS_PRIMARYSURFACE))
 			{
-				lpDDSrcSurfaceX->EndWritePresent(nullptr, 0, SetVsync, false);
+				const bool SetVsync = (paletteCaps & DDPCAPS_VSYNC);
+
+				m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
+				if (lpDDSrcSurfaceX)
+				{
+					lpDDSrcSurfaceX->EndWritePresent(nullptr, 0, SetVsync, false);
+				}
 			}
 		}
 
