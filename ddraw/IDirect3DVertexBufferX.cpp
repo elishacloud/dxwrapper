@@ -1247,10 +1247,7 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: Lighting requested but no normals are provided.  Cannot compute lighting!");
 	}
 
-	LONG minX = LONG_MAX;
-	LONG minY = LONG_MAX;
-	LONG maxX = LONG_MIN;
-	LONG maxY = LONG_MIN;
+	D3DRECT newExtents = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
 
 	for (DWORD i = 0; i < dwCount; ++i)
 	{
@@ -1320,26 +1317,30 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 		if (bUpdateExtents)
 		{
 			// floor/ceil convert to integer extents
-			minX = min(minX, static_cast<LONG>(floor(dst.sx)));
-			minY = min(minY, static_cast<LONG>(floor(dst.sy)));
-			maxX = max(maxX, static_cast<LONG>(ceil(dst.sx)));
-			maxY = max(maxY, static_cast<LONG>(ceil(dst.sy)));
+			newExtents.x1 = min(newExtents.x1, static_cast<LONG>(floor(dst.sx)));
+			newExtents.y1 = min(newExtents.y1, static_cast<LONG>(floor(dst.sy)));
+			newExtents.x2 = max(newExtents.x2, static_cast<LONG>(ceil(dst.sx)));
+			newExtents.y2 = max(newExtents.y2, static_cast<LONG>(ceil(dst.sy)));
 		}
 	}
 
-	if (bUpdateExtents)
+	if (bUpdateExtents && newExtents.x1 != LONG_MAX)
 	{
-		if (minX != LONG_MAX)
+		if (IsRectNonZero(drExtent))
 		{
-			drExtent.x1 = minX;
-			drExtent.y1 = minY;
-			drExtent.x2 = maxX;
-			drExtent.y2 = maxY;
+			// Merge with existing extents if valid
+			drExtent.x1 = min(drExtent.x1, newExtents.x1);
+			drExtent.y1 = min(drExtent.y1, newExtents.y1);
+			drExtent.x2 = max(drExtent.x2, newExtents.x2);
+			drExtent.y2 = max(drExtent.y2, newExtents.y2);
 		}
 		else
 		{
-			// no vertices -> empty extent
-			drExtent.x1 = drExtent.y1 = drExtent.x2 = drExtent.y2 = 0;
+			// First valid extents
+			drExtent.x1 = newExtents.x1;
+			drExtent.y1 = newExtents.y1;
+			drExtent.x2 = newExtents.x2;
+			drExtent.y2 = newExtents.y2;
 		}
 	}
 

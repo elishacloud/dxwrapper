@@ -428,6 +428,16 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Check the Extents
+		if (lpStatus->dwFlags & D3DSETSTATUS_EXTENTS)
+		{
+			if (lpStatus->drExtent.x1 == 0 && lpStatus->drExtent.y1 == 0 && lpStatus->drExtent.x2 == 0 && lpStatus->drExtent.y2 == 0)
+			{
+				// Remove the Extents flag
+				lpStatus->dwFlags &= ~D3DSETSTATUS_EXTENTS;
+			}
+		}
+
 		// Pointer to the start of the instruction data
 		BYTE* instructionData = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwInstructionOffset;
 		BYTE* instructionEnd = instructionData + ExecuteData.dwInstructionLength;
@@ -455,7 +465,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 				break;
 			}
 
-			bool SkipNextMove = false;
+			bool Branched = false;
 
 			switch (opcode)
 			{
@@ -466,7 +476,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				if (instruction->bSize != sizeof(D3DPOINT))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: point instruction size does not match!");
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_POINT instruction size does not match!");
 				}
 
 				DrawExecutePoint(point, instruction->wCount, vertexCount, vertexBuffer, VertexTypeDesc);
@@ -480,7 +490,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				if (instruction->bSize != sizeof(D3DSPAN))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: span instruction size does not match!");
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_SPAN instruction size does not match!");
 				}
 
 				DrawExecuteSpan(span, instruction->wCount, vertexCount, vertexBuffer, VertexTypeDesc);
@@ -494,7 +504,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				if (instruction->bSize != sizeof(D3DLINE))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: line instruction size does not match!");
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_LINE instruction size does not match!");
 				}
 
 				DrawExecuteLine(line, instruction->wCount, vertexCount, vertexBuffer, VertexTypeDesc);
@@ -508,7 +518,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				if (instruction->bSize != sizeof(D3DTRIANGLE))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: triangle instruction size does not match!");
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_TRIANGLE instruction size does not match!");
 				}
 
 				DrawExecuteTriangle(triangle, instruction->wCount, vertexCount, vertexBuffer, VertexTypeDesc);
@@ -522,7 +532,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				if (instruction->bSize != sizeof(D3DMATRIXLOAD))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: matrix load instruction size does not match!");
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_MATRIXLOAD instruction size does not match!");
 				}
 
 				for (DWORD i = 0; i < instruction->wCount; i++)
@@ -536,7 +546,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					}
 					else
 					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find matrix handle for load!");
+						LOG_LIMIT(100, __FUNCTION__ << " Error: D3DOP_MATRIXLOAD failed to find matrix handle for load!");
 					}
 				}
 
@@ -549,7 +559,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				if (instruction->bSize != sizeof(D3DMATRIXMULTIPLY))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: matrix multiply instruction size does not match!");
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_MATRIXMULTIPLY instruction size does not match!");
 				}
 
 				for (DWORD i = 0; i < instruction->wCount; i++)
@@ -574,7 +584,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					}
 					else
 					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find matrix handle for multiply!");
+						LOG_LIMIT(100, __FUNCTION__ << " Error: D3DOP_MATRIXMULTIPLY failed to find matrix handle for multiply!");
 					}
 				}
 
@@ -589,7 +599,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				if (instruction->bSize != sizeof(D3DSTATE))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: state transform instruction size does not match!");
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_STATETRANSFORM instruction size does not match!");
 				}
 
 				for (DWORD i = 0; i < instruction->wCount; i++)
@@ -601,7 +611,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					}
 					else
 					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find matrix handle for transform!");
+						LOG_LIMIT(100, __FUNCTION__ << " Error: D3DOP_STATETRANSFORM failed to find matrix handle for transform!");
 					}
 				}
 
@@ -616,7 +626,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				if (instruction->bSize != sizeof(D3DSTATE))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: state light instruction size does not match!");
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_STATELIGHT instruction size does not match!");
 				}
 
 				for (DWORD i = 0; i < instruction->wCount; i++)
@@ -635,7 +645,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				if (instruction->bSize != sizeof(D3DSTATE))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: state render instruction size does not match!");
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_STATERENDER instruction size does not match!");
 				}
 
 				for (DWORD i = 0; i < instruction->wCount; i++)
@@ -652,7 +662,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				if (instruction->bSize != sizeof(D3DTEXTURELOAD))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: texture load instruction size does not match!");
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_TEXTURELOAD instruction size does not match!");
 				}
 
 				for (DWORD i = 0; i < instruction->wCount; i++)
@@ -667,7 +677,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					}
 					else
 					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to find texture handle!");
+						LOG_LIMIT(100, __FUNCTION__ << " Error: D3DOP_TEXTURELOAD failed to find texture handle!");
 					}
 				}
 
@@ -680,7 +690,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				if (instruction->bSize != sizeof(D3DPROCESSVERTICES))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: process vertices instruction size does not match!");
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_PROCESSVERTICES instruction size does not match!");
 				}
 
 #ifdef ENABLE_PROFILING
@@ -698,17 +708,12 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 				{
 					DWORD Flags = processVertices[i].dwFlags;
 
-					if ((Flags & (D3DPROCESSVERTICES_COPY | D3DPROCESSVERTICES_TRANSFORM | D3DPROCESSVERTICES_TRANSFORMLIGHT)) == 0)
-					{
-						Flags |= D3DPROCESSVERTICES_TRANSFORM;
-						LOG_LIMIT(100, __FUNCTION__ << " Warning: ProcessVertices dwFlags=0, defaulting to TRANSFORM");
-					}
-
 					if (processVertices[i].wStart >= vertexCount || processVertices[i].wDest >= vertexCount)
 					{
-						LOG_LIMIT(100, __FUNCTION__ << " Warning: index exceeds vertices count.  Skip processing!");
+						LOG_LIMIT(100, __FUNCTION__ << " Error: D3DOP_PROCESSVERTICES index exceeds vertices count.  Skip processing!");
 						continue;
 					}
+
 					// Compute maximum safe count based on buffer size
 					DWORD maxSrc = vertexCount - processVertices[i].wStart;
 					DWORD maxDest = vertexCount - processVertices[i].wDest;
@@ -717,29 +722,57 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					// Check Count
 					if (Count == 0)
 					{
-						LOG_LIMIT(100, __FUNCTION__ << " Warning: zero vertices to process. Skip processing!");
+						LOG_LIMIT(100, __FUNCTION__ << " Error: D3DOP_PROCESSVERTICES zero vertices to process. Skip processing!");
 						continue;
 					}
 
 					D3DLVERTEX* srcVertices = reinterpret_cast<D3DLVERTEX*>(inputVerts) + processVertices[i].wStart;
 					D3DTLVERTEX* destVertices = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
 
+					const bool UpdateExtents = (Flags & D3DPROCESSVERTICES_UPDATEEXTENTS);
+
+					const DWORD op = Flags & D3DPROCESSVERTICES_OPMASK;
+
 					// Copy vertices only
-					if (Flags & D3DPROCESSVERTICES_COPY)
+					switch (op)
+					{
+					case D3DPROCESSVERTICES_COPY:
 					{
 						IsHVertexUsed = true;
+
+						D3DRECT drExtent = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
+
 						for (UINT x = 0; x < Count; x++)
 						{
 							destVertices[x] = *(D3DTLVERTEX*)&srcVertices[x];
+
+							// Update extents
+							if (UpdateExtents)
+							{
+								// floor/ceil convert to integer extents
+								drExtent.x1 = min(drExtent.x1, static_cast<LONG>(floor(destVertices[x].sx)));
+								drExtent.y1 = min(drExtent.y1, static_cast<LONG>(floor(destVertices[x].sy)));
+								drExtent.x2 = max(drExtent.x2, static_cast<LONG>(ceil(destVertices[x].sx)));
+								drExtent.y2 = max(drExtent.y2, static_cast<LONG>(ceil(destVertices[x].sy)));
+							}
 						}
+
+						if (UpdateExtents && drExtent.x1 != LONG_MAX)
+						{
+							MergeExecuteExtents(lpStatus->drExtent, drExtent, lpStatus->dwFlags);
+						}
+						break;
 					}
-					// Apply transform & lighting
-					else if (Flags & (D3DPROCESSVERTICES_TRANSFORM | D3DPROCESSVERTICES_TRANSFORMLIGHT))
+					case D3DPROCESSVERTICES_TRANSFORM:
+					case D3DPROCESSVERTICES_TRANSFORMLIGHT:
 					{
 						IsHVertexUsed = true;
-						bool IsLight = (Flags & D3DPROCESSVERTICES_TRANSFORMLIGHT) && !(Flags & D3DPROCESSVERTICES_NOCOLOR);
-						bool UpdateExtents = (Flags & D3DPROCESSVERTICES_UPDATEEXTENTS);
-						hr = m_IDirect3DVertexBufferX::TransformVertexUP(this, srcVertices, destVertices, nullptr, Count, lpStatus->drExtent, IsLight, UpdateExtents);
+
+						const bool IsLight = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT) && !(Flags & D3DPROCESSVERTICES_NOCOLOR);
+
+						D3DRECT drExtent = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
+
+						hr = m_IDirect3DVertexBufferX::TransformVertexUP(this, srcVertices, destVertices, nullptr, Count, drExtent, IsLight, UpdateExtents);
 
 						if (SUCCEEDED(hr))
 						{
@@ -748,9 +781,13 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 							if (UpdateExtents)
 							{
-								lpStatus->dwFlags |= D3DSETSTATUS_EXTENTS;
+								MergeExecuteExtents(lpStatus->drExtent, drExtent, lpStatus->dwFlags);
 							}
 						}
+						break;
+					}
+					default:
+						LOG_LIMIT(100, __FUNCTION__ << " Error: D3DOP_PROCESSVERTICES includes both TRANSFORM and COPY are set!");
 					}
 				}
 
@@ -773,15 +810,16 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				if (instruction->bSize != sizeof(D3DSTATUS))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: status instruction size does not match!");
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_SETSTATUS instruction size mismatch!");
 				}
 
+				// Direct3D normally expects only 1 status per instruction
 				if (instruction->wCount > 1)
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: more than 1 count in set status instruction!");
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_SETSTATUS instruction has wCount > 1, only the first will be used.");
 				}
 
-				// Update only the requested fields
+				// Update only the fields indicated by dwFlags
 				if (status->dwFlags & D3DSETSTATUS_STATUS)
 				{
 					lpStatus->dwStatus = status->dwStatus;
@@ -805,43 +843,40 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				if (instruction->bSize != sizeof(D3DBRANCH))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: branch instruction size does not match!");
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_BRANCHFORWARD instruction size does not match!");
 				}
 
-				if (instruction->wCount > 1)
+				for (DWORD i = 0; i < instruction->wCount; i++)
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: more than 1 count in branch forward instruction!");
-				}
+					// Apply the mask to the current status
+					DWORD maskedStatus = lpStatus->dwStatus & branch[i].dwMask;
 
-				// Apply the mask to the current status
-				DWORD maskedStatus = lpStatus->dwStatus & branch->dwMask;
+					// Compare the masked status with the value
+					bool condition = (maskedStatus == branch[i].dwValue);
 
-				// Compare the masked status with the value
-				bool condition = (maskedStatus == branch->dwValue);
-
-				// Negate the condition if bNegate is TRUE
-				if (branch->bNegate)
-				{
-					condition = !condition;
-				}
-
-				// If the condition is true, branch forward
-				if (condition)
-				{
-					SkipNextMove = true;
-					if (branch->dwOffset == 0)
+					// Negate the condition if bNegate is TRUE
+					if (branch[i].bNegate)
 					{
-						// Exit the execute buffer if offset is 0
-						opcode = D3DOP_EXIT;
-						break;
+						condition = !condition;
 					}
-					else
+
+					// If the condition is true, branch forward
+					if (condition)
 					{
-						// Move the instruction pointer forward by the offset
-						instructionData += branch->dwOffset;
+						if (branch[i].dwOffset == 0)
+						{
+							// Exit the execute buffer if offset is 0
+							opcode = D3DOP_EXIT;
+						}
+						else
+						{
+							// Move the instruction pointer forward by the offset
+							instructionData += branch->dwOffset;
+						}
+						Branched = true;
+						break; // only branch once
 					}
 				}
-
 				// Otherwise, continue to the next instruction
 				break;
 			}
@@ -850,7 +885,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 				break;
 			default:
 				// Handle unknown or unsupported opcodes
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: Unknown opcode: " << opcode);
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: Unknown opcode: " << Logging::hex(opcode));
 				break;
 			}
 
@@ -860,8 +895,8 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 				break;
 			}
 
-			// Move to the next instruction
-			if (!SkipNextMove)
+			// Move to the next instruction if not branched
+			if (!Branched)
 			{
 				instructionData += instructionSize;
 			}
@@ -5393,6 +5428,29 @@ void m_IDirect3DDeviceX::CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& Dest
 		*((D3DTLVERTEX*)DestVertex) = ((D3DTLVERTEX*)SrcVertex)[SrcIndex];
 		DestVertex += sizeof(D3DTLVERTEX);
 		return;
+	}
+}
+
+void m_IDirect3DDeviceX::MergeExecuteExtents(D3DRECT& currentExtent, D3DRECT& newExtent, DWORD& dwFlags)
+{
+	if (IsRectNonZero(newExtent))
+	{
+		// Merge with existing extents if valid
+		if ((dwFlags & D3DSETSTATUS_EXTENTS) && IsRectNonZero(currentExtent))
+		{
+			currentExtent.x1 = min(currentExtent.x1, newExtent.x1);
+			currentExtent.y1 = min(currentExtent.y1, newExtent.y1);
+			currentExtent.x2 = max(currentExtent.x2, newExtent.x2);
+			currentExtent.y2 = max(currentExtent.y2, newExtent.y2);
+		}
+		else
+		{
+			// First valid extents
+			currentExtent = newExtent;
+		}
+
+		// Always set the flag when writing valid extents
+		dwFlags |= D3DSETSTATUS_EXTENTS;
 	}
 }
 

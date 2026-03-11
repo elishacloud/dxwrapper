@@ -409,6 +409,11 @@ typedef enum _D3DSURFACETYPE {
 const float max_rhw = static_cast<float>(1u << 31);
 const float min_rhw = 1.0f / max_rhw;
 
+inline bool IsRectNonZero(const D3DRECT& r)
+{
+    return r.x1 != 0 || r.y1 != 0 || r.x2 != 0 || r.y2 != 0;
+}
+
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light);
 D3DLIGHT9 FixLight(const D3DLIGHT9& Light);
 void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7);
