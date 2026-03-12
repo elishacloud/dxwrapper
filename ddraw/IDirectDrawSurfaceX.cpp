@@ -7576,11 +7576,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 
 	bool VideoMemoryBlt = (pSourceSurface->surface.Pool == D3DPOOL_DEFAULT && surface.Pool == D3DPOOL_DEFAULT);
 
-	// zBuffer fill value
-	const uint32_t maxZ = (surfaceDesc2.ddpfPixelFormat.dwZBufferBitDepth < 24) ? 0xFFFF : 0xFFFFFFFF;
-
-	float depthValue = static_cast<float>(DepthColor) / static_cast<float>(maxZ);
-
+	// zBuffer fill value (always scale to 16-bit)
+	float depthValue = static_cast<float>(DepthColor & 0xFFFF) / static_cast<float>(0xFFFF);
 	depthValue = CLAMP(depthValue, 0.0f, 1.0f);
 
 	// Check conditions for copying Z-buffer
