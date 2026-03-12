@@ -1250,6 +1250,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 }
 
 template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<XYZ>(m_IDirect3DDeviceX* , XYZ*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, D3DRECT&, bool, bool);
+template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<D3DVERTEX>(m_IDirect3DDeviceX*, D3DVERTEX*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, D3DRECT&, bool, bool);
 template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<D3DLVERTEX>(m_IDirect3DDeviceX* , D3DLVERTEX*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, D3DRECT&, bool, bool);
 template <typename T>
 HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, T* srcVertex, D3DTLVERTEX* destVertex, D3DHVERTEX* pHOut, const DWORD dwCount, D3DRECT& drExtent, bool bLighting, bool bUpdateExtents)
@@ -1261,6 +1262,10 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 		{
 			bLighting = false;
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_LIGHT' is specified but verticies don't support it: XYZ");
+		}
+		else if constexpr (std::is_same_v<T, D3DVERTEX>)
+		{
+			// Do nothing
 		}
 		else if constexpr (std::is_same_v<T, D3DLVERTEX>)
 		{
@@ -1340,6 +1345,38 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 			dst.specular = 0;
 			dst.tu = 0.0f;
 			dst.tv = 0.0f;
+		}
+		else if constexpr (std::is_same_v<T, D3DVERTEX>)
+		{
+			D3DCOLOR Diffuse = 0, Specular = 0;
+
+			// Extract rotation from world matrix
+			D3DMATRIX matWorldRotOnly = matWorld;
+			matWorldRotOnly._41 = 0.0f;
+			matWorldRotOnly._42 = 0.0f;
+			matWorldRotOnly._43 = 0.0f;
+			matWorldRotOnly._14 = 0.0f;
+			matWorldRotOnly._24 = 0.0f;
+			matWorldRotOnly._34 = 0.0f;
+			matWorldRotOnly._44 = 1.0f;
+
+			// Transform normal
+			D3DXVECTOR3 normal = { src.nx, src.ny, src.nz };
+			D3DXVECTOR3 transformedNormal;
+			D3DXVec3TransformNormal(&transformedNormal, &normal, &matWorldRotOnly);
+			if (D3DXVec3Length(&normal) > 1e-6f)
+			{
+				D3DXVec3Normalize(&transformedNormal, &transformedNormal);
+			}
+
+			D3DXVECTOR3 transformedPos = { dst.sx, dst.sy, dst.sz };
+
+			ComputeLighting(transformedPos, transformedNormal, cachedLights, lpMaterial, ambient, UseSpecular, Diffuse, Specular);
+
+			dst.color = Diffuse;
+			dst.specular = Specular;
+			dst.tu = src.tu;
+			dst.tv = src.tv;
 		}
 		else if constexpr (std::is_same_v<T, D3DLVERTEX>)
 		{

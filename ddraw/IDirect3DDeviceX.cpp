@@ -444,11 +444,12 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 		DWORD opcode = NULL;
 
-		// ToDo: figure out which vertex type is being used D3DFVF_VERTEX, D3DFVF_LVERTEX or D3DFVF_TLVERTEX
+		// ToDo: documentation says the following can be used: D3DFVF_VERTEX, D3DFVF_LVERTEX or D3DFVF_TLVERTEX
+		// For lack of better knowledge, assume process vertices always uses D3DFVF_VERTEX and copy and draw operations always use D3DFVF_TLVERTEX
 		DWORD VertexTypeDesc = D3DFVF_TLVERTEX;
 
 		// Primitive structures and related defines. Vertex offsets are to types D3DVERTEX, D3DLVERTEX, or D3DTLVERTEX.
-		BYTE* vertexBuffer = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwVertexOffset;
+		BYTE* vertexBuffer = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwHVertexOffset;
 		const DWORD vertexCount = ExecuteData.dwVertexCount;
 
 		// Iterate through the instructions
@@ -726,11 +727,6 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						continue;
 					}
 
-					// ToDo: figure out which vertex type is being used D3DFVF_VERTEX, D3DFVF_LVERTEX or D3DFVF_TLVERTEX
-
-					D3DLVERTEX* srcVertices = reinterpret_cast<D3DLVERTEX*>(inputVerts) + processVertices[i].wStart;
-					D3DTLVERTEX* destVertices = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
-
 					const bool UpdateExtents = (Flags & D3DPROCESSVERTICES_UPDATEEXTENTS);
 
 					const DWORD op = Flags & D3DPROCESSVERTICES_OPMASK;
@@ -742,11 +738,15 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					{
 						IsHVertexUsed = true;
 
+						// Assume copy vertices always uses D3DFVF_TLVERTEX
+						D3DTLVERTEX* srcVertices = reinterpret_cast<D3DTLVERTEX*>(inputVerts) + processVertices[i].wStart;
+						D3DTLVERTEX* destVertices = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
+
 						D3DRECT drExtent = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
 
 						for (UINT x = 0; x < Count; x++)
 						{
-							destVertices[x] = *(D3DTLVERTEX*)&srcVertices[x];
+							destVertices[x] = srcVertices[x];
 
 							// Update extents
 							if (UpdateExtents)
@@ -774,6 +774,10 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 						D3DRECT drExtent = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
 
+						// Assume process vertices always uses D3DFVF_VERTEX
+						D3DVERTEX* srcVertices = reinterpret_cast<D3DVERTEX*>(inputVerts) + processVertices[i].wStart;
+						D3DTLVERTEX* destVertices = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
+
 						hr = m_IDirect3DVertexBufferX::TransformVertexUP(this, srcVertices, destVertices, nullptr, Count, drExtent, IsLight, UpdateExtents);
 
 						if (SUCCEEDED(hr))
@@ -796,12 +800,6 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 #ifdef ENABLE_PROFILING
 				Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInMS(startTime);
 #endif
-
-				// Update vertex buffer to use output
-				if (IsHVertexUsed)
-				{
-					vertexBuffer = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwHVertexOffset;
-				}
 
 				break;
 			}
