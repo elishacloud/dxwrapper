@@ -141,6 +141,6 @@ public:
 	// Static functions
 	static bool InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, const DWORD dwVertexStart, const DWORD dwNumVertices, const DWORD dwVertexTypeDesc);
 	template <typename T>
-	static HRESULT TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, T* srcVertex, D3DTLVERTEX* destVertex, D3DHVERTEX* pHOut, const DWORD dwCount, D3DRECT& drExtent, bool bLight, bool bUpdateExtents);
-	static void ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& outSpecular, const D3DXVECTOR3& Position, const D3DXVECTOR3& Normal, const std::vector<DXLIGHT7>& cachedLights, const D3DXMATRIX& matWorldView, const D3DMATRIX& matWorld, const D3DMATRIX& matView, const D3DMATERIAL7& mat, bool UseMaterial);
+	static HRESULT TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, T* srcVertex, D3DTLVERTEX* destVertex, D3DHVERTEX* pHOut, const DWORD dwCount, D3DRECT& drExtent, bool bLighting, bool bUpdateExtents);
+	static void ComputeLighting(const D3DVECTOR& Position, const D3DVECTOR& Normal, const std::vector<DXLIGHT7>& cachedLights, const LPD3DMATERIAL7 pMat, D3DCOLOR ambient, bool UseSpecular, D3DCOLOR& outColor, D3DCOLOR& outSpecular);
 };

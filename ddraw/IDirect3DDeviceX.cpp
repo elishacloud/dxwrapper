@@ -726,6 +726,8 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						continue;
 					}
 
+					// ToDo: figure out which vertex type is being used D3DFVF_VERTEX, D3DFVF_LVERTEX or D3DFVF_TLVERTEX
+
 					D3DLVERTEX* srcVertices = reinterpret_cast<D3DLVERTEX*>(inputVerts) + processVertices[i].wStart;
 					D3DTLVERTEX* destVertices = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
 
@@ -5433,10 +5435,10 @@ void m_IDirect3DDeviceX::CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& Dest
 
 void m_IDirect3DDeviceX::MergeExecuteExtents(D3DRECT& currentExtent, D3DRECT& newExtent, DWORD& dwFlags)
 {
-	if (IsRectNonZero(newExtent))
+	if (!IsRectZero(newExtent))
 	{
 		// Merge with existing extents if valid
-		if ((dwFlags & D3DSETSTATUS_EXTENTS) && IsRectNonZero(currentExtent))
+		if ((dwFlags & D3DSETSTATUS_EXTENTS) && !IsRectZero(currentExtent))
 		{
 			currentExtent.x1 = min(currentExtent.x1, newExtent.x1);
 			currentExtent.y1 = min(currentExtent.y1, newExtent.y1);
@@ -6794,9 +6796,7 @@ void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLigh
 			if (it != DeviceStates.LightEnable.end() && it->second)
 			{
 				DXLIGHT7 DxLight7 = {};
-				*reinterpret_cast<D3DLIGHT9*>(&DxLight7) = entry.second;
-				DxLight7.dwLightVersion = 7;
-				DxLight7.dwFlags = 0;
+				GetDXLight(DxLight7, entry.second);
 
 				AttachedLightList.push_back(DxLight7);
 			}

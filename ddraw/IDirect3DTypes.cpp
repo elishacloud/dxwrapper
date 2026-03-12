@@ -17,6 +17,25 @@
 #include "ddraw.h"
 #include "d3d9\d3d9External.h"
 
+void GetDXLight(DXLIGHT7& DxLight7, const D3DLIGHT2& Light2)
+{
+	D3DLIGHT9& OutLight9 = reinterpret_cast<D3DLIGHT9&>(DxLight7);
+	ConvertLight(*reinterpret_cast<D3DLIGHT7*>(&OutLight9), *reinterpret_cast<const D3DLIGHT*>(&Light2));
+	OutLight9 = FixLight(OutLight9);
+
+	DxLight7.dwLightVersion = 2;
+	DxLight7.dwFlags = Light2.dwFlags;
+}
+
+void GetDXLight(DXLIGHT7& DxLight7, const D3DLIGHT9& Light9)
+{
+	D3DLIGHT9& OutLight9 = reinterpret_cast<D3DLIGHT9&>(DxLight7);
+	OutLight9 = FixLight(Light9);
+
+	DxLight7.dwLightVersion = 7;
+	DxLight7.dwFlags = 0;
+}
+
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 {
 	if (Light.dwSize != sizeof(D3DLIGHT) && Light.dwSize != sizeof(D3DLIGHT2))
@@ -56,6 +75,18 @@ D3DLIGHT9 FixLight(const D3DLIGHT9& Light)
 		{
 			result.Theta /= 1.75f;
 		}
+	}
+
+	// Prenormalize directional and spot lights
+	if (result.Type == D3DLIGHT_DIRECTIONAL || result.Type == D3DLIGHT_SPOT)
+	{
+		D3DXVECTOR3 dir = { result.Direction.x, result.Direction.y, result.Direction.z };
+
+		D3DXVec3Normalize(&dir, &dir);
+
+		result.Direction.x = dir.x;
+		result.Direction.y = dir.y;
+		result.Direction.z = dir.z;
 	}
 
 	return result;

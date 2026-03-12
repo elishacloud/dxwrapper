@@ -382,6 +382,30 @@ HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
+		// Get lighting info
+		bool UseSpecular = false;
+		if (DWORD rsSpecular = 0; SUCCEEDED(pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_SPECULARENABLE, &rsSpecular)))
+		{
+			UseSpecular = rsSpecular != FALSE;
+		}
+
+		// Get ambient light
+		D3DCOLOR ambient = 0;
+		pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_AMBIENT, &ambient);
+
+		// Get materal for specular
+		LPD3DMATERIAL7 lpMaterial = nullptr;
+		D3DMATERIAL7 Material = {};
+		if (SUCCEEDED(pDirect3DDeviceX->GetMaterial(&Material)))
+		{
+			lpMaterial = &Material;
+		}
+
+		// Cache light data once
+		std::vector<DXLIGHT7> cachedLights;
+		GetEnabledLightList(cachedLights, pDirect3DDeviceX);
+
+		// Get world & view transforms for pre-transform
 		D3DMATRIX matWorld, matView;
 		if (FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_WORLD, &matWorld)) ||
 			FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_VIEW, &matView)))
@@ -390,42 +414,54 @@ HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA
 			return DDERR_GENERIC;
 		}
 
+		// Combine world + view for pre-transform
 		D3DMATRIX matWorldView = {};
 		D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
 
-		// Get materal for specular
-		bool UseMaterial = false;
-		D3DMATERIAL7 mat = {};
-		if (SUCCEEDED(pDirect3DDeviceX->GetMaterial(&mat)))
-		{
-			UseMaterial = true;
-		}
+		// Create rotation-only matrix
+		D3DMATRIX matWorldRotOnly = DefaultIdentityMatrix;
+		matWorldRotOnly._11 = matWorld._11; matWorldRotOnly._12 = matWorld._12; matWorldRotOnly._13 = matWorld._13;
+		matWorldRotOnly._21 = matWorld._21; matWorldRotOnly._22 = matWorld._22; matWorldRotOnly._23 = matWorld._23;
+		matWorldRotOnly._31 = matWorld._31; matWorldRotOnly._32 = matWorld._32; matWorldRotOnly._33 = matWorld._33;
 
-		// Cache light data once
-		std::vector<DXLIGHT7> cachedLights;
-		GetEnabledLightList(cachedLights, pDirect3DDeviceX);
+		D3DLIGHTINGELEMENT* in = lpData->lpIn;
+		D3DTLVERTEX* out = lpData->lpOut;
 
-		if (cachedLights.empty())
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: no attached lights found!");
-		}
-
+		// Process each vertex (like ProcessVerticesUP but only world-view + lighting)
 		for (DWORD i = 0; i < dwElementCount; ++i)
 		{
-			D3DLIGHTINGELEMENT& src = lpData->lpIn[i];
-			D3DTLVERTEX& dst = lpData->lpOut[i];
+			D3DLIGHTINGELEMENT& v = in[i];
 
-			D3DXVECTOR3& srcPosition = *reinterpret_cast<D3DXVECTOR3*>(&src.dvPosition);
-			D3DXVECTOR3& srcNormal = *reinterpret_cast<D3DXVECTOR3*>(&src.dvNormal);
+			// Transform normal using world rotation only
+			D3DXVECTOR3 normal(v.dvNormal.x, v.dvNormal.y, v.dvNormal.z);
+			D3DXVECTOR3 transformedNormal;
 
-			m_IDirect3DVertexBufferX::ComputeLightColor(dst.color, dst.specular, srcPosition, srcNormal, cachedLights, matWorldView, matWorld, matView, mat, UseMaterial);
+			// Transform and normalize
+			D3DXVec3TransformNormal(&transformedNormal, &normal, &matWorldRotOnly);
+			if (D3DXVec3Length(&normal) > 1e-6f)
+			{
+				D3DXVec3Normalize(&transformedNormal, &transformedNormal);
+			}
 
-			dst.sx = src.dvPosition.x;
-			dst.sy = src.dvPosition.y;
-			dst.sz = src.dvPosition.z;
-			dst.rhw = 1.0f;		// Assumes pre-transformed
-			dst.tu = 0;
-			dst.tv = 0;
+			// Transform position using world-view (pre-transform)
+			D3DXVECTOR3 pos(v.dvPosition.x, v.dvPosition.y, v.dvPosition.z);
+			D3DXVECTOR3 transformedPos;
+			D3DXVec3TransformCoord(&transformedPos, &pos, &matWorldView);
+
+			// Compute lighting
+			D3DCOLOR diffuse = 0, specular = 0;
+			m_IDirect3DVertexBufferX::ComputeLighting(transformedPos, transformedNormal, cachedLights, lpMaterial, ambient, UseSpecular, diffuse, specular);
+
+			// Output TL vertex
+			D3DTLVERTEX& outV = out[i];
+			outV.sx = transformedPos.x;
+			outV.sy = transformedPos.y;
+			outV.sz = transformedPos.z;
+			outV.rhw = 1.0f;  // pre-transformed
+			outV.color = diffuse;
+			outV.specular = specular;
+			outV.tu = 0.0f;
+			outV.tv = 0.0f;
 		}
 
 #ifdef ENABLE_PROFILING
@@ -1081,9 +1117,7 @@ void m_IDirect3DViewportX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLi
 			if (Light2.dwFlags & D3DLIGHT_ACTIVE)
 			{
 				DXLIGHT7 DxLight7 = {};
-				ConvertLight(*reinterpret_cast<LPD3DLIGHT7>(&DxLight7), *reinterpret_cast<LPD3DLIGHT>(&Light2));
-				DxLight7.dwLightVersion = 2;
-				DxLight7.dwFlags = Light2.dwFlags;
+				GetDXLight(DxLight7, Light2);
 
 				AttachedLightList.push_back(DxLight7);
 			}

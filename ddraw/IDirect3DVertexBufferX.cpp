@@ -1030,19 +1030,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 		return D3DERR_INVALIDVERTEXTYPE;
 	}
 
-	bool DoNotCopyData = (dwFlags & D3DPV_DONOTCOPYDATA) != 0;
-	const bool IsDiffuseFVF = (DestFVF & D3DFVF_DIFFUSE) != 0;
-	const bool IsSpecularFVF = (DestFVF & D3DFVF_SPECULAR) != 0;
-	const bool IsLight = ((IsDiffuseFVF || IsSpecularFVF) &&
-		(dwVertexOp & D3DVOP_LIGHT) &&
-		((DestFVF & D3DFVF_NORMAL) || (SrcFVF & D3DFVF_NORMAL)));
-
 	// Handle dwVertexOp
-	// D3DVOP_TRANSFORM is inherently handled by ProcessVertices() as it performs vertex transformations based on the current world, view, and projection matrices.
-	if ((dwVertexOp & D3DVOP_LIGHT) && !IsLight)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_LIGHT' is specified but verticies don't support it: " << Logging::hex(SrcFVF) << " -> " << Logging::hex(DestFVF));
-	}
 	if (dwVertexOp & D3DVOP_CLIP)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_CLIP' not handled!");
@@ -1051,41 +1039,69 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_EXTENTS' not handled!");
 	}
+	// D3DVOP_TRANSFORM is inherently handled by ProcessVertices() as it performs vertex transformations based on the current world, view, and projection matrices.
+	if (!(dwVertexOp & D3DVOP_TRANSFORM))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DVOP_TRANSFORM not set, forcing transform");
+		dwVertexOp |= D3DVOP_TRANSFORM;
+	}
+
+	bool DoNotCopyData = (dwFlags & D3DPV_DONOTCOPYDATA) != 0;
+	bool bLighting = (dwVertexOp & D3DVOP_LIGHT);
 
 	DWORD PosSizeSrc = GetVertexPositionStride(SrcFVF);
 	DWORD PosSizeDest = GetVertexPositionStride(DestFVF);
 
 	DWORD NormalSrcOffset = 0;
-	DWORD NormalDestOffset = 0;
-	DWORD DiffuseOffset = 0;
-	DWORD SpecularOffset = 0;
+	DWORD DiffuseSrcOffset = 0;
+	DWORD SpecularSrcOffset = 0;
+	DWORD DiffuseDestOffset = 0;
+	DWORD SpecularDestOffset = 0;
 
 	// Only compute offsets if lighting is enabled
-	if (IsLight)
+	if (bLighting)
 	{
+		// Get dest offsets
 		DWORD offset = PosSizeDest;
-
 		if (DestFVF & D3DFVF_NORMAL)
 		{
-			NormalDestOffset = offset;
 			offset += sizeof(float) * 3;
 		}
 		if (DestFVF & D3DFVF_DIFFUSE)
 		{
-			DiffuseOffset = offset;
+			DiffuseDestOffset = offset;
 			offset += sizeof(DWORD);
 		}
 		if (DestFVF & D3DFVF_SPECULAR)
 		{
-			SpecularOffset = offset;
+			SpecularDestOffset = offset;
 			offset += sizeof(DWORD);
 		}
 
-		// Normal source offset (if SrcFVF has normals)
+		// Get src offsets
+		offset = PosSizeSrc;
 		if (SrcFVF & D3DFVF_NORMAL)
 		{
-			NormalSrcOffset = PosSizeSrc;
+			NormalSrcOffset = offset;
+			offset += sizeof(float) * 3;
 		}
+		if (SrcFVF & D3DFVF_DIFFUSE)
+		{
+			DiffuseSrcOffset = offset;
+			offset += sizeof(DWORD);
+		}
+		if (SrcFVF & D3DFVF_SPECULAR)
+		{
+			SpecularSrcOffset = offset;
+			offset += sizeof(DWORD);
+		}
+	}
+
+	// Check for lighiting, must have source normals and dest diffuse or specular
+	if (bLighting && (!NormalSrcOffset || (!(DestFVF & D3DFVF_DIFFUSE) && !(DestFVF & D3DFVF_SPECULAR))))
+	{
+		bLighting = false;
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_LIGHT' is specified but verticies don't support it: " << Logging::hex(SrcFVF) << " -> " << Logging::hex(DestFVF));
 	}
 
 	// Get transformation matrices
@@ -1102,16 +1118,25 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
 	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
 
-	// Cache material and lights if needed
-	D3DMATERIAL7 mat = {};
-	bool UseMaterial = false;
+	// Cache specular, ambient, material and lights if needed
+	bool UseSpecular = false;
+	D3DCOLOR ambient = 0;
+	LPD3DMATERIAL7 lpMaterial = nullptr;
+	D3DMATERIAL7 Material = {};
 	std::vector<DXLIGHT7> cachedLights;
 
-	if (IsLight)
+	if (bLighting)
 	{
-		if (SUCCEEDED(pDirect3DDeviceX->GetMaterial(&mat)))
+		if (DWORD rsSpecular = 0; SUCCEEDED(pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_SPECULARENABLE, &rsSpecular)))
 		{
-			UseMaterial = true;
+			UseSpecular = rsSpecular != FALSE;
+		}
+
+		pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_AMBIENT, &ambient);
+
+		if (SUCCEEDED(pDirect3DDeviceX->GetMaterial(&Material)))
+		{
+			lpMaterial = &Material;
 		}
 
 		pDirect3DDeviceX->GetEnabledLightList(cachedLights);
@@ -1161,54 +1186,55 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 		}
 
 		// Transform vertex
-		D3DXVECTOR3& srcPos = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex);
-		D3DXVECTOR4& dstPos = *reinterpret_cast<D3DXVECTOR4*>(pDestVertex);
+		D3DXVECTOR3& src = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex);
+		D3DXVECTOR4& dst = *reinterpret_cast<D3DXVECTOR4*>(pDestVertex);
 
-		const float* m = &matWorldViewProj._11;
-		float x = srcPos.x;
-		float y = srcPos.y;
-		float z = srcPos.z;
-		float w = 1.0f;
-
-		// Compute homogeneous (pre-divide) coordinates
 		D3DXVECTOR4 h;
-		h.x = x * m[0] + y * m[4] + z * m[8] + w * m[12];
-		h.y = x * m[1] + y * m[5] + z * m[9] + w * m[13];
-		h.z = x * m[2] + y * m[6] + z * m[10] + w * m[14];
-		h.w = x * m[3] + y * m[7] + z * m[11] + w * m[15];
+		D3DXVECTOR4 pos4(src.x, src.y, src.z, 1.0f);
+		D3DXVec4Transform(&h, &pos4, &matWorldViewProj);
 
-		// Skip vertices behind camera
-		if (h.w <= 0.0f)
-		{
-			dstPos.x = dstPos.y = dstPos.z = dstPos.w = 0.0f;
-		}
-		else
-		{
-			float rhw = 1.0f / CLAMP(h.w, min_rhw, max_rhw);
+		float rhw = (h.w != 0.0f) ? (1.0f / h.w) : 0.0f;
 
-			dstPos.x = h.x * rhw;
-			dstPos.y = h.y * rhw;
-			dstPos.z = CLAMP(h.z * rhw, 0.0f, 1.0f);
-			dstPos.w = rhw;
-		}
+		dst.x = h.x * rhw;
+		dst.y = h.y * rhw;
+		dst.z = h.z * rhw;
+		dst.w = rhw;
 
 		// Lighting
-		if (IsLight)
+		if (bLighting)
 		{
-			D3DXVECTOR3 Normal = NormalSrcOffset ?
-				*reinterpret_cast<D3DXVECTOR3*>(pSrcVertex + NormalSrcOffset) :
-				*reinterpret_cast<D3DXVECTOR3*>(pDestVertex + NormalDestOffset);
-
 			D3DCOLOR Diffuse = 0, Specular = 0;
-			ComputeLightColor(Diffuse, Specular, srcPos, Normal, cachedLights, matWorldView, matWorld, matView, mat, UseMaterial);
 
-			if (IsDiffuseFVF)
+			// Extract rotation from world matrix
+			D3DMATRIX matWorldRotOnly = matWorld;
+			matWorldRotOnly._41 = 0.0f;
+			matWorldRotOnly._42 = 0.0f;
+			matWorldRotOnly._43 = 0.0f;
+			matWorldRotOnly._14 = 0.0f;
+			matWorldRotOnly._24 = 0.0f;
+			matWorldRotOnly._34 = 0.0f;
+			matWorldRotOnly._44 = 1.0f;
+
+			// Transform normal
+			D3DXVECTOR3 normal = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex + NormalSrcOffset);
+			D3DXVECTOR3 transformedNormal;
+			D3DXVec3TransformNormal(&transformedNormal, &normal, &matWorldRotOnly);
+			if (D3DXVec3Length(&normal) > 1e-6f)
 			{
-				*reinterpret_cast<D3DCOLOR*>(pDestVertex + DiffuseOffset) = Diffuse;
+				D3DXVec3Normalize(&transformedNormal, &transformedNormal);
 			}
-			if (IsSpecularFVF)
+
+			D3DXVECTOR3 transformedPos = { dst.x, dst.y, dst.z };
+
+			ComputeLighting(transformedPos, transformedNormal, cachedLights, lpMaterial, ambient, UseSpecular, Diffuse, Specular);
+
+			if (DiffuseDestOffset)
 			{
-				*reinterpret_cast<D3DCOLOR*>(pDestVertex + SpecularOffset) = Specular;
+				*reinterpret_cast<D3DCOLOR*>(pDestVertex + DiffuseDestOffset) = Diffuse;
+			}
+			if (SpecularDestOffset)
+			{
+				*reinterpret_cast<D3DCOLOR*>(pDestVertex + SpecularDestOffset) = Specular;
 			}
 		}
 
@@ -1226,8 +1252,56 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<XYZ>(m_IDirect3DDeviceX* , XYZ*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, D3DRECT&, bool, bool);
 template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<D3DLVERTEX>(m_IDirect3DDeviceX* , D3DLVERTEX*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, D3DRECT&, bool, bool);
 template <typename T>
-HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, T* srcVertex, D3DTLVERTEX* destVertex, D3DHVERTEX* pHOut, const DWORD dwCount, D3DRECT& drExtent, bool bLight, bool bUpdateExtents)
+HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, T* srcVertex, D3DTLVERTEX* destVertex, D3DHVERTEX* pHOut, const DWORD dwCount, D3DRECT& drExtent, bool bLighting, bool bUpdateExtents)
 {
+	// Check for lighiting, must have source normals and dest diffuse or specular
+	if (bLighting)
+	{
+		if constexpr (std::is_same_v<T, XYZ>)
+		{
+			bLighting = false;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_LIGHT' is specified but verticies don't support it: XYZ");
+		}
+		else if constexpr (std::is_same_v<T, D3DLVERTEX>)
+		{
+			bLighting = false;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_LIGHT' is specified but verticies don't support it: D3DLVERTEX");
+		}
+		else
+		{
+			static_assert(false);
+		}
+	}
+
+	// Cache specular, ambient, material and lights if needed
+	bool UseSpecular = false;
+	D3DCOLOR ambient = 0;
+	LPD3DMATERIAL7 lpMaterial = nullptr;
+	D3DMATERIAL7 Material = {};
+	std::vector<DXLIGHT7> cachedLights;
+
+	if (bLighting)
+	{
+		if (DWORD rsSpecular = 0; SUCCEEDED(pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_SPECULARENABLE, &rsSpecular)))
+		{
+			UseSpecular = rsSpecular != FALSE;
+		}
+
+		pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_AMBIENT, &ambient);
+
+		if (SUCCEEDED(pDirect3DDeviceX->GetMaterial(&Material)))
+		{
+			lpMaterial = &Material;
+		}
+
+		pDirect3DDeviceX->GetEnabledLightList(cachedLights);
+
+		if (cachedLights.empty())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: no attached lights found!");
+		}
+	}
+
 	D3DMATRIX matWorld, matView, matProj;
 	if (FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_WORLD, &matWorld)) ||
 		FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_VIEW, &matView)) ||
@@ -1241,12 +1315,6 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
 	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
 
-	// Lighting not supported with current vertex types
-	if (bLight)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: Lighting requested but no normals are provided.  Cannot compute lighting!");
-	}
-
 	D3DRECT newExtents = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
 
 	for (DWORD i = 0; i < dwCount; ++i)
@@ -1254,33 +1322,16 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 		T& src = srcVertex[i];
 		D3DTLVERTEX& dst = destVertex[i];
 
-		const float* m = &matWorldViewProj._11;
-		float x = src.x;
-		float y = src.y;
-		float z = src.z;
-		float w = 1.0f;
-
-		// Compute homogeneous (pre-divide) coordinates
 		D3DXVECTOR4 h;
-		h.x = x * m[0] + y * m[4] + z * m[8] + w * m[12];
-		h.y = x * m[1] + y * m[5] + z * m[9] + w * m[13];
-		h.z = x * m[2] + y * m[6] + z * m[10] + w * m[14];
-		h.w = x * m[3] + y * m[7] + z * m[11] + w * m[15];
+		D3DXVECTOR4 pos4(src.x, src.y, src.z, 1.0f);
+		D3DXVec4Transform(&h, &pos4, &matWorldViewProj);
 
-		// Skip vertices behind camera
-		if (h.w <= 0.0f)
-		{
-			dst.sx = dst.sy = dst.sz = dst.rhw = 0.0f;
-		}
-		else
-		{
-			float rhw = 1.0f / CLAMP(h.w, min_rhw, max_rhw);
+		float rhw = (h.w != 0.0f) ? (1.0f / h.w) : 0.0f;
 
-			dst.sx = h.x * rhw;
-			dst.sy = h.y * rhw;
-			dst.sz = CLAMP(h.z * rhw, 0.0f, 1.0f);
-			dst.rhw = rhw;
-		}
+		dst.sx = h.x * rhw;
+		dst.sy = h.y * rhw;
+		dst.sz = h.z * rhw;
+		dst.rhw = rhw;
 
 		// Default values: set for XYZ or copy for detailed vertex
 		if constexpr (std::is_same_v<T, XYZ>)
@@ -1317,16 +1368,16 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 		if (bUpdateExtents)
 		{
 			// floor/ceil convert to integer extents
-			newExtents.x1 = min(newExtents.x1, static_cast<LONG>(floor(dst.sx)));
-			newExtents.y1 = min(newExtents.y1, static_cast<LONG>(floor(dst.sy)));
-			newExtents.x2 = max(newExtents.x2, static_cast<LONG>(ceil(dst.sx)));
-			newExtents.y2 = max(newExtents.y2, static_cast<LONG>(ceil(dst.sy)));
+			newExtents.x1 = min(newExtents.x1, static_cast<LONG>(floorf(dst.sx)));
+			newExtents.y1 = min(newExtents.y1, static_cast<LONG>(floorf(dst.sy)));
+			newExtents.x2 = max(newExtents.x2, static_cast<LONG>(ceilf(dst.sx)));
+			newExtents.y2 = max(newExtents.y2, static_cast<LONG>(ceilf(dst.sy)));
 		}
 	}
 
 	if (bUpdateExtents && newExtents.x1 != LONG_MAX)
 	{
-		if (IsRectNonZero(drExtent))
+		if (!IsRectZero(drExtent))
 		{
 			// Merge with existing extents if valid
 			drExtent.x1 = min(drExtent.x1, newExtents.x1);
@@ -1347,91 +1398,101 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 	return D3D_OK;
 }
 
-void m_IDirect3DVertexBufferX::ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& outSpecular, const D3DXVECTOR3& Position, const D3DXVECTOR3& Normal, const std::vector<DXLIGHT7>& cachedLights, const D3DXMATRIX& matWorldView, const D3DMATRIX& matWorld, const D3DMATRIX& matView, const D3DMATERIAL7& mat, bool UseMaterial)
+void m_IDirect3DVertexBufferX::ComputeLighting(const D3DVECTOR& Position, const D3DVECTOR& Normal, const std::vector<DXLIGHT7>& cachedLights, const LPD3DMATERIAL7 pMat, D3DCOLOR ambient, bool UseSpecular, D3DCOLOR& outColor, D3DCOLOR& outSpecular)
 {
-	// Transform position using full world-view matrix (this is fine)
-	D3DXVECTOR3 worldPos;
-	D3DXVec3TransformCoord(&worldPos, &Position, &matWorldView);
+	// Note: assumes Normal and cached lights (spot & directional) are already normalized
 
-	// Now transform the normal using only the world matrix (like DX2 behavior)
-	D3DXMATRIX matWorldRotOnly = matWorld;
-	matWorldRotOnly._41 = 0.0f;
-	matWorldRotOnly._42 = 0.0f;
-	matWorldRotOnly._43 = 0.0f;
+	// Vertex normal
+	D3DXVECTOR3 worldNormal(Normal.x, Normal.y, Normal.z);
 
-	// Clear perspective components
-	matWorldRotOnly._14 = 0.0f;
-	matWorldRotOnly._24 = 0.0f;
-	matWorldRotOnly._34 = 0.0f;
-	matWorldRotOnly._44 = 1.0f;
+	// If a vertex has zero normals, it usually should be lit only by ambient.
+	if (D3DXVec3Length(&worldNormal) < 1e-6f)
+	{
+		outColor = ambient;
+		outSpecular = 0;
+		return;
+	}
 
-	D3DXVECTOR3 worldNormal;
-	D3DXVec3TransformNormal(&worldNormal, &Normal, &matWorldRotOnly);
-	D3DXVec3Normalize(&worldNormal, &worldNormal);
+	// Disable specular if material specular is zero
+	if (UseSpecular && pMat && IsColorValueZero(pMat->dcvSpecular))
+	{
+		UseSpecular = false;
+	}
 
-	D3DCOLORVALUE diffuse = { 0.0f, 0.0f, 0.0f, 0.0f };
-	D3DCOLORVALUE specular = { 0.0f, 0.0f, 0.0f, 0.0f };
+	// Default material: fully lit
+	bool isDefaultMaterial =
+		pMat &&
+		pMat->diffuse.r == 1.0f && pMat->diffuse.g == 1.0f && pMat->diffuse.b == 1.0f &&
+		pMat->ambient.r == 1.0f && pMat->ambient.g == 1.0f && pMat->ambient.b == 1.0f &&
+		!UseSpecular;
+
+	if (isDefaultMaterial)
+	{
+		outColor = D3DCOLOR_COLORVALUE(1.0f, 1.0f, 1.0f, 1.0f);
+		outSpecular = 0;
+		return;
+	}
+
+	// Position vector
+	D3DXVECTOR3 pos(Position.x, Position.y, Position.z);
+
+	D3DXVECTOR3 viewDir = -pos;
+
+	// Diffuse and specular accumulators
+	float r = 0.0f, g = 0.0f, b = 0.0f;
+	float sr = 0.0f, sg = 0.0f, sb = 0.0f;
+
+	// Ambient light
+	float ar = ((ambient >> 16) & 0xFF) / 255.0f;
+	float ag = ((ambient >> 8) & 0xFF) / 255.0f;
+	float ab = (ambient & 0xFF) / 255.0f;
 
 	for (const auto& light : cachedLights)
 	{
-		const D3DXVECTOR3& lightPos = *reinterpret_cast<const D3DXVECTOR3*>(&light.dvPosition);
-		const D3DXVECTOR3& lightDir = *reinterpret_cast<const D3DXVECTOR3*>(&light.dvDirection);
-
 		D3DXVECTOR3 toLight;
-		float dist = 1.0f;
 		float attenuation = 1.0f;
-		float denom = 1.0f;
 
 		switch (light.dltType)
 		{
 		case D3DLIGHT_DIRECTIONAL:
-			toLight = -lightDir;
-			D3DXVec3Normalize(&toLight, &toLight);
+		{
+			D3DXVECTOR3 dir(light.dvDirection.x, light.dvDirection.y, light.dvDirection.z);
+			toLight = -dir;
 			break;
-
+		}
 		case D3DLIGHT_POINT:
 		case D3DLIGHT_SPOT:
-			toLight = lightPos - worldPos;
-			dist = D3DXVec3Length(&toLight);
+		{
+			D3DXVECTOR3 lightPos(light.dvPosition.x, light.dvPosition.y, light.dvPosition.z);
+			toLight = lightPos - pos;
+
+			float dist = D3DXVec3Length(&toLight);
 			if (dist == 0.0f) continue;
-			toLight /= dist;
 
-			denom = light.dvAttenuation0 +
-				light.dvAttenuation1 * dist +
-				light.dvAttenuation2 * dist * dist;
+			toLight *= (1.0f / dist);
 
-			if (denom <= 0.0f) continue;  // Skip bad light
+			attenuation = 1.0f / (light.dvAttenuation0 + light.dvAttenuation1 * dist + light.dvAttenuation2 * dist * dist);
+			if (attenuation <= 0.0f) continue;
+			if (light.dvRange > 0.0f && dist > light.dvRange) continue;
 
-			attenuation = 1.0f / denom;
-
-			// Handle range cutoff
-			if (light.dvRange > 0.0f && dist > light.dvRange)
-			{
-				continue;
-			}
-
-			// Spotlight falloff
 			if (light.dltType == D3DLIGHT_SPOT)
 			{
-				D3DXVECTOR3 toLightNeg = -toLight;
-				float spotCos = D3DXVec3Dot(&toLightNeg, &lightDir);
-				spotCos = max(-1.0f, min(1.0f, spotCos));	// Clamp spotCos to [-1.0, 1.0]
+				D3DXVECTOR3 dir(light.dvDirection.x, light.dvDirection.y, light.dvDirection.z);
+
+				D3DXVECTOR3 negLight = -toLight;
+				float spotCos = D3DXVec3Dot(&negLight, &dir);
+				spotCos = max(-1.0f, min(1.0f, spotCos));
+
 				float cosPhi = cosf(light.dvPhi * 0.5f);
 				if (spotCos < cosPhi) continue;
 
 				float cosTheta = cosf(light.dvTheta * 0.5f);
-				if (spotCos >= cosTheta)
-				{
-					// full light
-				}
-				else
-				{
-					float falloff = powf((spotCos - cosPhi) / (cosTheta - cosPhi), max(light.dvFalloff, 1.0f));  // Clamp falloff to minimum 1.0
-					attenuation *= falloff;
-				}
+				float prefalloff = cosTheta != cosPhi ? (spotCos - cosPhi) / (cosTheta - cosPhi) : 1.0f;
+
+				attenuation *= powf(prefalloff, max(light.dvFalloff, 1.0f));
 			}
 			break;
-
+		}
 		default:
 			continue; // unsupported light type
 		}
@@ -1439,79 +1500,56 @@ void m_IDirect3DVertexBufferX::ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& o
 		float NdotL = max(0.0f, D3DXVec3Dot(&worldNormal, &toLight));
 		if (NdotL <= 0.0f) continue;
 
-		// Clamp attenuation to [0,1]
 		attenuation = min(max(attenuation, 0.0f), 1.0f);
 
-		// Diffuse lighting
-		diffuse.r += light.dcvDiffuse.r * NdotL * attenuation;
-		diffuse.g += light.dcvDiffuse.g * NdotL * attenuation;
-		diffuse.b += light.dcvDiffuse.b * NdotL * attenuation;
+		r += light.dcvDiffuse.r * NdotL * attenuation;
+		g += light.dcvDiffuse.g * NdotL * attenuation;
+		b += light.dcvDiffuse.b * NdotL * attenuation;
 
-		// Specular lighting
-		if ((light.dwLightVersion != 7 && !(light.dwFlags & D3DLIGHT_NO_SPECULAR) && UseMaterial) ||
-			(light.dwLightVersion == 7 && (light.dcvSpecular.r != 0.0f || light.dcvSpecular.g != 0.0f || light.dcvSpecular.b != 0.0f)))
+		if (UseSpecular && pMat && !(light.dwFlags & D3DLIGHT_NO_SPECULAR))
 		{
-			if (UseMaterial)
+			D3DXVECTOR3 reflectDir = (worldNormal * (2.0f * NdotL)) - toLight;
+
+			D3DXVec3Normalize(&reflectDir, &reflectDir);
+
+			float RdotV = max(0.0f, D3DXVec3Dot(&reflectDir, &viewDir));
+			float spec = powf(RdotV, CLAMP(pMat->power, 1.0f, 128.0f)) * attenuation;
+
+			if (light.dwLightVersion != 7)
 			{
-				// Compute view direction
-				D3DXVECTOR3 viewPos;
-				D3DXVec3TransformCoord(&viewPos, &Position, &matView);
-				D3DXVECTOR3 viewDir = -viewPos;
-				D3DXVec3Normalize(&viewDir, &viewDir);
-
-				D3DXVec3Normalize(&toLight, &toLight);
-				D3DXVECTOR3 reflectDir = worldNormal * 2.0f * NdotL - toLight;
-				D3DXVec3Normalize(&reflectDir, &reflectDir);
-
-				float RdotV = max(0.0f, D3DXVec3Dot(&reflectDir, &viewDir));
-				float shininess = max(1.0f, mat.power);
-				float spec = powf(RdotV, shininess) * attenuation;
-
-				// Light versions older than 7 don't have specular
-				if (light.dwLightVersion != 7)
-				{
-					specular.r += mat.specular.r * spec;
-					specular.g += mat.specular.g * spec;
-					specular.b += mat.specular.b * spec;
-				}
-				else
-				{
-					specular.r += mat.specular.r * light.dcvSpecular.r * spec;
-					specular.g += mat.specular.g * light.dcvSpecular.g * spec;
-					specular.b += mat.specular.b * light.dcvSpecular.b * spec;
-				}
+				sr += pMat->specular.r * spec;
+				sg += pMat->specular.g * spec;
+				sb += pMat->specular.b * spec;
 			}
 			else
 			{
-				// No material; use light's specular with NdotL
-				specular.r += light.dcvSpecular.r * NdotL * attenuation;
-				specular.g += light.dcvSpecular.g * NdotL * attenuation;
-				specular.b += light.dcvSpecular.b * NdotL * attenuation;
+				sr += pMat->specular.r * light.dcvSpecular.r * spec;
+				sg += pMat->specular.g * light.dcvSpecular.g * spec;
+				sb += pMat->specular.b * light.dcvSpecular.b * spec;
 			}
 		}
 	}
 
-	// Add material ambient color
-	if (UseMaterial)
+	if (pMat)
 	{
-		diffuse.r += mat.diffuse.r * mat.ambient.r;
-		diffuse.g += mat.diffuse.g * mat.ambient.g;
-		diffuse.b += mat.diffuse.b * mat.ambient.b;
+		r += pMat->ambient.r * ar;
+		g += pMat->ambient.g * ag;
+		b += pMat->ambient.b * ab;
 	}
 
-	float alpha = UseMaterial ? mat.diffuse.a : 1.0f;
+	float alpha = pMat ? pMat->diffuse.a : 1.0f;
 
 	// Clamp and convert to DWORD color
 	outColor = D3DCOLOR_COLORVALUE(
-		min(max(diffuse.r, 0.0f), 1.0f),
-		min(max(diffuse.g, 0.0f), 1.0f),
-		min(max(diffuse.b, 0.0f), 1.0f),
+		CLAMP(r, 0.0f, 1.0f),
+		CLAMP(g, 0.0f, 1.0f),
+		CLAMP(b, 0.0f, 1.0f),
 		alpha);
 
 	// Clamp and convert to DWORD specular
-	outSpecular = D3DCOLOR_COLORVALUE(
-		min(max(specular.r, 0.0f), 1.0f),
-		min(max(specular.g, 0.0f), 1.0f),
-		min(max(specular.b, 0.0f), 1.0f),
-		1.0f);
+	outSpecular = UseSpecular ? D3DCOLOR_COLORVALUE(
+		CLAMP(sr, 0.0f, 1.0f),
+		CLAMP(sg, 0.0f, 1.0f),
+		CLAMP(sb, 0.0f, 1.0f),
+		1.0f) : 0;
 }

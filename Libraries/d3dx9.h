@@ -138,6 +138,26 @@ typedef struct D3DXVECTOR3
 	D3DXVECTOR3() : x(0), y(0), z(0) {}
 	D3DXVECTOR3(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {}
 
+	// Conversion operators for D3DVECTOR
+	operator const D3DVECTOR& () const
+	{
+		return reinterpret_cast<const D3DVECTOR&>(*this);
+	}
+
+	operator D3DVECTOR& ()
+	{
+		return reinterpret_cast<D3DVECTOR&>(*this);
+	}
+
+	// Assignment from D3DVECTOR
+	D3DXVECTOR3& operator=(const D3DVECTOR& rhs)
+	{
+		x = rhs.x;
+		y = rhs.y;
+		z = rhs.z;
+		return *this;
+	}
+
 	// Addition
 	D3DXVECTOR3 operator+(const D3DXVECTOR3& rhs) const
 	{
