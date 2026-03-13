@@ -385,6 +385,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	}
 
 	const bool IsForcingWindowedMode = (Config.EnableWindowMode && pDataStruct->IsExclusiveMode);
+	const bool ShouldHideFrameChange = (pDataStruct->IsCreatingDevice && pDataStruct->IsExclusiveMode);
 
 	switch (Msg)
 	{
@@ -578,6 +579,16 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		}
 		break;
 
+	case WM_NCCALCSIZE:
+	case WM_NCPAINT:
+		// Filter style change messages while creating a device
+		if (ShouldHideFrameChange)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when creating a device: " << Logging::hex(Msg));
+			return DefWndProc(hWnd, Msg, wParam, lParam);
+		}
+		break;
+
 	case WM_MOVE:
 		// Hide minimized window location from game
 		if (pDataStruct->IsDirectDraw)
@@ -606,6 +617,12 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Filter messages for loss of focus or minimize
 		if (Config.HideWindowFocusChanges && Msg == WM_SIZE && wParam == SIZE_MINIMIZED)
 		{
+			return DefWndProc(hWnd, Msg, wParam, lParam);
+		}
+		// Filter style change messages while creating a device
+		if (ShouldHideFrameChange)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when creating a device: " << Logging::hex(Msg));
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
 		// Filter some messages while forcing windowed mode
@@ -646,6 +663,12 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			// Hide minimized window location from game
 			if (pDataStruct->IsDirectDraw && WinPos->x == -32000 && WinPos->y == -32000)
 			{
+				return DefWndProc(hWnd, Msg, wParam, lParam);
+			}
+			// Filter style change messages while creating a device
+			if (ShouldHideFrameChange && (WinPos->flags & (SWP_DRAWFRAME | SWP_FRAMECHANGED)))
+			{
+				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when creating a device: " << Logging::hex(Msg));
 				return DefWndProc(hWnd, Msg, wParam, lParam);
 			}
 		}

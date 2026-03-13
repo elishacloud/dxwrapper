@@ -674,12 +674,6 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 			}
 
 			CopyMemory(pPresentationParameters, p_d3dpp, sizeof(D3DPRESENT_PARAMETERS));
-
-			// Adjust window style after device creation
-			if (IsWindow(DeviceDetails.DeviceWindow))
-			{
-				AdjustWindowStyle(DeviceDetails.DeviceWindow);
-			}
 		}
 	}
 
@@ -883,6 +877,12 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 			ShowWindow(DeviceDetails.DeviceWindow, SW_RESTORE);
 		}
 
+		// Adjust window styles before adjusting window
+		if (SetWindow)
+		{
+			AdjustWindowStyle(DeviceDetails.DeviceWindow);
+		}
+
 		// Get window width and height
 		if (!DeviceDetails.BufferWidth || !DeviceDetails.BufferHeight)
 		{
@@ -909,21 +909,6 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 			if (AnyChange && Config.FullscreenWindowMode)
 			{
 				Utils::SetDisplaySettings(DeviceDetails.hMonitor, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight);
-			}
-		}
-
-		// Add border if vulkan is being used
-		LONG style = GetWindowLong(DeviceDetails.DeviceWindow, GWL_STYLE);
-		if ((style & WS_POPUP) && !(style & WS_BORDER))
-		{
-			if (Utils::IsVulkanModuleLoaded())
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: Vulkan detected, adding WS_BORDER!");
-
-				style |= WS_BORDER;
-				SetWindowLong(DeviceDetails.DeviceWindow, GWL_STYLE, style);
-
-				SetWindowPos(DeviceDetails.DeviceWindow, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 			}
 		}
 	}
@@ -982,51 +967,62 @@ void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DD
 
 void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd)
 {
-	LONG style = GetWindowLong(MainhWnd, GWL_STYLE);
-	LONG exStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 
-	bool styleChanged = false;
+	bool frameStyleChanged = false;
 
-	// Remove WS_CLIPCHILDREN for popup windows
-	if ((style & WS_POPUP) && (style & WS_CLIPCHILDREN))
+	// Add border if vulkan is being used
+	bool addBorder = false;
+	if ((lStyle & WS_POPUP) && !(lStyle & WS_BORDER))
 	{
-		LOG_LIMIT(3, __FUNCTION__ << " Removing window style: WS_CLIPCHILDREN");
+		if (Utils::IsVulkanModuleLoaded())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Vulkan detected!");
 
-		style &= ~WS_CLIPCHILDREN;
-		SetWindowLong(MainhWnd, GWL_STYLE, style);
-		styleChanged = true;
+			addBorder = true;
+			frameStyleChanged = true;
+		}
 	}
 
-	// Remove tool window style
-	if (exStyle & WS_EX_TOOLWINDOW)
+	// Remove clip children style and make sure window is visable
+	if ((lStyle & WS_CLIPCHILDREN) || !(lStyle & WS_VISIBLE) || addBorder)
 	{
-		LOG_LIMIT(3, __FUNCTION__ << " Removing window style: WS_EX_TOOLWINDOW");
+		LOG_LIMIT(3, __FUNCTION__ << " Updating window lStyle." <<
+			(!(lStyle & WS_CLIPCHILDREN) ? " adding WS_VISIBLE" : "") <<
+			(addBorder ? " adding WS_BORDER" : "") <<
+			((lStyle & WS_CLIPCHILDREN) ? " removing WS_CLIPCHILDREN" : ""));
 
-		exStyle &= ~WS_EX_TOOLWINDOW;
-		SetWindowLong(MainhWnd, GWL_EXSTYLE, exStyle);
-		styleChanged = true;
+		lStyle = (lStyle & ~WS_CLIPCHILDREN) | WS_VISIBLE | (addBorder ? WS_BORDER : 0);
+		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
 	}
 
-	// Apply changes without frame recalculation
-	if (styleChanged)
+	// Remove tool and add app window style
+	if ((lExStyle & WS_EX_TOOLWINDOW) || !(lExStyle & WS_EX_APPWINDOW))
 	{
-		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+		LOG_LIMIT(3, __FUNCTION__ << " Updating window exstyle." <<
+			((lExStyle & WS_EX_TOOLWINDOW) ? " removing WS_EX_TOOLWINDOW" : "") <<
+			(!(lExStyle & WS_EX_APPWINDOW) ? " adding WS_EX_APPWINDOW" : ""));
+
+		lExStyle = (lExStyle & ~WS_EX_TOOLWINDOW) | WS_EX_APPWINDOW;
+		SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle);
+		frameStyleChanged = true;
+	}
+
+	// Ensure window is a top-level window (with D3d9to9ex)
+	if (Config.D3d9to9Ex && GetWindowLongPtr(MainhWnd, GWLP_HWNDPARENT) != 0)
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: window has parent handle!  Removing window parent handle.");
+
+		SetWindowLongPtr(MainhWnd, GWLP_HWNDPARENT, 0);
+		frameStyleChanged = true;
 	}
 
 	// Refresh styles after change
-	exStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+	lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 
-	// Remove topmost if set
-	if (exStyle & WS_EX_TOPMOST)
-	{
-		SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-	}
-	// Move window to top if not already topmost
-	else
-	{
-		SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-		SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-	}
+	// Remove topmost and ensure style changes are applied
+	SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_NOTOPMOST : HWND_TOP), 0, 0, 0, 0, (frameStyleChanged ? SWP_FRAMECHANGED : 0) | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 
 	// Ensure focus if needed
 	if (MainhWnd != GetFocus() && MainhWnd != GetActiveWindow())
@@ -1144,17 +1140,6 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		{
 			// Remove window border only
 			lStyle &= ~WS_BORDER;
-		}
-
-		// Add border if vulkan is being used
-		if ((lStyle & WS_POPUP) && !(lStyle & WS_BORDER))
-		{
-			if (Utils::IsVulkanModuleLoaded())
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: Vulkan detected, adding WS_BORDER!");
-
-				lStyle |= WS_BORDER;
-			}
 		}
 
 		// Set style if it needs to change
