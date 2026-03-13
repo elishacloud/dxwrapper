@@ -311,6 +311,7 @@ public:
 
 	// External static functions
 	static bool CheckDirectDrawXInterface(void* pInterface);
+	static void TriggerDeviceReset(HWND hWnd);
 	static void CheckFixWindowPos(HWND hWnd, WINDOWPOS* wPos);
 	static DWORD GetDisplayBPP(HMONITOR hMon);
 	static DWORD GetDDrawBitsPixel(HWND hWnd);

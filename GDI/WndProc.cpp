@@ -378,6 +378,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	const HWND hWndInstance = AppWndProcInstance->GetHWnd();
 	DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
 
+	// Messages don't apply to this window
 	if (hWnd != hWndInstance)
 	{
 		return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
@@ -424,7 +425,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_ACTIVATEAPP:
 		// Handle keyboard layout
-		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		if (Config.ForceKeyboardLayout)
 		{
 			SetKeyboardLayoutFocus(hWnd, wParam != FALSE);
 		}
@@ -450,7 +451,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_ACTIVATE:
 		// Handle keyboard layout
-		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		if (Config.ForceKeyboardLayout)
 		{
 			SetKeyboardLayoutFocus(hWnd, LOWORD(wParam) != WA_INACTIVE);
 		}
@@ -473,11 +474,41 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			if (LOWORD(wParam) == WA_ACTIVE || LOWORD(wParam) == WA_CLICKACTIVE)
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Activating window because WM_ACTIVATE (" << LOWORD(wParam) << ") message detected when window is iconic: " << hWnd);
-				CallWndProc(pWndProc, hWnd, Msg, WA_ACTIVE, NULL);
-				DefWndProc(hWnd, WM_SYSCOMMAND, SC_RESTORE, NULL);
-				SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW | SWP_NOACTIVATE);
+
+				DWORD currentThread = GetCurrentThreadId();
+				DWORD foregroundThread = GetWindowThreadProcessId(GetForegroundWindow(), nullptr);
+
+				// Attach input
+				if (currentThread != foregroundThread)
+				{
+					AttachThreadInput(currentThread, foregroundThread, TRUE);
+				}
+
+				// Restore window and bring to top
+				ShowWindow(hWnd, SW_RESTORE);
+				SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER);
+
+				// Force foreground & active
 				SetForegroundWindow(hWnd);
-				return NULL;
+				SetActiveWindow(hWnd);
+
+				// Detach input
+				if (currentThread != foregroundThread)
+				{
+					AttachThreadInput(currentThread, foregroundThread, FALSE);
+				}
+
+				// Let the game know it is active
+				CallWndProc(pWndProc, hWnd, WM_ACTIVATE, WA_ACTIVE, 0);
+				SendMessage(hWnd, WM_ACTIVATEAPP, TRUE, 0);
+
+				// Force device restore
+				m_IDirectDrawX::TriggerDeviceReset(hWnd);
+
+				// Trigger window redraw
+				RedrawWindow(hWnd, nullptr, nullptr, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+
+				return 0;
 			}
 			// Some games require filtering this when iconic, other games require this message to see when the window is activated
 			if (pDataStruct->DirectXVersion <= 4)
@@ -495,7 +526,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_NCACTIVATE:
 		// Handle keyboard layout
-		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		if (Config.ForceKeyboardLayout)
 		{
 			SetKeyboardLayoutFocus(hWnd, LOWORD(wParam) != FALSE);
 		}
@@ -515,7 +546,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_SETFOCUS:
 		// Handle keyboard layout
-		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		if (Config.ForceKeyboardLayout)
 		{
 			SetKeyboardLayoutFocus(hWnd, true);
 		}
@@ -523,7 +554,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_KILLFOCUS:
 		// Handle keyboard layout
-		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		if (Config.ForceKeyboardLayout)
 		{
 			SetKeyboardLayoutFocus(hWnd, false);
 		}
@@ -536,7 +567,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_SHOWWINDOW:
 		// Handle keyboard layout
-		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		if (Config.ForceKeyboardLayout)
 		{
 			SetKeyboardLayoutFocus(hWnd, wParam != FALSE);
 		}
@@ -547,6 +578,20 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		}
 		break;
 
+	case WM_MOVE:
+		// Hide minimized window location from game
+		if (pDataStruct->IsDirectDraw)
+		{
+			int x = (int)(short)LOWORD(lParam);
+			int y = (int)(short)HIWORD(lParam);
+
+			if (x == -32000 && y == -32000)
+			{
+				return DefWndProc(hWnd, Msg, wParam, lParam);
+			}
+		}
+		break;
+
 	case WM_STYLECHANGING:
 	case WM_STYLECHANGED:
 	case WM_ENTERSIZEMOVE:
@@ -554,7 +599,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	case WM_SIZING:
 	case WM_SIZE:
 		// Handle keyboard layout
-		if (Config.ForceKeyboardLayout && hWnd == hWndInstance && Msg == WM_SIZE)
+		if (Config.ForceKeyboardLayout && Msg == WM_SIZE)
 		{
 			SetKeyboardLayoutFocus(hWnd, wParam != SIZE_MINIMIZED);
 		}
@@ -579,7 +624,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			WINDOWPOS* WinPos = reinterpret_cast<WINDOWPOS*>(lParam);
 
 			// Handle keyboard layout
-			if (Config.ForceKeyboardLayout && hWnd == hWndInstance && (WinPos->flags & (SWP_SHOWWINDOW | SWP_HIDEWINDOW)))
+			if (Config.ForceKeyboardLayout && (WinPos->flags & (SWP_SHOWWINDOW | SWP_HIDEWINDOW)))
 			{
 				SetKeyboardLayoutFocus(hWnd, (WinPos->flags & SWP_SHOWWINDOW));
 			}
@@ -595,6 +640,11 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			}
 			// Filter messages for loss of focus or minimize
 			if (Config.HideWindowFocusChanges && (WinPos->flags & SWP_HIDEWINDOW))
+			{
+				return DefWndProc(hWnd, Msg, wParam, lParam);
+			}
+			// Hide minimized window location from game
+			if (pDataStruct->IsDirectDraw && WinPos->x == -32000 && WinPos->y == -32000)
 			{
 				return DefWndProc(hWnd, Msg, wParam, lParam);
 			}
@@ -620,6 +670,14 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Send WM_SYNCPAINT to DefWindowProc
 		return DefWndProc(hWnd, Msg, wParam, lParam);
 
+	case WM_ERASEBKGND:
+		// Filter background clear when in exclusive mode
+		if (pDataStruct->IsExclusiveMode)
+		{
+			return 1;
+		}
+		break;
+
 	case WM_DISPLAYCHANGE:
 		// Handle cases where monitor gets disconnected during resolution change
 		if (pDataStruct->IsDirectDraw)
@@ -630,12 +688,12 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_SYSCOMMAND:
 		// Set instance as inactive when window closes
-		if (wParam == SC_CLOSE && hWnd == hWndInstance)
+		if (wParam == SC_CLOSE)
 		{
 			AppWndProcInstance->SetInactive();
 		}
 		// Handle keyboard layout
-		if (Config.ForceKeyboardLayout && hWnd == hWndInstance && ((wParam & 0xFFF0) == SC_MINIMIZE || (wParam & 0xFFF0) == SC_MAXIMIZE))
+		if (Config.ForceKeyboardLayout && ((wParam & 0xFFF0) == SC_MINIMIZE || (wParam & 0xFFF0) == SC_MAXIMIZE))
 		{
 			SetKeyboardLayoutFocus(hWnd, (wParam & 0xFFF0) == SC_MAXIMIZE);
 		}
@@ -650,15 +708,12 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	case WM_DESTROY:
 	case WM_NCDESTROY:
 		// Handle keyboard layout
-		if (Config.ForceKeyboardLayout && hWnd == hWndInstance)
+		if (Config.ForceKeyboardLayout)
 		{
 			SetKeyboardLayoutFocus(hWnd, false);
 		}
 		// Set instance as inactive when window closes
-		if (hWnd == hWndInstance)
-		{
-			AppWndProcInstance->SetInactive();
-		}
+		AppWndProcInstance->SetInactive();
 		break;
 	}
 
