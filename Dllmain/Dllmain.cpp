@@ -37,6 +37,7 @@
 #include "dinput8\dinput8External.h"
 #include "d3d8\d3d8External.h"
 #include "dsound\dsoundExternal.h"
+#include "Libraries\d3dx9.h"
 #include "Libraries\ScopeGuard.h"
 #include "dxwrapper.h"
 
@@ -541,6 +542,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Start ddraw.dll module
 		if (Config.EnableDdrawWrapper || Config.DDrawCompat)
 		{
+			// Initialize d3dx9 first
+			LoadD3dx9();
+
 			// Initialize ddraw wrapper procs
 			if (Config.RealWrapperMode == dtype.ddraw)
 			{
@@ -619,6 +623,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			Logging::Log() << "Enabling d3d8to9 wrapper";
 
+			// Initialize d3dx9 first
+			LoadD3dx9();
+
 			using namespace d3d8;
 			using namespace D3d8Wrapper;
 
@@ -642,6 +649,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.EnableD3d9Wrapper || Config.D3d8to9 || Config.Dd7to9)
 		{
 			Logging::Log() << "Enabling d3d9 wrapper";
+
+			// Initialize d3dx9 first
+			LoadD3dx9();
 
 			using namespace d3d9;
 			using namespace D3d9Wrapper;

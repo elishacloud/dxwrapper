@@ -438,7 +438,7 @@ HRESULT m_IDirect3DViewportX::LightElements(DWORD dwElementCount, LPD3DLIGHTDATA
 
 			// Transform and normalize
 			D3DXVec3TransformNormal(&transformedNormal, &normal, &matWorldRotOnly);
-			if (D3DXVec3Length(&normal) > 1e-6f)
+			if (D3DXVec3LengthSq(&normal) > 1e-12f)
 			{
 				D3DXVec3Normalize(&transformedNormal, &transformedNormal);
 			}

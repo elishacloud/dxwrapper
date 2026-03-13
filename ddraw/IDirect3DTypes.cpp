@@ -82,7 +82,7 @@ D3DLIGHT9 FixLight(const D3DLIGHT9& Light)
 	{
 		D3DXVECTOR3& dir = reinterpret_cast<D3DXVECTOR3&>(result.Direction);
 
-		if (D3DXVec3Length(&dir) > 1e-6f)
+		if (D3DXVec3LengthSq(&dir) > 1e-12f)
 		{
 			D3DXVec3Normalize(&dir, &dir);
 		}

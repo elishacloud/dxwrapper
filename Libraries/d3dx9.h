@@ -6,6 +6,7 @@
 
 #include <d3d9.h>
 #include <d3dcommon.h>
+#include <math.h>
 
 //===========================================================================
 //
@@ -420,33 +421,80 @@ typedef HRESULT(WINAPI* LPD3DXFILL3D)(D3DXVECTOR4* pOut, const D3DXVECTOR2* pTex
 #define D3DXASM_FLAGS D3DXASM_DEBUG
 #endif // NDEBUG
 
-HRESULT WINAPI D3DXCreateTexture(LPDIRECT3DDEVICE9 pDevice, UINT Width, UINT Height, UINT MipLevels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, LPDIRECT3DTEXTURE9* ppTexture);
+// Inline functions
+inline FLOAT D3DXVec3Dot(const D3DXVECTOR3* pV1, const D3DXVECTOR3* pV2)
+{
+	return pV1->x * pV2->x +
+		pV1->y * pV2->y +
+		pV1->z * pV2->z;
+}
+inline FLOAT D3DXVec3Length(const D3DXVECTOR3* pV)
+{
+	return sqrtf(pV->x * pV->x +
+		pV->y * pV->y +
+		pV->z * pV->z);
+}
+inline FLOAT D3DXVec3LengthSq(const D3DXVECTOR3* v)
+{
+	return v->x * v->x +
+		v->y * v->y +
+		v->z * v->z;
+}
+
+// Defined functions
 HRESULT WINAPI D3DXLoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSurface, const PALETTEENTRY* pDestPalette, const RECT* pDestRect, LPCVOID pSrcMemory, D3DFORMAT SrcFormat, UINT SrcPitch, const PALETTEENTRY* pSrcPalette, const RECT* pSrcRect, DWORD Filter, D3DCOLOR ColorKey);
 HRESULT WINAPI D3DXLoadSurfaceFromSurface(LPDIRECT3DSURFACE9 pDestSurface, const PALETTEENTRY* pDestPalette, const RECT* pDestRect, LPDIRECT3DSURFACE9 pSrcSurface, const PALETTEENTRY* pSrcPalette, const RECT* pSrcRect, DWORD Filter, D3DCOLOR ColorKey);
-HRESULT WINAPI D3DXSaveSurfaceToFileInMemory(LPD3DXBUFFER* ppDestBuf, D3DXIMAGE_FILEFORMAT DestFormat, LPDIRECT3DSURFACE9 pSrcSurface, const PALETTEENTRY* pSrcPalette, const RECT* SrcRect);
-HRESULT WINAPI D3DXSaveTextureToFileInMemory(LPD3DXBUFFER* ppDestBuf, D3DXIMAGE_FILEFORMAT DestFormat, LPDIRECT3DBASETEXTURE9 pSrcTexture, const PALETTEENTRY* pSrcPalette);
-
-HRESULT WINAPI D3DXDeclaratorFromFVF(DWORD FVF, D3DVERTEXELEMENT9 pDeclarator[MAX_FVF_DECL_SIZE]);
-D3DXMATRIX* WINAPI D3DXMatrixMultiply(_Inout_ D3DXMATRIX* pOut, _In_ const D3DXMATRIX* pM1, _In_ const D3DXMATRIX* pM2);
-FLOAT WINAPI D3DXVec3Dot(_In_ const D3DXVECTOR3* pV1, _In_ const D3DXVECTOR3* pV2);
-FLOAT WINAPI D3DXVec3Length(_In_ const D3DXVECTOR3* pV);
-D3DXVECTOR3* WINAPI D3DXVec3Normalize(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV);
-D3DXVECTOR3* WINAPI D3DXVec3TransformCoord(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV, _In_ const D3DXMATRIX* pM);
-D3DXVECTOR3* WINAPI D3DXVec3TransformNormal(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV, _In_ const D3DXMATRIX* pM);
-D3DXVECTOR4* WINAPI D3DXVec4Transform(_Inout_ D3DXVECTOR4* pOut, _In_ const D3DXVECTOR4* pV, _In_ const D3DXMATRIX* pM);
-
-HRESULT WINAPI D3DXCompileShaderFromFileA(LPCSTR pSrcFile, const D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, LPCSTR pFunctionName, LPCSTR pProfile, DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs, LPD3DXCONSTANTTABLE* ppConstantTable);
-HRESULT WINAPI D3DXCompileShaderFromFileW(LPCWSTR pSrcFile, const D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, LPCSTR pFunctionName, LPCSTR pProfile, DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs, LPD3DXCONSTANTTABLE* ppConstantTable);
 HRESULT WINAPI D3DXAssembleShader(LPCSTR pSrcData, UINT SrcDataLen, const D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs);
 HRESULT WINAPI D3DXDisassembleShader(const DWORD* pShader, BOOL EnableColorCode, LPCSTR pComments, LPD3DXBUFFER* ppDisassembly);
 
-HRESULT WINAPI D3DAssemble(const void* pSrcData, SIZE_T SrcDataSize, const char* pFileName, const D3D_SHADER_MACRO* pDefines, ID3DInclude* pInclude, UINT Flags, ID3DBlob** ppShader, ID3DBlob** ppErrorMsgs);
-HRESULT WINAPI D3DCompile(LPCVOID pSrcData, SIZE_T SrcDataSize, LPCSTR pSourceName, const D3D_SHADER_MACRO* pDefines, ID3DInclude* pInclude, LPCSTR pEntrypoint, LPCSTR pTarget, UINT Flags1, UINT Flags2, ID3DBlob** ppCode, ID3DBlob** ppErrorMsgs);
-HRESULT WINAPI D3DDisassemble(LPCVOID pSrcData, SIZE_T SrcDataSize, UINT Flags, LPCSTR szComments, ID3DBlob** ppDisassembly);
+// D3DX module functions
+typedef HRESULT(WINAPI* PFN_D3DXCreateTexture)(LPDIRECT3DDEVICE9 pDevice, UINT Width, UINT Height, UINT MipLevels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, LPDIRECT3DTEXTURE9* ppTexture);
+typedef HRESULT(WINAPI* PFN_D3DXCreateFontA)(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight, UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision, DWORD Quality, DWORD PitchAndFamily, LPCSTR pFaceName, LPD3DXFONT* ppFont);
+typedef HRESULT(WINAPI* PFN_D3DXCreateFontW)(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight, UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision, DWORD Quality, DWORD PitchAndFamily, LPCWSTR pFaceName, LPD3DXFONT* ppFont);
+typedef HRESULT(WINAPI* PFN_D3DXCreateSprite)(LPDIRECT3DDEVICE9 pDevice, LPD3DXSPRITE* ppSprite);
+typedef HRESULT(WINAPI* PFN_D3DXSaveSurfaceToFileInMemory)(LPD3DXBUFFER* ppDestBuf, D3DXIMAGE_FILEFORMAT DestFormat, LPDIRECT3DSURFACE9 pSrcSurface, const PALETTEENTRY* pSrcPalette, const RECT* SrcRect);
+typedef HRESULT(WINAPI* PFN_D3DXSaveTextureToFileInMemory)(LPD3DXBUFFER* ppDestBuf, D3DXIMAGE_FILEFORMAT DestFormat, LPDIRECT3DBASETEXTURE9 pSrcTexture, const PALETTEENTRY* pSrcPalette);
+typedef HRESULT(WINAPI* PFN_D3DXCompileShaderFromFileA)(LPCSTR pSrcFile, const D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, LPCSTR pFunctionName, LPCSTR pProfile, DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs, LPD3DXCONSTANTTABLE* ppConstantTable);
+typedef HRESULT(WINAPI* PFN_D3DXCompileShaderFromFileW)(LPCWSTR pSrcFile, const D3DXMACRO* pDefines, LPD3DXINCLUDE pInclude, LPCSTR pFunctionName, LPCSTR pProfile, DWORD Flags, LPD3DXBUFFER* ppShader, LPD3DXBUFFER* ppErrorMsgs, LPD3DXCONSTANTTABLE* ppConstantTable);
+typedef HRESULT(WINAPI* PFN_D3DXFillTexture)(LPVOID pTexture, LPD3DXFILL3D pFunction, LPVOID pData);
+typedef HRESULT(WINAPI* PFN_D3DXDeclaratorFromFVF)(DWORD FVF, D3DVERTEXELEMENT9 pDeclarator[MAX_FVF_DECL_SIZE]);
+typedef D3DXMATRIX* (WINAPI* PFN_D3DXMatrixMultiply)(_Inout_ D3DXMATRIX* pOut, _In_ const D3DXMATRIX* pM1, _In_ const D3DXMATRIX* pM2);
+typedef D3DXVECTOR3* (WINAPI* PFN_D3DXVec3Normalize)(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV);
+typedef D3DXVECTOR3* (WINAPI* PFN_D3DXVec3TransformCoord)(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV, _In_ const D3DXMATRIX* pM);
+typedef D3DXVECTOR3* (WINAPI* PFN_D3DXVec3TransformNormal)(_Inout_ D3DXVECTOR3* pOut, _In_ const D3DXVECTOR3* pV, _In_ const D3DXMATRIX* pM);
+typedef D3DXVECTOR4* (WINAPI* PFN_D3DXVec4Transform)(_Inout_ D3DXVECTOR4* pOut, _In_ const D3DXVECTOR4* pV, _In_ const D3DXMATRIX* pM);
 
-HRESULT WINAPI D3DXFillTexture(LPVOID pTexture, LPD3DXFILL3D pFunction, LPVOID pData);
+// D3DX compile functions
+typedef HRESULT(WINAPI* PFN_D3DAssemble)(const void* pSrcData, SIZE_T SrcDataSize, const char* pFileName, const D3D_SHADER_MACRO* pDefines, ID3DInclude* pInclude, UINT Flags, ID3DBlob** ppShader, ID3DBlob** ppErrorMsgs);
+typedef HRESULT(WINAPI* PFN_D3DCompile)(LPCVOID pSrcData, SIZE_T SrcDataSize, LPCSTR pSourceName, const D3D_SHADER_MACRO* pDefines, ID3DInclude* pInclude, LPCSTR pEntrypoint, LPCSTR pTarget, UINT Flags1, UINT Flags2, ID3DBlob** ppCode, ID3DBlob** ppErrorMsgs);
+typedef HRESULT(WINAPI* PFN_D3DDisassemble)(LPCVOID pSrcData, SIZE_T SrcDataSize, UINT Flags, LPCSTR szComments, ID3DBlob** ppDisassembly);
 
-HRESULT WINAPI D3DXCreateFontA(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight, UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision, DWORD Quality, DWORD PitchAndFamily, LPCSTR pFaceName, LPD3DXFONT* ppFont);
-HRESULT WINAPI D3DXCreateFontW(LPDIRECT3DDEVICE9 pDevice, INT Height, UINT Width, UINT Weight, UINT MipLevels, BOOL Italic, DWORD CharSet, DWORD OutputPrecision, DWORD Quality, DWORD PitchAndFamily, LPCWSTR pFaceName, LPD3DXFONT* ppFont);
+#define VISIT_D3DX_MODULE_FUNCT(visit) \
+	visit(D3DXCreateTexture) \
+	visit(D3DXCreateFontA) \
+	visit(D3DXCreateFontW) \
+	visit(D3DXCreateSprite) \
+	visit(D3DXSaveSurfaceToFileInMemory) \
+	visit(D3DXSaveTextureToFileInMemory) \
+	visit(D3DXCompileShaderFromFileA) \
+	visit(D3DXCompileShaderFromFileW) \
+	visit(D3DXFillTexture) \
+	visit(D3DXDeclaratorFromFVF) \
+	visit(D3DXMatrixMultiply) \
+	visit(D3DXVec3Normalize) \
+	visit(D3DXVec3TransformCoord) \
+	visit(D3DXVec3TransformNormal) \
+	visit(D3DXVec4Transform)
 
-HRESULT WINAPI D3DXCreateSprite(LPDIRECT3DDEVICE9 pDevice, LPD3DXSPRITE* ppSprite);
+#define VISIT_D3DX_COMPILE_FUNCT(visit) \
+	visit(D3DAssemble) \
+	visit(D3DCompile) \
+	visit(D3DDisassemble)
+
+#define D3DX_EXTERN_FUNCT(procName) \
+	extern PFN_ ## procName procName;
+
+VISIT_D3DX_MODULE_FUNCT(D3DX_EXTERN_FUNCT);
+VISIT_D3DX_COMPILE_FUNCT(D3DX_EXTERN_FUNCT);
+
+void LoadD3dx9();

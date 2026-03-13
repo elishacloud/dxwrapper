@@ -1219,7 +1219,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDe
 			D3DXVECTOR3 normal = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex + NormalSrcOffset);
 			D3DXVECTOR3 transformedNormal;
 			D3DXVec3TransformNormal(&transformedNormal, &normal, &matWorldRotOnly);
-			if (D3DXVec3Length(&normal) > 1e-6f)
+			if (D3DXVec3LengthSq(&normal) > 1e-12f)
 			{
 				D3DXVec3Normalize(&transformedNormal, &transformedNormal);
 			}
@@ -1364,7 +1364,7 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 			D3DXVECTOR3 normal = { src.nx, src.ny, src.nz };
 			D3DXVECTOR3 transformedNormal;
 			D3DXVec3TransformNormal(&transformedNormal, &normal, &matWorldRotOnly);
-			if (D3DXVec3Length(&normal) > 1e-6f)
+			if (D3DXVec3LengthSq(&normal) > 1e-12f)
 			{
 				D3DXVec3Normalize(&transformedNormal, &transformedNormal);
 			}
@@ -1443,7 +1443,7 @@ void m_IDirect3DVertexBufferX::ComputeLighting(const D3DVECTOR& Position, const 
 	D3DXVECTOR3 worldNormal(Normal.x, Normal.y, Normal.z);
 
 	// If a vertex has zero normals, it usually should be lit only by ambient.
-	if (D3DXVec3Length(&worldNormal) < 1e-6f)
+	if (D3DXVec3LengthSq(&worldNormal) < 1e-12f)
 	{
 		outColor = ambient;
 		outSpecular = 0;
@@ -1503,8 +1503,8 @@ void m_IDirect3DVertexBufferX::ComputeLighting(const D3DVECTOR& Position, const 
 			D3DXVECTOR3 lightPos(light.dvPosition.x, light.dvPosition.y, light.dvPosition.z);
 			toLight = lightPos - pos;
 
-			float dist = D3DXVec3Length(&toLight);
-			if (dist == 0.0f) continue;
+			float dist = D3DXVec3LengthSq(&toLight);
+			if (dist < 1e-12f) continue;
 
 			toLight *= (1.0f / dist);
 
