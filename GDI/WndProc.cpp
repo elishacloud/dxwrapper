@@ -592,27 +592,37 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		}
 		break;
 
-	case WM_ENTERSIZEMOVE:
-	case WM_EXITSIZEMOVE:
-	case WM_SIZING:
 	case WM_SIZE:
 		// Handle keyboard layout
-		if (Config.ForceKeyboardLayout && Msg == WM_SIZE)
+		if (Config.ForceKeyboardLayout)
 		{
 			SetKeyboardLayoutFocus(hWnd, wParam != SIZE_MINIMIZED);
 		}
 		// Filter messages for loss of focus or minimize
-		if (Config.HideWindowFocusChanges && Msg == WM_SIZE && wParam == SIZE_MINIMIZED)
+		if (Config.HideWindowFocusChanges && wParam == SIZE_MINIMIZED)
 		{
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
-		// Filter size change messages while creating a device
+		// Filter size change messages while creating a device if size isn't changing
+		// Some games (e.g. Splintercell Chaos Theory) don't handle size messages well
 		if (pDataStruct->IsCreatingDevice && pDataStruct->IsExclusiveMode)
 		{
-			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when creating a device: " << Logging::hex(Msg));
-			return DefWndProc(hWnd, Msg, wParam, lParam);
+			int width = (int)LOWORD(lParam);
+			int height = (int)HIWORD(lParam);
+
+			RECT Rect = {};
+			GetClientRect(hWnd, &Rect);
+
+			if (width == Rect.right && height == Rect.bottom)
+			{
+				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when creating a device: " << Logging::hex(Msg));
+				return DefWndProc(hWnd, Msg, wParam, lParam);
+			}
 		}
 		[[fallthrough]];
+	case WM_ENTERSIZEMOVE:
+	case WM_EXITSIZEMOVE:
+	case WM_SIZING:
 	case WM_STYLECHANGING:
 	case WM_STYLECHANGED:
 		// Filter some messages while forcing windowed mode
