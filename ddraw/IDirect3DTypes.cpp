@@ -80,13 +80,12 @@ D3DLIGHT9 FixLight(const D3DLIGHT9& Light)
 	// Prenormalize directional and spot lights
 	if (result.Type == D3DLIGHT_DIRECTIONAL || result.Type == D3DLIGHT_SPOT)
 	{
-		D3DXVECTOR3 dir = { result.Direction.x, result.Direction.y, result.Direction.z };
+		D3DXVECTOR3& dir = reinterpret_cast<D3DXVECTOR3&>(result.Direction);
 
-		D3DXVec3Normalize(&dir, &dir);
-
-		result.Direction.x = dir.x;
-		result.Direction.y = dir.y;
-		result.Direction.z = dir.z;
+		if (D3DXVec3Length(&dir) > 1e-6f)
+		{
+			D3DXVec3Normalize(&dir, &dir);
+		}
 	}
 
 	return result;
