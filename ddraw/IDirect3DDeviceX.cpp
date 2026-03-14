@@ -6554,6 +6554,36 @@ void m_IDirect3DDeviceX::SetDefaults()
 	DeviceStates.Viewport.FixedView = DefaultViewport;
 }
 
+void m_IDirect3DDeviceX::ClearDeviceState()
+{
+	// Mark as reset
+	bSetDefaults = true;
+	RequiresStateRestore = true;
+	IsInScene = false;
+
+	// Reset to default data
+	static const DEVICESTATE DefaultDeviceStates;
+	DeviceStates = DefaultDeviceStates;
+
+	// Clear batch and draw states
+	BatchStates.clear();
+	ZeroMemory(&DrawStates, sizeof(DrawStates));
+
+	// Default clip status
+	D3DClipStatus = DefaultClipStatus;
+
+	// Clear StateBlock
+	StateBlock.clear();
+
+	// Vertex Stream
+	static const VERTEXSTREAMINFO DefaultVertexStreamInfo;
+	VertexStreamInfo = DefaultVertexStreamInfo;
+
+	// Index Stream
+	static const INDEXSTREAMINFO DefaultIndexStreamInfo;
+	IndexStreamInfo = DefaultIndexStreamInfo;
+}
+
 void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion)
 {
 	PrepDevice();

@@ -195,6 +195,14 @@ private:
 			}
 			Data.erase(Token);
 		}
+
+		void clear()
+		{
+			IsRecording = false;
+			RecordingToken = 0;
+			Tokens.clear();
+			Data.clear();
+		}
 	} StateBlock;
 
 	// Default settings
@@ -515,4 +523,5 @@ public:
 	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw();
 	void AfterResetDevice();
+	void ClearDeviceState();
 };

@@ -710,6 +710,9 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
 			PrimarySurface = Interface;
+
+			// Reset device state on primary surface creation
+			Clear3DDeviceState(true);
 		}
 
 		if (DirectXVersion > 3)
@@ -1619,13 +1622,22 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 		// Resets the mode of the display device hardware for the primary surface to what it was before the IDirectDraw7::SetDisplayMode method was called.
 
 		// Release d3d9 device
+		bool WasDeviceReleased = false;
 		if (d3d9Device)
 		{
 			ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
+			WasDeviceReleased = true;
+
 			ReleaseAllD9Resources(true, false);
 			ReleaseD9Device();
+		}
 
+		// Reset device state
+		Clear3DDeviceState(false);
+
+		if (WasDeviceReleased)
+		{
 			// Reset display
 			if (Config.EnableWindowMode)
 			{
@@ -1638,6 +1650,7 @@ HRESULT m_IDirectDrawX::RestoreDisplayMode()
 
 		// Reset mode
 		FullScreenWindowed = false;
+		ExclusiveMode = false;
 		DisplayMode.Width = 0;
 		DisplayMode.Height = 0;
 		DisplayMode.BPP = 0;
@@ -1682,7 +1695,9 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		bool WasDeviceCreated = false;
 		const HWND LasthWnd = DisplayMode.hWnd;
 		const bool LastFPUPreserve = Device.FPUPreserve;
-		const bool LastWindowed = Device.IsWindowed;
+		const bool LastExclusiveMode = ExclusiveMode;
+		const bool LastIsWindowed = Device.IsWindowed;
+		const bool LastFullScreenWindowed = FullScreenWindowed;
 
 		// Remove normal flag if exclusive is set
 		dwFlags = (dwFlags & DDSCL_NORMAL) && (dwFlags & DDSCL_EXCLUSIVE) ? (dwFlags & ~DDSCL_NORMAL) : dwFlags;
@@ -1786,7 +1801,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 				// Reset if mode was changed
 				if ((dwFlags & (DDSCL_NORMAL | DDSCL_EXCLUSIVE)) &&
 					(d3d9Device || !ExclusiveMode || (DisplayMode.Width && DisplayMode.Height)) &&	// Delay device creation when exclusive and no DisplayMode
-					(LastWindowed != Device.IsWindowed || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
+					(LastIsWindowed != Device.IsWindowed || LasthWnd != DisplayMode.hWnd || LastFPUPreserve != Device.FPUPreserve))
 				{
 					WasDeviceCreated = true;
 
@@ -1798,6 +1813,12 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 					MSG msg;
 					PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE | PM_NOYIELD);
 					SendMessage(DisplayMode.hWnd, WM_NULL, 0, 0);
+				}
+
+				// Reset device state
+				if (LastExclusiveMode != ExclusiveMode || LastFullScreenWindowed != FullScreenWindowed)
+				{
+					Clear3DDeviceState(!WasDeviceCreated);
 				}
 			}
 		}
@@ -1987,17 +2008,26 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			Exclusive.RefreshRate = dwRefreshRate;
 		}
 
+		const bool DoResolutionChanged = (LastWidth != Device.Width || LastHeight != Device.Height || (!Device.IsWindowed && LastRefreshRate != DisplayMode.RefreshRate));
+		const bool DoDisplayColorChanged = (LastBPP != DisplayMode.BPP);
+
 		// Update the d3d9 device to use new display mode
-		if (LastWidth != Device.Width || LastHeight != Device.Height || (!Device.IsWindowed && LastRefreshRate != DisplayMode.RefreshRate))
+		if (DoResolutionChanged)
 		{
 			WasDeviceCreated = true;
 
 			CreateD9Device(__FUNCTION__);
 		}
-		else if (LastBPP != DisplayMode.BPP)
+		else if (DoDisplayColorChanged)
 		{
 			// Reset all surfaces
 			ResetAllSurfaceDisplay();
+		}
+
+		// Reset device state on exclusive mode change
+		if ((ExclusiveMode || FullScreenWindowed) && (DoResolutionChanged || DoDisplayColorChanged))
+		{
+			Clear3DDeviceState(!WasDeviceCreated);
 		}
 
 		// Redraw display window
