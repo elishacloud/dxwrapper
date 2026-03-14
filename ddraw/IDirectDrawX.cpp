@@ -3338,6 +3338,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 		}
 
 		CreationInterface = this;
+		LastDrawDevice = 0;
 		IsDeviceLost = false;
 		WndProc::SwitchingResolution = false;
 		IsDeviceVerticesSet = false;
@@ -3707,11 +3708,12 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 	// Reset flags after creating device
 	CreationInterface = this;
+	LastDrawDevice = 0;
 	IsDeviceLost = false;
 	WndProc::SwitchingResolution = false;
-	LastUsedHWnd = hWnd;
 	IsDeviceVerticesSet = false;
 	EnableWaitVsync = false;
+	LastUsedHWnd = hWnd;
 	FourCCsList.clear();
 
 	// Create dummy memory (2x larger)
