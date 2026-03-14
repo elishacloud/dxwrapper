@@ -1295,22 +1295,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		// Check if is in scene
 		if (Using3D)
 		{
-			m_IDirect3DX* D3DX = *ddrawParent->GetCurrentD3D();
-
-			DWORD x = 0;
-			while (D3DX)
+			if (ddrawParent->IsInScene())
 			{
-				m_IDirect3DDeviceX* D3DDeviceX = D3DX->GetNextD3DDevice(x++);
-
-				if (!D3DDeviceX)
-				{
-					break;
-				}
-				if (D3DDeviceX->IsDeviceInScene())
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: Device is in scene when attempting to flip!");
-					return DDERR_GENERIC;
-				}
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Device is in scene when attempting to flip!");
+				return DDERR_GENERIC;
 			}
 		}
 

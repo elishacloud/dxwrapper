@@ -3041,15 +3041,13 @@ void m_IDirectDrawX::ClearD3DDevice()
 
 bool m_IDirectDrawX::IsInScene()
 {
-	DWORD x = 0;
-	while (D3DInterface)
+	if (!D3DInterface)
 	{
-		m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x++);
+		return false;
+	}
 
-		if (!D3DDeviceX)
-		{
-			break;
-		}
+	for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
+	{
 		if (D3DDeviceX->IsDeviceInScene())
 		{
 			return true;
@@ -3276,100 +3274,50 @@ void m_IDirectDrawX::GetMultiSampleTypeQuality(D3DMULTISAMPLE_TYPE& MaxSampleTyp
 	}
 }
 
-HRESULT m_IDirectDrawX::ResetD9Device()
+void m_IDirectDrawX::AfterDeviceCreation()
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	// Reset flags after creating device
+	CreationInterface = this;
+	LastDrawDevice = 0;
+	IsDeviceLost = false;
+	WndProc::SwitchingResolution = false;
+	IsDeviceVerticesSet = false;
+	EnableWaitVsync = false;
 
-	// Check for device interface
-	if (!d3d9Device)
+	// Copy GDI data to back buffer
+	if (CopyGDISurface && PrimarySurface && !presParams.Windowed)
 	{
-		return DDERR_WRONGMODE;
+		PrimarySurface->CopyGDIToPrimaryAndBackbuffer();
 	}
+	CopyGDISurface = false;
 
-	// Check if device is ready to be restored
-	HRESULT hr = TestD3D9CooperativeLevel();
-	if (SUCCEEDED(hr) || hr == DDERR_NOEXCLUSIVEMODE)
+	// Create default state block
+	GetDefaultStates();
+
+	// Set render target
+	SetCurrentRenderTarget();
+
+	// Reset D3D device settings
+	RestoreD3DDeviceState();
+}
+
+void m_IDirectDrawX::Clear3DDeviceState(bool SetDefaultStateBlock)
+{
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+	if (SetDefaultStateBlock)
 	{
-		WndProc::SwitchingResolution = false;
-		return hr;
-	}
-	else if (hr == D3DERR_DEVICELOST)
-	{
-		HWND hWnd = GetHwnd();
-		if (!IsIconic(hWnd) && hWnd == GetForegroundWindow())
-		{
-			return DDERR_WRONGMODE;
-		}
-		else
-		{
-			return DDERR_SURFACELOST;
-		}
-	}
-	else if (hr != D3DERR_DEVICENOTRESET)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: TestCooperativeLevel = " << (D3DERR)hr);
-		return DDERR_WRONGMODE;
-	}
-
-	// Hook WndProc before creating device
-	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(GetHwnd());
-
-	// Mark as creating device
-	bool tmpFlag = false;
-	ScopedFlagSet SetCreatingDevice(WndDataStruct && !WndDataStruct->IsCreatingDevice ? WndDataStruct->IsCreatingDevice : tmpFlag);
-
-	// Reset device if current thread matches creation thread
-	if (IsWindow(hFocusWindow) && FocusWindowThreadID == GetCurrentThreadId())
-	{
-		// Prepare for reset
-		ReleaseAllD9Resources(true, true);
-
-		// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
-		D3DPRESENT_PARAMETERS newParams = presParams;
-		hr = d3d9Device->Reset(&newParams);
-
-		// If Reset fails then release the device and all resources
-		if (FAILED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Reset failed: " << (D3DERR)hr);
-			ReleaseAllD9Resources(false, false);	// Cannot backup surface after a failed Reset
-			ReleaseD9Device();
-			return DDERR_GENERIC;
-		}
-
-		CreationInterface = this;
 		LastDrawDevice = 0;
-		IsDeviceLost = false;
-		WndProc::SwitchingResolution = false;
-		IsDeviceVerticesSet = false;
-		EnableWaitVsync = false;
-
-		// Copy GDI data to back buffer
-		if (PrimarySurface && !presParams.Windowed)
-		{
-			PrimarySurface->CopyGDIToPrimaryAndBackbuffer();
-		}
-		CopyGDISurface = false;
-
-		// Create default state block
-		GetDefaultStates();
-
-		// Set render target
-		SetCurrentRenderTarget();
-
-		// Reset D3D device settings
-		RestoreD3DDeviceState();
+		ApplyStateBlock();
 	}
-	// Release and recreate device
-	else
+
+	if (D3DInterface)
 	{
-		ReleaseAllD9Resources(true, false);
-		ReleaseD9Device();
-		return DDERR_GENERIC;
+		for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
+		{
+			D3DDeviceX->ClearDeviceState();
+		}
 	}
-
-	// Return
-	return hr;
 }
 
 HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
@@ -3706,34 +3654,14 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		LOG_ONCE(__FUNCTION__ << " Setting single precision FPU!");
 	}
 
-	// Reset flags after creating device
-	CreationInterface = this;
-	LastDrawDevice = 0;
-	IsDeviceLost = false;
-	WndProc::SwitchingResolution = false;
-	IsDeviceVerticesSet = false;
-	EnableWaitVsync = false;
-	LastUsedHWnd = hWnd;
+	// Create dummy memory (2x larger)
+	m_IDirectDrawSurfaceX::SizeDummySurface(presParams.BackBufferWidth* presParams.BackBufferHeight * 4 * 2);
+
+	// Clear FourCC's list after device creation
 	FourCCsList.clear();
 
-	// Create dummy memory (2x larger)
-	m_IDirectDrawSurfaceX::SizeDummySurface(presParams.BackBufferWidth * presParams.BackBufferHeight * 4 * 2);
-
-	// Copy GDI data to back buffer
-	if (CopyGDISurface && PrimarySurface && !presParams.Windowed)
-	{
-		PrimarySurface->CopyGDIToPrimaryAndBackbuffer();
-	}
-	CopyGDISurface = false;
-
-	// Create default state block
-	GetDefaultStates();
-
-	// Set render target
-	SetCurrentRenderTarget();
-
-	// Reset D3D device settings
-	RestoreD3DDeviceState();
+	// Reset flags and device settings after device creation or reset
+	AfterDeviceCreation();
 
 	// Send window change messages for exclusive windows
 	if (!Device.NoWindowChanges && !presParams.Windowed && !Config.EnableWindowMode)
@@ -3802,11 +3730,89 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		}
 	}
 
+	LastUsedHWnd = hWnd;
+
 	// Store display frequency
 	DWORD RefreshRate = (presParams.FullScreen_RefreshRateInHz) ? presParams.FullScreen_RefreshRateInHz : Utils::GetRefreshRate(hm);
 	Counter.PerFrameMS = 1000.0 / (RefreshRate ? RefreshRate : 60);
 
 	// Return result
+	return hr;
+}
+
+HRESULT m_IDirectDrawX::ResetD9Device()
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	// Check for device interface
+	if (!d3d9Device)
+	{
+		return DDERR_WRONGMODE;
+	}
+
+	// Check if device is ready to be restored
+	HRESULT hr = TestD3D9CooperativeLevel();
+	if (SUCCEEDED(hr) || hr == DDERR_NOEXCLUSIVEMODE)
+	{
+		WndProc::SwitchingResolution = false;
+		return hr;
+	}
+	else if (hr == D3DERR_DEVICELOST)
+	{
+		HWND hWnd = GetHwnd();
+		if (!IsIconic(hWnd) && hWnd == GetForegroundWindow())
+		{
+			return DDERR_WRONGMODE;
+		}
+		else
+		{
+			return DDERR_SURFACELOST;
+		}
+	}
+	else if (hr != D3DERR_DEVICENOTRESET)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: TestCooperativeLevel = " << (D3DERR)hr);
+		return DDERR_WRONGMODE;
+	}
+
+	// Hook WndProc before creating device
+	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(GetHwnd());
+
+	// Mark as creating device
+	bool tmpFlag = false;
+	ScopedFlagSet SetCreatingDevice(WndDataStruct && !WndDataStruct->IsCreatingDevice ? WndDataStruct->IsCreatingDevice : tmpFlag);
+
+	// Reset device if current thread matches creation thread
+	if (IsWindow(hFocusWindow) && FocusWindowThreadID == GetCurrentThreadId())
+	{
+		// Prepare for reset
+		ReleaseAllD9Resources(true, true);
+
+		// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
+		D3DPRESENT_PARAMETERS newParams = presParams;
+		hr = d3d9Device->Reset(&newParams);
+
+		// If Reset fails then release the device and all resources
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Reset failed: " << (D3DERR)hr);
+			ReleaseAllD9Resources(false, false);	// Cannot backup surface after a failed Reset
+			ReleaseD9Device();
+			return DDERR_GENERIC;
+		}
+
+		// Reset flags and device settings after device creation or reset
+		AfterDeviceCreation();
+	}
+	// Release and recreate device
+	else
+	{
+		ReleaseAllD9Resources(true, false);
+		ReleaseD9Device();
+		return DDERR_GENERIC;
+	}
+
+	// Return
 	return hr;
 }
 
@@ -4154,16 +4160,12 @@ void m_IDirectDrawX::RestoreD3DDeviceState()
 {
 	for (const auto& pDDraw : DDrawVector)
 	{
-		DWORD x = 0;
-		while (pDDraw->D3DInterface)
+		if (pDDraw->D3DInterface)
 		{
-			m_IDirect3DDeviceX* D3DDeviceX = pDDraw->D3DInterface->GetNextD3DDevice(x++);
-
-			if (!D3DDeviceX)
+			for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
 			{
-				break;
+				D3DDeviceX->AfterResetDevice();
 			}
-			D3DDeviceX->AfterResetDevice();
 		}
 	}
 }
@@ -4486,17 +4488,9 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 		if (pDDraw->D3DInterface)
 		{
 			pDDraw->D3DInterface->ClearSurface(lpSurfaceX);
-		}
-		{
-			DWORD x = 0;
-			while (pDDraw->D3DInterface)
-			{
-				m_IDirect3DDeviceX* D3DDeviceX = pDDraw->D3DInterface->GetNextD3DDevice(x++);
 
-				if (!D3DDeviceX)
-				{
-					break;
-				}
+			for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
+			{
 				D3DDeviceX->ClearSurface(lpSurfaceX);
 			}
 		}
@@ -4565,18 +4559,11 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 // Remove light for all D3D devices
 void m_IDirectDrawX::ClearTextureHandle(D3DTEXTUREHANDLE tHandle)
 {
-	if (tHandle)
+	if (tHandle && D3DInterface)
 	{
-		DWORD x = 0;
-		while (D3DInterface)
+		for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
 		{
-			m_IDirect3DDeviceX* D3DDeviceInterface = D3DInterface->GetNextD3DDevice(x++);
-
-			if (!D3DDeviceInterface)
-			{
-				break;
-			}
-			D3DDeviceInterface->ClearMaterialHandle(tHandle);
+			D3DDeviceX->ClearMaterialHandle(tHandle);
 		}
 	}
 }

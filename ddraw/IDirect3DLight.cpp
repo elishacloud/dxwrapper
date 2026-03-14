@@ -204,19 +204,14 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 			tmpLight2.dwFlags |= D3DLIGHT_ACTIVE;
 		}
 
-		// If current light is in use then update device
+		// Is light in use then update device
+		if (D3DInterface)
 		{
-			DWORD x = 0;
-			while (D3DInterface)
+			for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
 			{
-				m_IDirect3DDeviceX* D3DDeviceInterface = D3DInterface->GetNextD3DDevice(x++);
-				if (!D3DDeviceInterface)
+				if (D3DDeviceX->IsLightInUse(this))
 				{
-					break;
-				}
-				if (D3DDeviceInterface->IsLightInUse(this))
-				{
-					if (FAILED(D3DDeviceInterface->SetLight(this, reinterpret_cast<LPD3DLIGHT>(&tmpLight2))))
+					if (FAILED(D3DDeviceX->SetLight(this, reinterpret_cast<LPD3DLIGHT>(&tmpLight2))))
 					{
 						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set light!");
 						return D3DERR_LIGHT_SET_FAILED;

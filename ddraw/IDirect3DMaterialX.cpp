@@ -156,20 +156,13 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 		}
 
 		// If current material is set then use new material
-		if (mHandle)
+		if (mHandle && D3DInterface)
 		{
-			DWORD x = 0;
-			while (D3DInterface)
+			for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
 			{
-				m_IDirect3DDeviceX* D3DDeviceInterface = D3DInterface->GetNextD3DDevice(x++);
-
-				if (!D3DDeviceInterface)
+				if (D3DDeviceX->CheckIfMaterialSet(mHandle))
 				{
-					break;
-				}
-				if (D3DDeviceInterface->CheckIfMaterialSet(mHandle))
-				{
-					if (FAILED(D3DDeviceInterface->SetMaterial(lpMat)))
+					if (FAILED(D3DDeviceX->SetMaterial(lpMat)))
 					{
 						return DDERR_GENERIC;
 					}
