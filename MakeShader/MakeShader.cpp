@@ -200,6 +200,9 @@ int main(int argc, char* argv[])
         }
     }
 
+    // Initialize d3dx9 first
+    LoadD3dx9();
+
     LPD3DXBUFFER compiledShader = nullptr;
 
     if (!CompileShader(wHlslFileName.c_str(), &compiledShader, entryPoint, shaderModel))
