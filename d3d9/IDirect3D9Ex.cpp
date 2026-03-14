@@ -556,6 +556,11 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		DeviceDetails.IsDirectDrawDevice = WndDataStruct->IsDirectDraw;
 	}
 
+	if (DeviceDetails.IsDirectDrawDevice && hWnd && (GetWindowLong(hWnd, GWL_STYLE) & WS_CLIPCHILDREN))
+	{
+		Direct3D9SetSwapEffectUpgradeShim(1);
+	}
+
 	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
 
 	// Create new d3d9 device
@@ -986,12 +991,11 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd)
 	}
 
 	// Remove clip children style and make sure window is visable
-	if ((lStyle & WS_CLIPCHILDREN) || !(lStyle & WS_VISIBLE) || addBorder)
+	if (!(lStyle & WS_VISIBLE) || addBorder)
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " Updating window lStyle." <<
 			(!(lStyle & WS_CLIPCHILDREN) ? " adding WS_VISIBLE" : "") <<
-			(addBorder ? " adding WS_BORDER" : "") <<
-			((lStyle & WS_CLIPCHILDREN) ? " removing WS_CLIPCHILDREN" : ""));
+			(addBorder ? " adding WS_BORDER" : ""));
 
 		lStyle = (lStyle & ~WS_CLIPCHILDREN) | WS_VISIBLE | (addBorder ? WS_BORDER : 0);
 		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);

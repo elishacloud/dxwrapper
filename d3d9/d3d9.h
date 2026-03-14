@@ -111,6 +111,8 @@ typedef HRESULT(WINAPI* Direct3DCreate9On12ExProc)(UINT SDKVersion, D3D9ON12_ARG
 
 constexpr UINT NO_MAP_VALUE = 0xFFFFFFFF;
 
+void WINAPI Direct3D9SetSwapEffectUpgradeShim(int Unknown);
+
 namespace D3d9Wrapper
 {
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
