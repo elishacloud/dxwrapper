@@ -990,7 +990,7 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd)
 		}
 	}
 
-	// Remove clip children style and make sure window is visable
+	// Make sure window is visable
 	if (!(lStyle & WS_VISIBLE) || addBorder)
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " Updating window lStyle." <<
