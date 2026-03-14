@@ -232,6 +232,7 @@ public:
 	LPDIRECT3DINDEXBUFFER9 GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBufferX(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& IndexBufferSize, LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer);
 	void GetMultiSampleTypeQuality(D3DMULTISAMPLE_TYPE& MaxSampleType, DWORD& QualityLevels) const;
+	void AfterDeviceCreation();
 	void Clear3DDeviceState(bool SetDefaultStateBlock);
 	HRESULT CreateD9Device(char* FunctionName);
 	HRESULT ResetD9Device();
