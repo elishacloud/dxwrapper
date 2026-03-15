@@ -876,12 +876,6 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 			(IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow :
 			DeviceDetails.DeviceWindow;
 
-		// Check if window is minimized
-		if (IsIconic(DeviceDetails.DeviceWindow))
-		{
-			ShowWindow(DeviceDetails.DeviceWindow, SW_RESTORE);
-		}
-
 		// Adjust window styles before adjusting window
 		if (SetWindow)
 		{
@@ -975,58 +969,59 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd)
 	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
 	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 
+	// Check if window is minimized
+	if (IsIconic(MainhWnd))
+	{
+		ShowWindow(MainhWnd, SW_RESTORE);
+	}
+
 	bool frameStyleChanged = false;
 
 	// Add border if vulkan is being used
-	bool addBorder = false;
 	if ((lStyle & WS_POPUP) && !(lStyle & WS_BORDER))
 	{
 		if (Utils::IsVulkanModuleLoaded())
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Vulkan detected!");
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Vulkan detected adding WS_BORDER!");
 
-			addBorder = true;
+			lStyle |= WS_BORDER;
+			SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
 			frameStyleChanged = true;
 		}
 	}
 
-	// Make sure window is visable
-	if (!(lStyle & WS_VISIBLE) || addBorder)
+	// Remove tool window style
+	if (lExStyle & WS_EX_TOOLWINDOW)
 	{
-		LOG_LIMIT(3, __FUNCTION__ << " Updating window lStyle." <<
-			(!(lStyle & WS_CLIPCHILDREN) ? " adding WS_VISIBLE" : "") <<
-			(addBorder ? " adding WS_BORDER" : ""));
+		LOG_LIMIT(3, __FUNCTION__ << " Updating window exstyle: removing WS_EX_TOOLWINDOW");
 
-		lStyle = (lStyle & ~WS_CLIPCHILDREN) | WS_VISIBLE | (addBorder ? WS_BORDER : 0);
-		SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-	}
-
-	// Remove tool and add app window style
-	if ((lExStyle & WS_EX_TOOLWINDOW) || !(lExStyle & WS_EX_APPWINDOW))
-	{
-		LOG_LIMIT(3, __FUNCTION__ << " Updating window exstyle." <<
-			((lExStyle & WS_EX_TOOLWINDOW) ? " removing WS_EX_TOOLWINDOW" : "") <<
-			(!(lExStyle & WS_EX_APPWINDOW) ? " adding WS_EX_APPWINDOW" : ""));
-
-		lExStyle = (lExStyle & ~WS_EX_TOOLWINDOW) | WS_EX_APPWINDOW;
+		lExStyle &= ~WS_EX_TOOLWINDOW;
 		SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle);
 		frameStyleChanged = true;
 	}
 
-	// Ensure window is a top-level window (with D3d9to9ex)
-	if (Config.D3d9to9Ex && GetWindowLongPtr(MainhWnd, GWLP_HWNDPARENT) != 0)
+	// Add app window style
+	if (!(lExStyle & WS_EX_APPWINDOW))
 	{
-		LOG_LIMIT(3, __FUNCTION__ << " Warning: window has parent handle!  Removing window parent handle.");
+		LOG_LIMIT(3, __FUNCTION__ << " Updating window exstyle: adding WS_EX_APPWINDOW");
 
-		SetWindowLongPtr(MainhWnd, GWLP_HWNDPARENT, 0);
+		lExStyle |= WS_EX_APPWINDOW;
+		SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle);
+		ShowWindow(MainhWnd, SW_HIDE);	// Hide window after adding app window style
 		frameStyleChanged = true;
+	}
+
+	// Check if window is visible
+	if (!IsWindowVisible(MainhWnd))
+	{
+		ShowWindow(MainhWnd, SW_SHOW);
 	}
 
 	// Refresh styles after change
 	lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
 
 	// Remove topmost and ensure style changes are applied
-	SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_NOTOPMOST : HWND_TOP), 0, 0, 0, 0, (frameStyleChanged ? SWP_FRAMECHANGED : 0) | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+	SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_NOTOPMOST : HWND_TOP), 0, 0, 0, 0, (frameStyleChanged ? SWP_FRAMECHANGED : 0) | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
 	// Ensure focus if needed
 	if (MainhWnd != GetFocus() && MainhWnd != GetActiveWindow())
