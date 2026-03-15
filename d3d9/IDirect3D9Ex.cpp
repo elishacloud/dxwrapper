@@ -901,7 +901,7 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 			GetClientRect(DeviceDetails.DeviceWindow, &Rect);
 			if (AnyChange || Rect.right - Rect.left != DeviceDetails.BufferWidth || Rect.bottom - Rect.top != DeviceDetails.BufferHeight)
 			{
-				AdjustWindow(DeviceDetails.hMonitor, DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, Config.EnableWindowMode, Config.FullscreenWindowMode);
+				AdjustWindowSize(DeviceDetails.hMonitor, DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, Config.EnableWindowMode, Config.FullscreenWindowMode);
 			}
 
 			// Set fullscreen resolution
@@ -964,15 +964,15 @@ void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DD
 	Mode.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
 }
 
-void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd)
+void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd)
 {
-	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
-	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+	LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
+	LONG lExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
 
 	// Check if window is minimized
-	if (IsIconic(MainhWnd))
+	if (IsIconic(hWnd))
 	{
-		ShowWindow(MainhWnd, SW_RESTORE);
+		ShowWindow(hWnd, SW_RESTORE);
 	}
 
 	bool frameStyleChanged = false;
@@ -985,7 +985,7 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd)
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Vulkan detected adding WS_BORDER!");
 
 			lStyle |= WS_BORDER;
-			SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
+			SetWindowLong(hWnd, GWL_STYLE, lStyle);
 			frameStyleChanged = true;
 		}
 	}
@@ -996,7 +996,7 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd)
 		LOG_LIMIT(3, __FUNCTION__ << " Updating window exstyle: removing WS_EX_TOOLWINDOW");
 
 		lExStyle &= ~WS_EX_TOOLWINDOW;
-		SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle);
+		SetWindowLong(hWnd, GWL_EXSTYLE, lExStyle);
 		frameStyleChanged = true;
 	}
 
@@ -1006,25 +1006,25 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd)
 		LOG_LIMIT(3, __FUNCTION__ << " Updating window exstyle: adding WS_EX_APPWINDOW");
 
 		lExStyle |= WS_EX_APPWINDOW;
-		SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle);
-		ShowWindow(MainhWnd, SW_HIDE);	// Hide window after adding app window style
+		SetWindowLong(hWnd, GWL_EXSTYLE, lExStyle);
+		ShowWindow(hWnd, SW_HIDE);	// Hide window after adding app window style
 		frameStyleChanged = true;
 	}
 
 	// Check if window is visible
-	if (!IsWindowVisible(MainhWnd))
+	if (!IsWindowVisible(hWnd))
 	{
-		ShowWindow(MainhWnd, SW_SHOW);
+		ShowWindow(hWnd, SW_SHOW);
 	}
 
 	// Refresh styles after change
-	lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
+	lExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
 
 	// Remove topmost and ensure style changes are applied
-	SetWindowPos(MainhWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_NOTOPMOST : HWND_TOP), 0, 0, 0, 0, (frameStyleChanged ? SWP_FRAMECHANGED : 0) | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+	SetWindowPos(hWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_NOTOPMOST : HWND_TOP), 0, 0, 0, 0, (frameStyleChanged ? SWP_FRAMECHANGED : 0) | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
 	// Ensure focus if needed
-	if (MainhWnd != GetFocus() && MainhWnd != GetActiveWindow())
+	if (hWnd != GetFocus() && hWnd != GetActiveWindow())
 	{
 		DWORD currentThread = GetCurrentThreadId();
 		DWORD foregroundThread = GetWindowThreadProcessId(GetForegroundWindow(), nullptr);
@@ -1034,9 +1034,9 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd)
 			AttachThreadInput(currentThread, foregroundThread, TRUE);
 		}
 
-		SetFocus(MainhWnd);
-		SetActiveWindow(MainhWnd);
-		BringWindowToTop(MainhWnd);
+		SetFocus(hWnd);
+		SetActiveWindow(hWnd);
+		BringWindowToTop(hWnd);
 
 		if (currentThread != foregroundThread)
 		{
@@ -1046,9 +1046,9 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND MainhWnd)
 }
 
 // Adjusting the window position for WindowMode
-void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool EnableWindowMode, bool FullscreenWindowMode)
+void m_IDirect3D9Ex::AdjustWindowSize(HMONITOR hMonitor, HWND hWnd, LONG displayWidth, LONG displayHeight, bool EnableWindowMode, bool FullscreenWindowMode)
 {
-	if (!IsWindow(MainhWnd) || !displayWidth || !displayHeight)
+	if (!IsWindow(hWnd) || !displayWidth || !displayHeight)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not set window size, nullptr.");
 		return;
@@ -1058,7 +1058,7 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 	if (!Utils::IsMonitorValid(hMonitor))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: monitor handle is invalid, using window location instead.");
-		hMonitor = Utils::GetMonitorFromWindow(MainhWnd);
+		hMonitor = Utils::GetMonitorFromWindow(hWnd);
 	}
 
 	// Get screen area and width and height
@@ -1070,10 +1070,10 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 	LONG screenClientHeight = screenClientRect.bottom - screenClientRect.top;
 
 	// Get window style
-	LONG lOrgStyle = GetWindowLong(MainhWnd, GWL_STYLE);
+	LONG lOrgStyle = GetWindowLong(hWnd, GWL_STYLE);
 	LONG lStyle = lOrgStyle;
-	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
-	BOOL HasMenu = (GetMenu(MainhWnd) != NULL);
+	LONG lExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+	BOOL HasMenu = (GetMenu(hWnd) != NULL);
 
 	// Set window style
 	bool clientWidthOverlap = false, clientHeightOverlap = false;
@@ -1144,8 +1144,8 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		// Set style if it needs to change
 		if (lOrgStyle != lStyle)
 		{
-			SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-			SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+			SetWindowLong(hWnd, GWL_STYLE, lStyle);
+			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 		}
 	}
 
@@ -1205,20 +1205,20 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		// Use SetWindowPlacement to center and adjust size
 		WINDOWPLACEMENT wndpl = {};
 		wndpl.length = sizeof(WINDOWPLACEMENT);
-		if (GetWindowPlacement(MainhWnd, &wndpl))
+		if (GetWindowPlacement(hWnd, &wndpl))
 		{
 			// Force restore first if maximized/fullscreen
-			if (wndpl.showCmd == SW_MAXIMIZE || IsZoomed(MainhWnd))
+			if (wndpl.showCmd == SW_MAXIMIZE || IsZoomed(hWnd))
 			{
-				ShowWindow(MainhWnd, SW_RESTORE);
+				ShowWindow(hWnd, SW_RESTORE);
 			}
 
 			wndpl.showCmd = SW_NORMAL;
 			wndpl.rcNormalPosition = { xLoc, yLoc, Rect.right + xLoc, Rect.bottom + yLoc };
-			Utils::SetWindowPlacementToMonitor(hMonitor, MainhWnd, &wndpl);
+			Utils::SetWindowPlacementToMonitor(hMonitor, hWnd, &wndpl);
 		}
 
 		// Use SetWindowPos to center and adjust size
-		Utils::SetWindowPosToMonitor(hMonitor, MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_NOZORDER | SWP_NOACTIVATE);
+		Utils::SetWindowPosToMonitor(hMonitor, hWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_NOZORDER | SWP_NOACTIVATE);
 	}
 }
