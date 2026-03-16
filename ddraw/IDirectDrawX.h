@@ -81,7 +81,7 @@ private:
 	static DWORD WINAPI PresentThreadFunction(LPVOID);
 	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
 	void RestoreD3DDeviceState();
-	void Clear3DFlagForAllSurfaces();
+	void Clear3DSurfaceFlag();
 	void MarkAllSurfacesDirty();
 	void ResetAllSurfaceDisplay();
 	void ReleaseD3D9IndexBuffer(LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer, DWORD& IndexBufferSize);

@@ -3066,24 +3066,24 @@ void m_IDirectDrawX::ClearD3DDevice()
 
 	SetRenderTargetSurface(nullptr);
 
-	Clear3DFlagForAllSurfaces();
+	Clear3DSurfaceFlag();
 }
 
 bool m_IDirectDrawX::IsInScene()
 {
-	if (!D3DInterface)
+	for (const auto& pDDraw : DDrawVector)
 	{
-		return false;
-	}
-
-	for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
-	{
-		if (D3DDeviceX->IsDeviceInScene())
+		if (pDDraw->D3DInterface)
 		{
-			return true;
+			for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = pDDraw->D3DInterface->GetNextD3DDevice(x); ++x)
+			{
+				if (D3DDeviceX->IsDeviceInScene())
+				{
+					return true;
+				}
+			}
 		}
 	}
-
 	return false;
 }
 
@@ -3685,7 +3685,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	}
 
 	// Create dummy memory (2x larger)
-	m_IDirectDrawSurfaceX::SizeDummySurface(presParams.BackBufferWidth* presParams.BackBufferHeight * 4 * 2);
+	m_IDirectDrawSurfaceX::SizeDummySurface(presParams.BackBufferWidth * presParams.BackBufferHeight * sizeof(D3DCOLORVALUE) * 2);
 
 	// Clear FourCC's list after device creation
 	FourCCsList.clear();
@@ -4188,26 +4188,20 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 
 void m_IDirectDrawX::RestoreD3DDeviceState()
 {
-	for (const auto& pDDraw : DDrawVector)
+	if (D3DInterface)
 	{
-		if (pDDraw->D3DInterface)
+		for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
 		{
-			for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
-			{
-				D3DDeviceX->AfterResetDevice();
-			}
+			D3DDeviceX->AfterResetDevice();
 		}
 	}
 }
 
-void m_IDirectDrawX::Clear3DFlagForAllSurfaces()
+void m_IDirectDrawX::Clear3DSurfaceFlag()
 {
-	for (const auto& pDDraw : DDrawVector)
+	for (const auto& pSurface : SurfaceList)
 	{
-		for (const auto& pSurface : pDDraw->SurfaceList)
-		{
-			pSurface.Interface->ClearUsing3DFlag();
-		}
+		pSurface.Interface->ClearUsing3DFlag();
 	}
 }
 
@@ -4519,7 +4513,7 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 		{
 			pDDraw->D3DInterface->ClearSurface(lpSurfaceX);
 
-			for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
+			for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = pDDraw->D3DInterface->GetNextD3DDevice(x); ++x)
 			{
 				D3DDeviceX->ClearSurface(lpSurfaceX);
 			}
