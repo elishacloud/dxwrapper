@@ -969,12 +969,6 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd)
 	LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
 	LONG lExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
 
-	// Check if window is minimized
-	if (IsIconic(hWnd))
-	{
-		ShowWindow(hWnd, SW_RESTORE);
-	}
-
 	bool frameStyleChanged = false;
 
 	// Add border if vulkan is being used
@@ -1007,18 +1001,20 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd)
 
 		lExStyle |= WS_EX_APPWINDOW;
 		SetWindowLong(hWnd, GWL_EXSTYLE, lExStyle);
-		ShowWindow(hWnd, SW_HIDE);	// Hide window after adding app window style
 		frameStyleChanged = true;
 	}
 
 	// Check if window is visible
 	if (!IsWindowVisible(hWnd))
 	{
-		ShowWindow(hWnd, SW_SHOW);
+		ShowWindow(hWnd, SW_SHOWNA);
 	}
 
-	// Refresh styles after change
-	lExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+	// Check if window is minimized
+	if (IsIconic(hWnd))
+	{
+		ShowWindow(hWnd, SW_RESTORE);
+	}
 
 	// Remove topmost and ensure style changes are applied
 	SetWindowPos(hWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_NOTOPMOST : HWND_TOP), 0, 0, 0, 0, (frameStyleChanged ? SWP_FRAMECHANGED : 0) | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);

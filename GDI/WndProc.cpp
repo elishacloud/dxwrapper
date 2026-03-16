@@ -619,12 +619,27 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 				return DefWndProc(hWnd, Msg, wParam, lParam);
 			}
 		}
+		// Filter some messages while forcing windowed mode
+		if (pDataStruct->IsCreatingDevice && IsForcingWindowedMode)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when forcing windowed mode. " <<
+				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
+			return DefWndProc(hWnd, Msg, wParam, lParam);
+		}
+		break;
+
+	case WM_STYLECHANGING:
+	case WM_STYLECHANGED:
+		// Filter style change messages when creating device
+		if (pDataStruct->IsCreatingDevice)
+		{
+			return DefWndProc(hWnd, Msg, wParam, lParam);
+		}
 		[[fallthrough]];
 	case WM_ENTERSIZEMOVE:
 	case WM_EXITSIZEMOVE:
 	case WM_SIZING:
-	case WM_STYLECHANGING:
-	case WM_STYLECHANGED:
+	case WM_MOVING:
 		// Filter some messages while forcing windowed mode
 		if (pDataStruct->IsCreatingDevice && IsForcingWindowedMode)
 		{
