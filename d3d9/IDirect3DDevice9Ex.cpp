@@ -71,6 +71,8 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: disabling unsupported interface: " << riid);
 
+		*ppvObj = nullptr;
+
 		return E_NOINTERFACE;
 	}
 
@@ -102,6 +104,8 @@ ULONG m_IDirect3DDevice9Ex::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	ScopedCriticalSection ThreadLock(&SHARED.d9cs, Config.AntiAliasing || RequirePresentHandling());
+
 	ULONG ref = ProxyInterface->Release();
 
 	ULONG UsedRef = GetResourceRefCount();
@@ -126,6 +130,7 @@ ULONG m_IDirect3DDevice9Ex::Release()
 #endif
 
 		UsedRef = 0;
+
 		ref = ProxyInterface->Release();
 	}
 	else if (ref > 0 && ref < UsedRef)
@@ -3187,8 +3192,6 @@ DWORD m_IDirect3DDevice9Ex::GetResourceRefCount()
 
 void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 {
-	ScopedCriticalSection ThreadLock(&SHARED.d9cs, RequirePresentHandling());
-
 	if (GammaLUTTexture)
 	{
 		ULONG ref = GammaLUTTexture->Release();
@@ -3583,6 +3586,8 @@ void m_IDirect3DDevice9Ex::ClearVars()
 template <typename T>
 HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentationParameters, bool IsEx, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
 {
+	ScopedCriticalSection ThreadLock(&SHARED.d9cs, Config.AntiAliasing || RequirePresentHandling());
+
 	// Release extra resources used
 	for (const auto& entry : SHARED.DeviceMap)
 	{
