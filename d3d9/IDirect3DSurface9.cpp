@@ -28,7 +28,6 @@ HRESULT m_IDirect3DSurface9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 	{
 		return E_POINTER;
 	}
-	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{
@@ -43,14 +42,11 @@ HRESULT m_IDirect3DSurface9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 
 	if (riid == IID_IUnknown || riid == WrapperID || riid == IID_IDirect3DResource9)
 	{
-		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
+		AddRef();
 
-		if (SUCCEEDED(hr))
-		{
-			*ppvObj = this;
-		}
+		*ppvObj = this;
 
-		return hr;
+		return D3D_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);

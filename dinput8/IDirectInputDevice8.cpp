@@ -22,7 +22,12 @@ HRESULT m_IDirectInputDevice8::QueryInterface(REFIID riid, LPVOID* ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == WrapperID || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
+	if (riid == WrapperID || riid == IID_IUnknown)
 	{
 		AddRef();
 

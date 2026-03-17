@@ -24,16 +24,18 @@ HRESULT m_IDirect3DQuery9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
 	if (riid == IID_IUnknown || riid == WrapperID)
 	{
-		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
+		AddRef();
 
-		if (SUCCEEDED(hr))
-		{
-			*ppvObj = this;
-		}
+		*ppvObj = this;
 
-		return hr;
+		return D3D_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);

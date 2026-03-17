@@ -24,16 +24,18 @@ HRESULT m_IDirect3DDXVADevice9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if (riid == IID_IUnknown || riid == WrapperID || riid == IID_IDirect3DBaseTexture9 || riid == IID_IDirect3DResource9)
+	if (!ppvObj)
 	{
-		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
+		return E_POINTER;
+	}
 
-		if (SUCCEEDED(hr))
-		{
-			*ppvObj = this;
-		}
+	if (riid == IID_IUnknown || riid == WrapperID)
+	{
+		AddRef();
 
-		return hr;
+		*ppvObj = this;
+
+		return D3D_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);

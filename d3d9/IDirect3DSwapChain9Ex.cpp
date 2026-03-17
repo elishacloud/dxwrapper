@@ -28,18 +28,14 @@ HRESULT m_IDirect3DSwapChain9Ex::QueryInterface(THIS_ REFIID riid, void** ppvObj
 	{
 		return E_POINTER;
 	}
-	*ppvObj = nullptr;
 
 	if (riid == IID_IUnknown || riid == WrapperID || (IsForcingD3d9to9Ex() && riid == IID_IDirect3DSwapChain9))
 	{
-		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
+		AddRef();
 
-		if (SUCCEEDED(hr))
-		{
-			*ppvObj = this;
-		}
+		*ppvObj = this;
 
-		return hr;
+		return D3D_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);

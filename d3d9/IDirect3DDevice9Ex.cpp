@@ -40,7 +40,6 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 	{
 		return E_POINTER;
 	}
-	*ppvObj = nullptr;
 
 	if (riid == IID_GetRealInterface)
 	{
@@ -55,16 +54,13 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 
 	if (riid == IID_IUnknown || riid == WrapperID || (IsForcingD3d9to9Ex() && riid == IID_IDirect3DDevice9))
 	{
-		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
+		AddRef();
 
-		if (SUCCEEDED(hr))
-		{
-			*ppvObj = this;
+		*ppvObj = this;
 
-			SHARED.DeviceMap[this] = TRUE;
-		}
+		SHARED.DeviceMap[this] = TRUE;
 
-		return hr;
+		return D3D_OK;
 	}
 
 	// Check for unsupported IIDs
