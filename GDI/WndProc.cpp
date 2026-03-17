@@ -603,24 +603,9 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
-		// Filter size change messages while creating a device if size isn't changing
-		// Some games (e.g. Splintercell Chaos Theory) don't handle size messages well
-		if (pDataStruct->IsCreatingDevice && pDataStruct->IsExclusiveMode)
-		{
-			int width = (int)LOWORD(lParam);
-			int height = (int)HIWORD(lParam);
-
-			RECT Rect = {};
-			GetClientRect(hWnd, &Rect);
-
-			if (width == Rect.right && height == Rect.bottom)
-			{
-				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when creating a device: " << Logging::hex(Msg));
-				return DefWndProc(hWnd, Msg, wParam, lParam);
-			}
-		}
-		// Filter some messages while forcing windowed mode
-		if (pDataStruct->IsCreatingDevice && IsForcingWindowedMode)
+		// Filter size change when creating device
+		// Some games (e.g. Police Quest SWAT 2, Splintercell Chaos Theory) don't handle size messages well
+		if (pDataStruct->IsCreatingDevice)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when forcing windowed mode. " <<
 				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
@@ -630,18 +615,12 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_STYLECHANGING:
 	case WM_STYLECHANGED:
-		// Filter style change messages when creating device
-		if (pDataStruct->IsCreatingDevice)
-		{
-			return DefWndProc(hWnd, Msg, wParam, lParam);
-		}
-		[[fallthrough]];
 	case WM_ENTERSIZEMOVE:
 	case WM_EXITSIZEMOVE:
 	case WM_SIZING:
 	case WM_MOVING:
-		// Filter some messages while forcing windowed mode
-		if (pDataStruct->IsCreatingDevice && IsForcingWindowedMode)
+		// Filter some messages when creating device
+		if (pDataStruct->IsCreatingDevice)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when forcing windowed mode. " <<
 				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
@@ -703,8 +682,8 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		return DefWndProc(hWnd, Msg, wParam, lParam);
 
 	case WM_ERASEBKGND:
-		// Filter background clear when in exclusive mode
-		if (pDataStruct->IsExclusiveMode)
+		// Filter background clear when creating device or in exclusive mode
+		if (pDataStruct->IsCreatingDevice || pDataStruct->IsExclusiveMode)
 		{
 			return 1;
 		}
