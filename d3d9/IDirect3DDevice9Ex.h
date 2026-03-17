@@ -42,8 +42,6 @@ struct DEVICEDETAILS
 
 	StateBlockCache DeletedStateBlocks;
 
-	std::unordered_set<m_IDirect3DSurface9*> EmulatedSurfaceList;
-
 	// Limit frame rate
 	struct {
 		DWORD FrameCounter = 0;
@@ -86,6 +84,8 @@ private:
 	// Begin/End Scene
 	bool IsInScene = false;
 	bool BeginSceneCalled = false;
+
+	std::unordered_set<m_IDirect3DSurface9*> EmulatedSurfaceList;
 
 	// FPS display
 	LPD3DXFONT pFont = nullptr;
@@ -374,8 +374,8 @@ public:
 	DWORD GetDeviceMultiSampleQuality() const { return SHARED.DeviceMultiSampleQuality; }
 	DWORD GetClientDXVersion() const { return SHARED.ClientDirectXVersion; }
 	REFIID GetIID() { return WrapperID; }
-	void AddSurfaceToList(m_IDirect3DSurface9* pSurface) const { SHARED.EmulatedSurfaceList.insert(pSurface); }
-	void RemoveSurfaceFromList(m_IDirect3DSurface9* pSurface) const { SHARED.EmulatedSurfaceList.erase(pSurface); }
+	void AddSurfaceToList(m_IDirect3DSurface9* pSurface) { EmulatedSurfaceList.insert(pSurface); }
+	void RemoveSurfaceFromList(m_IDirect3DSurface9* pSurface) { EmulatedSurfaceList.erase(pSurface); }
 
 	// Helper functions
 	HRESULT GetFakeFrontBufferData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);

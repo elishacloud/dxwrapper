@@ -74,7 +74,7 @@ public:
 
 	// Information functions
 	LPDIRECT3DSURFACE9 GetProxyInterface() const { return ProxyInterface; }
-	ULONG GetSurfaceCount() const { return Emu.pSurface ? 2 : 1; }
+	ULONG GetEmulatedSurfaceCount() const { return Emu.pSurface ? 1 : 0; }
 
 	// Helper functions
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*);

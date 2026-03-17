@@ -77,7 +77,7 @@ public:
         ULONG ref = 0;
         for (auto* s : surfaces)
         {
-            if (s) ref += s->GetSurfaceCount();
+            if (s) ref += 1;
         }
         return ref;
     }

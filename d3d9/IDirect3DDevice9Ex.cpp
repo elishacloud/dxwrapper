@@ -125,6 +125,7 @@ ULONG m_IDirect3DDevice9Ex::Release()
 		}
 #endif
 
+		UsedRef = 0;
 		ref = ProxyInterface->Release();
 	}
 	else if (ref > 0 && ref < UsedRef)
@@ -3166,6 +3167,12 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 
 DWORD m_IDirect3DDevice9Ex::GetResourceRefCount()
 {
+	ULONG EmulatedSurfaceRef = 0;
+	for (auto* s : EmulatedSurfaceList)
+	{
+		if (s) EmulatedSurfaceRef += s->GetEmulatedSurfaceCount();
+	}
+
 	return
 		(GammaLUTTexture ? 1 : 0) +
 		(ScreenCopyTexture ? 1 : 0) +
@@ -3174,6 +3181,7 @@ DWORD m_IDirect3DDevice9Ex::GetResourceRefCount()
 		(pFont ? 1 + FontRefCount : 0) +
 		(pSprite ? 2 + SprintRefCount : 0) +
 		(pStateBlock ? 1 : 0) +
+		EmulatedSurfaceRef +
 		ShadowBackbuffer->GetRefCount();
 }
 
@@ -3259,19 +3267,19 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 	// Release shadow backbuffer
 	ReleaseShadowBackbuffer();
 
+	// Release emulated surfaces
+	while (!EmulatedSurfaceList.empty())
+	{
+		auto it = EmulatedSurfaceList.begin();
+		auto* pSurface = *it;
+
+		pSurface->ReleaseEmulatedSurface();
+
+		EmulatedSurfaceList.erase(it);
+	}
+
 	if (isReset)
 	{
-		// Release emulated surfaces
-		while (!SHARED.EmulatedSurfaceList.empty())
-		{
-			auto it = SHARED.EmulatedSurfaceList.begin();
-			auto* pSurface = *it;
-
-			pSurface->ReleaseEmulatedSurface();
-
-			SHARED.EmulatedSurfaceList.erase(it);
-		}
-
 		// Anisotropic Filtering
 		isAnisotropySet = false;
 		AnisotropyDisabledFlag = false;
@@ -3575,7 +3583,14 @@ void m_IDirect3DDevice9Ex::ClearVars()
 template <typename T>
 HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentationParameters, bool IsEx, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
 {
-	ReleaseResources(true);
+	// Release extra resources used
+	for (const auto& entry : SHARED.DeviceMap)
+	{
+		if (entry.second)
+		{
+			entry.first->ReleaseResources(true);
+		}
+	}
 
 #ifdef ENABLE_DEBUGOVERLAY
 	// Teardown debug overlay before reset
