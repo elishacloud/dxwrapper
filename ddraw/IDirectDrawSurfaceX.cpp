@@ -16,6 +16,7 @@
 
 #include "winmm.h"
 #include "ddraw.h"
+#include <deque>
 #include <fstream>
 #include "Utils\Utils.h"
 
@@ -610,8 +611,9 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 
 		do {
 			// Set critical section
-			ScopedCriticalSection ThreadLock(GetCriticalSection());
-			ScopedCriticalSection ThreadLockSrc(lpDDSrcSurfaceX->GetCriticalSection());
+			CRITICAL_SECTION* cs[2] = { GetCriticalSection(), lpDDSrcSurfaceX->GetCriticalSection() };
+			ScopedCriticalSection ThreadLock(cs[0]);
+			ScopedCriticalSection ThreadLockSrc(cs[1], cs[0] != cs[1]);
 
 			// Set blt flag
 			ScopedFlagSet AutoSet(IsInBlt);
@@ -1346,18 +1348,21 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 			}
 		}
 
-		// Prepare critical sections
+		// Set critical section
 		std::vector<ScopedCriticalSection> ThreadLocks;
-		ThreadLocks.reserve(FlipList.size() + 1);
-		ThreadLocks.emplace_back(GetCriticalSection());
-
-		// Set critical section for each surface
-		for (auto& pSurfaceX : FlipList)
 		{
-			// Constructs AUTOCRITICALLOCK and locks the section
-			ThreadLocks.emplace_back(pSurfaceX->GetCriticalSection());
+			// Collect each unique critical section
+			std::deque<CRITICAL_SECTION*> CriticalSectionList;
+			for (auto& pSurfaceX : FlipList) CriticalSectionList.push_back(pSurfaceX->GetCriticalSection());
+
+			// Reserve space in critical section list
+			ThreadLocks.reserve(CriticalSectionList.size());
+
+			// Construct each unique critical section
+			for (const auto& cs : CriticalSectionList) ThreadLocks.emplace_back(cs);
 		}
 
+		// Execute flip
 		{
 			// Set flip flag
 			ScopedFlagSet AutoSet(IsInFlip);
@@ -1382,7 +1387,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				ClearDirtyFlags();
 			}
 
-			// Execute flip
+			// Flip surfaces
 			for (size_t x = 0; x < FlipList.size() - 1; x++)
 			{
 				SwapAddresses(&FlipList[x]->surface, &FlipList[x + 1]->surface);
