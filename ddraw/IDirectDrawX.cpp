@@ -612,7 +612,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		// Check for antialiasing
-		/*if ((Desc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) && ((Desc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) || (Desc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK)))
+		/*if ((Desc2.ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_3DDEVICE)) && ((Desc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) || (Desc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK)))
 		{
 			Device.AntiAliasing = true;
 		}*/
@@ -695,12 +695,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 				" " << Desc2.dwWidth << "x" << Desc2.dwHeight <<
 				" dwFlags: " << Logging::hex(Desc2.dwFlags) <<
 				" ddsCaps: " << Logging::hex(Desc2.ddsCaps.dwCaps) << ", " << Logging::hex(Desc2.ddsCaps.dwCaps2) << ", " << LOWORD(Desc2.ddsCaps.dwVolumeDepth);
-		}
-
-		// Need to add the 3D device caps for older dx because these versions didn't use this flag (e.g. The Longest Journey)
-		if ((Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) && DirectXVersion < 3)
-		{
-			Desc2.ddsCaps.dwCaps |= DDSCAPS_3DDEVICE;
 		}
 
 		DWORD DxVersion = DirectXVersion > 3 ? DirectXVersion : 1;	// The first 3 versions create interface version 1

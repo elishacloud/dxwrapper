@@ -5160,6 +5160,22 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 	return DD_OK;
 }
 
+bool m_IDirectDrawSurfaceX::IsSurface3D() const
+{
+	if ((surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE) != 0)
+	{
+		return true;
+	}
+
+	// Need to count older dx surfaces as 3D device cap because these versions didn't use this flag (e.g. The Longest Journey)
+	if (IsPrimaryOrBackBuffer() && WrapperInterface3 == nullptr && WrapperInterface4 == nullptr && WrapperInterface7 == nullptr)
+	{
+		return true;
+	}
+
+	return false;
+}
+
 // Check surface for alpha channel
 bool m_IDirectDrawSurfaceX::HasAlphaChannel(bool UsingColorKey) const
 {
