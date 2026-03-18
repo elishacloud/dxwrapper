@@ -862,10 +862,10 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 	// Get current window data
 	if (IsWindow(pPresentationParameters->hDeviceWindow) || IsWindow(DeviceDetails.DeviceWindow) || IsWindow(hFocusWindow))
 	{
-		DeviceDetails.BufferWidth = (pPresentationParameters->BackBufferWidth) ? pPresentationParameters->BackBufferWidth : DeviceDetails.BufferWidth;
-		DeviceDetails.BufferHeight = (pPresentationParameters->BackBufferHeight) ? pPresentationParameters->BackBufferHeight : DeviceDetails.BufferHeight;
-		DeviceDetails.DeviceWindow = (IsWindow(hFocusWindow)) ? hFocusWindow :
-			(IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow :
+		DeviceDetails.BufferWidth = pPresentationParameters->BackBufferWidth ? pPresentationParameters->BackBufferWidth : DeviceDetails.BufferWidth;
+		DeviceDetails.BufferHeight = pPresentationParameters->BackBufferHeight ? pPresentationParameters->BackBufferHeight : DeviceDetails.BufferHeight;
+		DeviceDetails.DeviceWindow = IsWindow(hFocusWindow) ? hFocusWindow :
+			IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow :
 			DeviceDetails.DeviceWindow;
 
 		// Adjust window styles before adjusting window
@@ -914,9 +914,9 @@ void m_IDirect3D9Ex::GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentati
 
 	if (IsWindow(pPresentationParameters->hDeviceWindow) || IsWindow(DeviceDetails.DeviceWindow))
 	{
-		DeviceDetails.DeviceWindow = (IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow;
-		DeviceDetails.BufferWidth = (pPresentationParameters->BackBufferWidth) ? pPresentationParameters->BackBufferWidth : DeviceDetails.BufferWidth;
-		DeviceDetails.BufferHeight = (pPresentationParameters->BackBufferHeight) ? pPresentationParameters->BackBufferHeight : DeviceDetails.BufferHeight;
+		DeviceDetails.DeviceWindow = IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow;
+		DeviceDetails.BufferWidth = pPresentationParameters->BackBufferWidth ? pPresentationParameters->BackBufferWidth : DeviceDetails.BufferWidth;
+		DeviceDetails.BufferHeight = pPresentationParameters->BackBufferHeight ? pPresentationParameters->BackBufferHeight : DeviceDetails.BufferHeight;
 		DeviceDetails.IsWindowMode = pPresentationParameters->Windowed;
 	}
 }
@@ -935,7 +935,7 @@ void m_IDirect3D9Ex::UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS*
 	pPresentationParameters->Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 	pPresentationParameters->SwapEffect = D3DSWAPEFFECT_DISCARD;
 
-	pPresentationParameters->BackBufferCount = (pPresentationParameters->BackBufferCount) ? pPresentationParameters->BackBufferCount : 1;
+	pPresentationParameters->BackBufferCount = pPresentationParameters->BackBufferCount ? pPresentationParameters->BackBufferCount : 1;
 }
 
 void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DDISPLAYMODEEX& Mode)
@@ -968,7 +968,7 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd)
 	{
 		if (Utils::IsVulkanModuleLoaded())
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Vulkan detected adding WS_BORDER!");
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Vulkan detected adding WS_BORDER");
 
 			lStyle |= WS_BORDER;
 			SetWindowLong(hWnd, GWL_STYLE, lStyle);
@@ -976,12 +976,12 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd)
 		}
 	}
 
-	// Remove clip siblings
-	if (lStyle & WS_CLIPCHILDREN)
+	// Remove clip siblings if SetSwapEffectShim is disabled
+	if ((lStyle & WS_CLIPCHILDREN) && !Config.SetSwapEffectShim)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: Updating window exstyle: removing WS_CLIPCHILDREN!");
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Updating window exstyle: removing WS_CLIPCHILDREN");
 
-		lStyle |= WS_CLIPCHILDREN;
+		lStyle &= ~WS_CLIPCHILDREN;
 		SetWindowLong(hWnd, GWL_STYLE, lStyle);
 	}
 
