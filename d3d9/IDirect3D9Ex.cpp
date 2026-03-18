@@ -553,11 +553,6 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		DeviceDetails.IsDirectDrawDevice = WndDataStruct->IsDirectDraw;
 	}
 
-	if (DeviceDetails.IsDirectDrawDevice && hWnd && (GetWindowLong(hWnd, GWL_STYLE) & WS_CLIPCHILDREN))
-	{
-		Direct3D9SetSwapEffectUpgradeShim(1);
-	}
-
 	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
 
 	// Create new d3d9 device
@@ -981,10 +976,19 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd)
 		}
 	}
 
+	// Remove clip siblings
+	if (lStyle & WS_CLIPCHILDREN)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: Updating window exstyle: removing WS_CLIPCHILDREN!");
+
+		lStyle |= WS_CLIPCHILDREN;
+		SetWindowLong(hWnd, GWL_STYLE, lStyle);
+	}
+
 	// Remove tool window style
 	if (lExStyle & WS_EX_TOOLWINDOW)
 	{
-		LOG_LIMIT(3, __FUNCTION__ << " Updating window exstyle: removing WS_EX_TOOLWINDOW");
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: Updating window exstyle: removing WS_EX_TOOLWINDOW");
 
 		lExStyle &= ~WS_EX_TOOLWINDOW;
 		SetWindowLong(hWnd, GWL_EXSTYLE, lExStyle);
@@ -994,7 +998,7 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd)
 	// Add app window style
 	if (!(lExStyle & WS_EX_APPWINDOW))
 	{
-		LOG_LIMIT(3, __FUNCTION__ << " Updating window exstyle: adding WS_EX_APPWINDOW");
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: Updating window exstyle: adding WS_EX_APPWINDOW");
 
 		lExStyle |= WS_EX_APPWINDOW;
 		SetWindowLong(hWnd, GWL_EXSTYLE, lExStyle);
