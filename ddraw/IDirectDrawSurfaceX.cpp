@@ -104,8 +104,6 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, false, false, false)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Query failed for " << riid << " from " << GetWrapperType(DirectXVersion));
-
 			return E_NOINTERFACE;
 		}
 
