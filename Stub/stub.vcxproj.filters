@@ -138,5 +138,8 @@
     <None Include="..\Settings\Stub.ini">
       <Filter>Settings</Filter>
     </None>
+    <None Include="wsock32.def">
+      <Filter>Wrappers</Filter>
+    </None>
   </ItemGroup>
 </Project>
