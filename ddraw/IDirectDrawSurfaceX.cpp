@@ -1352,8 +1352,8 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		std::vector<ScopedCriticalSection> ThreadLocks;
 		{
 			// Collect each unique critical section
-			std::deque<CRITICAL_SECTION*> CriticalSectionList;
-			for (auto& pSurfaceX : FlipList) CriticalSectionList.push_back(pSurfaceX->GetCriticalSection());
+			std::unordered_set<CRITICAL_SECTION*> CriticalSectionList;
+			for (auto& pSurfaceX : FlipList) CriticalSectionList.insert(pSurfaceX->GetCriticalSection());
 
 			// Reserve space in critical section list
 			ThreadLocks.reserve(CriticalSectionList.size());
