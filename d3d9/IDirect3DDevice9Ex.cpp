@@ -1188,10 +1188,10 @@ HRESULT m_IDirect3DDevice9Ex::Clear(DWORD Count, CONST D3DRECT* pRects, DWORD Fl
 	// Handle render target sync
 	if (SHARED.DeviceMultiSampleFlag && (Flags & D3DCLEAR_TARGET))
 	{
-		ComPtr<IDirect3DSurface9> pSurface;
-		if (SUCCEEDED(GetRenderTarget(0, pSurface.GetAddressOf())) && pSurface.Get())
+		ComPtr<m_IDirect3DSurface9> pSurface;
+		if (SUCCEEDED(GetRenderTarget(0, reinterpret_cast<IDirect3DSurface9**>(pSurface.GetAddressOf()))) && pSurface.Get())
 		{
-			static_cast<m_IDirect3DSurface9*>(pSurface.Get())->PrepareWritingToSurface(true);
+			pSurface->PrepareWritingToSurface(true);
 		}
 	}
 
@@ -2485,10 +2485,10 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 
 		if (msaa.MultiSampleMismatch)
 		{
-			ComPtr<IDirect3DSurface9> pSurface;
-			if (SUCCEEDED(GetRenderTarget(0, pSurface.GetAddressOf())) && pSurface.Get())
+			ComPtr<m_IDirect3DSurface9> pSurface;
+			if (SUCCEEDED(GetRenderTarget(0, reinterpret_cast<IDirect3DSurface9**>(pSurface.GetAddressOf()))) && pSurface.Get())
 			{
-				msaa.RenderTarget = static_cast<m_IDirect3DSurface9*>(pSurface.Get());
+				msaa.RenderTarget = pSurface.Get();
 
 				LPDIRECT3DSURFACE9 pRenderTarget = msaa.RenderTarget->GetMultiSampledSurface();
 				if (pRenderTarget)
@@ -2503,10 +2503,10 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 
 		for (DWORD x = 1; x < 4; x++)
 		{
-			ComPtr<IDirect3DSurface9> pSurface;
-			if (SUCCEEDED(GetRenderTarget(x, pSurface.GetAddressOf())) && pSurface.Get())
+			ComPtr<m_IDirect3DSurface9> pSurface;
+			if (SUCCEEDED(GetRenderTarget(x, reinterpret_cast<IDirect3DSurface9**>(pSurface.GetAddressOf()))) && pSurface.Get())
 			{
-				static_cast<m_IDirect3DSurface9*>(pSurface.Get())->PrepareWritingToSurface(true);
+				pSurface->PrepareWritingToSurface(true);
 			}
 		}
 
@@ -3043,21 +3043,16 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	}
 
 	// Get current backbuffer (make sure to get it from wrapper not proxy)
-	IDirect3DSurface9* pBackBuffer = nullptr;
+	ComPtr<IDirect3DSurface9> pBackBuffer;
 	{
-		ComPtr<IDirect3DSurface9> tmpBackBuffer;
-		if (FAILED(GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, tmpBackBuffer.GetAddressOf())))
+		ComPtr<m_IDirect3DSurface9> tmpBackBuffer;
+		if (FAILED(GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, reinterpret_cast<IDirect3DSurface9**>(tmpBackBuffer.GetAddressOf()))))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get back buffer!");
 			return;
 		}
-		pBackBuffer = tmpBackBuffer.Get();
-
-		m_IDirect3DSurface9* m_pBackBuffer = nullptr;
-		if (SUCCEEDED(pBackBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&m_pBackBuffer)))
-		{
-			pBackBuffer = m_pBackBuffer->GetProxyInterface();
-		}
+		*pBackBuffer.GetAddressOf() = tmpBackBuffer->GetProxyInterface();
+		pBackBuffer->AddRef();
 	}
 
 	// Create intermediate texture for shader input
@@ -3078,7 +3073,7 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get surface level from screen copy texture!");
 		return;
 	}
-	if (FAILED(ProxyInterface->StretchRect(pBackBuffer, nullptr, pCopySurface.Get(), nullptr, D3DTEXF_NONE)))
+	if (FAILED(ProxyInterface->StretchRect(pBackBuffer.Get(), nullptr, pCopySurface.Get(), nullptr, D3DTEXF_NONE)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to copy render target!");
 		return;
@@ -3478,7 +3473,7 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 		// Handle render target
 		{
 			ComPtr<IDirect3DSurface9> pSurface;
-			if (SUCCEEDED(GetRenderTarget(0, pSurface.GetAddressOf())) && pSurface.Get())
+			if (SUCCEEDED(ProxyInterface->GetRenderTarget(0, pSurface.GetAddressOf())) && pSurface.Get())
 			{
 				D3DSURFACE_DESC Desc = {};
 				pSurface->GetDesc(&Desc);
@@ -3529,7 +3524,7 @@ void m_IDirect3DDevice9Ex::CreateShadowBackbuffer()
 			Logging::Log() << __FUNCTION__ << " Error: failed to get Back Buffer!";
 			return;
 		}
-		if (FAILED(pBackbuffer.Get()->GetDesc(&Desc)))
+		if (FAILED(pBackbuffer->GetDesc(&Desc)))
 		{
 			Logging::Log() << __FUNCTION__ << " Error: failed to get surface Desc!";
 			return;
@@ -3546,6 +3541,7 @@ void m_IDirect3DDevice9Ex::CreateShadowBackbuffer()
 		{
 			Logging::Log() << __FUNCTION__ << " Error: failed to create render target!";
 			ShadowBackbuffer->ReleaseAll();
+			BackBufferList.clear();
 			return;
 		}
 		ShadowBackbuffer->SetSurface(i, surf);
