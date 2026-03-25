@@ -15,6 +15,7 @@
 */
 
 #include "d3d9.h"
+#include <d3dhal.h>
 #include "ddraw\Shaders\GammaPixelShader.h"
 #include "GDI\WndProc.h"
 #include "Utils\Utils.h"
@@ -1135,6 +1136,15 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 	{
 		AfterBeginScene();
 
+		// Set Max Anisotropy
+		if (MaxAnisotropy && (AnisotropyMin || AnisotropyMag))
+		{
+			for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
+			{
+				ProxyInterface->SetSamplerState(x, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
+			}
+		}
+
 		// Set for Multisample
 		if (SHARED.DeviceMultiSampleFlag)
 		{
@@ -1498,25 +1508,13 @@ HRESULT m_IDirect3DDevice9Ex::SetTexture(DWORD Stage, IDirect3DBaseTexture9* pTe
 		{
 		case D3DRTYPE_TEXTURE:
 			pTexture = static_cast<m_IDirect3DTexture9*>(pTexture)->GetProxyInterface();
-			if (MaxAnisotropy && Stage > 0)
-			{
-				DisableAnisotropicSamplerState((Caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
-			}
 			break;
 		case D3DRTYPE_VOLUMETEXTURE:
 			pTexture = static_cast<m_IDirect3DVolumeTexture9*>(pTexture)->GetProxyInterface();
-			if (MaxAnisotropy && Stage > 0)
-			{
-				DisableAnisotropicSamplerState((Caps.VolumeTextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (Caps.VolumeTextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
-			}
 			break;
 		case D3DRTYPE_CUBETEXTURE:
 			pTexture = static_cast<m_IDirect3DCubeTexture9*>(pTexture)->GetProxyInterface();
 			isTexCube = true;
-			if (MaxAnisotropy && Stage > 0)
-			{
-				DisableAnisotropicSamplerState((Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC), (Caps.CubeTextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC));
-			}
 			break;
 		default:
 			return D3DERR_INVALIDCALL;
@@ -1602,7 +1600,7 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	}
 
 	// Enable Anisotropic Filtering
-	if (MaxAnisotropy && Sampler == 0)
+	if (MaxAnisotropy)
 	{
 		if (Type == D3DSAMP_MAXANISOTROPY)
 		{
@@ -1611,16 +1609,11 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 				return D3D_OK;
 			}
 		}
-		else if ((Value == D3DTEXF_LINEAR || Value == D3DTEXF_ANISOTROPIC) && (Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MAGFILTER))
+		else if (((Type == D3DSAMP_MINFILTER && AnisotropyMin) || (Type == D3DSAMP_MAGFILTER && AnisotropyMag)) && Value != D3DTEXF_NONE && Value != D3DTEXF_POINT)
 		{
-			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy)) &&
-				SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC)))
+			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC)))
 			{
-				if (!isAnisotropySet)
-				{
-					isAnisotropySet = true;
-					Logging::Log() << "Setting Anisotropic Filtering at " << MaxAnisotropy << "x";
-				}
+				LOG_ONCE("Setting Anisotropic Filtering at " << MaxAnisotropy << "x");
 				return D3D_OK;
 			}
 		}
@@ -2465,12 +2458,6 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 		ApplyClipPlanes();
 	}
 
-	// Reenable Anisotropic Filtering
-	if (MaxAnisotropy)
-	{
-		ReenableAnisotropicSamplerState();
-	}
-
 	// Fix environment map cubes
 	if (Config.EnvironmentCubeMapFix)
 	{
@@ -2911,53 +2898,6 @@ void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD pos
 	}
 }
 
-void m_IDirect3DDevice9Ex::DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag)
-{
-	DWORD Value = 0;
-	for (int x = 0; x < 4; x++)
-	{
-		if (!AnisotropyMin)	// Anisotropic Min Filter is not supported for multi-stage textures
-		{
-			if (SUCCEEDED(ProxyInterface->GetSamplerState(x, D3DSAMP_MINFILTER, &Value)) && Value == D3DTEXF_ANISOTROPIC &&
-				SUCCEEDED(ProxyInterface->SetSamplerState(x, D3DSAMP_MINFILTER, D3DTEXF_LINEAR)))
-			{
-				AnisotropyDisabledFlag = true;
-			}
-		}
-		if (!AnisotropyMag)	// Anisotropic Mag Filter is not supported for multi-stage textures
-		{
-			if (SUCCEEDED(ProxyInterface->GetSamplerState(x, D3DSAMP_MAGFILTER, &Value)) && Value == D3DTEXF_ANISOTROPIC &&
-				SUCCEEDED(ProxyInterface->SetSamplerState(x, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR)))
-			{
-				AnisotropyDisabledFlag = true;
-			}
-		}
-	}
-}
-
-void m_IDirect3DDevice9Ex::ReenableAnisotropicSamplerState()
-{
-	if (AnisotropyDisabledFlag)
-	{
-		bool Flag = false;
-		DWORD Value = 0;
-		for (int x = 0; x < 4; x++)
-		{
-			if (!(SUCCEEDED(ProxyInterface->GetSamplerState(x, D3DSAMP_MINFILTER, &Value)) && Value == D3DTEXF_LINEAR &&
-				SUCCEEDED(ProxyInterface->SetSamplerState(x, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC))))
-			{
-				Flag = true;	// Unable to re-eanble Anisotropic filtering
-			}
-			if (!(SUCCEEDED(ProxyInterface->GetSamplerState(x, D3DSAMP_MAGFILTER, &Value)) && Value == D3DTEXF_LINEAR &&
-				SUCCEEDED(ProxyInterface->SetSamplerState(x, D3DSAMP_MAGFILTER, D3DTEXF_ANISOTROPIC))))
-			{
-				Flag = true;	// Unable to re-eanble Anisotropic filtering
-			}
-		}
-		AnisotropyDisabledFlag = Flag;
-	}
-}
-
 HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
 {
 	Logging::LogDebug() << __FUNCTION__;
@@ -3278,10 +3218,6 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 
 	if (isReset)
 	{
-		// Anisotropic Filtering
-		isAnisotropySet = false;
-		AnisotropyDisabledFlag = false;
-
 		// clear Begin/End Scene flags
 		IsInScene = false;
 		BeginSceneCalled = false;
@@ -3459,6 +3395,9 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 	if (Config.AnisotropicFiltering)
 	{
 		MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
+		AnisotropyMin = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC);
+		AnisotropyMag = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC);
+		LOG_ONCE("Anisotropic Filtering DeviceCaps. Min: " << AnisotropyMin << " Max: " << AnisotropyMag);
 	}
 
 	ShadowBackbuffer->ReleaseAll();
@@ -3573,8 +3512,6 @@ void m_IDirect3DDevice9Ex::ReleaseShadowBackbuffer()
 void m_IDirect3DDevice9Ex::ClearVars()
 {
 	// Clear variables
-	isAnisotropySet = false;
-	AnisotropyDisabledFlag = false;
 	isClipPlaneSet = false;
 	ClipPlaneRenderState = 0;
 }

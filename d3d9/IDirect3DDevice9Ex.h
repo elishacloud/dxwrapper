@@ -80,6 +80,8 @@ private:
 	UINT DDKey;
 
 	D3DCAPS9 Caps = {};
+	bool AnisotropyMin = false;
+	bool AnisotropyMag = false;
 
 	// Begin/End Scene
 	bool IsInScene = false;
@@ -121,8 +123,6 @@ private:
 
 	// Anisotropic Filtering
 	DWORD MaxAnisotropy = 0;
-	bool isAnisotropySet = false;
-	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
 
 	// Antialiasing
 	struct {
@@ -152,10 +152,6 @@ private:
 	// Frame counter
 	void CalculateFPS() const;
 	void DrawFPS(float fps, const RECT& presentRect, DWORD position);
-
-	// Anisotropic Filtering
-	void DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag);
-	void ReenableAnisotropicSamplerState();
 
 	// Gamma
 	HRESULT SetBrightnessLevel(D3DGAMMARAMP& Ramp);
