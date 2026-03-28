@@ -121,132 +121,6 @@ void ConvertMaterial(D3DMATERIAL7& Material7, const D3DMATERIAL& Material)
 	Material7.dvPower = Material.dvPower;
 }
 
-void ConvertViewport(D3DVIEWPORT& Viewport, const D3DVIEWPORT2& Viewport2)
-{
-	if (Viewport.dwSize != sizeof(D3DVIEWPORT) || Viewport2.dwSize != sizeof(D3DVIEWPORT2))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Viewport.dwSize << " " << Viewport2.dwSize);
-		return;
-	}
-	// Convert variables
-	Viewport.dwX = Viewport2.dwX;
-	Viewport.dwY = Viewport2.dwY;
-	Viewport.dwWidth = Viewport2.dwWidth;
-	Viewport.dwHeight = Viewport2.dwHeight;
-	Viewport.dvMinZ = Viewport2.dvMinZ;
-	Viewport.dvMaxZ = Viewport2.dvMaxZ;
-	// Extra parameters
-	Viewport.dvScaleX = 0;        /* Scale homogeneous to screen */
-	Viewport.dvScaleY = 0;        /* Scale homogeneous to screen */
-	Viewport.dvMaxX = 0;          /* Min/max homogeneous x coord */
-	Viewport.dvMaxY = 0;          /* Min/max homogeneous y coord */
-}
-
-void ConvertViewport(D3DVIEWPORT2& Viewport2, const D3DVIEWPORT& Viewport)
-{
-	if (Viewport2.dwSize != sizeof(D3DVIEWPORT2) || Viewport.dwSize != sizeof(D3DVIEWPORT))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Viewport2.dwSize << " " << Viewport.dwSize);
-		return;
-	}
-	// Convert variables
-	Viewport2.dwX = Viewport.dwX;
-	Viewport2.dwY = Viewport.dwY;
-	Viewport2.dwWidth = Viewport.dwWidth;
-	Viewport2.dwHeight = Viewport.dwHeight;
-	Viewport2.dvMinZ = Viewport.dvMinZ;
-	Viewport2.dvMaxZ = Viewport.dvMaxZ;
-	// Extra parameters
-	Viewport2.dvClipX = 0;        /* Top left of clip volume */
-	Viewport2.dvClipY = 0;
-	Viewport2.dvClipWidth = 0;    /* Clip Volume Dimensions */
-	Viewport2.dvClipHeight = 0;
-}
-
-void ConvertViewport(D3DVIEWPORT& Viewport, const D3DVIEWPORT7& Viewport7)
-{
-	if (Viewport.dwSize != sizeof(D3DVIEWPORT))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Viewport.dwSize);
-		return;
-	}
-	// Convert variables
-	Viewport.dwX = Viewport7.dwX;
-	Viewport.dwY = Viewport7.dwY;
-	Viewport.dwWidth = Viewport7.dwWidth;
-	Viewport.dwHeight = Viewport7.dwHeight;
-	Viewport.dvMinZ = Viewport7.dvMinZ;
-	Viewport.dvMaxZ = Viewport7.dvMaxZ;
-	// Extra parameters
-	Viewport.dvScaleX = 0;        /* Scale homogeneous to screen */
-	Viewport.dvScaleY = 0;        /* Scale homogeneous to screen */
-	Viewport.dvMaxX = 0;          /* Min/max homogeneous x coord */
-	Viewport.dvMaxY = 0;          /* Min/max homogeneous y coord */
-}
-
-void ConvertViewport(D3DVIEWPORT2& Viewport2, const D3DVIEWPORT7& Viewport7)
-{
-	if (Viewport2.dwSize != sizeof(D3DVIEWPORT2))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Viewport2.dwSize);
-		return;
-	}
-	// Convert variables
-	Viewport2.dwX = Viewport7.dwX;
-	Viewport2.dwY = Viewport7.dwY;
-	Viewport2.dwWidth = Viewport7.dwWidth;
-	Viewport2.dwHeight = Viewport7.dwHeight;
-	Viewport2.dvMinZ = Viewport7.dvMinZ;
-	Viewport2.dvMaxZ = Viewport7.dvMaxZ;
-	// Extra parameters
-	Viewport2.dvClipX = 0;        /* Top left of clip volume */
-	Viewport2.dvClipY = 0;
-	Viewport2.dvClipWidth = 0;    /* Clip Volume Dimensions */
-	Viewport2.dvClipHeight = 0;
-}
-
-void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT& Viewport)
-{
-	if (Viewport.dwSize != sizeof(D3DVIEWPORT))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Viewport.dwSize);
-		return;
-	}
-	// Convert variables
-	Viewport7.dwX = Viewport.dwX;
-	Viewport7.dwY = Viewport.dwY;
-	Viewport7.dwWidth = Viewport.dwWidth;
-	Viewport7.dwHeight = Viewport.dwHeight;
-	Viewport7.dvMinZ = Viewport.dvMinZ;
-	Viewport7.dvMaxZ = Viewport.dvMaxZ;
-}
-
-void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT2& Viewport2)
-{
-	if (Viewport2.dwSize != sizeof(D3DVIEWPORT2))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Viewport2.dwSize);
-		return;
-	}
-	// Convert variables
-	Viewport7.dwX = Viewport2.dwX;
-	Viewport7.dwY = Viewport2.dwY;
-	Viewport7.dwWidth = Viewport2.dwWidth;
-	Viewport7.dwHeight = Viewport2.dwHeight;
-	Viewport7.dvMinZ = Viewport2.dvMinZ;
-	Viewport7.dvMaxZ = Viewport2.dvMaxZ;
-}
-
-void ConvertViewport(D3DVIEWPORT7& Viewport, const D3DVIEWPORT7& Viewport7)
-{
-	Viewport.dwX = Viewport7.dwX;
-	Viewport.dwY = Viewport7.dwY;
-	Viewport.dwWidth = Viewport7.dwWidth;
-	Viewport.dwHeight = Viewport7.dwHeight;
-	Viewport.dvMinZ = Viewport7.dvMinZ;
-	Viewport.dvMaxZ = Viewport7.dvMaxZ;
-}
-
 D3DVIEWPORT9 FixViewport(const D3DVIEWPORT9& Viewport)
 {
 	D3DVIEWPORT9 result = Viewport;
@@ -443,20 +317,31 @@ bool IsValidTransformState(D3DTRANSFORMSTATETYPE State)
 	}
 }
 
-D3DMATRIX FixMatrix(const D3DMATRIX& Matrix, D3DTRANSFORMSTATETYPE State, D3DVIEWPORT Viewport, bool ScaleMatrix)
+D3DMATRIX UpdateProjectionMatrix(const D3DMATRIX& Matrix, D3DVECTOR Scale, D3DVECTOR Clip, bool SetClipping)
 {
 	D3DMATRIX result = Matrix;
 
-	if (ScaleMatrix && State == D3DTS_PROJECTION)
+	if (Scale.x != 0 && Scale.y != 0 && Scale.z != 0)
 	{
-		if (Viewport.dvScaleX != 0 && Viewport.dvScaleY != 0 && Viewport.dvMaxX != 0 && Viewport.dvMaxY != 0 && Viewport.dwWidth != 0 && Viewport.dwHeight != 0)
-		{
-			const float sx = 2.0f * (Viewport.dvScaleX * Viewport.dvMaxX) / Viewport.dwWidth;
-			const float sy = 2.0f * (Viewport.dvScaleY * Viewport.dvMaxY) / Viewport.dwHeight;
+		result._11 *= Scale.x;
+		result._22 *= Scale.y;
+		result._33 *= Scale.z;
 
-			result._11 *= sx;
-			result._22 *= sy;
+		// Set clip to 0
+		if (SetClipping)
+		{
+			result._41 *= Clip.x;
+			result._42 *= Clip.y;
+			result._43 *= Clip.z;
 		}
+		else
+		{
+			result._41 = 0.0f;
+			result._42 = 0.0f;
+			result._43 = 0.0f;
+		}
+
+		//result._44 *= 1.0f;
 	}
 
 	return result;

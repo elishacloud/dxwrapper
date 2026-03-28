@@ -16,10 +16,7 @@ private:
 
 	// Convert to Direct3D9
 	m_IDirect3DX* D3DInterface = nullptr;
-	bool IsViewPortSet = false;
-	D3DVIEWPORT vData = {};
-	bool IsViewPort2Set = false;
-	D3DVIEWPORT2 vData2 = {};
+	VIEWPORTINFO Viewport;
 	m_IDirectDrawSurfaceX* pBackgroundDepthSurfaceX = nullptr;
 
 	struct MATERIALBACKGROUND {
@@ -78,6 +75,9 @@ private:
 	// Interface initialization functions
 	void InitInterface(DWORD DirectXVersion);
 	void ReleaseInterface();
+
+	// Helper functions
+	HRESULT GetDefaultViewport();
 
 public:
 	m_IDirect3DViewportX(IDirect3DViewport3 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
@@ -154,6 +154,7 @@ public:
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	void SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
+	void SetCurrentViewport(m_IDirect3DDeviceX* D3DDevice, bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
 	void ClearCurrentViewport(m_IDirect3DDeviceX* pDirect3DDeviceX, bool ClearViewport);
 	void AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);

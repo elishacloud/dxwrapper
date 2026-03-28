@@ -126,6 +126,10 @@ enum DirectDrawEnumerateTypes
 
 using namespace DdrawWrapper;
 
+// Direct3D Helpers
+#include "IDirect3DTypes.h"
+// DirectDraw Helpers
+#include "IDirectDrawTypes.h"
 // Direct3D Version Wrappers
 #include "Versions\IDirect3D.h"
 #include "Versions\IDirect3D2.h"
@@ -156,10 +160,6 @@ using namespace DdrawWrapper;
 #include "Versions\IDirectDrawSurface3.h"
 #include "Versions\IDirectDrawSurface4.h"
 #include "Versions\IDirectDrawSurface7.h"
-// Direct3D Helpers
-#include "IDirect3DTypes.h"
-// DirectDraw Helpers
-#include "IDirectDrawTypes.h"
 // DirectDraw Interfaces
 #include "IDirectDrawClipper.h"
 #include "IDirectDrawColorControl.h"

@@ -1505,42 +1505,25 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 			return DDERR_GENERIC;
 		}
 
-		D3DVIEWPORT Viewport = {};
-		Viewport.dwSize = sizeof(D3DVIEWPORT);
+		// Backup old viewport
+		m_IDirect3DViewportX* lpOldViewportX = lpCurrentViewportX;
 
-		HRESULT hr = lpd3dViewport->GetViewport(&Viewport);
+		// Set new viewport first
+		lpCurrentViewport = lpd3dViewport;
+		lpCurrentViewportX = lpViewportX;
 
-		if (SUCCEEDED(hr))
+		// Clear old viewport data and apply new viewport data
+		if (lpOldViewportX != lpCurrentViewportX)
 		{
-			D3DVIEWPORT7 Viewport7;
-
-			ConvertViewport(Viewport7, Viewport);
-
-			hr = SetViewport(&Viewport7);
-
-			if (SUCCEEDED(hr))
+			if (lpOldViewportX)
 			{
-				// Backup old viewport
-				m_IDirect3DViewportX* lpOldViewportX = lpCurrentViewportX;
-
-				// Set new viewport first
-				lpCurrentViewport = lpd3dViewport;
-				lpCurrentViewportX = lpViewportX;
-
-				// Clear old viewport data and apply new viewport data
-				if (lpOldViewportX != lpCurrentViewportX)
-				{
-					if (lpOldViewportX)
-					{
-						lpOldViewportX->ClearCurrentViewport(this, false);
-					}
-
-					lpCurrentViewportX->SetCurrentViewportActive(false, true, true);
-				}
+				lpOldViewportX->ClearCurrentViewport(this, false);
 			}
+
+			lpCurrentViewportX->SetCurrentViewport(this, true, true, true);
 		}
 
-		return hr;
+		return D3D_OK;
 	}
 
 	if (lpd3dViewport)
@@ -5077,51 +5060,18 @@ LPDIRECT3DDEVICE9* m_IDirect3DDeviceX::GetD3d9Device()
 	return d3d9Device;
 }
 
-HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT lpViewport)
+HRESULT m_IDirect3DDeviceX::SetViewportData(VIEWPORTINFO& Viewport)
 {
-	if (!lpViewport)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
-	D3DVIEWPORT7 Viewport7 = {};
-	ConvertViewport(Viewport7, *lpViewport);
-
-	HRESULT hr = SetViewport(&Viewport7);
+	HRESULT hr = SetD9Viewport(&Viewport.Data9);
 
 	if (SUCCEEDED(hr))
 	{
 		DeviceStates.Viewport.UseViewportScale = true;
-		DeviceStates.Viewport.ViewportScale = *lpViewport;
-
-		// Set transform
-		D3DMATRIX Matrix = {};
-		if (SUCCEEDED(GetD9Transform(D3DTS_PROJECTION, &Matrix)))
-		{
-			SetD9Transform(D3DTS_PROJECTION, &Matrix);
-		}
+		DeviceStates.Viewport.Scale = Viewport.Scale;
+		DeviceStates.Viewport.Clip = Viewport.Clip;
 	}
 
-	return hr;
-}
-
-HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT2 lpViewport)
-{
-	if (!lpViewport)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
-	if (lpViewport->dvClipWidth != 0 || lpViewport->dvClipHeight != 0 || lpViewport->dvClipX != 0 || lpViewport->dvClipY != 0)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'clip volume' Not Implemented: " <<
-			lpViewport->dvClipWidth << "x" << lpViewport->dvClipHeight << " X: " << lpViewport->dvClipX << " Y: " << lpViewport->dvClipY);
-	}
-
-	D3DVIEWPORT7 Viewport7 = {};
-	ConvertViewport(Viewport7, *lpViewport);
-
-	return SetViewport(&Viewport7);
+	return D3D_OK;
 }
 
 bool m_IDirect3DDeviceX::DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
@@ -6262,7 +6212,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Transform(D3DTRANSFORMSTATETYPE State, const D3
 		return D3D_OK;
 	}
 
-	BatchStates.Matrix[State] = FixMatrix(*lpMatrix, State, DeviceStates.Viewport.ViewportScale, DeviceStates.Viewport.UseViewportScale);
+	BatchStates.Matrix[State] = *lpMatrix;
 
 	DeviceStates.Matrix[State] = *lpMatrix;
 
@@ -6290,7 +6240,7 @@ HRESULT m_IDirect3DDeviceX::D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, con
 			return D3D_OK;
 		}
 
-		BatchStates.Matrix[State] = FixMatrix(result, State, DeviceStates.Viewport.ViewportScale, DeviceStates.Viewport.UseViewportScale);
+		BatchStates.Matrix[State] = result;
 
 		DeviceStates.Matrix[State] = result;
 	}
@@ -6439,8 +6389,7 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	// Restore transform
 	for (const auto& entry : DeviceStates.Matrix)
 	{
-		D3DMATRIX Matrix = FixMatrix(entry.second, entry.first, DeviceStates.Viewport.ViewportScale, DeviceStates.Viewport.UseViewportScale);
-		(*d3d9Device)->SetTransform(entry.first, &Matrix);
+		(*d3d9Device)->SetTransform(entry.first, &entry.second);
 	}
 
 	return D3D_OK;
@@ -6595,13 +6544,20 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 
 		if (dwFlags & D3DDP_DONOTCLIP)
 		{
-			DrawStates.rsClipping = TRUE;
+			GetD9RenderState(D3DRS_CLIPPING, &DrawStates.rsClipping);
 			(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, FALSE);
+		}
+		if (DeviceStates.Viewport.UseViewportScale)
+		{
+			dwFlags |= D3DDP_DXW_SCALEMATRIX;
+			GetD9Transform(D3DTS_PROJECTION, &DrawStates.ProjectionMatrix);
+			D3DMATRIX Matrix = UpdateProjectionMatrix(DrawStates.ProjectionMatrix, DeviceStates.Viewport.Scale, DeviceStates.Viewport.Clip, !(dwFlags & D3DDP_DONOTCLIP));
+			(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &Matrix);
 		}
 		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL))
 		{
 			dwFlags |= D3DDP_DONOTLIGHT;
-			DrawStates.rsLighting = TRUE;
+			GetD9RenderState(D3DRS_CLIPPING, &DrawStates.rsLighting);
 			(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE);
 		}
 		if (dwFlags & D3DDP_DONOTUPDATEEXTENTS)
@@ -6754,6 +6710,10 @@ void m_IDirect3DDeviceX::RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD Dire
 		if (dwFlags & D3DDP_DONOTCLIP)
 		{
 			(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, DrawStates.rsClipping);
+		}
+		if (dwFlags & D3DDP_DXW_SCALEMATRIX)
+		{
+			(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &DrawStates.ProjectionMatrix);
 		}
 		if (dwFlags & D3DDP_DONOTLIGHT)
 		{

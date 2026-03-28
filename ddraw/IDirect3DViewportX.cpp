@@ -159,48 +159,28 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (IsViewPortSet)
+		// Get default viewport if not set
+		HRESULT hr = GetDefaultViewport();
+		if (FAILED(hr))
 		{
-			*lpData = vData;
+			return hr;
 		}
-		else if (IsViewPort2Set)
-		{
-			ConvertViewport(*lpData, vData2);
-		}
-		else if (!AttachedD3DDevices.empty())
-		{
-			D3DVIEWPORT7 Viewport7 = {};
 
-			for (auto& entry : AttachedD3DDevices)
-			{
-				entry->GetDefaultViewport(*(D3DVIEWPORT9*)&Viewport7);
+		// Set standard viewport fields
+		lpData->dwX = Viewport.Data9.X;
+		lpData->dwY = Viewport.Data9.Y;
+		lpData->dwWidth = Viewport.Data9.Width;
+		lpData->dwHeight = Viewport.Data9.Height;
+		lpData->dvMinZ = Viewport.Data9.MinZ;
+		lpData->dvMaxZ = Viewport.Data9.MaxZ;
 
-				ConvertViewport(*lpData, Viewport7);
-
-				break;
-			}
-		}
-		else if (D3DInterface)
-		{
-			DWORD Width = 0, Height = 0;
-
-			D3DInterface->GetViewportResolution(Width, Height);
-
-			D3DVIEWPORT7 Viewport7 = {
-				0,           // X (starting X coordinate)
-				0,           // Y (starting Y coordinate)
-				Width,       // Width (usually set to the backbuffer width)
-				Height,      // Height (usually set to the backbuffer height)
-				0.0f,        // MinZ (near clipping plane, typically 0.0f)
-				1.0f         // MaxZ (far clipping plane, typically 1.0f)
-			};
-
-			ConvertViewport(*lpData, Viewport7);
-		}
-		else
-		{
-			return D3DERR_VIEWPORTHASNODEVICE;
-		}
+		// Set viewport scale
+		float scaleX = (fabsf(Viewport.Scale.x) > 1e-6f) ? Viewport.Scale.x : 1.0f;
+		float scaleY = (fabsf(Viewport.Scale.y) > 1e-6f) ? Viewport.Scale.y : 1.0f;
+		lpData->dvScaleX = scaleX * (float)lpData->dwWidth / 2.0f;
+		lpData->dvScaleY = scaleY * (float)lpData->dwHeight / 2.0f;
+		lpData->dvMaxX = 1.0f;
+		lpData->dvMaxY = 1.0f;
 
 		return D3D_OK;
 	}
@@ -219,10 +199,35 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpData) ? lpData->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
+		if (lpData->dwWidth == 0 || lpData->dwHeight == 0)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect Width or Height: " << lpData->dwWidth << "x" << lpData->dwHeight);
+			return DDERR_INVALIDPARAMS;
+		}
 
-		IsViewPortSet = true;
+		// The method ignores the values in the dvMaxX, dvMaxY, dvMinZ, and dvMaxZ members.
 
-		vData = *lpData;
+		// Set standard viewport fields
+		Viewport.Data9.X = lpData->dwX;
+		Viewport.Data9.Y = lpData->dwY;
+		Viewport.Data9.Width = lpData->dwWidth;
+		Viewport.Data9.Height = lpData->dwHeight;
+		Viewport.Data9.MinZ = 0.0f;
+		Viewport.Data9.MaxZ = 1.0f;
+
+		// MinZ and MaxZ
+		Viewport.MinZ = 0.0f;
+		Viewport.MaxZ = 1.0f;
+
+		// Set viewport scale
+		Viewport.Scale.x = 2.0f * lpData->dvScaleX / (float)lpData->dwWidth;
+		Viewport.Scale.y = 2.0f * lpData->dvScaleY / (float)lpData->dwHeight;
+		Viewport.Scale.z = 1.0f;
+
+		// Set viewport clip
+		Viewport.Clip.x = 0.0f;
+		Viewport.Clip.y = 0.0f;
+		Viewport.Clip.z = 0.0f;
 
 		// If current viewport is set then use new viewport
 		SetCurrentViewportActive(true, false, false);
@@ -738,48 +743,28 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (IsViewPort2Set)
+		// Get default viewport if not set
+		HRESULT hr = GetDefaultViewport();
+		if (FAILED(hr))
 		{
-			*lpData = vData2;
+			return hr;
 		}
-		else if (IsViewPortSet)
-		{
-			ConvertViewport(*lpData, vData);
-		}
-		else if (!AttachedD3DDevices.empty())
-		{
-			D3DVIEWPORT7 Viewport7 = {};
 
-			for (auto& entry : AttachedD3DDevices)
-			{
-				entry->GetDefaultViewport(*(D3DVIEWPORT9*)&Viewport7);
+		// Set standard viewport fields
+		lpData->dwX = Viewport.Data9.X;
+		lpData->dwY = Viewport.Data9.Y;
+		lpData->dwWidth = Viewport.Data9.Width;
+		lpData->dwHeight = Viewport.Data9.Height;
+		lpData->dvMinZ = Viewport.MinZ;
+		lpData->dvMaxZ = Viewport.MaxZ;
 
-				ConvertViewport(*lpData, Viewport7);
-
-				break;
-			}
-		}
-		else if (D3DInterface)
-		{
-			DWORD Width = 0, Height = 0;
-
-			D3DInterface->GetViewportResolution(Width, Height);
-
-			D3DVIEWPORT7 Viewport7 = {
-				0,           // X (starting X coordinate)
-				0,           // Y (starting Y coordinate)
-				Width,       // Width (usually set to the backbuffer width)
-				Height,      // Height (usually set to the backbuffer height)
-				0.0f,        // MinZ (near clipping plane, typically 0.0f)
-				1.0f         // MaxZ (far clipping plane, typically 1.0f)
-			};
-
-			ConvertViewport(*lpData, Viewport7);
-		}
-		else
-		{
-			return D3DERR_VIEWPORTHASNODEVICE;
-		}
+		// Set viewport clip
+		float scaleX = (fabsf(Viewport.Scale.x) > 1e-6f) ? Viewport.Scale.x : 1.0f;
+		float scaleY = (fabsf(Viewport.Scale.y) > 1e-6f) ? Viewport.Scale.y : 1.0f;
+		lpData->dvClipWidth = 2.0f / scaleX;
+		lpData->dvClipHeight = 2.0f / scaleY;
+		lpData->dvClipX = lpData->dvClipWidth * (scaleX + 1.0f) / -2.0f;
+		lpData->dvClipY = lpData->dvClipHeight * (scaleY - 1.0f) / -2.0f;
 
 		return D3D_OK;
 	}
@@ -798,10 +783,40 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << ((lpData) ? lpData->dwSize : -1));
 			return DDERR_INVALIDPARAMS;
 		}
+		if (lpData->dwWidth == 0 || lpData->dwHeight == 0)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect Width or Height: " << lpData->dwWidth << "x" << lpData->dwHeight);
+			return DDERR_INVALIDPARAMS;
+		}
 
-		IsViewPort2Set = true;
+		// Set standard viewport fields
+		Viewport.Data9.X = lpData->dwX;
+		Viewport.Data9.Y = lpData->dwY;
+		Viewport.Data9.Width = lpData->dwWidth;
+		Viewport.Data9.Height = lpData->dwHeight;
+		Viewport.Data9.MinZ = 0.0f;
+		Viewport.Data9.MaxZ = 1.0f;
 
-		vData2 = *lpData;
+		// MinZ and MaxZ
+		Viewport.MinZ = lpData->dvMinZ;
+		Viewport.MaxZ = lpData->dvMaxZ;
+		if (Viewport.MinZ >= Viewport.MaxZ)
+		{
+			Viewport.MinZ = 0.0f;
+			Viewport.MaxZ = 1.0f;
+		}
+
+		// Set viewport scale
+		float clipWidth = (fabsf(lpData->dvClipWidth) > 1e-6f) ? lpData->dvClipWidth : 2.0f;	// default clip space width
+		float clipHeight = (fabsf(lpData->dvClipHeight) > 1e-6f) ? lpData->dvClipHeight : 2.0f;
+		Viewport.Scale.x = 2.0f / clipWidth;
+		Viewport.Scale.y = 2.0f / clipHeight;
+		Viewport.Scale.z = 1.0f / (Viewport.MaxZ - Viewport.MinZ);
+
+		// Set viewport clip
+		Viewport.Clip.x = -2.0f * lpData->dvClipX / clipWidth - 1.0f;
+		Viewport.Clip.y = -2.0f * lpData->dvClipY / clipHeight + 1.0f;
+		Viewport.Clip.z = -Viewport.MinZ / (Viewport.MaxZ - Viewport.MinZ);
 
 		// If current viewport is set then use new viewport
 		SetCurrentViewportActive(true, false, false);
@@ -1009,50 +1024,84 @@ void* m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	return nullptr;
 }
 
+HRESULT m_IDirect3DViewportX::GetDefaultViewport()
+{
+	if (Viewport.Data9.Width == 0 || Viewport.Data9.Height == 0)
+	{
+		if (!AttachedD3DDevices.empty())
+		{
+			D3DVIEWPORT7 Viewport7 = {};
+
+			for (auto& entry : AttachedD3DDevices)
+			{
+				entry->GetDefaultViewport(Viewport.Data9);
+
+				break;
+			}
+		}
+		else if (D3DInterface)
+		{
+			DWORD Width = 0, Height = 0;
+			D3DInterface->GetViewportResolution(Width, Height);
+
+			Viewport.Data9 = {
+				0,           // X (starting X coordinate)
+				0,           // Y (starting Y coordinate)
+				Width,       // Width (usually set to the backbuffer width)
+				Height,      // Height (usually set to the backbuffer height)
+				0.0f,        // MinZ (near clipping plane, typically 0.0f)
+				1.0f         // MaxZ (far clipping plane, typically 1.0f)
+			};
+		}
+		else
+		{
+			return D3DERR_VIEWPORTHASNODEVICE;
+		}
+	}
+	return D3D_OK;
+}
+
 void m_IDirect3DViewportX::SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData)
 {
 	for (auto& D3DDevice : AttachedD3DDevices)
 	{
 		if (D3DDevice->CheckIfViewportSet(this))
 		{
-			if (SetViewPortData && (IsViewPortSet || IsViewPort2Set))
-			{
-				HRESULT hr;
-				if (IsViewPort2Set)
-				{
-					hr = D3DDevice->SetViewport(&vData2);
-				}
-				else
-				{
-					hr = D3DDevice->SetViewport(&vData);
-				}
-				if (FAILED(hr))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set viewport data!");
-				}
-			}
+			SetCurrentViewport(D3DDevice, SetViewPortData, SetBackgroundData, SetLightData);
+		}
+	}
+}
 
-			if (SetBackgroundData && MaterialBackground.IsSet)
-			{
-				if (FAILED(D3DDevice->SetLightState(D3DLIGHTSTATE_MATERIAL, MaterialBackground.hMat)))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set material background!");
-				}
-			}
+void m_IDirect3DViewportX::SetCurrentViewport(m_IDirect3DDeviceX* D3DDevice, bool SetViewPortData, bool SetBackgroundData, bool SetLightData)
+{
+	if (SetViewPortData && Viewport.Data9.Width && Viewport.Data9.Height)
+	{
+		HRESULT hr = D3DDevice->SetViewportData(Viewport);
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set viewport data!");
+		}
+	}
 
-			if (SetLightData)
+	if (SetBackgroundData && MaterialBackground.IsSet)
+	{
+		if (FAILED(D3DDevice->SetLightState(D3DLIGHTSTATE_MATERIAL, MaterialBackground.hMat)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set material background!");
+		}
+	}
+
+	if (SetLightData)
+	{
+		for (auto& entry : AttachedLights)
+		{
+			D3DLIGHT2 Light2 = {};
+			Light2.dwSize = sizeof(D3DLIGHT2);
+			if (SUCCEEDED(entry->GetLight((LPD3DLIGHT)&Light2)))
 			{
-				for (auto& entry : AttachedLights)
+				if (FAILED(D3DDevice->SetLight((m_IDirect3DLight*)entry, (LPD3DLIGHT)&Light2)))
 				{
-					D3DLIGHT2 Light2 = {};
-					Light2.dwSize = sizeof(D3DLIGHT2);
-					if (SUCCEEDED(entry->GetLight((LPD3DLIGHT)&Light2)))
-					{
-						if (FAILED(D3DDevice->SetLight((m_IDirect3DLight*)entry, (LPD3DLIGHT)&Light2)))
-						{
-							LOG_LIMIT(100, __FUNCTION__ << " Warning: could not set light!");
-						}
-					}
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: could not set light!");
 				}
 			}
 		}
@@ -1067,7 +1116,7 @@ void m_IDirect3DViewportX::ClearCurrentViewport(m_IDirect3DDeviceX* pDirect3DDev
 	}
 
 	// Set default viewport
-	if (ClearViewport && (IsViewPortSet || IsViewPort2Set))
+	if (ClearViewport && Viewport.Data9.Width && Viewport.Data9.Height)
 	{
 		D3DVIEWPORT9 Viewport9 = {};
 		pDirect3DDeviceX->GetDefaultViewport(Viewport9);

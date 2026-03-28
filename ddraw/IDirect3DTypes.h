@@ -11,8 +11,9 @@
 #define D3DRENDERSTATE_NONE (D3DRENDERSTATETYPE)0
 
 #define D3DDP_FORCE_DWORD               0x0000001Fl
-#define D3DDP_DXW_COLORKEYENABLE        0x00000020l
-#define D3DDP_DXW_ALPHACOLORKEY         0x00000040l
+#define D3DDP_DXW_SCALEMATRIX           0x00000020l
+#define D3DDP_DXW_COLORKEYENABLE        0x00000040l
+#define D3DDP_DXW_ALPHACOLORKEY         0x00000080l
 
 #define D3DDEVICEDESC1_SIZE 172
 #define D3DDEVICEDESC5_SIZE 204
@@ -395,6 +396,14 @@ struct INDEXSTREAMINFO {
     DWORD dwFlags = 0;
 };
 
+struct VIEWPORTINFO {
+    D3DVIEWPORT9 Data9 = {};
+    float MinZ = 0;
+    float MaxZ = 0;
+    D3DVECTOR Scale = {};
+    D3DVECTOR Clip = {};
+};
+
 typedef enum _D3DSURFACETYPE {
     D3DTYPE_NONE = 0,
     D3DTYPE_OFFPLAINSURFACE = 1,
@@ -424,20 +433,13 @@ void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light);
 D3DLIGHT9 FixLight(const D3DLIGHT9& Light);
 void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7);
 void ConvertMaterial(D3DMATERIAL7& Material7, const D3DMATERIAL& Material);
-void ConvertViewport(D3DVIEWPORT& Viewport, const D3DVIEWPORT2& Viewport2);
-void ConvertViewport(D3DVIEWPORT2& Viewport2, const D3DVIEWPORT& Viewport);
-void ConvertViewport(D3DVIEWPORT& Viewport, const D3DVIEWPORT7& Viewport7);
-void ConvertViewport(D3DVIEWPORT2& Viewport2, const D3DVIEWPORT7& Viewport7);
-void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT& Viewport);
-void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT2& Viewport2);
-void ConvertViewport(D3DVIEWPORT7& Viewport, const D3DVIEWPORT7& Viewport7);
 D3DVIEWPORT9 FixViewport(const D3DVIEWPORT9& Viewport);
 bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
 bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
 DWORD GetDepthBias(DWORD ZBias, DWORD DepthBitCount);
 DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value);
 bool IsValidTransformState(D3DTRANSFORMSTATETYPE State);
-D3DMATRIX FixMatrix(const D3DMATRIX& Matrix, D3DTRANSFORMSTATETYPE State, D3DVIEWPORT Viewport, bool ScaleMatrix);
+D3DMATRIX UpdateProjectionMatrix(const D3DMATRIX& Matrix, D3DVECTOR Scale, D3DVECTOR Clip, bool SetClipping);
 void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7);
 void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9);
 void ConvertLVertex(DXLVERTEX7* lFVF7, const DXLVERTEX9* lFVF9, DWORD NumVertices);

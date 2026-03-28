@@ -47,7 +47,8 @@ private:
 		bool Set = false;
 		D3DVIEWPORT9 View = {};
 		D3DVIEWPORT9 FixedView = {};
-		D3DVIEWPORT ViewportScale = {};
+		D3DVECTOR Scale = {};
+		D3DVECTOR Clip = {};
 		bool UseViewportScale = false;
 	};
 	struct MATERIALSTRUCT {
@@ -132,6 +133,7 @@ private:
 		DWORD rsClipping = 0;
 		DWORD rsLighting = 0;
 		//DWORD rsExtents = 0;
+		D3DMATRIX ProjectionMatrix = {};
 		DWORD rsAlphaTestEnable = 0;
 		DWORD rsAlphaFunc = 0;
 		DWORD rsAlphaRef = 0;
@@ -496,8 +498,7 @@ public:
 	}
 
 	// Viewport vector function
-	HRESULT SetViewport(LPD3DVIEWPORT lpViewport);
-	HRESULT SetViewport(LPD3DVIEWPORT2 lpViewport);
+	HRESULT SetViewportData(VIEWPORTINFO& Viewport);
 	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX);
 
 	// Texture handle function
