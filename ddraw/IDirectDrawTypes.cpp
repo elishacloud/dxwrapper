@@ -98,6 +98,36 @@ void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLock
 	}
 }
 
+D3DCOLOR ConvertPixelColor(D3DCOLOR PixelColor, const DDPIXELFORMAT& ddpfPixelFormat)
+{
+	auto ExtractChannel = [](UINT pixel, UINT mask) -> UINT
+		{
+			if (mask == 0) return 0;
+			// shift mask down to LSB
+			UINT shift = 0;
+			UINT m = mask;
+			while ((m & 1) == 0) { m >>= 1; shift++; }
+
+			// extract bits
+			UINT value = (pixel & mask) >> shift;
+
+			// scale to 0-255
+			UINT bits = 0;
+			m = mask >> shift;
+			while (m) { bits++; m >>= 1; }
+			if (bits == 8) return value;
+			return (value * 255 + ((1 << bits) / 2)) / ((1 << bits) - 1);
+		};
+
+	UINT r = ExtractChannel(PixelColor, ddpfPixelFormat.dwRBitMask);
+	UINT g = ExtractChannel(PixelColor, ddpfPixelFormat.dwGBitMask);
+	UINT b = ExtractChannel(PixelColor, ddpfPixelFormat.dwBBitMask);
+	UINT a = ExtractChannel(PixelColor, ddpfPixelFormat.dwRGBAlphaBitMask);
+
+	// Compose D3DCOLOR (0xAARRGGBB)
+	return (a << 24) | (r << 16) | (g << 8) | b;
+}
+
 bool HasStencil(D3DFORMAT Format)
 {
 	switch ((DWORD)Format)

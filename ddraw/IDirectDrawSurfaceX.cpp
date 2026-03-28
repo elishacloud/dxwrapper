@@ -6633,8 +6633,101 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 
 	HRESULT hr = DDERR_GENERIC;
 
+	// Use Clear rather than ColorFill for render targets
+	if (IsRenderTarget() && CanUseRenderTargetSurface() && surface.Pool == D3DPOOL_DEFAULT &&
+		(surfaceDesc2.ddpfPixelFormat.dwRGBBitCount == 16 || surfaceDesc2.ddpfPixelFormat.dwRGBBitCount == 24 || surfaceDesc2.ddpfPixelFormat.dwRGBBitCount == 32))
+	{
+		do {
+
+			ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection(), DdrawWrapper::GetDDCriticalSection() != GetCriticalSection());
+
+			PrepareRenderTarget();
+
+			const bool IsUsingCurrentRenderTarget = (ddrawParent->GetRenderTargetSurface() == this);
+
+			// Set new render target
+			ComPtr<IDirect3DSurface9> pRenderTarget = nullptr;
+			ComPtr<IDirect3DSurface9> pDepthStencil = nullptr;
+			if (!IsUsingCurrentRenderTarget)
+			{
+				hr = (*d3d9Device)->GetDepthStencilSurface(pDepthStencil.GetAddressOf());
+				if (FAILED(hr))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get depth buffer: " << (DDERR)hr);
+					break;
+				}
+				hr = (*d3d9Device)->SetDepthStencilSurface(nullptr);
+				if (FAILED(hr))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set depth buffer: " << (DDERR)hr);
+					break;
+				}
+
+				hr = (*d3d9Device)->GetRenderTarget(0, pRenderTarget.GetAddressOf());
+				if (FAILED(hr))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get render target: " << (DDERR)hr);
+					break;
+				}
+				hr = (*d3d9Device)->SetRenderTarget(0, surface.Surface);
+				if (FAILED(hr))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set render target: " << (DDERR)hr);
+					break;
+				}
+			}
+
+			// Query surface size
+			D3DSURFACE_DESC Desc = {};
+			surface.Surface->GetDesc(&Desc);
+
+			// Get current viewport
+			D3DVIEWPORT9 Viewport = {};
+			(*d3d9Device)->GetViewport(&Viewport);
+
+			// Set new viewport
+			{
+				D3DVIEWPORT9 NewViewport = { 0, 0, Desc.Width, Desc.Height, 0.0f, 1.0f };
+				(*d3d9Device)->SetViewport(&NewViewport);
+			}
+
+			RECT* pDestRect = nullptr;
+			if (pRect)
+			{
+				pDestRect = &DestRect;
+			}
+
+			D3DCOLOR color = ConvertPixelColor(dwFillColor, surfaceDesc2.ddpfPixelFormat);
+
+			hr = (*d3d9Device)->Clear(pDestRect ? 1 : 0, (D3DRECT*)pDestRect, D3DCLEAR_TARGET, color, 1.0f, 0);
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to fill render target: " << (DDERR)hr);
+			}
+
+			// Reset viewport
+			(*d3d9Device)->SetViewport(&Viewport);
+
+			// Reset render target
+			if (!IsUsingCurrentRenderTarget)
+			{
+				(*d3d9Device)->SetRenderTarget(0, pRenderTarget.Get());
+				if (pDepthStencil.Get())
+				{
+					(*d3d9Device)->SetDepthStencilSurface(pDepthStencil.Get());
+				}
+			}
+
+		} while (FALSE);
+
+		if (SUCCEEDED(hr))
+		{
+			return D3D_OK;
+		}
+	}
+
 	// Use GPU ColorFill
-	if (CanUseRenderTargetSurface() && ((surface.Usage & D3DUSAGE_RENDERTARGET) || surface.Type == D3DTYPE_OFFPLAINSURFACE) && surface.Pool == D3DPOOL_DEFAULT)
+	if (((surface.Usage & D3DUSAGE_RENDERTARGET) || surface.Type == D3DTYPE_OFFPLAINSURFACE) && CanUseRenderTargetSurface() && surface.Pool == D3DPOOL_DEFAULT)
 	{
 		ScopedGetMipMapContext Dest(this, MipMapLevel);
 
@@ -6642,17 +6735,23 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 
 		if (Dest.GetSurface())
 		{
-			hr = (*d3d9Device)->ColorFill(Dest.GetSurface(), &DestRect, dwFillColor);
+			D3DCOLOR color = ConvertPixelColor(dwFillColor, surfaceDesc2.ddpfPixelFormat);
+
+			hr = (*d3d9Device)->ColorFill(Dest.GetSurface(), &DestRect, color);
 
 			if (FAILED(hr))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not color fill: " << (D3DERR)hr);
 			}
 		}
+
+		if (SUCCEEDED(hr))
+		{
+			return D3D_OK;
+		}
 	}
-	
+
 	// Lock surface and manually fill with color
-	if (FAILED(hr))
 	{
 		// Get width and height of rect
 		LONG FillWidth = DestRect.right - DestRect.left;
@@ -7793,7 +7892,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		return DDERR_UNSUPPORTED;
 	}
 
-	bool IsUsingCurrentZBuffer = (ddrawParent->GetDepthStencilSurface() != this && ddrawParent->GetDepthStencilSurface() != GetAttachedDepthStencil());
+	bool IsUsingCurrentZBuffer = (ddrawParent->GetDepthStencilSurface() == this);
 
 	// Set new depth stencil
 	ComPtr<IDirect3DSurface9> pDepthStencil = nullptr;
@@ -7814,11 +7913,11 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 	}
 
-	// Query surface sizes
-	ComPtr<IDirect3DSurface9> pRenderTarget;
+	// Query surface sizes (render target size must match depth stencil size)
 	D3DSURFACE_DESC rtDesc = {}, dsDesc = {};
 	surface.Surface->GetDesc(&dsDesc);
 
+	ComPtr<IDirect3DSurface9> pRenderTarget;
 	if (SUCCEEDED((*d3d9Device)->GetRenderTarget(0, pRenderTarget.GetAddressOf())))
 	{
 		pRenderTarget->GetDesc(&rtDesc);

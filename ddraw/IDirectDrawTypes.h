@@ -250,6 +250,7 @@ template <typename T>
 void SimpleColorKeyCopy(T ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
 template <typename T>
 void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
+D3DCOLOR ConvertPixelColor(D3DCOLOR PixelColor, const DDPIXELFORMAT& ddpfPixelFormat);
 bool HasStencil(D3DFORMAT Format);
 DWORD GetDepthColor(float DepthValue, D3DFORMAT Format, DWORD& BPP);
 template <typename T>
