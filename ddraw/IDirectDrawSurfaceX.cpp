@@ -568,14 +568,22 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		if ((dwFlags & DDBLT_COLORFILL) && IsPrimarySurface() && surface.IsUsingWindowedMode && surface.HasData)
 		{
 			// DirectDraw primary clears are logical only
-			LOG_LIMIT(3, __FUNCTION__ << " Skipping primary surface clear: " << lpDestRect);
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: Skipping primary surface clear: " << lpDestRect);
 			return DD_OK;
 		}
 
 		// Handle depth stencil surface
 		if (IsDepthStencil())
 		{
+			if (dwFlags & DDBLT_COLORFILL)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: ColorFill set on a depth buffer!");
+			}
 			return CopyZBuffer(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, (dwFlags & DDBLT_DEPTHFILL), lpDDBltFx ? lpDDBltFx->dwFillDepth : 0);
+		}
+		if (dwFlags & DDBLT_DEPTHFILL)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: DepthFill set on a non-depth buffer!");
 		}
 
 		// Present before write if needed
@@ -7653,9 +7661,64 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 	{
 		if (DepthFill)
 		{
-			return ColorFill(&DestRect, GetDepthFillValue(depthValue, surface.Format), 0);
+			// Note: Not sure if clearing stencil is correct but it simplifies the depth fill when using system memory
+			// because there is no need to merge stencil and depth for each pixel
+
+			// Get depth color
+			DWORD BPP = 0;
+			DWORD Color = GetDepthColor(depthValue, surface.Format, BPP);
+			if (BPP != 16 && BPP != 32)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: incorrect BPP: " << BPP << " Format: " << surface.Format);
+				return DDERR_GENERIC;
+			}
+
+			// Lock dest
+			D3DLOCKED_RECT LockedRect = {};
+			if (FAILED(surface.Surface->LockRect(&LockedRect, &DestRect, 0)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock surface!");
+				return DDERR_GENERIC;
+			}
+
+			BYTE* BaseLine = reinterpret_cast<BYTE*>(LockedRect.pBits);
+
+			// Fill the first line
+			if (BPP == 16)
+			{
+				WORD* Line16 = reinterpret_cast<WORD*>(BaseLine);
+				WORD FillColor = (WORD)(Color & 0xFFFF);
+				for (int x = 0; x < Width; ++x)
+				{
+					Line16[x] = FillColor;
+				}
+			}
+			else
+			{
+				DWORD* Line32 = reinterpret_cast<DWORD*>(BaseLine);
+				for (int x = 0; x < Width; ++x)
+				{
+					Line32[x] = Color;
+				}
+			}
+
+			// Start on second line
+			BYTE* Buffer = reinterpret_cast<BYTE*>(LockedRect.pBits);
+			Buffer += LockedRect.Pitch;
+
+			// Copy rest of data
+			for (int x = 1; x < Height; ++x)
+			{
+				memcpy(Buffer, BaseLine, LockedRect.Pitch);
+				Buffer += LockedRect.Pitch;
+			}
+
+			// Unlock
+			surface.Surface->UnlockRect();
+
+			return DD_OK;
 		}
-		else
+		else if (pSourceSurface->surface.Pool == D3DPOOL_SYSTEMMEM)
 		{
 			// Lock source
 			D3DLOCKED_RECT SrcLockedRect = {}, DestLockedRect = {};
@@ -7692,6 +7755,12 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 
 			return DD_OK;
 		}
+		else
+		{
+			// Just return not supported for now
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Bltting from video memory zbuffer to system memory not implemented!");
+			return DDERR_UNSUPPORTED;
+		}
 	}
 
 	// Handle video memory copy
@@ -7724,8 +7793,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 		return DDERR_UNSUPPORTED;
 	}
 
-	bool IsUsingCurrentZBuffer =
-		(ddrawParent->GetDepthStencilSurface() != this && ddrawParent->GetDepthStencilSurface() != GetAttachedDepthStencil());
+	bool IsUsingCurrentZBuffer = (ddrawParent->GetDepthStencilSurface() != this && ddrawParent->GetDepthStencilSurface() != GetAttachedDepthStencil());
 
 	// Set new depth stencil
 	ComPtr<IDirect3DSurface9> pDepthStencil = nullptr;
@@ -7783,7 +7851,18 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 			pDestRect = &DestRect;
 		}
 
-		hr = (*d3d9Device)->Clear(pDestRect ? 1 : 0, (D3DRECT*)pDestRect, D3DCLEAR_ZBUFFER, 0, depthValue, 0);
+		// Note: Not sure if clearing stencil is correct but it makes video memory consistent with system memory depth fills
+
+		DWORD Flags = D3DCLEAR_ZBUFFER;
+		DWORD Stencil = 0;
+
+		if (HasStencil(surface.Format))
+		{
+			Flags |= D3DCLEAR_STENCIL;
+			Stencil = 0xFF;
+		}
+
+		hr = (*d3d9Device)->Clear(pDestRect ? 1 : 0, (D3DRECT*)pDestRect, Flags, 0, depthValue, Stencil);
 		if (FAILED(hr))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to fill depth buffer: " << (DDERR)hr);

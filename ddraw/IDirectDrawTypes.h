@@ -250,7 +250,8 @@ template <typename T>
 void SimpleColorKeyCopy(T ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
 template <typename T>
 void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
-DWORD GetDepthFillValue(float depthValue, D3DFORMAT Format);
+bool HasStencil(D3DFORMAT Format);
+DWORD GetDepthColor(float DepthValue, D3DFORMAT Format, DWORD& BPP);
 template <typename T>
 HRESULT ComplexZBufferCopy(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format);
 bool DoRectsMatch(const RECT& lhs, const RECT& rhs);

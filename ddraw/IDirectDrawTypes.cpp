@@ -98,40 +98,80 @@ void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLock
 	}
 }
 
-DWORD GetDepthFillValue(float depthValue, D3DFORMAT Format)
+bool HasStencil(D3DFORMAT Format)
 {
 	switch ((DWORD)Format)
 	{
-	case D3DFMT_S1D15:
-		return uint16_t(depthValue * static_cast<float>(0x7FFF) + 0.5f); // 15-bit depth
-
 	case D3DFMT_D15S1:
-		// Shift the depth value by 1 bits before extracting
-		return uint16_t(depthValue * static_cast<float>(0x7FFF) + 0.5f) << 1; // 15-bit depth
-
-	case D3DFMT_D16:
-	case D3DFMT_D16_LOCKABLE:
-		return uint16_t(depthValue * static_cast<float>(0xFFFF) + 0.5f); // 16-bit depth
-
-	case D3DFMT_X8D24:
-	case D3DFMT_S8D24:
-	case D3DFMT_X4S4D24:
-		return uint32_t(depthValue * static_cast<float>(0xFFFFFF) + 0.5f); // 24-bit depth
-
-	case D3DFMT_D24X8:
-	case D3DFMT_D24S8:
-	case D3DFMT_D24FS8:
+	case D3DFMT_S1D15:
 	case D3DFMT_D24X4S4:
-		// Shift the depth value by 8 bits before extracting
-		return uint32_t(depthValue * static_cast<float>(0xFFFFFF) + 0.5f) << 8; // 24-bit depth
+	case D3DFMT_X4S4D24:
+	case D3DFMT_D24S8:
+	case D3DFMT_S8D24:
+	case D3DFMT_D24FS8:
+		return true;
+	default:
+		return false;
+	}
+}
 
-	case D3DFMT_D32:
+DWORD GetDepthColor(float DepthValue, D3DFORMAT Format, DWORD& BPP)
+{
+	DepthValue = CLAMP(DepthValue, 0.0f, 1.0f);
+
+	switch ((DWORD)Format)
+	{
+	case D3DFMT_S1D15:   // 1-bit stencil + 15-bit depth
+	case D3DFMT_D15S1:
+	{
+		BPP = 16;
+		uint16_t z = (uint16_t)(DepthValue * 0x7FFF);
+		return (z & 0x7FFF) | 0x8000;
+	}
+
+	case D3DFMT_D16:     // 16-bit depth
+	case D3DFMT_D16_LOCKABLE:
+		BPP = 16;
+		return (uint16_t)(DepthValue * 0xFFFF);
+
+	case D3DFMT_X8D24:   // 24-bit depth
+	case D3DFMT_D24X8:
+		BPP = 32;
+		return (uint32_t)(DepthValue * 0x00FFFFFF);
+
+	case D3DFMT_X4S4D24: // 4-bit stencil + 24-bit depth
+	case D3DFMT_D24X4S4:
+	{
+		BPP = 32;
+		uint32_t z = (uint32_t)(DepthValue * 0x00FFFFFF);
+		return z | (0xF << 28); // 4-bit stencil
+	}
+
+	case D3DFMT_S8D24:  // 8-bit stencil + 24-bit depth
+	case D3DFMT_D24S8:
+	case D3DFMT_D24FS8: // 8-bit stencil + 24-bit depth float
+	{
+		BPP = 32;
+		uint32_t z = (uint32_t)(DepthValue * 0x00FFFFFF);
+		return z | (0xFF << 24); // 8-bit stencil
+	}
+
+	case D3DFMT_D32:   // 32-bit depth
 	case D3DFMT_D32_LOCKABLE:
-	case D3DFMT_D32F_LOCKABLE:
-		return uint32_t(depthValue * static_cast<float>(0xFFFFFFFF) + 0.5f); // 32-bit depth
+		BPP = 32;
+		return (uint32_t)(0xFFFFFFFFUL * (double)DepthValue);
+
+	case D3DFMT_D32F_LOCKABLE:	// 32-bit depth float
+	{
+		BPP = 32;
+		DWORD value;
+		memcpy(&value, &DepthValue, sizeof(value));
+		return value;
+	}
 
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Depth Stencil format not Implemented: " << Format);
+		BPP = 0;
 		return 0;
 	}
 }
