@@ -90,24 +90,6 @@ namespace {
 	}
 }
 
-#ifdef DINPUT8
-namespace dinputto8
-{
-	REFIID ConvertREFIID(REFIID riid);
-}
-#endif
-
-static REFIID ConvertAllREFIID(REFIID riid)
-{
-#ifdef DINPUT8
-	if (Config.Dinputto8)
-	{
-		return dinputto8::ConvertREFIID(riid);
-	}
-#endif
-	return riid;
-}
-
 static inline HRESULT CreateClassFactory(REFCLSID rclsid, LPVOID* ppv)
 {
 	*ppv = new m_IClassFactory((IClassFactory*)*ppv, nullptr);
@@ -125,7 +107,7 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 
 #ifdef DDRAW
 	// IDirectDraw wrapper
-	if (Config.EnableDdrawWrapper || Config.Dd7to9)
+	if ((Config.EnableDdrawWrapper || Config.Dd7to9) && ddraw::DirectDrawCreateEx_var && ddraw::DirectDrawCreate_var)
 	{
 		// Create DirectDraw interface
 		if (rclsid == CLSID_DirectDraw)
@@ -217,7 +199,7 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 
 #ifdef DINPUT
 	// DirectInput wrapper
-	if (Config.Dinputto8)
+	if (Config.Dinputto8 && dinput::DirectInputCreateEx_var)
 	{
 		// Create DirectInput interface
 		if (rclsid == CLSID_DirectInput)
@@ -262,12 +244,22 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				(riid == IID_IDirectInputDevice2W) ? IID_IDirectInput2W :
 				(riid == IID_IDirectInputDevice7A) ? IID_IDirectInput7A : IID_IDirectInput7A;
 
-			IDirectInput* pIDirectInput = nullptr;
-			HRESULT hr = ((DirectInputCreateExProc)dinput::DirectInputCreateEx_var)(GetModuleHandle(nullptr), 0x0700, riidltf, (LPVOID*)&pIDirectInput, pUnkOuter);
+			void* pIDirectInput = nullptr;
+			HRESULT hr = ((DirectInputCreateExProc)dinput::DirectInputCreateEx_var)(GetModuleHandle(nullptr), 0x0700, riidltf, &pIDirectInput, pUnkOuter);
 
 			if (SUCCEEDED(hr) && pIDirectInput)
 			{
-				hr = pIDirectInput->CreateDevice(riid == IID_IUnknown ? IID_IDirectInputDevice7A : riid, (LPDIRECTINPUTDEVICE*)ppv, pUnkOuter);
+				if (riid == IID_IUnknown ||
+					riid == IID_IDirectInputDeviceW ||
+					riid == IID_IDirectInputDevice2W ||
+					riid == IID_IDirectInputDevice7W)
+				{
+					hr = (static_cast<IDirectInputW*>(pIDirectInput))->CreateDevice(riid == IID_IUnknown ? IID_IDirectInputDevice7W : riid, (LPDIRECTINPUTDEVICEW*)ppv, pUnkOuter);
+				}
+				else
+				{
+					hr = (static_cast<IDirectInputA*>(pIDirectInput))->CreateDevice(riid == IID_IUnknown ? IID_IDirectInputDevice7A : riid, (LPDIRECTINPUTDEVICEA*)ppv, pUnkOuter);
+				}
 			}
 
 			return hr;
@@ -277,7 +269,7 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 
 #ifdef DINPUT8
 	// DirectInput8 wrapper
-	if (Config.EnableDinput8Wrapper)
+	if (Config.EnableDinput8Wrapper && dinput8::DirectInput8Create_var)
 	{
 		// Create DirectInput8 interface
 		if (rclsid == CLSID_DirectInput8)
@@ -310,12 +302,19 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				return E_NOINTERFACE;
 			}
 
-			IDirectInput8* pIDirectInput8 = nullptr;
+			void* pIDirectInput8 = nullptr;
 			HRESULT hr = ((DirectInput8CreateProc)dinput8::DirectInput8Create_var)(GetModuleHandle(nullptr), 0x0800, riid == IID_IDirectInputDevice8W ? IID_IDirectInput8W : IID_IDirectInput8A, (LPVOID*)&pIDirectInput8, pUnkOuter);
 
 			if (SUCCEEDED(hr) && pIDirectInput8)
 			{
-				hr = pIDirectInput8->CreateDevice(riid == IID_IUnknown ? IID_IDirectInputDevice8A : riid, (LPDIRECTINPUTDEVICE8*)ppv, pUnkOuter);
+				if (riid == IID_IUnknown || riid == IID_IDirectInputDevice8W)
+				{
+					hr = (static_cast<IDirectInput8W*>(pIDirectInput8))->CreateDevice(IID_IDirectInputDevice8W, (LPDIRECTINPUTDEVICE8W*)ppv, pUnkOuter);
+				}
+				else
+				{
+					hr = (static_cast<IDirectInput8A*>(pIDirectInput8))->CreateDevice(IID_IDirectInputDevice8A, (LPDIRECTINPUTDEVICE8A*)ppv, pUnkOuter);
+				}
 			}
 
 			return hr;
@@ -325,7 +324,7 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 
 #ifdef DSOUND
 	// DirectSound wrapper
-	if (Config.EnableDsoundWrapper)
+	if (Config.EnableDsoundWrapper && dsound::DirectSoundCreate_var && dsound::DirectSoundCreate8_var)
 	{
 		// Create DirectSound interface
 		if (rclsid == CLSID_DirectSound)
@@ -421,10 +420,10 @@ HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 			return hr;
 		}
 
-		return ProxyInterface->QueryInterface(ConvertAllREFIID(riid), ppvObj);
+		return ProxyInterface->QueryInterface(riid, ppvObj);
 	}
 
-	HRESULT hr = ProxyInterface->QueryInterface(ConvertAllREFIID(riid), ppvObj);
+	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
 
 	if (SUCCEEDED(hr))
 	{
@@ -524,10 +523,10 @@ HRESULT m_IClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, void**
 			return hr;
 		}
 
-		return ProxyInterface->CreateInstance(pUnkOuter, ConvertAllREFIID(riid), ppvObject);
+		return ProxyInterface->CreateInstance(pUnkOuter, riid, ppvObject);
 	}
 
-	HRESULT hr = ProxyInterface->CreateInstance(pUnkOuter, ConvertAllREFIID(riid), ppvObject);
+	HRESULT hr = ProxyInterface->CreateInstance(pUnkOuter, riid, ppvObject);
 
 	if (SUCCEEDED(hr))
 	{

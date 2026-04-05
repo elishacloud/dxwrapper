@@ -17,7 +17,6 @@
 #include "dinput8\dinput8External.h"
 #include "External\dinputto8\resource.h"
 #include "External\dinputto8\dinputto8.h"
-#include "IClassFactory\IClassFactory.h"
 #include "Utils\Utils.h"
 
 namespace DinputWrapper
@@ -40,7 +39,7 @@ using namespace DinputWrapper;
 
 DWORD diVersion = 0;
 
-AddressLookupTableDinput<void> ProxyAddressLookupTable = AddressLookupTableDinput<void>();
+AddressLookupTableDinput ProxyAddressLookupTable;
 
 HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID riid, LPVOID * lplpDD, LPUNKNOWN pUnkOuter);
 
@@ -71,6 +70,13 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 		return DIERR_GENERIC;
 	}
 
+	// DirectInputCreateEx can only be called with IDirectInput interfaces, not with IUnknown!
+	if (riid != IID_IDirectInputA && riid != IID_IDirectInput2A && riid != IID_IDirectInput7A &&
+		riid != IID_IDirectInputW && riid != IID_IDirectInput2W && riid != IID_IDirectInput7W)
+	{
+		return DIERR_NOINTERFACE;
+	}
+
 	LOG_ONCE("Starting dinputto8 v" << APP_VERSION);
 
 	LOG_LIMIT(3, "Redirecting 'DirectInputCreate' " << riid << " version " << Logging::hex(dwVersion) << " to --> 'DirectInput8Create'");
@@ -81,17 +87,18 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 	}
 
 	HRESULT hr = hresValidInstanceAndVersion(hinst, dwVersion);
-
 	if (SUCCEEDED(hr))
 	{
-		hr = DirectInput8Create(hinst, 0x0800, ConvertREFIID(riid), lplpDD, nullptr);
+		typename m_IDirectInputX::proxy_type* Proxy;
+		hr = DirectInput8Create(hinst, 0x0800, m_IDirectInputX::proxy_iid, reinterpret_cast<LPVOID*>(&Proxy), nullptr);
 
-		if (SUCCEEDED(hr) && lplpDD)
+		if (SUCCEEDED(hr))
 		{
-			m_IDirectInputX* Interface = new m_IDirectInputX((IDirectInput8W*)*lplpDD, riid);
+			m_IDirectInputX* Interface = new m_IDirectInputX(Proxy);
 			Interface->SetVersion(dwVersion);
 
-			*lplpDD = Interface->GetWrapperInterfaceX(GetGUIDVersion(riid));
+			hr = Interface->QueryInterface(riid, lplpDD);
+			Interface->Release();
 		}
 	}
 
@@ -109,6 +116,11 @@ HRESULT WINAPI di_DllCanUnloadNow()
 		return DIERR_GENERIC;
 	}
 
+	if (ModuleObjectCount::AnyObjectsInUse())
+	{
+		return S_FALSE;
+	}
+
 	return DllCanUnloadNow();
 }
 
@@ -123,20 +135,46 @@ HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 		return DIERR_GENERIC;
 	}
 
-	HRESULT hr = DllGetClassObject(dinputto8::ConvertREFCLSID(rclsid), dinputto8::ConvertREFIID(riid), ppv);
-
-	if (SUCCEEDED(hr) && ppv)
+	if (ppv == nullptr)
 	{
-		if (riid == IID_IClassFactory)
+		return E_POINTER;
+	}
+
+	HRESULT hr = E_OUTOFMEMORY;
+	*ppv = nullptr;
+
+	ClassFactoryBase* wrapperFactory = nullptr;
+	if (rclsid == m_IDirectInputX::wrapper_clsid)
+	{
+		IClassFactory* proxyFactory;
+		HRESULT proxyHr = DllGetClassObject(m_IDirectInputX::proxy_clsid, IID_PPV_ARGS(&proxyFactory));
+		if (FAILED(proxyHr))
 		{
-			*ppv = new m_IClassFactory((IClassFactory*)*ppv, genericQueryInterface);
-
-			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
-
-			return DI_OK;
+			return proxyHr;
 		}
 
-		genericQueryInterface(riid, ppv);
+		wrapperFactory = new(std::nothrow) ClassFactory<m_IDirectInputX>(proxyFactory);
+	}
+	else if (rclsid == m_IDirectInputDeviceX::wrapper_clsid)
+	{
+		IClassFactory* proxyFactory;
+		HRESULT proxyHr = DllGetClassObject(m_IDirectInputDeviceX::proxy_clsid, IID_PPV_ARGS(&proxyFactory));
+		if (FAILED(proxyHr))
+		{
+			return proxyHr;
+		}
+
+		wrapperFactory = new(std::nothrow) ClassFactory<m_IDirectInputDeviceX>(proxyFactory);
+	}
+	else
+	{
+		return CLASS_E_CLASSNOTAVAILABLE;
+	}
+
+	if (wrapperFactory != nullptr)
+	{
+		hr = wrapperFactory->QueryInterface(riid, ppv);
+		wrapperFactory->Release();
 	}
 
 	return hr;

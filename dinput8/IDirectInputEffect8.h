@@ -1,46 +1,36 @@
 #pragma once
 
-class m_IDirectInputEffect8 : public IDirectInputEffect, public AddressLookupTableDinput8Object
+class m_IDirectInputEffect8 final : public IDirectInputEffect, AddressLookupTableDinput8Object<m_IDirectInputEffect8>, ModuleObjectCount::CountedObject
 {
 private:
 	IDirectInputEffect *ProxyInterface;
-	const IID WrapperID;
 
 public:
-	m_IDirectInputEffect8(IDirectInputEffect *aOriginal, REFIID riid) : ProxyInterface(aOriginal), WrapperID(riid)
+	m_IDirectInputEffect8(IDirectInputEffect *aOriginal) : AddressLookupTableDinput8Object(aOriginal), ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
-
-		if (IsEqualIID(riid, IID_IUnknown))
-		{
-			Logging::Log() << __FUNCTION__ << " Error: could not get riid when creating interface!";
-		}
-
-		ProxyAddressLookupTableDinput8.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectInputEffect8()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
-
-		ProxyAddressLookupTableDinput8.DeleteAddress(this);
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR* ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirectInputEffect methods ***/
-	STDMETHOD(Initialize)(THIS_ HINSTANCE, DWORD, REFGUID);
-	STDMETHOD(GetEffectGuid)(THIS_ LPGUID);
-	STDMETHOD(GetParameters)(THIS_ LPDIEFFECT, DWORD);
-	STDMETHOD(SetParameters)(THIS_ LPCDIEFFECT, DWORD);
-	STDMETHOD(Start)(THIS_ DWORD, DWORD);
-	STDMETHOD(Stop)(THIS);
-	STDMETHOD(GetEffectStatus)(THIS_ LPDWORD);
-	STDMETHOD(Download)(THIS);
-	STDMETHOD(Unload)(THIS);
-	STDMETHOD(Escape)(THIS_ LPDIEFFESCAPE);
+	IFACEMETHOD(Initialize)(THIS_ HINSTANCE, DWORD, REFGUID) override;
+	IFACEMETHOD(GetEffectGuid)(THIS_ LPGUID) override;
+	IFACEMETHOD(GetParameters)(THIS_ LPDIEFFECT, DWORD) override;
+	IFACEMETHOD(SetParameters)(THIS_ LPCDIEFFECT, DWORD) override;
+	IFACEMETHOD(Start)(THIS_ DWORD, DWORD) override;
+	IFACEMETHOD(Stop)(THIS) override;
+	IFACEMETHOD(GetEffectStatus)(THIS_ LPDWORD) override;
+	IFACEMETHOD(Download)(THIS) override;
+	IFACEMETHOD(Unload)(THIS) override;
+	IFACEMETHOD(Escape)(THIS_ LPDIEFFESCAPE) override;
 
 	// Helper functions
 	IDirectInputEffect *GetProxyInterface() { return ProxyInterface; }

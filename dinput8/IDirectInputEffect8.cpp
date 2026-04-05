@@ -16,7 +16,7 @@
 
 #include "dinput8.h"
 
-HRESULT m_IDirectInputEffect8::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT m_IDirectInputEffect8::QueryInterface(REFIID riid, LPVOID* ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -25,23 +25,17 @@ HRESULT m_IDirectInputEffect8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 		return E_POINTER;
 	}
 
-	if (riid == WrapperID || riid == IID_IUnknown)
+	if (riid == IID_IUnknown || riid == IID_IDirectInputEffect)
 	{
-		AddRef();
-
-		*ppvObj = this;
-
-		return DI_OK;
+		*ppvObj = static_cast<IDirectInputEffect*>(this);
+	}
+	else
+	{
+		return ProxyInterface->QueryInterface(riid, ppvObj);
 	}
 
-	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
-
-	if (SUCCEEDED(hr))
-	{
-		genericQueryInterface(riid, ppvObj);
-	}
-
-	return hr;
+	AddRef();
+	return S_OK;
 }
 
 ULONG m_IDirectInputEffect8::AddRef()

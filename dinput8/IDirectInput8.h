@@ -3,12 +3,19 @@
 #include <chrono>
 #include <vector>
 
-class m_IDirectInput8 : public IDirectInput8A, public IDirectInput8W, public AddressLookupTableDinput8Object
+class m_IDirectInput8 final : public IDirectInput8A, public IDirectInput8W, AddressLookupTableDinput8Object<m_IDirectInput8>, ModuleObjectCount::CountedObject
 {
+public:
+	// Factory traits
+	static inline const CLSID wrapper_clsid = CLSID_DirectInput8;
+
+	static inline const CLSID proxy_clsid = CLSID_DirectInput8;
+	static inline const IID proxy_iid = IID_IDirectInput8W;
+	using proxy_type = IDirectInput8W;
+
 private:
-	IDirectInput8W *ProxyInterface;
-	const IID WrapperID;
-	const IID WrapperDeviceID;
+	proxy_type* ProxyInterface;
+	IDirectInput8A* ProxyInterfaceA; // Non-owning alias
 
 	const std::chrono::seconds cacheDuration = std::chrono::seconds(Config.DeviceLookupCacheTime); // Cache duration in seconds
 
@@ -31,7 +38,17 @@ private:
 	auto& GetEnumCache(IDirectInput8W*) { return cachedDataW; }
 
 	template <class T>
-	inline auto* GetProxyInterface() { return (T*)ProxyInterface; }
+	inline T* GetProxyInterface()
+	{
+		if constexpr (std::is_same_v<T, IDirectInput8A>)
+		{
+			return ProxyInterfaceA;
+		}
+		else
+		{
+			return ProxyInterface; // assumed W
+		}
+	}
 
 	template <class T, class V>
 	inline HRESULT CreateDeviceT(REFGUID rguid, V lplpDirectInputDevice, LPUNKNOWN pUnkOuter);
@@ -49,71 +66,72 @@ private:
 	inline HRESULT ConfigureDevicesT(LPDICONFIGUREDEVICESCALLBACK lpdiCallback, V lpdiCDParams, DWORD dwFlags, LPVOID pvRefData);
 
 public:
-	m_IDirectInput8(IDirectInput8W *aOriginal, REFIID riid) : ProxyInterface(aOriginal), WrapperID(riid),
-		WrapperDeviceID(WrapperID == IID_IDirectInput8A ? IID_IDirectInputDevice8A : WrapperID == IID_IDirectInput8W ? IID_IDirectInputDevice8W : IID_IUnknown)
+	m_IDirectInput8(IUnknown* aOriginal) : AddressLookupTableDinput8Object(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		if (IsEqualIID(riid, IID_IUnknown))
+		aOriginal->QueryInterface(IID_IDirectInput8A, reinterpret_cast<void**>(&ProxyInterfaceA));
+		aOriginal->QueryInterface(IID_IDirectInput8W, reinterpret_cast<void**>(&ProxyInterface));
+		if (aOriginal == ProxyInterface || aOriginal == ProxyInterfaceA)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: could not get riid when creating interface!";
+			aOriginal->Release();
 		}
-
-		ProxyAddressLookupTableDinput8.SaveAddress(this, ProxyInterface);
+		else
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: passed interface does not match either ProxyInterface values!");
+		}
 	}
 	~m_IDirectInput8()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
-
-		ProxyAddressLookupTableDinput8.DeleteAddress(this);
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR* ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirectInput8W methods ***/
-	STDMETHOD(CreateDevice)(THIS_ REFGUID rguid, LPDIRECTINPUTDEVICE8A* lplpDirectInputDevice, LPUNKNOWN pUnkOuter)
+	IFACEMETHOD(CreateDevice)(THIS_ REFGUID rguid, LPDIRECTINPUTDEVICE8A* lplpDirectInputDevice, LPUNKNOWN pUnkOuter) override
 	{
 		return CreateDeviceT<IDirectInput8A, LPDIRECTINPUTDEVICE8A*>(rguid, lplpDirectInputDevice, pUnkOuter);
 	}
-	STDMETHOD(CreateDevice)(THIS_ REFGUID rguid, LPDIRECTINPUTDEVICE8W* lplpDirectInputDevice, LPUNKNOWN pUnkOuter)
+	IFACEMETHOD(CreateDevice)(THIS_ REFGUID rguid, LPDIRECTINPUTDEVICE8W* lplpDirectInputDevice, LPUNKNOWN pUnkOuter) override
 	{
 		return CreateDeviceT<IDirectInput8W, LPDIRECTINPUTDEVICE8W*>(rguid, lplpDirectInputDevice, pUnkOuter);
 	}
-	STDMETHOD(EnumDevices)(THIS_ DWORD dwDevType, LPDIENUMDEVICESCALLBACKA lpCallback, LPVOID pvRef, DWORD dwFlags)
+	IFACEMETHOD(EnumDevices)(THIS_ DWORD dwDevType, LPDIENUMDEVICESCALLBACKA lpCallback, LPVOID pvRef, DWORD dwFlags) override
 	{
 		return EnumDevicesT<IDirectInput8A, LPDIENUMDEVICESCALLBACKA, DIDEVICEINSTANCEA>(dwDevType, lpCallback, pvRef, dwFlags);
 	}
-	STDMETHOD(EnumDevices)(THIS_ DWORD dwDevType, LPDIENUMDEVICESCALLBACKW lpCallback, LPVOID pvRef, DWORD dwFlags)
+	IFACEMETHOD(EnumDevices)(THIS_ DWORD dwDevType, LPDIENUMDEVICESCALLBACKW lpCallback, LPVOID pvRef, DWORD dwFlags) override
 	{
 		return EnumDevicesT<IDirectInput8W, LPDIENUMDEVICESCALLBACKW, DIDEVICEINSTANCEW>(dwDevType, lpCallback, pvRef, dwFlags);
 	}
-	STDMETHOD(GetDeviceStatus)(THIS_ REFGUID);
-	STDMETHOD(RunControlPanel)(THIS_ HWND, DWORD);
-	STDMETHOD(Initialize)(THIS_ HINSTANCE, DWORD);
-	STDMETHOD(FindDevice)(THIS_ REFGUID rguidClass, LPCSTR ptszName, LPGUID pguidInstance)
+	IFACEMETHOD(GetDeviceStatus)(THIS_ REFGUID) override;
+	IFACEMETHOD(RunControlPanel)(THIS_ HWND, DWORD) override;
+	IFACEMETHOD(Initialize)(THIS_ HINSTANCE, DWORD) override;
+	IFACEMETHOD(FindDevice)(THIS_ REFGUID rguidClass, LPCSTR ptszName, LPGUID pguidInstance) override
 	{
 		return FindDeviceT<IDirectInput8A, LPCSTR>(rguidClass, ptszName, pguidInstance);
 	}
-	STDMETHOD(FindDevice)(THIS_ REFGUID rguidClass, LPCWSTR ptszName, LPGUID pguidInstance)
+	IFACEMETHOD(FindDevice)(THIS_ REFGUID rguidClass, LPCWSTR ptszName, LPGUID pguidInstance) override
 	{
 		return FindDeviceT<IDirectInput8W, LPCWSTR>(rguidClass, ptszName, pguidInstance);
 	}
-	STDMETHOD(EnumDevicesBySemantics)(THIS_ LPCSTR ptszUserName, LPDIACTIONFORMATA lpdiActionFormat, LPDIENUMDEVICESBYSEMANTICSCBA lpCallback, LPVOID pvRef, DWORD dwFlags)
+	IFACEMETHOD(EnumDevicesBySemantics)(THIS_ LPCSTR ptszUserName, LPDIACTIONFORMATA lpdiActionFormat, LPDIENUMDEVICESBYSEMANTICSCBA lpCallback, LPVOID pvRef, DWORD dwFlags) override
 	{
 		return EnumDevicesBySemanticsT<IDirectInput8A, LPCSTR, LPDIACTIONFORMATA, LPDIENUMDEVICESBYSEMANTICSCBA, LPCDIDEVICEINSTANCEA, LPDIRECTINPUTDEVICE8A>(ptszUserName, lpdiActionFormat, lpCallback, pvRef, dwFlags);
 	}
-	STDMETHOD(EnumDevicesBySemantics)(THIS_ LPCWSTR ptszUserName, LPDIACTIONFORMATW lpdiActionFormat, LPDIENUMDEVICESBYSEMANTICSCBW lpCallback, LPVOID pvRef, DWORD dwFlags)
+	IFACEMETHOD(EnumDevicesBySemantics)(THIS_ LPCWSTR ptszUserName, LPDIACTIONFORMATW lpdiActionFormat, LPDIENUMDEVICESBYSEMANTICSCBW lpCallback, LPVOID pvRef, DWORD dwFlags) override
 	{
 		return EnumDevicesBySemanticsT<IDirectInput8W, LPCWSTR, LPDIACTIONFORMATW, LPDIENUMDEVICESBYSEMANTICSCBW, LPCDIDEVICEINSTANCEW, LPDIRECTINPUTDEVICE8W>(ptszUserName, lpdiActionFormat, lpCallback, pvRef, dwFlags);
 	}
-	STDMETHOD(ConfigureDevices)(THIS_ LPDICONFIGUREDEVICESCALLBACK lpdiCallback, LPDICONFIGUREDEVICESPARAMSA lpdiCDParams, DWORD dwFlags, LPVOID pvRefData)
+	IFACEMETHOD(ConfigureDevices)(THIS_ LPDICONFIGUREDEVICESCALLBACK lpdiCallback, LPDICONFIGUREDEVICESPARAMSA lpdiCDParams, DWORD dwFlags, LPVOID pvRefData) override
 	{
 		return ConfigureDevicesT<IDirectInput8A, LPDICONFIGUREDEVICESPARAMSA>(lpdiCallback, lpdiCDParams, dwFlags, pvRefData);
 	}
-	STDMETHOD(ConfigureDevices)(THIS_ LPDICONFIGUREDEVICESCALLBACK lpdiCallback, LPDICONFIGUREDEVICESPARAMSW lpdiCDParams, DWORD dwFlags, LPVOID pvRefData)
+	IFACEMETHOD(ConfigureDevices)(THIS_ LPDICONFIGUREDEVICESCALLBACK lpdiCallback, LPDICONFIGUREDEVICESPARAMSW lpdiCDParams, DWORD dwFlags, LPVOID pvRefData) override
 	{
 		return ConfigureDevicesT<IDirectInput8W, LPDICONFIGUREDEVICESPARAMSW>(lpdiCallback, lpdiCDParams, dwFlags, pvRefData);
 	}

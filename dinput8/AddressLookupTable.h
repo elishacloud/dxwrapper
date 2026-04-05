@@ -2,59 +2,76 @@
 
 #include <unordered_map>
 #include <algorithm>
+#include "dinput8.h"
 
-constexpr UINT MaxIndex = 4;
+class AddressLookupTableDinput8ObjectBase
+{
+public:
+	virtual ~AddressLookupTableDinput8ObjectBase() = default;
+};
 
-template <typename D>
+template<typename T>
+class AddressLookupTableDinput8Object;
+
 class AddressLookupTableDinput8
 {
+private:
+	static constexpr size_t MaxCacheIndex = 3;
+
+	bool ConstructorFlag = false;
+	std::unordered_map<void*, class AddressLookupTableDinput8ObjectBase*> g_map[MaxCacheIndex];
+
+	template <typename T>
+	struct AddressCacheIndex {};
+	template <>
+	struct AddressCacheIndex<m_IDirectInput8> { static constexpr UINT CacheIndex = 0; };
+	template <>
+	struct AddressCacheIndex<m_IDirectInputDevice8> { static constexpr UINT CacheIndex = 1; };
+	template <>
+	struct AddressCacheIndex<m_IDirectInputEffect8> { static constexpr UINT CacheIndex = 2; };
+
+	void DeleteAll()
+	{
+		for (const auto& map : g_map)
+		{
+			for (const auto& entry : map)
+			{
+				delete entry.second;
+			}
+		}
+	}
+
 public:
 	explicit AddressLookupTableDinput8() {}
 	~AddressLookupTableDinput8()
 	{
 		ConstructorFlag = true;
-
-		for (const auto& cache : g_map)
-		{
-			for (const auto& entry : cache)
-			{
-				entry.second->DeleteMe();
-			}
-		}
+		DeleteAll();
 	}
 
 	template <typename T>
-	struct AddressCacheIndex { static constexpr UINT CacheIndex = 0; };
-	template <>
-	struct AddressCacheIndex<m_IDirectInput8> { static constexpr UINT CacheIndex = 1; };
-	template <>
-	struct AddressCacheIndex<m_IDirectInputDevice8> { static constexpr UINT CacheIndex = 2; };
-	template <>
-	struct AddressCacheIndex<m_IDirectInputEffect8> { static constexpr UINT CacheIndex = 3; };
-
-	template <typename T>
-	T *FindAddress(void *Proxy, REFIID riid)
+	T *FindAddress(void *Proxy)
 	{
 		if (!Proxy)
 		{
 			return nullptr;
 		}
 
-		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
+		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
 		auto it = g_map[CacheIndex].find(Proxy);
 		if (it != std::end(g_map[CacheIndex]))
 		{
-			return static_cast<T *>(it->second);
+			return static_cast<T*>(it->second);
 		}
 
-		return new T(static_cast<T *>(Proxy), riid);
+		return nullptr;
 	}
 
 	template <typename T>
-	void SaveAddress(T *Wrapper, void *Proxy)
+	void SaveAddress(AddressLookupTableDinput8Object<T>* Wrapper, void *Proxy)
 	{
-		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
+		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 		if (Wrapper && Proxy)
 		{
 			g_map[CacheIndex][Proxy] = Wrapper;
@@ -62,36 +79,35 @@ public:
 	}
 
 	template <typename T>
-	void DeleteAddress(T *Wrapper)
+	void DeleteAddress(AddressLookupTableDinput8Object<T>*Wrapper)
 	{
 		if (!Wrapper || ConstructorFlag)
 		{
 			return;
 		}
 
-		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
+		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
 		auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
-			[=](auto Map) -> bool { return Map.second == Wrapper; });
+			[=](auto& Map) -> bool { return Map.second == Wrapper; });
 		if (it != std::end(g_map[CacheIndex]))
 		{
 			g_map[CacheIndex].erase(it);
 		}
 	}
-
-private:
-	bool ConstructorFlag = false;
-	D *unused = nullptr;
-	std::unordered_map<void*, class AddressLookupTableDinput8Object*> g_map[MaxIndex];
 };
 
-class AddressLookupTableDinput8Object
+template<typename T>
+class AddressLookupTableDinput8Object : public AddressLookupTableDinput8ObjectBase
 {
 public:
-	virtual ~AddressLookupTableDinput8Object() {}
-
-	void DeleteMe()
+	AddressLookupTableDinput8Object(void* Proxy)
 	{
-		delete this;
+		ProxyAddressLookupTableDinput8.SaveAddress(this, Proxy);
+	}
+
+	~AddressLookupTableDinput8Object()
+	{
+		ProxyAddressLookupTableDinput8.DeleteAddress(this);
 	}
 };

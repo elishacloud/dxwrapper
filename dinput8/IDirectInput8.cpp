@@ -25,38 +25,39 @@ HRESULT m_IDirectInput8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 		return E_POINTER;
 	}
 
-	if (riid == WrapperID || riid == IID_IUnknown)
+	if (riid == IID_IUnknown || riid == IID_IDirectInput8W)
 	{
-		AddRef();
-
-		*ppvObj = this;
-
-		return DI_OK;
+		*ppvObj = static_cast<IDirectInput8W*>(this);
+	}
+	else if (riid == IID_IDirectInput8A)
+	{
+		*ppvObj = static_cast<IDirectInput8A*>(this);
+	}
+	else
+	{
+		return ProxyInterface->QueryInterface(riid, ppvObj);
 	}
 
-	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
-
-	if (SUCCEEDED(hr))
-	{
-		genericQueryInterface(riid, ppvObj);
-	}
-
-	return hr;
+	AddRef();
+	return S_OK;
 }
 
 ULONG m_IDirectInput8::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->AddRef();
+	const ULONG ref = ProxyInterface->AddRef();
+	// This is technically not necessary, but it makes managing the two-references-to-one-object easier
+	ProxyInterfaceA->AddRef();
+	return ref;
 }
 
 ULONG m_IDirectInput8::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ULONG ref = ProxyInterface->Release();
-
+	ProxyInterfaceA->Release();
+	const ULONG ref = ProxyInterface->Release();
 	if (ref == 0)
 	{
 		delete this;
@@ -76,7 +77,7 @@ HRESULT m_IDirectInput8::CreateDeviceT(REFGUID rguid, V lplpDirectInputDevice, L
 
 	if (SUCCEEDED(hr) && lplpDirectInputDevice)
 	{
-		m_IDirectInputDevice8* pAddressX = new m_IDirectInputDevice8((IDirectInputDevice8W*)*lplpDirectInputDevice, WrapperDeviceID);
+		m_IDirectInputDevice8* pAddressX = new m_IDirectInputDevice8((IDirectInputDevice8W*)*lplpDirectInputDevice);
 
 		*lplpDirectInputDevice = pAddressX;
 
@@ -225,19 +226,23 @@ HRESULT m_IDirectInput8::EnumDevicesBySemanticsT(V ptszUserName, W lpdiActionFor
 
 	if (lpCallback)
 	{
-		struct EnumDevice
+		struct DeviceEnumerator
 		{
 			LPVOID pvRef = nullptr;
 			X lpCallback = nullptr;
-			GUID WrapperDeviceID = {};
 
 			static BOOL CALLBACK EnumDeviceCallback(C lpddi, D lpdid, DWORD dwFlags, DWORD dwRemaining, LPVOID pvRef)
 			{
-				EnumDevice* self = (EnumDevice*)pvRef;
+				DeviceEnumerator* self = (DeviceEnumerator*)pvRef;
 
 				if (lpdid)
 				{
-					lpdid = ProxyAddressLookupTableDinput8.FindAddress<m_IDirectInputDevice8>(lpdid, self->WrapperDeviceID);
+					m_IDirectInputDevice8* WrapperDevice = ProxyAddressLookupTableDinput8.FindAddress<m_IDirectInputDevice8>(lpdid);
+					if (WrapperDevice == nullptr)
+					{
+						WrapperDevice = new m_IDirectInputDevice8(lpdid);
+					}
+					lpdid = WrapperDevice;
 				}
 
 				return self->lpCallback(lpddi, lpdid, dwFlags, dwRemaining, self->pvRef);
@@ -245,9 +250,8 @@ HRESULT m_IDirectInput8::EnumDevicesBySemanticsT(V ptszUserName, W lpdiActionFor
 		} CallbackContext;
 		CallbackContext.pvRef = pvRef;
 		CallbackContext.lpCallback = lpCallback;
-		CallbackContext.WrapperDeviceID = WrapperDeviceID;
 
-		return GetProxyInterface<T>()->EnumDevicesBySemantics(ptszUserName, lpdiActionFormat, EnumDevice::EnumDeviceCallback, &CallbackContext, dwFlags);
+		return GetProxyInterface<T>()->EnumDevicesBySemantics(ptszUserName, lpdiActionFormat, DeviceEnumerator::EnumDeviceCallback, &CallbackContext, dwFlags);
 	}
 
 	return GetProxyInterface<T>()->EnumDevicesBySemantics(ptszUserName, lpdiActionFormat, lpCallback, pvRef, dwFlags);

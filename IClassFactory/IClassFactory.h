@@ -34,15 +34,18 @@ private:
 public:
 	m_IClassFactory(IClassFactory *aOriginal, IQueryInterfaceProc p_QueryInterface) : ProxyInterface(aOriginal), IQueryInterface(p_QueryInterface)
 	{
-		Logging::LogDebug() << "Create " << __FUNCTION__;
-		if (!ProxyInterface || !IQueryInterface)
-		{
-			ProxyInterface = nullptr;
-		}
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 	}
-	~m_IClassFactory() {}
+	~m_IClassFactory()
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+	}
 
-	void SetCLSID(REFCLSID rclsid) { ClassID = rclsid; }
+	void SetCLSID(REFCLSID rclsid)
+	{
+		ClassID = rclsid;
+		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ") ClassID: " << ClassID);
+	}
 
 	/*** IUnknown methods ***/
 	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);

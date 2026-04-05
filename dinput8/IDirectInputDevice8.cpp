@@ -27,38 +27,40 @@ HRESULT m_IDirectInputDevice8::QueryInterface(REFIID riid, LPVOID* ppvObj)
 		return E_POINTER;
 	}
 
-	if (riid == WrapperID || riid == IID_IUnknown)
+
+	if (riid == IID_IUnknown || riid == IID_IDirectInputDevice8W)
 	{
-		AddRef();
-
-		*ppvObj = this;
-
-		return DI_OK;
+		*ppvObj = static_cast<IDirectInputDevice8W*>(this);
+	}
+	else if (riid == IID_IDirectInputDevice8A)
+	{
+		*ppvObj = static_cast<IDirectInputDevice8A*>(this);
+	}
+	else
+	{
+		return ProxyInterface->QueryInterface(riid, ppvObj);
 	}
 
-	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
-
-	if (SUCCEEDED(hr))
-	{
-		genericQueryInterface(riid, ppvObj);
-	}
-
-	return hr;
+	AddRef();
+	return S_OK;
 }
 
 ULONG m_IDirectInputDevice8::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->AddRef();
+	const ULONG ref = ProxyInterface->AddRef();
+	// This is technically not necessary, but it makes managing the two-references-to-one-object easier
+	ProxyInterfaceA->AddRef();
+	return ref;
 }
 
 ULONG m_IDirectInputDevice8::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ULONG ref = ProxyInterface->Release();
-
+	ProxyInterfaceA->Release();
+	const ULONG ref = ProxyInterface->Release();
 	if (ref == 0)
 	{
 		delete this;
@@ -569,7 +571,7 @@ HRESULT m_IDirectInputDevice8::CreateEffect(REFGUID rguid, LPCDIEFFECT lpeff, LP
 
 	if (SUCCEEDED(hr) && ppdeff)
 	{
-		*ppdeff = new m_IDirectInputEffect8(*ppdeff, IID_IDirectInputEffect);
+		*ppdeff = new m_IDirectInputEffect8(*ppdeff);
 	}
 
 	return hr;
@@ -618,27 +620,32 @@ HRESULT m_IDirectInputDevice8::EnumCreatedEffectObjects(LPDIENUMCREATEDEFFECTOBJ
 		return DIERR_INVALIDPARAM;
 	}
 
-	struct EnumEffect
+	struct EffectEnumerator
 	{
 		LPVOID pvRef = nullptr;
 		LPDIENUMCREATEDEFFECTOBJECTSCALLBACK lpCallback = nullptr;
 
-		static BOOL CALLBACK EnumEffectCallback(LPDIRECTINPUTEFFECT a, LPVOID pvRef)
+		static BOOL CALLBACK EnumEffectCallback(LPDIRECTINPUTEFFECT pdeff, LPVOID pvRef)
 		{
-			EnumEffect *self = (EnumEffect*)pvRef;
+			EffectEnumerator* self = static_cast<EffectEnumerator*>(pvRef);
 
-			if (a)
+			if (pdeff)
 			{
-				a = ProxyAddressLookupTableDinput8.FindAddress<m_IDirectInputEffect8>(a, IID_IDirectInputEffect);
+				m_IDirectInputEffect8* WrapperEffect = ProxyAddressLookupTableDinput8.FindAddress<m_IDirectInputEffect8>(pdeff);
+				if (WrapperEffect == nullptr)
+				{
+					WrapperEffect = new m_IDirectInputEffect8(pdeff);
+				}
+				pdeff = WrapperEffect;
 			}
 
-			return self->lpCallback(a, self->pvRef);
+			return self->lpCallback(pdeff, self->pvRef);
 		}
 	} CallbackContext;
 	CallbackContext.pvRef = pvRef;
 	CallbackContext.lpCallback = lpCallback;
 
-	return ProxyInterface->EnumCreatedEffectObjects(EnumEffect::EnumEffectCallback, &CallbackContext, fl);
+	return ProxyInterface->EnumCreatedEffectObjects(EffectEnumerator::EnumEffectCallback, &CallbackContext, fl);
 }
 
 HRESULT m_IDirectInputDevice8::Escape(LPDIEFFESCAPE pesc)
