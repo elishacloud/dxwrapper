@@ -32,9 +32,7 @@ public:
 
 private:
 	template <typename T>
-	struct AddressCacheIndex { static constexpr UINT CacheIndex = 0; };
-
-	// Specializations for AddressCacheIndex
+	struct AddressCacheIndex {};
 	template <>
 	struct AddressCacheIndex<m_IDirect3D9Ex> { static constexpr UINT CacheIndex = 1; };
 	template <>

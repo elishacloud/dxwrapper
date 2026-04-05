@@ -105,7 +105,7 @@ private:
 	std::unordered_map<class AddressLookupTableDdrawObject*, void*> reverse_map[MaxIndex];  // Reverse mapping
 
 	template <typename T>
-	struct AddressCacheIndex { static constexpr UINT CacheIndex = 0; };
+	struct AddressCacheIndex {};
 	template <>
 	struct AddressCacheIndex<m_IDirect3D> { static constexpr UINT CacheIndex = 1; };
 	template <>
@@ -211,17 +211,17 @@ private:
 		using Type7 = m_IDirectDrawSurface7;
 	};
 	template <>
-	struct AddressCacheIndex<IDirect3DExecuteBuffer> { static constexpr UINT CacheIndex = 29; };
+	struct AddressCacheIndex<m_IDirect3DExecuteBuffer> { static constexpr UINT CacheIndex = 29; };
 	template <>
-	struct AddressCacheIndex<IDirect3DLight> { static constexpr UINT CacheIndex = 30; };
+	struct AddressCacheIndex<m_IDirect3DLight> { static constexpr UINT CacheIndex = 30; };
 	template <>
-	struct AddressCacheIndex<IDirectDrawClipper> { static constexpr UINT CacheIndex = 31; };
+	struct AddressCacheIndex<m_IDirectDrawClipper> { static constexpr UINT CacheIndex = 31; };
 	template <>
-	struct AddressCacheIndex<IDirectDrawColorControl> { static constexpr UINT CacheIndex = 32; };
+	struct AddressCacheIndex<m_IDirectDrawColorControl> { static constexpr UINT CacheIndex = 32; };
 	template <>
-	struct AddressCacheIndex<IDirectDrawGammaControl> { static constexpr UINT CacheIndex = 33; };
+	struct AddressCacheIndex<m_IDirectDrawGammaControl> { static constexpr UINT CacheIndex = 33; };
 	template <>
-	struct AddressCacheIndex<IDirectDrawPalette> { static constexpr UINT CacheIndex = 34; };
+	struct AddressCacheIndex<m_IDirectDrawPalette> { static constexpr UINT CacheIndex = 34; };
 	template <>
 	struct AddressCacheIndex<m_IDirect3DX> { static constexpr UINT CacheIndex = 35; };
 	template <>

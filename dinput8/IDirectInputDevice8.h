@@ -49,56 +49,43 @@ private:
 	std::vector<MOUSECACHEDATA> dod_dx8;
 	std::vector<BYTE> tmp_dod;
 
-	template <class T>
-	inline T* GetProxyInterface()
-	{
-		if constexpr (std::is_same_v<T, IDirectInputDevice8A>)
-		{
-			return ProxyInterfaceA;
-		}
-		else
-		{
-			return ProxyInterface; // assumed W
-		}
-	}
+	template <class T, class V>
+	inline HRESULT EnumObjectsT(T* ProxyInterfaceT, V lpCallback, LPVOID pvRef, DWORD dwFlags);
 
 	template <class T, class V>
-	inline HRESULT EnumObjectsT(V lpCallback, LPVOID pvRef, DWORD dwFlags);
+	inline HRESULT GetObjectInfoT(T* ProxyInterfaceT, V pdidoi, DWORD dwObj, DWORD dwHow);
 
 	template <class T, class V>
-	inline HRESULT GetObjectInfoT(V pdidoi, DWORD dwObj, DWORD dwHow);
+	inline HRESULT GetDeviceInfoT(T* ProxyInterfaceT, V pdidi);
 
 	template <class T, class V>
-	inline HRESULT GetDeviceInfoT(V pdidi);
+	inline HRESULT EnumEffectsT(T* ProxyInterfaceT, V lpCallback, LPVOID pvRef, DWORD dwEffType);
 
 	template <class T, class V>
-	inline HRESULT EnumEffectsT(V lpCallback, LPVOID pvRef, DWORD dwEffType);
+	inline HRESULT GetEffectInfoT(T* ProxyInterfaceT, V pdei, REFGUID rguid);
 
 	template <class T, class V>
-	inline HRESULT GetEffectInfoT(V pdei, REFGUID rguid);
+	inline HRESULT EnumEffectsInFileT(T* ProxyInterfaceT, V lpszFileName, LPDIENUMEFFECTSINFILECALLBACK pec, LPVOID pvRef, DWORD dwFlags);
 
 	template <class T, class V>
-	inline HRESULT EnumEffectsInFileT(V lpszFileName, LPDIENUMEFFECTSINFILECALLBACK pec, LPVOID pvRef, DWORD dwFlags);
-
-	template <class T, class V>
-	inline HRESULT WriteEffectToFileT(V lpszFileName, DWORD dwEntries, LPDIFILEEFFECT rgDiFileEft, DWORD dwFlags);
+	inline HRESULT WriteEffectToFileT(T* ProxyInterfaceT, V lpszFileName, DWORD dwEntries, LPDIFILEEFFECT rgDiFileEft, DWORD dwFlags);
 
 	template <class T, class V, class W>
-	inline HRESULT BuildActionMapT(V lpdiaf, W lpszUserName, DWORD dwFlags);
+	inline HRESULT BuildActionMapT(T* ProxyInterfaceT, V lpdiaf, W lpszUserName, DWORD dwFlags);
 
 	template <class T, class V, class W>
-	inline HRESULT SetActionMapT(V lpdiActionFormat, W lptszUserName, DWORD dwFlags);
+	inline HRESULT SetActionMapT(T* ProxyInterfaceT, V lpdiActionFormat, W lptszUserName, DWORD dwFlags);
 
 	template <class T, class V>
-	inline HRESULT GetImageInfoT(V lpdiDevImageInfoHeader);
+	inline HRESULT GetImageInfoT(T* ProxyInterfaceT, V lpdiDevImageInfoHeader);
 
 public:
 	m_IDirectInputDevice8(IUnknown* aOriginal) : AddressLookupTableDinput8Object(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		aOriginal->QueryInterface(IID_IDirectInputDevice8A, reinterpret_cast<void**>(&ProxyInterfaceA));
-		aOriginal->QueryInterface(IID_IDirectInputDevice8W, reinterpret_cast<void**>(&ProxyInterface));
+		aOriginal->QueryInterface(IID_IDirectInputDevice8A, reinterpret_cast<LPVOID*>(&ProxyInterfaceA));
+		aOriginal->QueryInterface(IID_IDirectInputDevice8W, reinterpret_cast<LPVOID*>(&ProxyInterface));
 		if (aOriginal == ProxyInterface || aOriginal == ProxyInterfaceA)
 		{
 			aOriginal->Release();
@@ -128,11 +115,11 @@ public:
 	IFACEMETHOD(GetCapabilities)(THIS_ LPDIDEVCAPS) override;
 	IFACEMETHOD(EnumObjects)(THIS_ LPDIENUMDEVICEOBJECTSCALLBACKA lpCallback, LPVOID pvRef, DWORD dwFlags) override
 	{
-		return EnumObjectsT<IDirectInputDevice8A, LPDIENUMDEVICEOBJECTSCALLBACKA>(lpCallback, pvRef, dwFlags);
+		return EnumObjectsT<IDirectInputDevice8A, LPDIENUMDEVICEOBJECTSCALLBACKA>(ProxyInterfaceA, lpCallback, pvRef, dwFlags);
 	}
 	IFACEMETHOD(EnumObjects)(THIS_ LPDIENUMDEVICEOBJECTSCALLBACKW lpCallback, LPVOID pvRef, DWORD dwFlags) override
 	{
-		return EnumObjectsT<IDirectInputDevice8W, LPDIENUMDEVICEOBJECTSCALLBACKW>(lpCallback, pvRef, dwFlags);
+		return EnumObjectsT<IDirectInputDevice8W, LPDIENUMDEVICEOBJECTSCALLBACKW>(ProxyInterface, lpCallback, pvRef, dwFlags);
 	}
 	IFACEMETHOD(GetProperty)(THIS_ REFGUID, LPDIPROPHEADER) override;
 	IFACEMETHOD(SetProperty)(THIS_ REFGUID, LPCDIPROPHEADER) override;
@@ -145,38 +132,38 @@ public:
 	IFACEMETHOD(SetCooperativeLevel)(THIS_ HWND, DWORD) override;
 	IFACEMETHOD(GetObjectInfo)(THIS_ LPDIDEVICEOBJECTINSTANCEA pdidoi, DWORD dwObj, DWORD dwHow) override
 	{
-		return GetObjectInfoT<IDirectInputDevice8A, LPDIDEVICEOBJECTINSTANCEA>(pdidoi, dwObj, dwHow);
+		return GetObjectInfoT<IDirectInputDevice8A, LPDIDEVICEOBJECTINSTANCEA>(ProxyInterfaceA, pdidoi, dwObj, dwHow);
 	}
 	IFACEMETHOD(GetObjectInfo)(THIS_ LPDIDEVICEOBJECTINSTANCEW pdidoi, DWORD dwObj, DWORD dwHow) override
 	{
-		return GetObjectInfoT<IDirectInputDevice8W, LPDIDEVICEOBJECTINSTANCEW>(pdidoi, dwObj, dwHow);
+		return GetObjectInfoT<IDirectInputDevice8W, LPDIDEVICEOBJECTINSTANCEW>(ProxyInterface, pdidoi, dwObj, dwHow);
 	}
 	IFACEMETHOD(GetDeviceInfo)(THIS_ LPDIDEVICEINSTANCEA pdidi) override
 	{
-		return GetDeviceInfoT<IDirectInputDevice8A, LPDIDEVICEINSTANCEA>(pdidi);
+		return GetDeviceInfoT<IDirectInputDevice8A, LPDIDEVICEINSTANCEA>(ProxyInterfaceA, pdidi);
 	}
 	IFACEMETHOD(GetDeviceInfo)(THIS_ LPDIDEVICEINSTANCEW pdidi) override
 	{
-		return GetDeviceInfoT<IDirectInputDevice8W, LPDIDEVICEINSTANCEW>(pdidi);
+		return GetDeviceInfoT<IDirectInputDevice8W, LPDIDEVICEINSTANCEW>(ProxyInterface, pdidi);
 	}
 	IFACEMETHOD(RunControlPanel)(THIS_ HWND, DWORD) override;
 	IFACEMETHOD(Initialize)(THIS_ HINSTANCE, DWORD, REFGUID) override;
 	IFACEMETHOD(CreateEffect)(THIS_ REFGUID, LPCDIEFFECT, LPDIRECTINPUTEFFECT *, LPUNKNOWN) override;
 	IFACEMETHOD(EnumEffects)(THIS_ LPDIENUMEFFECTSCALLBACKA lpCallback, LPVOID pvRef, DWORD dwEffType) override
 	{
-		return EnumEffectsT<IDirectInputDevice8A, LPDIENUMEFFECTSCALLBACKA>(lpCallback, pvRef, dwEffType);
+		return EnumEffectsT<IDirectInputDevice8A, LPDIENUMEFFECTSCALLBACKA>(ProxyInterfaceA, lpCallback, pvRef, dwEffType);
 	}
 	IFACEMETHOD(EnumEffects)(THIS_ LPDIENUMEFFECTSCALLBACKW lpCallback, LPVOID pvRef, DWORD dwEffType) override
 	{
-		return EnumEffectsT<IDirectInputDevice8W, LPDIENUMEFFECTSCALLBACKW>(lpCallback, pvRef, dwEffType);
+		return EnumEffectsT<IDirectInputDevice8W, LPDIENUMEFFECTSCALLBACKW>(ProxyInterface, lpCallback, pvRef, dwEffType);
 	}
 	IFACEMETHOD(GetEffectInfo)(THIS_ LPDIEFFECTINFOA pdei, REFGUID rguid) override
 	{
-		return GetEffectInfoT<IDirectInputDevice8A, LPDIEFFECTINFOA>(pdei, rguid);
+		return GetEffectInfoT<IDirectInputDevice8A, LPDIEFFECTINFOA>(ProxyInterfaceA, pdei, rguid);
 	}
 	IFACEMETHOD(GetEffectInfo)(THIS_ LPDIEFFECTINFOW pdei, REFGUID rguid) override
 	{
-		return GetEffectInfoT<IDirectInputDevice8W, LPDIEFFECTINFOW>(pdei, rguid);
+		return GetEffectInfoT<IDirectInputDevice8W, LPDIEFFECTINFOW>(ProxyInterface, pdei, rguid);
 	}
 	IFACEMETHOD(GetForceFeedbackState)(THIS_ LPDWORD) override;
 	IFACEMETHOD(SendForceFeedbackCommand)(THIS_ DWORD) override;
@@ -186,43 +173,43 @@ public:
 	IFACEMETHOD(SendDeviceData)(THIS_ DWORD, LPCDIDEVICEOBJECTDATA, LPDWORD, DWORD) override;
 	IFACEMETHOD(EnumEffectsInFile)(THIS_ LPCSTR lpszFileName, LPDIENUMEFFECTSINFILECALLBACK pec, LPVOID pvRef, DWORD dwFlags) override
 	{
-		return EnumEffectsInFileT<IDirectInputDevice8A, LPCSTR>(lpszFileName, pec, pvRef, dwFlags);
+		return EnumEffectsInFileT<IDirectInputDevice8A, LPCSTR>(ProxyInterfaceA, lpszFileName, pec, pvRef, dwFlags);
 	}
 	IFACEMETHOD(EnumEffectsInFile)(THIS_ LPCWSTR lpszFileName, LPDIENUMEFFECTSINFILECALLBACK pec, LPVOID pvRef, DWORD dwFlags) override
 	{
-		return EnumEffectsInFileT<IDirectInputDevice8W, LPCWSTR>(lpszFileName, pec, pvRef, dwFlags);
+		return EnumEffectsInFileT<IDirectInputDevice8W, LPCWSTR>(ProxyInterface, lpszFileName, pec, pvRef, dwFlags);
 	}
 	IFACEMETHOD(WriteEffectToFile)(THIS_ LPCSTR lpszFileName, DWORD dwEntries, LPDIFILEEFFECT rgDiFileEft, DWORD dwFlags) override
 	{
-		return WriteEffectToFileT<IDirectInputDevice8A, LPCSTR>(lpszFileName, dwEntries, rgDiFileEft, dwFlags);
+		return WriteEffectToFileT<IDirectInputDevice8A, LPCSTR>(ProxyInterfaceA, lpszFileName, dwEntries, rgDiFileEft, dwFlags);
 	}
 	IFACEMETHOD(WriteEffectToFile)(THIS_ LPCWSTR lpszFileName, DWORD dwEntries, LPDIFILEEFFECT rgDiFileEft, DWORD dwFlags) override
 	{
-		return WriteEffectToFileT<IDirectInputDevice8W, LPCWSTR>(lpszFileName, dwEntries, rgDiFileEft, dwFlags);
+		return WriteEffectToFileT<IDirectInputDevice8W, LPCWSTR>(ProxyInterface, lpszFileName, dwEntries, rgDiFileEft, dwFlags);
 	}
 	IFACEMETHOD(BuildActionMap)(THIS_ LPDIACTIONFORMATA lpdiaf, LPCSTR lpszUserName, DWORD dwFlags) override
 	{
-		return BuildActionMapT<IDirectInputDevice8A, LPDIACTIONFORMATA, LPCSTR>(lpdiaf, lpszUserName, dwFlags);
+		return BuildActionMapT<IDirectInputDevice8A, LPDIACTIONFORMATA, LPCSTR>(ProxyInterfaceA, lpdiaf, lpszUserName, dwFlags);
 	}
 	IFACEMETHOD(BuildActionMap)(THIS_ LPDIACTIONFORMATW lpdiaf, LPCWSTR lpszUserName, DWORD dwFlags) override
 	{
-		return BuildActionMapT<IDirectInputDevice8W, LPDIACTIONFORMATW, LPCWSTR>(lpdiaf, lpszUserName, dwFlags);
+		return BuildActionMapT<IDirectInputDevice8W, LPDIACTIONFORMATW, LPCWSTR>(ProxyInterface, lpdiaf, lpszUserName, dwFlags);
 	}
 	IFACEMETHOD(SetActionMap)(THIS_ LPDIACTIONFORMATA lpdiActionFormat, LPCSTR lptszUserName, DWORD dwFlags) override
 	{
-		return SetActionMapT<IDirectInputDevice8A, LPDIACTIONFORMATA, LPCSTR>(lpdiActionFormat, lptszUserName, dwFlags);
+		return SetActionMapT<IDirectInputDevice8A, LPDIACTIONFORMATA, LPCSTR>(ProxyInterfaceA, lpdiActionFormat, lptszUserName, dwFlags);
 	}
 	IFACEMETHOD(SetActionMap)(THIS_ LPDIACTIONFORMATW lpdiActionFormat, LPCWSTR lptszUserName, DWORD dwFlags) override
 	{
-		return SetActionMapT<IDirectInputDevice8W, LPDIACTIONFORMATW, LPCWSTR>(lpdiActionFormat, lptszUserName, dwFlags);
+		return SetActionMapT<IDirectInputDevice8W, LPDIACTIONFORMATW, LPCWSTR>(ProxyInterface, lpdiActionFormat, lptszUserName, dwFlags);
 	}
 	IFACEMETHOD(GetImageInfo)(THIS_ LPDIDEVICEIMAGEINFOHEADERA lpdiDevImageInfoHeader) override
 	{
-		return GetImageInfoT<IDirectInputDevice8A, LPDIDEVICEIMAGEINFOHEADERA>(lpdiDevImageInfoHeader);
+		return GetImageInfoT<IDirectInputDevice8A, LPDIDEVICEIMAGEINFOHEADERA>(ProxyInterfaceA, lpdiDevImageInfoHeader);
 	}
 	IFACEMETHOD(GetImageInfo)(THIS_ LPDIDEVICEIMAGEINFOHEADERW lpdiDevImageInfoHeader) override
 	{
-		return GetImageInfoT<IDirectInputDevice8W, LPDIDEVICEIMAGEINFOHEADERW>(lpdiDevImageInfoHeader);
+		return GetImageInfoT<IDirectInputDevice8W, LPDIDEVICEIMAGEINFOHEADERW>(ProxyInterface, lpdiDevImageInfoHeader);
 	}
 
 	// Helper functions

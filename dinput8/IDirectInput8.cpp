@@ -66,14 +66,14 @@ ULONG m_IDirectInput8::Release()
 	return ref;
 }
 
-template HRESULT m_IDirectInput8::CreateDeviceT<IDirectInput8A, LPDIRECTINPUTDEVICE8A*>(REFGUID, LPDIRECTINPUTDEVICE8A*, LPUNKNOWN);
-template HRESULT m_IDirectInput8::CreateDeviceT<IDirectInput8W, LPDIRECTINPUTDEVICE8W*>(REFGUID, LPDIRECTINPUTDEVICE8W*, LPUNKNOWN);
+template HRESULT m_IDirectInput8::CreateDeviceT<IDirectInput8A, LPDIRECTINPUTDEVICE8A*>(IDirectInput8A*, REFGUID, LPDIRECTINPUTDEVICE8A*, LPUNKNOWN);
+template HRESULT m_IDirectInput8::CreateDeviceT<IDirectInput8W, LPDIRECTINPUTDEVICE8W*>(IDirectInput8W*, REFGUID, LPDIRECTINPUTDEVICE8W*, LPUNKNOWN);
 template <class T, class V>
-HRESULT m_IDirectInput8::CreateDeviceT(REFGUID rguid, V lplpDirectInputDevice, LPUNKNOWN pUnkOuter)
+HRESULT m_IDirectInput8::CreateDeviceT(T* ProxyInterfaceT, REFGUID rguid, V lplpDirectInputDevice, LPUNKNOWN pUnkOuter)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = GetProxyInterface<T>()->CreateDevice(rguid, lplpDirectInputDevice, pUnkOuter);
+	HRESULT hr = ProxyInterfaceT->CreateDevice(rguid, lplpDirectInputDevice, pUnkOuter);
 
 	if (SUCCEEDED(hr) && lplpDirectInputDevice)
 	{
@@ -110,17 +110,17 @@ HRESULT m_IDirectInput8::CreateDeviceT(REFGUID rguid, V lplpDirectInputDevice, L
 	return hr;
 }
 
-template HRESULT m_IDirectInput8::EnumDevicesT<IDirectInput8A, LPDIENUMDEVICESCALLBACKA, DIDEVICEINSTANCEA>(DWORD, LPDIENUMDEVICESCALLBACKA, LPVOID, DWORD);
-template HRESULT m_IDirectInput8::EnumDevicesT<IDirectInput8W, LPDIENUMDEVICESCALLBACKW, DIDEVICEINSTANCEW>(DWORD, LPDIENUMDEVICESCALLBACKW, LPVOID, DWORD);
+template HRESULT m_IDirectInput8::EnumDevicesT<IDirectInput8A, LPDIENUMDEVICESCALLBACKA, DIDEVICEINSTANCEA>(IDirectInput8A*, DWORD, LPDIENUMDEVICESCALLBACKA, LPVOID, DWORD);
+template HRESULT m_IDirectInput8::EnumDevicesT<IDirectInput8W, LPDIENUMDEVICESCALLBACKW, DIDEVICEINSTANCEW>(IDirectInput8W*, DWORD, LPDIENUMDEVICESCALLBACKW, LPVOID, DWORD);
 template <class T, class V, class D>
-HRESULT m_IDirectInput8::EnumDevicesT(DWORD dwDevType, V lpCallback, LPVOID pvRef, DWORD dwFlags)
+HRESULT m_IDirectInput8::EnumDevicesT(T* ProxyInterfaceT, DWORD dwDevType, V lpCallback, LPVOID pvRef, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	if (Config.DeviceLookupCacheTime && lpCallback)
 	{
 		auto now = std::chrono::steady_clock::now();
-		auto& cachedData = GetEnumCache(GetProxyInterface<T>());
+		auto& cachedData = GetEnumCache(ProxyInterfaceT);
 
 		// Check if cached data is valid
 		if (dwDevType == cachedData.dwDevType && dwFlags == cachedData.dwFlags && (now - cachedData.lastUpdate) < cacheDuration)
@@ -160,7 +160,7 @@ HRESULT m_IDirectInput8::EnumDevicesT(DWORD dwDevType, V lpCallback, LPVOID pvRe
 		CallbackContext.pvRef = pvRef;
 		CallbackContext.lpCallback = lpCallback;
 
-		HRESULT hr = GetProxyInterface<T>()->EnumDevices(dwDevType, EnumDevices::DIEnumDevicesCallback, &CallbackContext, dwFlags);
+		HRESULT hr = ProxyInterfaceT->EnumDevices(dwDevType, EnumDevices::DIEnumDevicesCallback, &CallbackContext, dwFlags);
 
 		if (SUCCEEDED(hr))
 		{
@@ -183,7 +183,7 @@ HRESULT m_IDirectInput8::EnumDevicesT(DWORD dwDevType, V lpCallback, LPVOID pvRe
 		return hr;
 	}
 
-	return GetProxyInterface<T>()->EnumDevices(dwDevType, lpCallback, pvRef, dwFlags);
+	return ProxyInterfaceT->EnumDevices(dwDevType, lpCallback, pvRef, dwFlags);
 }
 
 HRESULT m_IDirectInput8::GetDeviceStatus(REFGUID rguidInstance)
@@ -207,20 +207,20 @@ HRESULT m_IDirectInput8::Initialize(HINSTANCE hinst, DWORD dwVersion)
 	return ProxyInterface->Initialize(hinst, dwVersion);
 }
 
-template HRESULT m_IDirectInput8::FindDeviceT<IDirectInput8A, LPCSTR>(REFGUID, LPCSTR, LPGUID);
-template HRESULT m_IDirectInput8::FindDeviceT<IDirectInput8W, LPCWSTR>(REFGUID, LPCWSTR, LPGUID);
+template HRESULT m_IDirectInput8::FindDeviceT<IDirectInput8A, LPCSTR>(IDirectInput8A*, REFGUID, LPCSTR, LPGUID);
+template HRESULT m_IDirectInput8::FindDeviceT<IDirectInput8W, LPCWSTR>(IDirectInput8W*, REFGUID, LPCWSTR, LPGUID);
 template <class T, class V>
-HRESULT m_IDirectInput8::FindDeviceT(REFGUID rguidClass, V ptszName, LPGUID pguidInstance)
+HRESULT m_IDirectInput8::FindDeviceT(T* ProxyInterfaceT, REFGUID rguidClass, V ptszName, LPGUID pguidInstance)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->FindDevice(rguidClass, ptszName, pguidInstance);
+	return ProxyInterfaceT->FindDevice(rguidClass, ptszName, pguidInstance);
 }
 
-template HRESULT m_IDirectInput8::EnumDevicesBySemanticsT<IDirectInput8A, LPCSTR, LPDIACTIONFORMATA, LPDIENUMDEVICESBYSEMANTICSCBA, LPCDIDEVICEINSTANCEA, LPDIRECTINPUTDEVICE8A>(LPCSTR, LPDIACTIONFORMATA, LPDIENUMDEVICESBYSEMANTICSCBA, LPVOID, DWORD);
-template HRESULT m_IDirectInput8::EnumDevicesBySemanticsT<IDirectInput8W, LPCWSTR, LPDIACTIONFORMATW, LPDIENUMDEVICESBYSEMANTICSCBW, LPCDIDEVICEINSTANCEW, LPDIRECTINPUTDEVICE8W>(LPCWSTR, LPDIACTIONFORMATW, LPDIENUMDEVICESBYSEMANTICSCBW, LPVOID, DWORD);
+template HRESULT m_IDirectInput8::EnumDevicesBySemanticsT<IDirectInput8A, LPCSTR, LPDIACTIONFORMATA, LPDIENUMDEVICESBYSEMANTICSCBA, LPCDIDEVICEINSTANCEA, LPDIRECTINPUTDEVICE8A>(IDirectInput8A*, LPCSTR, LPDIACTIONFORMATA, LPDIENUMDEVICESBYSEMANTICSCBA, LPVOID, DWORD);
+template HRESULT m_IDirectInput8::EnumDevicesBySemanticsT<IDirectInput8W, LPCWSTR, LPDIACTIONFORMATW, LPDIENUMDEVICESBYSEMANTICSCBW, LPCDIDEVICEINSTANCEW, LPDIRECTINPUTDEVICE8W>(IDirectInput8W*, LPCWSTR, LPDIACTIONFORMATW, LPDIENUMDEVICESBYSEMANTICSCBW, LPVOID, DWORD);
 template <class T, class V, class W, class X, class C, class D>
-HRESULT m_IDirectInput8::EnumDevicesBySemanticsT(V ptszUserName, W lpdiActionFormat, X lpCallback, LPVOID pvRef, DWORD dwFlags)
+HRESULT m_IDirectInput8::EnumDevicesBySemanticsT(T* ProxyInterfaceT, V ptszUserName, W lpdiActionFormat, X lpCallback, LPVOID pvRef, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -251,18 +251,18 @@ HRESULT m_IDirectInput8::EnumDevicesBySemanticsT(V ptszUserName, W lpdiActionFor
 		CallbackContext.pvRef = pvRef;
 		CallbackContext.lpCallback = lpCallback;
 
-		return GetProxyInterface<T>()->EnumDevicesBySemantics(ptszUserName, lpdiActionFormat, DeviceEnumerator::EnumDeviceCallback, &CallbackContext, dwFlags);
+		return ProxyInterfaceT->EnumDevicesBySemantics(ptszUserName, lpdiActionFormat, DeviceEnumerator::EnumDeviceCallback, &CallbackContext, dwFlags);
 	}
 
-	return GetProxyInterface<T>()->EnumDevicesBySemantics(ptszUserName, lpdiActionFormat, lpCallback, pvRef, dwFlags);
+	return ProxyInterfaceT->EnumDevicesBySemantics(ptszUserName, lpdiActionFormat, lpCallback, pvRef, dwFlags);
 }
 
-template HRESULT m_IDirectInput8::ConfigureDevicesT<IDirectInput8A, LPDICONFIGUREDEVICESPARAMSA>(LPDICONFIGUREDEVICESCALLBACK, LPDICONFIGUREDEVICESPARAMSA, DWORD, LPVOID);
-template HRESULT m_IDirectInput8::ConfigureDevicesT<IDirectInput8W, LPDICONFIGUREDEVICESPARAMSW>(LPDICONFIGUREDEVICESCALLBACK, LPDICONFIGUREDEVICESPARAMSW, DWORD, LPVOID);
+template HRESULT m_IDirectInput8::ConfigureDevicesT<IDirectInput8A, LPDICONFIGUREDEVICESPARAMSA>(IDirectInput8A*, LPDICONFIGUREDEVICESCALLBACK, LPDICONFIGUREDEVICESPARAMSA, DWORD, LPVOID);
+template HRESULT m_IDirectInput8::ConfigureDevicesT<IDirectInput8W, LPDICONFIGUREDEVICESPARAMSW>(IDirectInput8W*, LPDICONFIGUREDEVICESCALLBACK, LPDICONFIGUREDEVICESPARAMSW, DWORD, LPVOID);
 template <class T, class V>
-HRESULT m_IDirectInput8::ConfigureDevicesT(LPDICONFIGUREDEVICESCALLBACK lpdiCallback, V lpdiCDParams, DWORD dwFlags, LPVOID pvRefData)
+HRESULT m_IDirectInput8::ConfigureDevicesT(T* ProxyInterfaceT, LPDICONFIGUREDEVICESCALLBACK lpdiCallback, V lpdiCDParams, DWORD dwFlags, LPVOID pvRefData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->ConfigureDevices(lpdiCallback, lpdiCDParams, dwFlags, pvRefData);
+	return ProxyInterfaceT->ConfigureDevices(lpdiCallback, lpdiCDParams, dwFlags, pvRefData);
 }

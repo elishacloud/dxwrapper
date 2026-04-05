@@ -76,14 +76,14 @@ HRESULT m_IDirectInputDevice8::GetCapabilities(LPDIDEVCAPS lpDIDevCaps)
 	return ProxyInterface->GetCapabilities(lpDIDevCaps);
 }
 
-template HRESULT m_IDirectInputDevice8::EnumObjectsT<IDirectInputDevice8A, LPDIENUMDEVICEOBJECTSCALLBACKA>(LPDIENUMDEVICEOBJECTSCALLBACKA, LPVOID, DWORD);
-template HRESULT m_IDirectInputDevice8::EnumObjectsT<IDirectInputDevice8W, LPDIENUMDEVICEOBJECTSCALLBACKW>(LPDIENUMDEVICEOBJECTSCALLBACKW, LPVOID, DWORD);
+template HRESULT m_IDirectInputDevice8::EnumObjectsT<IDirectInputDevice8A, LPDIENUMDEVICEOBJECTSCALLBACKA>(IDirectInputDevice8A*, LPDIENUMDEVICEOBJECTSCALLBACKA, LPVOID, DWORD);
+template HRESULT m_IDirectInputDevice8::EnumObjectsT<IDirectInputDevice8W, LPDIENUMDEVICEOBJECTSCALLBACKW>(IDirectInputDevice8W*, LPDIENUMDEVICEOBJECTSCALLBACKW, LPVOID, DWORD);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::EnumObjectsT(V lpCallback, LPVOID pvRef, DWORD dwFlags)
+HRESULT m_IDirectInputDevice8::EnumObjectsT(T* ProxyInterfaceT, V lpCallback, LPVOID pvRef, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->EnumObjects(lpCallback, pvRef, dwFlags);
+	return ProxyInterfaceT->EnumObjects(lpCallback, pvRef, dwFlags);
 }
 
 HRESULT m_IDirectInputDevice8::GetProperty(REFGUID rguidProp, LPDIPROPHEADER pdiph)
@@ -529,24 +529,24 @@ HRESULT m_IDirectInputDevice8::SetCooperativeLevel(HWND hwnd, DWORD dwFlags)
 	return ProxyInterface->SetCooperativeLevel(hwnd, dwFlags);
 }
 
-template HRESULT m_IDirectInputDevice8::GetObjectInfoT<IDirectInputDevice8A, LPDIDEVICEOBJECTINSTANCEA>(LPDIDEVICEOBJECTINSTANCEA, DWORD, DWORD);
-template HRESULT m_IDirectInputDevice8::GetObjectInfoT<IDirectInputDevice8W, LPDIDEVICEOBJECTINSTANCEW>(LPDIDEVICEOBJECTINSTANCEW, DWORD, DWORD);
+template HRESULT m_IDirectInputDevice8::GetObjectInfoT<IDirectInputDevice8A, LPDIDEVICEOBJECTINSTANCEA>(IDirectInputDevice8A*, LPDIDEVICEOBJECTINSTANCEA, DWORD, DWORD);
+template HRESULT m_IDirectInputDevice8::GetObjectInfoT<IDirectInputDevice8W, LPDIDEVICEOBJECTINSTANCEW>(IDirectInputDevice8W*, LPDIDEVICEOBJECTINSTANCEW, DWORD, DWORD);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::GetObjectInfoT(V pdidoi, DWORD dwObj, DWORD dwHow)
+HRESULT m_IDirectInputDevice8::GetObjectInfoT(T* ProxyInterfaceT, V pdidoi, DWORD dwObj, DWORD dwHow)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->GetObjectInfo(pdidoi, dwObj, dwHow);
+	return ProxyInterfaceT->GetObjectInfo(pdidoi, dwObj, dwHow);
 }
 
-template HRESULT m_IDirectInputDevice8::GetDeviceInfoT<IDirectInputDevice8A, LPDIDEVICEINSTANCEA>(LPDIDEVICEINSTANCEA);
-template HRESULT m_IDirectInputDevice8::GetDeviceInfoT<IDirectInputDevice8W, LPDIDEVICEINSTANCEW>(LPDIDEVICEINSTANCEW);
+template HRESULT m_IDirectInputDevice8::GetDeviceInfoT<IDirectInputDevice8A, LPDIDEVICEINSTANCEA>(IDirectInputDevice8A*, LPDIDEVICEINSTANCEA);
+template HRESULT m_IDirectInputDevice8::GetDeviceInfoT<IDirectInputDevice8W, LPDIDEVICEINSTANCEW>(IDirectInputDevice8W*, LPDIDEVICEINSTANCEW);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::GetDeviceInfoT(V pdidi)
+HRESULT m_IDirectInputDevice8::GetDeviceInfoT(T* ProxyInterfaceT, V pdidi)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->GetDeviceInfo(pdidi);
+	return ProxyInterfaceT->GetDeviceInfo(pdidi);
 }
 
 HRESULT m_IDirectInputDevice8::RunControlPanel(HWND hwndOwner, DWORD dwFlags)
@@ -577,24 +577,24 @@ HRESULT m_IDirectInputDevice8::CreateEffect(REFGUID rguid, LPCDIEFFECT lpeff, LP
 	return hr;
 }
 
-template HRESULT m_IDirectInputDevice8::EnumEffectsT<IDirectInputDevice8A, LPDIENUMEFFECTSCALLBACKA>(LPDIENUMEFFECTSCALLBACKA, LPVOID, DWORD);
-template HRESULT m_IDirectInputDevice8::EnumEffectsT<IDirectInputDevice8W, LPDIENUMEFFECTSCALLBACKW>(LPDIENUMEFFECTSCALLBACKW, LPVOID, DWORD);
+template HRESULT m_IDirectInputDevice8::EnumEffectsT<IDirectInputDevice8A, LPDIENUMEFFECTSCALLBACKA>(IDirectInputDevice8A*, LPDIENUMEFFECTSCALLBACKA, LPVOID, DWORD);
+template HRESULT m_IDirectInputDevice8::EnumEffectsT<IDirectInputDevice8W, LPDIENUMEFFECTSCALLBACKW>(IDirectInputDevice8W*, LPDIENUMEFFECTSCALLBACKW, LPVOID, DWORD);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::EnumEffectsT(V lpCallback, LPVOID pvRef, DWORD dwEffType)
+HRESULT m_IDirectInputDevice8::EnumEffectsT(T* ProxyInterfaceT, V lpCallback, LPVOID pvRef, DWORD dwEffType)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->EnumEffects(lpCallback, pvRef, dwEffType);
+	return ProxyInterfaceT->EnumEffects(lpCallback, pvRef, dwEffType);
 }
 
-template HRESULT m_IDirectInputDevice8::GetEffectInfoT<IDirectInputDevice8A, LPDIEFFECTINFOA>(LPDIEFFECTINFOA, REFGUID);
-template HRESULT m_IDirectInputDevice8::GetEffectInfoT<IDirectInputDevice8W, LPDIEFFECTINFOW>(LPDIEFFECTINFOW, REFGUID);
+template HRESULT m_IDirectInputDevice8::GetEffectInfoT<IDirectInputDevice8A, LPDIEFFECTINFOA>(IDirectInputDevice8A*, LPDIEFFECTINFOA, REFGUID);
+template HRESULT m_IDirectInputDevice8::GetEffectInfoT<IDirectInputDevice8W, LPDIEFFECTINFOW>(IDirectInputDevice8W*, LPDIEFFECTINFOW, REFGUID);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::GetEffectInfoT(V pdei, REFGUID rguid)
+HRESULT m_IDirectInputDevice8::GetEffectInfoT(T* ProxyInterfaceT, V pdei, REFGUID rguid)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->GetEffectInfo(pdei, rguid);
+	return ProxyInterfaceT->GetEffectInfo(pdei, rguid);
 }
 
 HRESULT m_IDirectInputDevice8::GetForceFeedbackState(LPDWORD pdwOut)
@@ -669,54 +669,54 @@ HRESULT m_IDirectInputDevice8::SendDeviceData(DWORD cbObjectData, LPCDIDEVICEOBJ
 	return ProxyInterface->SendDeviceData(cbObjectData, rgdod, pdwInOut, fl);
 }
 
-template HRESULT m_IDirectInputDevice8::EnumEffectsInFileT<IDirectInputDevice8A, LPCSTR>(LPCSTR, LPDIENUMEFFECTSINFILECALLBACK, LPVOID, DWORD);
-template HRESULT m_IDirectInputDevice8::EnumEffectsInFileT<IDirectInputDevice8W, LPCWSTR>(LPCWSTR, LPDIENUMEFFECTSINFILECALLBACK, LPVOID, DWORD);
+template HRESULT m_IDirectInputDevice8::EnumEffectsInFileT<IDirectInputDevice8A, LPCSTR>(IDirectInputDevice8A*, LPCSTR, LPDIENUMEFFECTSINFILECALLBACK, LPVOID, DWORD);
+template HRESULT m_IDirectInputDevice8::EnumEffectsInFileT<IDirectInputDevice8W, LPCWSTR>(IDirectInputDevice8W*, LPCWSTR, LPDIENUMEFFECTSINFILECALLBACK, LPVOID, DWORD);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::EnumEffectsInFileT(V lpszFileName, LPDIENUMEFFECTSINFILECALLBACK pec, LPVOID pvRef, DWORD dwFlags)
+HRESULT m_IDirectInputDevice8::EnumEffectsInFileT(T* ProxyInterfaceT, V lpszFileName, LPDIENUMEFFECTSINFILECALLBACK pec, LPVOID pvRef, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->EnumEffectsInFile(lpszFileName, pec, pvRef, dwFlags);
+	return ProxyInterfaceT->EnumEffectsInFile(lpszFileName, pec, pvRef, dwFlags);
 }
 
-template HRESULT m_IDirectInputDevice8::WriteEffectToFileT<IDirectInputDevice8A, LPCSTR>(LPCSTR, DWORD, LPDIFILEEFFECT, DWORD);
-template HRESULT m_IDirectInputDevice8::WriteEffectToFileT<IDirectInputDevice8W, LPCWSTR>(LPCWSTR, DWORD, LPDIFILEEFFECT, DWORD);
+template HRESULT m_IDirectInputDevice8::WriteEffectToFileT<IDirectInputDevice8A, LPCSTR>(IDirectInputDevice8A*, LPCSTR, DWORD, LPDIFILEEFFECT, DWORD);
+template HRESULT m_IDirectInputDevice8::WriteEffectToFileT<IDirectInputDevice8W, LPCWSTR>(IDirectInputDevice8W*, LPCWSTR, DWORD, LPDIFILEEFFECT, DWORD);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::WriteEffectToFileT(V lpszFileName, DWORD dwEntries, LPDIFILEEFFECT rgDiFileEft, DWORD dwFlags)
+HRESULT m_IDirectInputDevice8::WriteEffectToFileT(T* ProxyInterfaceT, V lpszFileName, DWORD dwEntries, LPDIFILEEFFECT rgDiFileEft, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->WriteEffectToFile(lpszFileName, dwEntries, rgDiFileEft, dwFlags);
+	return ProxyInterfaceT->WriteEffectToFile(lpszFileName, dwEntries, rgDiFileEft, dwFlags);
 }
 
-template HRESULT m_IDirectInputDevice8::BuildActionMapT<IDirectInputDevice8A, LPDIACTIONFORMATA, LPCSTR>(LPDIACTIONFORMATA, LPCSTR, DWORD);
-template HRESULT m_IDirectInputDevice8::BuildActionMapT<IDirectInputDevice8W, LPDIACTIONFORMATW, LPCWSTR>(LPDIACTIONFORMATW, LPCWSTR, DWORD);
+template HRESULT m_IDirectInputDevice8::BuildActionMapT<IDirectInputDevice8A, LPDIACTIONFORMATA, LPCSTR>(IDirectInputDevice8A*, LPDIACTIONFORMATA, LPCSTR, DWORD);
+template HRESULT m_IDirectInputDevice8::BuildActionMapT<IDirectInputDevice8W, LPDIACTIONFORMATW, LPCWSTR>(IDirectInputDevice8W*, LPDIACTIONFORMATW, LPCWSTR, DWORD);
 template <class T, class V, class W>
-HRESULT m_IDirectInputDevice8::BuildActionMapT(V lpdiaf, W lpszUserName, DWORD dwFlags)
+HRESULT m_IDirectInputDevice8::BuildActionMapT(T* ProxyInterfaceT, V lpdiaf, W lpszUserName, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->BuildActionMap(lpdiaf, lpszUserName, dwFlags);
+	return ProxyInterfaceT->BuildActionMap(lpdiaf, lpszUserName, dwFlags);
 }
 
-template HRESULT m_IDirectInputDevice8::SetActionMapT<IDirectInputDevice8A, LPDIACTIONFORMATA, LPCSTR>(LPDIACTIONFORMATA, LPCSTR, DWORD);
-template HRESULT m_IDirectInputDevice8::SetActionMapT<IDirectInputDevice8W, LPDIACTIONFORMATW, LPCWSTR>(LPDIACTIONFORMATW, LPCWSTR, DWORD);
+template HRESULT m_IDirectInputDevice8::SetActionMapT<IDirectInputDevice8A, LPDIACTIONFORMATA, LPCSTR>(IDirectInputDevice8A*, LPDIACTIONFORMATA, LPCSTR, DWORD);
+template HRESULT m_IDirectInputDevice8::SetActionMapT<IDirectInputDevice8W, LPDIACTIONFORMATW, LPCWSTR>(IDirectInputDevice8W*, LPDIACTIONFORMATW, LPCWSTR, DWORD);
 template <class T, class V, class W>
-HRESULT m_IDirectInputDevice8::SetActionMapT(V lpdiActionFormat, W lptszUserName, DWORD dwFlags)
+HRESULT m_IDirectInputDevice8::SetActionMapT(T* ProxyInterfaceT, V lpdiActionFormat, W lptszUserName, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->SetActionMap(lpdiActionFormat, lptszUserName, dwFlags);
+	return ProxyInterfaceT->SetActionMap(lpdiActionFormat, lptszUserName, dwFlags);
 }
 
-template HRESULT m_IDirectInputDevice8::GetImageInfoT<IDirectInputDevice8A, LPDIDEVICEIMAGEINFOHEADERA>(LPDIDEVICEIMAGEINFOHEADERA);
-template HRESULT m_IDirectInputDevice8::GetImageInfoT<IDirectInputDevice8W, LPDIDEVICEIMAGEINFOHEADERW>(LPDIDEVICEIMAGEINFOHEADERW);
+template HRESULT m_IDirectInputDevice8::GetImageInfoT<IDirectInputDevice8A, LPDIDEVICEIMAGEINFOHEADERA>(IDirectInputDevice8A*, LPDIDEVICEIMAGEINFOHEADERA);
+template HRESULT m_IDirectInputDevice8::GetImageInfoT<IDirectInputDevice8W, LPDIDEVICEIMAGEINFOHEADERW>(IDirectInputDevice8W*, LPDIDEVICEIMAGEINFOHEADERW);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::GetImageInfoT(V lpdiDevImageInfoHeader)
+HRESULT m_IDirectInputDevice8::GetImageInfoT(T* ProxyInterfaceT, V lpdiDevImageInfoHeader)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->GetImageInfo(lpdiDevImageInfoHeader);
+	return ProxyInterfaceT->GetImageInfo(lpdiDevImageInfoHeader);
 }
 
 // Helper functions
