@@ -5,6 +5,8 @@ class m_IDirectInputEffect8 final : public IDirectInputEffect, AddressLookupTabl
 private:
 	IDirectInputEffect *ProxyInterface;
 
+	LONG RefCount = 1;
+
 public:
 	m_IDirectInputEffect8(IDirectInputEffect *aOriginal) : AddressLookupTableDinput8Object(aOriginal), ProxyInterface(aOriginal)
 	{

@@ -58,7 +58,6 @@ ULONG m_IDirectInput8::Release()
 	if (ref == 0)
 	{
 		delete this;
-		return 0;
 	}
 
 	return ref;

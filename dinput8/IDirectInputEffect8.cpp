@@ -42,14 +42,14 @@ ULONG m_IDirectInputEffect8::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->AddRef();
+	return _InterlockedIncrement(&RefCount);
 }
 
 ULONG m_IDirectInputEffect8::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ULONG ref = ProxyInterface->Release();
+	LONG ref = _InterlockedDecrement(&RefCount);
 
 	if (ref == 0)
 	{
