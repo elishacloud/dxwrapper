@@ -2,29 +2,48 @@
 
 #include <unordered_map>
 #include <algorithm>
+#include "dsound.h"
 
-constexpr UINT MaxIndex = 21;
+class AddressLookupTableDsoundObjectBase
+{
+public:
+	virtual ~AddressLookupTableDsoundObjectBase() = default;
+};
 
-template <typename D>
+template<typename T>
+class AddressLookupTableDsoundObject;
+
 class AddressLookupTableDsound
 {
+private:
+	static constexpr size_t MaxCacheIndex = 20;
+
+	bool ConstructorFlag = false;
+	std::unordered_map<void*, class AddressLookupTableDsoundObjectBase*> g_map[MaxCacheIndex];
+
+	void DeleteAll()
+	{
+		for (const auto& map : g_map)
+		{
+			for (const auto& entry : map)
+			{
+				delete entry.second;
+			}
+		}
+	}
+
 public:
 	explicit AddressLookupTableDsound() {}
 	~AddressLookupTableDsound()
 	{
 		ConstructorFlag = true;
-
-		for (const auto& cache : g_map)
-		{
-			for (const auto& entry : cache)
-			{
-				entry.second->DeleteMe();
-			}
-		}
+		DeleteAll();
 	}
 
 	template <typename T>
-	struct AddressCacheIndex { static constexpr UINT CacheIndex = 0; };
+	struct AddressCacheIndex {};
+	template <>
+	struct AddressCacheIndex<m_IKsPropertySet> { static constexpr UINT CacheIndex = 0; };
 	template <>
 	struct AddressCacheIndex<m_IDirectSound8> { static constexpr UINT CacheIndex = 1; };
 	template <>
@@ -63,8 +82,6 @@ public:
 	struct AddressCacheIndex<m_IDirectSoundFXWavesReverb8> { static constexpr UINT CacheIndex = 18; };
 	template <>
 	struct AddressCacheIndex<m_IDirectSoundNotify8> { static constexpr UINT CacheIndex = 19; };
-	template <>
-	struct AddressCacheIndex<m_IKsPropertySet> { static constexpr UINT CacheIndex = 20; };
 
 	template <typename T>
 	T *FindAddress(void *Proxy)
@@ -74,7 +91,7 @@ public:
 			return nullptr;
 		}
 
-		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
+		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
 		auto it = g_map[CacheIndex].find(Proxy);
 		if (it != std::end(g_map[CacheIndex]))
@@ -86,9 +103,9 @@ public:
 	}
 
 	template <typename T>
-	void SaveAddress(T *Wrapper, void *Proxy)
+	void SaveAddress(AddressLookupTableDsoundObject<T> *Wrapper, void *Proxy)
 	{
-		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
+		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 		if (Wrapper && Proxy)
 		{
 			g_map[CacheIndex][Proxy] = Wrapper;
@@ -96,14 +113,14 @@ public:
 	}
 
 	template <typename T>
-	void DeleteAddress(T *Wrapper)
+	void DeleteAddress(AddressLookupTableDsoundObject<T>*Wrapper)
 	{
 		if (!Wrapper || ConstructorFlag)
 		{
 			return;
 		}
 
-		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
+		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
 		auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
 			[=](auto& Map) -> bool { return Map.second == Wrapper; });
@@ -112,20 +129,19 @@ public:
 			g_map[CacheIndex].erase(it);
 		}
 	}
-
-private:
-	bool ConstructorFlag = false;
-	D *unused = nullptr;
-	std::unordered_map<void*, class AddressLookupTableDsoundObject*> g_map[MaxIndex];
 };
 
-class AddressLookupTableDsoundObject
+template<typename T>
+class AddressLookupTableDsoundObject : public AddressLookupTableDsoundObjectBase
 {
 public:
-	virtual ~AddressLookupTableDsoundObject() {}
-
-	void DeleteMe()
+	AddressLookupTableDsoundObject(void* Proxy)
 	{
-		delete this;
+		ProxyAddressLookupTableDsound.SaveAddress(this, Proxy);
+	}
+
+	~AddressLookupTableDsoundObject()
+	{
+		ProxyAddressLookupTableDsound.DeleteAddress(this);
 	}
 };

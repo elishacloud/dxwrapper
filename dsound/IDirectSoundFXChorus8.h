@@ -1,32 +1,28 @@
 #pragma once
 
-class m_IDirectSoundFXChorus8 : public IDirectSoundFXChorus8, public AddressLookupTableDsoundObject
+class m_IDirectSoundFXChorus8 final : public IDirectSoundFXChorus8, AddressLookupTableDsoundObject<m_IDirectSoundFXChorus8>
 {
 private:
 	LPDIRECTSOUNDFXCHORUS8 ProxyInterface;
 
 public:
-	m_IDirectSoundFXChorus8(LPDIRECTSOUNDFXCHORUS8 pSound8) : ProxyInterface(pSound8)
+	m_IDirectSoundFXChorus8(LPDIRECTSOUNDFXCHORUS8 pSound8) : AddressLookupTableDsoundObject(pSound8), ProxyInterface(pSound8)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
-
-		ProxyAddressLookupTableDsound.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectSoundFXChorus8()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
-
-		ProxyAddressLookupTableDsound.DeleteAddress(this);
 	}
 
 	// IUnknown methods
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID* ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR* ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	// IDirectSoundFXChorus methods
-	STDMETHOD(SetAllParameters)(THIS_ _In_ LPCDSFXChorus pcDsFxChorus);
-	STDMETHOD(GetAllParameters)(THIS_ _Out_ LPDSFXChorus pDsFxChorus);
+	IFACEMETHOD(SetAllParameters)(THIS_ _In_ LPCDSFXChorus pcDsFxChorus) override;
+	IFACEMETHOD(GetAllParameters)(THIS_ _Out_ LPDSFXChorus pDsFxChorus) override;
 
 	// Helper functions
 	LPDIRECTSOUNDFXCHORUS8 GetProxyInterface() { return ProxyInterface; }

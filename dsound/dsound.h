@@ -45,7 +45,7 @@ namespace DsoundWrapper
 	void WINAPI genericQueryInterface(REFIID riid, LPVOID * ppvObj);
 }
 
-extern AddressLookupTableDsound<void> ProxyAddressLookupTableDsound;
+extern AddressLookupTableDsound ProxyAddressLookupTableDsound;
 
 using namespace DsoundWrapper;
 

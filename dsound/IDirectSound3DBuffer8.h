@@ -1,48 +1,44 @@
 #pragma once
 
-class m_IDirectSound3DBuffer8 : public IDirectSound3DBuffer8, public AddressLookupTableDsoundObject
+class m_IDirectSound3DBuffer8 final : public IDirectSound3DBuffer8, AddressLookupTableDsoundObject<m_IDirectSound3DBuffer8>
 {
 private:
 	LPDIRECTSOUND3DBUFFER8 ProxyInterface;
 
 public:
-	m_IDirectSound3DBuffer8(LPDIRECTSOUND3DBUFFER8 pSound8) : ProxyInterface(pSound8)
+	m_IDirectSound3DBuffer8(LPDIRECTSOUND3DBUFFER8 pSound8) : AddressLookupTableDsoundObject(pSound8), ProxyInterface(pSound8)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
-
-		ProxyAddressLookupTableDsound.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectSound3DBuffer8()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
-
-		ProxyAddressLookupTableDsound.DeleteAddress(this);
 	}
 
 	// IUnknown methods
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID* ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR* ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	// IDirectSound3DBuffer methods
-	STDMETHOD(GetAllParameters)(THIS_ _Out_ LPDS3DBUFFER pDs3dBuffer);
-	STDMETHOD(GetConeAngles)(THIS_ _Out_ LPDWORD pdwInsideConeAngle, _Out_ LPDWORD pdwOutsideConeAngle);
-	STDMETHOD(GetConeOrientation)(THIS_ _Out_ D3DVECTOR* pvOrientation);
-	STDMETHOD(GetConeOutsideVolume)(THIS_ _Out_ LPLONG plConeOutsideVolume);
-	STDMETHOD(GetMaxDistance)(THIS_ _Out_ D3DVALUE* pflMaxDistance);
-	STDMETHOD(GetMinDistance)(THIS_ _Out_ D3DVALUE* pflMinDistance);
-	STDMETHOD(GetMode)(THIS_ _Out_ LPDWORD pdwMode);
-	STDMETHOD(GetPosition)(THIS_ _Out_ D3DVECTOR* pvPosition);
-	STDMETHOD(GetVelocity)(THIS_ _Out_ D3DVECTOR* pvVelocity);
-	STDMETHOD(SetAllParameters)(THIS_ _In_ LPCDS3DBUFFER pcDs3dBuffer, DWORD dwApply);
-	STDMETHOD(SetConeAngles)(THIS_ DWORD dwInsideConeAngle, DWORD dwOutsideConeAngle, DWORD dwApply);
-	STDMETHOD(SetConeOrientation)(THIS_ D3DVALUE x, D3DVALUE y, D3DVALUE z, DWORD dwApply);
-	STDMETHOD(SetConeOutsideVolume)(THIS_ LONG lConeOutsideVolume, DWORD dwApply);
-	STDMETHOD(SetMaxDistance)(THIS_ D3DVALUE flMaxDistance, DWORD dwApply);
-	STDMETHOD(SetMinDistance)(THIS_ D3DVALUE flMinDistance, DWORD dwApply);
-	STDMETHOD(SetMode)(THIS_ DWORD dwMode, DWORD dwApply);
-	STDMETHOD(SetPosition)(THIS_ D3DVALUE x, D3DVALUE y, D3DVALUE z, DWORD dwApply);
-	STDMETHOD(SetVelocity)(THIS_ D3DVALUE x, D3DVALUE y, D3DVALUE z, DWORD dwApply);
+	IFACEMETHOD(GetAllParameters)(THIS_ _Out_ LPDS3DBUFFER pDs3dBuffer) override;
+	IFACEMETHOD(GetConeAngles)(THIS_ _Out_ LPDWORD pdwInsideConeAngle, _Out_ LPDWORD pdwOutsideConeAngle) override;
+	IFACEMETHOD(GetConeOrientation)(THIS_ _Out_ D3DVECTOR* pvOrientation) override;
+	IFACEMETHOD(GetConeOutsideVolume)(THIS_ _Out_ LPLONG plConeOutsideVolume) override;
+	IFACEMETHOD(GetMaxDistance)(THIS_ _Out_ D3DVALUE* pflMaxDistance) override;
+	IFACEMETHOD(GetMinDistance)(THIS_ _Out_ D3DVALUE* pflMinDistance) override;
+	IFACEMETHOD(GetMode)(THIS_ _Out_ LPDWORD pdwMode) override;
+	IFACEMETHOD(GetPosition)(THIS_ _Out_ D3DVECTOR* pvPosition) override;
+	IFACEMETHOD(GetVelocity)(THIS_ _Out_ D3DVECTOR* pvVelocity) override;
+	IFACEMETHOD(SetAllParameters)(THIS_ _In_ LPCDS3DBUFFER pcDs3dBuffer, DWORD dwApply) override;
+	IFACEMETHOD(SetConeAngles)(THIS_ DWORD dwInsideConeAngle, DWORD dwOutsideConeAngle, DWORD dwApply) override;
+	IFACEMETHOD(SetConeOrientation)(THIS_ D3DVALUE x, D3DVALUE y, D3DVALUE z, DWORD dwApply) override;
+	IFACEMETHOD(SetConeOutsideVolume)(THIS_ LONG lConeOutsideVolume, DWORD dwApply) override;
+	IFACEMETHOD(SetMaxDistance)(THIS_ D3DVALUE flMaxDistance, DWORD dwApply) override;
+	IFACEMETHOD(SetMinDistance)(THIS_ D3DVALUE flMinDistance, DWORD dwApply) override;
+	IFACEMETHOD(SetMode)(THIS_ DWORD dwMode, DWORD dwApply) override;
+	IFACEMETHOD(SetPosition)(THIS_ D3DVALUE x, D3DVALUE y, D3DVALUE z, DWORD dwApply) override;
+	IFACEMETHOD(SetVelocity)(THIS_ D3DVALUE x, D3DVALUE y, D3DVALUE z, DWORD dwApply) override;
 
 	// Helper functions
 	LPDIRECTSOUND3DBUFFER8 GetProxyInterface() { return ProxyInterface; }

@@ -1,32 +1,28 @@
 #pragma once
 
-class m_IDirectSoundFXGargle8 : public IDirectSoundFXGargle8, public AddressLookupTableDsoundObject
+class m_IDirectSoundFXGargle8 final : public IDirectSoundFXGargle8, AddressLookupTableDsoundObject<m_IDirectSoundFXGargle8>
 {
 private:
 	LPDIRECTSOUNDFXGARGLE8 ProxyInterface;
 
 public:
-	m_IDirectSoundFXGargle8(LPDIRECTSOUNDFXGARGLE8 pSound8) : ProxyInterface(pSound8)
+	m_IDirectSoundFXGargle8(LPDIRECTSOUNDFXGARGLE8 pSound8) : AddressLookupTableDsoundObject(pSound8), ProxyInterface(pSound8)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
-
-		ProxyAddressLookupTableDsound.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectSoundFXGargle8()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
-
-		ProxyAddressLookupTableDsound.DeleteAddress(this);
 	}
 
 	// IUnknown methods
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID* ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR* ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	// IDirectSoundFXGargle methods
-	STDMETHOD(SetAllParameters)(THIS_ _In_ LPCDSFXGargle pcDsFxGargle);
-	STDMETHOD(GetAllParameters)(THIS_ _Out_ LPDSFXGargle pDsFxGargle);
+	IFACEMETHOD(SetAllParameters)(THIS_ _In_ LPCDSFXGargle pcDsFxGargle) override;
+	IFACEMETHOD(GetAllParameters)(THIS_ _Out_ LPDSFXGargle pDsFxGargle) override;
 
 	// Helper functions
 	LPDIRECTSOUNDFXGARGLE8 GetProxyInterface() { return ProxyInterface; }

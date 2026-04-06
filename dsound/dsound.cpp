@@ -18,7 +18,7 @@
 #include "dsoundExternal.h"
 #include "IClassFactory\IClassFactory.h"
 
-AddressLookupTableDsound<void> ProxyAddressLookupTableDsound = AddressLookupTableDsound<void>();
+AddressLookupTableDsound ProxyAddressLookupTableDsound = AddressLookupTableDsound();
 
 namespace DsoundWrapper
 {
