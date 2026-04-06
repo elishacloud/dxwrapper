@@ -14,7 +14,7 @@ private:
 	proxy_type* ProxyInterface;
 	IDirectInputDevice8A* ProxyInterfaceA; // Non-owning alias
 
-	ULONG RefCount = 1;
+	volatile LONG RefCount = 1;
 
 	CRITICAL_SECTION dics = {};
 
@@ -106,6 +106,9 @@ public:
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
 		DeleteCriticalSection(&dics);
+
+		ProxyInterfaceA->Release();
+		ProxyInterface->Release();
 	}
 
 	/*** IUnknown methods ***/

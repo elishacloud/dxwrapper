@@ -49,20 +49,19 @@ ULONG m_IDirectInputDevice8::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return InterlockedIncrement(&RefCount);
+	return _InterlockedIncrement(&RefCount);
 }
 
 ULONG m_IDirectInputDevice8::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ULONG ref = InterlockedDecrement(&RefCount);
+	LONG ref = _InterlockedDecrement(&RefCount);
 
 	if (ref == 0)
 	{
-		ProxyInterfaceA->Release();
-		ProxyInterface->Release();
 		delete this;
+		return 0;
 	}
 
 	return ref;
