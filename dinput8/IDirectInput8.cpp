@@ -46,20 +46,19 @@ ULONG m_IDirectInput8::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	const ULONG ref = ProxyInterface->AddRef();
-	// This is technically not necessary, but it makes managing the two-references-to-one-object easier
-	ProxyInterfaceA->AddRef();
-	return ref;
+	return InterlockedIncrement(&RefCount);
 }
 
 ULONG m_IDirectInput8::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ProxyInterfaceA->Release();
-	const ULONG ref = ProxyInterface->Release();
+	ULONG ref = InterlockedDecrement(&RefCount);
+
 	if (ref == 0)
 	{
+		ProxyInterfaceA->Release();
+		ProxyInterface->Release();
 		delete this;
 	}
 

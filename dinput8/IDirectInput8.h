@@ -17,6 +17,8 @@ private:
 	proxy_type* ProxyInterface;
 	IDirectInput8A* ProxyInterfaceA; // Non-owning alias
 
+	ULONG RefCount = 1;
+
 	const std::chrono::seconds cacheDuration = std::chrono::seconds(Config.DeviceLookupCacheTime); // Cache duration in seconds
 
 	// Define a template structure to hold cached device data
