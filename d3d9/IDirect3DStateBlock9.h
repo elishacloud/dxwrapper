@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DStateBlock9 : public IDirect3DStateBlock9, public AddressLookupTableD3d9Object
+class m_IDirect3DStateBlock9 final : public IDirect3DStateBlock9, public AddressLookupTableD3d9Object
 {
 private:
 	LPDIRECT3DSTATEBLOCK9 ProxyInterface;
@@ -23,14 +23,14 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DStateBlock9 methods ***/
-	STDMETHOD(GetDevice)(THIS_ IDirect3DDevice9** ppDevice);
-	STDMETHOD(Capture)(THIS);
-	STDMETHOD(Apply)(THIS);
+	IFACEMETHOD(GetDevice)(THIS_ IDirect3DDevice9** ppDevice) override;
+	IFACEMETHOD(Capture)(THIS) override;
+	IFACEMETHOD(Apply)(THIS) override;
 
 	// Helper functions
 	LPDIRECT3DSTATEBLOCK9 GetProxyInterface() const { return ProxyInterface; }

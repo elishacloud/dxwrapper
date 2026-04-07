@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DQuery9 : public IDirect3DQuery9, public AddressLookupTableD3d9Object
+class m_IDirect3DQuery9 final : public IDirect3DQuery9, public AddressLookupTableD3d9Object
 {
 private:
 	LPDIRECT3DQUERY9 ProxyInterface;
@@ -22,16 +22,16 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DQuery9 methods ***/
-	STDMETHOD(GetDevice)(THIS_ IDirect3DDevice9** ppDevice);
-	STDMETHOD_(D3DQUERYTYPE, GetType)(THIS);
-	STDMETHOD_(DWORD, GetDataSize)(THIS);
-	STDMETHOD(Issue)(THIS_ DWORD dwIssueFlags);
-	STDMETHOD(GetData)(THIS_ void* pData, DWORD dwSize, DWORD dwGetDataFlags);
+	IFACEMETHOD(GetDevice)(THIS_ IDirect3DDevice9** ppDevice) override;
+	IFACEMETHOD_(D3DQUERYTYPE, GetType)(THIS) override;
+	IFACEMETHOD_(DWORD, GetDataSize)(THIS) override;
+	IFACEMETHOD(Issue)(THIS_ DWORD dwIssueFlags) override;
+	IFACEMETHOD(GetData)(THIS_ void* pData, DWORD dwSize, DWORD dwGetDataFlags) override;
 
 	// Helper functions
 	LPDIRECT3DQUERY9 GetProxyInterface() const { return ProxyInterface; }

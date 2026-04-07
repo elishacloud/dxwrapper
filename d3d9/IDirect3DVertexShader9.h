@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DVertexShader9 : public IDirect3DVertexShader9, public AddressLookupTableD3d9Object
+class m_IDirect3DVertexShader9 final : public IDirect3DVertexShader9, public AddressLookupTableD3d9Object
 {
 private:
 	LPDIRECT3DVERTEXSHADER9 ProxyInterface;
@@ -22,13 +22,13 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DVertexShader9 methods ***/
-	STDMETHOD(GetDevice)(THIS_ IDirect3DDevice9** ppDevice);
-	STDMETHOD(GetFunction)(THIS_ void* pData, UINT* pSizeOfData);
+	IFACEMETHOD(GetDevice)(THIS_ IDirect3DDevice9** ppDevice) override;
+	IFACEMETHOD(GetFunction)(THIS_ void* pData, UINT* pSizeOfData) override;
 
 	// Helper functions
 	LPDIRECT3DVERTEXSHADER9 GetProxyInterface() const { return ProxyInterface; }
