@@ -42,7 +42,7 @@ HRESULT m_IDirect3DTexture9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 
 	if (SUCCEEDED(hr))
 	{
-		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
+		D3d9Wrapper::genericQueryInterface(riid, WrapperID, ppvObj, m_pDeviceEx);
 	}
 
 	return hr;
@@ -201,7 +201,7 @@ HRESULT m_IDirect3DTexture9::GetSurfaceLevel(THIS_ UINT Level, IDirect3DSurface9
 
 	if (SUCCEEDED(hr) && ppSurfaceLevel)
 	{
-		D3d9Wrapper::genericQueryInterface(IID_IDirect3DSurface9, (LPVOID*)ppSurfaceLevel, m_pDeviceEx);
+		D3d9Wrapper::genericQueryInterface(IID_IDirect3DSurface9, WrapperID, (LPVOID*)ppSurfaceLevel, m_pDeviceEx);
 
 		if (Level == 0)
 		{
@@ -217,6 +217,16 @@ HRESULT m_IDirect3DTexture9::LockRect(THIS_ UINT Level, D3DLOCKED_RECT* pLockedR
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	HRESULT hr = ProxyInterface->LockRect(Level, pLockedRect, pRect, Flags);
+
+	if (hr == 0x88760096)
+	{
+		D3DSURFACE_DESC Desc = {};
+		ProxyInterface->GetLevelDesc(Level, &Desc);
+
+		Logging::Log() << __FUNCTION__ << " Error: failed to lock rect: " << pLockedRect << " -> " << Desc.Width << "x" << Desc.Width << " hr: " << (D3DERR)hr;
+
+		hr = ProxyInterface->LockRect(Level, nullptr, pRect, Flags);
+	}
 
 	if (SUCCEEDED(hr))
 	{

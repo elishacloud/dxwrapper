@@ -16,7 +16,7 @@
 
 #include "d3d9.h"
 
-void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx)
+void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, REFIID WrapperID, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx)
 {
 	if (!ppvObj || !*ppvObj || !m_pDeviceEx)
 	{
@@ -36,7 +36,7 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 				return;
 			}
 		}
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid << " from:" << WrapperID);
 		return;
 	}
 
@@ -48,7 +48,7 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 			*ppvObj = pD3DDevice9.Get();
 			return;
 		}
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid << " from:" << WrapperID);
 		return;
 	}
 
@@ -80,5 +80,5 @@ void WINAPI D3d9Wrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj, m_ID
 	QUERYINTERFACE(IDirect3DVideoDevice9);
 	QUERYINTERFACE(IDirect3DDXVADevice9);
 
-	LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
+	LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid << " from:" << WrapperID);
 }

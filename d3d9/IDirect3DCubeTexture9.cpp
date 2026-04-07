@@ -42,7 +42,7 @@ HRESULT m_IDirect3DCubeTexture9::QueryInterface(THIS_ REFIID riid, void** ppvObj
 
 	if (SUCCEEDED(hr))
 	{
-		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
+		D3d9Wrapper::genericQueryInterface(riid, WrapperID, ppvObj, m_pDeviceEx);
 	}
 
 	return hr;
@@ -193,7 +193,7 @@ HRESULT m_IDirect3DCubeTexture9::GetCubeMapSurface(THIS_ D3DCUBEMAP_FACES FaceTy
 
 	if (SUCCEEDED(hr) && ppCubeMapSurface)
 	{
-		D3d9Wrapper::genericQueryInterface(IID_IDirect3DSurface9, (LPVOID*)ppCubeMapSurface, m_pDeviceEx);
+		D3d9Wrapper::genericQueryInterface(IID_IDirect3DSurface9, WrapperID, (LPVOID*)ppCubeMapSurface, m_pDeviceEx);
 	}
 
 	return hr;

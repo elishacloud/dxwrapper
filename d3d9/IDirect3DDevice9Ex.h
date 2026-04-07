@@ -6,20 +6,7 @@ const std::chrono::seconds FPS_CALCULATION_WINDOW(1);	// Define a constant for t
 
 struct DEVICEDETAILS
 {
-	DEVICEDETAILS()
-	{
-		if (!InitializeCriticalSectionAndSpinCount(&d9cs, 4000))
-		{
-			Logging::Log() << __FUNCTION__ << " Warning: failed to initialize CriticalSectionAndSpinCount for d9cs.  Failing over to CriticalSection!";
-			InitializeCriticalSection(&d9cs);
-		}
-	}
-	~DEVICEDETAILS()
-	{
-		DeleteCriticalSection(&d9cs);
-	}
-
-	// Window handle and size
+	// Device window handle and size
 	DWORD ClientDirectXVersion = 0;
 	bool IsWindowMode = false;
 	bool AppRequestedWindowMode = false;
@@ -31,27 +18,6 @@ struct DEVICEDETAILS
 	HWND DeviceWindow = nullptr;
 	LONG BufferWidth = 0, BufferHeight = 0;
 	LONG screenWidth = 0, screenHeight = 0;
-
-	CRITICAL_SECTION d9cs = {};
-
-	std::unordered_map<m_IDirect3DDevice9Ex*, BOOL> DeviceMap;
-
-	AddressLookupTableD3d9 ProxyAddressLookupTable9;
-
-	StateBlockCache StateBlockTable;
-
-	StateBlockCache DeletedStateBlocks;
-
-	// Limit frame rate
-	struct {
-		DWORD FrameCounter = 0;
-		LARGE_INTEGER LastPresentTime = {};
-	} Counter;
-
-	// Frame counter
-	double AverageFPSCounter = 0.0;
-	std::deque<std::pair<std::chrono::steady_clock::time_point, std::chrono::duration<double>>> frameTimes;	// Store frame times in a deque
-	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();	// Store start time for PFS counter
 
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;
@@ -77,7 +43,11 @@ private:
 	std::unique_ptr<ShadowSurfaceStorage> ShadowBackbuffer = std::make_unique<ShadowSurfaceStorage>();
 	std::vector<IDirect3DSurface9*> BackBufferList;
 
-	UINT DDKey;
+	AddressLookupTableD3d9 ProxyAddressLookupTable9;
+
+	DEVICEDETAILS DeviceDetails;
+
+	CRITICAL_SECTION d9cs = {};
 
 	D3DCAPS9 Caps = {};
 	bool AnisotropyMin = false;
@@ -89,11 +59,25 @@ private:
 
 	std::unordered_set<m_IDirect3DSurface9*> EmulatedSurfaceList;
 
+	StateBlockCache StateBlockTable;
+	StateBlockCache DeletedStateBlocks;
+
 	// FPS display
 	LPD3DXFONT pFont = nullptr;
 	DWORD FontRefCount = 0;
 	LPD3DXSPRITE pSprite = nullptr;
 	DWORD SprintRefCount = 0;
+
+	// Frame counter
+	double AverageFPSCounter = 0.0;
+	std::deque<std::pair<std::chrono::steady_clock::time_point, std::chrono::duration<double>>> frameTimes;	// Store frame times in a deque
+	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();	// Store start time for PFS counter
+
+	// Limit frame rate
+	struct {
+		DWORD FrameCounter = 0;
+		LARGE_INTEGER LastPresentTime = {};
+	} Counter;
 
 	// State block
 	IDirect3DStateBlock9* pStateBlock = nullptr;
@@ -147,10 +131,10 @@ private:
 	inline bool UsingShadowBackBuffer(DWORD iSwapChain = 0) const;
 
 	// Limit frame rate
-	void LimitFrameRate() const;
+	void LimitFrameRate();
 
 	// Frame counter
-	void CalculateFPS() const;
+	void CalculateFPS();
 	void DrawFPS(float fps, const RECT& presentRect, DWORD position);
 
 	// Gamma
@@ -183,9 +167,9 @@ private:
 	inline bool IsForcingD3d9to9Ex() const { return (Config.D3d9to9Ex && ProxyInterface == ProxyInterfaceEx); }
 
 public:
-	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, UINT Key) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID), DDKey(Key)
+	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, DEVICEDETAILS Details) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID), DeviceDetails(Details)
 	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID << " game interface v" << SHARED.ClientDirectXVersion);
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID << " game interface v" << DeviceDetails.ClientDirectXVersion);
 
 		if (WrapperID == IID_IDirect3DDevice9Ex)
 		{
@@ -195,28 +179,32 @@ public:
 		D3d9Wrapper::TestAllDeviceRefs(ProxyInterface);
 
 		// Check for SSAA
-		if (SHARED.DeviceMultiSampleType && m_pD3DEx)
+		if (DeviceDetails.DeviceMultiSampleType && m_pD3DEx)
 		{
-			if (m_pD3DEx->CheckDeviceFormat(SHARED.Adapter, SHARED.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
+			if (m_pD3DEx->CheckDeviceFormat(DeviceDetails.Adapter, DeviceDetails.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
 			{
-				SHARED.SetSSAA = true;
+				DeviceDetails.SetSSAA = true;
 			}
 			if (Config.EnableMultisamplingATOC &&
-				m_pD3DEx->CheckDeviceFormat(SHARED.Adapter, SHARED.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('A', 'T', 'O', 'C')) == S_OK)
+				m_pD3DEx->CheckDeviceFormat(DeviceDetails.Adapter, DeviceDetails.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('A', 'T', 'O', 'C')) == S_OK)
 			{
-				SHARED.SetATOC = true;
+				DeviceDetails.SetATOC = true;
 			}
 		}
 
+		if (!InitializeCriticalSectionAndSpinCount(&d9cs, 4000))
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: failed to initialize CriticalSectionAndSpinCount for d9cs.  Failing over to CriticalSection!";
+			InitializeCriticalSection(&d9cs);
+		}
+
 		ReInitInterface();
-
-		SHARED.DeviceMap[this] = TRUE;
-
-		SHARED.ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DDevice9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		DeleteCriticalSection(&d9cs);
 	}
 
 	/*** IUnknown methods ***/
@@ -362,13 +350,13 @@ public:
 	// Information functions
 	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
 	void InitInterface(void*, REFIID, UINT) {}	// Stub only
-	AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
-	StateBlockCache* GetStateBlockTable() const { return &SHARED.StateBlockTable; }
-	StateBlockCache* GetDeletedStateBlock() const { return &SHARED.DeletedStateBlocks; }
-	bool GetDeviceMultiSampleFlag() const { return SHARED.DeviceMultiSampleFlag; }
-	D3DMULTISAMPLE_TYPE GetDeviceMultiSampleType() const { return SHARED.DeviceMultiSampleType; }
-	DWORD GetDeviceMultiSampleQuality() const { return SHARED.DeviceMultiSampleQuality; }
-	DWORD GetClientDXVersion() const { return SHARED.ClientDirectXVersion; }
+	AddressLookupTableD3d9* GetLookupTable() { return &ProxyAddressLookupTable9; }
+	StateBlockCache* GetStateBlockTable() { return &StateBlockTable; }
+	StateBlockCache* GetDeletedStateBlock() { return &DeletedStateBlocks; }
+	bool GetDeviceMultiSampleFlag() const { return DeviceDetails.DeviceMultiSampleFlag; }
+	D3DMULTISAMPLE_TYPE GetDeviceMultiSampleType() const { return DeviceDetails.DeviceMultiSampleType; }
+	DWORD GetDeviceMultiSampleQuality() const { return DeviceDetails.DeviceMultiSampleQuality; }
+	DWORD GetClientDXVersion() const { return DeviceDetails.ClientDirectXVersion; }
 	REFIID GetIID() { return WrapperID; }
 	void AddSurfaceToList(m_IDirect3DSurface9* pSurface) { EmulatedSurfaceList.insert(pSurface); }
 	void RemoveSurfaceFromList(m_IDirect3DSurface9* pSurface) { EmulatedSurfaceList.erase(pSurface); }

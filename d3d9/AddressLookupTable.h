@@ -7,17 +7,12 @@ class AddressLookupTableD3d9Object
 {
 public:
 	virtual ~AddressLookupTableD3d9Object() {}
-
-	void DeleteMe()
-	{
-		delete this;
-	}
 };
 
 class AddressLookupTableD3d9
 {
 private:
-	static constexpr size_t MaxCacheIndex = 18;
+	static constexpr size_t MaxCacheIndex = 15;
 
 	bool ConstructorFlag = false;
 	std::unordered_map<void*, class AddressLookupTableD3d9Object*> g_map[MaxCacheIndex];
@@ -25,39 +20,35 @@ private:
 	template <typename T>
 	struct AddressCacheIndex {};
 	template <>
-	struct AddressCacheIndex<m_IDirect3D9Ex> { static constexpr size_t CacheIndex = 1; };
+	struct AddressCacheIndex<m_IDirect3DCubeTexture9> { static constexpr size_t CacheIndex = 0; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DDevice9Ex> { static constexpr size_t CacheIndex = 2; };
+	struct AddressCacheIndex<m_IDirect3DIndexBuffer9> { static constexpr size_t CacheIndex = 1; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DCubeTexture9> { static constexpr size_t CacheIndex = 3; };
+	struct AddressCacheIndex<m_IDirect3DPixelShader9> { static constexpr size_t CacheIndex = 2; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DIndexBuffer9> { static constexpr size_t CacheIndex = 4; };
+	struct AddressCacheIndex<m_IDirect3DQuery9> { static constexpr size_t CacheIndex = 3; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DPixelShader9> { static constexpr size_t CacheIndex = 5; };
+	struct AddressCacheIndex<m_IDirect3DStateBlock9> { static constexpr size_t CacheIndex = 4; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DQuery9> { static constexpr size_t CacheIndex = 6; };
+	struct AddressCacheIndex<m_IDirect3DSurface9> { static constexpr size_t CacheIndex = 5; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DStateBlock9> { static constexpr size_t CacheIndex = 7; };
+	struct AddressCacheIndex<m_IDirect3DSwapChain9Ex> { static constexpr size_t CacheIndex = 6; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DSurface9> { static constexpr size_t CacheIndex = 8; };
+	struct AddressCacheIndex<m_IDirect3DTexture9> { static constexpr size_t CacheIndex = 7; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DSwapChain9Ex> { static constexpr size_t CacheIndex = 9; };
+	struct AddressCacheIndex<m_IDirect3DVertexBuffer9> { static constexpr size_t CacheIndex = 8; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DTexture9> { static constexpr size_t CacheIndex = 10; };
+	struct AddressCacheIndex<m_IDirect3DVertexDeclaration9> { static constexpr size_t CacheIndex = 9; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DVertexBuffer9> { static constexpr size_t CacheIndex = 11; };
+	struct AddressCacheIndex<m_IDirect3DVertexShader9> { static constexpr size_t CacheIndex = 10; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DVertexDeclaration9> { static constexpr size_t CacheIndex = 12; };
+	struct AddressCacheIndex<m_IDirect3DVolume9> { static constexpr size_t CacheIndex = 11; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DVertexShader9> { static constexpr size_t CacheIndex = 13; };
+	struct AddressCacheIndex<m_IDirect3DVolumeTexture9> { static constexpr size_t CacheIndex = 12; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DVolume9> { static constexpr size_t CacheIndex = 14; };
+	struct AddressCacheIndex<m_IDirect3DVideoDevice9> { static constexpr size_t CacheIndex = 13; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DVolumeTexture9> { static constexpr size_t CacheIndex = 15; };
-	template <>
-	struct AddressCacheIndex<m_IDirect3DVideoDevice9> { static constexpr size_t CacheIndex = 16; };
-	template <>
-	struct AddressCacheIndex<m_IDirect3DDXVADevice9> { static constexpr size_t CacheIndex = 17; };
+	struct AddressCacheIndex<m_IDirect3DDXVADevice9> { static constexpr size_t CacheIndex = 14; };
 
 	// General template function for CreateInterface
 	template <typename T, typename D, typename L>
@@ -66,17 +57,10 @@ private:
 	template <typename T>
 	inline IUnknown* GetIndentityInterface(IUnknown* Proxy)
 	{
-		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
-
-		if constexpr (CacheIndex != AddressCacheIndex<m_IDirect3D9Ex>::CacheIndex &&
-			CacheIndex != AddressCacheIndex<m_IDirect3DDevice9Ex>::CacheIndex &&
-			CacheIndex != AddressCacheIndex<m_IDirect3DSwapChain9Ex>::CacheIndex)
+		ComPtr<IUnknown> pAddress;
+		if (SUCCEEDED(Proxy->QueryInterface(IID_IUnknown, (void**)pAddress.GetAddressOf())) && pAddress.Get())
 		{
-			ComPtr<IUnknown> pAddress;
-			if (SUCCEEDED(Proxy->QueryInterface(IID_IUnknown, (void**)pAddress.GetAddressOf())) && pAddress.Get())
-			{
-				return pAddress.Get();
-			}
+			return pAddress.Get();
 		}
 
 		return Proxy;
@@ -193,10 +177,11 @@ public:
 		auto it = g_map[CacheIndex].find(identity);
 		if (it != g_map[CacheIndex].end())
 		{
-			// If the entry exists, call DeleteMe() on the existing object
+			// If the entry exists, delete the existing object
 			if (it->second)
 			{
 				delete it->second;
+				DeleteAddress((T*)it->second);
 			}
 		}
 

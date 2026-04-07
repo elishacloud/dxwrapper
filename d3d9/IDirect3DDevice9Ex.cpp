@@ -53,15 +53,19 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 		return D3D_OK;
 	}
 
-	if (riid == IID_IUnknown || riid == WrapperID || (IsForcingD3d9to9Ex() && riid == IID_IDirect3DDevice9))
+	if (riid == IID_IDirect3DDevice9Ex && WrapperID == IID_IDirect3DDevice9)
+	{
+		*ppvObj = nullptr;
+		return E_NOINTERFACE;
+	}
+
+	if (riid == IID_IUnknown || riid == IID_IDirect3DDevice9 || riid == IID_IDirect3DDevice9Ex)
 	{
 		AddRef();
 
 		*ppvObj = this;
 
-		SHARED.DeviceMap[this] = TRUE;
-
-		return D3D_OK;
+		return S_OK;
 	}
 
 	// Check for unsupported IIDs
@@ -81,14 +85,7 @@ HRESULT m_IDirect3DDevice9Ex::QueryInterface(REFIID riid, void** ppvObj)
 
 	if (SUCCEEDED(hr))
 	{
-		if (riid == IID_IDirect3DDevice9 || riid == IID_IDirect3DDevice9Ex)
-		{
-			*ppvObj = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DDevice9Ex, m_IDirect3D9Ex, UINT>(static_cast<IUnknown*>(*ppvObj), m_pD3DEx, riid, DDKey);
-		}
-		else
-		{
-			D3d9Wrapper::genericQueryInterface(riid, ppvObj, this);
-		}
+		D3d9Wrapper::genericQueryInterface(riid, WrapperID, ppvObj, this);
 	}
 
 	return hr;
@@ -105,7 +102,7 @@ ULONG m_IDirect3DDevice9Ex::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ScopedCriticalSection ThreadLock(&SHARED.d9cs, Config.AntiAliasing || RequirePresentHandling());
+	ScopedCriticalSection ThreadLock(&d9cs, Config.AntiAliasing || RequirePresentHandling());
 
 	ULONG ref = ProxyInterface->Release();
 
@@ -141,43 +138,22 @@ ULONG m_IDirect3DDevice9Ex::Release()
 
 	if (ref == 0)
 	{
-		SHARED.DeviceMap[this] = FALSE;
-
-		// Check if any other interfaces are sharing this device details
-		BOOL MoreInstances = FALSE;
-		for (auto it = SHARED.DeviceMap.begin(); it != SHARED.DeviceMap.end(); ++it)
+		// Clean up StateBlocks
+		while (DeletedStateBlocks.size())
 		{
-			if (it->second == TRUE)
-			{
-				MoreInstances = TRUE;
-				break;
-			}
+			m_IDirect3DStateBlock9* Interface = DeletedStateBlocks.back();
+			DeletedStateBlocks.RemoveStateBlock(Interface);
+			delete Interface;
 		}
 
-		// Remove device details if no devices are using it
-		if (!MoreInstances)
+		// Reset display
+		HMONITOR hMonitor = DeviceDetails.hMonitor;
+		if (Config.FullscreenWindowMode)
 		{
-			HMONITOR hMonitor = SHARED.hMonitor;
-			for (auto it = DeviceDetailsMap.begin(); it != DeviceDetailsMap.end(); ++it)
-			{
-				if (it->first == DDKey)
-				{
-					while (SHARED.DeletedStateBlocks.size())
-					{
-						m_IDirect3DStateBlock9* Interface = SHARED.DeletedStateBlocks.back();
-						SHARED.DeletedStateBlocks.RemoveStateBlock(Interface);
-						Interface->DeleteMe();
-					}
-					DeviceDetailsMap.erase(it);
-					break;
-				}
-			}
-			// Reset display
-			if (Config.FullscreenWindowMode)
-			{
-				Utils::ResetDisplaySettings(hMonitor);
-			}
+			Utils::ResetDisplaySettings(hMonitor);
 		}
+
+		delete this;
 	}
 	else
 	{
@@ -307,18 +283,18 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 	{
 		CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 
-		ForceFullscreen = m_pD3DEx->TestResolution(SHARED.Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
+		ForceFullscreen = m_pD3DEx->TestResolution(DeviceDetails.Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
 
-		m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, SHARED.DeviceWindow, SHARED, false, ForceFullscreen, false);
+		m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, false, ForceFullscreen, false);
 	}
 
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Test for Multisample
-	if (SHARED.DeviceMultiSampleFlag && pPresentationParameters)
+	if (DeviceDetails.DeviceMultiSampleFlag && pPresentationParameters)
 	{
 		// Update Present Parameter for Multisample
-		m_IDirect3D9Ex::UpdatePresentParameterForMultisample(p_d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
+		m_IDirect3D9Ex::UpdatePresentParameterForMultisample(p_d3dpp, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality);
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(p_d3dpp, ppSwapChain);
@@ -330,13 +306,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 		{
 			CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 
-			m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, SHARED.DeviceWindow, SHARED, false, ForceFullscreen, false);
+			m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, false, ForceFullscreen, false);
 		}
 
 		// Create CwapChain
 		hr = ProxyInterface->CreateAdditionalSwapChain(p_d3dpp, ppSwapChain);
 
-		if (SUCCEEDED(hr) && SHARED.DeviceMultiSampleFlag)
+		if (SUCCEEDED(hr) && DeviceDetails.DeviceMultiSampleFlag)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing for Swap Chain...");
 		}
@@ -351,16 +327,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateAdditionalSwapChain(D3DPRESENT_PARAMETERS *p
 
 		if (ppSwapChain)
 		{
-			if (IDirect3DSwapChain9* pSwapChainQuery = nullptr; IsForcingD3d9to9Ex() && SUCCEEDED((*ppSwapChain)->QueryInterface(IID_IDirect3DSwapChain9Ex, (LPVOID*)&pSwapChainQuery)))
-			{
-				(*ppSwapChain)->Release();
-
-				*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>((IDirect3DSwapChain9Ex*)pSwapChainQuery, this, IID_IDirect3DSwapChain9Ex, nullptr);
-			}
-			else
-			{
-				*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>((IDirect3DSwapChain9Ex*)*ppSwapChain, this, IID_IDirect3DSwapChain9, nullptr);
-			}
+			*ppSwapChain = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>((IDirect3DSwapChain9Ex*)*ppSwapChain, this, WrapperID == IID_IDirect3DDevice9Ex ? IID_IDirect3DSwapChain9Ex : IID_IDirect3DSwapChain9, nullptr);
 		}
 
 		return D3D_OK;
@@ -401,11 +368,11 @@ HRESULT m_IDirect3DDevice9Ex::GetSwapChain(THIS_ UINT iSwapChain, IDirect3DSwapC
 		{
 			(*ppSwapChain)->Release();
 
-			*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(pSwapChainQuery, this, IID_IDirect3DSwapChain9Ex, nullptr);
+			*ppSwapChain = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(pSwapChainQuery, this, IID_IDirect3DSwapChain9Ex, nullptr);
 		}
 		else
 		{
-			*ppSwapChain = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(*ppSwapChain, this, IID_IDirect3DSwapChain9, nullptr);
+			*ppSwapChain = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(*ppSwapChain, this, IID_IDirect3DSwapChain9, nullptr);
 		}
 	}
 
@@ -474,7 +441,7 @@ HRESULT m_IDirect3DDevice9Ex::GetBackBuffer(THIS_ UINT iSwapChain, UINT iBackBuf
 	{
 		*ppBackBuffer = nullptr;
 
-		if (iBackBuffer >= SHARED.BackBufferCount)
+		if (iBackBuffer >= DeviceDetails.BackBufferCount)
 		{
 			return D3DERR_INVALIDCALL;
 		}
@@ -503,7 +470,7 @@ HRESULT m_IDirect3DDevice9Ex::GetBackBuffer(THIS_ UINT iSwapChain, UINT iBackBuf
 
 	if (SUCCEEDED(hr) && ppBackBuffer)
 	{
-		*ppBackBuffer = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppBackBuffer, this, IID_IDirect3DSurface9, nullptr);
+		*ppBackBuffer = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppBackBuffer, this, IID_IDirect3DSurface9, nullptr);
 	}
 
 	return hr;
@@ -596,7 +563,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateTexture(THIS_ UINT Width, UINT Height, UINT 
 
 	if (SUCCEEDED(hr) && ppTexture)
 	{
-		*ppTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DTexture9, nullptr);
+		*ppTexture = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DTexture9, nullptr);
 
 		return D3D_OK;
 	}
@@ -620,7 +587,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateVolumeTexture(THIS_ UINT Width, UINT Height,
 
 	if (SUCCEEDED(hr) && ppVolumeTexture)
 	{
-		*ppVolumeTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVolumeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppVolumeTexture, this, IID_IDirect3DVolumeTexture9, nullptr);
+		*ppVolumeTexture = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVolumeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppVolumeTexture, this, IID_IDirect3DVolumeTexture9, nullptr);
 
 		return D3D_OK;
 	}
@@ -650,7 +617,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateCubeTexture(THIS_ UINT EdgeLength, UINT Leve
 
 	if (SUCCEEDED(hr) && ppCubeTexture)
 	{
-		*ppCubeTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppCubeTexture, this, IID_IDirect3DCubeTexture9, nullptr);
+		*ppCubeTexture = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppCubeTexture, this, IID_IDirect3DCubeTexture9, nullptr);
 
 		return D3D_OK;
 	}
@@ -678,7 +645,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexBuffer(THIS_ UINT Length, DWORD Usage,
 
 	if (SUCCEEDED(hr) && ppVertexBuffer)
 	{
-		*ppVertexBuffer = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(*ppVertexBuffer, this, IID_IDirect3DVertexBuffer9, nullptr);
+		*ppVertexBuffer = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(*ppVertexBuffer, this, IID_IDirect3DVertexBuffer9, nullptr);
 
 		return D3D_OK;
 	}
@@ -701,7 +668,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateIndexBuffer(THIS_ UINT Length, DWORD Usage, 
 
 	if (SUCCEEDED(hr) && ppIndexBuffer)
 	{
-		*ppIndexBuffer = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DIndexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(*ppIndexBuffer, this, IID_IDirect3DIndexBuffer9, nullptr);
+		*ppIndexBuffer = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DIndexBuffer9, m_IDirect3DDevice9Ex, LPVOID>(*ppIndexBuffer, this, IID_IDirect3DIndexBuffer9, nullptr);
 
 		return D3D_OK;
 	}
@@ -726,16 +693,16 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Try Multisampling
-	if (SHARED.DeviceMultiSampleFlag && (MultiSample || !SHARED.UseAppMultiSampleState))
+	if (DeviceDetails.DeviceMultiSampleFlag && (MultiSample || !DeviceDetails.UseAppMultiSampleState))
 	{
-		hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality, FALSE, ppSurface, pSharedHandle);
+		hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality, FALSE, ppSurface, pSharedHandle);
 	}
 
 	if (FAILED(hr))
 	{
 		hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle);
 
-		if (SUCCEEDED(hr) && SHARED.DeviceMultiSampleFlag)
+		if (SUCCEEDED(hr) && DeviceDetails.DeviceMultiSampleFlag)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing for Render Target...");
 		}
@@ -743,7 +710,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 
 	if (SUCCEEDED(hr) && ppSurface)
 	{
-		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+		*ppSurface = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 
 		return D3D_OK;
 	}
@@ -776,16 +743,16 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Try Multisample
-	if (SHARED.DeviceMultiSampleFlag && (MultiSample || !SHARED.UseAppMultiSampleState))
+	if (DeviceDetails.DeviceMultiSampleFlag && (MultiSample || !DeviceDetails.UseAppMultiSampleState))
 	{
-		hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality, TRUE, ppSurface, pSharedHandle);
+		hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality, TRUE, ppSurface, pSharedHandle);
 	}
 
 	if (FAILED(hr))
 	{
 		hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle);
 
-		if (SUCCEEDED(hr) && SHARED.DeviceMultiSampleFlag)
+		if (SUCCEEDED(hr) && DeviceDetails.DeviceMultiSampleFlag)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing for Depth Stencil...");
 		}
@@ -793,7 +760,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 
 	if (SUCCEEDED(hr) && ppSurface)
 	{
-		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+		*ppSurface = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 
 		return D3D_OK;
 	}
@@ -877,7 +844,7 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTargetData(THIS_ IDirect3DSurface9* pRend
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ScopedCriticalSection ThreadLock(&SHARED.d9cs, RequirePresentHandling());
+	ScopedCriticalSection ThreadLock(&d9cs, RequirePresentHandling());
 
 	if (pRenderTarget)
 	{
@@ -901,7 +868,7 @@ HRESULT m_IDirect3DDevice9Ex::GetFrontBufferData(THIS_ UINT iSwapChain, IDirect3
 		pDestSurface = static_cast<m_IDirect3DSurface9*>(pDestSurface)->GetProxyInterface();
 	}
 
-	if (UsingShadowBackBuffer(iSwapChain) || (Config.EnableWindowMode && (SHARED.BufferWidth != SHARED.screenWidth || SHARED.BufferHeight != SHARED.screenHeight)))
+	if (UsingShadowBackBuffer(iSwapChain) || (Config.EnableWindowMode && (DeviceDetails.BufferWidth != DeviceDetails.screenWidth || DeviceDetails.BufferHeight != DeviceDetails.screenHeight)))
 	{
 		return GetFakeFrontBufferData(iSwapChain, pDestSurface);
 	}
@@ -978,7 +945,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurface(THIS_ UINT Width, UINT
 
 	if (SUCCEEDED(hr) && ppSurface)
 	{
-		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+		*ppSurface = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 
 		return D3D_OK;
 	}
@@ -992,7 +959,7 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ScopedCriticalSection ThreadLock(&SHARED.d9cs, RequirePresentHandling());
+	ScopedCriticalSection ThreadLock(&d9cs, RequirePresentHandling());
 
 	m_IDirect3DSurface9* pSurface = static_cast<m_IDirect3DSurface9*>(pRenderTarget);
 
@@ -1013,7 +980,7 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 
 	if (SUCCEEDED(hr))
 	{
-		if (SHARED.DeviceMultiSampleFlag && RenderTargetIndex == 0 && pSurface)
+		if (DeviceDetails.DeviceMultiSampleFlag && RenderTargetIndex == 0 && pSurface)
 		{
 			D3DSURFACE_DESC Desc = {};
 
@@ -1031,7 +998,7 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ScopedCriticalSection ThreadLock(&SHARED.d9cs, RequirePresentHandling());
+	ScopedCriticalSection ThreadLock(&d9cs, RequirePresentHandling());
 
 	HRESULT hr = ProxyInterface->GetRenderTarget(RenderTargetIndex, ppRenderTarget);
 
@@ -1055,7 +1022,7 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 			}
 		}
 
-		*ppRenderTarget = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppRenderTarget, this, IID_IDirect3DSurface9, nullptr);
+		*ppRenderTarget = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppRenderTarget, this, IID_IDirect3DSurface9, nullptr);
 	}
 
 	return hr;
@@ -1078,7 +1045,7 @@ HRESULT m_IDirect3DDevice9Ex::SetDepthStencilSurface(THIS_ IDirect3DSurface9* pN
 	{
 		msaa.NullDepthStencil = (pSurface == nullptr);
 
-		if (SHARED.DeviceMultiSampleFlag && pSurface)
+		if (DeviceDetails.DeviceMultiSampleFlag && pSurface)
 		{
 			D3DSURFACE_DESC Desc = {};
 
@@ -1100,7 +1067,7 @@ HRESULT m_IDirect3DDevice9Ex::GetDepthStencilSurface(IDirect3DSurface9** ppZSten
 
 	if (SUCCEEDED(hr) && ppZStencilSurface)
 	{
-		*ppZStencilSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppZStencilSurface, this, IID_IDirect3DSurface9, nullptr);
+		*ppZStencilSurface = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppZStencilSurface, this, IID_IDirect3DSurface9, nullptr);
 	}
 
 	return hr;
@@ -1112,9 +1079,9 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 
 #ifdef ENABLE_DEBUGOVERLAY
 	// Setup overlay before BeginScene if not already setup on this device
-	if (Config.EnableImgui && IsWindow(SHARED.DeviceWindow) && (!DOverlay.IsSetup() || DOverlay.Getd3d9Device() != ProxyInterface))
+	if (Config.EnableImgui && IsWindow(DeviceDetails.DeviceWindow) && (!DOverlay.IsSetup() || DOverlay.Getd3d9Device() != ProxyInterface))
 	{
-		DOverlay.Setup(SHARED.DeviceWindow, ProxyInterface);
+		DOverlay.Setup(DeviceDetails.DeviceWindow, ProxyInterface);
 	}
 #endif
 
@@ -1146,17 +1113,17 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 		}
 
 		// Set for Multisample
-		if (SHARED.DeviceMultiSampleFlag)
+		if (DeviceDetails.DeviceMultiSampleFlag)
 		{
-			if (SHARED.SetMultiSampleState && !SHARED.UseAppMultiSampleState)
+			if (DeviceDetails.SetMultiSampleState && !DeviceDetails.UseAppMultiSampleState)
 			{
 				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
 			}
-			if (SHARED.SetSSAA)
+			if (DeviceDetails.SetSSAA)
 			{
 				ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('S', 'S', 'A', 'A'));
 			}
-			if (SHARED.SetATOC)
+			if (DeviceDetails.SetATOC)
 			{
 				ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('A', 'T', 'O', 'C'));
 				if (Config.EnableMultisamplingATOC == 2)
@@ -1196,7 +1163,7 @@ HRESULT m_IDirect3DDevice9Ex::Clear(DWORD Count, CONST D3DRECT* pRects, DWORD Fl
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Handle render target sync
-	if (SHARED.DeviceMultiSampleFlag && (Flags & D3DCLEAR_TARGET))
+	if (DeviceDetails.DeviceMultiSampleFlag && (Flags & D3DCLEAR_TARGET))
 	{
 		ComPtr<m_IDirect3DSurface9> pSurface;
 		if (SUCCEEDED(GetRenderTarget(0, reinterpret_cast<IDirect3DSurface9**>(pSurface.GetAddressOf()))) && pSurface.Get())
@@ -1301,7 +1268,7 @@ HRESULT m_IDirect3DDevice9Ex::SetClipPlane(DWORD Index, CONST float* pPlane)
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// CacheClipPlane if not using d3d8to9 (it already exists there)
-	if (Config.CacheClipPlane && SHARED.ClientDirectXVersion != 8)
+	if (Config.CacheClipPlane && DeviceDetails.ClientDirectXVersion != 8)
 	{
 		if (!pPlane || Index >= MAX_CLIP_PLANES)
 		{
@@ -1323,7 +1290,7 @@ HRESULT m_IDirect3DDevice9Ex::GetClipPlane(DWORD Index, float* pPlane)
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// CacheClipPlane if not using d3d8to9 (it already exists there)
-	if (Config.CacheClipPlane && SHARED.ClientDirectXVersion != 8)
+	if (Config.CacheClipPlane && DeviceDetails.ClientDirectXVersion != 8)
 	{
 		if (!pPlane || Index >= MAX_CLIP_PLANES)
 		{
@@ -1343,13 +1310,13 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderState(D3DRENDERSTATETYPE State, DWORD Val
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Set for Multisample
-	if (SHARED.DeviceMultiSampleFlag)
+	if (DeviceDetails.DeviceMultiSampleFlag)
 	{
-		if (State == D3DRS_MULTISAMPLEANTIALIAS && !SHARED.UseAppMultiSampleState)
+		if (State == D3DRS_MULTISAMPLEANTIALIAS && !DeviceDetails.UseAppMultiSampleState)
 		{
 			return D3D_OK;
 		}
-		if (State == D3DRS_ALPHATESTENABLE && SHARED.SetATOC && Config.EnableMultisamplingATOC == 2)
+		if (State == D3DRS_ALPHATESTENABLE && DeviceDetails.SetATOC && Config.EnableMultisamplingATOC == 2)
 		{
 			return D3D_OK;
 		}
@@ -1406,7 +1373,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateStateBlock(THIS_ D3DSTATEBLOCKTYPE Type, IDi
 
 		if (Config.LimitStateBlocks)
 		{
-			SHARED.StateBlockTable.AddStateBlock(StateBlockX);
+			StateBlockTable.AddStateBlock(StateBlockX);
 		}
 
 		*ppSB = StateBlockX;
@@ -1438,7 +1405,7 @@ HRESULT m_IDirect3DDevice9Ex::EndStateBlock(THIS_ IDirect3DStateBlock9** ppSB)
 
 		if (Config.LimitStateBlocks)
 		{
-			SHARED.StateBlockTable.AddStateBlock(StateBlockX);
+			StateBlockTable.AddStateBlock(StateBlockX);
 		}
 
 		*ppSB = StateBlockX;
@@ -1481,13 +1448,13 @@ HRESULT m_IDirect3DDevice9Ex::GetTexture(DWORD Stage, IDirect3DBaseTexture9** pp
 		switch ((*ppTexture)->GetType())
 		{
 		case D3DRTYPE_TEXTURE:
-			*ppTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DTexture9, nullptr);
+			*ppTexture = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DTexture9, nullptr);
 			break;
 		case D3DRTYPE_VOLUMETEXTURE:
-			*ppTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVolumeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DVolumeTexture9, nullptr);
+			*ppTexture = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVolumeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DVolumeTexture9, nullptr);
 			break;
 		case D3DRTYPE_CUBETEXTURE:
-			*ppTexture = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DCubeTexture9, nullptr);
+			*ppTexture = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(*ppTexture, this, IID_IDirect3DCubeTexture9, nullptr);
 			break;
 		default:
 			return D3DERR_INVALIDCALL;
@@ -1582,18 +1549,18 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Disable AntiAliasing when using point filtering
-	if (SHARED.DeviceMultiSampleFlag && !SHARED.UseAppMultiSampleState && Sampler == 0)
+	if (DeviceDetails.DeviceMultiSampleFlag && !DeviceDetails.UseAppMultiSampleState && Sampler == 0)
 	{
 		if (Type == D3DSAMP_MINFILTER || Type == D3DSAMP_MAGFILTER)
 		{
 			if (Value == D3DTEXF_NONE || Value == D3DTEXF_POINT)
 			{
-				SHARED.SetMultiSampleState = false;
+				DeviceDetails.SetMultiSampleState = false;
 				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, FALSE);
 			}
 			else
 			{
-				SHARED.SetMultiSampleState = true;
+				DeviceDetails.SetMultiSampleState = true;
 				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
 			}
 		}
@@ -1776,7 +1743,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexDeclaration(THIS_ CONST D3DVERTEXELEME
 
 	if (SUCCEEDED(hr) && ppDecl)
 	{
-		*ppDecl = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexDeclaration9, m_IDirect3DDevice9Ex, LPVOID>(*ppDecl, this, IID_IDirect3DVertexDeclaration9, nullptr);
+		*ppDecl = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexDeclaration9, m_IDirect3DDevice9Ex, LPVOID>(*ppDecl, this, IID_IDirect3DVertexDeclaration9, nullptr);
 
 		return D3D_OK;
 	}
@@ -1806,7 +1773,7 @@ HRESULT m_IDirect3DDevice9Ex::GetVertexDeclaration(THIS_ IDirect3DVertexDeclarat
 
 	if (SUCCEEDED(hr) && ppDecl)
 	{
-		*ppDecl = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexDeclaration9, m_IDirect3DDevice9Ex, LPVOID>(*ppDecl, this, IID_IDirect3DVertexDeclaration9, nullptr);
+		*ppDecl = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexDeclaration9, m_IDirect3DDevice9Ex, LPVOID>(*ppDecl, this, IID_IDirect3DVertexDeclaration9, nullptr);
 	}
 
 	return hr;
@@ -1834,7 +1801,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateVertexShader(THIS_ CONST DWORD* pFunction, I
 
 	if (SUCCEEDED(hr) && ppShader)
 	{
-		*ppShader = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexShader9, m_IDirect3DDevice9Ex, LPVOID>(*ppShader, this, IID_IDirect3DVertexShader9, nullptr);
+		*ppShader = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DVertexShader9, m_IDirect3DDevice9Ex, LPVOID>(*ppShader, this, IID_IDirect3DVertexShader9, nullptr);
 
 		return D3D_OK;
 	}
@@ -1864,7 +1831,7 @@ HRESULT m_IDirect3DDevice9Ex::GetVertexShader(THIS_ IDirect3DVertexShader9** ppS
 
 	if (SUCCEEDED(hr) && ppShader)
 	{
-		*ppShader = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DVertexShader9>(*ppShader);
+		*ppShader = ProxyAddressLookupTable9.FindAddress<m_IDirect3DVertexShader9>(*ppShader);
 	}
 
 	return hr;
@@ -1932,7 +1899,7 @@ HRESULT m_IDirect3DDevice9Ex::GetStreamSource(THIS_ UINT StreamNumber, IDirect3D
 
 	if (SUCCEEDED(hr) && ppStreamData)
 	{
-		*ppStreamData = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DVertexBuffer9>(*ppStreamData);
+		*ppStreamData = ProxyAddressLookupTable9.FindAddress<m_IDirect3DVertexBuffer9>(*ppStreamData);
 	}
 
 	return hr;
@@ -1972,7 +1939,7 @@ HRESULT m_IDirect3DDevice9Ex::GetIndices(THIS_ IDirect3DIndexBuffer9** ppIndexDa
 
 	if (SUCCEEDED(hr) && ppIndexData)
 	{
-		*ppIndexData = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DIndexBuffer9>(*ppIndexData);
+		*ppIndexData = ProxyAddressLookupTable9.FindAddress<m_IDirect3DIndexBuffer9>(*ppIndexData);
 	}
 
 	return hr;
@@ -1986,7 +1953,7 @@ HRESULT m_IDirect3DDevice9Ex::CreatePixelShader(THIS_ CONST DWORD* pFunction, ID
 
 	if (SUCCEEDED(hr) && ppShader)
 	{
-		*ppShader = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DPixelShader9, m_IDirect3DDevice9Ex, LPVOID>(*ppShader, this, IID_IDirect3DPixelShader9, nullptr);
+		*ppShader = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DPixelShader9, m_IDirect3DDevice9Ex, LPVOID>(*ppShader, this, IID_IDirect3DPixelShader9, nullptr);
 
 		return D3D_OK;
 	}
@@ -2016,7 +1983,7 @@ HRESULT m_IDirect3DDevice9Ex::GetPixelShader(THIS_ IDirect3DPixelShader9** ppSha
 
 	if (SUCCEEDED(hr) && ppShader)
 	{
-		*ppShader = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DPixelShader9>(*ppShader);
+		*ppShader = ProxyAddressLookupTable9.FindAddress<m_IDirect3DPixelShader9>(*ppShader);
 	}
 
 	return hr;
@@ -2093,7 +2060,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateQuery(THIS_ D3DQUERYTYPE Type, IDirect3DQuer
 
 	if (SUCCEEDED(hr) && ppQuery)
 	{
-		*ppQuery = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DQuery9, m_IDirect3DDevice9Ex, LPVOID>(*ppQuery, this, IID_IDirect3DQuery9, nullptr);
+		*ppQuery = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DQuery9, m_IDirect3DDevice9Ex, LPVOID>(*ppQuery, this, IID_IDirect3DQuery9, nullptr);
 
 		return D3D_OK;
 	}
@@ -2317,16 +2284,16 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Try Multisampling
-	if (SHARED.DeviceMultiSampleFlag && (MultiSample || !SHARED.UseAppMultiSampleState))
+	if (DeviceDetails.DeviceMultiSampleFlag && (MultiSample || !DeviceDetails.UseAppMultiSampleState))
 	{
-		hr = ProxyInterfaceEx->CreateRenderTargetEx(Width, Height, Format, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality, FALSE, ppSurface, pSharedHandle, Usage);
+		hr = ProxyInterfaceEx->CreateRenderTargetEx(Width, Height, Format, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality, FALSE, ppSurface, pSharedHandle, Usage);
 	}
 
 	if (FAILED(hr))
 	{
 		hr = ProxyInterfaceEx->CreateRenderTargetEx(Width, Height, Format, MultiSample, MultisampleQuality, Lockable, ppSurface, pSharedHandle, Usage);
 
-		if (SUCCEEDED(hr) && SHARED.DeviceMultiSampleFlag)
+		if (SUCCEEDED(hr) && DeviceDetails.DeviceMultiSampleFlag)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing for Render Target...");
 		}
@@ -2334,7 +2301,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 
 	if (SUCCEEDED(hr) && ppSurface)
 	{
-		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+		*ppSurface = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 
 		return D3D_OK;
 	}
@@ -2369,7 +2336,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateOffscreenPlainSurfaceEx(THIS_ UINT Width, UI
 
 	if (SUCCEEDED(hr) && ppSurface)
 	{
-		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+		*ppSurface = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 
 		return D3D_OK;
 	}
@@ -2399,16 +2366,16 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Try Multisampling
-	if (SHARED.DeviceMultiSampleFlag && (MultiSample || !SHARED.UseAppMultiSampleState))
+	if (DeviceDetails.DeviceMultiSampleFlag && (MultiSample || !DeviceDetails.UseAppMultiSampleState))
 	{
-		hr = ProxyInterfaceEx->CreateDepthStencilSurfaceEx(Width, Height, Format, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality, TRUE, ppSurface, pSharedHandle, Usage);
+		hr = ProxyInterfaceEx->CreateDepthStencilSurfaceEx(Width, Height, Format, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality, TRUE, ppSurface, pSharedHandle, Usage);
 	}
 
 	if (FAILED(hr))
 	{
 		hr = ProxyInterfaceEx->CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, MultisampleQuality, Discard, ppSurface, pSharedHandle, Usage);
 
-		if (SUCCEEDED(hr) && SHARED.DeviceMultiSampleFlag)
+		if (SUCCEEDED(hr) && DeviceDetails.DeviceMultiSampleFlag)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing for Depth Stencil...");
 		}
@@ -2416,7 +2383,7 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 
 	if (SUCCEEDED(hr) && ppSurface)
 	{
-		*ppSurface = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
+		*ppSurface = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurface, this, IID_IDirect3DSurface9, nullptr);
 
 		return D3D_OK;
 	}
@@ -2465,7 +2432,7 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 	}
 
 	// Handle render target and depth stencil mismatch
-	if (SHARED.DeviceMultiSampleFlag)
+	if (DeviceDetails.DeviceMultiSampleFlag)
 	{
 		msaa.RenderTarget = nullptr;
 		msaa.MultiSampleMismatch = msaa.RenderTargetNonMultiSampled && !msaa.DepthStencilNonMultiSampled && !msaa.NullDepthStencil;
@@ -2507,7 +2474,7 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 				{
 					IDirect3DTexture9* pTexture = static_cast<IDirect3DTexture9*>(pBaseTexture.Get());
 
-					if (auto* wrapper = SHARED.ProxyAddressLookupTable9.FindAddress<m_IDirect3DTexture9>(pTexture))
+					if (auto* wrapper = ProxyAddressLookupTable9.FindAddress<m_IDirect3DTexture9>(pTexture))
 					{
 						wrapper->PrepareReadingFromTexture();
 					}
@@ -2540,7 +2507,7 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 
 	if (RequirePresentHandling())
 	{
-		ScopedCriticalSection ThreadLock(&SHARED.d9cs);
+		ScopedCriticalSection ThreadLock(&d9cs);
 
 		// Create state block
 		if (pStateBlock || SUCCEEDED(ProxyInterface->CreateStateBlock(D3DSBT_ALL, &pStateBlock)))
@@ -2581,12 +2548,12 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 				// Draw FPS counter to screen
 				if (Config.ShowFPSCounter)
 				{
-					RECT rect = { 0, 0, SHARED.BufferWidth, SHARED.BufferHeight };
-					if (SHARED.IsDirectDrawDevice && SHARED.IsWindowMode)
+					RECT rect = { 0, 0, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight };
+					if (DeviceDetails.IsDirectDrawDevice && DeviceDetails.IsWindowMode)
 					{
-						GetClientRect(SHARED.DeviceWindow, &rect);
+						GetClientRect(DeviceDetails.DeviceWindow, &rect);
 					}
-					DrawFPS(static_cast<float>(SHARED.AverageFPSCounter), rect, Config.ShowFPSCounter);
+					DrawFPS(static_cast<float>(AverageFPSCounter), rect, Config.ShowFPSCounter);
 				}
 
 				// Restore render target
@@ -2623,7 +2590,7 @@ void m_IDirect3DDevice9Ex::ApplyPostPresentFixes()
 {
 	if (UsingShadowBackBuffer())
 	{
-		if (SHARED.BackBufferCount == 1)
+		if (DeviceDetails.BackBufferCount == 1)
 		{
 			if (FAILED(ProxyInterface->StretchRect(ShadowBackbuffer->GetCurrentBackBuffer()->GetProxyInterface(), nullptr, ShadowBackbuffer->GetCurrentFrontBuffer()->GetProxyInterface(), nullptr, D3DTEXF_NONE)))
 			{
@@ -2709,10 +2676,10 @@ bool m_IDirect3DDevice9Ex::UsingShadowBackBuffer(DWORD iSwapChain) const
 	return (iSwapChain == 0 && ShadowBackbuffer->Count());
 }
 
-void m_IDirect3DDevice9Ex::LimitFrameRate() const
+void m_IDirect3DDevice9Ex::LimitFrameRate()
 {
 	// Count the number of frames
-	SHARED.Counter.FrameCounter++;
+	Counter.FrameCounter++;
 
 	// Get performance frequency once
 	static const LARGE_INTEGER Frequency = [] {
@@ -2730,12 +2697,12 @@ void m_IDirect3DDevice9Ex::LimitFrameRate() const
 	LARGE_INTEGER ClickTime = {};
 	QueryPerformanceCounter(&ClickTime);
 
-	LONGLONG TargetEndTicks = SHARED.Counter.LastPresentTime.QuadPart + PerFrameTicks;
+	LONGLONG TargetEndTicks = Counter.LastPresentTime.QuadPart + PerFrameTicks;
 
 	// First frame or if we fell behind, reset base time
-	if (SHARED.Counter.LastPresentTime.QuadPart == 0 || ClickTime.QuadPart >= TargetEndTicks)
+	if (Counter.LastPresentTime.QuadPart == 0 || ClickTime.QuadPart >= TargetEndTicks)
 	{
-		SHARED.Counter.LastPresentTime.QuadPart = ClickTime.QuadPart;
+		Counter.LastPresentTime.QuadPart = ClickTime.QuadPart;
 		return;
 	}
 
@@ -2752,59 +2719,59 @@ void m_IDirect3DDevice9Ex::LimitFrameRate() const
 	}
 
 	// Store target time for next frame
-	SHARED.Counter.LastPresentTime.QuadPart = TargetEndTicks;
+	Counter.LastPresentTime.QuadPart = TargetEndTicks;
 }
 
-void m_IDirect3DDevice9Ex::CalculateFPS() const
+void m_IDirect3DDevice9Ex::CalculateFPS()
 {
 	// Calculate frame time
 	auto endTime = std::chrono::steady_clock::now();
 	auto newstart = std::chrono::steady_clock::now();
-	std::chrono::duration<double> frameTime = endTime - SHARED.startTime;
-	SHARED.startTime = newstart;
+	std::chrono::duration<double> frameTime = endTime - startTime;
+	startTime = newstart;
 
 	// Store the frame time along with the time it occurred
-	SHARED.frameTimes.emplace_back(endTime, frameTime);
+	frameTimes.emplace_back(endTime, frameTime);
 
 	// Remove frame times older than FPS_CALCULATION_WINDOW
-	while (!SHARED.frameTimes.empty() && (endTime - SHARED.frameTimes.front().first) > FPS_CALCULATION_WINDOW)
+	while (!frameTimes.empty() && (endTime - frameTimes.front().first) > FPS_CALCULATION_WINDOW)
 	{
-		SHARED.frameTimes.pop_front();
+		frameTimes.pop_front();
 	}
 
-	if (SHARED.frameTimes.empty())
+	if (frameTimes.empty())
 	{
 		// No frame times available
 		return;
 	}
 
 	double totalTime = 0.0;
-	for (const auto& entry : SHARED.frameTimes)
+	for (const auto& entry : frameTimes)
 	{
 		totalTime += entry.second.count();
 	}
 
 	// Calculate average frame time
-	double averageFrameTime = totalTime / SHARED.frameTimes.size();
+	double averageFrameTime = totalTime / frameTimes.size();
 
 	// Calculate FPS
 	if (averageFrameTime > 0.0)
 	{
-		SHARED.AverageFPSCounter = 1.0 / averageFrameTime;
+		AverageFPSCounter = 1.0 / averageFrameTime;
 	}
 
 #ifdef ENABLE_DEBUGOVERLAY
-	DOverlay.SetFPSCount(SHARED.AverageFPSCounter);
+	DOverlay.SetFPSCount(AverageFPSCounter);
 #endif
 
 	// Output FPS
-	Logging::LogDebug() << "Frames: " << SHARED.frameTimes.size() << " Average time: " << averageFrameTime << " FPS: " << SHARED.AverageFPSCounter;
+	Logging::LogDebug() << "Frames: " << frameTimes.size() << " Average time: " << averageFrameTime << " FPS: " << AverageFPSCounter;
 }
 
 void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD position)
 {
 	// Scale the font size based on the rect height (adjustable factor)
-	int fontSize = SHARED.BufferHeight / 40;
+	int fontSize = DeviceDetails.BufferHeight / 40;
 	if (fontSize < 4) fontSize = 4;		// Minimum font size
 	if (fontSize > 128) fontSize = 128;	// Maximum font size
 
@@ -3045,7 +3012,7 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	}
 
 	// Set viewport
-	D3DVIEWPORT9 Viewport = { 0, 0, static_cast<DWORD>(SHARED.BufferWidth), static_cast<DWORD>(SHARED.BufferHeight), 0.0f, 1.0f };
+	D3DVIEWPORT9 Viewport = { 0, 0, static_cast<DWORD>(DeviceDetails.BufferWidth), static_cast<DWORD>(DeviceDetails.BufferHeight), 0.0f, 1.0f };
 	ProxyInterface->SetViewport(&Viewport);
 
 	// Set trasform
@@ -3373,7 +3340,7 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 		LOG_LIMIT(3, __FUNCTION__ << " Warning: Creating non-Ex interface when using D3d9to9Ex!");
 	}
 
-	Utils::GetScreenSize(SHARED.hMonitor, SHARED.screenWidth, SHARED.screenHeight);
+	Utils::GetScreenSize(DeviceDetails.hMonitor, DeviceDetails.screenWidth, DeviceDetails.screenHeight);
 
 	IsGammaSet = false;
 	for (int i = 0; i < 256; ++i)
@@ -3402,12 +3369,12 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 
 	ShadowBackbuffer->ReleaseAll();
 
-	if (!SHARED.IsDirectDrawDevice && Config.UseShadowBackbuffer)
+	if (!DeviceDetails.IsDirectDrawDevice && Config.UseShadowBackbuffer)
 	{
 		CreateShadowBackbuffer();
 	}
 
-	if (SHARED.DeviceMultiSampleFlag)
+	if (DeviceDetails.DeviceMultiSampleFlag)
 	{
 		// Handle render target
 		{
@@ -3445,13 +3412,13 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 
 void m_IDirect3DDevice9Ex::CreateShadowBackbuffer()
 {
-	if (!SHARED.BackBufferCount)
+	if (!DeviceDetails.BackBufferCount)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: too small BackBufferCount: " << SHARED.BackBufferCount;
+		Logging::Log() << __FUNCTION__ << " Error: too small BackBufferCount: " << DeviceDetails.BackBufferCount;
 		return;
 	}
 
-	DWORD BackBufferCount = max(2, SHARED.BackBufferCount);
+	DWORD BackBufferCount = max(2, DeviceDetails.BackBufferCount);
 
 	BackBufferList.clear();
 
@@ -3519,16 +3486,10 @@ void m_IDirect3DDevice9Ex::ClearVars()
 template <typename T>
 HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentationParameters, bool IsEx, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
 {
-	ScopedCriticalSection ThreadLock(&SHARED.d9cs, Config.AntiAliasing || RequirePresentHandling());
+	ScopedCriticalSection ThreadLock(&d9cs, Config.AntiAliasing || RequirePresentHandling());
 
 	// Release extra resources used
-	for (const auto& entry : SHARED.DeviceMap)
-	{
-		if (entry.second)
-		{
-			entry.first->ReleaseResources(true);
-		}
-	}
+	ReleaseResources(true);
 
 #ifdef ENABLE_DEBUGOVERLAY
 	// Teardown debug overlay before reset
@@ -3544,12 +3505,12 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 
 	// Check if display needs to be reset
 	const bool IsSettingWindowMode = (pPresentationParameters ? pPresentationParameters->Windowed != FALSE : false);
-	const bool IsWindowModeChanging = (SHARED.IsWindowMode != IsSettingWindowMode);
+	const bool IsWindowModeChanging = (DeviceDetails.IsWindowMode != IsSettingWindowMode);
 	const bool IsResolutionChanging = pPresentationParameters ?
-		(SHARED.BufferWidth != (LONG)pPresentationParameters->BackBufferWidth || SHARED.BufferHeight != (LONG)pPresentationParameters->BackBufferHeight) : false;
+		(DeviceDetails.BufferWidth != (LONG)pPresentationParameters->BackBufferWidth || DeviceDetails.BufferHeight != (LONG)pPresentationParameters->BackBufferHeight) : false;
 
 	// Hook WndProc before creating device
-	const HWND hWnd = (pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : SHARED.DeviceWindow);
+	const HWND hWnd = (pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow);
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
 
 	bool tmpFlag = false;
@@ -3564,7 +3525,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	// Reset display settings
 	if ((IsWindowModeChanging && IsSettingWindowMode) || (Config.FullscreenWindowMode && IsResolutionChanging))
 	{
-		Utils::ResetDisplaySettings(SHARED.hMonitor);
+		Utils::ResetDisplaySettings(DeviceDetails.hMonitor);
 	}
 
 	// Check fullscreen
@@ -3576,17 +3537,17 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	D3DPRESENT_PARAMETERS* p_d3dpp = pPresentationParameters ? &d3dpp : nullptr;
 	if (pPresentationParameters)
 	{
-		ForceFullscreen = m_pD3DEx->TestResolution(SHARED.Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
+		ForceFullscreen = m_pD3DEx->TestResolution(DeviceDetails.Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
 
 		CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 
-		m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, SHARED.DeviceWindow, SHARED, IsEx, ForceFullscreen, IsWindowModeChanging || IsResolutionChanging);
+		m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, IsEx, ForceFullscreen, IsWindowModeChanging || IsResolutionChanging);
 
 		// Test for Multisample
-		if (SHARED.DeviceMultiSampleFlag)
+		if (DeviceDetails.DeviceMultiSampleFlag)
 		{
 			// Update Present Parameter for Multisample
-			m_IDirect3D9Ex::UpdatePresentParameterForMultisample(p_d3dpp, SHARED.DeviceMultiSampleType, SHARED.DeviceMultiSampleQuality);
+			m_IDirect3D9Ex::UpdatePresentParameterForMultisample(p_d3dpp, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality);
 
 			// Reset device
 			hr = ResetT(func, p_d3dpp, pFullscreenDisplayMode);
@@ -3597,7 +3558,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 				// Reset presentation parameters
 				CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 
-				m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, SHARED.DeviceWindow, SHARED, IsEx, ForceFullscreen, false);
+				m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, IsEx, ForceFullscreen, false);
 
 				ClearMultiSampled = true;
 			}
@@ -3614,11 +3575,11 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 		if (SUCCEEDED(hr) && ClearMultiSampled)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Disabling AntiAliasing...");
-			SHARED.DeviceMultiSampleFlag = false;
-			SHARED.DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
-			SHARED.DeviceMultiSampleQuality = 0;
-			SHARED.SetSSAA = false;
-			SHARED.SetATOC = false;
+			DeviceDetails.DeviceMultiSampleFlag = false;
+			DeviceDetails.DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
+			DeviceDetails.DeviceMultiSampleQuality = 0;
+			DeviceDetails.SetSSAA = false;
+			DeviceDetails.SetATOC = false;
 		}
 	}
 
@@ -3628,11 +3589,11 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	{
 		if (pPresentationParameters)
 		{
-			m_IDirect3D9Ex::GetFinalPresentParameter(p_d3dpp, SHARED);
+			m_IDirect3D9Ex::GetFinalPresentParameter(p_d3dpp, DeviceDetails);
 
 			d3dpp.Windowed = IsSettingWindowMode;
 
-			SHARED.AppRequestedWindowMode = IsSettingWindowMode;
+			DeviceDetails.AppRequestedWindowMode = IsSettingWindowMode;
 
 			CopyMemory(pPresentationParameters, p_d3dpp, sizeof(D3DPRESENT_PARAMETERS));
 		}
@@ -3658,20 +3619,20 @@ HRESULT m_IDirect3DDevice9Ex::GetFakeFrontBufferData(THIS_ UINT iSwapChain, IDir
 	}
 
 	// Use Shadow for FrontBufferData
-	if (UsingShadowBackBuffer(iSwapChain) && (!SHARED.AppRequestedWindowMode || ((LONG)Desc.Width == SHARED.BufferWidth && (LONG)Desc.Height == SHARED.BufferHeight)))
+	if (UsingShadowBackBuffer(iSwapChain) && (!DeviceDetails.AppRequestedWindowMode || ((LONG)Desc.Width == DeviceDetails.BufferWidth && (LONG)Desc.Height == DeviceDetails.BufferHeight)))
 	{
 		return GetShadowFrontBufferData(iSwapChain, pDestSurface);
 	}
 
 	// Use native GetFrontBufferData()
-	if (SHARED.AppRequestedWindowMode || ((LONG)Desc.Width == SHARED.screenWidth && (LONG)Desc.Height == SHARED.screenHeight))
+	if (DeviceDetails.AppRequestedWindowMode || ((LONG)Desc.Width == DeviceDetails.screenWidth && (LONG)Desc.Height == DeviceDetails.screenHeight))
 	{
 		return ProxyInterface->GetFrontBufferData(iSwapChain, pDestSurface);
 	}
 
 	// Get location of client window
-	RECT rcClient = { 0, 0, SHARED.BufferWidth , SHARED.BufferHeight };
-	if (Config.EnableWindowMode && (!IsWindow(SHARED.DeviceWindow) || IsIconic(SHARED.DeviceWindow) || !GetClientRect(SHARED.DeviceWindow, &rcClient)))
+	RECT rcClient = { 0, 0, DeviceDetails.BufferWidth , DeviceDetails.BufferHeight };
+	if (Config.EnableWindowMode && (!IsWindow(DeviceDetails.DeviceWindow) || IsIconic(DeviceDetails.DeviceWindow) || !GetClientRect(DeviceDetails.DeviceWindow, &rcClient)))
 	{
 		return D3DERR_INVALIDCALL;
 	}
@@ -3680,12 +3641,12 @@ HRESULT m_IDirect3DDevice9Ex::GetFakeFrontBufferData(THIS_ UINT iSwapChain, IDir
 	RECT RectSrc = rcClient;
 	if (Config.EnableWindowMode)
 	{
-		MapWindowPoints(SHARED.DeviceWindow, nullptr, reinterpret_cast<POINT*>(&RectSrc), 2);
+		MapWindowPoints(DeviceDetails.DeviceWindow, nullptr, reinterpret_cast<POINT*>(&RectSrc), 2);
 
 		RectSrc.left = max(0L, RectSrc.left);
 		RectSrc.top = max(0L, RectSrc.top);
-		RectSrc.right = min((LONG)SHARED.screenWidth, RectSrc.right);
-		RectSrc.bottom = min((LONG)SHARED.screenHeight, RectSrc.bottom);
+		RectSrc.right = min((LONG)DeviceDetails.screenWidth, RectSrc.right);
+		RectSrc.bottom = min((LONG)DeviceDetails.screenHeight, RectSrc.bottom);
 
 		if (RectSrc.right <= RectSrc.left || RectSrc.bottom <= RectSrc.top)
 		{
@@ -3695,7 +3656,7 @@ HRESULT m_IDirect3DDevice9Ex::GetFakeFrontBufferData(THIS_ UINT iSwapChain, IDir
 
 	// Create new surface to hold data
 	ComPtr<IDirect3DSurface9> pSourceSurface;
-	if (FAILED(ProxyInterface->CreateOffscreenPlainSurface(SHARED.screenWidth, SHARED.screenHeight, Desc.Format, Desc.Pool, pSourceSurface.GetAddressOf(), nullptr)))
+	if (FAILED(ProxyInterface->CreateOffscreenPlainSurface(DeviceDetails.screenWidth, DeviceDetails.screenHeight, Desc.Format, Desc.Pool, pSourceSurface.GetAddressOf(), nullptr)))
 	{
 		return D3DERR_INVALIDCALL;
 	}
@@ -3740,7 +3701,7 @@ HRESULT m_IDirect3DDevice9Ex::GetShadowFrontBufferData(THIS_ UINT iSwapChain, ID
 	{
 		Logging::Log() << __FUNCTION__ << " Error: incorrect size or format: " << SrcDesc.Width << "x" << SrcDesc.Height <<
 			" -> " << DestDesc.Width << "x" << DestDesc.Height << " " << DestDesc.Format <<
-			" Screen: " << SHARED.screenWidth << "x" << SHARED.screenHeight;
+			" Screen: " << DeviceDetails.screenWidth << "x" << DeviceDetails.screenHeight;
 		return D3DERR_INVALIDCALL;
 	}
 
@@ -3757,17 +3718,17 @@ m_IDirect3DStateBlock9* m_IDirect3DDevice9Ex::GetCreateStateBlock(IDirect3DState
 {
 	m_IDirect3DStateBlock9* StateBlockX = nullptr;
 
-	if (SHARED.DeletedStateBlocks.size())
+	if (DeletedStateBlocks.size())
 	{
-		StateBlockX = SHARED.DeletedStateBlocks.back();
-		SHARED.DeletedStateBlocks.RemoveStateBlock(StateBlockX);
+		StateBlockX = DeletedStateBlocks.back();
+		DeletedStateBlocks.RemoveStateBlock(StateBlockX);
 
 		StateBlockX->SetProxyAddress(pSB);
 		StateBlockX->InitInterface(this, IID_IDirect3DStateBlock9, nullptr);
 	}
 	else
 	{
-		StateBlockX = SHARED.ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(pSB, this, IID_IDirect3DStateBlock9, nullptr);
+		StateBlockX = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(pSB, this, IID_IDirect3DStateBlock9, nullptr);
 	}
 
 	return StateBlockX;

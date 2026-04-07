@@ -44,27 +44,26 @@ HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 		return D3D_OK;
 	}
 
-	if (riid == IID_IUnknown || riid == WrapperID || (IsForcingD3d9to9Ex() && riid == IID_IDirect3D9))
+	if (riid == IID_IDirect3D9Ex && WrapperID == IID_IDirect3D9)
+	{
+		*ppvObj = nullptr;
+		return E_NOINTERFACE;
+	}
+
+	if (riid == IID_IUnknown || riid == IID_IDirect3D9 || riid == IID_IDirect3D9Ex)
 	{
 		AddRef();
 
 		*ppvObj = this;
 
-		return D3D_OK;
+		return S_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
 
 	if (SUCCEEDED(hr))
 	{
-		if (riid == IID_IDirect3D9 || riid == IID_IDirect3D9Ex)
-		{
-			*ppvObj = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3D9Ex, void, LPVOID>(static_cast<IUnknown*>(*ppvObj), nullptr, riid, nullptr);
-		}
-		else
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
-		}
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
 	}
 
 	return hr;
@@ -255,34 +254,13 @@ HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND h
 		}
 	}
 
-	auto DeviceDetails = std::make_unique<DEVICEDETAILS>();
+	DEVICEDETAILS DeviceDetails;
 
-	HRESULT hr = CreateDeviceT(*DeviceDetails.get(), Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, false, nullptr, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, false, nullptr, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr) && ppReturnedDeviceInterface)
 	{
-		GUID riid = IID_IDirect3DDevice9;
-
-		if (IsForcingD3d9to9Ex())
-		{
-			IDirect3DDevice9* pD3DD = *ppReturnedDeviceInterface;
-			IDirect3DDevice9Ex* pD3DDEx = nullptr;
-
-			if (SUCCEEDED(pD3DD->QueryInterface(IID_IDirect3DDevice9Ex, reinterpret_cast<LPVOID*>(&pD3DDEx))))
-			{
-				pD3DD->Release();
-
-				*ppReturnedDeviceInterface = pD3DDEx;
-
-				riid = IID_IDirect3DDevice9Ex;
-			}
-		}
-
-		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.get();
-
-		DeviceDetailsMap[DDKey] = std::move(DeviceDetails);
-
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, riid, DDKey);
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9, DeviceDetails);
 
 		return D3D_OK;
 	}
@@ -375,17 +353,13 @@ HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType
 		return D3DERR_INVALIDCALL;
 	}
 
-	auto DeviceDetails = std::make_unique<DEVICEDETAILS>();
+	DEVICEDETAILS DeviceDetails;
 
-	HRESULT hr = CreateDeviceT(*DeviceDetails.get(), Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, true, pFullscreenDisplayMode, ppReturnedDeviceInterface);
+	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, true, pFullscreenDisplayMode, ppReturnedDeviceInterface);
 
 	if (SUCCEEDED(hr) && ppReturnedDeviceInterface)
 	{
-		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.get();
-
-		DeviceDetailsMap[DDKey] = std::move(DeviceDetails);
-
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, DDKey);
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, DeviceDetails);
 
 		return D3D_OK;
 	}
@@ -418,13 +392,6 @@ void m_IDirect3D9Ex::InitInterface()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " Warning: Creating non-Ex interface when using D3d9to9Ex!");
 	}
-
-	ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
-}
-
-void m_IDirect3D9Ex::ReleaseInterface()
-{
-	ProxyAddressLookupTable9.DeleteAddress(this);
 }
 
 UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, bool IsEx, CONST D3DDISPLAYMODEFILTER* pFilter)

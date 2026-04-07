@@ -3,20 +3,6 @@
 
 // Specializations for CreateInterface methods
 template <>
-m_IDirect3D9Ex* AddressLookupTableD3d9::CreateInterface<class m_IDirect3D9Ex, void, LPVOID>(
-	m_IDirect3D9Ex* Proxy, void*, REFIID riid, void*)
-{
-	return new m_IDirect3D9Ex(static_cast<m_IDirect3D9Ex*>(Proxy), riid);
-}
-
-template <>
-m_IDirect3DDevice9Ex* AddressLookupTableD3d9::CreateInterface<m_IDirect3DDevice9Ex, m_IDirect3D9Ex, UINT>(
-	m_IDirect3DDevice9Ex* Proxy, m_IDirect3D9Ex* Device, REFIID riid, UINT Data)
-{
-	return new m_IDirect3DDevice9Ex(static_cast<m_IDirect3DDevice9Ex*>(Proxy), Device, riid, Data);
-}
-
-template <>
 m_IDirect3DCubeTexture9* AddressLookupTableD3d9::CreateInterface<m_IDirect3DCubeTexture9, m_IDirect3DDevice9Ex, LPVOID>(
 	m_IDirect3DCubeTexture9* Proxy, m_IDirect3DDevice9Ex* Device, REFIID, void*)
 {

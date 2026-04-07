@@ -32,7 +32,6 @@ private:
 
 	// Other helper functions
 	void InitInterface();
-	void ReleaseInterface();
 	void LogAdapterNames();
 
 public:
@@ -52,8 +51,6 @@ public:
 	~m_IDirect3D9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
-
-		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/

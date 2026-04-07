@@ -107,15 +107,13 @@ typedef HRESULT(WINAPI* Direct3DCreate9ExProc)(UINT, IDirect3D9Ex**);
 typedef IDirect3D9* (WINAPI* Direct3DCreate9On12Proc)(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries);
 typedef HRESULT(WINAPI* Direct3DCreate9On12ExProc)(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries, IDirect3D9Ex** ppOutputInterface);
 
-#define SHARED (*DeviceDetailsMap[DDKey].get())
-
 constexpr UINT NO_MAP_VALUE = 0xFFFFFFFF;
 
 void WINAPI Direct3D9SetSwapEffectUpgradeShim(int Unknown);
 
 namespace D3d9Wrapper
 {
-	void WINAPI genericQueryInterface(REFIID riid, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
+	void WINAPI genericQueryInterface(REFIID riid, REFIID WrapperID, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
 	void TestAllDeviceRefs(IDirect3DDevice9* device);
 }
 

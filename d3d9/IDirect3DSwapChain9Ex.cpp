@@ -29,27 +29,26 @@ HRESULT m_IDirect3DSwapChain9Ex::QueryInterface(THIS_ REFIID riid, void** ppvObj
 		return E_POINTER;
 	}
 
-	if (riid == IID_IUnknown || riid == WrapperID || (IsForcingD3d9to9Ex() && riid == IID_IDirect3DSwapChain9))
+	if (riid == IID_IDirect3DSwapChain9Ex && WrapperID == IID_IDirect3DSwapChain9)
+	{
+		*ppvObj = nullptr;
+		return E_NOINTERFACE;
+	}
+
+	if (riid == IID_IUnknown || riid == IID_IDirect3DSwapChain9 || riid == IID_IDirect3DSwapChain9Ex)
 	{
 		AddRef();
 
 		*ppvObj = this;
 
-		return D3D_OK;
+		return S_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
 
 	if (SUCCEEDED(hr))
 	{
-		if (riid == IID_IDirect3DSwapChain9 || riid == IID_IDirect3DSwapChain9Ex)
-		{
-			*ppvObj = m_pDeviceEx->GetLookupTable()->FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(static_cast<IUnknown*>(*ppvObj), m_pDeviceEx, riid, nullptr);
-		}
-		else
-		{
-			D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
-		}
+		D3d9Wrapper::genericQueryInterface(riid, WrapperID, ppvObj, m_pDeviceEx);
 	}
 
 	return hr;
