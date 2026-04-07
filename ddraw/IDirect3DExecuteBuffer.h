@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DExecuteBuffer : public IDirect3DExecuteBuffer, public AddressLookupTableDdrawObject
+class m_IDirect3DExecuteBuffer final : public IDirect3DExecuteBuffer, public AddressLookupTableDdrawObject
 {
 private:
 	IDirect3DExecuteBuffer *ProxyInterface = nullptr;
@@ -77,18 +77,18 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DExecuteBuffer methods ***/
-	STDMETHOD(Initialize)(THIS_ LPDIRECT3DDEVICE, LPD3DEXECUTEBUFFERDESC);
-	STDMETHOD(Lock)(THIS_ LPD3DEXECUTEBUFFERDESC);
-	STDMETHOD(Unlock)(THIS);
-	STDMETHOD(SetExecuteData)(THIS_ LPD3DEXECUTEDATA);
-	STDMETHOD(GetExecuteData)(THIS_ LPD3DEXECUTEDATA);
-	STDMETHOD(Validate)(THIS_ LPDWORD, LPD3DVALIDATECALLBACK, LPVOID, DWORD);
-	STDMETHOD(Optimize)(THIS_ DWORD);
+	IFACEMETHOD(Initialize)(THIS_ LPDIRECT3DDEVICE, LPD3DEXECUTEBUFFERDESC) override;
+	IFACEMETHOD(Lock)(THIS_ LPD3DEXECUTEBUFFERDESC) override;
+	IFACEMETHOD(Unlock)(THIS) override;
+	IFACEMETHOD(SetExecuteData)(THIS_ LPD3DEXECUTEDATA) override;
+	IFACEMETHOD(GetExecuteData)(THIS_ LPD3DEXECUTEDATA) override;
+	IFACEMETHOD(Validate)(THIS_ LPDWORD, LPD3DVALIDATECALLBACK, LPVOID, DWORD) override;
+	IFACEMETHOD(Optimize)(THIS_ DWORD) override;
 
 	// Helper functions
 	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }

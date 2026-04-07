@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirectDrawGammaControl : public IDirectDrawGammaControl, public AddressLookupTableDdrawObject
+class m_IDirectDrawGammaControl final : public IDirectDrawGammaControl, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDrawGammaControl *ProxyInterface = nullptr;
@@ -65,13 +65,13 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
-	STDMETHOD_(ULONG, AddRef) (THIS);
-	STDMETHOD_(ULONG, Release) (THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef) (THIS) override;
+	IFACEMETHOD_(ULONG, Release) (THIS) override;
 
 	/*** IDirectDrawGammaControl methods ***/
-	STDMETHOD(GetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP);
-	STDMETHOD(SetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP);
+	IFACEMETHOD(GetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP) override;
+	IFACEMETHOD(SetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP) override;
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }

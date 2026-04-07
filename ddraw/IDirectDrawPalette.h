@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirectDrawPalette : public IDirectDrawPalette, public AddressLookupTableDdrawObject
+class m_IDirectDrawPalette final : public IDirectDrawPalette, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDrawPalette *ProxyInterface = nullptr;
@@ -106,15 +106,15 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
-	STDMETHOD_(ULONG, AddRef) (THIS);
-	STDMETHOD_(ULONG, Release) (THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef) (THIS) override;
+	IFACEMETHOD_(ULONG, Release) (THIS) override;
 
 	/*** IDirectDrawPalette methods ***/
-	STDMETHOD(GetCaps)(THIS_ LPDWORD);
-	STDMETHOD(GetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY);
-	STDMETHOD(Initialize)(THIS_ LPDIRECTDRAW, DWORD, LPPALETTEENTRY);
-	STDMETHOD(SetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY);
+	IFACEMETHOD(GetCaps)(THIS_ LPDWORD) override;
+	IFACEMETHOD(GetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY) override;
+	IFACEMETHOD(Initialize)(THIS_ LPDIRECTDRAW, DWORD, LPPALETTEENTRY) override;
+	IFACEMETHOD(SetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY) override;
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }

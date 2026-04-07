@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DLight : public IDirect3DLight, public AddressLookupTableDdrawObject
+class m_IDirect3DLight final : public IDirect3DLight, public AddressLookupTableDdrawObject
 {
 private:
 	IDirect3DLight *ProxyInterface = nullptr;
@@ -67,14 +67,14 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DLight methods ***/
-	STDMETHOD(Initialize)(THIS_ LPDIRECT3D);
-	STDMETHOD(SetLight)(THIS_ LPD3DLIGHT);
-	STDMETHOD(GetLight)(THIS_ LPD3DLIGHT);
+	IFACEMETHOD(Initialize)(THIS_ LPDIRECT3D) override;
+	IFACEMETHOD(SetLight)(THIS_ LPD3DLIGHT) override;
+	IFACEMETHOD(GetLight)(THIS_ LPD3DLIGHT) override;
 
 	// Helper function
 	void ClearD3D() { D3DInterface = nullptr; }

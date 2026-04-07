@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DVertexBuffer : public IDirect3DVertexBuffer, public AddressLookupTableDdrawObject
+class m_IDirect3DVertexBuffer final : public IDirect3DVertexBuffer, public AddressLookupTableDdrawObject
 {
 private:
 	m_IDirect3DVertexBufferX *ProxyInterface;
@@ -31,14 +31,14 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DVertexBuffer methods ***/
-	STDMETHOD(Lock)(THIS_ DWORD, LPVOID*, LPDWORD);
-	STDMETHOD(Unlock)(THIS);
-	STDMETHOD(ProcessVertices)(THIS_ DWORD, DWORD, DWORD, LPDIRECT3DVERTEXBUFFER, DWORD, LPDIRECT3DDEVICE3, DWORD);
-	STDMETHOD(GetVertexBufferDesc)(THIS_ LPD3DVERTEXBUFFERDESC);
-	STDMETHOD(Optimize)(THIS_ LPDIRECT3DDEVICE3, DWORD);
+	IFACEMETHOD(Lock)(THIS_ DWORD, LPVOID*, LPDWORD) override;
+	IFACEMETHOD(Unlock)(THIS) override;
+	IFACEMETHOD(ProcessVertices)(THIS_ DWORD, DWORD, DWORD, LPDIRECT3DVERTEXBUFFER, DWORD, LPDIRECT3DDEVICE3, DWORD) override;
+	IFACEMETHOD(GetVertexBufferDesc)(THIS_ LPD3DVERTEXBUFFERDESC) override;
+	IFACEMETHOD(Optimize)(THIS_ LPDIRECT3DDEVICE3, DWORD) override;
 };

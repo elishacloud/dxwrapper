@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DViewport : public IDirect3DViewport, public AddressLookupTableDdrawObject
+class m_IDirect3DViewport final : public IDirect3DViewport, public AddressLookupTableDdrawObject
 {
 private:
 	m_IDirect3DViewportX *ProxyInterface;
@@ -31,22 +31,22 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DViewport methods ***/
-	STDMETHOD(Initialize)(THIS_ LPDIRECT3D);
-	STDMETHOD(GetViewport)(THIS_ LPD3DVIEWPORT);
-	STDMETHOD(SetViewport)(THIS_ LPD3DVIEWPORT);
-	STDMETHOD(TransformVertices)(THIS_ DWORD, LPD3DTRANSFORMDATA, DWORD, LPDWORD);
-	STDMETHOD(LightElements)(THIS_ DWORD, LPD3DLIGHTDATA);
-	STDMETHOD(SetBackground)(THIS_ D3DMATERIALHANDLE);
-	STDMETHOD(GetBackground)(THIS_ LPD3DMATERIALHANDLE, LPBOOL);
-	STDMETHOD(SetBackgroundDepth)(THIS_ LPDIRECTDRAWSURFACE);
-	STDMETHOD(GetBackgroundDepth)(THIS_ LPDIRECTDRAWSURFACE*, LPBOOL);
-	STDMETHOD(Clear)(THIS_ DWORD, LPD3DRECT, DWORD);
-	STDMETHOD(AddLight)(THIS_ LPDIRECT3DLIGHT);
-	STDMETHOD(DeleteLight)(THIS_ LPDIRECT3DLIGHT);
-	STDMETHOD(NextLight)(THIS_ LPDIRECT3DLIGHT, LPDIRECT3DLIGHT*, DWORD);
+	IFACEMETHOD(Initialize)(THIS_ LPDIRECT3D) override;
+	IFACEMETHOD(GetViewport)(THIS_ LPD3DVIEWPORT) override;
+	IFACEMETHOD(SetViewport)(THIS_ LPD3DVIEWPORT) override;
+	IFACEMETHOD(TransformVertices)(THIS_ DWORD, LPD3DTRANSFORMDATA, DWORD, LPDWORD) override;
+	IFACEMETHOD(LightElements)(THIS_ DWORD, LPD3DLIGHTDATA) override;
+	IFACEMETHOD(SetBackground)(THIS_ D3DMATERIALHANDLE) override;
+	IFACEMETHOD(GetBackground)(THIS_ LPD3DMATERIALHANDLE, LPBOOL) override;
+	IFACEMETHOD(SetBackgroundDepth)(THIS_ LPDIRECTDRAWSURFACE) override;
+	IFACEMETHOD(GetBackgroundDepth)(THIS_ LPDIRECTDRAWSURFACE*, LPBOOL) override;
+	IFACEMETHOD(Clear)(THIS_ DWORD, LPD3DRECT, DWORD) override;
+	IFACEMETHOD(AddLight)(THIS_ LPDIRECT3DLIGHT) override;
+	IFACEMETHOD(DeleteLight)(THIS_ LPDIRECT3DLIGHT) override;
+	IFACEMETHOD(NextLight)(THIS_ LPDIRECT3DLIGHT, LPDIRECT3DLIGHT*, DWORD) override;
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirectDrawClipper : public IDirectDrawClipper, public AddressLookupTableDdrawObject
+class m_IDirectDrawClipper final : public IDirectDrawClipper, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDrawClipper *ProxyInterface = nullptr;
@@ -73,17 +73,17 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
-	STDMETHOD_(ULONG, AddRef) (THIS);
-	STDMETHOD_(ULONG, Release) (THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef) (THIS) override;
+	IFACEMETHOD_(ULONG, Release) (THIS) override;
 
 	/*** IDirectDrawClipper methods ***/
-	STDMETHOD(GetClipList)(THIS_ LPRECT, LPRGNDATA, LPDWORD);
-	STDMETHOD(GetHWnd)(THIS_ HWND FAR *);
-	STDMETHOD(Initialize)(THIS_ LPDIRECTDRAW, DWORD);
-	STDMETHOD(IsClipListChanged)(THIS_ BOOL FAR *);
-	STDMETHOD(SetClipList)(THIS_ LPRGNDATA, DWORD);
-	STDMETHOD(SetHWnd)(THIS_ DWORD, HWND);
+	IFACEMETHOD(GetClipList)(THIS_ LPRECT, LPRGNDATA, LPDWORD) override;
+	IFACEMETHOD(GetHWnd)(THIS_ HWND FAR *) override;
+	IFACEMETHOD(Initialize)(THIS_ LPDIRECTDRAW, DWORD) override;
+	IFACEMETHOD(IsClipListChanged)(THIS_ BOOL FAR *) override;
+	IFACEMETHOD(SetClipList)(THIS_ LPRGNDATA, DWORD) override;
+	IFACEMETHOD(SetHWnd)(THIS_ DWORD, HWND) override;
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }

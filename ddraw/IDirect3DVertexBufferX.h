@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DVertexBufferX : public IDirect3DVertexBuffer7, public AddressLookupTableDdrawObject
+class m_IDirect3DVertexBufferX final : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
 	IDirect3DVertexBuffer7 *ProxyInterface = nullptr;

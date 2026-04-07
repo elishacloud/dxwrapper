@@ -24,11 +24,11 @@ private:
 	template <typename T>
 	struct AddressCacheIndex {};
 	template <>
-	struct AddressCacheIndex<m_IDirectInput8> { static constexpr UINT CacheIndex = 0; };
+	struct AddressCacheIndex<m_IDirectInput8> { static constexpr size_t CacheIndex = 0; };
 	template <>
-	struct AddressCacheIndex<m_IDirectInputDevice8> { static constexpr UINT CacheIndex = 1; };
+	struct AddressCacheIndex<m_IDirectInputDevice8> { static constexpr size_t CacheIndex = 1; };
 	template <>
-	struct AddressCacheIndex<m_IDirectInputEffect8> { static constexpr UINT CacheIndex = 2; };
+	struct AddressCacheIndex<m_IDirectInputEffect8> { static constexpr size_t CacheIndex = 2; };
 
 	void DeleteAll()
 	{

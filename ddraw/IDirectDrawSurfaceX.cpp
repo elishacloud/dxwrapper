@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -448,7 +448,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		" PresentBlt = " << PresentBlt;
 
 	// Check if source Surface exists
-	if (lpDDSrcSurface && !ProxyAddressLookupTable.CheckSurfaceExists(lpDDSrcSurface))
+	if (lpDDSrcSurface && !ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << lpDDSrcSurface);
 		return DDERR_INVALIDPARAMS;
@@ -876,7 +876,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 	{
 		if (DDBltBatch[x].lpDDSSrc)
 		{
-			if (!ProxyAddressLookupTable.CheckSurfaceExists((LPDIRECTDRAWSURFACE7)DDBltBatch[x].lpDDSSrc))
+			if (!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)DDBltBatch[x].lpDDSSrc))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << DDBltBatch[x].lpDDSSrc);
 				return DDERR_INVALIDPARAMS;
@@ -893,7 +893,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Check if source Surface exists
-	if (lpDDSrcSurface && !ProxyAddressLookupTable.CheckSurfaceExists(lpDDSrcSurface))
+	if (lpDDSrcSurface && !ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << lpDDSrcSurface);
 		return DDERR_INVALIDPARAMS;

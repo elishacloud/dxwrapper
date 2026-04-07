@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirectDrawFactory : public IDirectDrawFactory
+class m_IDirectDrawFactory final : public IDirectDrawFactory
 {
 private:
 	IDirectDrawFactory *ProxyInterface = nullptr;
@@ -18,12 +18,12 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
-	STDMETHOD_(ULONG, AddRef) (THIS);
-	STDMETHOD_(ULONG, Release) (THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef) (THIS) override;
+	IFACEMETHOD_(ULONG, Release) (THIS) override;
 
 	/*** IDirectDrawFactory methods ***/
-	STDMETHOD(CreateDirectDraw) (THIS_ GUID * pGUID, HWND hWnd, DWORD dwCoopLevelFlags, DWORD dwReserved, IUnknown *pUnkOuter, IDirectDraw **ppDirectDraw);
-	STDMETHOD(DirectDrawEnumerateA) (THIS_ LPDDENUMCALLBACKA lpCallback, LPVOID lpContext);
-	STDMETHOD(DirectDrawEnumerateW) (THIS_ LPDDENUMCALLBACKW lpCallback, LPVOID lpContext);
+	IFACEMETHOD(CreateDirectDraw) (THIS_ GUID * pGUID, HWND hWnd, DWORD dwCoopLevelFlags, DWORD dwReserved, IUnknown *pUnkOuter, IDirectDraw **ppDirectDraw) override;
+	IFACEMETHOD(DirectDrawEnumerateA) (THIS_ LPDDENUMCALLBACKA lpCallback, LPVOID lpContext) override;
+	IFACEMETHOD(DirectDrawEnumerateW) (THIS_ LPDDENUMCALLBACKW lpCallback, LPVOID lpContext) override;
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirectDrawColorControl : public IDirectDrawColorControl, public AddressLookupTableDdrawObject
+class m_IDirectDrawColorControl final : public IDirectDrawColorControl, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDrawColorControl *ProxyInterface = nullptr;
@@ -66,13 +66,13 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
-	STDMETHOD_(ULONG, AddRef) (THIS);
-	STDMETHOD_(ULONG, Release) (THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef) (THIS) override;
+	IFACEMETHOD_(ULONG, Release) (THIS) override;
 
 	/*** IDirectDrawColorControl methods ***/
-	STDMETHOD(GetColorControls)(THIS_ LPDDCOLORCONTROL);
-	STDMETHOD(SetColorControls)(THIS_ LPDDCOLORCONTROL);
+	IFACEMETHOD(GetColorControls)(THIS_ LPDDCOLORCONTROL) override;
+	IFACEMETHOD(SetColorControls)(THIS_ LPDDCOLORCONTROL) override;
 
 	// Functions handling the ddraw parent interface
 	void ClearDdraw() { ddrawParent = nullptr; }

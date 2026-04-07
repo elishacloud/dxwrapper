@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DMaterial : public IDirect3DMaterial, public AddressLookupTableDdrawObject
+class m_IDirect3DMaterial final : public IDirect3DMaterial, public AddressLookupTableDdrawObject
 {
 private:
 	m_IDirect3DMaterialX *ProxyInterface;
@@ -31,15 +31,15 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DMaterial methods ***/
-	STDMETHOD(Initialize)(THIS_ LPDIRECT3D);
-	STDMETHOD(SetMaterial)(THIS_ LPD3DMATERIAL);
-	STDMETHOD(GetMaterial)(THIS_ LPD3DMATERIAL);
-	STDMETHOD(GetHandle)(THIS_ LPDIRECT3DDEVICE, LPD3DMATERIALHANDLE);
-	STDMETHOD(Reserve)(THIS);
-	STDMETHOD(Unreserve)(THIS);
+	IFACEMETHOD(Initialize)(THIS_ LPDIRECT3D) override;
+	IFACEMETHOD(SetMaterial)(THIS_ LPD3DMATERIAL) override;
+	IFACEMETHOD(GetMaterial)(THIS_ LPD3DMATERIAL) override;
+	IFACEMETHOD(GetHandle)(THIS_ LPDIRECT3DDEVICE, LPD3DMATERIALHANDLE) override;
+	IFACEMETHOD(Reserve)(THIS) override;
+	IFACEMETHOD(Unreserve)(THIS) override;
 };

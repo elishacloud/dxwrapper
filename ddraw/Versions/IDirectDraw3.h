@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirectDraw3 : public IDirectDraw3, public AddressLookupTableDdrawObject
+class m_IDirectDraw3 final : public IDirectDraw3, public AddressLookupTableDdrawObject
 {
 private:
 	m_IDirectDrawX *ProxyInterface;
@@ -31,33 +31,33 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
-	STDMETHOD_(ULONG, AddRef) (THIS);
-	STDMETHOD_(ULONG, Release) (THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef) (THIS) override;
+	IFACEMETHOD_(ULONG, Release) (THIS) override;
 
 	/*** IDirectDraw methods ***/
-	STDMETHOD(Compact)(THIS);
-	STDMETHOD(CreateClipper)(THIS_ DWORD, LPDIRECTDRAWCLIPPER FAR*, IUnknown FAR *);
-	STDMETHOD(CreatePalette)(THIS_ DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE FAR*, IUnknown FAR *);
-	STDMETHOD(CreateSurface)(THIS_ LPDDSURFACEDESC, LPDIRECTDRAWSURFACE FAR *, IUnknown FAR *);
-	STDMETHOD(DuplicateSurface)(THIS_ LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE FAR *);
-	STDMETHOD(EnumDisplayModes)(THIS_ DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK);
-	STDMETHOD(EnumSurfaces)(THIS_ DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMSURFACESCALLBACK);
-	STDMETHOD(FlipToGDISurface)(THIS);
-	STDMETHOD(GetCaps)(THIS_ LPDDCAPS, LPDDCAPS);
-	STDMETHOD(GetDisplayMode)(THIS_ LPDDSURFACEDESC);
-	STDMETHOD(GetFourCCCodes)(THIS_ LPDWORD, LPDWORD);
-	STDMETHOD(GetGDISurface)(THIS_ LPDIRECTDRAWSURFACE FAR *);
-	STDMETHOD(GetMonitorFrequency)(THIS_ LPDWORD);
-	STDMETHOD(GetScanLine)(THIS_ LPDWORD);
-	STDMETHOD(GetVerticalBlankStatus)(THIS_ LPBOOL);
-	STDMETHOD(Initialize)(THIS_ GUID FAR *);
-	STDMETHOD(RestoreDisplayMode)(THIS);
-	STDMETHOD(SetCooperativeLevel)(THIS_ HWND, DWORD);
-	STDMETHOD(SetDisplayMode)(THIS_ DWORD, DWORD, DWORD, DWORD, DWORD);
-	STDMETHOD(WaitForVerticalBlank)(THIS_ DWORD, HANDLE);
+	IFACEMETHOD(Compact)(THIS) override;
+	IFACEMETHOD(CreateClipper)(THIS_ DWORD, LPDIRECTDRAWCLIPPER FAR*, IUnknown FAR *) override;
+	IFACEMETHOD(CreatePalette)(THIS_ DWORD, LPPALETTEENTRY, LPDIRECTDRAWPALETTE FAR*, IUnknown FAR *) override;
+	IFACEMETHOD(CreateSurface)(THIS_ LPDDSURFACEDESC, LPDIRECTDRAWSURFACE FAR *, IUnknown FAR *) override;
+	IFACEMETHOD(DuplicateSurface)(THIS_ LPDIRECTDRAWSURFACE, LPDIRECTDRAWSURFACE FAR *) override;
+	IFACEMETHOD(EnumDisplayModes)(THIS_ DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK) override;
+	IFACEMETHOD(EnumSurfaces)(THIS_ DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMSURFACESCALLBACK) override;
+	IFACEMETHOD(FlipToGDISurface)(THIS) override;
+	IFACEMETHOD(GetCaps)(THIS_ LPDDCAPS, LPDDCAPS) override;
+	IFACEMETHOD(GetDisplayMode)(THIS_ LPDDSURFACEDESC) override;
+	IFACEMETHOD(GetFourCCCodes)(THIS_ LPDWORD, LPDWORD) override;
+	IFACEMETHOD(GetGDISurface)(THIS_ LPDIRECTDRAWSURFACE FAR *) override;
+	IFACEMETHOD(GetMonitorFrequency)(THIS_ LPDWORD) override;
+	IFACEMETHOD(GetScanLine)(THIS_ LPDWORD) override;
+	IFACEMETHOD(GetVerticalBlankStatus)(THIS_ LPBOOL) override;
+	IFACEMETHOD(Initialize)(THIS_ GUID FAR *) override;
+	IFACEMETHOD(RestoreDisplayMode)(THIS) override;
+	IFACEMETHOD(SetCooperativeLevel)(THIS_ HWND, DWORD) override;
+	IFACEMETHOD(SetDisplayMode)(THIS_ DWORD, DWORD, DWORD, DWORD, DWORD) override;
+	IFACEMETHOD(WaitForVerticalBlank)(THIS_ DWORD, HANDLE) override;
 	/*** Added in the v2 interface ***/
-	STDMETHOD(GetAvailableVidMem)(THIS_ LPDDSCAPS, LPDWORD, LPDWORD);
+	IFACEMETHOD(GetAvailableVidMem)(THIS_ LPDDSCAPS, LPDWORD, LPDWORD) override;
 	/*** IDirectDraw3 methods ***/
-	STDMETHOD(GetSurfaceFromDC) (THIS_ HDC, IDirectDrawSurface **);
+	IFACEMETHOD(GetSurfaceFromDC) (THIS_ HDC, IDirectDrawSurface **) override;
 };

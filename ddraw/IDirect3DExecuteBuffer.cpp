@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -133,11 +133,7 @@ HRESULT m_IDirect3DExecuteBuffer::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, 
 		return DDERR_ALREADYINITIALIZED;
 	}
 
-	if (lpDirect3DDevice &&
-		(ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirect3DDevice*)lpDirect3DDevice) ||
-			ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirect3DDevice2*)lpDirect3DDevice) ||
-			ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirect3DDevice3*)lpDirect3DDevice) ||
-			ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirect3DDevice7*)lpDirect3DDevice)))
+	if (lpDirect3DDevice && ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirect3DDevice*)lpDirect3DDevice))
 	{
 		lpDirect3DDevice->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3DDevice);
 	}

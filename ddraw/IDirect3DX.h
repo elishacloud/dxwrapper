@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DX : public IUnknown, public AddressLookupTableDdrawObject
+class m_IDirect3DX final : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
 	IDirect3D7 *ProxyInterface = nullptr;
