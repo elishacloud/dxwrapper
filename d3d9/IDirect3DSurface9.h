@@ -39,6 +39,8 @@ public:
 	~m_IDirect3DSurface9()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		ReleaseInterface();
 	}
 
 	/*** IUnknown methods ***/
@@ -68,6 +70,7 @@ public:
 
 	// Helper functions
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*);
+	void ReleaseInterface();
 	void SetTextureContainer(m_IDirect3DTexture9* pTexture);
 	void ClearTextureContainer() { pTextureContainer = nullptr; }
 	void ReleaseEmulatedSurface();

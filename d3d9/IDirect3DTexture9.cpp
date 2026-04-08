@@ -63,16 +63,11 @@ ULONG m_IDirect3DTexture9::Release(THIS)
 
 	if (ref == 0)
 	{
-		for (const auto& pSurface : SurfaceLevelList)
+		auto it = SurfaceLevelList.begin();
+		while (it != SurfaceLevelList.end())
 		{
-			pSurface->ClearTextureContainer();
-		}
-
-		if (m_pDeviceEx->GetClientDXVersion() < 8)
-		{
-			m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
-
-			delete this;
+			(*it)->ClearTextureContainer();
+			it = SurfaceLevelList.erase(it);
 		}
 	}
 
@@ -217,16 +212,6 @@ HRESULT m_IDirect3DTexture9::LockRect(THIS_ UINT Level, D3DLOCKED_RECT* pLockedR
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	HRESULT hr = ProxyInterface->LockRect(Level, pLockedRect, pRect, Flags);
-
-	if (hr == 0x88760096)
-	{
-		D3DSURFACE_DESC Desc = {};
-		ProxyInterface->GetLevelDesc(Level, &Desc);
-
-		Logging::Log() << __FUNCTION__ << " Error: failed to lock rect: " << pLockedRect << " -> " << Desc.Width << "x" << Desc.Width << " hr: " << (D3DERR)hr;
-
-		hr = ProxyInterface->LockRect(Level, nullptr, pRect, Flags);
-	}
 
 	if (SUCCEEDED(hr))
 	{

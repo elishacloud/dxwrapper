@@ -95,6 +95,8 @@ ULONG m_IDirect3DDevice9Ex::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	_InterlockedIncrement(&RefCount);
+
 	return ProxyInterface->AddRef();
 }
 
@@ -108,10 +110,18 @@ ULONG m_IDirect3DDevice9Ex::Release()
 
 	ULONG UsedRef = GetResourceRefCount();
 
+	LONG EmuRef = InterlockedDecrementIfPositive(&RefCount);
+
 #ifdef ENABLE_DEBUGOVERLAY
 	bool UsingDOverlay = (Config.EnableImgui && DOverlay.IsSetup() && DOverlay.Getd3d9Device() == ProxyInterface);
 	UsedRef += (UsingDOverlay ? 1 : 0);
 #endif
+
+	if ((EmuRef == 0 && ref != UsedRef) ||
+		(EmuRef != 0 && ref == UsedRef))
+	{
+		Logging::Log() << __FUNCTION__ << " Warning: Refcounts don't match! Emulated ref: " << EmuRef << " Device ref: " << ref << " Used ref: " << UsedRef;
+	}
 
 	// Teardown wrapper resources before destroying device
 	if (UsedRef > 0 && ref == UsedRef)
@@ -138,19 +148,30 @@ ULONG m_IDirect3DDevice9Ex::Release()
 
 	if (ref == 0)
 	{
-		// Clean up StateBlocks
-		while (DeletedStateBlocks.size())
-		{
-			m_IDirect3DStateBlock9* Interface = DeletedStateBlocks.back();
-			DeletedStateBlocks.RemoveStateBlock(Interface);
-			delete Interface;
-		}
-
 		// Reset display
 		HMONITOR hMonitor = DeviceDetails.hMonitor;
 		if (Config.FullscreenWindowMode)
 		{
 			Utils::ResetDisplaySettings(hMonitor);
+		}
+
+		// Clear all cache before deleting device
+		ProxyAddressLookupTable9.DeleteAll();
+
+		// Check for entries left in lists
+		if (EmulatedSurfaceList.size())
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: EmulatedSurfaceList still contains entries: " << EmulatedSurfaceList.size();
+		}
+
+		if (StateBlockTable.size())
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: StateBlockTable still contains entries: " << StateBlockTable.size();
+		}
+
+		if (DeletedStateBlocks.size())
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: DeletedStateBlocks still contains entries: " << DeletedStateBlocks.size();
 		}
 
 		delete this;
@@ -2836,24 +2857,24 @@ void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD pos
 	else
 		alignment |= DT_TOP;
 
-	DWORD RefCount = SprintRefCount != 0 ? 0 : ComPtr<void*>::GetRefCount(ProxyInterface);
+	DWORD ref = SprintRefCount != 0 ? 0 : ComPtr<void*>::GetRefCount(ProxyInterface);
 
 	// Start drawing
 	HRESULT hr = pSprite->Begin(D3DXSPRITE_ALPHABLEND | D3DXSPRITE_SORT_TEXTURE | D3DXSPRITE_DONOTSAVESTATE | D3DXSPRITE_DO_NOT_ADDREF_TEXTURE);
 
 	if (SprintRefCount == 0 && SUCCEEDED(hr))
 	{
-		SprintRefCount = ComPtr<void*>::GetRefCount(ProxyInterface) - RefCount;
+		SprintRefCount = ComPtr<void*>::GetRefCount(ProxyInterface) - ref;
 	}
 
-	RefCount = FontRefCount != 0 ? 0 : ComPtr<void*>::GetRefCount(ProxyInterface);
+	ref = FontRefCount != 0 ? 0 : ComPtr<void*>::GetRefCount(ProxyInterface);
 
 	// Draw the text
 	INT ret = pFont->DrawTextW(pSprite, fpsText, -1, &textRect, alignment, D3DCOLOR_XRGB(247, 247, 0));
 
 	if (FontRefCount == 0 && ret)
 	{
-		FontRefCount = ComPtr<void*>::GetRefCount(ProxyInterface) - RefCount;
+		FontRefCount = ComPtr<void*>::GetRefCount(ProxyInterface) - ref;
 	}
 
 	// End drawing
@@ -3732,6 +3753,12 @@ m_IDirect3DStateBlock9* m_IDirect3DDevice9Ex::GetCreateStateBlock(IDirect3DState
 	}
 
 	return StateBlockX;
+}
+
+void m_IDirect3DDevice9Ex::ClearDeletedStateBlock(m_IDirect3DStateBlock9* StateBlockX)
+{
+	StateBlockTable.RemoveStateBlock(StateBlockX);
+	DeletedStateBlocks.RemoveStateBlock(StateBlockX);
 }
 
 void m_IDirect3DDevice9Ex::ModeExToMode(D3DDISPLAYMODEEX& ModeEx, D3DDISPLAYMODE& Mode)

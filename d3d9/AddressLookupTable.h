@@ -83,17 +83,6 @@ private:
 		return nullptr;
 	}
 
-	void DeleteAll()
-	{
-		for (const auto& map : g_map)
-		{
-			for (const auto& entry : map)
-			{
-				delete entry.second;
-			}
-		}
-	}
-
 public:
 	explicit AddressLookupTableD3d9() {}
 	~AddressLookupTableD3d9()
@@ -204,6 +193,20 @@ public:
 		if (it != std::end(g_map[CacheIndex]))
 		{
 			g_map[CacheIndex].erase(it);
+		}
+	}
+
+	void DeleteAll()
+	{
+		for (auto& map : g_map)
+		{
+			auto it = map.begin();
+
+			while (it != map.end())
+			{
+				delete it->second;
+				it = map.erase(it);
+			}
 		}
 	}
 };

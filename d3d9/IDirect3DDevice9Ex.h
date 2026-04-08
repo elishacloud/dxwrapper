@@ -33,7 +33,7 @@ extern std::unordered_map<UINT, std::unique_ptr<DEVICEDETAILS>> DeviceDetailsMap
 
 #include "IDirect3D9Ex.h"
 
-class m_IDirect3DDevice9Ex final : public IDirect3DDevice9Ex, public AddressLookupTableD3d9Object
+class m_IDirect3DDevice9Ex final : public IDirect3DDevice9Ex
 {
 private:
 	LPDIRECT3DDEVICE9 ProxyInterface;
@@ -42,6 +42,26 @@ private:
 	const IID WrapperID;
 	std::unique_ptr<ShadowSurfaceStorage> ShadowBackbuffer = std::make_unique<ShadowSurfaceStorage>();
 	std::vector<IDirect3DSurface9*> BackBufferList;
+
+	LONG RefCount = 1;
+
+	inline LONG InterlockedDecrementIfPositive(LONG* value)
+	{
+		while (true)
+		{
+			LONG current = *value;
+
+			if (current <= 0)
+			{
+				return 0;
+			}
+
+			if (_InterlockedCompareExchange(value, current - 1, current) == current)
+			{
+				return current - 1;
+			}
+		}
+	}
 
 	AddressLookupTableD3d9 ProxyAddressLookupTable9;
 
@@ -353,6 +373,7 @@ public:
 	AddressLookupTableD3d9* GetLookupTable() { return &ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() { return &StateBlockTable; }
 	StateBlockCache* GetDeletedStateBlock() { return &DeletedStateBlocks; }
+	void ClearDeletedStateBlock(m_IDirect3DStateBlock9* StateBlockX);
 	bool GetDeviceMultiSampleFlag() const { return DeviceDetails.DeviceMultiSampleFlag; }
 	D3DMULTISAMPLE_TYPE GetDeviceMultiSampleType() const { return DeviceDetails.DeviceMultiSampleType; }
 	DWORD GetDeviceMultiSampleQuality() const { return DeviceDetails.DeviceMultiSampleQuality; }

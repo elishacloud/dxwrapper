@@ -92,13 +92,6 @@ ULONG m_IDirect3DSurface9::Release(THIS)
 		Emu = {};
 
 		m_pDeviceEx->RemoveSurfaceFromList(this);
-
-		if (m_pDeviceEx->GetClientDXVersion() < 8)
-		{
-			m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
-
-			delete this;
-		}
     }
 
 	return ref;
@@ -275,6 +268,19 @@ void m_IDirect3DSurface9::InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, vo
 	ComPtr<IUnknown> pTexture;
 	HRESULT hr = ProxyInterface->GetContainer(IID_IDirect3DBaseTexture9, reinterpret_cast<void**>(pTexture.GetAddressOf()));
 	IsSurfaceTexture = (SUCCEEDED(hr) && pTexture);
+}
+
+void m_IDirect3DSurface9::ReleaseInterface()
+{
+	// Remove from texture container before deleting device
+	if (pTextureContainer)
+	{
+		pTextureContainer->RemoveSurfaceFromList(this);
+		pTextureContainer = nullptr;
+	}
+
+	// Remove from device before deleting device
+	m_pDeviceEx->RemoveSurfaceFromList(this);
 }
 
 void m_IDirect3DSurface9::SetTextureContainer(m_IDirect3DTexture9* pTexture)

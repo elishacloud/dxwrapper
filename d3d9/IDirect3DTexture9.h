@@ -24,6 +24,14 @@ public:
 	~m_IDirect3DTexture9()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		// Remove from surface before deleting device
+		auto it = SurfaceLevelList.begin();
+		while (it != SurfaceLevelList.end())
+		{
+			(*it)->ClearTextureContainer();
+			it = SurfaceLevelList.erase(it);
+		}
 	}
 
 	/*** IUnknown methods ***/

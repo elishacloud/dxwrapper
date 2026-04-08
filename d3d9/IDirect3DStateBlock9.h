@@ -20,6 +20,9 @@ public:
 	~m_IDirect3DStateBlock9()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		// Remove from device before deleting device
+		m_pDeviceEx->ClearDeletedStateBlock(this);
 	}
 
 	/*** IUnknown methods ***/

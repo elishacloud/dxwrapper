@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3D9Ex final : public IDirect3D9Ex, public AddressLookupTableD3d9Object
+class m_IDirect3D9Ex final : public IDirect3D9Ex
 {
 private:
 	LPDIRECT3D9 ProxyInterface;
