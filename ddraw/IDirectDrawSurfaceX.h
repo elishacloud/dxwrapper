@@ -5,11 +5,11 @@ class m_IDirectDrawSurfaceX final : public IUnknown, public AddressLookupTableDd
 private:
 	IDirectDrawSurface7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	ULONG RefCount1 = 0;
-	ULONG RefCount2 = 0;
-	ULONG RefCount3 = 0;
-	ULONG RefCount4 = 0;
-	ULONG RefCount7 = 0;
+	LONG RefCount1 = 0;
+	LONG RefCount2 = 0;
+	LONG RefCount3 = 0;
+	LONG RefCount4 = 0;
+	LONG RefCount7 = 0;
 
 	// Store version wrappers
 	m_IDirectDrawSurface* WrapperInterface = nullptr;

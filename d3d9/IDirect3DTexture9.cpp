@@ -63,11 +63,11 @@ ULONG m_IDirect3DTexture9::Release(THIS)
 
 	if (ref == 0)
 	{
-		auto it = SurfaceLevelList.begin();
-		while (it != SurfaceLevelList.end())
+		while (!SurfaceLevelList.empty())
 		{
+			auto it = SurfaceLevelList.begin();
 			(*it)->ClearTextureContainer();
-			it = SurfaceLevelList.erase(it);
+			SurfaceLevelList.erase(it);
 		}
 	}
 

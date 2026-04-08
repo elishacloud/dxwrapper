@@ -4,7 +4,7 @@ class m_IDirectDrawFactory final : public IDirectDrawFactory
 {
 private:
 	IDirectDrawFactory *ProxyInterface = nullptr;
-	ULONG RefCount = 1;
+	LONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawFactory;
 
 public:

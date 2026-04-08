@@ -5,10 +5,10 @@ class m_IDirect3DX final : public IUnknown, public AddressLookupTableDdrawObject
 private:
 	IDirect3D7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	ULONG RefCount1 = 0;
-	ULONG RefCount2 = 0;
-	ULONG RefCount3 = 0;
-	ULONG RefCount7 = 0;
+	LONG RefCount1 = 0;
+	LONG RefCount2 = 0;
+	LONG RefCount3 = 0;
+	LONG RefCount7 = 0;
 
 	// Store version wrappers
 	m_IDirect3D *WrapperInterface = nullptr;

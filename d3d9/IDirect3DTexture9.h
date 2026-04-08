@@ -26,11 +26,11 @@ public:
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
 
 		// Remove from surface before deleting device
-		auto it = SurfaceLevelList.begin();
-		while (it != SurfaceLevelList.end())
+		while (!SurfaceLevelList.empty())
 		{
+			auto it = SurfaceLevelList.begin();
 			(*it)->ClearTextureContainer();
-			it = SurfaceLevelList.erase(it);
+			SurfaceLevelList.erase(it);
 		}
 	}
 

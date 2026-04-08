@@ -200,12 +200,11 @@ public:
 	{
 		for (auto& map : g_map)
 		{
-			auto it = map.begin();
-
-			while (it != map.end())
+			while (!map.empty())
 			{
+				auto it = map.begin();
 				delete it->second;
-				it = map.erase(it);
+				map.erase(it);
 			}
 		}
 	}

@@ -6,7 +6,6 @@ private:
 	LPDIRECT3DSTATEBLOCK9 ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	const IID WrapperID = IID_IDirect3DStateBlock9;
-	UINT DDKey = NO_MAP_VALUE;
 
 public:
 	m_IDirect3DStateBlock9(LPDIRECT3DSTATEBLOCK9 pBlock9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pBlock9), m_pDeviceEx(pDevice)
@@ -37,7 +36,7 @@ public:
 
 	// Helper functions
 	LPDIRECT3DSTATEBLOCK9 GetProxyInterface() const { return ProxyInterface; }
-	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; DDKey = NO_MAP_VALUE; }
+	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 	void SetProxyAddress(LPDIRECT3DSTATEBLOCK9 Interface) {
 		ProxyInterface = Interface;
 		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);

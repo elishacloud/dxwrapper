@@ -4,7 +4,7 @@ class m_IDirectDrawGammaControl final : public IDirectDrawGammaControl, public A
 {
 private:
 	IDirectDrawGammaControl *ProxyInterface = nullptr;
-	ULONG RefCount = 1;
+	LONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawGammaControl;
 
 	// Convert to Direct3D9

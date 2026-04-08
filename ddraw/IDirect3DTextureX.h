@@ -5,8 +5,8 @@ class m_IDirect3DTextureX final : public IUnknown, public AddressLookupTableDdra
 private:
 	IDirect3DTexture2 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	ULONG RefCount1 = 0;
-	ULONG RefCount2 = 0;
+	LONG RefCount1 = 0;
+	LONG RefCount2 = 0;
 
 	// Store version wrappers
 	m_IDirect3DTexture* WrapperInterface = nullptr;

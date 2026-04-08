@@ -5,8 +5,8 @@ class m_IDirect3DVertexBufferX final : public IUnknown, public AddressLookupTabl
 private:
 	IDirect3DVertexBuffer7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	ULONG RefCount1 = 0;
-	ULONG RefCount7 = 0;
+	LONG RefCount1 = 0;
+	LONG RefCount7 = 0;
 
 	// Store version wrappers
 	m_IDirect3DVertexBuffer* WrapperInterface = nullptr;

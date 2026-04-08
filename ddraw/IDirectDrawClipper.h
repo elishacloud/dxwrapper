@@ -4,7 +4,7 @@ class m_IDirectDrawClipper final : public IDirectDrawClipper, public AddressLook
 {
 private:
 	IDirectDrawClipper *ProxyInterface = nullptr;
-	ULONG RefCount = 1;
+	LONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawClipper;
 
 	// Convert to Direct3D9

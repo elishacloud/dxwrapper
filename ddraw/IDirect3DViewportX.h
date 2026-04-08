@@ -5,9 +5,9 @@ class m_IDirect3DViewportX final : public IUnknown, public AddressLookupTableDdr
 private:
 	IDirect3DViewport3 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	ULONG RefCount1 = 0;
-	ULONG RefCount2 = 0;
-	ULONG RefCount3 = 0;
+	LONG RefCount1 = 0;
+	LONG RefCount2 = 0;
+	LONG RefCount3 = 0;
 
 	// Store version wrappers
 	m_IDirect3DViewport* WrapperInterface = nullptr;

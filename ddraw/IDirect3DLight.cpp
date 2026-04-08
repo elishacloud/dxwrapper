@@ -73,7 +73,7 @@ ULONG m_IDirect3DLight::AddRef()
 
 	if (Config.Dd7to9)
 	{
-		return InterlockedIncrement(&RefCount);
+		return _InterlockedIncrement(&RefCount);
 	}
 
 	return ProxyInterface->AddRef();
@@ -90,7 +90,7 @@ ULONG m_IDirect3DLight::Release()
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref = (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
+		ULONG ref = InterlockedDecrementIfPositive(&RefCount);
 
 		if (ref == 0)
 		{

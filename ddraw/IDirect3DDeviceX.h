@@ -6,10 +6,10 @@ private:
 	IDirect3DDevice7* ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
 	DWORD ClientDirectXVersion;
-	ULONG RefCount1 = 0;
-	ULONG RefCount2 = 0;
-	ULONG RefCount3 = 0;
-	ULONG RefCount7 = 0;
+	LONG RefCount1 = 0;
+	LONG RefCount2 = 0;
+	LONG RefCount3 = 0;
+	LONG RefCount7 = 0;
 	const CLSID ClassID = IID_IUnknown;
 
 	// Store version wrappers

@@ -4,7 +4,7 @@ class m_IDirectDrawPalette final : public IDirectDrawPalette, public AddressLook
 {
 private:
 	IDirectDrawPalette *ProxyInterface = nullptr;
-	ULONG RefCount = 1;
+	LONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawPalette;
 
 	struct DXPALETTEENTRY : public PALETTEENTRY

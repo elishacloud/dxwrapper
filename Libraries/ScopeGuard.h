@@ -2,6 +2,29 @@
 
 #include <atomic>
 
+inline LONG AtomicRead(LONG& ref)
+{
+    return InterlockedCompareExchange(&ref, 0, 0);
+}
+
+inline LONG InterlockedDecrementIfPositive(LONG* value)
+{
+    while (true)
+    {
+        LONG current = *value;
+
+        if (current <= 0)
+        {
+            return 0;
+        }
+
+        if (_InterlockedCompareExchange(value, current - 1, current) == current)
+        {
+            return current - 1;
+        }
+    }
+}
+
 template<typename T>
 struct ScopedFlagSet
 {

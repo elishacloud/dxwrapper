@@ -3197,10 +3197,7 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 	while (!EmulatedSurfaceList.empty())
 	{
 		auto it = EmulatedSurfaceList.begin();
-		auto* pSurface = *it;
-
-		pSurface->ReleaseEmulatedSurface();
-
+		(*it)->ReleaseEmulatedSurface();
 		EmulatedSurfaceList.erase(it);
 	}
 

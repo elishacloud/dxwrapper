@@ -5,9 +5,9 @@ class m_IDirect3DMaterialX final : public IUnknown, public AddressLookupTableDdr
 private:
 	IDirect3DMaterial3 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	ULONG RefCount1 = 0;
-	ULONG RefCount2 = 0;
-	ULONG RefCount3 = 0;
+	LONG RefCount1 = 0;
+	LONG RefCount2 = 0;
+	LONG RefCount3 = 0;
 
 	// Store version wrappers
 	m_IDirect3DMaterial* WrapperInterface = nullptr;

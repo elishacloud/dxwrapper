@@ -265,9 +265,9 @@ void m_IDirect3DSurface9::InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, vo
 	DeviceMultiSampleType = m_pDeviceEx->GetDeviceMultiSampleType();
 	DeviceMultiSampleQuality = m_pDeviceEx->GetDeviceMultiSampleQuality();
 
-	ComPtr<IUnknown> pTexture;
+	ComPtr<IDirect3DBaseTexture9> pTexture;
 	HRESULT hr = ProxyInterface->GetContainer(IID_IDirect3DBaseTexture9, reinterpret_cast<void**>(pTexture.GetAddressOf()));
-	IsSurfaceTexture = (SUCCEEDED(hr) && pTexture);
+	IsSurfaceTexture = (SUCCEEDED(hr) && pTexture.Get());
 }
 
 void m_IDirect3DSurface9::ReleaseInterface()

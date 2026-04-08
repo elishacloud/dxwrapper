@@ -83,9 +83,9 @@ ULONG m_IDirect3DTextureX::AddRef(DWORD DirectXVersion)
 		switch (DirectXVersion)
 		{
 		case 1:
-			return InterlockedIncrement(&RefCount1);
+			return _InterlockedIncrement(&RefCount1);
 		case 2:
-			return InterlockedIncrement(&RefCount2);
+			return _InterlockedIncrement(&RefCount2);
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 			return 0;
@@ -112,17 +112,17 @@ ULONG m_IDirect3DTextureX::Release(DWORD DirectXVersion)
 		switch (DirectXVersion)
 		{
 		case 1:
-			ref = (InterlockedCompareExchange(&RefCount1, 0, 0)) ? InterlockedDecrement(&RefCount1) : 0;
+			ref = InterlockedDecrementIfPositive(&RefCount1);
 			break;
 		case 2:
-			ref = (InterlockedCompareExchange(&RefCount2, 0, 0)) ? InterlockedDecrement(&RefCount2) : 0;
+			ref = InterlockedDecrementIfPositive(&RefCount2);
 			break;
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 			ref = 0;
 		}
 
-		if (InterlockedCompareExchange(&RefCount1, 0, 0) + InterlockedCompareExchange(&RefCount2, 0, 0) == 0)
+		if (AtomicRead(RefCount1) + AtomicRead(RefCount2) == 0)
 		{
 			delete this;
 		}

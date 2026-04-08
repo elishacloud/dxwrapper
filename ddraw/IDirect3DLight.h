@@ -5,7 +5,7 @@ class m_IDirect3DLight final : public IDirect3DLight, public AddressLookupTableD
 private:
 	IDirect3DLight *ProxyInterface = nullptr;
 	const IID WrapperID = IID_IDirect3DLight;
-	ULONG RefCount = 1;
+	LONG RefCount = 1;
 
 	// Convert Light
 	m_IDirect3DX* D3DInterface = nullptr;

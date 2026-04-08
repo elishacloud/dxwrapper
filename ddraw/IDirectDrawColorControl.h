@@ -4,7 +4,7 @@ class m_IDirectDrawColorControl final : public IDirectDrawColorControl, public A
 {
 private:
 	IDirectDrawColorControl *ProxyInterface = nullptr;
-	ULONG RefCount = 1;
+	LONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawColorControl;
 
 	// Convert to Direct3D9
