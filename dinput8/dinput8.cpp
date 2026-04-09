@@ -48,11 +48,15 @@ HRESULT WINAPI di8_DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 	LOG_LIMIT(3, "Redirecting 'DirectInput8Create' ...");
 
-	HRESULT hr = DirectInput8Create(hinst, dwVersion, m_IDirectInput8::proxy_iid, ppvOut, punkOuter);
+	typename m_IDirectInput8::proxy_type* Proxy;
+	HRESULT hr = DirectInput8Create(hinst, dwVersion, m_IDirectInput8::proxy_iid, reinterpret_cast<LPVOID*>(&Proxy), punkOuter);
 
-	if (SUCCEEDED(hr) && ppvOut)
+	if (SUCCEEDED(hr))
 	{
-		*ppvOut = new m_IDirectInput8((IDirectInput8W*)*ppvOut);
+		m_IDirectInput8* Interface = new m_IDirectInput8(Proxy);
+
+		hr = Interface->QueryInterface(riid, ppvOut);
+		Interface->Release();
 	}
 
 	return hr;

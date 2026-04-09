@@ -82,20 +82,11 @@ private:
 	inline HRESULT GetImageInfoT(T* ProxyInterfaceT, V lpdiDevImageInfoHeader);
 
 public:
-	m_IDirectInputDevice8(IUnknown* aOriginal) : AddressLookupTableDinput8Object(aOriginal)
+	m_IDirectInputDevice8(proxy_type* aOriginal) : AddressLookupTableDinput8Object(aOriginal), ProxyInterface(aOriginal)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 
-		aOriginal->QueryInterface(IID_IDirectInputDevice8A, reinterpret_cast<LPVOID*>(&ProxyInterfaceA));
-		aOriginal->QueryInterface(IID_IDirectInputDevice8W, reinterpret_cast<LPVOID*>(&ProxyInterface));
-		if (aOriginal == ProxyInterface || aOriginal == ProxyInterfaceA)
-		{
-			aOriginal->Release();
-		}
-		else
-		{
-			LOG_LIMIT(3, __FUNCTION__ << " Warning: passed interface does not match either ProxyInterface values!");
-		}
+		ProxyInterface->QueryInterface(IID_IDirectInputDevice8A, reinterpret_cast<LPVOID*>(&ProxyInterfaceA));
 
 		ProcessID = GetCurrentProcessId();
 

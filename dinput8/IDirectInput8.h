@@ -55,20 +55,11 @@ private:
 	inline HRESULT ConfigureDevicesT(T* ProxyInterfaceT, LPDICONFIGUREDEVICESCALLBACK lpdiCallback, V lpdiCDParams, DWORD dwFlags, LPVOID pvRefData);
 
 public:
-	m_IDirectInput8(IUnknown* aOriginal) : AddressLookupTableDinput8Object(aOriginal)
+	m_IDirectInput8(proxy_type* aOriginal) : AddressLookupTableDinput8Object(aOriginal), ProxyInterface(aOriginal)
 	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << "(" << this << ")");
 
-		aOriginal->QueryInterface(IID_IDirectInput8A, reinterpret_cast<LPVOID*>(&ProxyInterfaceA));
-		aOriginal->QueryInterface(IID_IDirectInput8W, reinterpret_cast<LPVOID*>(&ProxyInterface));
-		if (aOriginal == ProxyInterface || aOriginal == ProxyInterfaceA)
-		{
-			aOriginal->Release();
-		}
-		else
-		{
-			LOG_LIMIT(3, __FUNCTION__ << " Warning: passed interface does not match either ProxyInterface values!");
-		}
+		ProxyInterface->QueryInterface(IID_IDirectInput8A, reinterpret_cast<LPVOID*>(&ProxyInterfaceA));
 	}
 	~m_IDirectInput8()
 	{

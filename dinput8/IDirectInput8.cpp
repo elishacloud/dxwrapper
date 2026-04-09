@@ -68,19 +68,20 @@ template HRESULT m_IDirectInput8::CreateDeviceT<IDirectInput8W, LPDIRECTINPUTDEV
 template <class T, class V>
 HRESULT m_IDirectInput8::CreateDeviceT(T* ProxyInterfaceT, REFGUID rguid, V lplpDirectInputDevice, LPUNKNOWN pUnkOuter)
 {
+	UNREFERENCED_PARAMETER(ProxyInterfaceT);
+
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	HRESULT hr = ProxyInterfaceT->CreateDevice(rguid, lplpDirectInputDevice, pUnkOuter);
+	IDirectInputDevice8W* ProxyDevice;
+	HRESULT hr = ProxyInterface->CreateDevice(rguid, &ProxyDevice, pUnkOuter);
 
-	if (SUCCEEDED(hr) && lplpDirectInputDevice)
+	if (SUCCEEDED(hr))
 	{
-		m_IDirectInputDevice8* pAddressX = new m_IDirectInputDevice8((IDirectInputDevice8W*)*lplpDirectInputDevice);
-
-		*lplpDirectInputDevice = pAddressX;
+		m_IDirectInputDevice8* DIDevice = new m_IDirectInputDevice8(ProxyDevice);
 
 		bool isMouse = false;
 
-		if (IsEqualGUID(GUID_SysMouse, rguid) || IsEqualIID(GUID_SysMouseEm, rguid) || IsEqualIID(GUID_SysMouseEm2, rguid))
+		if (IsEqualGUID(GUID_SysMouse, rguid) || IsEqualGUID(GUID_SysMouseEm, rguid) || IsEqualGUID(GUID_SysMouseEm2, rguid))
 		{
 			isMouse = true;
 		}
@@ -89,7 +90,7 @@ HRESULT m_IDirectInput8::CreateDeviceT(T* ProxyInterfaceT, REFGUID rguid, V lplp
 			DIDEVCAPS caps = {};
 			caps.dwSize = sizeof(DIDEVCAPS);
 
-			if (SUCCEEDED(pAddressX->GetCapabilities(&caps)))
+			if (SUCCEEDED(DIDevice->GetCapabilities(&caps)))
 			{
 				if (GET_DIDEVICE_TYPE(caps.dwDevType) == DI8DEVTYPE_MOUSE)
 				{
@@ -100,8 +101,13 @@ HRESULT m_IDirectInput8::CreateDeviceT(T* ProxyInterfaceT, REFGUID rguid, V lplp
 
 		if (isMouse)
 		{
-			pAddressX->SetAsMouse();
+			DIDevice->SetAsMouse();
 		}
+
+		REFGUID riid = std::is_same_v<T, IDirectInput8A> ? IID_IDirectInputDevice8A : IID_IDirectInputDevice8W;
+
+		hr = DIDevice->QueryInterface(riid, reinterpret_cast<LPVOID*>(lplpDirectInputDevice));
+		DIDevice->Release();
 	}
 
 	return hr;
@@ -234,12 +240,35 @@ HRESULT m_IDirectInput8::EnumDevicesBySemanticsT(T* ProxyInterfaceT, V ptszUserN
 
 				if (lpdid)
 				{
-					m_IDirectInputDevice8* WrapperDevice = ProxyAddressLookupTableDinput8.FindAddress<m_IDirectInputDevice8>(lpdid);
-					if (WrapperDevice == nullptr)
+					m_IDirectInputDevice8* DIDevice = ProxyAddressLookupTableDinput8.FindAddress<m_IDirectInputDevice8>(lpdid);
+					if (DIDevice == nullptr)
 					{
-						WrapperDevice = new m_IDirectInputDevice8(lpdid);
+						m_IDirectInputDevice8::proxy_type* ProxyDevice;
+						HRESULT hr = lpdid->QueryInterface(m_IDirectInputDevice8::proxy_iid, reinterpret_cast<LPVOID*>(&ProxyDevice));
+						if (FAILED(hr))
+						{
+							LOG_LIMIT(100, __FUNCTION__ << " Error: could not query interface for: " << m_IDirectInputDevice8::proxy_iid);
+							return DIENUM_CONTINUE;
+						}
+
+						DIDevice = new m_IDirectInputDevice8(ProxyDevice);
+						lpdid->Release();
+
+						REFGUID riid = std::is_same_v<T, IDirectInput8A> ? IID_IDirectInputDevice8A : IID_IDirectInputDevice8W;
+
+						hr = DIDevice->QueryInterface(riid, reinterpret_cast<LPVOID*>(lpdid));
+						DIDevice->Release();
+
+						if (FAILED(hr))
+						{
+							LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get interface for: " << riid);
+							return DIENUM_CONTINUE;
+						}
 					}
-					lpdid = WrapperDevice;
+					else
+					{
+						lpdid = DIDevice;
+					}
 				}
 
 				return self->lpCallback(lpddi, lpdid, dwFlags, dwRemaining, self->pvRef);
