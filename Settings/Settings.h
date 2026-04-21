@@ -301,7 +301,7 @@ struct CONFIG
 	bool DdrawEnableMouseHook = false;			// Allow to hook into mouse to limit it to the chosen resolution
 	DWORD DdrawHookSystem32 = 0;				// Hooks the ddraw.dll file in the Windows System32 folder
 	DWORD D3d8HookSystem32 = 0;					// Hooks the d3d8.dll file in the Windows System32 folder
-	DWORD D3d9HookSystem32 = 0;					// Hooks the d3d9.dll file in the Windows System32 folder
+	bool D3d9HookSystem32 = false;				// Hooks the d3d9.dll file in the Windows System32 folder
 	DWORD DinputHookSystem32 = 0;				// Hooks the dinput.dll file in the Windows System32 folder
 	DWORD Dinput8HookSystem32 = 0;				// Hooks the dinput8.dll file in the Windows System32 folder
 	DWORD DsoundHookSystem32 = 0;				// Hooks the dsound.dll file in the Windows System32 folder

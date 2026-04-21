@@ -497,7 +497,6 @@ void Settings::SetDefaultConfigSettings()
 	Config.EnableD3d9Wrapper = NOT_EXIST;
 	Config.DdrawHookSystem32 = NOT_EXIST;
 	Config.D3d8HookSystem32 = NOT_EXIST;
-	Config.D3d9HookSystem32 = NOT_EXIST;
 	Config.DinputHookSystem32 = NOT_EXIST;
 	Config.Dinput8HookSystem32 = NOT_EXIST;
 	Config.DsoundHookSystem32 = NOT_EXIST;
@@ -756,7 +755,7 @@ void CONFIG::SetConfig()
 	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
 	DdrawAutoFrameSkip = (AutoFrameSkip || DdrawAutoFrameSkip);																	// For legacy purposes
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
-	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || IsSet(D3d9HookSystem32) || D3d9to9Ex || D3d9on12 ||
+	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || D3d9HookSystem32 || D3d9to9Ex || D3d9on12 ||
 		(EnableD3d9Wrapper == NOT_EXIST && (AnisotropicFiltering || AntiAliasing || IsSet(CacheClipPlane) || EnableVSync ||		// For legacy purposes
 			ForceMixedVertexProcessing || ForceSystemMemVertexCache || ForceVsyncMode || EnableWindowMode)));					// For legacy purposes
 	EnvironmentCubeMapFix = EnvironmentCubeMapFix || EnvironmentMapCubeFix;														// For legacy purposes
@@ -799,7 +798,7 @@ void CONFIG::SetConfig()
 	// Check if any DXPrimaryEmulation flags are set
 	for (UINT x = 1; x <= 12; x++)
 	{
-		if (Config.DXPrimaryEmulation[x])
+		if (DXPrimaryEmulation[x])
 		{
 			isAppCompatDataSet = true;
 		}
@@ -832,8 +831,8 @@ void CONFIG::SetConfig()
 
 	// Set unset options
 	CacheClipPlane = (CacheClipPlane != 0);
-	DdrawForceMipMapAutoGen = DdrawForceMipMapAutoGen || ForceMipMapAutoGen;
 	DdrawResolutionHack = (DdrawResolutionHack != 0);
+	DdrawForceMipMapAutoGen = DdrawForceMipMapAutoGen || ForceMipMapAutoGen;
 	LimitStateBlocks = (LimitStateBlocks != NOT_EXIST) ? LimitStateBlocks : (Dd7to9 || D3d8to9);
 	WindowModeGammaShader = (WindowModeGammaShader != NOT_EXIST) ? WindowModeGammaShader : 1;
 }
