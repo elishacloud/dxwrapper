@@ -4876,13 +4876,13 @@ HRESULT m_IDirectDrawX::SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 	return DD_OK;
 }
 
-void m_IDirectDrawX::BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height)
+void m_IDirectDrawX::BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height, bool IsUsingPalette)
 {
 	// Sampler states
 	d3d9Device->GetSamplerState(0, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter);
 	d3d9Device->GetSamplerState(1, D3DSAMP_ADDRESSU, &DrawStates.ss1addressU);
 	d3d9Device->GetSamplerState(1, D3DSAMP_ADDRESSV, &DrawStates.ss1addressV);
-	d3d9Device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
+	d3d9Device->SetSamplerState(0, D3DSAMP_MAGFILTER, IsUsingPalette || !Config.DdrawLinearTextureFilter ? D3DTEXF_POINT : D3DTEXF_LINEAR);
 	d3d9Device->SetSamplerState(1, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
 	d3d9Device->SetSamplerState(1, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
@@ -5040,7 +5040,7 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurfac
 
 	// Backup current states
 	DRAWSTATEBACKUP DrawStates;
-	BackupAndResetState(DrawStates, Desc.Width, Desc.Height);
+	BackupAndResetState(DrawStates, Desc.Width, Desc.Height, IsUsingPalette);
 
 	// Get texture
 	ComPtr<IDirect3DBaseTexture9> pTexture[2];

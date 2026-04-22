@@ -74,7 +74,7 @@ private:
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice);
 	void FindMonitorHandle() const;
 	HRESULT CreateD9Object();
-	void BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height);
+	void BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height, bool IsUsingPalette);
 	void RestoreState(DRAWSTATEBACKUP& DrawStates);
 	HRESULT CopyPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurface, LPDIRECT3DSURFACE9 pDestBuffer);
 	HRESULT DrawPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurface, LPDIRECT3DTEXTURE9 pDisplayTexture);

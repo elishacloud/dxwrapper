@@ -65,6 +65,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DdrawIntegerScalingClamp) \
 	visit(DdrawLimitDisplayModeCount) \
 	visit(DdrawLimitTextureFormats) \
+	visit(DdrawLinearTextureFilter) \
 	visit(DdrawMaintainAspectRatio) \
 	visit(DdrawNoDrawBufferSysLock) \
 	visit(DdrawNoMultiThreaded) \
@@ -281,6 +282,7 @@ struct CONFIG
 	bool DdrawNoMultiThreaded = false;			// Don't add D3DCREATE_MULTITHREADED flag when creating Direct3D9 device unless the game requests it
 	bool DdrawUseDirect3D9Caps = false;			// Use Direct3D9 (Dd7to9) for GetCaps
 	bool DdrawUseShadowSurface = false;			// Use shadow surface with Dd7to9 for render target Locks/GetDC
+	bool DdrawLinearTextureFilter = false;		// Uses D3DTEXF_LINEAR filtering when stretching non-paletted images
 	bool DdrawUseNativeResolution = false;		// Uses the current screen resolution for Dd7to9
 	bool DdrawVertexLockDiscard = false;		// Sets the discard flag for vertex Lock
 	DWORD DdrawClippedWidth = 0;				// Used to scaled Direct3d9 to use this width when using Dd7to9
