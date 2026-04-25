@@ -838,7 +838,7 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 		// Adjust window styles before adjusting window
 		if (SetWindow)
 		{
-			AdjustWindowStyle(DeviceDetails.DeviceWindow);
+			AdjustWindowStyle(DeviceDetails.DeviceWindow, pPresentationParameters->Windowed == FALSE);
 		}
 
 		// Get window width and height
@@ -923,56 +923,64 @@ void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DD
 	Mode.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
 }
 
-void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd)
+void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd, bool IsExclusive)
 {
-	LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
-	LONG lExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+	const LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
+	const LONG lExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+
+	LONG newStyle = lStyle;
+	LONG newExStyle = lExStyle;
 
 	bool frameStyleChanged = false;
 
-	// Add border if vulkan is being used
-	if ((lStyle & WS_POPUP) && !(lStyle & WS_BORDER))
+	// Add border if Vulkan is being used
+	if ((newStyle & WS_POPUP) && !(newStyle & WS_BORDER))
 	{
 		if (Utils::IsVulkanModuleLoaded())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Vulkan detected adding WS_BORDER");
 
-			lStyle |= WS_BORDER;
-			SetWindowLong(hWnd, GWL_STYLE, lStyle);
+			newStyle |= WS_BORDER;
 			frameStyleChanged = true;
 		}
 	}
 
-	// Remove clip siblings if SetSwapEffectShim is disabled
-	if ((lStyle & WS_CLIPCHILDREN) && !Config.SetSwapEffectShim)
+	// Remove clip children if SetSwapEffectShim is disabled
+	if ((newStyle & WS_CLIPCHILDREN) && !Config.SetSwapEffectShim)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: Updating window exstyle: removing WS_CLIPCHILDREN");
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: removing WS_CLIPCHILDREN");
 
-		lStyle &= ~WS_CLIPCHILDREN;
-		SetWindowLong(hWnd, GWL_STYLE, lStyle);
+		newStyle &= ~WS_CLIPCHILDREN;
 	}
 
 	// Remove tool window style
-	if (lExStyle & WS_EX_TOOLWINDOW)
+	if (newExStyle & WS_EX_TOOLWINDOW)
 	{
-		LOG_LIMIT(3, __FUNCTION__ << " Warning: Updating window exstyle: removing WS_EX_TOOLWINDOW");
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: removing WS_EX_TOOLWINDOW");
 
-		lExStyle &= ~WS_EX_TOOLWINDOW;
-		SetWindowLong(hWnd, GWL_EXSTYLE, lExStyle);
-		frameStyleChanged = true;
+		newExStyle &= ~WS_EX_TOOLWINDOW;
 	}
 
 	// Add app window style
-	if (!(lExStyle & WS_EX_APPWINDOW))
+	if (!(newExStyle & WS_EX_APPWINDOW))
 	{
-		LOG_LIMIT(3, __FUNCTION__ << " Warning: Updating window exstyle: adding WS_EX_APPWINDOW");
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: adding WS_EX_APPWINDOW");
 
-		lExStyle |= WS_EX_APPWINDOW;
-		SetWindowLong(hWnd, GWL_EXSTYLE, lExStyle);
-		frameStyleChanged = true;
+		newExStyle |= WS_EX_APPWINDOW;
 	}
 
-	// Check if window is visible
+	// Apply styles once
+	if (newStyle != lStyle)
+	{
+		SetWindowLong(hWnd, GWL_STYLE, newStyle);
+	}
+
+	if (newExStyle != lExStyle)
+	{
+		SetWindowLong(hWnd, GWL_EXSTYLE, newExStyle);
+	}
+
+	// Ensure visibility before frame change
 	if (!IsWindowVisible(hWnd))
 	{
 		ShowWindow(hWnd, SW_SHOWNA);
@@ -984,28 +992,23 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd)
 		ShowWindow(hWnd, SW_RESTORE);
 	}
 
-	// Remove topmost and ensure style changes are applied
-	SetWindowPos(hWnd, ((lExStyle & WS_EX_TOPMOST) ? HWND_NOTOPMOST : HWND_TOP), 0, 0, 0, 0, (frameStyleChanged ? SWP_FRAMECHANGED : 0) | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+	// Only change z-order if currently topmost or not in foreground
+	bool isWindowTopMost = (lExStyle & WS_EX_TOPMOST);
+	bool needsZOrderChange = isWindowTopMost ||
+		((IsExclusive || Config.EnableWindowMode) && hWnd != GetForegroundWindow());
 
-	// Ensure focus if needed
-	if (hWnd != GetFocus() && hWnd != GetActiveWindow())
+	// Only call if something actually changed
+	if (frameStyleChanged || needsZOrderChange)
 	{
-		DWORD currentThread = GetCurrentThreadId();
-		DWORD foregroundThread = GetWindowThreadProcessId(GetForegroundWindow(), nullptr);
-
-		if (currentThread != foregroundThread)
-		{
-			AttachThreadInput(currentThread, foregroundThread, TRUE);
-		}
-
-		SetFocus(hWnd);
-		SetActiveWindow(hWnd);
-		BringWindowToTop(hWnd);
-
-		if (currentThread != foregroundThread)
-		{
-			AttachThreadInput(currentThread, foregroundThread, FALSE);
-		}
+		SetWindowPos(
+			hWnd,
+			(isWindowTopMost ? HWND_NOTOPMOST : HWND_TOP),
+			0,
+			0,
+			0,
+			0,
+			(frameStyleChanged ? SWP_FRAMECHANGED : 0) | (needsZOrderChange ? 0 : SWP_NOZORDER) | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
+		);
 	}
 }
 

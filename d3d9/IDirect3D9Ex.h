@@ -93,6 +93,6 @@ public:
 	static void GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails);
 	static void UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD MultiSampleQuality);
 	static void GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DDISPLAYMODEEX& Mode);
-	static void AdjustWindowStyle(HWND hWnd);
+	static void AdjustWindowStyle(HWND hWnd, bool IsExclusive);
 	static void AdjustWindowSize(HMONITOR hMonitor, HWND hWnd, LONG displayWidth, LONG displayHeight, bool EnableWindowMode, bool FullscreenWindowMode);
 };
