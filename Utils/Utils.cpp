@@ -1697,3 +1697,30 @@ LRESULT CALLBACK Utils::WndProcFilter(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
+
+void Utils::ClipMouseCursor( HWND hWnd, const LONG clipWidth, const LONG clipHeight ) {
+	Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << clipWidth << "x" << clipHeight;
+
+	if( !hWnd || clipWidth < 1 || clipHeight < 1 ) {// || hWnd != GetForegroundWindow()) {
+		return;
+	}
+
+	RECT winRect, clientRect;
+
+	if( GetWindowRect( hWnd, &winRect ) && GetClientRect( hWnd, &clientRect )) {
+		RECT clipRect;
+
+		clipRect.top = clientRect.top + winRect.top;
+		clipRect.left = clientRect.left + winRect.left;
+		clipRect.bottom = clipRect.top + clipHeight;
+		clipRect.right = clipRect.left + clipWidth;
+
+		ClipCursor( &clipRect );
+	}
+}
+
+void Utils::UnClipMouseCursor() {
+	Logging::LogDebug() << __FUNCTION__;
+
+	ClipCursor( nullptr );
+}

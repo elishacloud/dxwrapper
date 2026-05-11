@@ -108,6 +108,8 @@ namespace Utils
 	void GetScreenSize(HMONITOR hMonitor, volatile LONG &screenWidth, volatile LONG &screenHeight);
 	void GetScreenSize(HMONITOR hMonitor, int& screenWidth, int& screenHeight);
 	void GetScreenClientRect(HMONITOR hMonitor, RECT& workAreaOut);
+	void ClipMouseCursor( HWND hWnd, const LONG clipWidth, const LONG clipHeight );
+	void UnClipMouseCursor();
 
 	// CPU Affinity
 	void SetProcessAffinity();

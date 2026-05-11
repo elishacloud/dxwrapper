@@ -24,6 +24,7 @@ namespace WndProc
 	};
 
 	extern bool SwitchingResolution;
+	extern DWORD PrimarySurfaceWidth, PrimarySurfaceHeight;
 
 	bool ShouldHook(HWND hWnd);
 	DATASTRUCT* AddWndProc(HWND hWnd);

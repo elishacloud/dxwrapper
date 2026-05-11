@@ -39,6 +39,7 @@ namespace WndProc
 	bool IsExecutableAddress(void* address);
 
 	bool SwitchingResolution = false;
+	DWORD PrimarySurfaceWidth = 0, PrimarySurfaceHeight = 0;
 
 	std::atomic<bool> IsKeyboardActive = false;
 	void SetKeyboardLayoutFocus(HWND hWnd, bool IsActivating);
@@ -556,6 +557,11 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			SetKeyboardLayoutFocus(hWnd, true);
 		}
+
+		// Enable mouse cursor clipping
+		if( Config.DdrawEnableCursorClip && PrimarySurfaceWidth > 0 && PrimarySurfaceHeight > 0 ) {
+			Utils::ClipMouseCursor( hWnd, PrimarySurfaceWidth, PrimarySurfaceHeight );
+		}
 		break;
 
 	case WM_KILLFOCUS:
@@ -564,6 +570,12 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			SetKeyboardLayoutFocus(hWnd, false);
 		}
+
+		// Disable mouse cursor clipping
+		if( Config.DdrawEnableCursorClip ) {
+			Utils::UnClipMouseCursor();
+		}
+
 		// Filter messages for loss of focus or minimize
 		if (Config.HideWindowFocusChanges && wParam == FALSE)
 		{
