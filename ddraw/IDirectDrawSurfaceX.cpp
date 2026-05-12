@@ -19,7 +19,6 @@
 #include <deque>
 #include <fstream>
 #include "Utils\Utils.h"
-#include "GDI/WndProc.h"
 
 #define CheckCreateInterface(interfacex, name, device, surface, lost) \
 { \
