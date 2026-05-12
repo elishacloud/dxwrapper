@@ -558,7 +558,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		}
 
 		// Enable mouse cursor clipping
-		if( Config.DdrawEnableCursorClip && Utils::PrimarySurfaceWidth > 0 && Utils::PrimarySurfaceHeight > 0 ) {
+		if( Config.DdrawEnableCursorClip ) {
 			Utils::ClipMouseCursor( hWnd, Utils::PrimarySurfaceWidth, Utils::PrimarySurfaceHeight );
 		}
 		break;
