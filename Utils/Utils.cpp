@@ -145,6 +145,8 @@ namespace Utils
 	uint64_t PerformanceFrequency_real = 0;
 	constexpr uint64_t PerformanceFrequency_cap = 0xFFFFFFFF;
 
+	DWORD PrimarySurfaceWidth = 0, PrimarySurfaceHeight = 0;
+
 	// Function declarations
 	ULONGLONG GetTickCount64_Emulated();
 	void InitializeASI(HMODULE hModule);

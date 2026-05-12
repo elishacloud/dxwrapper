@@ -4608,10 +4608,10 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	Logging::LogDebug() << __FUNCTION__ " (" << this << ") D3d9 Surface. Size: " << surface.Width << "x" << surface.Height << " Format: " << surface.Format <<
 		" Pool: " << surface.Pool << " dwCaps: " << surfaceDesc2.ddsCaps << " " << surfaceDesc2;
 	
-	// Set primary surface size info for use in WndProc
+	// Save primary surface size info for use with ie. mouse clipping
 	if( surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE && Config.DdrawEnableCursorClip ) {
-		WndProc::PrimarySurfaceWidth = surface.Width;
-		WndProc::PrimarySurfaceHeight = surface.Height;
+		Utils::PrimarySurfaceWidth = surface.Width;
+		Utils::PrimarySurfaceHeight = surface.Height;
 
 		Utils::ClipMouseCursor( ddrawParent->GetHwnd(), surface.Width, surface.Height );
 	}

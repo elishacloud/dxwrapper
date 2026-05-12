@@ -158,6 +158,8 @@ namespace Utils
 			Sleep(0); // Let the OS schedule other tasks if there's significant time left
 		}
 	}
+
+	extern DWORD PrimarySurfaceWidth, PrimarySurfaceHeight;
 }
 
 namespace WriteMemory
