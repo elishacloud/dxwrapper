@@ -1703,7 +1703,7 @@ LRESULT CALLBACK Utils::WndProcFilter(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 void Utils::ClipMouseCursor( HWND hWnd, const LONG clipWidth, const LONG clipHeight ) {
 	Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << clipWidth << "x" << clipHeight;
 
-	if( !hWnd || clipWidth < 1 || clipHeight < 1 ) {// || hWnd != GetForegroundWindow()) {
+	if( !hWnd || !IsWindow( hWnd ) || clipWidth < 1 || clipHeight < 1 ) {
 		return;
 	}
 
