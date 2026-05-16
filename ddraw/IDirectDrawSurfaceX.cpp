@@ -19,6 +19,7 @@
 #include <deque>
 #include <fstream>
 #include "Utils\Utils.h"
+#include "GDI\WndProc.h"
 
 #define CheckCreateInterface(interfacex, name, device, surface, lost) \
 { \
@@ -4606,13 +4607,20 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 
 	Logging::LogDebug() << __FUNCTION__ " (" << this << ") D3d9 Surface. Size: " << surface.Width << "x" << surface.Height << " Format: " << surface.Format <<
 		" Pool: " << surface.Pool << " dwCaps: " << surfaceDesc2.ddsCaps << " " << surfaceDesc2;
-	
-	// Save primary surface size info for use with ie. mouse clipping
-	if( surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE && Config.DdrawEnableCursorClip ) {
-		Utils::PrimarySurfaceWidth = surface.Width;
-		Utils::PrimarySurfaceHeight = surface.Height;
 
-		Utils::ClipMouseCursor( ddrawParent->GetHwnd(), surface.Width, surface.Height );
+	// Save primary surface size info for use with ie. mouse clipping
+	if (Config.EnableCursorClip && IsPrimarySurface())
+	{
+		HWND hWnd = ddrawParent->GetHwnd();
+		WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
+
+		if (WndDataStruct)
+		{
+			WndDataStruct->ClipWidth = surface.Width;
+			WndDataStruct->ClipHeight = surface.Height;
+
+			Utils::ClipMouseCursor(hWnd, surface.Width, surface.Height);
+		}
 	}
 
 	HRESULT hr = DD_OK;

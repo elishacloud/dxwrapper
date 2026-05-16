@@ -80,7 +80,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DdrawUseNativeResolution) \
 	visit(DdrawVertexLockDiscard) \
 	visit(DdrawEnableMouseHook) \
-	visit(DdrawEnableCursorClip) \
+	visit(EnableCursorClip) \
 	visit(DdrawHookSystem32) \
 	visit(D3d8HookSystem32) \
 	visit(D3d9HookSystem32) \
@@ -305,7 +305,7 @@ struct CONFIG
 	bool DdrawFilterActivateApp = false;		// Filters the WM_ACTIVATEAPP from the game, some games have issues with this message
 	bool DdrawForceMipMapAutoGen = false;		// Force Direct3d9 to use this AutoGenMipMap when using Dd7to9
 	bool DdrawEnableMouseHook = false;			// Allow to hook into mouse to limit it to the chosen resolution
-	bool DdrawEnableCursorClip = false;			// Use ClipCursor system to limit mouse movement
+	bool EnableCursorClip = false;			// Use ClipCursor system to limit mouse movement
 	DWORD DdrawHookSystem32 = 0;				// Hooks the ddraw.dll file in the Windows System32 folder
 	DWORD D3d8HookSystem32 = 0;					// Hooks the d3d8.dll file in the Windows System32 folder
 	bool D3d9HookSystem32 = false;				// Hooks the d3d9.dll file in the Windows System32 folder

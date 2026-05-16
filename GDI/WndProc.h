@@ -21,6 +21,8 @@ namespace WndProc
 		WORD IsWindowActive = 0xFFFF;
 		WORD IsWindowIconic = 0xFFFF;
 		DWORD DirectXVersion = 0;
+		LONG ClipWidth = 0;
+		LONG ClipHeight = 0;
 	};
 
 	extern bool SwitchingResolution;

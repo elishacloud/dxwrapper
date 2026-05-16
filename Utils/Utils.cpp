@@ -145,8 +145,6 @@ namespace Utils
 	uint64_t PerformanceFrequency_real = 0;
 	constexpr uint64_t PerformanceFrequency_cap = 0xFFFFFFFF;
 
-	DWORD PrimarySurfaceWidth = 0, PrimarySurfaceHeight = 0;
-
 	// Function declarations
 	ULONGLONG GetTickCount64_Emulated();
 	void InitializeASI(HMODULE hModule);
@@ -1700,29 +1698,42 @@ LRESULT CALLBACK Utils::WndProcFilter(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-void Utils::ClipMouseCursor( HWND hWnd, const LONG clipWidth, const LONG clipHeight ) {
-	Logging::LogDebug() << __FUNCTION__ << " " << hWnd << " " << clipWidth << "x" << clipHeight;
+void Utils::ClipMouseCursor(HWND hWnd, const LONG clipWidth, const LONG clipHeight)
+{
+	Logging::LogDebug() << __FUNCTION__ << " " << hWnd;
 
-	if( !IsWindow( hWnd ) || clipWidth < 1 || clipHeight < 1 ) {
+	if (!IsWindow(hWnd) || clipWidth < 1 || clipHeight < 1)
+	{
 		return;
 	}
 
 	RECT winRect, clientRect;
 
-	if( GetWindowRect( hWnd, &winRect ) && GetClientRect( hWnd, &clientRect )) {
-		RECT clipRect;
+	if (GetWindowRect(hWnd, &winRect) && GetClientRect(hWnd, &clientRect))
+	{
+		// If window is larger use clipWidth/clipHeight
+		if (winRect.right - winRect.left > clipWidth && winRect.bottom - winRect.top > clipHeight)
+		{
+			RECT clipRect;
 
-		clipRect.top = clientRect.top + winRect.top;
-		clipRect.left = clientRect.left + winRect.left;
-		clipRect.bottom = clipRect.top + clipHeight;
-		clipRect.right = clipRect.left + clipWidth;
+			clipRect.left = clientRect.left + winRect.left;
+			clipRect.top = clientRect.top + winRect.top;
+			clipRect.right = clipRect.left + clipWidth;
+			clipRect.bottom = clipRect.top + clipHeight;
 
-		ClipCursor( &clipRect );
+			ClipCursor(&clipRect);
+		}
+		// Use window size
+		else
+		{
+			ClipCursor(&winRect);
+		}
 	}
 }
 
-void Utils::UnClipMouseCursor() {
+void Utils::UnClipMouseCursor()
+{
 	Logging::LogDebug() << __FUNCTION__;
 
-	ClipCursor( nullptr );
+	ClipCursor(nullptr);
 }

@@ -108,7 +108,7 @@ namespace Utils
 	void GetScreenSize(HMONITOR hMonitor, volatile LONG &screenWidth, volatile LONG &screenHeight);
 	void GetScreenSize(HMONITOR hMonitor, int& screenWidth, int& screenHeight);
 	void GetScreenClientRect(HMONITOR hMonitor, RECT& workAreaOut);
-	void ClipMouseCursor( HWND hWnd, const LONG clipWidth, const LONG clipHeight );
+	void ClipMouseCursor(HWND hWnd, const LONG clipWidth, const LONG clipHeight);
 	void UnClipMouseCursor();
 
 	// CPU Affinity
@@ -158,8 +158,6 @@ namespace Utils
 			Sleep(0); // Let the OS schedule other tasks if there's significant time left
 		}
 	}
-
-	extern DWORD PrimarySurfaceWidth, PrimarySurfaceHeight;
 }
 
 namespace WriteMemory
