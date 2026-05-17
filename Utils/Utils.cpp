@@ -1713,30 +1713,19 @@ void Utils::ClipMouseCursor(HWND hWnd, const LONG clipWidth, const LONG clipHeig
 	{
 		POINT clientTopLeft = { 0, 0 };
 
-		ClientToScreen( hWnd, &clientTopLeft );
+		ClientToScreen(hWnd, &clientTopLeft);
+
+		LONG clientWidth = clientRect.right - clientRect.left;
+		LONG clientHeight = clientRect.bottom - clientRect.top;
+		// If window client is larger use clipWidth/clipHeight
+		bool useClipSize = (clientWidth > clipWidth || clientHeight > clipHeight);
 
 		RECT clipRect = {
 			clientTopLeft.x,
 			clientTopLeft.y,
-			clientTopLeft.x,
-			clientTopLeft.y
+			clientTopLeft.x + (useClipSize ? clipWidth : clientWidth),
+			clientTopLeft.y + (useClipSize ? clipHeight : clientHeight)
 		};
-
-		LONG clientWidth = clientRect.right - clientRect.left;
-		LONG clientHeight = clientRect.bottom - clientRect.top;
-
-		// If window client is larger use clipWidth/clipHeight
-		if (clientWidth > clipWidth || clientHeight > clipHeight)
-		{
-			clipRect.right += clipWidth;
-			clipRect.bottom += clipHeight;
-		}
-		// Use client size
-		else
-		{
-			clipRect.right += clientWidth;
-			clipRect.bottom += clientHeight;
-		}
 
 		ClipCursor(&clipRect);
 	}
