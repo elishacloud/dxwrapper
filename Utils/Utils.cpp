@@ -1702,33 +1702,30 @@ void Utils::ClipMouseCursor(HWND hWnd, const LONG clipWidth, const LONG clipHeig
 {
 	Logging::LogDebug() << __FUNCTION__ << " " << hWnd;
 
-	if (!IsWindow(hWnd) || clipWidth < 1 || clipHeight < 1)
+	RECT clientRect;
+
+	if (!IsWindow(hWnd) || !GetClientRect(hWnd, &clientRect) || clipWidth < 1 || clipHeight < 1)
 	{
 		return;
 	}
 
-	RECT clientRect;
+	POINT clientTopLeft = { 0, 0 };
 
-	if (GetClientRect(hWnd, &clientRect))
-	{
-		POINT clientTopLeft = { 0, 0 };
+	ClientToScreen(hWnd, &clientTopLeft);
 
-		ClientToScreen(hWnd, &clientTopLeft);
+	LONG clientWidth = clientRect.right - clientRect.left;
+	LONG clientHeight = clientRect.bottom - clientRect.top;
+	// If window client is larger use clipWidth/clipHeight
+	bool useClipSize = (clientWidth > clipWidth || clientHeight > clipHeight);
 
-		LONG clientWidth = clientRect.right - clientRect.left;
-		LONG clientHeight = clientRect.bottom - clientRect.top;
-		// If window client is larger use clipWidth/clipHeight
-		bool useClipSize = (clientWidth > clipWidth || clientHeight > clipHeight);
+	RECT clipRect = {
+		clientTopLeft.x,
+		clientTopLeft.y,
+		clientTopLeft.x + (useClipSize ? clipWidth : clientWidth),
+		clientTopLeft.y + (useClipSize ? clipHeight : clientHeight)
+	};
 
-		RECT clipRect = {
-			clientTopLeft.x,
-			clientTopLeft.y,
-			clientTopLeft.x + (useClipSize ? clipWidth : clientWidth),
-			clientTopLeft.y + (useClipSize ? clipHeight : clientHeight)
-		};
-
-		ClipCursor(&clipRect);
-	}
+	ClipCursor(&clipRect);
 }
 
 void Utils::UnClipMouseCursor()
