@@ -654,7 +654,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		}
 		break;
 
-	case WM_WINDOWPOSCHANGING:
 	case WM_WINDOWPOSCHANGED:
 		if (lParam)
 		{
@@ -674,6 +673,13 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			{
 				HandleClipMouseCursor(hWnd, pDataStruct, true);
 			}
+		}
+		[[fallthrough]];
+	case WM_WINDOWPOSCHANGING:
+		if (lParam)
+		{
+			WINDOWPOS* WinPos = reinterpret_cast<WINDOWPOS*>(lParam);
+
 			// Handle exclusive mode cases where the window is resized to be different than the display size
 			if (pDataStruct->IsDirectDraw && pDataStruct->IsExclusiveMode)
 			{
