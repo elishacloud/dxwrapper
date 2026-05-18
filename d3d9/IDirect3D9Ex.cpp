@@ -516,6 +516,8 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		{
 			// Already set by DirectDraw
 			WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
+			WndDataStruct->ClipWidth = pPresentationParameters->BackBufferWidth;
+			WndDataStruct->ClipHeight = pPresentationParameters->BackBufferHeight;
 		}
 		DeviceDetails.IsDirectDrawDevice = WndDataStruct->IsDirectDraw;
 	}
@@ -638,6 +640,12 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 			}
 
 			CopyMemory(pPresentationParameters, p_d3dpp, sizeof(D3DPRESENT_PARAMETERS));
+
+			// Enable mouse clipping
+			if (Config.EnableCursorClip && !DeviceDetails.IsDirectDrawDevice && WndDataStruct)
+			{
+				Utils::ClipMouseCursor(DeviceDetails.DeviceWindow, WndDataStruct->ClipWidth, WndDataStruct->ClipHeight);
+			}
 		}
 	}
 
