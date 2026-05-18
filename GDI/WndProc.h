@@ -23,6 +23,7 @@ namespace WndProc
 		DWORD DirectXVersion = 0;
 		LONG ClipWidth = 0;
 		LONG ClipHeight = 0;
+		bool InSizeMove = false;
 	};
 
 	extern bool SwitchingResolution;

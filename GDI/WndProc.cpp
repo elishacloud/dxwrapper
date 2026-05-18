@@ -41,6 +41,7 @@ namespace WndProc
 	bool SwitchingResolution = false;
 
 	void HandleWindowFocus(HWND hWnd, DATASTRUCT* pDataStruct, bool IsActivating);
+	void HandleClipMouseCursor(HWND hWnd, DATASTRUCT* pDataStruct, bool IsActivating);
 
 	std::atomic<bool> IsKeyboardActive = false;
 	void SetKeyboardLayoutFocus(HWND hWnd, bool IsActivating);
@@ -346,9 +347,14 @@ inline void WndProc::HandleWindowFocus(HWND hWnd, DATASTRUCT* pDataStruct, bool 
 	}
 
 	// Handle window clipping
+	HandleClipMouseCursor(hWnd, pDataStruct, IsActivating);
+}
+
+inline void WndProc::HandleClipMouseCursor(HWND hWnd, DATASTRUCT* pDataStruct, bool IsActivating)
+{
 	if (Config.EnableCursorClip && pDataStruct->IsDirect3D9)
 	{
-		if (IsActivating)
+		if (IsActivating && pDataStruct->InSizeMove == false)
 		{
 			Utils::ClipMouseCursor(hWnd, pDataStruct->ClipWidth, pDataStruct->ClipHeight);
 		}
@@ -628,10 +634,15 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		}
 		break;
 
-	case WM_STYLECHANGING:
-	case WM_STYLECHANGED:
 	case WM_ENTERSIZEMOVE:
 	case WM_EXITSIZEMOVE:
+		// Handle window focus change
+		pDataStruct->InSizeMove = (Msg == WM_ENTERSIZEMOVE);
+		HandleClipMouseCursor(hWnd, pDataStruct, true);
+
+		[[fallthrough]];
+	case WM_STYLECHANGING:
+	case WM_STYLECHANGED:
 	case WM_SIZING:
 	case WM_MOVING:
 		// Filter some messages when creating device
@@ -661,7 +672,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			else if (Config.EnableCursorClip && pDataStruct->IsDirect3D9 &&
 				(hWnd == GetFocus() || hWnd == GetActiveWindow() || hWnd == GetForegroundWindow()))
 			{
-				Utils::ClipMouseCursor(hWnd, pDataStruct->ClipWidth, pDataStruct->ClipHeight);
+				HandleClipMouseCursor(hWnd, pDataStruct, true);
 			}
 			// Handle exclusive mode cases where the window is resized to be different than the display size
 			if (pDataStruct->IsDirectDraw && pDataStruct->IsExclusiveMode)
