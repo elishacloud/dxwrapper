@@ -65,9 +65,6 @@ namespace {
 	DWORD LastSetHeight = 0;
 	DWORD LastSetBPP = 0;
 
-	// Mouse hook
-	MOUSEHOOK MouseHook = {};
-
 	// High resolution counter used for auto frame skipping
 	HIGHRESCOUNTER Counter = {};
 
@@ -2605,93 +2602,6 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		{
 			PresentThread.exitEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 			PresentThread.workerThread = CreateThread(NULL, 0, PresentThreadFunction, NULL, 0, NULL);
-		}
-
-		// Mouse hook
-		{
-			bool EnableMouseHook = Config.DdrawEnableMouseHook &&
-				((Config.DdrawUseNativeResolution || Config.DdrawOverrideWidth || Config.DdrawOverrideHeight) &&
-					(!Config.EnableWindowMode || Config.FullscreenWindowMode));
-
-			// Set mouse hook
-			if (!MouseHook.m_hook && EnableMouseHook)
-			{
-				struct WindowsMouseHook
-				{
-					static LRESULT CALLBACK mouseHookProc(int nCode, WPARAM wParam, LPARAM lParam)
-					{
-						POINT p;
-						if (nCode == HC_ACTION && wParam == WM_MOUSEMOVE)
-						{
-							if (DDrawVector.size() && MouseHook.threadID && MouseHook.ghWriteEvent &&
-								DisplayMode.Width && DisplayMode.Height && Device.Width && Device.Height &&
-								DisplayMode.Width != Device.Width && DisplayMode.Height != Device.Height &&
-								!Device.IsWindowed && IsWindow(DisplayMode.hWnd) && !IsIconic(DisplayMode.hWnd) &&
-								GetCursorPos(&p))
-							{
-								MouseHook.Pos.x = min(p.x, (LONG)DisplayMode.Width - 1);
-								MouseHook.Pos.y = min(p.y, (LONG)DisplayMode.Height - 1);
-
-								if (MouseHook.Pos.x != p.x || MouseHook.Pos.y != p.y)
-								{
-									MouseHook.bChange = true;
-									SetEvent(MouseHook.ghWriteEvent);
-								}
-							}
-						}
-						return CallNextHookEx(nullptr, nCode, wParam, lParam);
-					}
-				};
-
-				Logging::Log() << __FUNCTION__ << " Hooking mouse cursor!";
-				MouseHook.m_hook = SetWindowsHookEx(WH_MOUSE_LL, WindowsMouseHook::mouseHookProc, hModule_dll, 0);
-			}
-
-			// Start thread
-			if (!MouseHook.threadID && EnableMouseHook)
-			{
-				// A thread to bypass Windows preventing hooks from modifying mouse position
-				struct WindowsMouseThread
-				{
-					static DWORD WINAPI setMousePosThread(LPVOID)
-					{
-						DWORD dwWaitResult = 0;
-						do {
-							dwWaitResult = WaitForSingleObject(MouseHook.ghWriteEvent, INFINITE);
-							if (MouseHook.bChange)
-							{
-								SetCursorPos(MouseHook.Pos.x, MouseHook.Pos.y);
-								MouseHook.bChange = false;
-							}
-						} while (!Config.Exiting && dwWaitResult == WAIT_OBJECT_0);
-
-						// Unhook mouse
-						if (MouseHook.m_hook)
-						{
-							UnhookWindowsHookEx(MouseHook.m_hook);
-							MouseHook.m_hook = nullptr;
-						}
-
-						// Close handle
-						if (MouseHook.ghWriteEvent)
-						{
-							CloseHandle(MouseHook.ghWriteEvent);
-							MouseHook.ghWriteEvent = nullptr;
-						}
-
-						MouseHook.threadID = nullptr;
-						return 0;
-					}
-				};
-
-				MouseHook.threadID = CreateThread(nullptr, 0, WindowsMouseThread::setMousePosThread, nullptr, 0, nullptr);
-			}
-
-			// Create event
-			if (!MouseHook.ghWriteEvent && EnableMouseHook)
-			{
-				MouseHook.ghWriteEvent = CreateEvent(nullptr, FALSE, FALSE, TEXT("Local\\DxwrapperMouseEvent"));
-			}
 		}
 	}
 
