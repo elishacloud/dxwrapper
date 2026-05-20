@@ -753,10 +753,9 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			LOG_LIMIT(100, __FUNCTION__ << " Error: position data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
 			return false;
 		}
-		if (sd->position.dwStride != posStride)
+		if (sd->position.dwStride && sd->position.dwStride < posStride)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: position stride does not match: " << posStride << " -> " << sd->position.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
-			return false;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: position stride does not match: " << posStride << " -> " << sd->position.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
 		}
 	}
 	if (hasNormal)
@@ -766,10 +765,9 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			LOG_LIMIT(100, __FUNCTION__ << " Error: normal data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
 			return false;
 		}
-		if (sd->normal.dwStride != sizeof(D3DXVECTOR3))
+		if (sd->normal.dwStride && sd->normal.dwStride < sizeof(D3DXVECTOR3))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: normal stride does not match: " << sizeof(D3DXVECTOR3) << " -> " << sd->normal.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
-			return false;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: normal stride does not match: " << sizeof(D3DXVECTOR3) << " -> " << sd->normal.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
 		}
 	}
 	if (hasDiffuse)
@@ -779,10 +777,9 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			LOG_LIMIT(100, __FUNCTION__ << " Error: diffuse data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
 			return false;
 		}
-		if (sd->diffuse.dwStride != sizeof(D3DCOLOR))
+		if (sd->diffuse.dwStride && sd->diffuse.dwStride < sizeof(D3DCOLOR))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: diffuse stride does not match: " << sizeof(D3DCOLOR) << " -> " << sd->diffuse.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
-			return false;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: diffuse stride does not match: " << sizeof(D3DCOLOR) << " -> " << sd->diffuse.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
 		}
 	}
 	if (hasSpecular)
@@ -792,10 +789,9 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			LOG_LIMIT(100, __FUNCTION__ << " Error: specular data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
 			return false;
 		}
-		if (sd->specular.dwStride != sizeof(D3DCOLOR))
+		if (sd->specular.dwStride && sd->specular.dwStride < sizeof(D3DCOLOR))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: specular stride does not match: " << sizeof(D3DCOLOR) << " -> " << sd->specular.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
-			return false;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: specular stride does not match: " << sizeof(D3DCOLOR) << " -> " << sd->specular.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
 		}
 	}
 	for (DWORD t = 0; t < texCount; ++t)
@@ -806,27 +802,28 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			return false;
 		}
 		texStride[t] = GetTexStride(dwVertexTypeDesc, t);
-		if (sd->textureCoords[t].dwStride != texStride[t])
+		if (sd->textureCoords[t].dwStride && sd->textureCoords[t].dwStride < texStride[t])
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: specular stride does not match: " << texStride[t] << " -> " << sd->textureCoords[t].dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
-			return false;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: texture stride does not match: " << texStride[t] << " -> " << sd->textureCoords[t].dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
 		}
 	}
 
 	outputBuffer.resize((dwVertexStart + dwNumVertices) * Stride);
 
 	BYTE* cursor = outputBuffer.data() + dwVertexStart * Stride;
-	BYTE* posCursor = reinterpret_cast<BYTE*>(sd->position.lpvData) + dwVertexStart * sd->position.dwStride;
-	const D3DXVECTOR3* normalCursor = reinterpret_cast<D3DXVECTOR3*>(sd->normal.lpvData) + dwVertexStart * sd->normal.dwStride;
-	const D3DCOLOR* diffCursor = reinterpret_cast<D3DCOLOR*>(sd->diffuse.lpvData) + dwVertexStart * sd->diffuse.dwStride;
-	const D3DCOLOR* specCursor = reinterpret_cast<D3DCOLOR*>(sd->specular.lpvData) + dwVertexStart * sd->specular.dwStride;
+	BYTE* posCursor = reinterpret_cast<BYTE*>(sd->position.lpvData) + dwVertexStart * (sd->position.dwStride ? sd->position.dwStride : posStride);
+	BYTE* normalCursor = reinterpret_cast<BYTE*>(sd->normal.lpvData) + dwVertexStart * (sd->normal.dwStride ? sd->normal.dwStride : sizeof(D3DXVECTOR3));
+	BYTE* diffCursor = reinterpret_cast<BYTE*>(sd->diffuse.lpvData) + dwVertexStart * (sd->diffuse.dwStride ? sd->diffuse.dwStride : sizeof(D3DCOLOR));
+	BYTE* specCursor = reinterpret_cast<BYTE*>(sd->specular.lpvData) + dwVertexStart * (sd->specular.dwStride ? sd->specular.dwStride : sizeof(D3DCOLOR));
 	BYTE* texCursor[D3DDP_MAXTEXCOORD] = {};
 	for (DWORD t = 0; t < texCount; ++t)
 	{
-		texCursor[t] = reinterpret_cast<BYTE*>(sd->textureCoords[t].lpvData) + dwVertexStart * sd->textureCoords[t].dwStride;
+		texCursor[t] = reinterpret_cast<BYTE*>(sd->textureCoords[t].lpvData) + dwVertexStart * (sd->textureCoords[t].dwStride ? sd->textureCoords[t].dwStride : texStride[t]);
 	}
 
-	if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_DIFFUSE))
+	if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_DIFFUSE) &&
+		sd->position.dwStride == sizeof(D3DXVECTOR3) &&
+		sd->diffuse.dwStride == sizeof(D3DCOLOR))
 	{
 		for (DWORD i = 0; i < dwNumVertices; ++i)
 		{
@@ -835,11 +832,13 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			cursor += sizeof(D3DXVECTOR3);
 
 			// Diffuse
-			*(D3DCOLOR*)cursor = diffCursor[i];
+			*(D3DCOLOR*)cursor = ((D3DCOLOR*)diffCursor)[i];
 			cursor += sizeof(D3DCOLOR);
 		}
 	}
-	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_TEX1) && texCursor[0])
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_TEX1) &&
+		sd->position.dwStride == sizeof(D3DXVECTOR3) &&
+		sd->textureCoords[0].dwStride == sizeof(D3DXVECTOR2))
 	{
 		for (DWORD i = 0; i < dwNumVertices; ++i)
 		{
@@ -852,7 +851,10 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			cursor += sizeof(D3DXVECTOR2);
 		}
 	}
-	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1) && texCursor[0])
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1) &&
+		sd->position.dwStride == sizeof(D3DXVECTOR3) &&
+		sd->normal.dwStride == sizeof(D3DXVECTOR3) &&
+		sd->textureCoords[0].dwStride == sizeof(D3DXVECTOR2))
 	{
 		for (DWORD i = 0; i < dwNumVertices; ++i)
 		{
@@ -861,7 +863,7 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			cursor += sizeof(D3DXVECTOR3);
 
 			// Normal
-			*(D3DXVECTOR3*)cursor = normalCursor[i];
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)normalCursor)[i];
 			cursor += sizeof(D3DXVECTOR3);
 
 			// Texture
@@ -869,7 +871,10 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			cursor += sizeof(D3DXVECTOR2);
 		}
 	}
-	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1) && texCursor[0])
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1) &&
+		sd->position.dwStride == sizeof(D3DXVECTOR3) &&
+		sd->diffuse.dwStride == sizeof(D3DCOLOR) &&
+		sd->textureCoords[0].dwStride == sizeof(D3DXVECTOR2))
 	{
 		for (DWORD i = 0; i < dwNumVertices; ++i)
 		{
@@ -878,7 +883,7 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			cursor += sizeof(D3DXVECTOR3);
 
 			// Diffuse
-			*(D3DCOLOR*)cursor = diffCursor[i];
+			*(D3DCOLOR*)cursor = ((D3DCOLOR*)diffCursor)[i];
 			cursor += sizeof(D3DCOLOR);
 
 			// Texture
@@ -886,7 +891,9 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			cursor += sizeof(D3DXVECTOR2);
 		}
 	}
-	else if (dwVertexTypeDesc == (D3DFVF_XYZRHW | D3DFVF_TEX1) && texCursor[0])
+	else if (dwVertexTypeDesc == (D3DFVF_XYZRHW | D3DFVF_TEX1) &&
+		sd->position.dwStride == sizeof(D3DXVECTOR4) &&
+		sd->textureCoords[0].dwStride == sizeof(D3DXVECTOR2))
 	{
 		for (DWORD i = 0; i < dwNumVertices; ++i)
 		{
@@ -899,7 +906,10 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			cursor += sizeof(D3DXVECTOR2);
 		}
 	}
-	else if (dwVertexTypeDesc == (D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1) && texCursor[0])
+	else if (dwVertexTypeDesc == (D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1) &&
+		sd->position.dwStride == sizeof(D3DXVECTOR4) &&
+		sd->diffuse.dwStride == sizeof(D3DCOLOR) &&
+		sd->textureCoords[0].dwStride == sizeof(D3DXVECTOR2))
 	{
 		for (DWORD i = 0; i < dwNumVertices; ++i)
 		{
@@ -908,7 +918,7 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			cursor += sizeof(D3DXVECTOR4);
 
 			// Diffuse
-			*(D3DCOLOR*)cursor = diffCursor[i];
+			*(D3DCOLOR*)cursor = ((D3DCOLOR*)diffCursor)[i];
 			cursor += sizeof(D3DCOLOR);
 
 			// Texture
@@ -916,7 +926,11 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			cursor += sizeof(D3DXVECTOR2);
 		}
 	}
-	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_RESERVED1 | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1) && texCursor[0])
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_RESERVED1 | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1) &&
+		sd->position.dwStride == sizeof(D3DXVECTOR3) &&
+		sd->diffuse.dwStride == sizeof(D3DCOLOR) &&
+		sd->specular.dwStride == sizeof(D3DCOLOR) &&
+		sd->textureCoords[0].dwStride == sizeof(D3DXVECTOR2))
 	{
 		for (DWORD i = 0; i < dwNumVertices; ++i)
 		{
@@ -928,11 +942,11 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			cursor += sizeof(DWORD);
 
 			// Diffuse
-			*(D3DCOLOR*)cursor = diffCursor[i];
+			*(D3DCOLOR*)cursor = ((D3DCOLOR*)diffCursor)[i];
 			cursor += sizeof(D3DCOLOR);
 
 			// Specular
-			*(D3DCOLOR*)cursor = specCursor[i];
+			*(D3DCOLOR*)cursor = ((D3DCOLOR*)specCursor)[i];
 			cursor += sizeof(D3DCOLOR);
 
 			// Texture
@@ -940,7 +954,11 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			cursor += sizeof(D3DXVECTOR2);
 		}
 	}
-	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1) && texCursor[0])
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1) &&
+		sd->position.dwStride == sizeof(D3DXVECTOR3) &&
+		sd->diffuse.dwStride == sizeof(D3DCOLOR) &&
+		sd->specular.dwStride == sizeof(D3DCOLOR) &&
+		sd->textureCoords[0].dwStride == sizeof(D3DXVECTOR2))
 	{
 		for (DWORD i = 0; i < dwNumVertices; ++i)
 		{
@@ -949,11 +967,11 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			cursor += sizeof(D3DXVECTOR3);
 
 			// Diffuse
-			*(D3DCOLOR*)cursor = diffCursor[i];
+			*(D3DCOLOR*)cursor = ((D3DCOLOR*)diffCursor)[i];
 			cursor += sizeof(D3DCOLOR);
 
 			// Specular
-			*(D3DCOLOR*)cursor = specCursor[i];
+			*(D3DCOLOR*)cursor = ((D3DCOLOR*)specCursor)[i];
 			cursor += sizeof(D3DCOLOR);
 
 			// Texture
@@ -961,7 +979,12 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			cursor += sizeof(D3DXVECTOR2);
 		}
 	}
-	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1) && texCursor[0])
+	else if (dwVertexTypeDesc == (D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_DIFFUSE | D3DFVF_SPECULAR | D3DFVF_TEX1) &&
+		sd->position.dwStride == sizeof(D3DXVECTOR3) &&
+		sd->normal.dwStride == sizeof(D3DXVECTOR3) &&
+		sd->diffuse.dwStride == sizeof(D3DCOLOR) &&
+		sd->specular.dwStride == sizeof(D3DCOLOR) &&
+		sd->textureCoords[0].dwStride == sizeof(D3DXVECTOR2))
 	{
 		for (DWORD i = 0; i < dwNumVertices; ++i)
 		{
@@ -970,15 +993,15 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			cursor += sizeof(D3DXVECTOR3);
 
 			// Normal
-			*(D3DXVECTOR3*)cursor = normalCursor[i];
+			*(D3DXVECTOR3*)cursor = ((D3DXVECTOR3*)normalCursor)[i];
 			cursor += sizeof(D3DXVECTOR3);
 
 			// Diffuse
-			*(D3DCOLOR*)cursor = diffCursor[i];
+			*(D3DCOLOR*)cursor = ((D3DCOLOR*)diffCursor)[i];
 			cursor += sizeof(D3DCOLOR);
 
 			// Specular
-			*(D3DCOLOR*)cursor = specCursor[i];
+			*(D3DCOLOR*)cursor = ((D3DCOLOR*)specCursor)[i];
 			cursor += sizeof(D3DCOLOR);
 
 			// Texture
@@ -996,7 +1019,7 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 			{
 				memcpy(cursor, posCursor, posStride);
 				cursor += posStride;
-				posCursor += sd->position.dwStride;
+				posCursor += sd->position.dwStride ? sd->position.dwStride: posStride;
 			}
 
 			if (hasReserved)
@@ -1006,27 +1029,30 @@ bool m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, ali
 
 			if (hasNormal)
 			{
-				*(D3DXVECTOR3*)cursor = normalCursor[i];
+				*(D3DXVECTOR3*)cursor = *(D3DXVECTOR3*)normalCursor;
 				cursor += sizeof(D3DXVECTOR3);
+				normalCursor += sd->normal.dwStride ? sd->normal.dwStride : sizeof(D3DXVECTOR3);
 			}
 
 			if (hasDiffuse)
 			{
-				*(D3DCOLOR*)cursor = diffCursor[i];
+				*(D3DCOLOR*)cursor = *(D3DCOLOR*)diffCursor;
 				cursor += sizeof(D3DCOLOR);
+				diffCursor += sd->diffuse.dwStride ? sd->diffuse.dwStride : sizeof(D3DCOLOR);
 			}
 
 			if (hasSpecular)
 			{
-				*(D3DCOLOR*)cursor = specCursor[i];
+				*(D3DCOLOR*)cursor = *(D3DCOLOR*)specCursor;
 				cursor += sizeof(D3DCOLOR);
+				specCursor += sd->specular.dwStride ? sd->specular.dwStride : sizeof(D3DCOLOR);
 			}
 
 			for (DWORD t = 0; t < texCount; ++t)
 			{
 				memcpy(cursor, texCursor[t], texStride[t]);
 				cursor += texStride[t];
-				texCursor[t] += sd->textureCoords[t].dwStride;
+				texCursor[t] += sd->textureCoords[t].dwStride ? sd->textureCoords[t].dwStride : texStride[t];
 			}
 		}
 	}
