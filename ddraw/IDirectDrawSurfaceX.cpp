@@ -7320,6 +7320,8 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		(Filter & D3DTEXF_LINEAR) ? D3DX_FILTER_LINEAR :									// Use linear filtering when requested by the application
 		(IsStretchRect) ? D3DX_FILTER_POINT :												// Default to point filtering when stretching the rect, same as DirectDraw
 		D3DX_FILTER_NONE;
+	DWORD ColorKeyMask = GetUsedPixelBitsMask(SrcFormat, pSourceSurface->surface.BitCount);
+	ColorKey = (ColorKey & ColorKeyMask);
 
 #ifdef ENABLE_PROFILING
 	Logging::Log() << __FUNCTION__ << " (" << pSourceSurface << ") -> (" << this << ")" <<
@@ -7832,16 +7834,16 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			switch (ByteCount)
 			{
 			case 1:
-				SimpleColorKeyCopy<BYTE>((BYTE)ColorKey, SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
+				SimpleColorKeyCopy<BYTE>((BYTE)ColorKey, (BYTE)ColorKeyMask, SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
 				break;
 			case 2:
-				SimpleColorKeyCopy<WORD>((WORD)ColorKey, SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
+				SimpleColorKeyCopy<WORD>((WORD)ColorKey, (WORD)ColorKeyMask, SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
 				break;
 			case 3:
-				SimpleColorKeyCopy<TRIBYTE>((TRIBYTE)ColorKey, SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
+				SimpleColorKeyCopy<TRIBYTE>((TRIBYTE)ColorKey, (TRIBYTE)ColorKeyMask, SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
 				break;
 			case 4:
-				SimpleColorKeyCopy<DWORD>((DWORD)ColorKey, SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
+				SimpleColorKeyCopy<DWORD>((DWORD)ColorKey, (DWORD)ColorKeyMask, SrcBuffer, DestBuffer, SrcLockRect.Pitch, DestPitch, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorLeftRight);
 				break;
 			}
 			hr = DD_OK;
@@ -7852,16 +7854,16 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		switch (ByteCount)
 		{
 		case 1:
-			ComplexCopy<BYTE>((BYTE)ColorKey, SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
+			ComplexCopy<BYTE>((BYTE)ColorKey, (BYTE)ColorKeyMask, SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
 			break;
 		case 2:
-			ComplexCopy<WORD>((WORD)ColorKey, SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
+			ComplexCopy<WORD>((WORD)ColorKey, (WORD)ColorKeyMask, SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
 			break;
 		case 3:
-			ComplexCopy<TRIBYTE>((TRIBYTE)ColorKey, SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
+			ComplexCopy<TRIBYTE>((TRIBYTE)ColorKey, (TRIBYTE)ColorKeyMask, SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
 			break;
 		case 4:
-			ComplexCopy<DWORD>((DWORD)ColorKey, SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
+			ComplexCopy<DWORD>((DWORD)ColorKey, (DWORD)ColorKeyMask, SrcLockRect, DestLockRect, SrcRectWidth, SrcRectHeight, DestRectWidth, DestRectHeight, IsColorKey, IsMirrorUpDown, IsMirrorLeftRight);
 			break;
 		}
 		hr = DD_OK;

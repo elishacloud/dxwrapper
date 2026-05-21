@@ -259,9 +259,9 @@ static constexpr DWORD DDS_HEADER_FLAGS_PITCH	= 0x00000008;
 void AddDisplayResolution(DWORD Width, DWORD Height);
 bool IsDisplayResolution(DWORD Width, DWORD Height);
 template <typename T>
-void SimpleColorKeyCopy(T ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
+void SimpleColorKeyCopy(T ColorKey, T ColorKeyMask, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
 template <typename T>
-void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
+void ComplexCopy(T ColorKey, T ColorKeyMask, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
 D3DCOLOR ConvertPixelColor(D3DCOLOR PixelColor, const DDPIXELFORMAT& ddpfPixelFormat);
 bool HasStencil(D3DFORMAT Format);
 DWORD GetDepthColor(float DepthValue, D3DFORMAT Format, DWORD& BPP);
@@ -286,6 +286,7 @@ DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount);
 DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height);
 DWORD GetBitCount(const DDPIXELFORMAT& ddpfPixelFormat);
 DWORD GetBitCount(D3DFORMAT Format);
+DWORD GetUsedPixelBitsMask(D3DFORMAT Format, DWORD BitCount);
 DWORD ComputePitch(D3DFORMAT Format, DWORD Width, DWORD Height);
 DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch);
 DWORD GetARGBColorKey(DWORD ColorKey, const DDPIXELFORMAT& ddpfPixelFormat);
