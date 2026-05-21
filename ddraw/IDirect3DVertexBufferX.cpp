@@ -151,6 +151,9 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		// Non-implemented dwFlags:
 		// DDLOCK_WAIT and DDLOCK_WRITEONLY can be ignored safely
 
+		// If using write only and discard than discard is ignored
+		dwFlags = (dwFlags & DDLOCK_WRITEONLY) || (d3d9VBDesc.Usage & D3DUSAGE_WRITEONLY) ? (dwFlags & ~DDLOCK_DISCARDCONTENTS) : dwFlags;
+
 		DWORD Flags = (dwFlags & (DDLOCK_READONLY | DDLOCK_DISCARDCONTENTS | DDLOCK_NOSYSLOCK | DDLOCK_NOOVERWRITE)) |
 			(IsVBEmulated || (Config.DdrawVertexLockDiscard && !(dwFlags & DDLOCK_READONLY)) ? D3DLOCK_DISCARD : NULL) |
 			(Config.DdrawNoDrawBufferSysLock ? D3DLOCK_NOSYSLOCK : NULL);
