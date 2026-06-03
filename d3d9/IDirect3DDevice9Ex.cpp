@@ -3107,21 +3107,24 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 DWORD m_IDirect3DDevice9Ex::GetResourceRefCount()
 {
 	ULONG EmulatedSurfaceRef = 0;
-	for (auto* s : EmulatedSurfaceList)
+	if (dref.RenderTarget)
 	{
-		if (s) EmulatedSurfaceRef += s->GetEmulatedSurfaceCount();
+		for (auto* s : EmulatedSurfaceList)
+		{
+			if (s) EmulatedSurfaceRef += s->GetEmulatedSurfaceCount();
+		}
 	}
 
 	return
-		(GammaLUTTexture ? 1 : 0) +
-		(ScreenCopyTexture ? 1 : 0) +
-		(gammaPixelShader ? 1 : 0) +
-		(BlankTexture ? 1 : 0) +
-		(pFont ? 1 + FontRefCount : 0) +
-		(pSprite ? 2 + SprintRefCount : 0) +
-		(pStateBlock ? 1 : 0) +
-		EmulatedSurfaceRef +
-		ShadowBackbuffer->GetRefCount();
+		(dref.Texture && GammaLUTTexture ? 1 : 0) +
+		(dref.Texture && ScreenCopyTexture ? 1 : 0) +
+		(dref.PixelShader && gammaPixelShader ? 1 : 0) +
+		(dref.Texture && BlankTexture ? 1 : 0) +
+		(dref.D3DXFont && pFont ? 1 + FontRefCount : 0) +
+		(dref.D3DXSprite && pSprite ? 2 + SprintRefCount : 0) +
+		(dref.StateBlock && pStateBlock ? 1 : 0) +
+		(dref.RenderTarget ? ShadowBackbuffer->GetRefCount() : 0) +
+		EmulatedSurfaceRef;
 }
 
 void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)

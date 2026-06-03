@@ -95,6 +95,15 @@ struct D3DDISPLAYMODEEX_CONVERT : public D3DDISPLAYMODEEX {
 	}
 };
 
+struct DEVICE_REFCOUNT_CHECKER {
+	bool Texture = false;
+	bool StateBlock = false;
+	bool RenderTarget = false;
+	bool PixelShader = false;
+	bool D3DXFont = false;
+	bool D3DXSprite = false;
+};
+
 typedef int(WINAPI* D3DPERF_BeginEventProc)(D3DCOLOR, LPCWSTR);
 typedef int(WINAPI* D3DPERF_EndEventProc)();
 typedef DWORD(WINAPI* D3DPERF_GetStatusProc)();
@@ -114,7 +123,7 @@ void WINAPI Direct3D9SetSwapEffectUpgradeShim(int Unknown);
 namespace D3d9Wrapper
 {
 	void WINAPI genericQueryInterface(REFIID riid, REFIID WrapperID, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
-	void TestAllDeviceRefs(IDirect3DDevice9* device);
+	void TestAllDeviceRefs(IDirect3DDevice9* device, DEVICE_REFCOUNT_CHECKER &dref);
 }
 
 #include "ComPtr.h"

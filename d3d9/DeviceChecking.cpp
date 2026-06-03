@@ -18,7 +18,7 @@
 #include "ddraw\Shaders\GammaPixelShader.h"
 
 template<typename CreateFunc>
-static void TestDeviceRefChange(IDirect3DDevice9* device, const char* name, CreateFunc createFunc, DWORD ExpectedRefCount)
+static bool TestDeviceRefChange(IDirect3DDevice9* device, const char* name, CreateFunc createFunc, DWORD ExpectedRefCount)
 {
     // Get reference count before creation
     ULONG before = ComPtr<void*>::GetRefCount(device);
@@ -40,22 +40,28 @@ static void TestDeviceRefChange(IDirect3DDevice9* device, const char* name, Crea
     }
 
     ULONG ref = after - before;
-    if (ExpectedRefCount != ref)
+    if (SUCCEEDED(hr) && ref == 0)
+    {
+        Logging::Log() << __FUNCTION__ << " Warning: " << name << " doesn't increase device reference count!";
+        return false;
+    }
+    else if (ExpectedRefCount != ref)
     {
         Logging::Log() << __FUNCTION__ << " Error: " << name << " has incorrect reference count. " << ref << " -> " << ExpectedRefCount << " hr = " << (D3DERR)hr;
     }
+    return true;
 }
 
-void D3d9Wrapper::TestAllDeviceRefs(IDirect3DDevice9* device)
+void D3d9Wrapper::TestAllDeviceRefs(IDirect3DDevice9* device, DEVICE_REFCOUNT_CHECKER& dref)
 {
-    TestDeviceRefChange(device, "Texture", [&](IUnknown** out) {
+    dref.Texture = TestDeviceRefChange(device, "Texture", [&](IUnknown** out) {
         IDirect3DTexture9* tex = nullptr;
         HRESULT hr = device->CreateTexture(64, 64, 1, 0, D3DFMT_DXT1, D3DPOOL_DEFAULT, &tex, nullptr);
         *out = tex;
         return hr;
         }, 1);
 
-    TestDeviceRefChange(device, "StateBlock", [&](IUnknown** out) {
+    dref.StateBlock = TestDeviceRefChange(device, "StateBlock", [&](IUnknown** out) {
         IDirect3DStateBlock9* sb = nullptr;
         HRESULT hr = device->CreateStateBlock(D3DSBT_ALL, &sb);
         *out = sb;
@@ -64,7 +70,7 @@ void D3d9Wrapper::TestAllDeviceRefs(IDirect3DDevice9* device)
 
     if (Config.UseShadowBackbuffer || Config.AntiAliasing)
     {
-        TestDeviceRefChange(device, "Render Target", [&](IUnknown** out) {
+        dref.RenderTarget = TestDeviceRefChange(device, "Render Target", [&](IUnknown** out) {
             IDirect3DSurface9* rt = nullptr;
             HRESULT hr = device->CreateRenderTarget(64, 64, D3DFMT_X8R8G8B8, D3DMULTISAMPLE_NONE, 0, FALSE, &rt, nullptr);
             *out = rt;
@@ -74,7 +80,7 @@ void D3d9Wrapper::TestAllDeviceRefs(IDirect3DDevice9* device)
 
     if (Config.WindowModeGammaShader)
     {
-        TestDeviceRefChange(device, "Pixel Shader", [&](IUnknown** out) {
+        dref.PixelShader = TestDeviceRefChange(device, "Pixel Shader", [&](IUnknown** out) {
             IDirect3DPixelShader9* ps = nullptr;
             HRESULT hr = device->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &ps);
             *out = ps;
@@ -84,7 +90,7 @@ void D3d9Wrapper::TestAllDeviceRefs(IDirect3DDevice9* device)
 
     if (Config.ShowFPSCounter)
     {
-        TestDeviceRefChange(device, "D3DXFont", [&](IUnknown** out) {
+        dref.D3DXFont = TestDeviceRefChange(device, "D3DXFont", [&](IUnknown** out) {
             ID3DXFont* font = nullptr;
             HRESULT hr = D3DXCreateFontW(device, 16, 0, FW_NORMAL, 1, FALSE, DEFAULT_CHARSET,
                 OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
@@ -93,7 +99,7 @@ void D3d9Wrapper::TestAllDeviceRefs(IDirect3DDevice9* device)
             return hr;
             }, 1);
 
-        TestDeviceRefChange(device, "D3DXSprite", [&](IUnknown** out) {
+        dref.D3DXSprite = TestDeviceRefChange(device, "D3DXSprite", [&](IUnknown** out) {
             ID3DXSprite* sprite = nullptr;
             HRESULT hr = D3DXCreateSprite(device, &sprite);
             *out = sprite;

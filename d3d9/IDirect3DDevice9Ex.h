@@ -51,6 +51,8 @@ private:
 
 	CRITICAL_SECTION d9cs = {};
 
+	DEVICE_REFCOUNT_CHECKER dref;
+
 	D3DCAPS9 Caps = {};
 	bool AnisotropyMin = false;
 	bool AnisotropyMag = false;
@@ -178,7 +180,7 @@ public:
 			ProxyInterfaceEx = pDevice;
 		}
 
-		D3d9Wrapper::TestAllDeviceRefs(ProxyInterface);
+		D3d9Wrapper::TestAllDeviceRefs(ProxyInterface, dref);
 
 		// Check for SSAA
 		if (DeviceDetails.DeviceMultiSampleType && m_pD3DEx)

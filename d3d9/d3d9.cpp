@@ -34,7 +34,7 @@ static HMODULE GetSystemD3d9()
 		char Path[MAX_PATH] = {};
 		GetSystemDirectoryA(Path, MAX_PATH);
 		strcat_s(Path, "\\d3d9.dll");
-		GetModuleHandleExA(NULL, Path, &h_d3d9);
+		h_d3d9 = LoadLibraryA(Path);
 	}
 
 	return h_d3d9;
