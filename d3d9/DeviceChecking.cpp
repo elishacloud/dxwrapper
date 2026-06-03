@@ -32,7 +32,11 @@ static void TestDeviceRefChange(IDirect3DDevice9* device, const char* name, Crea
 
     if (SUCCEEDED(hr) && obj)
     {
-        obj->Release(); // release the created object
+        ULONG ref = obj->Release(); // release the created object
+        if (ref != 0)
+        {
+            Logging::Log() << __FUNCTION__ << " Error: " << name << " failed to release! ref count: " << ref;
+        }
     }
 
     ULONG ref = after - before;
@@ -57,6 +61,16 @@ void D3d9Wrapper::TestAllDeviceRefs(IDirect3DDevice9* device)
         *out = sb;
         return hr;
         }, 1);
+
+    if (Config.UseShadowBackbuffer || Config.AntiAliasing)
+    {
+        TestDeviceRefChange(device, "Render Target", [&](IUnknown** out) {
+            IDirect3DSurface9* rt = nullptr;
+            HRESULT hr = device->CreateRenderTarget(64, 64, D3DFMT_X8R8G8B8, D3DMULTISAMPLE_NONE, 0, FALSE, &rt, nullptr);
+            *out = rt;
+            return hr;
+        }, 1);
+    }
 
     if (Config.WindowModeGammaShader)
     {
