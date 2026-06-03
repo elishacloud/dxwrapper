@@ -3393,7 +3393,7 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 		MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
 		AnisotropyMin = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC);
 		AnisotropyMag = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC);
-		LOG_ONCE("Anisotropic Filtering DeviceCaps. Min: " << AnisotropyMin << " Max: " << AnisotropyMag);
+		LOG_ONCE("Anisotropic Filtering DeviceCaps. Min: " << AnisotropyMin << " Mag: " << AnisotropyMag);
 	}
 
 	ShadowBackbuffer->ReleaseAll();

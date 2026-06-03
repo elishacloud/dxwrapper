@@ -4081,16 +4081,7 @@ HRESULT m_IDirectDrawX::CreateD9Object()
 	// Create d3d9 object
 	if (!d3d9Object)
 	{
-		// Declare Direct3DCreate9
-		DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9Proc, Direct3DCreate9, Direct3DCreate9_out);
-
-		if (!Direct3DCreate9)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
-			return DDERR_GENERIC;
-		}
-
-		d3d9Object = Direct3DCreate9(D3D_SDK_VERSION);
+		d3d9Object = d9_Direct3DCreate9(D3D_SDK_VERSION);
 
 		// Error creating Direct3D9
 		if (!d3d9Object)

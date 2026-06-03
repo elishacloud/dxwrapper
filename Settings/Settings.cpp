@@ -750,14 +750,12 @@ void CONFIG::SetConfig()
 	{
 		DDrawCompat20 = false;
 	}
-	D3d9on12 = (D3d9on12 || ForceDirect3D9On12);
+	D3d9on12 = (D3d9on12 || ForceDirect3D9On12);																				// For legacy purposes
 	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || IsSet(DdrawResolutionHack) || DdrawUseDirect3D9Caps || Dd7to9);
 	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
 	DdrawAutoFrameSkip = (AutoFrameSkip || DdrawAutoFrameSkip);																	// For legacy purposes
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
-	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || D3d9HookSystem32 || D3d9to9Ex || D3d9on12 ||
-		(EnableD3d9Wrapper == NOT_EXIST && (AnisotropicFiltering || AntiAliasing || IsSet(CacheClipPlane) || EnableVSync ||		// For legacy purposes
-			ForceMixedVertexProcessing || ForceSystemMemVertexCache || ForceVsyncMode || EnableWindowMode)));					// For legacy purposes
+	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || D3d9HookSystem32 || D3d9to9Ex || D3d9on12);
 	EnvironmentCubeMapFix = EnvironmentCubeMapFix || EnvironmentMapCubeFix;														// For legacy purposes
 
 	// Set ddraw color bit mode

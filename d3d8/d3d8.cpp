@@ -38,8 +38,6 @@ PFN_D3DXLoadSurfaceFromSurface D3DXLoadSurfaceFromSurface = (PFN_D3DXLoadSurface
 
 namespace D3d8Wrapper
 {
-	INITIALIZE_OUT_WRAPPED_PROC(Direct3DCreate9, unused);
-
 	static void CheckSystemModule()
 	{
 		static bool RunOnce = true;
@@ -250,16 +248,7 @@ Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion)
 
 	LOG_LIMIT(3, "Redirecting 'Direct3DCreate8' to --> 'Direct3DCreate9' (" << SDKVersion << ")");
 
-	// Declare Direct3DCreate9
-	DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9Proc, Direct3DCreate9, Direct3DCreate9_out);
-
-	if (!Direct3DCreate9)
-	{
-		LOG_LIMIT(100, "Failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
-		return nullptr;
-	}
-
-	IDirect3D9 *const d3d = Direct3DCreate9(D3D_SDK_VERSION);
+	IDirect3D9 *const d3d = d9_Direct3DCreate9(D3D_SDK_VERSION);
 
 	if (!d3d)
 	{

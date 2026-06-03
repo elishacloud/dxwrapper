@@ -520,16 +520,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				}
 			}
 
-			// dinputto8 -> dinput8Wrapper
-			if (Config.Dinputto8)
-			{
-				DinputWrapper::DirectInput8Create_out = DirectInput8Create_in;
-				DinputWrapper::DllCanUnloadNow_out = DllCanUnloadNow_in;
-				DinputWrapper::DllGetClassObject_out = DllGetClassObject_in;
-				DinputWrapper::DllRegisterServer_out = DllRegisterServer_in;
-				DinputWrapper::DllUnregisterServer_out = DllUnregisterServer_in;
-			}
-
 			// Prepare wrapper
 			VISIT_PROCS_DINPUT8(SHIM_WRAPPED_PROC);
 			VISIT_PROCS_DINPUT8_SHARED(SHIM_WRAPPED_PROC);
@@ -577,8 +567,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				using namespace DdrawWrapper;
 				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
 				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
-				HMODULE d3d9_dll = LoadLibrary("d3d9.dll");
-				DdrawWrapper::Direct3DCreate9_out = GetProcAddress(d3d9_dll, "Direct3DCreate9");
 			}
 			else
 			{
@@ -668,18 +656,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 					HOOK_WRAPPED_PROC(Direct3DCreate9On12, unused);
 					HOOK_WRAPPED_PROC(Direct3DCreate9On12Ex, unused);
 				}
-			}
-
-			// Redirect d3d8to9 -> D3d9Wrapper
-			if (Config.D3d8to9)
-			{
-				D3d8Wrapper::Direct3DCreate9_out = Direct3DCreate9_in;
-			}
-
-			// Redirect DdrawWrapper -> D3d9Wrapper
-			if (Config.Dd7to9)
-			{
-				DdrawWrapper::Direct3DCreate9_out = Direct3DCreate9_in;
 			}
 
 			// Prepare wrapper

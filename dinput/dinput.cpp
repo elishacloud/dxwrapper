@@ -21,9 +21,6 @@
 
 namespace DinputWrapper
 {
-	VISIT_PROCS_DINPUT_SHARED(INITIALIZE_OUT_WRAPPED_PROC);
-	INITIALIZE_OUT_WRAPPED_PROC(DirectInput8Create, unused);
-
 	static void CheckSystemModule()
 	{
 		static bool RunOnce = true;
@@ -63,13 +60,6 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 	CheckSystemModule();
 
-	DEFINE_STATIC_PROC_ADDRESS(DirectInput8CreateProc, DirectInput8Create, DirectInput8Create_out);
-
-	if (!DirectInput8Create)
-	{
-		return DIERR_GENERIC;
-	}
-
 	// DirectInputCreateEx can only be called with IDirectInput interfaces, not with IUnknown!
 	if (riid != IID_IDirectInputA && riid != IID_IDirectInput2A && riid != IID_IDirectInput7A &&
 		riid != IID_IDirectInputW && riid != IID_IDirectInput2W && riid != IID_IDirectInput7W)
@@ -90,7 +80,7 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 	if (SUCCEEDED(hr))
 	{
 		typename m_IDirectInputX::proxy_type* Proxy;
-		hr = DirectInput8Create(hinst, 0x0800, m_IDirectInputX::proxy_iid, reinterpret_cast<LPVOID*>(&Proxy), nullptr);
+		hr = di8_DirectInput8Create(hinst, 0x0800, m_IDirectInputX::proxy_iid, reinterpret_cast<LPVOID*>(&Proxy), nullptr);
 
 		if (SUCCEEDED(hr))
 		{
@@ -109,31 +99,17 @@ HRESULT WINAPI di_DllCanUnloadNow()
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	DEFINE_STATIC_PROC_ADDRESS(DllCanUnloadNowProc, DllCanUnloadNow, DllCanUnloadNow_out);
-
-	if (!DllCanUnloadNow)
-	{
-		return DIERR_GENERIC;
-	}
-
 	if (ModuleObjectCount::AnyObjectsInUse())
 	{
 		return S_FALSE;
 	}
 
-	return DllCanUnloadNow();
+	return di8_DllCanUnloadNow();
 }
 
 HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVOID FAR* ppv)
 {
 	LOG_LIMIT(1, __FUNCTION__);
-
-	DEFINE_STATIC_PROC_ADDRESS(DllGetClassObjectProc, DllGetClassObject, DllGetClassObject_out);
-
-	if (!DllGetClassObject)
-	{
-		return DIERR_GENERIC;
-	}
 
 	if (ppv == nullptr)
 	{
@@ -147,7 +123,7 @@ HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 	if (rclsid == m_IDirectInputX::wrapper_clsid)
 	{
 		IClassFactory* proxyFactory;
-		HRESULT proxyHr = DllGetClassObject(m_IDirectInputX::proxy_clsid, IID_PPV_ARGS(&proxyFactory));
+		HRESULT proxyHr = di8_DllGetClassObject(m_IDirectInputX::proxy_clsid, IID_PPV_ARGS(&proxyFactory));
 		if (FAILED(proxyHr))
 		{
 			return proxyHr;
@@ -158,7 +134,7 @@ HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 	else if (rclsid == m_IDirectInputDeviceX::wrapper_clsid)
 	{
 		IClassFactory* proxyFactory;
-		HRESULT proxyHr = DllGetClassObject(m_IDirectInputDeviceX::proxy_clsid, IID_PPV_ARGS(&proxyFactory));
+		HRESULT proxyHr = di8_DllGetClassObject(m_IDirectInputDeviceX::proxy_clsid, IID_PPV_ARGS(&proxyFactory));
 		if (FAILED(proxyHr))
 		{
 			return proxyHr;
@@ -184,26 +160,12 @@ HRESULT WINAPI di_DllRegisterServer()
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	DEFINE_STATIC_PROC_ADDRESS(DllRegisterServerProc, DllRegisterServer, DllRegisterServer_out);
-
-	if (!DllRegisterServer)
-	{
-		return DIERR_GENERIC;
-	}
-
-	return DllRegisterServer();
+	return di8_DllRegisterServer();
 }
 
 HRESULT WINAPI di_DllUnregisterServer()
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	DEFINE_STATIC_PROC_ADDRESS(DllUnregisterServerProc, DllUnregisterServer, DllUnregisterServer_out);
-
-	if (!DllUnregisterServer)
-	{
-		return DIERR_GENERIC;
-	}
-
-	return DllUnregisterServer();
+	return di8_DllUnregisterServer();
 }
