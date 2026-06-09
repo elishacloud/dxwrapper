@@ -2529,8 +2529,11 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Set to indicate that Lock should wait until it can obtain a valid memory pointer before returning.
 		const bool LockWait = (((dwFlags & DDLOCK_WAIT) || DirectXVersion == 7) && (dwFlags & DDLOCK_DONOTWAIT) == 0);
 
+		// If using read only and not write only
+		dwFlags = (dwFlags & DDLOCK_READONLY) && !(dwFlags & DDLOCK_WRITEONLY) ? dwFlags : (dwFlags & ~(DDLOCK_READONLY | DDLOCK_WRITEONLY));
+
 		// Convert flags to d3d9
-		DWORD Flags = (dwFlags & (D3DLOCK_READONLY | D3DLOCK_NOOVERWRITE)) |
+		DWORD Flags = (dwFlags & D3DLOCK_READONLY) |
 			((dwFlags & D3DLOCK_NOSYSLOCK) || Config.DdrawNoDrawBufferSysLock ? D3DLOCK_NOSYSLOCK : 0) |
 			(!LockWait && !surface.Texture ? D3DLOCK_DONOTWAIT : 0) |
 			((dwFlags & DDLOCK_NODIRTYUPDATE) ? D3DLOCK_NO_DIRTY_UPDATE : 0);
