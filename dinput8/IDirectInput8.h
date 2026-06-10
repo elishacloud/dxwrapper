@@ -13,6 +13,11 @@ public:
 	static inline const IID proxy_iid = IID_IDirectInput8W;
 	using proxy_type = IDirectInput8W;
 
+	static inline REFIID GetCompatibleIID(REFIID riid)
+	{
+		return riid;
+	}
+
 private:
 	proxy_type* ProxyInterface;
 	IDirectInput8A* ProxyInterfaceA; // Non-owning alias

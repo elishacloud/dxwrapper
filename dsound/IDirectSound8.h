@@ -1,12 +1,26 @@
 #pragma once
 
-class m_IDirectSound8 final : public IDirectSound8, AddressLookupTableDsoundObject<m_IDirectSound8>
+class m_IDirectSound8 final : public IDirectSound8, AddressLookupTableDsoundObject<m_IDirectSound8>, ModuleObjectCount::CountedObject
 {
+public:
+	// Factory traits
+	static inline const CLSID wrapper_clsid = CLSID_DirectSound8;
+	static inline const CLSID alternative_clsid = CLSID_DirectSound;
+
+	static inline const CLSID proxy_clsid = CLSID_DirectSound8;
+	static inline const IID   proxy_iid = IID_IDirectSound8;
+	using proxy_type = IDirectSound8;
+
+	static inline REFIID GetCompatibleIID(REFIID riid)
+	{
+		return riid;
+	}
+
 private:
-	LPDIRECTSOUND8 ProxyInterface;
+	proxy_type* ProxyInterface;
 
 public:
-	m_IDirectSound8(LPDIRECTSOUND8 pSound8) : AddressLookupTableDsoundObject(pSound8), ProxyInterface(pSound8)
+	m_IDirectSound8(proxy_type* pSound8) : AddressLookupTableDsoundObject(pSound8), ProxyInterface(pSound8)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 	}

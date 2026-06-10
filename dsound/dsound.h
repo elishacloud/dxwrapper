@@ -24,6 +24,7 @@ class m_IDirectSoundNotify8;
 class m_IKsPropertySet;
 
 #include "AddressLookupTable.h"
+#include "External\dinputto8\ModuleObjectCount.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
@@ -69,3 +70,4 @@ using namespace DsoundWrapper;
 #include "IDirectSoundFXWavesReverb8.h"
 #include "IDirectSoundNotify8.h"
 #include "IKsPropertySet.h"
+#include "External\dinputto8\ClassFactory.h"
