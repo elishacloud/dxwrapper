@@ -4142,28 +4142,7 @@ HRESULT m_IDirect3DDeviceX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlag
 
 	if (Config.Dd7to9)
 	{
-		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
-
-		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
-
-		// Clear respects the current viewport
-		(*d3d9Device)->SetViewport(&DeviceStates.Viewport.FixedView);
-
-		if (lpCurrentRenderTargetX && (dwFlags & D3DCLEAR_TARGET))
-		{
-			lpCurrentRenderTargetX->PrepareRenderTarget();
-
-			if (ddrawParent->GetRenderTargetSurface() != lpCurrentRenderTargetX)
-			{
-				ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
-			}
-		}
-
-		return (*d3d9Device)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
+		return Clear(DeviceStates.Viewport.FixedView, dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 	}
 
 	return GetProxyInterfaceV7()->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
@@ -5663,6 +5642,32 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD tria
 	}
 
 	return D3D_OK;
+}
+
+HRESULT m_IDirect3DDeviceX::Clear(const D3DVIEWPORT9& Viewport, DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags, D3DCOLOR dwColor, D3DVALUE dvZ, DWORD dwStencil)
+{
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true)))
+	{
+		return DDERR_INVALIDOBJECT;
+	}
+
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+	// Clear respects the current viewport
+	(*d3d9Device)->SetViewport(&Viewport);
+
+	if (lpCurrentRenderTargetX && (dwFlags & D3DCLEAR_TARGET))
+	{
+		lpCurrentRenderTargetX->PrepareRenderTarget();
+
+		if (ddrawParent->GetRenderTargetSurface() != lpCurrentRenderTargetX)
+		{
+			ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+		}
+	}
+
+	return (*d3d9Device)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 }
 
 void m_IDirect3DDeviceX::ClearViewport(m_IDirect3DViewportX* lpViewportX)

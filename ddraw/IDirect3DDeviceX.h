@@ -484,6 +484,7 @@ public:
 	void ClearExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer);
 
 	// Viewport functions
+	HRESULT Clear(const D3DVIEWPORT9& Viewport, DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags, D3DCOLOR dwColor, D3DVALUE dvZ, DWORD dwStencil);
 	void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
 	m_IDirect3DViewportX* GetCurrentViewport() { return lpCurrentViewportX; }
 	bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }

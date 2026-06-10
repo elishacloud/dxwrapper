@@ -429,22 +429,30 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 
 	if (Config.Dd7to9)
 	{
-		// The requested operation could not be completed because the viewport has not yet been associated with a device.
-		HRESULT hr = D3DERR_VIEWPORTHASNODEVICE;
+		if (AttachedD3DDevices.empty())
+		{
+			return D3DERR_VIEWPORTHASNODEVICE;
+		}
 
-		// ToDo: check on zbuffer and return error if does not exist:  D3DERR_ZBUFFER_NOTPRESENT
+		GetDefaultViewport();
+		D3DVIEWPORT9 Viewport9 = FixViewport(Viewport.Data9);
 
 		for (auto& entry : AttachedD3DDevices)
 		{
-			hr = entry->Clear(dwCount, lpRects, dwFlags, 0x00000000, 1.0f, 0);
+			HRESULT hr = entry->Clear(Viewport9, dwCount, lpRects, dwFlags, 0x00000000, 1.0f, 0);
 
-			if (FAILED(hr))
+			// Unlike Clear2(), Clear() isn't supposed to error out on z or stencil clears when no z or stencil is attached
+			if (FAILED(hr) && (dwFlags & D3DCLEAR_STENCIL))
 			{
-				return hr;
+				hr = entry->Clear(Viewport9, dwCount, lpRects, (dwFlags & ~D3DCLEAR_STENCIL), 0x00000000, 1.0f, 0);
+			}
+			if (FAILED(hr) && (dwFlags & D3DCLEAR_ZBUFFER))
+			{
+				hr = entry->Clear(Viewport9, dwCount, lpRects, (dwFlags & ~(D3DCLEAR_STENCIL | D3DCLEAR_ZBUFFER)), 0x00000000, 1.0f, 0);
 			}
 		}
 
-		return hr;
+		return D3D_OK;
 	}
 
 	return ProxyInterface->Clear(dwCount, lpRects, dwFlags);
@@ -722,7 +730,8 @@ HRESULT m_IDirect3DViewportX::SetBackgroundDepth2(LPDIRECTDRAWSURFACE4 lpDDS)
 
 		if (!lpDDS)
 		{
-			return DDERR_INVALIDPARAMS;
+			pBackgroundDepthSurfaceX = nullptr;
+			return D3D_OK;
 		}
 
 		m_IDirectDrawSurfaceX* lpSurfaceX = nullptr;
@@ -801,10 +810,12 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 
 	if (Config.Dd7to9)
 	{
-		// The requested operation could not be completed because the viewport has not yet been associated with a device.
-		HRESULT hr = D3DERR_VIEWPORTHASNODEVICE;
-
 		// ToDo: check on zbuffer and stencil buffer and return error if does not exist:  D3DERR_ZBUFFER_NOTPRESENT and D3DERR_STENCILBUFFER_NOTPRESENT
+
+		if (AttachedD3DDevices.empty())
+		{
+			return D3DERR_VIEWPORTHASNODEVICE;
+		}
 
 		// For now just hard code this to 1.0f rather than copying the depth stencil buffer
 		if ((dwFlags & D3DCLEAR_ZBUFFER) && pBackgroundDepthSurfaceX)
@@ -812,9 +823,13 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 			dvZ = 1.0f;
 		}
 
+		GetDefaultViewport();
+		D3DVIEWPORT9 Viewport9 = FixViewport(Viewport.Data9);
+
+		HRESULT hr = D3D_OK;
 		for (auto& entry : AttachedD3DDevices)
 		{
-			hr = entry->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
+			hr = entry->Clear(Viewport9, dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 
 			if (FAILED(hr))
 			{

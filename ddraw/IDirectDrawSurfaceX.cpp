@@ -8172,15 +8172,9 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 			<< ") and depth buffer (" << dsDesc.Width << "x" << dsDesc.Height << ") dimensions do not match!");
 	}
 
-	// Get current viewport
-	D3DVIEWPORT9 Viewport = {};
-	(*d3d9Device)->GetViewport(&Viewport);
-
 	// Set new viewport
-	{
-		D3DVIEWPORT9 NewViewport = { 0, 0, dsDesc.Width, dsDesc.Height, 0.0f, 1.0f };
-		(*d3d9Device)->SetViewport(&NewViewport);
-	}
+	D3DVIEWPORT9 Viewport = { 0, 0, dsDesc.Width, dsDesc.Height, 0.0f, 1.0f };
+	(*d3d9Device)->SetViewport(&Viewport);
 
 	HRESULT hr = DD_OK;
 
@@ -8223,9 +8217,6 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 			break;
 		}
 	}
-
-	// Reset viewport
-	(*d3d9Device)->SetViewport(&Viewport);
 
 	// Reset depth stencil
 	if (!IsUsingCurrentZBuffer)
