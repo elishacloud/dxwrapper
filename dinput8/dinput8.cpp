@@ -98,25 +98,33 @@ HRESULT WINAPI di8_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPV
 	ClassFactoryBase* wrapperFactory = nullptr;
 	if (rclsid == m_IDirectInput8::wrapper_clsid)
 	{
-		IClassFactory* proxyFactory;
+		IClassFactory* proxyFactory = nullptr;
 		HRESULT proxyHr = DllGetClassObject(rclsid, IID_PPV_ARGS(&proxyFactory));
 		if (FAILED(proxyHr))
 		{
 			return proxyHr;
 		}
 
-		wrapperFactory = new(std::nothrow) ClassFactory<m_IDirectInput8>(proxyFactory);
+		wrapperFactory = new (std::nothrow) ClassFactory<m_IDirectInput8>(proxyFactory);
+		if (!wrapperFactory)
+		{
+			proxyFactory->Release();
+		}
 	}
 	else if (rclsid == m_IDirectInputDevice8::wrapper_clsid)
 	{
-		IClassFactory* proxyFactory;
+		IClassFactory* proxyFactory = nullptr;
 		HRESULT proxyHr = DllGetClassObject(rclsid, IID_PPV_ARGS(&proxyFactory));
 		if (FAILED(proxyHr))
 		{
 			return proxyHr;
 		}
 
-		wrapperFactory = new(std::nothrow) ClassFactory<m_IDirectInputDevice8>(proxyFactory);
+		wrapperFactory = new (std::nothrow) ClassFactory<m_IDirectInputDevice8>(proxyFactory);
+		if (!wrapperFactory)
+		{
+			proxyFactory->Release();
+		}
 	}
 	else
 	{

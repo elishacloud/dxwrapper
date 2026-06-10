@@ -115,14 +115,18 @@ HRESULT WINAPI ds_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 	ClassFactoryBase* wrapperFactory = nullptr;
 	if (rclsid == m_IDirectSound8::wrapper_clsid || rclsid == m_IDirectSound8::alternative_clsid)
 	{
-		IClassFactory* proxyFactory;
+		IClassFactory* proxyFactory = nullptr;
 		HRESULT proxyHr = DllGetClassObject(rclsid, IID_PPV_ARGS(&proxyFactory));
 		if (FAILED(proxyHr))
 		{
 			return proxyHr;
 		}
 
-		wrapperFactory = new(std::nothrow) ClassFactory<m_IDirectSound8>(proxyFactory);
+		wrapperFactory = new (std::nothrow) ClassFactory<m_IDirectSound8>(proxyFactory);
+		if (!wrapperFactory)
+		{
+			proxyFactory->Release();
+		}
 	}
 	else
 	{

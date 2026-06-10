@@ -64,6 +64,7 @@ class m_IDirectDrawGammaControl;
 
 #include "External\DirectXMath\Inc\DirectXMath.h"
 #include "AddressLookupTable.h"
+#include "External\dinputto8\ModuleObjectCount.h"
 #include "IClassFactory\IClassFactory.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
@@ -177,3 +178,5 @@ using namespace DdrawWrapper;
 #include "IDirect3DTextureX.h"
 #include "IDirect3DVertexBufferX.h"
 #include "IDirect3DViewportX.h"
+// ClassFactory Interfaces
+#include "DDClassFactory.h"

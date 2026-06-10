@@ -1169,6 +1169,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release_xp|Win32'">true</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="ddraw\AddressLookupTable.h" />
+    <ClInclude Include="ddraw\DDClassFactory.h" />
     <ClInclude Include="ddraw\ddraw.h" />
     <ClInclude Include="ddraw\ddrawExternal.h" />
     <ClInclude Include="ddraw\IDirect3DDeviceX.h" />

@@ -545,52 +545,56 @@ HRESULT WINAPI dd_DllCanUnloadNow()
 	return DllCanUnloadNow();
 }
 
-HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
+HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
+	if (ppv == nullptr)
+	{
+		return E_POINTER;
+	}
+
+	HRESULT hr = E_OUTOFMEMORY;
+	*ppv = nullptr;
+
+	if (rclsid != CLSID_DirectDraw && rclsid != CLSID_DirectDraw7 && rclsid != CLSID_DirectDrawClipper)
+	{
+		return CLASS_E_CLASSNOTAVAILABLE;
+	}
+
+	ClassFactoryBase* wrapperFactory = nullptr;
+
 	if (Config.Dd7to9)
 	{
-		if (!ppv)
+		wrapperFactory = new (std::nothrow) DDClassFactory(nullptr, rclsid);
+	}
+	else
+	{
+		DEFINE_STATIC_PROC_ADDRESS(DllGetClassObjectProc, DllGetClassObject, DllGetClassObject_out);
+
+		if (!DllGetClassObject)
 		{
-			return E_POINTER;
+			return DDERR_GENERIC;
 		}
 
-		HRESULT hr = ProxyQueryInterface(nullptr, riid, ppv, rclsid);
-
-		if (SUCCEEDED(hr) && ppv && *ppv)
+		IClassFactory* proxyFactory = nullptr;
+		HRESULT proxyHr = DllGetClassObject(rclsid, IID_PPV_ARGS(&proxyFactory));
+		if (FAILED(proxyHr))
 		{
-			if (riid == IID_IClassFactory)
-			{
-				((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
-			}
-			((IUnknown*)ppv)->AddRef();
+			return proxyHr;
 		}
 
-		return hr;
+		wrapperFactory = new (std::nothrow) DDClassFactory(proxyFactory, rclsid);
+		if (!wrapperFactory)
+		{
+			proxyFactory->Release();
+		}
 	}
 
-	DEFINE_STATIC_PROC_ADDRESS(DllGetClassObjectProc, DllGetClassObject, DllGetClassObject_out);
-
-	if (!DllGetClassObject)
+	if (wrapperFactory != nullptr)
 	{
-		return DDERR_UNSUPPORTED;
-	}
-
-	HRESULT hr = DllGetClassObject(rclsid, riid, ppv);
-
-	if (SUCCEEDED(hr) && ppv)
-	{
-		if (riid == IID_IClassFactory)
-		{
-			*ppv = new m_IClassFactory((IClassFactory*)*ppv, genericQueryInterface);
-
-			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
-
-			return DD_OK;
-		}
-
-		genericQueryInterface(riid, ppv);
+		hr = wrapperFactory->QueryInterface(riid, ppv);
+		wrapperFactory->Release();
 	}
 
 	return hr;
