@@ -73,6 +73,7 @@ private:
 		DWORD rsMap161 = 0;	// D3DRS_MULTISAMPLEANTIALIAS
 		DWORD rsMap162 = 0;	// D3DRS_MULTISAMPLEMASK
 		DWORD rsMap195 = 0;	// D3DRS_DEPTHBIAS
+		bool alphaOpSet = false;
 	};
 	DEVICESTATE DeviceStates;
 

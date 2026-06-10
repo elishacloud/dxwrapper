@@ -2421,7 +2421,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 				SetD9TextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
 				SetD9TextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
 				SetD9TextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
-				DeviceStates.TextureStageState[0][D3DTSS_ALPHAOP].Set = false;	// Sets alphaop to auto based on texture alpha channel
+				DeviceStates.alphaOpSet = false;
 
 				return D3D_OK;
 			case D3DTBLEND_MODULATEALPHA:
@@ -3887,6 +3887,11 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 			return SetD9SamplerState(dwStage, D3DSAMP_MAXMIPLEVEL, dwValue);
 		case D3DTSS_MAXANISOTROPY:
 			return SetD9SamplerState(dwStage, D3DSAMP_MAXANISOTROPY, dwValue);
+		case D3DTSS_ALPHAOP:
+			if (dwStage == 0)
+			{
+				DeviceStates.alphaOpSet = true;
+			}
 		}
 
 		if (!CheckTextureStageStateType(dwState))
@@ -5928,8 +5933,7 @@ HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 
 	BatchStates.TextureStageState[Stage][Type] = Value;
 
-	// Don't reset D3DTSS_ALPHAOP set value
-	DeviceStates.TextureStageState[Stage][Type].Set = (DefaultTextureStageState[Stage][Type] != Value) || (Type == D3DTSS_ALPHAOP && Stage == 0);
+	DeviceStates.TextureStageState[Stage][Type].Set = (DefaultTextureStageState[Stage][Type] != Value);
 	DeviceStates.TextureStageState[Stage][Type].State = Value;
 
 	return D3D_OK;
@@ -6683,7 +6687,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	}
 	if (DirectXVersion < 7 && CurrentTextureSurfaceX[0] &&
 		DeviceStates.RenderState[D3DRENDERSTATE_TEXTUREMAPBLEND].State == D3DTBLEND_MODULATE &&
-		!DeviceStates.TextureStageState[0][D3DTSS_ALPHAOP].Set)
+		!DeviceStates.alphaOpSet)
 	{
 		// Texture alpha replaces; if no texture alpha, use vertex alpha.
 		if (CurrentTextureSurfaceX[0]->HasAlphaChannel(UsingColorKey))
