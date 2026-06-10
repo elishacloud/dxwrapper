@@ -2366,7 +2366,14 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 				return D3D_OK;
 			}
 		case D3DRENDERSTATE_TEXTUREMAPBLEND:	// 21
+			// Setting the same blend state won't reset the texture state
+			if (DeviceStates.RenderState[dwRenderStateType].State == dwRenderState)
+			{
+				return D3D_OK;
+			}
+
 			DeviceStates.RenderState[dwRenderStateType].State = dwRenderState;
+
 			switch (dwRenderState)
 			{
 			case D3DTBLEND_COPY:
@@ -2414,7 +2421,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 				SetD9TextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
 				SetD9TextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
 				SetD9TextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
-				DeviceStates.TextureStageState[0][D3DTSS_ALPHAOP].Set = FALSE;	// Sets alphaop to auto based on texture alpha channel
+				DeviceStates.TextureStageState[0][D3DTSS_ALPHAOP].Set = false;	// Sets alphaop to auto based on texture alpha channel
 
 				return D3D_OK;
 			case D3DTBLEND_MODULATEALPHA:
@@ -5710,11 +5717,13 @@ HRESULT m_IDirect3DDeviceX::SetTextureHandle(DWORD TexHandle)
 			else
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture address!");
+				return DDERR_INVALIDPARAMS;
 			}
 		}
 		else
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture handle!");
+			return DDERR_INVALIDPARAMS;
 		}
 	}
 
@@ -5744,7 +5753,7 @@ HRESULT m_IDirect3DDeviceX::SetMaterialHandle(DWORD MatHandle)
 		else
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get material handle!");
-			return D3D_OK;
+			return DDERR_INVALIDPARAMS;
 		}
 	}
 
@@ -5858,7 +5867,8 @@ HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Val
 
 	BatchStates.RenderState[State] = Value;
 
-	DeviceStates.RenderState[State].Set = (DefaultRenderState[State] != Value);
+	// Don't reset D3DRS_ZENABLE set value
+	DeviceStates.RenderState[State].Set = (DefaultRenderState[State] != Value) || (State == D3DRS_ZENABLE);
 	DeviceStates.RenderState[State].State = Value;
 
 	return D3D_OK;
@@ -5913,7 +5923,8 @@ HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 
 	BatchStates.TextureStageState[Stage][Type] = Value;
 
-	DeviceStates.TextureStageState[Stage][Type].Set = (DefaultTextureStageState[Stage][Type] != Value);
+	// Don't reset D3DTSS_ALPHAOP set value
+	DeviceStates.TextureStageState[Stage][Type].Set = (DefaultTextureStageState[Stage][Type] != Value) || (Type == D3DTSS_ALPHAOP && Stage == 0);
 	DeviceStates.TextureStageState[Stage][Type].State = Value;
 
 	return D3D_OK;
@@ -6610,7 +6621,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			D3DMATRIX Matrix = UpdateProjectionMatrix(DrawStates.ProjectionMatrix, DeviceStates.Viewport.Scale, DeviceStates.Viewport.ClipScale, !(dwFlags & D3DDP_DONOTCLIP));
 			(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &Matrix);
 		}
-		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL))
+		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL) || !DeviceStates.Material.Set)
 		{
 			dwFlags |= D3DDP_DONOTLIGHT;
 			GetD9RenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
@@ -6667,7 +6678,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	}
 	if (DirectXVersion < 7 && CurrentTextureSurfaceX[0] &&
 		DeviceStates.RenderState[D3DRENDERSTATE_TEXTUREMAPBLEND].State == D3DTBLEND_MODULATE &&
-		DeviceStates.TextureStageState[0][D3DTSS_ALPHAOP].Set == FALSE)
+		!DeviceStates.TextureStageState[0][D3DTSS_ALPHAOP].Set)
 	{
 		// Texture alpha replaces; if no texture alpha, use vertex alpha.
 		if (CurrentTextureSurfaceX[0]->HasAlphaChannel(UsingColorKey))
@@ -6676,7 +6687,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		}
 		else
 		{
-			(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+			(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG2);
 		}
 	}
 	for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
