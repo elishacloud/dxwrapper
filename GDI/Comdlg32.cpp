@@ -54,7 +54,7 @@ BOOL WINAPI comdlg_GetOpenFileNameA(LPOPENFILENAMEA lpOpenFile)
 	if (lpOpenFile && (lpOpenFile->Flags & OFN_ENABLEHOOK))
 	{
 		OPENFILENAMEA OpenFile = {};
-		memcpy(&OpenFile, lpOpenFile, lpOpenFile->lStructSize);
+		memcpy(&OpenFile, lpOpenFile, min(lpOpenFile->lStructSize, sizeof(OpenFile)));
 		UpdateOpenFileNameStruct(OpenFile);
 
 		return GetOpenFileName(&OpenFile);
@@ -77,7 +77,7 @@ BOOL WINAPI comdlg_GetOpenFileNameW(LPOPENFILENAMEW lpOpenFile)
 	if (lpOpenFile && (lpOpenFile->Flags & OFN_ENABLEHOOK))
 	{
 		OPENFILENAMEW OpenFile = {};
-		memcpy(&OpenFile, lpOpenFile, lpOpenFile->lStructSize);
+		memcpy(&OpenFile, lpOpenFile, min(lpOpenFile->lStructSize, sizeof(OpenFile)));
 		UpdateOpenFileNameStruct(OpenFile);
 
 		return GetOpenFileName(&OpenFile);
@@ -100,7 +100,7 @@ BOOL WINAPI comdlg_GetSaveFileNameA(LPOPENFILENAMEA lpOpenFile)
 	if (lpOpenFile && (lpOpenFile->Flags & OFN_ENABLEHOOK))
 	{
 		OPENFILENAMEA OpenFile = {};
-		memcpy(&OpenFile, lpOpenFile, lpOpenFile->lStructSize);
+		memcpy(&OpenFile, lpOpenFile, min(lpOpenFile->lStructSize, sizeof(OpenFile)));
 		UpdateOpenFileNameStruct(OpenFile);
 
 		return GetSaveFileName(&OpenFile);
@@ -123,7 +123,7 @@ BOOL WINAPI comdlg_GetSaveFileNameW(LPOPENFILENAMEW lpOpenFile)
 	if (lpOpenFile && (lpOpenFile->Flags & OFN_ENABLEHOOK))
 	{
 		OPENFILENAMEW OpenFile = {};
-		memcpy(&OpenFile, lpOpenFile, lpOpenFile->lStructSize);
+		memcpy(&OpenFile, lpOpenFile, min(lpOpenFile->lStructSize, sizeof(OpenFile)));
 		UpdateOpenFileNameStruct(OpenFile);
 
 		return GetSaveFileName(&OpenFile);
