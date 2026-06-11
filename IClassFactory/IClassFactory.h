@@ -12,7 +12,7 @@ DEFINE_GUID(IID_GetMipMapLevel, 0x22222222, 0x1c77, 0x4d40, 0xb0, 0xcf, 0x98, 0x
 
 DEFINE_GUID(IID_IDirect3DDxva2Container9, 0x126D0349, 0x4787, 0x4AA6, 0x8E, 0x1B, 0x40, 0xC1, 0x77, 0xC6, 0x0A, 0x01);
 
-typedef void(WINAPI *IQueryInterfaceProc)(REFIID, LPVOID *);
+typedef void(WINAPI* IQueryInterfaceProc)(REFIID, LPVOID*);
 typedef HRESULT(WINAPI* CoGetClassObjectProc)(REFCLSID rclsid, DWORD dwClsContext, LPVOID pvReserved, REFIID riid, LPVOID* ppv);
 typedef HRESULT(WINAPI* CoCreateInstanceProc)(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID* ppv);
 
@@ -25,26 +25,17 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 class m_IClassFactory : public IClassFactory
 {
 private:
-	IQueryInterfaceProc IQueryInterface;
-	IClassFactory *ProxyInterface;
-	const IID WrapperID = IID_IClassFactory;
-	CLSID ClassID = IID_IUnknown;
+	const GUID ClassID;
 	ULONG RefCount = 1;
 
 public:
-	m_IClassFactory(IClassFactory *aOriginal, IQueryInterfaceProc p_QueryInterface) : ProxyInterface(aOriginal), IQueryInterface(p_QueryInterface)
+	m_IClassFactory(REFCLSID riid) : ClassID(riid)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
 	}
 	~m_IClassFactory()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
-	}
-
-	void SetCLSID(REFCLSID rclsid)
-	{
-		ClassID = rclsid;
-		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ") ClassID: " << ClassID);
 	}
 
 	/*** IUnknown methods ***/

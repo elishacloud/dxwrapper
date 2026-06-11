@@ -6,11 +6,11 @@
 class DDClassFactory final : public ClassFactoryBase
 {
 private:
-	const GUID rclsid;
+	const GUID ClassID;
 
 public:
 	explicit DDClassFactory(IClassFactory* dinput8Factory, REFCLSID riid)
-		: ClassFactoryBase(dinput8Factory), rclsid(riid)
+		: ClassFactoryBase(dinput8Factory), ClassID(riid)
 	{
 	}
 
@@ -28,10 +28,10 @@ public:
 		// Dd7to9
 		if (m_dinput8Factory == nullptr)
 		{
-			if (rclsid == CLSID_DirectDraw || rclsid == CLSID_DirectDraw7)
+			if (ClassID == CLSID_DirectDraw || ClassID == CLSID_DirectDraw7)
 			{
 				IDirectDraw7* wrapper = nullptr;
-				if (rclsid == CLSID_DirectDraw)
+				if (ClassID == CLSID_DirectDraw)
 				{
 					HRESULT proxyHr = dd_DirectDrawCreate(nullptr, reinterpret_cast<LPDIRECTDRAW*>(&wrapper), pUnkOuter);
 					if (FAILED(proxyHr))
@@ -55,7 +55,7 @@ public:
 				}
 				return hr;
 			}
-			else if (rclsid == CLSID_DirectDrawClipper)
+			else if (ClassID == CLSID_DirectDrawClipper)
 			{
 				IDirectDrawClipper* wrapper = nullptr;
 				HRESULT proxyHr = dd_DirectDrawCreateClipper(0, reinterpret_cast<LPDIRECTDRAWCLIPPER*>(&wrapper), pUnkOuter);
@@ -77,7 +77,7 @@ public:
 			}
 		}
 
-		if (rclsid == CLSID_DirectDraw || rclsid == CLSID_DirectDraw7)
+		if (ClassID == CLSID_DirectDraw || ClassID == CLSID_DirectDraw7)
 		{
 			IDirectDraw7* proxyObject = nullptr;
 			HRESULT proxyHr = m_dinput8Factory->CreateInstance(pUnkOuter, riid, reinterpret_cast<void**>(&proxyObject));
@@ -86,7 +86,7 @@ public:
 				return proxyHr;
 			}
 
-			const DWORD DXVersion = rclsid == CLSID_DirectDraw ? 1 : 7;
+			const DWORD DXVersion = ClassID == CLSID_DirectDraw ? 1 : 7;
 
 			m_IDirectDrawX* wrapper = new (std::nothrow) m_IDirectDrawX(proxyObject, DXVersion);
 			if (wrapper != nullptr)
@@ -100,7 +100,7 @@ public:
 			}
 			return hr;
 		}
-		else if (rclsid == CLSID_DirectDrawClipper)
+		else if (ClassID == CLSID_DirectDrawClipper)
 		{
 			IDirectDrawClipper* proxyObject = nullptr;
 			HRESULT proxyHr = m_dinput8Factory->CreateInstance(pUnkOuter, riid, reinterpret_cast<void**>(&proxyObject));

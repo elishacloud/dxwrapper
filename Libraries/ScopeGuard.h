@@ -25,6 +25,84 @@ inline LONG InterlockedDecrementIfPositive(LONG* value)
     }
 }
 
+class CriticalSectionInit
+{
+private:
+    CriticalSectionInit(const CriticalSectionInit&) {}
+    CriticalSectionInit& operator=(const CriticalSectionInit&)
+    {
+        return *this;
+    }
+
+    CRITICAL_SECTION Cs;
+    volatile LONG InitState;
+
+    void Init()
+    {
+        if (InterlockedCompareExchange(&InitState, 2, 2) != 2)
+        {
+            if (InterlockedCompareExchange(&InitState, 1, 0) == 0)
+            {
+                InitializeCriticalSection(&Cs);
+                InterlockedExchange(&InitState, 2);
+            }
+            else
+            {
+                while (InterlockedCompareExchange(&InitState, 2, 2) != 2)
+                {
+                    SwitchToThread();
+                }
+            }
+        }
+    }
+
+public:
+    CriticalSectionInit() : InitState(0)
+    {
+        ZeroMemory(&Cs, sizeof(Cs));
+    }
+    ~CriticalSectionInit()
+    {
+        if (InterlockedCompareExchange(&InitState, 2, 2) == 2)
+        {
+            DeleteCriticalSection(&Cs);
+        }
+    }
+    void Enter()
+    {
+        Init();
+        EnterCriticalSection(&Cs);
+    }
+
+    void Leave()
+    {
+        LeaveCriticalSection(&Cs);
+    }
+
+    class Lock
+    {
+    private:
+        Lock(const Lock&) : LockObj(*static_cast<CriticalSectionInit*>(NULL)) {}
+        Lock& operator=(const Lock&)
+        {
+            return *this;
+        }
+
+        CriticalSectionInit& LockObj;
+
+    public:
+        Lock(CriticalSectionInit& Obj) : LockObj(Obj)
+        {
+            LockObj.Enter();
+        }
+
+        ~Lock()
+        {
+            LockObj.Leave();
+        }
+    };
+};
+
 template<typename T>
 struct ScopedFlagSet
 {

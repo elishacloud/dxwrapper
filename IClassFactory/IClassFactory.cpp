@@ -31,6 +31,7 @@
 #ifdef DSOUND
 #include "dsound\dsoundExternal.h"
 #endif
+#include "ScopeGuard.h"
 
 INITIALIZE_OUT_WRAPPED_PROC(CoGetClassObject, unused);
 INITIALIZE_OUT_WRAPPED_PROC(CoCreateInstance, unused);
@@ -58,24 +59,25 @@ namespace {
 
 	// Global vector to store all logged GUIDs and their current limits
 	std::vector<GuidLogLimitEntry> g_GuidLogVector;
+	CriticalSectionInit g_GuidLogLock;
 
 	bool GuidLogLimit(REFIID riid, DWORD limitThreshold, DWORD Line)
 	{
-		// Search for an existing entry
+		CriticalSectionInit::Lock Lock(g_GuidLogLock);
+
 		for (auto& entry : g_GuidLogVector)
 		{
 			if (entry.Line == Line && IsEqualGUID(entry.iid, riid))
 			{
-				// Found existing entry
+				bool Ret = false;
+
 				if (entry.Limit < limitThreshold)
 				{
 					entry.Limit++;
-					return true;
+					Ret = true;
 				}
-				else
-				{
-					return false; // Limit reached
-				}
+
+				return Ret;
 			}
 		}
 
@@ -92,9 +94,17 @@ namespace {
 
 static inline HRESULT CreateClassFactory(REFCLSID rclsid, LPVOID* ppv)
 {
-	*ppv = new m_IClassFactory((IClassFactory*)*ppv, nullptr);
+	if (!ppv)
+	{
+		return E_POINTER;
+	}
 
-	((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
+	*ppv = new (std::nothrow) m_IClassFactory(rclsid);
+
+	if (!*ppv)
+	{
+		return E_OUTOFMEMORY;
+	}
 
 	return S_OK;
 }
@@ -114,7 +124,7 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		{
 			if (riid == IID_IClassFactory)
 			{
-				return CreateClassFactory(rclsid,  ppv);
+				return CreateClassFactory(rclsid, ppv);
 			}
 
 			if (riid != IID_IUnknown &&
@@ -129,33 +139,13 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 			}
 
 			IDirectDraw* pDirectDraw = nullptr;
-			HRESULT hr;
-			if (riid == IID_IDirectDraw7)
-			{
-				hr = ((DirectDrawCreateExProc)ddraw::DirectDrawCreateEx_var)(nullptr, (LPVOID*)&pDirectDraw, riid, pUnkOuter);
-			}
-			else
-			{
-				hr = ((DirectDrawCreateProc)ddraw::DirectDrawCreate_var)(nullptr, &pDirectDraw, pUnkOuter);
-			}
+
+			HRESULT hr = ((DirectDrawCreateProc)ddraw::DirectDrawCreate_var)(nullptr, &pDirectDraw, pUnkOuter);
 
 			if (SUCCEEDED(hr) && pDirectDraw)
 			{
-				if (riid == IID_IUnknown || riid == IID_IDirectDraw || riid == IID_IDirectDraw7)
-				{
-					*ppv = pDirectDraw;
-				}
-				else
-				{
-					void* pvObj = nullptr;
-					hr = pDirectDraw->QueryInterface(riid, &pvObj);
-
-					if (SUCCEEDED(hr))
-					{
-						*ppv = pvObj;
-					}
-					pDirectDraw->Release();
-				}
+				hr = pDirectDraw->QueryInterface(riid, ppv);
+				pDirectDraw->Release();
 			}
 
 			return hr;
@@ -175,7 +165,17 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				return E_NOINTERFACE;
 			}
 
-			return ((DirectDrawCreateExProc)ddraw::DirectDrawCreateEx_var)(nullptr, ppv, IID_IDirectDraw7, pUnkOuter);
+			IDirectDraw7* pDirectDraw = nullptr;
+
+			HRESULT hr = ((DirectDrawCreateExProc)ddraw::DirectDrawCreateEx_var)(nullptr, reinterpret_cast<void**>(&pDirectDraw), IID_IDirectDraw7, pUnkOuter);
+
+			if (SUCCEEDED(hr) && pDirectDraw)
+			{
+				hr = pDirectDraw->QueryInterface(riid, ppv);
+				pDirectDraw->Release();
+			}
+
+			return hr;
 		}
 
 		// Create DirectDrawClipper interface
@@ -192,7 +192,17 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				return E_NOINTERFACE;
 			}
 
-			return ((DirectDrawCreateClipperProc)ddraw::DirectDrawCreateClipper_var)(0, (LPDIRECTDRAWCLIPPER*)ppv, pUnkOuter);
+			IDirectDrawClipper* pDirectDrawClipper = nullptr;
+
+			HRESULT hr = ((DirectDrawCreateClipperProc)ddraw::DirectDrawCreateClipper_var)(0, &pDirectDrawClipper, pUnkOuter);
+
+			if (SUCCEEDED(hr) && pDirectDrawClipper)
+			{
+				hr = pDirectDrawClipper->QueryInterface(riid, ppv);
+				pDirectDrawClipper->Release();
+			}
+
+			return hr;
 		}
 	}
 #endif
@@ -218,7 +228,17 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				return E_NOINTERFACE;
 			}
 
-			return ((DirectInputCreateExProc)dinput::DirectInputCreateEx_var)(GetModuleHandle(nullptr), 0x0700, riid == IID_IUnknown ? IID_IDirectInput7A : riid, ppv, pUnkOuter);
+			IDirectInput7W* pDirectInput = nullptr;
+
+			HRESULT hr = ((DirectInputCreateExProc)dinput::DirectInputCreateEx_var)(GetModuleHandle(nullptr), 0x0700, riid == IID_IUnknown ? IID_IDirectInput7W : riid, reinterpret_cast<void**>(&pDirectInput), pUnkOuter);
+
+			if (SUCCEEDED(hr) && pDirectInput)
+			{
+				hr = pDirectInput->QueryInterface(riid, ppv);
+				pDirectInput->Release();
+			}
+
+			return hr;
 		}
 
 		// Create DirectInputDevice interface
@@ -244,25 +264,55 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				(riid == IID_IDirectInputDevice2W) ? IID_IDirectInput2W :
 				(riid == IID_IDirectInputDevice7A) ? IID_IDirectInput7A : IID_IDirectInput7A;
 
-			void* pIDirectInput = nullptr;
-			HRESULT hr = ((DirectInputCreateExProc)dinput::DirectInputCreateEx_var)(GetModuleHandle(nullptr), 0x0700, riidltf, &pIDirectInput, pUnkOuter);
-
-			if (SUCCEEDED(hr) && pIDirectInput)
+			if (riid == IID_IUnknown ||
+				riid == IID_IDirectInputDeviceW ||
+				riid == IID_IDirectInputDevice2W ||
+				riid == IID_IDirectInputDevice7W)
 			{
-				if (riid == IID_IUnknown ||
-					riid == IID_IDirectInputDeviceW ||
-					riid == IID_IDirectInputDevice2W ||
-					riid == IID_IDirectInputDevice7W)
-				{
-					hr = (static_cast<IDirectInputW*>(pIDirectInput))->CreateDevice(riid == IID_IUnknown ? IID_IDirectInputDevice7W : riid, (LPDIRECTINPUTDEVICEW*)ppv, pUnkOuter);
-				}
-				else
-				{
-					hr = (static_cast<IDirectInputA*>(pIDirectInput))->CreateDevice(riid == IID_IUnknown ? IID_IDirectInputDevice7A : riid, (LPDIRECTINPUTDEVICEA*)ppv, pUnkOuter);
-				}
-			}
+				IDirectInputW* pIDirectInput = nullptr;
 
-			return hr;
+				HRESULT hr = ((DirectInputCreateExProc)dinput::DirectInputCreateEx_var)(GetModuleHandle(nullptr), 0x0700, riidltf, reinterpret_cast<void**>(&pIDirectInput), pUnkOuter);
+
+				if (SUCCEEDED(hr) && pIDirectInput)
+				{
+					IDirectInputDeviceW* pDirectInputDevice = nullptr;
+
+					hr = pIDirectInput->CreateDevice(riid == IID_IUnknown ? IID_IDirectInputDevice7W : riid, &pDirectInputDevice, pUnkOuter);
+
+					if (SUCCEEDED(hr) && pDirectInputDevice)
+					{
+						hr = pDirectInputDevice->QueryInterface(riid, ppv);
+						pDirectInputDevice->Release();
+					}
+
+					pIDirectInput->Release();
+				}
+
+				return hr;
+			}
+			else
+			{
+				IDirectInputA* pIDirectInput = nullptr;
+
+				HRESULT hr = ((DirectInputCreateExProc)dinput::DirectInputCreateEx_var)(GetModuleHandle(nullptr), 0x0700, riidltf, reinterpret_cast<void**>(&pIDirectInput), pUnkOuter);
+
+				if (SUCCEEDED(hr) && pIDirectInput)
+				{
+					IDirectInputDeviceA* pDirectInputDevice = nullptr;
+
+					hr = pIDirectInput->CreateDevice(IID_IDirectInputDevice7A, &pDirectInputDevice, pUnkOuter);
+
+					if (SUCCEEDED(hr) && pDirectInputDevice)
+					{
+						hr = pDirectInputDevice->QueryInterface(riid, ppv);
+						pDirectInputDevice->Release();
+					}
+
+					pIDirectInput->Release();
+				}
+
+				return hr;
+			}
 		}
 	}
 #endif
@@ -285,7 +335,17 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				return E_NOINTERFACE;
 			}
 
-			return ((DirectInput8CreateProc)dinput8::DirectInput8Create_var)(GetModuleHandle(nullptr), 0x0800, riid == IID_IUnknown ? IID_IDirectInput8A : riid, ppv, pUnkOuter);
+			IDirectInput8W* pDirectInput = nullptr;
+
+			HRESULT hr = ((DirectInput8CreateProc)dinput8::DirectInput8Create_var)(GetModuleHandle(nullptr), 0x0800, riid == IID_IUnknown ? IID_IDirectInput8W : riid, reinterpret_cast<void**>(&pDirectInput), pUnkOuter);
+
+			if (SUCCEEDED(hr) && pDirectInput)
+			{
+				hr = pDirectInput->QueryInterface(riid, ppv);
+				pDirectInput->Release();
+			}
+
+			return hr;
 		}
 
 		// Create DirectInputDevice8 interface
@@ -302,22 +362,52 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				return E_NOINTERFACE;
 			}
 
-			void* pIDirectInput8 = nullptr;
-			HRESULT hr = ((DirectInput8CreateProc)dinput8::DirectInput8Create_var)(GetModuleHandle(nullptr), 0x0800, riid == IID_IDirectInputDevice8W ? IID_IDirectInput8W : IID_IDirectInput8A, (LPVOID*)&pIDirectInput8, pUnkOuter);
-
-			if (SUCCEEDED(hr) && pIDirectInput8)
+			if (riid == IID_IUnknown || riid == IID_IDirectInputDevice8W)
 			{
-				if (riid == IID_IUnknown || riid == IID_IDirectInputDevice8W)
-				{
-					hr = (static_cast<IDirectInput8W*>(pIDirectInput8))->CreateDevice(IID_IDirectInputDevice8W, (LPDIRECTINPUTDEVICE8W*)ppv, pUnkOuter);
-				}
-				else
-				{
-					hr = (static_cast<IDirectInput8A*>(pIDirectInput8))->CreateDevice(IID_IDirectInputDevice8A, (LPDIRECTINPUTDEVICE8A*)ppv, pUnkOuter);
-				}
-			}
+				IDirectInput8W* pIDirectInput = nullptr;
 
-			return hr;
+				HRESULT hr = ((DirectInput8CreateProc)dinput8::DirectInput8Create_var)(GetModuleHandle(nullptr), 0x0800, IID_IDirectInput8W, reinterpret_cast<void**>(&pIDirectInput), pUnkOuter);
+
+				if (SUCCEEDED(hr) && pIDirectInput)
+				{
+					IDirectInputDevice8W* pDirectInputDevice = nullptr;
+
+					hr = pIDirectInput->CreateDevice(IID_IDirectInputDevice8W, &pDirectInputDevice, pUnkOuter);
+
+					if (SUCCEEDED(hr) && pDirectInputDevice)
+					{
+						hr = pDirectInputDevice->QueryInterface(riid, ppv);
+						pDirectInputDevice->Release();
+					}
+
+					pIDirectInput->Release();
+				}
+
+				return hr;
+			}
+			else
+			{
+				IDirectInput8A* pIDirectInput = nullptr;
+
+				HRESULT hr = ((DirectInput8CreateProc)dinput8::DirectInput8Create_var)(GetModuleHandle(nullptr), 0x0800, IID_IDirectInput8A, reinterpret_cast<void**>(&pIDirectInput), pUnkOuter);
+
+				if (SUCCEEDED(hr) && pIDirectInput)
+				{
+					IDirectInputDevice8A* pDirectInputDevice = nullptr;
+
+					hr = pIDirectInput->CreateDevice(IID_IDirectInputDevice8A, &pDirectInputDevice, pUnkOuter);
+
+					if (SUCCEEDED(hr) && pDirectInputDevice)
+					{
+						hr = pDirectInputDevice->QueryInterface(riid, ppv);
+						pDirectInputDevice->Release();
+					}
+
+					pIDirectInput->Release();
+				}
+
+				return hr;
+			}
 		}
 	}
 #endif
@@ -340,7 +430,17 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				return E_NOINTERFACE;
 			}
 
-			return ((DirectSoundCreateProc)dsound::DirectSoundCreate_var)(NULL, (LPDIRECTSOUND*)ppv, pUnkOuter);
+			IDirectSound* pIDirectSound = nullptr;
+
+			HRESULT hr = ((DirectSoundCreateProc)dsound::DirectSoundCreate_var)(nullptr, &pIDirectSound, pUnkOuter);
+
+			if (SUCCEEDED(hr) && pIDirectSound)
+			{
+				hr = pIDirectSound->QueryInterface(riid, ppv);
+				pIDirectSound->Release();
+			}
+
+			return hr;
 		}
 
 		// Create DirectSound8 interface
@@ -357,7 +457,17 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 				return E_NOINTERFACE;
 			}
 
-			return ((DirectSoundCreate8Proc)dsound::DirectSoundCreate8_var)(NULL, (LPDIRECTSOUND8*)ppv, pUnkOuter);
+			IDirectSound8* pIDirectSound = nullptr;
+
+			HRESULT hr = ((DirectSoundCreate8Proc)dsound::DirectSoundCreate8_var)(nullptr, &pIDirectSound, pUnkOuter);
+
+			if (SUCCEEDED(hr) && pIDirectSound)
+			{
+				hr = pIDirectSound->QueryInterface(riid, ppv);
+				pIDirectSound->Release();
+			}
+
+			return hr;
 		}
 	}
 #endif
@@ -372,7 +482,7 @@ static HRESULT CreateWrapperInterface(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 
 HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
-	LOG_GUID_LIMIT(riid, 3, __FUNCTION__ << " Query for " << riid << " from " << WrapperID);
+	LOG_GUID_LIMIT(riid, 3, __FUNCTION__ << " Query for " << riid << " from IID_IClassFactory");
 
 	if (!ppvObj)
 	{
@@ -389,87 +499,21 @@ HRESULT m_IClassFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 		return S_OK;
 	}
 
-	if (!IQueryInterface && !ProxyInterface)
-	{
-		return E_INVALIDARG;
-	}
-
-	if (!ProxyInterface)
-	{
-		*ppvObj = nullptr;
-
-		IQueryInterface(riid, ppvObj);
-
-		if (*ppvObj)
-		{
-			return S_OK;
-		}
-
-		LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << WrapperID);
-
-		return E_NOINTERFACE;
-	}
-
-	if (!IQueryInterface)
-	{
-		bool InterfaceCreated = false;
-		HRESULT hr = CreateWrapperInterface(ClassID, nullptr, 0, riid, ppvObj, InterfaceCreated);
-
-		if (InterfaceCreated)
-		{
-			return hr;
-		}
-
-		return ProxyInterface->QueryInterface(riid, ppvObj);
-	}
-
-	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
-
-	if (SUCCEEDED(hr))
-	{
-		IQueryInterface(riid, ppvObj);
-	}
-	else
-	{
-		IQueryInterface(riid, ppvObj);
-
-		if (*ppvObj)
-		{
-			return S_OK;
-		}
-
-		Logging::LogDebug() << "Query failed for " << riid << " Error " << Logging::hex(hr);
-	}
-
-	return hr;
+	return E_NOINTERFACE;
 }
 
 ULONG m_IClassFactory::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!ProxyInterface)
-	{
-		return InterlockedIncrement(&RefCount);
-	}
-
-	return ProxyInterface->AddRef();
+	return InterlockedIncrement(&RefCount);
 }
 
 ULONG m_IClassFactory::Release()
 {
 	Logging::LogDebug() << __FUNCTION__;
 
-	ULONG ref;
-
-	if (!ProxyInterface)
-	{
-		ref = InterlockedDecrement(&RefCount);
-	}
-	else
-	{
-		ref = ProxyInterface->Release();
-	}
+	ULONG ref = InterlockedDecrement(&RefCount);
 
 	if (ref == 0)
 	{
@@ -493,76 +537,50 @@ HRESULT m_IClassFactory::CreateInstance(IUnknown* pUnkOuter, REFIID riid, void**
 	}
 	*ppvObject = nullptr;
 
-	if (!IQueryInterface && !ProxyInterface)
+	if (pUnkOuter)
 	{
-		return E_INVALIDARG;
+		return CLASS_E_NOAGGREGATION;
 	}
 
-	if (!ProxyInterface)
+	// Prevent recursive loop
+	if (riid == IID_IClassFactory)
 	{
-		IQueryInterface(riid, ppvObject);
-
-		if (*ppvObject)
-		{
-			return S_OK;
-		}
-
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented for IID " << riid);
-
-		return E_FAIL;
+		return E_NOINTERFACE;
 	}
 
-	if (!IQueryInterface)
+	bool InterfaceCreated = false;
+
+	HRESULT hr = CreateWrapperInterface(ClassID, pUnkOuter, 0, riid, ppvObject, InterfaceCreated);
+
+	if (InterfaceCreated)
 	{
-		bool InterfaceCreated = false;
-
-		HRESULT hr = CreateWrapperInterface(ClassID, nullptr, 0, riid, ppvObject, InterfaceCreated);
-
-		if (InterfaceCreated)
-		{
-			return hr;
-		}
-
-		return ProxyInterface->CreateInstance(pUnkOuter, riid, ppvObject);
+		return hr;
 	}
 
-	HRESULT hr = ProxyInterface->CreateInstance(pUnkOuter, riid, ppvObject);
+	Logging::LogDebug() << "Query failed for " << riid << " Error " << Logging::hex(hr);
 
-	if (SUCCEEDED(hr))
-	{
-		IQueryInterface(riid, ppvObject);
-	}
-	else
-	{
-		IQueryInterface(riid, ppvObject);
-
-		if (*ppvObject)
-		{
-			return S_OK;
-		}
-
-		Logging::LogDebug() << "Query failed for " << riid << " Error " << Logging::hex(hr);
-	}
-
-	return hr;
+	return E_NOINTERFACE;
 }
 
 HRESULT m_IClassFactory::LockServer(BOOL fLock)
 {
+	UNREFERENCED_PARAMETER(fLock);
+
 	Logging::LogDebug() << __FUNCTION__;
 
-	if (!ProxyInterface)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
-		return E_NOTIMPL;
-	}
-
-	return ProxyInterface->LockServer(fLock);
+	LOG_LIMIT(100, __FUNCTION__ << " Not Implemented");
+	return E_NOTIMPL;
 }
 
 HRESULT WINAPI CoGetClassObjectHandle(REFCLSID rclsid, DWORD dwClsContext, LPVOID pvReserved, REFIID riid, LPVOID* ppv)
 {
 	LOG_GUID_LIMIT(rclsid, 3, __FUNCTION__ " " << rclsid << " -> " << riid);
+
+	if (!ppv)
+	{
+		return E_POINTER;
+	}
+	*ppv = nullptr;
 
 	DEFINE_STATIC_PROC_ADDRESS(CoGetClassObjectProc, CoGetClassObject, CoGetClassObject_out);
 
@@ -570,12 +588,6 @@ HRESULT WINAPI CoGetClassObjectHandle(REFCLSID rclsid, DWORD dwClsContext, LPVOI
 	{
 		return E_FAIL;
 	}
-
-	if (!ppv)
-	{
-		return E_POINTER;
-	}
-	*ppv = nullptr;
 
 	bool InterfaceCreated = false;
 
@@ -593,18 +605,18 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 {
 	LOG_GUID_LIMIT(rclsid, 3, __FUNCTION__ " " << rclsid << " -> " << riid);
 
+	if (!ppv)
+	{
+		return E_POINTER;
+	}
+	*ppv = nullptr;
+
 	DEFINE_STATIC_PROC_ADDRESS(CoCreateInstanceProc, CoCreateInstance, CoCreateInstance_out);
 
 	if (!CoCreateInstance)
 	{
 		return E_FAIL;
 	}
-
-	if (!ppv)
-	{
-		return E_POINTER;
-	}
-	*ppv = nullptr;
 
 	bool InterfaceCreated = false;
 
