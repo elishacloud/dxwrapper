@@ -768,7 +768,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 						// Flags
 						DWORD psFlags = (Flags & D3DPROCESSVERTICES_NOCOLOR) ? D3DPV_DONOTCOPYDATA : 0;
-						DWORD VertexOp = (IsLight ? D3DVOP_LIGHT : 0) | (UpdateExtents ? D3DVOP_EXTENTS : 0);
+						DWORD VertexOp = D3DVOP_TRANSFORM | (IsLight ? D3DVOP_LIGHT : 0) | (UpdateExtents ? D3DVOP_EXTENTS : 0);
 
 						// FVF
 						DWORD SrcVertexTypeDesc = IsLight ? D3DFVF_VERTEX : D3DFVF_LVERTEX;
