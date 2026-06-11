@@ -1075,7 +1075,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceD
 
 			if (lpDDSurface)
 			{
-				lpDDSurface = (LPDIRECTDRAWSURFACE)ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
+				lpDDSurface = (LPDIRECTDRAWSURFACE)ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
 			}
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc, self->lpContext);
@@ -1110,7 +1110,7 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 
 			if (!Config.Dd7to9)
 			{
-				lpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
+				lpDDSurface = ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
 			}
 
 			if (self->lpCallback7)
@@ -1513,7 +1513,7 @@ HRESULT m_IDirectDrawX::GetGDISurface(LPDIRECTDRAWSURFACE7 FAR * lplpGDIDDSSurfa
 
 	if (SUCCEEDED(hr) && lplpGDIDDSSurface)
 	{
-		*lplpGDIDDSSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpGDIDDSSurface, DirectXVersion);
+		*lplpGDIDDSSurface = ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawSurface7>(*lplpGDIDDSSurface, DirectXVersion);
 	}
 
 	return hr;
@@ -1886,8 +1886,8 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 					if (it != std::end(g_hookmap))
 					{
 						m_IDirectDrawX *lpDDraw = it->second;
-						if (lpDDraw && (ProxyAddressLookupTable.IsValidWrapperAddress(lpDDraw) ||
-							ProxyAddressLookupTable.IsValidProxyAddress<m_IDirectDrawX>(lpDDraw)))
+						if (lpDDraw && (ProxyAddressLookupTableDdraw.IsValidWrapperAddress(lpDDraw) ||
+							ProxyAddressLookupTableDdraw.IsValidProxyAddress<m_IDirectDrawX>(lpDDraw)))
 						{
 							LOG_LIMIT(3, __FUNCTION__ << " Removing exclusive flag from closing window!");
 							lpDDraw->SetCooperativeLevel(hWnd, DDSCL_NORMAL, WindowsGDIHook_DirectXVersion);
@@ -2291,7 +2291,7 @@ HRESULT m_IDirectDrawX::GetSurfaceFromDC(HDC hdc, LPDIRECTDRAWSURFACE7 * lpDDS, 
 
 	if (SUCCEEDED(hr) && lpDDS)
 	{
-		*lpDDS = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lpDDS, DirectXVersion);
+		*lpDDS = ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawSurface7>(*lpDDS, DirectXVersion);
 	}
 
 	return hr;

@@ -10,11 +10,11 @@ private:
 public:
 	m_IDirectDraw7(IDirectDraw7 *, m_IDirectDrawX *Interface) : ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectDraw7()
 	{
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
 	void SetProxy(m_IDirectDrawX* NewProxyInterface)
@@ -22,11 +22,11 @@ public:
 		ProxyInterface = NewProxyInterface;
 		if (NewProxyInterface)
 		{
-			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+			ProxyAddressLookupTableDdraw.SaveAddress(this, ProxyInterface);
 		}
 		else
 		{
-			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 		}
 	}
 

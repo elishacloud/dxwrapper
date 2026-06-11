@@ -10,11 +10,11 @@ private:
 public:
 	m_IDirect3DDevice7(IDirect3DDevice7 *, m_IDirect3DDeviceX *Interface) : ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DDevice7()
 	{
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
 	void SetProxy(m_IDirect3DDeviceX* NewProxyInterface)
@@ -22,11 +22,11 @@ public:
 		ProxyInterface = NewProxyInterface;
 		if (NewProxyInterface)
 		{
-			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+			ProxyAddressLookupTableDdraw.SaveAddress(this, ProxyInterface);
 		}
 		else
 		{
-			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 		}
 	}
 

@@ -10,11 +10,11 @@ private:
 public:
 	m_IDirect3DViewport2(IDirect3DViewport2 *, m_IDirect3DViewportX *Interface) : ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DViewport2()
 	{
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
 	void SetProxy(m_IDirect3DViewportX* NewProxyInterface)
@@ -22,11 +22,11 @@ public:
 		ProxyInterface = NewProxyInterface;
 		if (NewProxyInterface)
 		{
-			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+			ProxyAddressLookupTableDdraw.SaveAddress(this, ProxyInterface);
 		}
 		else
 		{
-			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 		}
 	}
 

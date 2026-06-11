@@ -224,19 +224,19 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 	{
 		if (DirectXVersion == 1)
 		{
-			*ppvObj = ProxyAddressLookupTable.FindAddress<m_IDirect3DDevice>(*ppvObj);
+			*ppvObj = ProxyAddressLookupTableDdraw.FindAddress<m_IDirect3DDevice>(*ppvObj);
 		}
 		else if (DirectXVersion == 2)
 		{
-			*ppvObj = ProxyAddressLookupTable.FindAddress<m_IDirect3DDevice2>(*ppvObj);
+			*ppvObj = ProxyAddressLookupTableDdraw.FindAddress<m_IDirect3DDevice2>(*ppvObj);
 		}
 		else if (DirectXVersion == 3 || DirectXVersion == 4)
 		{
-			*ppvObj = ProxyAddressLookupTable.FindAddress<m_IDirect3DDevice3>(*ppvObj);
+			*ppvObj = ProxyAddressLookupTableDdraw.FindAddress<m_IDirect3DDevice3>(*ppvObj);
 		}
 		else
 		{
-			*ppvObj = ProxyAddressLookupTable.FindAddress<m_IDirect3DDevice7>(*ppvObj);
+			*ppvObj = ProxyAddressLookupTableDdraw.FindAddress<m_IDirect3DDevice7>(*ppvObj);
 		}
 	}
 
@@ -451,7 +451,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 		" PresentBlt = " << PresentBlt;
 
 	// Check if source Surface exists
-	if (lpDDSrcSurface && !ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface))
+	if (lpDDSrcSurface && !ProxyAddressLookupTableDdraw.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << lpDDSrcSurface);
 		return DDERR_INVALIDPARAMS;
@@ -879,7 +879,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 	{
 		if (DDBltBatch[x].lpDDSSrc)
 		{
-			if (!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)DDBltBatch[x].lpDDSSrc))
+			if (!ProxyAddressLookupTableDdraw.IsValidWrapperAddress((m_IDirectDrawSurface*)DDBltBatch[x].lpDDSSrc))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << DDBltBatch[x].lpDDSSrc);
 				return DDERR_INVALIDPARAMS;
@@ -896,7 +896,7 @@ HRESULT m_IDirectDrawSurfaceX::BltFast(DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	// Check if source Surface exists
-	if (lpDDSrcSurface && !ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface))
+	if (lpDDSrcSurface && !ProxyAddressLookupTableDdraw.IsValidWrapperAddress((m_IDirectDrawSurface*)lpDDSrcSurface))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not find source surface! " << lpDDSrcSurface);
 		return DDERR_INVALIDPARAMS;
@@ -1055,7 +1055,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces(LPVOID lpContext, LPDDENUMSU
 
 			if (lpDDSurface)
 			{
-				lpDDSurface = (LPDIRECTDRAWSURFACE)ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
+				lpDDSurface = (LPDIRECTDRAWSURFACE)ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
 			}
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc, self->lpContext);
@@ -1090,7 +1090,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 
 			if (!Config.Dd7to9)
 			{
-				lpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
+				lpDDSurface = ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
 			}
 
 			if (self->lpCallback7)
@@ -1182,7 +1182,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders(DWORD dwFlags, LPVOID lpContex
 
 			if (lpDDSurface)
 			{
-				lpDDSurface = (LPDIRECTDRAWSURFACE)ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
+				lpDDSurface = (LPDIRECTDRAWSURFACE)ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
 			}
 
 			return self->lpCallback(lpDDSurface, lpDDSurfaceDesc, self->lpContext);
@@ -1217,7 +1217,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumOverlayZOrders2(DWORD dwFlags, LPVOID lpConte
 
 			if (!Config.Dd7to9)
 			{
-				lpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
+				lpDDSurface = ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawSurface7>(lpDDSurface, self->DirectXVersion);
 			}
 
 			if (self->lpCallback7)
@@ -1474,7 +1474,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTD
 
 	if (SUCCEEDED(hr) && lplpDDAttachedSurface)
 	{
-		*lplpDDAttachedSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDDAttachedSurface, DirectXVersion);
+		*lplpDDAttachedSurface = ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawSurface7>(*lplpDDAttachedSurface, DirectXVersion);
 	}
 
 	return hr;
@@ -1597,7 +1597,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 
 	if (SUCCEEDED(hr) && lplpDDAttachedSurface)
 	{
-		*lplpDDAttachedSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpDDAttachedSurface, DirectXVersion);
+		*lplpDDAttachedSurface = ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawSurface7>(*lplpDDAttachedSurface, DirectXVersion);
 	}
 
 	return hr;
@@ -1723,7 +1723,7 @@ HRESULT m_IDirectDrawSurfaceX::GetClipper(LPDIRECTDRAWCLIPPER FAR * lplpDDClippe
 
 	if (SUCCEEDED(hr) && lplpDDClipper)
 	{
-		*lplpDDClipper = ProxyAddressLookupTable.FindAddress<m_IDirectDrawClipper>(*lplpDDClipper);
+		*lplpDDClipper = ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawClipper>(*lplpDDClipper);
 	}
 
 	return hr;
@@ -2100,7 +2100,7 @@ HRESULT m_IDirectDrawSurfaceX::GetPalette(LPDIRECTDRAWPALETTE FAR * lplpDDPalett
 
 	if (SUCCEEDED(hr) && lplpDDPalette)
 	{
-		*lplpDDPalette = ProxyAddressLookupTable.FindAddress<m_IDirectDrawPalette>(*lplpDDPalette);
+		*lplpDDPalette = ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawPalette>(*lplpDDPalette);
 	}
 
 	return hr;
@@ -2901,7 +2901,7 @@ HRESULT m_IDirectDrawSurfaceX::SetClipper(LPDIRECTDRAWCLIPPER lpDDClipper)
 		// If clipper exists increament ref
 		if (lpDDClipper)
 		{
-			if (!ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirectDrawClipper*)lpDDClipper))
+			if (!ProxyAddressLookupTableDdraw.IsValidWrapperAddress((m_IDirectDrawClipper*)lpDDClipper))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not find clipper " << lpDDClipper);
 				return DDERR_INVALIDPARAMS;
@@ -3512,7 +3512,7 @@ HRESULT m_IDirectDrawSurfaceX::GetDDInterface(LPVOID FAR * lplpDD, DWORD DirectX
 
 		((IUnknown*)NewDD)->Release();
 
-		*lplpDD = ProxyAddressLookupTable.FindAddress<m_IDirectDraw7>(*lplpDD, DirectXVersion);
+		*lplpDD = ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDraw7>(*lplpDD, DirectXVersion);
 	}
 
 	return hr;

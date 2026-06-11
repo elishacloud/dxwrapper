@@ -27,7 +27,7 @@ public:
 
 		InitInterface();
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	m_IDirectDrawColorControl(m_IDirectDrawX *Interface) : ddrawParent(Interface)
 	{
@@ -35,7 +35,7 @@ public:
 
 		InitInterface();
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirectDrawColorControl()
 	{
@@ -43,7 +43,7 @@ public:
 
 		ReleaseInterface();
 
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
 	void SetProxy(IDirectDrawColorControl* NewProxyInterface, m_IDirectDrawX* NewParent)
@@ -54,12 +54,12 @@ public:
 			ProxyInterface = NewProxyInterface;
 			ddrawParent = NewParent;
 			InitInterface();
-			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+			ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
 		else
 		{
 			ReleaseInterface();
-			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			ddrawParent = nullptr;
 		}

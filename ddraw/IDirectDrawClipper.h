@@ -34,7 +34,7 @@ public:
 
 		InitInterface(0);
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	m_IDirectDrawClipper(m_IDirectDrawX* Interface, DWORD dwFlags) : ddrawParent(Interface)
 	{
@@ -42,7 +42,7 @@ public:
 
 		InitInterface(dwFlags);
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirectDrawClipper()
 	{
@@ -50,7 +50,7 @@ public:
 
 		ReleaseInterface();
 
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
 	void SetProxy(IDirectDrawClipper* NewProxyInterface, m_IDirectDrawX* NewParent, DWORD dwFlags)
@@ -61,12 +61,12 @@ public:
 			ProxyInterface = NewProxyInterface;
 			ddrawParent = NewParent;
 			InitInterface(dwFlags);
-			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+			ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
 		else
 		{
 			ReleaseInterface();
-			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			ddrawParent = nullptr;
 		}

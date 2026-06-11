@@ -21,8 +21,6 @@ public:
 		{
 			return E_POINTER;
 		}
-
-		HRESULT hr = E_OUTOFMEMORY;
 		*ppvObject = nullptr;
 
 		// Dd7to9
@@ -48,11 +46,8 @@ public:
 					}
 				}
 
-				if (wrapper != nullptr)
-				{
-					hr = wrapper->QueryInterface(riid, ppvObject);
-					wrapper->Release();
-				}
+				HRESULT hr = wrapper->QueryInterface(riid, ppvObject);
+				wrapper->Release();
 				return hr;
 			}
 			else if (ClassID == CLSID_DirectDrawClipper)
@@ -64,11 +59,8 @@ public:
 					return proxyHr;
 				}
 
-				if (wrapper != nullptr)
-				{
-					hr = wrapper->QueryInterface(riid, ppvObject);
-					wrapper->Release();
-				}
+				HRESULT hr = wrapper->QueryInterface(riid, ppvObject);
+				wrapper->Release();
 				return hr;
 			}
 			else
@@ -89,15 +81,14 @@ public:
 			const DWORD DXVersion = ClassID == CLSID_DirectDraw ? 1 : 7;
 
 			m_IDirectDrawX* wrapper = new (std::nothrow) m_IDirectDrawX(proxyObject, DXVersion);
-			if (wrapper != nullptr)
-			{
-				hr = wrapper->QueryInterface(riid, ppvObject, DXVersion);
-				wrapper->Release();
-			}
-			else
+			if (!wrapper)
 			{
 				proxyObject->Release();
+				return E_OUTOFMEMORY;
 			}
+
+			HRESULT hr = wrapper->QueryInterface(riid, ppvObject, DXVersion);
+			wrapper->Release(DXVersion);
 			return hr;
 		}
 		else if (ClassID == CLSID_DirectDrawClipper)
@@ -110,15 +101,14 @@ public:
 			}
 
 			m_IDirectDrawClipper* wrapper = new (std::nothrow) m_IDirectDrawClipper(proxyObject);
-			if (wrapper != nullptr)
-			{
-				hr = wrapper->QueryInterface(riid, ppvObject);
-				wrapper->Release();
-			}
-			else
+			if (!wrapper)
 			{
 				proxyObject->Release();
+				return E_OUTOFMEMORY;
 			}
+
+			HRESULT hr = wrapper->QueryInterface(riid, ppvObject);
+			wrapper->Release();
 			return hr;
 		}
 		else

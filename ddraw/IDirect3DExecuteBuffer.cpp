@@ -133,7 +133,7 @@ HRESULT m_IDirect3DExecuteBuffer::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, 
 		return DDERR_ALREADYINITIALIZED;
 	}
 
-	if (lpDirect3DDevice && ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirect3DDevice*)lpDirect3DDevice))
+	if (lpDirect3DDevice && ProxyAddressLookupTableDdraw.IsValidWrapperAddress((m_IDirect3DDevice*)lpDirect3DDevice))
 	{
 		lpDirect3DDevice->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3DDevice);
 	}

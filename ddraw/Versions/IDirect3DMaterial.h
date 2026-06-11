@@ -10,11 +10,11 @@ private:
 public:
 	m_IDirect3DMaterial(IDirect3DMaterial *, m_IDirect3DMaterialX *Interface) : ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DMaterial()
 	{
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
 	void SetProxy(m_IDirect3DMaterialX* NewProxyInterface)
@@ -22,11 +22,11 @@ public:
 		ProxyInterface = NewProxyInterface;
 		if (NewProxyInterface)
 		{
-			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+			ProxyAddressLookupTableDdraw.SaveAddress(this, ProxyInterface);
 		}
 		else
 		{
-			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 		}
 	}
 

@@ -28,7 +28,7 @@ public:
 
 		InitInterface();
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	m_IDirect3DLight(m_IDirect3DX *D3D) : D3DInterface(D3D)
 	{
@@ -36,7 +36,7 @@ public:
 
 		InitInterface();
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirect3DLight()
 	{
@@ -44,7 +44,7 @@ public:
 
 		ReleaseInterface();
 
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
 	void SetProxy(IDirect3DLight* NewProxyInterface, m_IDirect3DX* NewD3DInterface)
@@ -55,12 +55,12 @@ public:
 			ProxyInterface = NewProxyInterface;
 			D3DInterface = NewD3DInterface;
 			InitInterface();
-			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+			ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
 		else
 		{
 			ReleaseInterface();
-			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			D3DInterface = nullptr;
 		}

@@ -112,7 +112,7 @@ namespace DdrawWrapper
 	CRITICAL_SECTION* GetPECriticalSection();
 }
 
-extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
+extern AddressLookupTableDdraw<void> ProxyAddressLookupTableDdraw;
 
 enum DirectDrawEnumerateTypes
 {

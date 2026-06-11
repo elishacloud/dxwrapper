@@ -25,7 +25,7 @@
 #include "GDI\GDI.h"
 #include "External\Hooking\Hook.h"
 
-AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
+AddressLookupTableDdraw<void> ProxyAddressLookupTableDdraw = AddressLookupTableDdraw<void>();
 
 static UINT GetAdapterIndex(GUID FAR* lpGUID);
 
@@ -288,12 +288,15 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
 
-		m_IDirectDrawX* p_IDirectDrawX = new m_IDirectDrawX(1, GetAdapterIndex(lpGUID), false);
+		m_IDirectDrawX* pDirectDraw = new (std::nothrow) m_IDirectDrawX(1, GetAdapterIndex(lpGUID), false);
+		if (!pDirectDraw)
+		{
+			return E_OUTOFMEMORY;
+		}
 
-		*lplpDD = reinterpret_cast<LPDIRECTDRAW>(p_IDirectDrawX->GetWrapperInterfaceX(1));
-
-		// Success
-		return DD_OK;
+		HRESULT hr = pDirectDraw->QueryInterface(IID_IDirectDraw, reinterpret_cast<void**>(lplpDD), 1);
+		pDirectDraw->Release(1);
+		return hr;
 	}
 
 	DEFINE_STATIC_PROC_ADDRESS(DirectDrawCreateProc, DirectDrawCreate, DirectDrawCreate_out);
@@ -313,11 +316,17 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 
 	HRESULT hr = DirectDrawCreate(lpGUID, lplpDD, pUnkOuter);
 
-	if (SUCCEEDED(hr) && lplpDD && *lplpDD)
+	if (SUCCEEDED(hr))
 	{
-		m_IDirectDrawX* Interface = new m_IDirectDrawX((IDirectDraw7*)*lplpDD, 1);
+		m_IDirectDrawX* pDirectDraw = new (std::nothrow) m_IDirectDrawX((IDirectDraw7*)*lplpDD, 1);
+		if (!pDirectDraw)
+		{
+			(*lplpDD)->Release();
+			return E_OUTOFMEMORY;
+		}
 
-		*lplpDD = (LPDIRECTDRAW)Interface->GetWrapperInterfaceX(1);
+		hr = pDirectDraw->QueryInterface(IID_IDirectDraw, reinterpret_cast<void**>(lplpDD), 1);
+		pDirectDraw->Release(1);
 	}
 
 	return hr;
@@ -398,12 +407,15 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
 
-		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(7, GetAdapterIndex(lpGUID), true);
+		m_IDirectDrawX * pDirectDraw = new (std::nothrow) m_IDirectDrawX(7, GetAdapterIndex(lpGUID), true);
+		if (!pDirectDraw)
+		{
+			return E_OUTOFMEMORY;
+		}
 
-		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(7);
-
-		// Success
-		return DD_OK;
+		HRESULT hr = pDirectDraw->QueryInterface(riid, lplpDD, 7);
+		pDirectDraw->Release(7);
+		return hr;
 	}
 
 	DEFINE_STATIC_PROC_ADDRESS(DirectDrawCreateExProc, DirectDrawCreateEx, DirectDrawCreateEx_out);
@@ -421,15 +433,19 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 	LOG_LIMIT(3, "Redirecting 'DirectDrawCreateEx' ...");
 
-	HRESULT hr = DirectDrawCreateEx(lpGUID, lplpDD, IID_IDirectDraw7, pUnkOuter);
+	HRESULT hr = DirectDrawCreateEx(lpGUID, lplpDD, riid, pUnkOuter);
 
 	if (SUCCEEDED(hr))
 	{
-		DWORD DxVersion = GetGUIDVersion(riid);
+		m_IDirectDrawX * pDirectDraw = new (std::nothrow) m_IDirectDrawX(reinterpret_cast<IDirectDraw7*>(*lplpDD), 7);
+		if (!pDirectDraw)
+		{
+			(reinterpret_cast<IDirectDraw7*>(*lplpDD))->Release();
+			return E_OUTOFMEMORY;
+		}
 
-		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX((IDirectDraw7*)*lplpDD, DxVersion);
-
-		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(DxVersion);
+		hr = pDirectDraw->QueryInterface(riid, lplpDD, 7);
+		pDirectDraw->Release(7);
 	}
 
 	return hr;

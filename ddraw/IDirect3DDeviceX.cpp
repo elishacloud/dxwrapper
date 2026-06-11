@@ -1121,7 +1121,7 @@ HRESULT m_IDirect3DDeviceX::NextViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewport,
 
 	if (SUCCEEDED(hr) && lplpDirect3DViewport)
 	{
-		*lplpDirect3DViewport = ProxyAddressLookupTable.FindAddress<m_IDirect3DViewport3>(*lplpDirect3DViewport, DirectXVersion);
+		*lplpDirect3DViewport = ProxyAddressLookupTableDdraw.FindAddress<m_IDirect3DViewport3>(*lplpDirect3DViewport, DirectXVersion);
 	}
 
 	return hr;
@@ -1514,7 +1514,7 @@ HRESULT m_IDirect3DDeviceX::GetDirect3D(LPDIRECT3D7* lplpD3D, DWORD DirectXVersi
 
 	if (SUCCEEDED(hr) && lplpD3D)
 	{
-		*lplpD3D = ProxyAddressLookupTable.FindAddress<m_IDirect3D7>(*lplpD3D, DirectXVersion);
+		*lplpD3D = ProxyAddressLookupTableDdraw.FindAddress<m_IDirect3D7>(*lplpD3D, DirectXVersion);
 	}
 
 	return hr;
@@ -1618,7 +1618,7 @@ HRESULT m_IDirect3DDeviceX::GetCurrentViewport(LPDIRECT3DVIEWPORT3* lplpd3dViewp
 
 	if (SUCCEEDED(hr) && lplpd3dViewport)
 	{
-		*lplpd3dViewport = ProxyAddressLookupTable.FindAddress<m_IDirect3DViewport3>(*lplpd3dViewport, DirectXVersion);
+		*lplpd3dViewport = ProxyAddressLookupTableDdraw.FindAddress<m_IDirect3DViewport3>(*lplpd3dViewport, DirectXVersion);
 	}
 
 	return hr;
@@ -1743,7 +1743,7 @@ HRESULT m_IDirect3DDeviceX::GetRenderTarget(LPDIRECTDRAWSURFACE7* lplpRenderTarg
 
 	if (SUCCEEDED(hr) && lplpRenderTarget)
 	{
-		*lplpRenderTarget = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpRenderTarget, DirectXVersion);
+		*lplpRenderTarget = ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawSurface7>(*lplpRenderTarget, DirectXVersion);
 	}
 
 	return hr;
@@ -3696,7 +3696,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2* lplpTe
 
 	if (SUCCEEDED(hr) && lplpTexture)
 	{
-		*lplpTexture = ProxyAddressLookupTable.FindAddress<m_IDirect3DTexture2>(*lplpTexture, 2);
+		*lplpTexture = ProxyAddressLookupTableDdraw.FindAddress<m_IDirect3DTexture2>(*lplpTexture, 2);
 	}
 
 	return hr;
@@ -4414,7 +4414,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7* lplp
 
 	if (SUCCEEDED(hr) && lplpTexture)
 	{
-		*lplpTexture = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface7>(*lplpTexture, 7);
+		*lplpTexture = ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawSurface7>(*lplpTexture, 7);
 	}
 
 	return hr;

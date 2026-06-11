@@ -417,7 +417,7 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth(LPDIRECTDRAWSURFACE * lplpDDSur
 
 	if (SUCCEEDED(hr) && lplpDDSurface)
 	{
-		*lplpDDSurface = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface>(*lplpDDSurface);
+		*lplpDDSurface = ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawSurface>(*lplpDDSurface);
 	}
 
 	return hr;
@@ -599,7 +599,7 @@ HRESULT m_IDirect3DViewportX::NextLight(LPDIRECT3DLIGHT lpDirect3DLight, LPDIREC
 
 	if (SUCCEEDED(hr) && lplpDirect3DLight)
 	{
-		*lplpDirect3DLight = ProxyAddressLookupTable.FindAddress<m_IDirect3DLight>(*lplpDirect3DLight);
+		*lplpDirect3DLight = ProxyAddressLookupTableDdraw.FindAddress<m_IDirect3DLight>(*lplpDirect3DLight);
 	}
 
 	return hr;
@@ -798,7 +798,7 @@ HRESULT m_IDirect3DViewportX::GetBackgroundDepth2(LPDIRECTDRAWSURFACE4* lplpDDS,
 
 	if (SUCCEEDED(hr) && lplpDDS)
 	{
-		*lplpDDS = ProxyAddressLookupTable.FindAddress<m_IDirectDrawSurface4>(*lplpDDS);
+		*lplpDDS = ProxyAddressLookupTableDdraw.FindAddress<m_IDirectDrawSurface4>(*lplpDDS);
 	}
 
 	return hr;
