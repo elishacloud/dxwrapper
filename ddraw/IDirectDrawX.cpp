@@ -3494,7 +3494,9 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 			ReleaseAllD9Resources(true, false);
 
-			hr = d3d9Device->Reset(&presParams);
+			// Reset device. When this method returns: BackBufferCount, BackBufferWidth, and BackBufferHeight are set to zero.
+			D3DPRESENT_PARAMETERS newParams = presParams;
+			hr = d3d9Device->Reset(&newParams);
 
 			if (FAILED(hr))
 			{
