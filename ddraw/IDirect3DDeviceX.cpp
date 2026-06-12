@@ -764,7 +764,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					case D3DPROCESSVERTICES_TRANSFORM:
 					case D3DPROCESSVERTICES_TRANSFORMLIGHT:
 					{
-						const bool IsLight = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT);
+						const bool IsLight = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT && IsMaterialSet());
 
 						// Flags
 						DWORD psFlags = (Flags & D3DPROCESSVERTICES_NOCOLOR) ? D3DPV_DONOTCOPYDATA : 0;
@@ -5711,7 +5711,6 @@ void m_IDirect3DDeviceX::ClearD3D(m_IDirect3DX* lpD3D)
 
 HRESULT m_IDirect3DDeviceX::SetTextureHandle(DWORD TexHandle)
 {
-	DWORD tHandle = NULL;
 	IDirect3DTexture2* lpTexture = nullptr;
 
 	if (TexHandle)
@@ -5720,11 +5719,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureHandle(DWORD TexHandle)
 		if (pTextureX)
 		{
 			lpTexture = (IDirect3DTexture2*)pTextureX->GetWrapperInterfaceX(0);
-			if (lpTexture)
-			{
-				tHandle = TexHandle;
-			}
-			else
+			if (!lpTexture)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture address!");
 				return DDERR_INVALIDPARAMS;
@@ -5737,7 +5732,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureHandle(DWORD TexHandle)
 		}
 	}
 
-	DeviceStates.RenderState[D3DRENDERSTATE_TEXTUREHANDLE].State = tHandle;
+	DeviceStates.RenderState[D3DRENDERSTATE_TEXTUREHANDLE].State = TexHandle;
 	SetTexture(0, lpTexture);
 
 	return D3D_OK;
@@ -5745,18 +5740,19 @@ HRESULT m_IDirect3DDeviceX::SetTextureHandle(DWORD TexHandle)
 
 HRESULT m_IDirect3DDeviceX::SetMaterialHandle(DWORD MatHandle)
 {
-	DeviceStates.LightState[D3DLIGHTSTATE_MATERIAL] = NULL;
-
-	D3DMATERIAL Material = {};
-	Material.dwSize = sizeof(D3DMATERIAL);
+	D3DMATERIAL7 Material7 = {};
 
 	if (MatHandle)
 	{
+		D3DMATERIAL Material = {};
+		Material.dwSize = sizeof(D3DMATERIAL);
+
 		m_IDirect3DMaterialX* pMaterialX = GetMaterial(MatHandle);
 		if (pMaterialX)
 		{
 			if (FAILED(pMaterialX->GetMaterial(&Material)))
 			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get material!");
 				return DDERR_INVALIDPARAMS;
 			}
 		}
@@ -5765,19 +5761,22 @@ HRESULT m_IDirect3DDeviceX::SetMaterialHandle(DWORD MatHandle)
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get material handle!");
 			return DDERR_INVALIDPARAMS;
 		}
-	}
+
+		if (FAILED(SetTextureHandle(Material.hTexture)))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		ConvertMaterial(Material7, Material);
+	};
 
 	DeviceStates.LightState[D3DLIGHTSTATE_MATERIAL] = MatHandle;
 
-	D3DMATERIAL7 Material7;
-
-	ConvertMaterial(Material7, Material);
-
 	SetMaterial(&Material7);
 
-	if (Material.hTexture)
+	if (MatHandle == NULL)
 	{
-		SetTextureHandle(Material.hTexture);
+		DeviceStates.Material.Set = false;
 	}
 
 	return D3D_OK;
@@ -6630,7 +6629,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			D3DMATRIX Matrix = UpdateProjectionMatrix(DrawStates.ProjectionMatrix, DeviceStates.Viewport.Scale, DeviceStates.Viewport.ClipScale, !(dwFlags & D3DDP_DONOTCLIP));
 			(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &Matrix);
 		}
-		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL) || !DeviceStates.Material.Set)
+		if ((dwFlags & D3DDP_DONOTLIGHT) || !(dwVertexTypeDesc & D3DFVF_NORMAL) || !IsMaterialSet())
 		{
 			dwFlags |= D3DDP_DONOTLIGHT;
 			GetD9RenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
