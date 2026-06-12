@@ -3516,7 +3516,7 @@ void m_IDirect3DDevice9Ex::ClearVars()
 }
 
 template <typename T>
-HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentationParameters, bool IsEx, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
+HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationParameters, bool IsEx, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
 {
 	ScopedCriticalSection ThreadLock(&d9cs, Config.AntiAliasing || RequirePresentHandling());
 
@@ -3531,12 +3531,13 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	}
 #endif
 
-	ProxyInterface->EndScene();		// Required for some games when using WineD3D
+	// Ignore failures. Some WineD3D games require an EndScene before Reset.
+	ProxyInterface->EndScene();
 
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Check if display needs to be reset
-	const bool IsSettingWindowMode = (pPresentationParameters ? pPresentationParameters->Windowed != FALSE : false);
+	const bool IsSettingWindowMode = (pPresentationParameters ? pPresentationParameters->Windowed != FALSE : DeviceDetails.IsWindowMode);
 	const bool IsWindowModeChanging = (DeviceDetails.IsWindowMode != IsSettingWindowMode);
 	const bool IsResolutionChanging = pPresentationParameters ?
 		(DeviceDetails.BufferWidth != (LONG)pPresentationParameters->BackBufferWidth || DeviceDetails.BufferHeight != (LONG)pPresentationParameters->BackBufferHeight) : false;
@@ -3562,7 +3563,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 
 	// Check fullscreen
 	bool ForceFullscreen = false;
-	bool ClearMultiSampled = (pPresentationParameters != nullptr);	// Don't clear if pPresentationParameters is null
+	bool ClearMultiSampled = (pPresentationParameters != nullptr && DeviceDetails.DeviceMultiSampleFlag);	// Don't clear if pPresentationParameters is null
 
 	// Setup presentation parameters
 	D3DPRESENT_PARAMETERS d3dpp = {};
@@ -3582,7 +3583,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 			m_IDirect3D9Ex::UpdatePresentParameterForMultisample(p_d3dpp, DeviceDetails.DeviceMultiSampleType, DeviceDetails.DeviceMultiSampleQuality);
 
 			// Reset device
-			hr = ResetT(func, p_d3dpp, pFullscreenDisplayMode);
+			hr = ResetT(T{}, p_d3dpp, pFullscreenDisplayMode);
 
 			// Check if device was reset successfully
 			if (FAILED(hr))
@@ -3601,7 +3602,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 	if (FAILED(hr))
 	{
 		// Reset device
-		hr = ResetT(func, p_d3dpp, pFullscreenDisplayMode);
+		hr = ResetT(T{}, p_d3dpp, pFullscreenDisplayMode);
 
 		// Clear multi-sampled variables
 		if (SUCCEEDED(hr) && ClearMultiSampled)
@@ -3623,6 +3624,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T func, D3DPRESENT_PARAMETERS* pPresentatio
 		{
 			m_IDirect3D9Ex::GetFinalPresentParameter(p_d3dpp, DeviceDetails);
 
+			// Restoring the application's requested value
 			d3dpp.Windowed = IsSettingWindowMode;
 
 			DeviceDetails.AppRequestedWindowMode = IsSettingWindowMode;
