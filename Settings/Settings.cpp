@@ -46,6 +46,8 @@ namespace Settings
 	bool DDrawCompatExperimental = false;
 	bool DDrawCompat30 = false;
 	bool DDrawCompat31 = false;
+	bool DisableHighDPIScaling = false;
+	bool DisableHighDPIScaling_Set = false;
 	bool ForceDirect3D9On12 = false;
 
 	// Function declarations
@@ -322,7 +324,13 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 	SET_LOCAL_VALUE(DDrawCompatExperimental);
 	SET_LOCAL_VALUE(DDrawCompat30);
 	SET_LOCAL_VALUE(DDrawCompat31);
+	SET_LOCAL_VALUE(DisableHighDPIScaling);
 	SET_LOCAL_VALUE(ForceDirect3D9On12);
+
+	if (!_stricmp(name, "DisableHighDPIScaling"))
+	{
+		DisableHighDPIScaling_Set = true;
+	}
 
 	// Set Value of local settings
 	VISIT_LOCAL_SETTINGS(SET_LOCAL_VALUE);
@@ -501,6 +509,7 @@ void Settings::SetDefaultConfigSettings()
 	Config.Dinput8HookSystem32 = NOT_EXIST;
 	Config.DsoundHookSystem32 = NOT_EXIST;
 	Config.DdrawResolutionHack = NOT_EXIST;
+	Config.ConfigureDpiAwareness = NOT_EXIST;
 	Config.CacheClipPlane = NOT_EXIST;
 	Config.LimitStateBlocks = NOT_EXIST;
 	Config.WindowModeGammaShader = NOT_EXIST;
@@ -509,7 +518,6 @@ void Settings::SetDefaultConfigSettings()
 	Config.DisableMaxWindowedModeNotSet = true;
 
 	// Set defaults
-	Config.DisableHighDPIScaling = true;
 	Config.FixSpeakerConfigType = true;
 
 	// Set other default values
@@ -831,6 +839,7 @@ void CONFIG::SetConfig()
 	CacheClipPlane = (CacheClipPlane != 0);
 	DdrawResolutionHack = (DdrawResolutionHack != 0);
 	DdrawForceMipMapAutoGen = DdrawForceMipMapAutoGen || ForceMipMapAutoGen;
+	ConfigureDpiAwareness = IsSet(ConfigureDpiAwareness) ? ConfigureDpiAwareness : DisableHighDPIScaling_Set ? DisableHighDPIScaling : 1;
 	LimitStateBlocks = (LimitStateBlocks != NOT_EXIST) ? LimitStateBlocks : (Dd7to9 || D3d8to9);
 	WindowModeGammaShader = (WindowModeGammaShader != NOT_EXIST) ? WindowModeGammaShader : 1;
 }

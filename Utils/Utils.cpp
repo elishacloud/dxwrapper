@@ -189,49 +189,156 @@ void Utils::Shell(const char* fileName)
 	return;
 }
 
-// Sets application DPI aware which disables DPI virtulization/High DPI scaling for this process
-void Utils::DisableHighDPIScaling()
+// Sets application DPI aware which can enable or disable DPI virtulization or High DPI scaling for this process
+void Utils::ConfigureDpiAwareness()
 {
 #ifdef _DPI_AWARENESS_CONTEXTS_
-	Logging::Log() << "Disabling High DPI Scaling...";
 
-	BOOL setDpiAware = FALSE;
-	HMODULE hUser32 = LoadLibrary("user32.dll");
-	HMODULE hShcore = LoadLibrary("shcore.dll");
-	if (hUser32 && !setDpiAware)
+	Logging::Log() << "Configuring DPI awareness...";
+
+	enum DPI_MODE
 	{
-		SetProcessDpiAwarenessContextProc setProcessDpiAwarenessContext = (SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
+		DPI_SYSTEM_AWARE = 1,
+		DPI_UNAWARE = 2,
+		DPI_UNAWARE_GDI_SCALED = 3,
+		DPI_PER_MONITOR_AWARE = 4,
+		DPI_PER_MONITOR_AWARE_V2 = 5,
+	};
 
-		if (setProcessDpiAwarenessContext)
+	bool dpiConfigured = false;
+	const char* dpiAwareness = nullptr;
+	const char* procUsed = nullptr;
+
+	HMODULE hUser32 = LoadLibraryA("user32.dll");
+	if (hUser32)
+	{
+		SetProcessDpiAwarenessContextProc SetProcessDpiAwarenessContext = (SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
+
+		if (SetProcessDpiAwarenessContext)
 		{
-			setDpiAware = setProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+			BOOL result = FALSE;
+			switch (Config.ConfigureDpiAwareness)
+			{
+			default:
+			case DPI_SYSTEM_AWARE:
+				result = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
+				dpiAwareness = "SystemAware";
+				break;
+
+			case DPI_UNAWARE:
+				result = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE);
+				dpiAwareness = "Unaware";
+				break;
+
+			case DPI_UNAWARE_GDI_SCALED:
+				result = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED);
+				dpiAwareness = "UnawareGdiScaled";
+				break;
+
+			case DPI_PER_MONITOR_AWARE:
+				result = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
+				dpiAwareness = "PerMonitorAware";
+				break;
+
+			case DPI_PER_MONITOR_AWARE_V2:
+				result = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+				dpiAwareness = "PerMonitorAwareV2";
+				break;
+			}
+
+			if (result)
+			{
+				dpiConfigured = true;
+				procUsed = "SetProcessDpiAwarenessContext()";
+			}
+			else
+			{
+				DWORD err = GetLastError();
+				if (err == ERROR_ACCESS_DENIED)
+				{
+					Logging::Log() << "DPI awareness was already configured by the process.";
+					FreeLibrary(hUser32);
+					return;
+				}
+			}
 		}
 	}
-	if (hShcore && !setDpiAware)
+	if (!dpiConfigured)
 	{
-		SetProcessDpiAwarenessProc setProcessDpiAwareness = (SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
-
-		if (setProcessDpiAwareness)
+		HMODULE hShcore = LoadLibraryA("shcore.dll");
+		if (hShcore)
 		{
-			HRESULT result = setProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+			SetProcessDpiAwarenessProc SetProcessDpiAwareness = (SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
 
-			setDpiAware = (SUCCEEDED(result) || result == E_ACCESSDENIED);
+			if (SetProcessDpiAwareness)
+			{
+				HRESULT result = E_FAIL;
+				switch (Config.ConfigureDpiAwareness)
+				{
+				default:
+				case DPI_SYSTEM_AWARE:
+					result = SetProcessDpiAwareness(PROCESS_SYSTEM_DPI_AWARE);
+					dpiAwareness = "SystemAware";
+					break;
+
+				case DPI_UNAWARE:
+				case DPI_UNAWARE_GDI_SCALED:
+					result = SetProcessDpiAwareness(PROCESS_DPI_UNAWARE);
+					dpiAwareness = "Unaware";
+					break;
+
+				case DPI_PER_MONITOR_AWARE:
+				case DPI_PER_MONITOR_AWARE_V2:
+					result = SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+					dpiAwareness = "PerMonitorAware";
+					break;
+				}
+
+				if (SUCCEEDED(result))
+				{
+					dpiConfigured = true;
+					procUsed = "SetProcessDpiAwareness()";
+				}
+				else if (result == E_ACCESSDENIED)
+				{
+					Logging::Log() << "DPI awareness was already configured by the process.";
+					FreeLibrary(hUser32);
+					FreeLibrary(hShcore);
+					return;
+				}
+			}
+
+			FreeLibrary(hShcore);
 		}
 	}
-	if (hUser32 && !setDpiAware)
+	if (!dpiConfigured && hUser32)
 	{
-		SetProcessDPIAwareProc setProcessDPIAware = (SetProcessDPIAwareProc)GetProcAddress(hUser32, "SetProcessDPIAware");
+		SetProcessDPIAwareProc SetProcessDPIAware = (SetProcessDPIAwareProc)GetProcAddress(hUser32, "SetProcessDPIAware");
 
-		if (setProcessDPIAware)
+		if (SetProcessDPIAware)
 		{
-			setDpiAware = setProcessDPIAware();
+			if (SetProcessDPIAware() != FALSE)
+			{
+				dpiConfigured = true;
+				dpiAwareness = "SystemAware";
+				procUsed = "SetProcessDPIAware()";
+			}
 		}
 	}
 
-	if (!setDpiAware)
+	if (hUser32)
 	{
-		Logging::Log() << "Failed to disable High DPI Scaling!";
+		FreeLibrary(hUser32);
 	}
+
+	if (!dpiConfigured)
+	{
+		Logging::Log() << "Failed to configure DPI awareness!";
+		return;
+	}
+
+	Logging::Log() << "Set DPI awareness to '" << dpiAwareness << "' using " << procUsed;
+
 #endif // _DPI_AWARENESS_CONTEXTS_
 }
 

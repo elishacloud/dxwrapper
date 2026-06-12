@@ -45,7 +45,7 @@ namespace Utils
 	};
 
 	void Shell(const char*);
-	void DisableHighDPIScaling();
+	void ConfigureDpiAwareness();
 	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);
 	FARPROC WINAPI GetProcAddressHandler(HMODULE hModule, LPSTR lpProcName);
 	DWORD WINAPI GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename, DWORD nSize);

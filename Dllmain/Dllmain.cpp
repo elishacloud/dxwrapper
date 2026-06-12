@@ -404,9 +404,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			WriteMemory::WriteMemory();
 		}
-		if (Config.DisableHighDPIScaling)
+		if (Config.ConfigureDpiAwareness)
 		{
-			Utils::DisableHighDPIScaling();
+			Utils::ConfigureDpiAwareness();
 		}
 		if (Config.SingleProcAffinity)
 		{
