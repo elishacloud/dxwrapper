@@ -438,7 +438,7 @@ HRESULT m_IDirect3DDevice9Ex::Reset(D3DPRESENT_PARAMETERS* pPresentationParamete
 		return ResetEx(pPresentationParameters, pFullscreenDisplayMode);
 	}
 
-	return ResetT<fReset>(nullptr, pPresentationParameters, false, nullptr);
+	return ResetT<fReset>(nullptr, pPresentationParameters, nullptr);
 }
 
 HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion)
@@ -2429,7 +2429,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetEx(THIS_ D3DPRESENT_PARAMETERS* pPresentation
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ResetT<fResetEx>(nullptr, pPresentationParameters, true, pFullscreenDisplayMode);
+	return ResetT<fResetEx>(nullptr, pPresentationParameters, pFullscreenDisplayMode);
 }
 
 HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation)
@@ -3516,8 +3516,12 @@ void m_IDirect3DDevice9Ex::ClearVars()
 }
 
 template <typename T>
-HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationParameters, bool IsEx, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
+HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
 {
+	static_assert(std::is_same_v<T, fReset> || std::is_same_v<T, fResetEx>, "ResetT<T>: T must be 'fReset' or 'fResetEx'");
+
+	constexpr bool IsEx = std::is_same_v<T, fResetEx>;
+
 	ScopedCriticalSection ThreadLock(&d9cs, Config.AntiAliasing || RequirePresentHandling());
 
 	// Release extra resources used
@@ -3546,8 +3550,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 	const HWND hWnd = (pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow);
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
 
-	bool tmpFlag = false;
-	ScopedFlagSet SetCreatingDevice(WndDataStruct && !WndDataStruct->IsCreatingDevice ? WndDataStruct->IsCreatingDevice : tmpFlag);
+	WndProc::ScopedSetDeviceCreationFlag SetCreatingDevice(WndDataStruct, hWnd);
 
 	if (WndDataStruct && !WndDataStruct->IsDirectDraw)
 	{
@@ -3574,7 +3577,9 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 
 		CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
 
-		m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, IsEx, ForceFullscreen, IsWindowModeChanging || IsResolutionChanging);
+		const bool SetWindow = (IsWindowModeChanging || IsResolutionChanging);
+
+		m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, IsEx, ForceFullscreen, SetWindow);
 
 		// Test for Multisample
 		if (DeviceDetails.DeviceMultiSampleFlag)

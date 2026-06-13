@@ -410,11 +410,11 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	// Messages don't apply to this window
 	if (hWnd != hWndInstance || !AppWndProcInstance->IsActive())
-
 	{
 		return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 	}
 
+	const bool IsCreatingDevice = (pDataStruct->ActiveDeviceCounter > 0 || pDataStruct->PendingDeviceCounter > 0);
 	const bool IsForcingWindowedMode = (Config.EnableWindowMode && pDataStruct->IsExclusiveMode);
 
 	switch (Msg)
@@ -426,6 +426,17 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			if (m_IDirectDrawX::CheckDirectDrawXInterface((void*)wParam))
 			{
 				((m_IDirectDrawX*)wParam)->CreateD9Device(__FUNCTION__);
+			}
+			return NULL;
+		}
+		break;
+
+	case WM_APP_END_CREATING_DEVICE:
+		if (WM_MAKE_KEY(hWnd, wParam) == lParam)
+		{
+			if (pDataStruct->PendingDeviceCounter > 0)
+			{
+				pDataStruct->PendingDeviceCounter--;
 			}
 			return NULL;
 		}
@@ -566,10 +577,10 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
-		// Filter some messages while forcing windowed mode
-		if (pDataStruct->IsDirectDraw && IsForcingWindowedMode)
+		// Filter some messages while in exclusive mode
+		if (pDataStruct->IsExclusiveMode)
 		{
-			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_NCACTIVATE when forcing windowed mode. " <<
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_NCACTIVATE while in exclusive mode. " <<
 				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
@@ -627,7 +638,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		}
 		// Filter size change when creating device
 		// Some games (e.g. Police Quest SWAT 2, Splintercell Chaos Theory) don't handle size messages well
-		if (pDataStruct->IsCreatingDevice)
+		if (IsCreatingDevice)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when creating device. " <<
 				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
@@ -642,14 +653,23 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		HandleClipMouseCursor(hWnd, pDataStruct, true);
 
 		[[fallthrough]];
-	case WM_STYLECHANGING:
-	case WM_STYLECHANGED:
 	case WM_SIZING:
 	case WM_MOVING:
 		// Filter some messages when creating device
-		if (pDataStruct->IsCreatingDevice)
+		if (IsCreatingDevice)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when creating device. " <<
+				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
+			return DefWndProc(hWnd, Msg, wParam, lParam);
+		}
+		break;
+
+	case WM_STYLECHANGING:
+	case WM_STYLECHANGED:
+		// Filter some messages while in exclusive mode
+		if (pDataStruct->IsExclusiveMode)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages while in exclusive mode. " <<
 				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
@@ -703,9 +723,19 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			}
 		}
 		// Filter some messages while forcing windowed mode
-		if (pDataStruct->IsCreatingDevice && IsForcingWindowedMode)
+		if (IsCreatingDevice && IsForcingWindowedMode)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_WINDOWPOSCHANGE messages when forcing windowed mode. " <<
+				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
+			return DefWndProc(hWnd, Msg, wParam, lParam);
+		}
+		break;
+
+	case WM_NCCALCSIZE:
+		// Filter some messages while in exclusive mode
+		if (pDataStruct->IsExclusiveMode)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_NCCALCSIZE while in exclusive mode. " <<
 				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
@@ -719,13 +749,23 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		}
 		break;
 
+	case WM_NCPAINT:
+		// Filter some messages while in exclusive mode
+		if (pDataStruct->IsExclusiveMode)
+		{
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_NCPAINT while in exclusive mode. " <<
+				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
+			return DefWndProc(hWnd, Msg, wParam, lParam);
+		}
+		break;
+
 	case WM_SYNCPAINT:
 		// Send WM_SYNCPAINT to DefWindowProc
 		return DefWndProc(hWnd, Msg, wParam, lParam);
 
 	case WM_ERASEBKGND:
 		// Filter background clear when creating device or in exclusive mode
-		if (pDataStruct->IsCreatingDevice || pDataStruct->IsExclusiveMode)
+		if (IsCreatingDevice || pDataStruct->IsExclusiveMode)
 		{
 			return 1;
 		}

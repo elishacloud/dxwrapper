@@ -28,12 +28,6 @@ inline LONG InterlockedDecrementIfPositive(LONG* value)
 class CriticalSectionInit
 {
 private:
-    CriticalSectionInit(const CriticalSectionInit&) {}
-    CriticalSectionInit& operator=(const CriticalSectionInit&)
-    {
-        return *this;
-    }
-
     CRITICAL_SECTION Cs;
     volatile LONG InitState;
 
@@ -79,15 +73,12 @@ public:
         LeaveCriticalSection(&Cs);
     }
 
+    CriticalSectionInit(const CriticalSectionInit&) = delete;
+    CriticalSectionInit& operator=(const CriticalSectionInit&) = delete;
+
     class Lock
     {
     private:
-        Lock(const Lock&) : LockObj(*static_cast<CriticalSectionInit*>(NULL)) {}
-        Lock& operator=(const Lock&)
-        {
-            return *this;
-        }
-
         CriticalSectionInit& LockObj;
 
     public:
@@ -100,6 +91,9 @@ public:
         {
             LockObj.Leave();
         }
+
+        Lock(const Lock&) = delete;
+        Lock& operator=(const Lock&) = delete;
     };
 };
 
@@ -111,7 +105,7 @@ private:
     T& flag;
 public:
     // Constructor sets the flag to true
-    ScopedFlagSet(T& setflag, bool setenable = true) : flag(setflag), enable(setenable)
+    ScopedFlagSet(T& setflag, bool activate = true) : flag(setflag), enable(activate)
     {
         if (enable)
         {
@@ -126,6 +120,9 @@ public:
             flag = false;
         }
     }
+
+    ScopedFlagSet(const ScopedFlagSet&) = delete;
+    ScopedFlagSet& operator=(const ScopedFlagSet&) = delete;
 };
 
 struct ScopedAtomicFlagSet
@@ -135,7 +132,7 @@ private:
     std::atomic<bool>& flag;
 public:
     // Constructor sets the flag to true
-    ScopedAtomicFlagSet(std::atomic<bool>& setflag, bool setenable = true) : flag(setflag), enable(setenable)
+    ScopedAtomicFlagSet(std::atomic<bool>& setflag, bool activate = true) : flag(setflag), enable(activate)
     {
         if (enable)
         {
@@ -157,6 +154,9 @@ public:
             flag.store(false, std::memory_order_relaxed);
         }
     }
+
+    ScopedAtomicFlagSet(const ScopedAtomicFlagSet&) = delete;
+    ScopedAtomicFlagSet& operator=(const ScopedAtomicFlagSet&) = delete;
 };
 
 #define CreateScopedHeapBuffer(type, name, size) \
@@ -206,7 +206,7 @@ private:
     CRITICAL_SECTION* cs;
 public:
     // Constructor enters critical section
-    ScopedCriticalSection(CRITICAL_SECTION* cs, bool setenable = true) : cs(cs), enable(setenable)
+    ScopedCriticalSection(CRITICAL_SECTION* cs, bool activate = true) : cs(cs), enable(activate)
     {
         if (enable && cs)
         {
@@ -221,6 +221,9 @@ public:
             LeaveCriticalSection(cs);
         }
     }
+
+    ScopedCriticalSection(const ScopedCriticalSection&) = delete;
+    ScopedCriticalSection& operator=(const ScopedCriticalSection&) = delete;
 };
 
 struct ScopedLeaveCriticalSection
@@ -229,7 +232,7 @@ private:
     bool enable;
     CRITICAL_SECTION* cs;
 public:
-    ScopedLeaveCriticalSection(CRITICAL_SECTION* cs, bool setenable = true) : cs(cs), enable(setenable) {}
+    ScopedLeaveCriticalSection(CRITICAL_SECTION* cs, bool activate = true) : cs(cs), enable(activate) {}
     // Destructor leaves critical section
     ~ScopedLeaveCriticalSection()
     {
@@ -238,6 +241,9 @@ public:
             LeaveCriticalSection(cs);
         }
     }
+
+    ScopedLeaveCriticalSection(const ScopedLeaveCriticalSection&) = delete;
+    ScopedLeaveCriticalSection& operator=(const ScopedLeaveCriticalSection&) = delete;
 };
 
 template <typename T, std::size_t Alignment>

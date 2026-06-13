@@ -505,8 +505,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		(pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : nullptr));
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
 
-	bool tmpFlag = false;
-	ScopedFlagSet SetCreatingDevice(WndDataStruct && !WndDataStruct->IsCreatingDevice ? WndDataStruct->IsCreatingDevice : tmpFlag);
+	WndProc::ScopedSetDeviceCreationFlag SetCreatingDevice(WndDataStruct, hWnd);
 
 	if (WndDataStruct)
 	{
