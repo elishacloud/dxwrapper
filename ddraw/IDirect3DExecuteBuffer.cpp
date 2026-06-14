@@ -167,7 +167,7 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 		lpDesc->lpData = nullptr;
 
 		// Set Locking flag
-		ScopedAtomicFlagSet SetLockFlag(IsLocking);
+		ScopedFlagSet SetLockFlag(IsLocking);
 
 		// Check if the buffer is already locked
 		DWORD ThreadID = GetCurrentThreadId();

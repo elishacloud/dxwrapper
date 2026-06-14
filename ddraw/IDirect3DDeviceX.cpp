@@ -406,7 +406,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 		LPD3DSTATUS lpStatus;
 
 		// Set Executing flag
-		ScopedAtomicFlagSet SetLockFlag(pExecuteBuffer->GetExecuteFlag());
+		ScopedFlagSet SetLockFlag(pExecuteBuffer->GetExecuteFlag());
 
 		// Check execute lock
 		if (pExecuteBuffer->IsBufferLocked())

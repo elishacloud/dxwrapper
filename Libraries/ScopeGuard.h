@@ -125,38 +125,32 @@ public:
     ScopedFlagSet& operator=(const ScopedFlagSet&) = delete;
 };
 
-struct ScopedAtomicFlagSet
+template<typename T>
+struct ScopedIncrement
 {
 private:
     bool enable;
-    std::atomic<bool>& flag;
+    T& num;
 public:
-    // Constructor sets the flag to true
-    ScopedAtomicFlagSet(std::atomic<bool>& setflag, bool activate = true) : flag(setflag), enable(activate)
+    // Constructor increments num
+    ScopedIncrement(T& num, bool activate = true) : num(num), enable(activate)
     {
         if (enable)
         {
-            while (flag.exchange(true, std::memory_order_relaxed))
-            {
-#ifdef YieldProcessor
-                YieldProcessor();
-#else
-                _mm_pause();
-#endif
-            }
+            num++;
         }
     }
-    // Destructor sets the flag back to false
-    ~ScopedAtomicFlagSet()
+    // Destructor decrements num
+    ~ScopedIncrement()
     {
         if (enable)
         {
-            flag.store(false, std::memory_order_relaxed);
+            num--;
         }
     }
 
-    ScopedAtomicFlagSet(const ScopedAtomicFlagSet&) = delete;
-    ScopedAtomicFlagSet& operator=(const ScopedAtomicFlagSet&) = delete;
+    ScopedIncrement(const ScopedIncrement&) = delete;
+    ScopedIncrement& operator=(const ScopedIncrement&) = delete;
 };
 
 #define CreateScopedHeapBuffer(type, name, size) \

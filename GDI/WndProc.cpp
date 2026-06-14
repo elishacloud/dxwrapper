@@ -403,7 +403,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	if (!AppWndProcInstance || !hWnd)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid pointer!");
-		return NULL;
+		return 0;
 	}
 
 	const WNDPROC pWndProc = AppWndProcInstance->GetAppWndProc();
@@ -426,7 +426,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			{
 				((m_IDirectDrawX*)wParam)->CreateD9Device(__FUNCTION__);
 			}
-			return NULL;
+			return 0;
 		}
 		break;
 
@@ -438,7 +438,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 				IsKeyboardActive = true;
 				KeyboardLayout::SetForcedKeyboardLayout();
 			}
-			return NULL;
+			return 0;
 		}
 		break;
 
@@ -449,7 +449,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			{
 				KeyboardLayout::DisableForcedKeyboardLayout();
 			}
-			return NULL;
+			return 0;
 		}
 		break;
 
@@ -468,7 +468,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			if (IsDuplicateMessage || Config.DdrawFilterActivateApp)
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering " << (IsDuplicateMessage ? "duplicate " : "") << "WM_ACTIVATEAPP: " << wParam);
-				return NULL;
+				return 0;
 			}
 		}
 		// Filter messages for loss of focus or minimize
@@ -749,7 +749,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Filter background clear when creating device or in exclusive mode
 		if (pDataStruct->IsCreatingDevice || pDataStruct->IsExclusiveMode)
 		{
-			return 1;
+			return TRUE;
 		}
 		break;
 
@@ -779,9 +779,9 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		HandleWindowFocus(hWnd, pDataStruct, false);
 
 		// Set instance as inactive when window closes
-		LRESULT result = CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 		AppWndProcInstance->SetInactive();
-		return result;
+
+		return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 	}
 
 	// Handle debug overlay
