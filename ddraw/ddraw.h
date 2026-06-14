@@ -69,13 +69,6 @@ class m_IDirectDrawGammaControl;
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
-#define DDWRAPPER_TYPEX 0x80
-
-// Indicates surface was created using CreateSurface()
-#define DDSCAPS4_CREATESURFACE  0x0001
-// Indicates surface is a child of a complex surface
-#define DDSCAPS4_COMPLEXCHILD   0x0002
-
 // ddraw proc typedefs
 typedef HRESULT(WINAPI *AcquireDDThreadLockProc)();
 typedef DWORD(WINAPI *CompleteCreateSysmemSurfaceProc)(DWORD);

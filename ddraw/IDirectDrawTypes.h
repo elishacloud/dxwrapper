@@ -15,6 +15,12 @@ static constexpr DWORD MaxPaletteSize = 256;
 
 static constexpr DWORD DXW_ALL_SURFACE_LEVELS = 0xFFFF;
 
+// Indicates surface was created using CreateSurface()
+#define DDSCAPS4_CREATESURFACE  0x0001
+
+// Indicates surface is a child of a complex surface
+#define DDSCAPS4_COMPLEXCHILD   0x0002
+
 #define BLT_MIRRORLEFTRIGHT		0x00000002l
 #define BLT_MIRRORUPDOWN		0x00000004l
 #define BLT_COLORKEY			0x00002000l
