@@ -3550,7 +3550,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 	const HWND hWnd = (pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow);
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
 
-	WndProc::ScopedSetDeviceCreationFlag SetCreatingDevice(WndDataStruct, hWnd);
+	WndProc::ScopedSetDeviceCreationFlag SetCreatingDevice(WndDataStruct);
 
 	if (WndDataStruct && !WndDataStruct->IsDirectDraw)
 	{

@@ -690,7 +690,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			InitDDraw();
 		}
-		else if (Config.ForceKeyboardLayout)
+		else if (Config.EnableD3d9Wrapper || Config.D3d8to9 || Config.ForceKeyboardLayout)
 		{
 			Logging::Log() << "Installing User32 hooks";
 			HMODULE user32 = GetModuleHandleA("user32.dll");
@@ -699,6 +699,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				using namespace GdiWrapper;
 				CreateWindowExA_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
 				CreateWindowExW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
+				DestroyWindow_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "DestroyWindow"), "DestroyWindow", user_DestroyWindow);
 			}
 		}
 

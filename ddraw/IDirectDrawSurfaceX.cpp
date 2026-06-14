@@ -4702,7 +4702,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	// Save primary surface size info for use with ie. mouse clipping
 	if (Config.EnableCursorClip && IsPrimarySurface())
 	{
-		HWND hWnd = ddrawParent->GetHwnd();
+		const HWND hWnd = ddrawParent->GetHwnd();
 		WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
 
 		if (WndDataStruct)

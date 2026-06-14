@@ -75,8 +75,8 @@ namespace WndProc
 		WNDPROC MyWndProc = nullptr;
 		WNDPROC AppWndProc = nullptr;
 		DATASTRUCT DataStruct;	// Use initialization from struct
-		bool Active = true;
-		bool Exiting = false;
+		std::atomic<bool> Active = true;
+		std::atomic<bool> Exiting = false;
 	public:
 		WNDPROCSTRUCT(HWND p_hWnd, WNDPROC p_AppWndProc) : hWnd(p_hWnd), AppWndProc(p_AppWndProc)
 		{
@@ -226,18 +226,17 @@ WndProc::DATASTRUCT* WndProc::AddWndProc(HWND hWnd)
 	}
 
 	// Remove inactive elements
-	WndProcList.erase(
-		std::remove_if(WndProcList.begin(), WndProcList.end(),
-			[](const std::shared_ptr<WNDPROCSTRUCT>& wndProc) {
-				return !wndProc->IsActive() && !IsWindow(wndProc->GetHWnd());
-			}),
-		WndProcList.end());
+	RemoveInactiveWndProcs();
 
 	// Check if window is already hooked
 	for (auto& entry : WndProcList)
 	{
-		if (entry->IsActive() && entry->GetHWnd() == hWnd)
+		if (entry->GetHWnd() == hWnd)
 		{
+			if (!entry->IsActive())
+			{
+				LOG_LIMIT(3, __FUNCTION__ << " Warning: requesting an inactive window handle. " << hWnd);
+			}
 			return entry->GetDataStruct();
 		}
 	}
@@ -294,16 +293,19 @@ WndProc::DATASTRUCT* WndProc::AddWndProc(HWND hWnd)
 	return NewEntry->GetDataStruct();
 }
 
-void WndProc::RemoveWndProc(HWND hWnd)
+void WndProc::RemoveInactiveWndProcs()
 {
-	// Remove instances from the vector
-	auto newEnd = std::remove_if(WndProcList.begin(), WndProcList.end(), [hWnd](const std::shared_ptr<WNDPROCSTRUCT>& AppWndProcInstance) -> bool
-		{
-			return (AppWndProcInstance->GetHWnd() == hWnd);
-		});
-
-	// Erase removed instances from the vector
-	WndProcList.erase(newEnd, WndProcList.end());
+	// Remove inactive elements
+	WndProcList.erase(
+		std::remove_if(
+			WndProcList.begin(),
+			WndProcList.end(),
+			[](const std::shared_ptr<WNDPROCSTRUCT>& wndProc)
+	{
+		const HWND hwnd = wndProc->GetHWnd();
+		return !wndProc->IsActive() && !IsWindow(hwnd);
+	}),
+		WndProcList.end());
 }
 
 WndProc::DATASTRUCT* WndProc::GetWndProctStruct(HWND hWnd)
@@ -414,9 +416,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 	}
 
-	const bool IsCreatingDevice = (pDataStruct->ActiveDeviceCounter > 0 || pDataStruct->PendingDeviceCounter > 0);
-	const bool IsForcingWindowedMode = (Config.EnableWindowMode && pDataStruct->IsExclusiveMode);
-
 	switch (Msg)
 	{
 	case WM_APP_CREATE_D3D9_DEVICE:
@@ -426,17 +425,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			if (m_IDirectDrawX::CheckDirectDrawXInterface((void*)wParam))
 			{
 				((m_IDirectDrawX*)wParam)->CreateD9Device(__FUNCTION__);
-			}
-			return NULL;
-		}
-		break;
-
-	case WM_APP_END_CREATING_DEVICE:
-		if (WM_MAKE_KEY(hWnd, wParam) == lParam)
-		{
-			if (pDataStruct->PendingDeviceCounter > 0)
-			{
-				pDataStruct->PendingDeviceCounter--;
 			}
 			return NULL;
 		}
@@ -638,7 +626,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		}
 		// Filter size change when creating device
 		// Some games (e.g. Police Quest SWAT 2, Splintercell Chaos Theory) don't handle size messages well
-		if (IsCreatingDevice)
+		if (pDataStruct->IsCreatingDevice)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when creating device. " <<
 				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
@@ -656,7 +644,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	case WM_SIZING:
 	case WM_MOVING:
 		// Filter some messages when creating device
-		if (IsCreatingDevice)
+		if (pDataStruct->IsCreatingDevice)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when creating device. " <<
 				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
@@ -666,6 +654,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_STYLECHANGING:
 	case WM_STYLECHANGED:
+	case WM_GETMINMAXINFO:
 		// Filter some messages while in exclusive mode
 		if (pDataStruct->IsExclusiveMode)
 		{
@@ -722,13 +711,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 				return DefWndProc(hWnd, Msg, wParam, lParam);
 			}
 		}
-		// Filter some messages while forcing windowed mode
-		if (IsCreatingDevice && IsForcingWindowedMode)
-		{
-			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_WINDOWPOSCHANGE messages when forcing windowed mode. " <<
-				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
-			return DefWndProc(hWnd, Msg, wParam, lParam);
-		}
 		break;
 
 	case WM_NCCALCSIZE:
@@ -765,7 +747,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_ERASEBKGND:
 		// Filter background clear when creating device or in exclusive mode
-		if (IsCreatingDevice || pDataStruct->IsExclusiveMode)
+		if (pDataStruct->IsCreatingDevice || pDataStruct->IsExclusiveMode)
 		{
 			return 1;
 		}
@@ -780,11 +762,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		break;
 
 	case WM_SYSCOMMAND:
-		// Set instance as inactive when window closes
-		if (wParam == SC_CLOSE)
-		{
-			AppWndProcInstance->SetInactive();
-		}
 		// Handle window focus change
 		if ((wParam & 0xFFF0) == SC_MINIMIZE || (wParam & 0xFFF0) == SC_MAXIMIZE)
 		{
@@ -797,15 +774,14 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		}
 		break;
 
-	case WM_CLOSE:
-	case WM_DESTROY:
 	case WM_NCDESTROY:
 		// Handle window focus change
 		HandleWindowFocus(hWnd, pDataStruct, false);
 
 		// Set instance as inactive when window closes
+		LRESULT result = CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 		AppWndProcInstance->SetInactive();
-		break;
+		return result;
 	}
 
 	// Handle debug overlay
