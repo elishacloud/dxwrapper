@@ -565,10 +565,10 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
-		// Filter some messages while in exclusive mode
-		if (pDataStruct->IsExclusiveMode)
+		// Filter some messages while forcing windowed mode
+		if (pDataStruct->IsDirectDraw && (Config.EnableWindowMode && pDataStruct->IsExclusiveMode))
 		{
-			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_NCACTIVATE while in exclusive mode. " <<
+			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_NCACTIVATE when forcing windowed mode. " <<
 				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
@@ -641,24 +641,14 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		HandleClipMouseCursor(hWnd, pDataStruct, true);
 
 		[[fallthrough]];
+	case WM_STYLECHANGING:
+	case WM_STYLECHANGED:
 	case WM_SIZING:
 	case WM_MOVING:
 		// Filter some messages when creating device
 		if (pDataStruct->IsCreatingDevice)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when creating device. " <<
-				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
-			return DefWndProc(hWnd, Msg, wParam, lParam);
-		}
-		break;
-
-	case WM_STYLECHANGING:
-	case WM_STYLECHANGED:
-	case WM_GETMINMAXINFO:
-		// Filter some messages while in exclusive mode
-		if (pDataStruct->IsExclusiveMode)
-		{
-			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages while in exclusive mode. " <<
 				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
@@ -713,30 +703,10 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		}
 		break;
 
-	case WM_NCCALCSIZE:
-		// Filter some messages while in exclusive mode
-		if (pDataStruct->IsExclusiveMode)
-		{
-			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_NCCALCSIZE while in exclusive mode. " <<
-				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
-			return DefWndProc(hWnd, Msg, wParam, lParam);
-		}
-		break;
-
 	case WM_PAINT:
 		// Some games hang when attempting to paint while iconic
 		if (pDataStruct->IsDirectDraw && IsIconic(hWnd))
 		{
-			return DefWndProc(hWnd, Msg, wParam, lParam);
-		}
-		break;
-
-	case WM_NCPAINT:
-		// Filter some messages while in exclusive mode
-		if (pDataStruct->IsExclusiveMode)
-		{
-			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_NCPAINT while in exclusive mode. " <<
-				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
 		break;
