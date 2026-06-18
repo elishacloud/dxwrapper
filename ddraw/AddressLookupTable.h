@@ -17,11 +17,17 @@ T* InterfaceAddressCache(T* Interface)
 	{
 		if (!Config.DdrawKeepAllInterfaceCache)
 		{
-			while (!InterfaceList.empty())
+			for (auto it = InterfaceList.begin(); it != InterfaceList.end();)
 			{
-				T* InterfaceCache = InterfaceList.back();
-				InterfaceCache->DeleteMe();
-				InterfaceList.pop_back();
+				if (!(*it)->KeepMe())
+				{
+					(*it)->DeleteMe();
+					it = InterfaceList.erase(it);
+				}
+				else
+				{
+					++it;
+				}
 			}
 		}
 		InterfaceList.push_back(Interface);
@@ -40,7 +46,7 @@ T* InterfaceAddressCache(T* Interface)
 }
 
 template <typename T>
-inline void SaveInterfaceAddress(T*& Interface)
+inline void SaveInterfaceAddress(T*& Interface, bool KeepInterface = false)
 {
 	if (Interface)
 	{
@@ -63,6 +69,10 @@ inline void SaveInterfaceAddress(T*& Interface)
 		else
 		{
 			Interface->SetProxy(nullptr);
+		}
+		if (KeepInterface)
+		{
+			Interface->PreserveMe();
 		}
 		InterfaceAddressCache(Interface);
 		Interface = nullptr;
@@ -555,9 +565,19 @@ public:
 
 class AddressLookupTableDdrawObject
 {
+private:
+	bool KeepInterface = false;
 public:
 	virtual ~AddressLookupTableDdrawObject() {}
 
+	void PreserveMe()
+	{
+		KeepInterface = true;
+	}
+	bool KeepMe() const
+	{
+		return KeepInterface;
+	}
 	void DeleteMe()
 	{
 		delete this;

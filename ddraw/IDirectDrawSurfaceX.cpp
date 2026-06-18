@@ -3999,11 +3999,11 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 	}
 
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface);
-	SaveInterfaceAddress(WrapperInterface2);
-	SaveInterfaceAddress(WrapperInterface3);
-	SaveInterfaceAddress(WrapperInterface4);
-	SaveInterfaceAddress(WrapperInterface7);
+	SaveInterfaceAddress(WrapperInterface, IsPrimaryOrBackBuffer());
+	SaveInterfaceAddress(WrapperInterface2, IsPrimaryOrBackBuffer());
+	SaveInterfaceAddress(WrapperInterface3, IsPrimaryOrBackBuffer());
+	SaveInterfaceAddress(WrapperInterface4, IsPrimaryOrBackBuffer());
+	SaveInterfaceAddress(WrapperInterface7, IsPrimaryOrBackBuffer());
 
 	// Clean up mipmaps
 	if (!MipMaps.empty())
