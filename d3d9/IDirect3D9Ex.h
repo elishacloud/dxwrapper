@@ -29,6 +29,7 @@ private:
 
 	// Information
 	inline bool IsForcingD3d9to9Ex() const { return (Config.D3d9to9Ex && ProxyInterface == ProxyInterfaceEx); }
+	inline bool UseCachedDisplayModes() const { return (Config.LimitDisplayModeCount || Config.LimitRefreshRates); }
 
 	// Other helper functions
 	void InitInterface();

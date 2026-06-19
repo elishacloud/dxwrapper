@@ -9,6 +9,7 @@
 // Initial screen resolution
 extern volatile LONG InitWidth;
 extern volatile LONG InitHeight;
+extern volatile DWORD InitRefreshRate;
 
 typedef LPDIRECT3D9(WINAPI* Direct3DCreate9Proc)(UINT SDKVersion);
 typedef HRESULT(WINAPI* Direct3DCreate9ExProc)(UINT, IDirect3D9Ex**);

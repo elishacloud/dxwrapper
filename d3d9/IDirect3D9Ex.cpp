@@ -20,6 +20,7 @@
 // Initial screen resolution
 volatile LONG InitWidth = 0;
 volatile LONG InitHeight = 0;
+volatile DWORD InitRefreshRate = 0;
 
 AddressLookupTableD3d9 ProxyAddressLookupTable9;
 
@@ -119,7 +120,7 @@ UINT m_IDirect3D9Ex::GetAdapterModeCount(THIS_ UINT Adapter, D3DFORMAT Format)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.LimitDisplayModeCount)
+	if (UseCachedDisplayModes())
 	{
 		return GetAdapterModeCache(Adapter, Format, false, nullptr);
 	}
@@ -131,7 +132,7 @@ HRESULT m_IDirect3D9Ex::EnumAdapterModes(THIS_ UINT Adapter, D3DFORMAT Format, U
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((Config.LimitDisplayModeCount) && pMode)
+	if (UseCachedDisplayModes() && pMode)
 	{
 		// Required to build the cache, if it doesn't exist
 		if (Mode >= GetAdapterModeCache(Adapter, Format, false, nullptr))
@@ -284,7 +285,7 @@ UINT m_IDirect3D9Ex::GetAdapterModeCountEx(THIS_ UINT Adapter, CONST D3DDISPLAYM
 		return 0;
 	}
 
-	if (Config.LimitDisplayModeCount)
+	if (UseCachedDisplayModes())
 	{
 		return GetAdapterModeCache(Adapter, D3DFMT_UNKNOWN, true, pFilter);
 	}
@@ -302,7 +303,7 @@ HRESULT m_IDirect3D9Ex::EnumAdapterModesEx(THIS_ UINT Adapter, CONST D3DDISPLAYM
 		return D3DERR_INVALIDCALL;
 	}
 
-	if ((Config.LimitDisplayModeCount) && pMode)
+	if (UseCachedDisplayModes() && pMode)
 	{
 		// Required to build the cache, if it doesn't exist
 		if (Mode >= GetAdapterModeCache(Adapter, D3DFMT_UNKNOWN, true, pFilter))
@@ -447,6 +448,9 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 		Count = ProxyInterfaceEx->GetAdapterModeCountEx(Adapter, pFilter);
 	}
 
+	const DWORD TargetRefresh = Config.OverrideRefreshRate ? Config.OverrideRefreshRate :
+		Config.LimitRefreshRates ? InitRefreshRate : 0;
+
 	UINT RefreshRate = 0;
 	std::vector<D3DDISPLAYMODEEX_CONVERT> NewDisplayModeList;
 
@@ -457,8 +461,8 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 		if (SUCCEEDED(!IsEx ? ProxyInterface->EnumAdapterModes(Adapter, Format, x, DisplayMode.Ptr()) :
 			ProxyInterfaceEx->EnumAdapterModesEx(Adapter, pFilter, x, DisplayMode.PtrEx())))
 		{
-			if (Config.OverrideRefreshRate &&
-				(RefreshRate == 0 || std::abs((INT)Config.OverrideRefreshRate - (INT)DisplayMode.RefreshRate) < std::abs((INT)Config.OverrideRefreshRate - (INT)RefreshRate)))
+			if (TargetRefresh &&
+				(RefreshRate == 0 || std::abs((INT)TargetRefresh - (INT)DisplayMode.RefreshRate) < std::abs((INT)TargetRefresh - (INT)RefreshRate)))
 			{
 				RefreshRate = DisplayMode.RefreshRate;
 			}
@@ -483,7 +487,7 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 				}));
 
 		// Check if refresh rate is suported
-		bool IsRefreshSupported = (!Config.OverrideRefreshRate || entry.RefreshRate == RefreshRate);
+		bool IsRefreshSupported = (TargetRefresh == 0 || entry.RefreshRate == RefreshRate);
 
 		// Store entry
 		if (!IsResolutionAlreadySent && IsResolutionSupported && IsRefreshSupported)

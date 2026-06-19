@@ -663,6 +663,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 			// Get default display resolution
 			Utils::GetScreenSize(nullptr, InitWidth, InitHeight);
+			InitRefreshRate = Utils::GetRefreshRate(nullptr);
 		}
 
 		bool DDrawCompatEnabed = false;

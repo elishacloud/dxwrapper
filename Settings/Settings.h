@@ -141,6 +141,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(isAppCompatDataSet) \
 	visit(LimitDisplayModeCount) \
 	visit(LimitPerFrameFPS) \
+	visit(LimitRefreshRates) \
 	visit(LoadCustomDllPath) \
 	visit(LoadFromScriptsOnly) \
 	visit(LoadPlugins) \
@@ -354,6 +355,7 @@ struct CONFIG
 	bool isAppCompatDataSet = false;			// Flag that holds tells whether any of the AppCompatData flags are set
 	bool LimitDisplayModeCount = false;			// Limits the number of display modes sent to program, some games crash when you feed them with too many resolutions
 	float LimitPerFrameFPS = 0;					// Limits each frame by adding a delay if the frame is to fast
+	bool LimitRefreshRates = false;				// Limits the number of refresh rates sent to program, some games crash when you feed them with too many resolutions
 	bool LoadPlugins = false;					// Loads ASI plugins
 	bool LoadFromScriptsOnly = false;			// Loads ASI plugins from 'scripts' and 'plugins' folder only
 	bool ProcessExcluded = false;				// Set if this process is excluded from dxwrapper functions
