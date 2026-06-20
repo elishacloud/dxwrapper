@@ -77,7 +77,8 @@ private:
 	void ReleaseInterface();
 
 	// Helper functions
-	HRESULT GetDefaultViewport();
+	bool IsViewportSet() const { return (Viewport.Data9.Width && Viewport.Data9.Height); }
+	HRESULT m_IDirect3DViewportX::GetCurrentViewport(m_IDirect3DDeviceX* pDirect3DDeviceX, D3DVIEWPORT9& Viewport9);
 
 public:
 	m_IDirect3DViewportX(IDirect3DViewport3 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)

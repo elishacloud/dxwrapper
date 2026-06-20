@@ -159,20 +159,38 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Get default viewport if not set
-		HRESULT hr = GetDefaultViewport();
+		HRESULT hr = D3DERR_VIEWPORTHASNODEVICE;
+
+		// Get viewport from device
+		D3DVIEWPORT9 Viewport9 = {};
+		for (auto& entry : AttachedD3DDevices)
+		{
+			hr = GetCurrentViewport(entry, Viewport9);
+
+			if (SUCCEEDED(hr))
+			{
+				break;
+			}
+		}
+
+		// Could not get a viewport from device
 		if (FAILED(hr))
 		{
-			return hr;
+			hr = GetCurrentViewport(nullptr, Viewport9);
+
+			if (FAILED(hr))
+			{
+				return hr;
+			}
 		}
 
 		// Set standard viewport fields
-		lpData->dwX = Viewport.Data9.X;
-		lpData->dwY = Viewport.Data9.Y;
-		lpData->dwWidth = Viewport.Data9.Width;
-		lpData->dwHeight = Viewport.Data9.Height;
-		lpData->dvMinZ = Viewport.Data9.MinZ;
-		lpData->dvMaxZ = Viewport.Data9.MaxZ;
+		lpData->dwX = Viewport9.X;
+		lpData->dwY = Viewport9.Y;
+		lpData->dwWidth = Viewport9.Width;
+		lpData->dwHeight = Viewport9.Height;
+		lpData->dvMinZ = Viewport9.MinZ;
+		lpData->dvMaxZ = Viewport9.MaxZ;
 
 		// Set viewport scale
 		float scaleX = (fabsf(Viewport.Scale.x) > 1e-6f) ? Viewport.Scale.x : 1.0f;
@@ -434,25 +452,35 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 			return D3DERR_VIEWPORTHASNODEVICE;
 		}
 
-		GetDefaultViewport();
-		D3DVIEWPORT9 Viewport9 = FixViewport(Viewport.Data9);
+		HRESULT hr = D3DERR_VIEWPORTHASNODEVICE;
 
 		for (auto& entry : AttachedD3DDevices)
 		{
-			HRESULT hr = entry->Clear(Viewport9, dwCount, lpRects, dwFlags, 0x00000000, 1.0f, 0);
+			// Get device viewport
+			D3DVIEWPORT9 Viewport9 = {};
+			GetCurrentViewport(entry, Viewport9);
+			Viewport9 = FixViewport(Viewport9);
 
-			// Unlike Clear2(), Clear() isn't supposed to error out on z or stencil clears when no z or stencil is attached
-			if (FAILED(hr) && (dwFlags & D3DCLEAR_STENCIL))
+			HRESULT ret = entry->Clear(Viewport9, dwCount, lpRects, dwFlags, 0x00000000, 1.0f, 0);
+
+			// Unlike Clear2(), Clear() isn't supposed to error out on zbuffer or stencil clears when no zbuffer or stencil is attached
+			if (FAILED(ret) && (dwFlags & D3DCLEAR_STENCIL))
 			{
-				hr = entry->Clear(Viewport9, dwCount, lpRects, (dwFlags & ~D3DCLEAR_STENCIL), 0x00000000, 1.0f, 0);
+				ret = entry->Clear(Viewport9, dwCount, lpRects, (dwFlags & ~D3DCLEAR_STENCIL), 0x00000000, 1.0f, 0);
 			}
-			if (FAILED(hr) && (dwFlags & D3DCLEAR_ZBUFFER))
+			if (FAILED(ret) && (dwFlags & D3DCLEAR_ZBUFFER))
 			{
-				hr = entry->Clear(Viewport9, dwCount, lpRects, (dwFlags & ~(D3DCLEAR_STENCIL | D3DCLEAR_ZBUFFER)), 0x00000000, 1.0f, 0);
+				ret = entry->Clear(Viewport9, dwCount, lpRects, (dwFlags & ~(D3DCLEAR_STENCIL | D3DCLEAR_ZBUFFER)), 0x00000000, 1.0f, 0);
+			}
+
+			// Prioritized succeed over failure
+			if (SUCCEEDED(ret) || (FAILED(hr) && FAILED(ret)))
+			{
+				hr = ret;
 			}
 		}
 
-		return D3D_OK;
+		return hr;
 	}
 
 	return ProxyInterface->Clear(dwCount, lpRects, dwFlags);
@@ -621,18 +649,36 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Get default viewport if not set
-		HRESULT hr = GetDefaultViewport();
+		HRESULT hr = D3DERR_VIEWPORTHASNODEVICE;
+
+		// Get viewport from device
+		D3DVIEWPORT9 Viewport9 = {};
+		for (auto& entry : AttachedD3DDevices)
+		{
+			hr = GetCurrentViewport(entry, Viewport9);
+
+			if (SUCCEEDED(hr))
+			{
+				break;
+			}
+		}
+
+		// Could not get a viewport from device
 		if (FAILED(hr))
 		{
-			return hr;
+			hr = GetCurrentViewport(nullptr, Viewport9);
+
+			if (FAILED(hr))
+			{
+				return hr;
+			}
 		}
 
 		// Set standard viewport fields
-		lpData->dwX = Viewport.Data9.X;
-		lpData->dwY = Viewport.Data9.Y;
-		lpData->dwWidth = Viewport.Data9.Width;
-		lpData->dwHeight = Viewport.Data9.Height;
+		lpData->dwX = Viewport9.X;
+		lpData->dwY = Viewport9.Y;
+		lpData->dwWidth = Viewport9.Width;
+		lpData->dwHeight = Viewport9.Height;
 		lpData->dvMinZ = Viewport.MinZ;
 		lpData->dvMaxZ = Viewport.MaxZ;
 
@@ -810,8 +856,6 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 
 	if (Config.Dd7to9)
 	{
-		// ToDo: check on zbuffer and stencil buffer and return error if does not exist:  D3DERR_ZBUFFER_NOTPRESENT and D3DERR_STENCILBUFFER_NOTPRESENT
-
 		if (AttachedD3DDevices.empty())
 		{
 			return D3DERR_VIEWPORTHASNODEVICE;
@@ -823,17 +867,45 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 			dvZ = 1.0f;
 		}
 
-		GetDefaultViewport();
-		D3DVIEWPORT9 Viewport9 = FixViewport(Viewport.Data9);
+		HRESULT hr = D3DERR_VIEWPORTHASNODEVICE;
 
-		HRESULT hr = D3D_OK;
 		for (auto& entry : AttachedD3DDevices)
 		{
-			hr = entry->Clear(Viewport9, dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
+			// Get device viewport
+			D3DVIEWPORT9 Viewport9 = {};
+			GetCurrentViewport(entry, Viewport9);
+			Viewport9 = FixViewport(Viewport9);
 
-			if (FAILED(hr))
+			// Check for zbuffer and stencil surface
+			bool HasAttachedZBuffer = false, HasAttachedStencil = false;
 			{
-				return hr;
+				m_IDirectDrawSurfaceX* pRenderTarget = entry->GetRenderTargetX();
+				if (pRenderTarget)
+				{
+					m_IDirectDrawSurfaceX* pZBuffer = pRenderTarget->GetAttachedDepthStencil();
+					if (pZBuffer)
+					{
+						HasAttachedZBuffer = true;
+
+						if (HasStencil(pZBuffer->GetSurfaceFormat()))
+						{
+							HasAttachedStencil = true;
+						}
+					}
+				}
+			}
+
+			// This method fails if you specify the D3DCLEAR_ZBUFFER or D3DCLEAR_STENCIL flags when the render target does not have an attached depth-buffer.
+			// This behavior differs from the IDirect3DViewport3::Clear method, which will succeed if under these circumstances.
+			HRESULT ret =
+				(dwFlags & D3DCLEAR_ZBUFFER) && !HasAttachedZBuffer ? D3DERR_ZBUFFER_NOTPRESENT :
+				(dwFlags & D3DCLEAR_STENCIL) && !HasAttachedStencil ? D3DERR_STENCILBUFFER_NOTPRESENT :
+				entry->Clear(Viewport9, dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
+
+			// Prioritized succeed over failure
+			if (SUCCEEDED(ret) || (FAILED(hr) && FAILED(ret)))
+			{
+				hr = ret;
 			}
 		}
 
@@ -918,41 +990,39 @@ void* m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
 	return nullptr;
 }
 
-HRESULT m_IDirect3DViewportX::GetDefaultViewport()
+HRESULT m_IDirect3DViewportX::GetCurrentViewport(m_IDirect3DDeviceX* pDirect3DDeviceX, D3DVIEWPORT9& Viewport9)
 {
-	if (Viewport.Data9.Width == 0 || Viewport.Data9.Height == 0)
+	if (IsViewportSet())
 	{
-		if (!AttachedD3DDevices.empty())
-		{
-			D3DVIEWPORT7 Viewport7 = {};
+		Viewport9 = Viewport.Data9;
 
-			for (auto& entry : AttachedD3DDevices)
-			{
-				entry->GetDefaultViewport(Viewport.Data9);
-
-				break;
-			}
-		}
-		else if (D3DInterface)
-		{
-			DWORD Width = 0, Height = 0;
-			D3DInterface->GetViewportResolution(Width, Height);
-
-			Viewport.Data9 = {
-				0,           // X (starting X coordinate)
-				0,           // Y (starting Y coordinate)
-				Width,       // Width (usually set to the backbuffer width)
-				Height,      // Height (usually set to the backbuffer height)
-				0.0f,        // MinZ (near clipping plane, typically 0.0f)
-				1.0f         // MaxZ (far clipping plane, typically 1.0f)
-			};
-		}
-		else
-		{
-			return D3DERR_VIEWPORTHASNODEVICE;
-		}
+		return D3D_OK;
 	}
-	return D3D_OK;
+
+	if (pDirect3DDeviceX)
+	{
+		pDirect3DDeviceX->GetDefaultViewport(Viewport9);
+
+		return D3D_OK;
+	}
+	else if (D3DInterface)
+	{
+		DWORD Width = 0, Height = 0;
+		D3DInterface->GetViewportResolution(Width, Height);
+
+		Viewport9 = {
+			0,           // X (starting X coordinate)
+			0,           // Y (starting Y coordinate)
+			Width,       // Width (usually set to the backbuffer width)
+			Height,      // Height (usually set to the backbuffer height)
+			0.0f,        // MinZ (near clipping plane, typically 0.0f)
+			1.0f         // MaxZ (far clipping plane, typically 1.0f)
+		};
+
+		return D3D_OK;
+	}
+
+	return D3DERR_VIEWPORTHASNODEVICE;
 }
 
 void m_IDirect3DViewportX::SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData)

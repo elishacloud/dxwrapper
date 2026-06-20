@@ -505,21 +505,24 @@ public:
 		return false;
 	}
 
-	// Viewport vector function
+	// Viewport vector functions
 	HRESULT SetViewportData(VIEWPORTINFO& Viewport);
 	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX);
 
-	// Texture handle function
+	// Render target functions
+	m_IDirectDrawSurfaceX* GetRenderTargetX() { return lpCurrentRenderTargetX; };
+
+	// Texture handle functions
 	void ClearTextureHandle(D3DTEXTUREHANDLE tHandle);
 	HRESULT SetTextureHandle(D3DTEXTUREHANDLE& tHandle, m_IDirect3DTextureX* pTextureX);
 
-	// Material handle function
+	// Material handle functions
 	void ClearMaterialHandle(D3DMATERIALHANDLE mHandle);
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial);
 	bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == DeviceStates.LightState[D3DLIGHTSTATE_MATERIAL]); }
 	inline bool IsMaterialSet() const { return DeviceStates.Material.Set; };
 
-	// Light index function
+	// Light index functions
 	bool IsLightInUse(m_IDirect3DLight* pLightX);
 	void GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLightList);
 	void ClearLight(m_IDirect3DLight* lpLight);

@@ -361,7 +361,6 @@ private:
 	DWORD GetWidth() const { return surfaceDesc2.dwWidth; }
 	DWORD GetHeight() const { return surfaceDesc2.dwHeight; }
 	DDSCAPS2 GetSurfaceCaps() const { return surfaceDesc2.ddsCaps; }
-	D3DFORMAT GetSurfaceFormat() const { return surface.Format; }
 
 	// Attached surfaces
 	void InitSurfaceDesc(DWORD DirectXVersion);
@@ -574,6 +573,7 @@ public:
 	bool HasAlphaChannel(bool UsingColorKey) const;
 	bool IsColorKeyTexture() const { return (IsSurfaceTexture() && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)); }
 	bool IsPalette() const { return (surface.Format == D3DFMT_P8); }
+	D3DFORMAT GetSurfaceFormat() const { return surface.Format; }
 	DWORD GetAttachedStencilSurfaceZBits();
 	D3DMULTISAMPLE_TYPE GetMultiSampleType() const { return surface.MultiSampleType; }
 	bool IsSurfaceBusy(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS) { return (IsSurfaceBlitting() || IsSurfaceLocked(MipMapLevel) || IsSurfaceInDC(MipMapLevel)); }
