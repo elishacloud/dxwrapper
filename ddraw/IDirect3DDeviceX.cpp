@@ -1672,7 +1672,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 
 			DWORD OldDepthBits = DepthBitCount;
 
-			DepthBitCount = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
+			DepthBitCount = lpDDSrcSurfaceX->GetAttachedDepthStencilZBits();
 
 			if (OldDepthBits != DepthBitCount)
 			{
@@ -4981,27 +4981,39 @@ void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 		if (ddrawParent)
 		{
 			d3d9Device = ddrawParent->GetDirectD9Device();
+		}
 
-			if (AttachedSurface)
+		DWORD ZENABLE = D3DZB_FALSE;
+
+		if (AttachedSurface)
+		{
+			m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
+
+			AttachedSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
+			if (lpDDSrcSurfaceX)
 			{
-				m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
+				lpAttachedSurfaceX = lpDDSrcSurfaceX;
 
-				AttachedSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
-				if (lpDDSrcSurfaceX)
+				CurrentRenderTarget = AttachedSurface;
+				lpCurrentRenderTargetX = lpDDSrcSurfaceX;
+
+				lpDDSrcSurfaceX->AddRefRoot(AttachedSurface);
+
+				DepthBitCount = lpDDSrcSurfaceX->GetAttachedDepthStencilZBits();
+
+				if (lpDDSrcSurfaceX->GetAttachedDepthStencil() != nullptr)
 				{
-					lpAttachedSurfaceX = lpDDSrcSurfaceX;
+					ZENABLE = D3DZB_TRUE;
+				}
 
-					lpAttachedSurfaceX->AddRefRoot(AttachedSurface);
-
-					CurrentRenderTarget = AttachedSurface;
-					lpCurrentRenderTargetX = lpDDSrcSurfaceX;
-
-					DepthBitCount = lpDDSrcSurfaceX->GetAttachedStencilSurfaceZBits();
-
-					ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
+				if (ddrawParent)
+				{
+					ddrawParent->SetRenderTargetSurface(lpDDSrcSurfaceX);
 				}
 			}
 		}
+
+		SetD9RenderState(D3DRS_ZENABLE, ZENABLE);
 
 		AddRef(DirectXVersion);
 	}
@@ -5021,19 +5033,13 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 	AttachedSurface = nullptr;
 	lpAttachedSurfaceX = nullptr;
 
-	lpCurrentRenderTargetX = nullptr;
 	CurrentRenderTarget = nullptr;
+	lpCurrentRenderTargetX = nullptr;
 
 	if (D3DInterface)
 	{
 		D3DInterface->ClearD3DDevice(this);
 	}
-
-	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface);
-	SaveInterfaceAddress(WrapperInterface2);
-	SaveInterfaceAddress(WrapperInterface3);
-	SaveInterfaceAddress(WrapperInterface7);
 
 	// Clear ExecuteBuffers
 	for (const auto& entry : ExecuteBufferList)
@@ -5050,6 +5056,12 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 			lpViewportX->ClearD3DDevice(this);
 		}
 	}
+
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface);
+	SaveInterfaceAddress(WrapperInterface2);
+	SaveInterfaceAddress(WrapperInterface3);
+	SaveInterfaceAddress(WrapperInterface7);
 }
 
 HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevice)
@@ -5876,8 +5888,7 @@ HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Val
 
 	BatchStates.RenderState[State] = Value;
 
-	// Don't reset D3DRS_ZENABLE set value
-	DeviceStates.RenderState[State].Set = (DefaultRenderState[State] != Value) || (State == D3DRS_ZENABLE);
+	DeviceStates.RenderState[State].Set = (DefaultRenderState[State] != Value);
 	DeviceStates.RenderState[State].State = Value;
 
 	return D3D_OK;
@@ -6653,10 +6664,8 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			ddrawParent->SetRenderTargetSurface(lpCurrentRenderTargetX);
 		}
 
-		if (DeviceStates.RenderState[D3DRS_ZENABLE].Set)
-		{
-			(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, DeviceStates.RenderState[D3DRS_ZENABLE].State);
-		}
+		// Always set the ZENABLE state
+		(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, DeviceStates.RenderState[D3DRS_ZENABLE].State);
 
 		// Check Multi-Sample Type
 		if (DeviceStates.RenderState[D3DRS_MULTISAMPLEANTIALIAS].State && lpCurrentRenderTargetX->GetMultiSampleType() == D3DMULTISAMPLE_NONE)

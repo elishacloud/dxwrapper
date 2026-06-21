@@ -3998,12 +3998,12 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 		return;
 	}
 
-	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, IsPrimaryOrBackBuffer());
-	SaveInterfaceAddress(WrapperInterface2, IsPrimaryOrBackBuffer());
-	SaveInterfaceAddress(WrapperInterface3, IsPrimaryOrBackBuffer());
-	SaveInterfaceAddress(WrapperInterface4, IsPrimaryOrBackBuffer());
-	SaveInterfaceAddress(WrapperInterface7, IsPrimaryOrBackBuffer());
+	ReleaseDirectDrawResources();
+
+	if (Config.Dd7to9)
+	{
+		ReleaseD9Surface(false, false);
+	}
 
 	// Clean up mipmaps
 	if (!MipMaps.empty())
@@ -4018,18 +4018,18 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 		}
 	}
 
-	ReleaseDirectDrawResources();
-
-	if (Config.Dd7to9)
-	{
-		ReleaseD9Surface(false, false);
-	}
-
 	if (Config.Dd7to9)
 	{
 		// Delete critical section last
 		DeleteCriticalSection(&ddscs);
 	}
+
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface, IsPrimaryOrBackBuffer());
+	SaveInterfaceAddress(WrapperInterface2, IsPrimaryOrBackBuffer());
+	SaveInterfaceAddress(WrapperInterface3, IsPrimaryOrBackBuffer());
+	SaveInterfaceAddress(WrapperInterface4, IsPrimaryOrBackBuffer());
+	SaveInterfaceAddress(WrapperInterface7, IsPrimaryOrBackBuffer());
 }
 
 ULONG m_IDirectDrawSurfaceX::AddRefRoot(LPDIRECTDRAWSURFACE7 WrapperAddress)
@@ -5555,7 +5555,7 @@ void m_IDirectDrawSurfaceX::SetAsRenderTarget()
 	}
 }
 
-DWORD m_IDirectDrawSurfaceX::GetAttachedStencilSurfaceZBits()
+DWORD m_IDirectDrawSurfaceX::GetAttachedDepthStencilZBits()
 {
 	m_IDirectDrawSurfaceX* lpAttachedSurfaceX = GetAttachedDepthStencil();
 	if (lpAttachedSurfaceX)

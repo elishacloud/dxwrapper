@@ -574,7 +574,7 @@ public:
 	bool IsColorKeyTexture() const { return (IsSurfaceTexture() && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)); }
 	bool IsPalette() const { return (surface.Format == D3DFMT_P8); }
 	D3DFORMAT GetSurfaceFormat() const { return surface.Format; }
-	DWORD GetAttachedStencilSurfaceZBits();
+	DWORD GetAttachedDepthStencilZBits();
 	D3DMULTISAMPLE_TYPE GetMultiSampleType() const { return surface.MultiSampleType; }
 	bool IsSurfaceBusy(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS) { return (IsSurfaceBlitting() || IsSurfaceLocked(MipMapLevel) || IsSurfaceInDC(MipMapLevel)); }
 	bool CanSurfaceBeDeleted() const { return !ComplexChild; }

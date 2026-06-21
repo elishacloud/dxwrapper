@@ -2618,13 +2618,6 @@ void m_IDirectDrawX::ReleaseInterface()
 
 	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
-	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface);
-	SaveInterfaceAddress(WrapperInterface2);
-	SaveInterfaceAddress(WrapperInterface3);
-	SaveInterfaceAddress(WrapperInterface4);
-	SaveInterfaceAddress(WrapperInterface7);
-
 	if (g_hook)
 	{
 		UnhookWindowsHookEx(g_hook);
@@ -2793,6 +2786,13 @@ void m_IDirectDrawX::ReleaseInterface()
 		// Clean up dummy memory
 		m_IDirectDrawSurfaceX::CleanupDummySurface();
 	}
+
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface);
+	SaveInterfaceAddress(WrapperInterface2);
+	SaveInterfaceAddress(WrapperInterface3);
+	SaveInterfaceAddress(WrapperInterface4);
+	SaveInterfaceAddress(WrapperInterface7);
 }
 
 HRESULT m_IDirectDrawX::CheckInterface(char* FunctionName, bool CheckD3DDevice)
@@ -4140,7 +4140,6 @@ void m_IDirectDrawX::ClearRenderTarget()
 		ComPtr<IDirect3DSurface9> pBackBuffer;
 		if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))
 		{
-			d3d9Device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
 			d3d9Device->SetDepthStencilSurface(nullptr);
 			d3d9Device->SetRenderTarget(0, pBackBuffer.Get());
 		}
@@ -4219,7 +4218,6 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 
 		if (d3d9Device)
 		{
-			d3d9Device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
 			hr = d3d9Device->SetDepthStencilSurface(nullptr);
 		}
 	}
@@ -4234,7 +4232,6 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 			LPDIRECT3DSURFACE9 pSurfaceD9 = DepthStencilSurface->GetD9Surface();
 			if (pSurfaceD9)
 			{
-				d3d9Device->SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE);
 				hr = d3d9Device->SetDepthStencilSurface(pSurfaceD9);
 			}
 		}

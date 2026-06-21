@@ -959,15 +959,15 @@ void m_IDirect3DViewportX::ReleaseInterface()
 		entry->ClearViewport(this);
 	}
 
-	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface);
-	SaveInterfaceAddress(WrapperInterface2);
-	SaveInterfaceAddress(WrapperInterface3);
-
 	for (auto& entry : AttachedLights)
 	{
 		entry->Release();
 	}
+
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface);
+	SaveInterfaceAddress(WrapperInterface2);
+	SaveInterfaceAddress(WrapperInterface3);
 }
 
 void* m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)

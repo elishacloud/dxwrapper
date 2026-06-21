@@ -1052,12 +1052,6 @@ void m_IDirect3DX::ReleaseInterface()
 		entry.Interface->ClearD3D(this);
 	}
 
-	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface);
-	SaveInterfaceAddress(WrapperInterface2);
-	SaveInterfaceAddress(WrapperInterface3);
-	SaveInterfaceAddress(WrapperInterface7);
-
 	// Release Light
 	for (auto& entry : LightList)
 	{
@@ -1081,6 +1075,12 @@ void m_IDirect3DX::ReleaseInterface()
 	{
 		entry->ClearD3D();
 	}
+
+	// Don't delete wrapper interface
+	SaveInterfaceAddress(WrapperInterface);
+	SaveInterfaceAddress(WrapperInterface2);
+	SaveInterfaceAddress(WrapperInterface3);
+	SaveInterfaceAddress(WrapperInterface7);
 }
 
 void* m_IDirect3DX::GetWrapperInterfaceX(DWORD DirectXVersion)
