@@ -890,9 +890,12 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		DWORD EnumHeight = (lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_HEIGHT)) ? lpDDSurfaceDesc2->dwHeight : 0;
 
 		// Get display modes to enum
-		DWORD DisplayBitCount = (DisplayMode.BPP) ? DisplayMode.BPP :
+		DWORD DisplayBitCount = Config.DdrawOverrideBitMode ? Config.DdrawOverrideBitMode :
 			(lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_PIXELFORMAT)) ? GetBitCount(lpDDSurfaceDesc2->ddpfPixelFormat) : 0;
 		bool DisplayAllModes = (DisplayBitCount != 8 && DisplayBitCount != 16 && DisplayBitCount != 24 && DisplayBitCount != 32);
+
+		// Get refresh mode
+		DWORD DisplayRefreshRate = (lpDDSurfaceDesc2 && (lpDDSurfaceDesc2->dwFlags & DDSD_REFRESHRATE)) ? lpDDSurfaceDesc2->dwRefreshRate : 0;
 
 		// For deduplicating resolutions
 		struct RESLIST {
@@ -936,7 +939,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 			AddDisplayResolution(d3ddispmode.Width, d3ddispmode.Height);
 
 			// Set display refresh rate
-			DWORD RefreshRate = (dwFlags & DDEDM_REFRESHRATES) ? d3ddispmode.RefreshRate : 0;
+			DWORD RefreshRate = (dwFlags & DDEDM_REFRESHRATES) ? (DisplayRefreshRate ? DisplayRefreshRate : d3ddispmode.RefreshRate) : DisplayRefreshRate;
 
 			// Check if resolution has already been sent
 			bool IsResolutionAlreadySent = std::any_of(ResolutionList.begin(), ResolutionList.end(),
