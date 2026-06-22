@@ -1969,7 +1969,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			DWORD FoundHeight = dwHeight;
 
 			// Check if it is a supported resolution
-			if ((ExclusiveMode && !Config.EnableWindowMode) || Config.FullscreenWindowMode || Config.ForceExclusiveFullscreen)
+			if ((IsExclusiveMode() && !Config.EnableWindowMode) || Config.FullscreenWindowMode || Config.ForceExclusiveFullscreen)
 			{
 				// Check for device interface
 				if (FAILED(CheckInterface(__FUNCTION__, false)))
@@ -2058,7 +2058,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		}
 
 		// Reset device state on exclusive mode change
-		if ((ExclusiveMode || FullScreenWindowed) && (DoResolutionChanged || DoDisplayColorChanged))
+		if (IsExclusiveMode() && (DoResolutionChanged || DoDisplayColorChanged))
 		{
 			Clear3DDeviceState(!WasDeviceCreated);
 		}
@@ -2778,7 +2778,7 @@ void m_IDirectDrawX::ReleaseInterface()
 		hMonitor = nullptr;
 
 		// Force a redraw of the desktop
-		if (ExclusiveMode || FullScreenWindowed || Config.FullscreenWindowMode)
+		if (IsExclusiveMode() || FullScreenWindowed || Config.FullscreenWindowMode)
 		{
 			RedrawWindow(nullptr, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 		}
@@ -2921,7 +2921,7 @@ DWORD m_IDirectDrawX::GetPresentUSN()
 
 bool m_IDirectDrawX::IsExclusiveMode()
 {
-	return ExclusiveMode;
+	return ExclusiveMode || !Device.IsWindowed;
 }
 
 void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, DWORD& RefreshRate)
@@ -3284,6 +3284,12 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	// Get hwnd
 	const HWND hWnd = GetHwnd();
 
+	// Check device window
+	if (!IsWindow(hWnd))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " " << FunctionName << " Warning: device window isn't valid: " << hWnd);
+	}
+
 	// Set DirectX version
 	m_IDirect3D9Ex* D3DX = nullptr;
 	if (SUCCEEDED(d3d9Object->QueryInterface(IID_GetInterfaceX, reinterpret_cast<LPVOID*>(&D3DX))))
@@ -3298,7 +3304,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 		WndDataStruct->IsDirectDraw = true;
 		Device.NoWindowChanges = Device.NoWindowChanges || WndDataStruct->NoWindowChanges;
 		WndDataStruct->NoWindowChanges = Device.NoWindowChanges;
-		WndDataStruct->IsExclusiveMode = ExclusiveMode;
+		WndDataStruct->IsExclusiveMode = IsExclusiveMode();
 		WndDataStruct->DirectXVersion = ClientDirectXVersion;
 	}
 
@@ -3357,7 +3363,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	else
 	{
 		// Use default desktop resolution
-		if (ExclusiveMode || Config.FullscreenWindowMode || Config.ForceExclusiveFullscreen)
+		if (IsExclusiveMode() || Config.FullscreenWindowMode || Config.ForceExclusiveFullscreen)
 		{
 			BackBufferWidth = InitWidth;
 			BackBufferHeight = InitHeight;
@@ -3398,7 +3404,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	presParams.hDeviceWindow = hWnd;
 
 	// Set parameters for the current display mode
-	if (Device.IsWindowed || !hWnd)
+	if (!IsExclusiveMode())
 	{
 		// Window mode
 		presParams.Windowed = TRUE;
@@ -5229,7 +5235,7 @@ HRESULT m_IDirectDrawX::CopyPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurfac
 	// Get source rect
 	RECT* pSrcRect = nullptr;
 	RECT SrcRect = { 0, 0, (LONG)pPrimarySurface->GetD9Width(), (LONG)pPrimarySurface->GetD9Height() };
-	if (!ExclusiveMode && hWnd && !IsIconic(hWnd))
+	if (!IsExclusiveMode() && hWnd && !IsIconic(hWnd))
 	{
 		// Clip rect
 		RECT ClientRect = {};
@@ -5390,7 +5396,7 @@ HRESULT m_IDirectDrawX::PresentScene(m_IDirectDrawSurfaceX* pPrimarySurface, REC
 
 bool m_IDirectDrawX::IsUsingThreadPresent()
 {
-	return (PresentThread.IsInitialized && ExclusiveMode && !RenderTargetSurface && !IsPrimaryRenderTarget());
+	return (PresentThread.IsInitialized && IsExclusiveMode() && !RenderTargetSurface && !IsPrimaryRenderTarget());
 }
 
 DWORD WINAPI m_IDirectDrawX::PresentThreadFunction(LPVOID)
@@ -5624,7 +5630,7 @@ HRESULT m_IDirectDrawX::Present(RECT* pSourceRect, RECT* pDestRect)
 
 	// Redraw window if it has moved from its last location
 	RECT ClientRect = {};
-	if (ReDrawNextPresent || (presParams.Windowed && !ExclusiveMode && !IsIconic(hWnd) && GetWindowRect(hWnd, &ClientRect) && LastWindowRect.right > 0 && LastWindowRect.bottom > 0))
+	if (ReDrawNextPresent || (presParams.Windowed && !FullScreenWindowed && !IsIconic(hWnd) && GetWindowRect(hWnd, &ClientRect) && LastWindowRect.right > 0 && LastWindowRect.bottom > 0))
 	{
 		if (ReDrawNextPresent ||
 			(ClientRect.left != LastWindowRect.left || ClientRect.top != LastWindowRect.top ||
@@ -5666,7 +5672,7 @@ bool m_IDirectDrawX::CheckDirectDrawXInterface(void* pInterface)
 void m_IDirectDrawX::TriggerDeviceReset(HWND hWnd)
 {
 	// If incorrect param or incorrect device
-	if (!ExclusiveMode || !CreationInterface || hWnd != presParams.hDeviceWindow || !IsWindow(DisplayMode.hWnd))
+	if (!IsExclusiveMode() || !CreationInterface || hWnd != presParams.hDeviceWindow || !IsWindow(DisplayMode.hWnd))
 	{
 		return;
 	}
@@ -5686,7 +5692,7 @@ void m_IDirectDrawX::TriggerDeviceReset(HWND hWnd)
 void m_IDirectDrawX::CheckFixWindowPos(HWND hWnd, WINDOWPOS* wPos)
 {
 	// If incorrect param or incorrect device
-	if (!wPos || !ExclusiveMode || !CreationInterface || hWnd != presParams.hDeviceWindow || !IsWindow(DisplayMode.hWnd) || (Config.EnableWindowMode && !Config.FullscreenWindowMode))
+	if (!wPos || !IsExclusiveMode() || !CreationInterface || hWnd != presParams.hDeviceWindow || !IsWindow(DisplayMode.hWnd))
 	{
 		return;
 	}
