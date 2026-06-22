@@ -605,8 +605,8 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Hide minimized window location from game
 		if (pDataStruct->IsDirectDraw)
 		{
-			int x = (int)(short)LOWORD(lParam);
-			int y = (int)(short)HIWORD(lParam);
+			const int x = (int)(short)LOWORD(lParam);
+			const int y = (int)(short)HIWORD(lParam);
 
 			if (x == -32000 && y == -32000)
 			{
@@ -680,15 +680,31 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			WINDOWPOS* WinPos = reinterpret_cast<WINDOWPOS*>(lParam);
 
-			// Handle exclusive mode cases where the window is resized to be different than the display size
-			if (pDataStruct->IsDirectDraw && pDataStruct->IsExclusiveMode)
-			{
-				m_IDirectDrawX::CheckFixWindowPos(hWnd, WinPos);
-			}
 			// Disallow negative top, some games (e.g. The Summoner [-20]) will overwrite the y coordinate to a negative number
 			if (WinPos->y < 0 && !GetMenu(hWnd))
 			{
 				WinPos->y = 0;
+			}
+			// Check if need to modify the size
+			if (!(WinPos->flags & SWP_NOSIZE))
+			{
+				// Handle exclusive mode cases where the window is resized to be different than the display size (e.g. Call to Power 2)
+				if (pDataStruct->IsDirectDraw && pDataStruct->IsExclusiveMode)
+				{
+					m_IDirectDrawX::CheckFixWindowPos(hWnd, WinPos);
+				}
+
+				RECT rc = {};
+				GetWindowRect(hWnd, &rc);
+
+				const LONG CurCX = rc.right - rc.left;
+				const LONG CurCY = rc.bottom - rc.top;
+
+				// Don't resize if no changes in window size (e.g. Twisted Metal 2)
+				if (WinPos->cx == CurCX && WinPos->cy == CurCY)
+				{
+					WinPos->flags |= SWP_NOSIZE;
+				}
 			}
 			// Filter messages for loss of focus or minimize
 			if (Config.HideWindowFocusChanges && (WinPos->flags & SWP_HIDEWINDOW))
