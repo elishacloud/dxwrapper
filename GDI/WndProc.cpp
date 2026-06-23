@@ -76,6 +76,7 @@ namespace WndProc
 		WNDPROC AppWndProc = nullptr;
 		DATASTRUCT DataStruct;	// Use initialization from struct
 		std::atomic<bool> Active = true;
+		std::atomic<bool> ReadyToDelete = false;
 		std::atomic<bool> Exiting = false;
 	public:
 		WNDPROCSTRUCT(HWND p_hWnd, WNDPROC p_AppWndProc) : hWnd(p_hWnd), AppWndProc(p_AppWndProc)
@@ -98,31 +99,50 @@ namespace WndProc
 		{
 			Exiting = true;
 			Active = false;
-			if (Config.Exiting)
+			if (IsWindow(hWnd))
 			{
-				AppWndProc = (IsWindowUnicode(hWnd) ? DefWindowProcW : DefWindowProcA);
-				(IsWindowUnicode(hWnd) ?
-					SetWindowLongW(hWnd, GWL_WNDPROC, (LONG)DefWindowProcW) :
-					SetWindowLongA(hWnd, GWL_WNDPROC, (LONG)DefWindowProcA));
-				return;
-			}
-			// Restore WndProc
-			if (IsWindow(hWnd) && AppWndProc)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
-				SetWndProc(hWnd, AppWndProc);
+				if (Config.Exiting)
+				{
+					SetToDefault();
+				}
+				// Restore WndProc
+				else if (AppWndProc)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
+					SetWndProc(hWnd, AppWndProc);
+				}
 			}
 		}
 		HWND GetHWnd() const { return hWnd; }
 		WNDPROC GetMyWndProc() const { return MyWndProc; }
 		WNDPROC GetAppWndProc() const { return AppWndProc; }
 		DATASTRUCT* GetDataStruct() { return &DataStruct; }
-		bool IsActive() const { return Active; }
-		void SetInactive() { Active = false; }
-		bool IsExiting() const { return Exiting; }
+		void SetToDefault()
+		{
+			if (IsWindowUnicode(hWnd))
+			{
+				AppWndProc = DefWindowProcW;
+				SetWindowLongW(hWnd, GWL_WNDPROC, (LONG)DefWindowProcW);
+			}
+			else
+			{
+				AppWndProc = DefWindowProcA;
+				SetWindowLongA(hWnd, GWL_WNDPROC, (LONG)DefWindowProcA);
+			}
+		}
+		inline bool IsActive() const { return Active; }
+		inline void SetInactive() { Active = false; }
+		inline bool IsReadyToDelete() const { return ReadyToDelete; }
+		inline void MarkReadyToDelete() { ReadyToDelete = true; }
+		inline bool IsExiting() const { return Exiting; }
 	};
 
 	std::vector<std::shared_ptr<WNDPROCSTRUCT>> WndProcList;
+
+	inline static bool CheckWndProc(std::shared_ptr<WNDPROCSTRUCT> pDataStruct, HWND hWnd)
+	{
+		return (pDataStruct->GetHWnd() == hWnd && pDataStruct->IsActive() && !pDataStruct->IsExiting());
+	}
 }
 
 bool WndProc::IsExecutableAddress(void* address)
@@ -141,18 +161,6 @@ bool WndProc::IsExecutableAddress(void* address)
 
 	return (mbi.State == MEM_COMMIT) &&
 		(mbi.Protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY));
-}
-
-WNDPROC WndProc::CheckWndProc(HWND hWnd, LONG dwNewLong)
-{
-	for (auto& entry : WndProcList)
-	{
-		if (entry->IsActive() && entry->GetHWnd() == hWnd && !(entry->IsExiting() && (LONG)entry->GetAppWndProc() == dwNewLong))
-		{
-			return entry->GetMyWndProc();
-		}
-	}
-	return nullptr;
 }
 
 WNDPROC WndProc::GetWndProc(HWND hWnd)
@@ -229,14 +237,10 @@ WndProc::DATASTRUCT* WndProc::AddWndProc(HWND hWnd)
 	RemoveInactiveWndProcs();
 
 	// Check if window is already hooked
-	for (auto& entry : WndProcList)
+	for (const auto& entry : WndProcList)
 	{
-		if (entry->GetHWnd() == hWnd)
+		if (CheckWndProc(entry, hWnd))
 		{
-			if (!entry->IsActive())
-			{
-				LOG_LIMIT(3, __FUNCTION__ << " Warning: requesting an inactive window handle. " << hWnd);
-			}
 			return entry->GetDataStruct();
 		}
 	}
@@ -296,23 +300,36 @@ WndProc::DATASTRUCT* WndProc::AddWndProc(HWND hWnd)
 void WndProc::RemoveInactiveWndProcs()
 {
 	// Remove inactive elements
-	WndProcList.erase(
-		std::remove_if(
-			WndProcList.begin(),
-			WndProcList.end(),
-			[](const std::shared_ptr<WNDPROCSTRUCT>& wndProc)
+	for (auto it = WndProcList.begin(); it != WndProcList.end();)
 	{
-		const HWND hwnd = wndProc->GetHWnd();
-		return !wndProc->IsActive() && !IsWindow(hwnd);
-	}),
-		WndProcList.end());
+		if (CheckWndProc(*it, (*it)->GetHWnd()))
+		{
+			// Valid record
+			it++;
+		}
+		else
+		{
+			// Invalid record
+			if ((*it)->IsReadyToDelete() == false)
+			{
+				// Don't delete on first pass instead mark as ready to delete
+				(*it)->MarkReadyToDelete();
+				it++;
+			}
+			else
+			{
+				// Delete record
+				it = WndProcList.erase(it);
+			}
+		}
+	}
 }
 
 WndProc::DATASTRUCT* WndProc::GetWndProctStruct(HWND hWnd)
 {
-	for (auto& entry : WndProcList)
+	for (const auto& entry : WndProcList)
 	{
-		if (entry->IsActive() && entry->GetHWnd() == hWnd)
+		if (CheckWndProc(entry, hWnd))
 		{
 			return entry->GetDataStruct();
 		}
@@ -410,9 +427,14 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	const HWND hWndInstance = AppWndProcInstance->GetHWnd();
 	DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
 
-	// Messages don't apply to this window
-	if (hWnd != hWndInstance || !AppWndProcInstance->IsActive())
+	if (AppWndProcInstance->IsExiting() || !AppWndProcInstance->IsActive())
 	{
+		// WndProc is inactive or exiting use default WndProc instead
+		return DefWndProc(hWnd, Msg, wParam, lParam);
+	}
+	else if (hWnd != hWndInstance)
+	{
+		// Messages don't apply to this window
 		return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 	}
 
@@ -764,10 +786,22 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		// Handle window focus change
 		HandleWindowFocus(hWnd, pDataStruct, false);
 
+		// Release d3d9 interface
+		if (pDataStruct->IsDirectDraw)
+		{
+			m_IDirectDrawX::TriggerDeviceRelease(hWnd);
+		}
+
+		// Set instance to default before window closes
+		AppWndProcInstance->SetToDefault();
+
+		// Final WndProc call
+		LRESULT lr =  CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
+
 		// Set instance as inactive when window closes
 		AppWndProcInstance->SetInactive();
 
-		return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
+		return lr;
 	}
 
 	// Handle debug overlay

@@ -71,6 +71,5 @@ namespace WndProc
 	DATASTRUCT* AddWndProc(HWND hWnd);
 	void RemoveInactiveWndProcs();
 	DATASTRUCT* GetWndProctStruct(HWND hWnd);
-	WNDPROC CheckWndProc(HWND hWnd, LONG dwNewLong);
 	void DisableForcedKeyboardLayout();
 }

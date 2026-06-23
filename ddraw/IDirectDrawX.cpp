@@ -5689,6 +5689,27 @@ void m_IDirectDrawX::TriggerDeviceReset(HWND hWnd)
 	}
 }
 
+void m_IDirectDrawX::TriggerDeviceRelease(HWND hWnd)
+{
+	// If incorrect param or incorrect device
+	if (!CreationInterface || hWnd != presParams.hDeviceWindow || !IsWindow(DisplayMode.hWnd))
+	{
+		return;
+	}
+
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+	// Remove ddraw device
+	for (const auto& pDDraw : DDrawVector)
+	{
+		if (pDDraw == CreationInterface)
+		{
+			pDDraw->ReleaseAllD9Resources(false, false);
+			pDDraw->ReleaseD9Device();
+		}
+	}
+}
+
 void m_IDirectDrawX::CheckFixWindowPos(HWND hWnd, WINDOWPOS* wPos)
 {
 	// If incorrect param or incorrect device
