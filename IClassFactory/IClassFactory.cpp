@@ -278,9 +278,9 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 
 			IDirectDraw7* pDirectDraw = nullptr;
 
-			if (rclsid == CLSID_DirectDraw)
+			if (rclsid == CLSID_DirectDraw7 || riid == IID_IDirectDraw7)
 			{
-				HRESULT proxyHr = dd_DirectDrawCreate(nullptr, reinterpret_cast<LPDIRECTDRAW*>(&pDirectDraw), pUnkOuter);
+				HRESULT proxyHr = dd_DirectDrawCreateEx(nullptr, reinterpret_cast<void**>(&pDirectDraw), IID_IDirectDraw7, pUnkOuter);
 				if (FAILED(proxyHr))
 				{
 					return proxyHr;
@@ -288,7 +288,7 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 			}
 			else
 			{
-				HRESULT proxyHr = dd_DirectDrawCreateEx(nullptr, reinterpret_cast<void**>(&pDirectDraw), IID_IDirectDraw7, pUnkOuter);
+				HRESULT proxyHr = dd_DirectDrawCreate(nullptr, reinterpret_cast<LPDIRECTDRAW*>(&pDirectDraw), pUnkOuter);
 				if (FAILED(proxyHr))
 				{
 					return proxyHr;

@@ -57,7 +57,6 @@
     <ClCompile Include="..\External\Hooking\Disasm.cpp" />
     <ClCompile Include="..\External\Hooking\Hook.cpp" />
     <ClCompile Include="..\External\Hooking\HotPatch.cpp" />
-    <ClCompile Include="..\IClassFactory\IClassFactory.cpp" />
     <ClCompile Include="..\Libraries\d3dx9.cpp" />
     <ClCompile Include="..\Libraries\winmm.cpp" />
     <ClCompile Include="..\Utils\CPUAffinity.cpp" />
@@ -70,7 +69,6 @@
     <ClInclude Include="..\External\Hooking\Disasm.h" />
     <ClInclude Include="..\External\Hooking\Hook.h" />
     <ClInclude Include="..\External\MemoryModule\MemoryModule.h" />
-    <ClInclude Include="..\IClassFactory\IClassFactory.h" />
     <ClInclude Include="..\Libraries\d3dx9.h" />
     <ClInclude Include="..\Libraries\winmm.h" />
     <ClInclude Include="..\Utils\Utils.h" />

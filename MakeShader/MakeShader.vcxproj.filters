@@ -29,9 +29,6 @@
     <ClCompile Include="..\Utils\MemoryModule.cpp">
       <Filter>MemoryModule</Filter>
     </ClCompile>
-    <ClCompile Include="..\IClassFactory\IClassFactory.cpp">
-      <Filter>IClassFactory</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Libraries">
@@ -51,9 +48,6 @@
     </Filter>
     <Filter Include="hlsl">
       <UniqueIdentifier>{c7cba396-0a10-4dbc-aa32-1d0fbacfd63e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="IClassFactory">
-      <UniqueIdentifier>{e9f94df8-51ca-4706-aa36-bfa805b96d41}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -77,9 +71,6 @@
     </ClInclude>
     <ClInclude Include="..\External\Hooking\Disasm.h">
       <Filter>Hooking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\IClassFactory\IClassFactory.h">
-      <Filter>IClassFactory</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -24,6 +24,7 @@
 #include <sys/stat.h>
 #include <d3d9.h>
 #include "d3dx9.h"
+#include "..\IClassFactory\IClassFactory.h"
 #include "Settings\Settings.h"
 #include "Utils\Utils.h"
 #include "External\Hooking\Hook.h"

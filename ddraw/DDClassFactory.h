@@ -29,9 +29,9 @@ public:
 			if (ClassID == CLSID_DirectDraw || ClassID == CLSID_DirectDraw7)
 			{
 				IDirectDraw7* wrapper = nullptr;
-				if (ClassID == CLSID_DirectDraw)
+				if (ClassID == CLSID_DirectDraw7 || riid == IID_IDirectDraw7)
 				{
-					HRESULT proxyHr = dd_DirectDrawCreate(nullptr, reinterpret_cast<LPDIRECTDRAW*>(&wrapper), pUnkOuter);
+					HRESULT proxyHr = dd_DirectDrawCreateEx(nullptr, reinterpret_cast<void**>(&wrapper), IID_IDirectDraw7, pUnkOuter);
 					if (FAILED(proxyHr))
 					{
 						return proxyHr;
@@ -39,7 +39,7 @@ public:
 				}
 				else
 				{
-					HRESULT proxyHr = dd_DirectDrawCreateEx(nullptr, reinterpret_cast<void**>(&wrapper), IID_IDirectDraw7, pUnkOuter);
+					HRESULT proxyHr = dd_DirectDrawCreate(nullptr, reinterpret_cast<LPDIRECTDRAW*>(&wrapper), pUnkOuter);
 					if (FAILED(proxyHr))
 					{
 						return proxyHr;
