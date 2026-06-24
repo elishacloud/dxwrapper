@@ -3404,7 +3404,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	presParams.hDeviceWindow = hWnd;
 
 	// Set parameters for the current display mode
-	if (!IsExclusiveMode())
+	if (Device.IsWindowed)
 	{
 		// Window mode
 		presParams.Windowed = TRUE;
