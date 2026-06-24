@@ -5831,7 +5831,8 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface)
 	}
 
 	// Check if surface is render target or  depth stencil
-	if (ddrawParent->GetRenderTargetSurface() == this || ddrawParent->GetDepthStencilSurface() == this)
+	if (ddrawParent &&
+		(ddrawParent->GetRenderTargetSurface() == this || ddrawParent->GetDepthStencilSurface() == this))
 	{
 		ddrawParent->ClearRenderTarget();
 	}
