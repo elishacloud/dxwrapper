@@ -179,7 +179,7 @@ static void WINAPI Direct3D9ForceHybridEnumeration(UINT Mode)
 
 		if (memcmp(addr, "\x8B\xFF\x55\x8B\xEC\x8B\x45\x08\xA3", 9) != S_OK)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: Failed to vaidate memory address!";
+			Logging::Log() << __FUNCTION__ << " Error: Failed to vaidate memory address: " << Logging::BytesToString(addr, 9);
 			return;
 		}
 
@@ -211,7 +211,7 @@ void WINAPI Direct3D9SetSwapEffectUpgradeShim(int Unknown)
 
 		if (memcmp(addr, "\x8B\xFF\x55\x8B\xEC\x8B\x0D", 7) != S_OK)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: Failed to vaidate memory address!";
+			Logging::Log() << __FUNCTION__ << " Error: Failed to vaidate memory address: " << Logging::BytesToString(addr, 7);
 			return;
 		}
 
@@ -245,7 +245,7 @@ static void WINAPI Direct3D9DisableMaximizedWindowedMode()
 
 		if (memcmp(addr, "\x8B\xFF\x55\x8B\xEC\x6A\x01\xFF\x75\x08\xE8", 11) != S_OK)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: Failed to vaidate memory address!";
+			Logging::Log() << __FUNCTION__ << " Error: Failed to vaidate memory address: " << Logging::BytesToString(addr, 11);
 			return;
 		}
 
