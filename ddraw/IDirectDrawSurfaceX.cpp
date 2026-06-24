@@ -8715,23 +8715,16 @@ void m_IDirectDrawSurfaceX::CopyGDIToPrimaryAndBackbuffer()
 	HDC hdcWindow = ::GetDC(nullptr);
 	if (!hdcWindow)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: Failed to get DC after device lost!";
+		Logging::Log() << __FUNCTION__ << " Error: Failed to get window DC after device lost!";
 		return;
 	}
 
 	for (auto& entry : FlipList)
 	{
-		IDirect3DSurface9* pSurface = entry->Get3DSurface();
-		if (!pSurface)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: Failed to get primary surface after device lost!";
-			break;
-		}
-
 		HDC hdcSurface = nullptr;
-		if (FAILED(pSurface->GetDC(&hdcSurface)))
+		if (FAILED(entry->GetDC(&hdcSurface, 0)))
 		{
-			Logging::Log() << __FUNCTION__ << " Error: Failed to get DC from surface after device lost!";
+			Logging::Log() << __FUNCTION__ << " Error: Failed to get surface DC after device lost!";
 			break;
 		}
 
@@ -8741,10 +8734,10 @@ void m_IDirectDrawSurfaceX::CopyGDIToPrimaryAndBackbuffer()
 		}
 		entry->LostDeviceBackup.clear();
 
-		pSurface->ReleaseDC(hdcSurface);
+		entry->ReleaseDC(hdcSurface, 0);
 	}
 
-	::ReleaseDC(hWnd, hdcWindow);
+	::ReleaseDC(nullptr, hdcWindow);
 }
 
 HRESULT m_IDirectDrawSurfaceX::CopyEmulatedSurfaceFromGDI(LPRECT lpDestRect)
