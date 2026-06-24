@@ -1131,7 +1131,7 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 				}
 			}
 		}
-		for (auto& it : AttachedSurfaceMap)
+		for (const auto& it : AttachedSurfaceMap)
 		{
 			// This method enumerates all the surfaces attached to a given surface.
 			// In a flipping chain of three or more surfaces, only one surface is enumerated because each surface is attached only to the next surface in the flipping chain.
@@ -1364,7 +1364,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		{
 			// Collect each unique critical section
 			std::unordered_set<CRITICAL_SECTION*> CriticalSectionList;
-			for (auto& pSurfaceX : FlipList)
+			for (const auto& pSurfaceX : FlipList)
 			{
 				CriticalSectionList.insert(pSurfaceX->GetCriticalSection());
 			}
@@ -1505,7 +1505,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 		m_IDirectDrawSurfaceX *lpFoundSurface = nullptr;
 
 		// Check if attached surface exists
-		for (auto& it : AttachedSurfaceMap)
+		for (const auto& it : AttachedSurfaceMap)
 		{
 			m_IDirectDrawSurfaceX *lpSurface = it.second.pSurface;
 
@@ -1954,7 +1954,7 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags, bool CheckOnly)
 				DWORD dwCaps = 0;
 
 				// Loop through each surface
-				for (auto& it : lpTargetSurface->AttachedSurfaceMap)
+				for (const auto& it : lpTargetSurface->AttachedSurfaceMap)
 				{
 					dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
 					if (dwCaps & DDSCAPS_FLIP)
@@ -2022,7 +2022,7 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags, bool CheckOnly)
 			}
 			if (FAILED(hr))
 			{
-				for (auto& entry : FlipList)
+				for (const auto& entry : FlipList)
 				{
 					if (entry->IsSurfaceBusy())
 					{
@@ -4008,7 +4008,7 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 	// Clean up mipmaps
 	if (!MipMaps.empty())
 	{
-		for (auto& entry : MipMaps)
+		for (const auto& entry : MipMaps)
 		{
 			if (entry.Addr) entry.Addr->DeleteMe();
 			if (entry.Addr2) entry.Addr2->DeleteMe();
@@ -4016,6 +4016,7 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 			if (entry.Addr4) entry.Addr4->DeleteMe();
 			if (entry.Addr7) entry.Addr7->DeleteMe();
 		}
+		MipMaps.clear();
 	}
 
 	if (Config.Dd7to9)
@@ -4091,7 +4092,7 @@ LPDIRECTDRAWSURFACE7 m_IDirectDrawSurfaceX::GetWrapperInterfaceRootX(LPDIRECTDRA
 	m_IDirectDrawSurfaceX* lpTargetSurface = this;
 	do {
 		// Loop through each surface
-		for (auto& it : lpTargetSurface->AttachedSurfaceMap)
+		for (const auto& it : lpTargetSurface->AttachedSurfaceMap)
 		{
 			if (it.second.pSurface->ComplexChild || it.second.pSurface->ComplexRoot)
 			{
@@ -5544,7 +5545,7 @@ void m_IDirectDrawSurfaceX::SetAsRenderTarget()
 		}
 		if (!AttachedSurfaceMap.empty())
 		{
-			for (auto& entry : AttachedSurfaceMap)
+			for (const auto& entry : AttachedSurfaceMap)
 			{
 				if (entry.second.pSurface->IsPrimaryOrBackBuffer() && entry.second.pSurface->IsSurface3D() && !entry.second.pSurface->IsRenderTarget())
 				{
@@ -5585,7 +5586,7 @@ void m_IDirectDrawSurfaceX::ClearUsing3DFlag()
 		}
 		if (!AttachedSurfaceMap.empty())
 		{
-			for (auto& entry : AttachedSurfaceMap)
+			for (const auto& entry : AttachedSurfaceMap)
 			{
 				if (entry.second.pSurface->IsPrimaryOrBackBuffer() && entry.second.pSurface->IsRenderTarget())
 				{
@@ -6585,7 +6586,7 @@ bool m_IDirectDrawSurfaceX::IsSurfaceLocked(DWORD MipMapLevel)
 {
 	if (MipMapLevel == DXW_ALL_SURFACE_LEVELS)
 	{
-		for (auto& entry : LockedLevel)
+		for (const auto& entry : LockedLevel)
 		{
 			if (entry.second.IsLocked)
 			{
@@ -6608,7 +6609,7 @@ bool m_IDirectDrawSurfaceX::IsSurfaceInDC(DWORD MipMapLevel)
 {
 	if (MipMapLevel == DXW_ALL_SURFACE_LEVELS)
 	{
-		for (auto& entry : GetDCLevel)
+		for (const auto& entry : GetDCLevel)
 		{
 			if (entry.second)
 			{
@@ -6810,7 +6811,7 @@ bool m_IDirectDrawSurfaceX::DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSur
 	m_IDirectDrawSurfaceX *lpTargetSurface = nullptr;
 
 	// Loop through each surface
-	for (auto& it : AttachedSurfaceMap)
+	for (const auto& it : AttachedSurfaceMap)
 	{
 		if (it.second.pSurface && (it.second.pSurface->GetSurfaceCaps().dwCaps & DDSCAPS_FLIP))
 		{
@@ -8652,7 +8653,7 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipList(std::vector<m_IDirectDrawSurfaceX*>& 
 			DWORD dwCaps = 0;
 
 			// Loop through each surface
-			for (auto& it : lpTargetSurface->AttachedSurfaceMap)
+			for (const auto& it : lpTargetSurface->AttachedSurfaceMap)
 			{
 				dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
 				if (dwCaps & DDSCAPS_FLIP)
@@ -8719,7 +8720,7 @@ void m_IDirectDrawSurfaceX::CopyGDIToPrimaryAndBackbuffer()
 		return;
 	}
 
-	for (auto& entry : FlipList)
+	for (const auto& entry : FlipList)
 	{
 		HDC hdcSurface = nullptr;
 		if (FAILED(entry->GetDC(&hdcSurface, 0)))
@@ -9083,7 +9084,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 
 m_IDirectDrawSurfaceX* m_IDirectDrawSurfaceX::GetAttachedDepthStencil()
 {
-	for (auto& it : AttachedSurfaceMap)
+	for (const auto& it : AttachedSurfaceMap)
 	{
 		if (it.second.pSurface->IsDepthStencil())
 		{

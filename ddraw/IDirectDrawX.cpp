@@ -2483,7 +2483,7 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 
 	// Check adapter index
 	bool SetNewAdapterIndex = true;
-	for (auto& entry : DDrawVector)
+	for (const auto& entry : DDrawVector)
 	{
 		if (entry->AdapterIndex != AdapterIndex)
 		{
@@ -5659,7 +5659,7 @@ LPDIRECT3D9 m_IDirectDrawX::GetD9Object()
 
 bool m_IDirectDrawX::CheckDirectDrawXInterface(void* pInterface)
 {
-	for (auto& entry : DDrawVector)
+	for (const auto& entry : DDrawVector)
 	{
 		if (entry == pInterface)
 		{
