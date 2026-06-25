@@ -1249,7 +1249,7 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
 
 	// Get viewport
-	D3DVIEWPORT7 vp = *reinterpret_cast<const D3DVIEWPORT7*>(&Viewport.Data9);
+	const D3DVIEWPORT7& vp = *reinterpret_cast<const D3DVIEWPORT7*>(&Viewport.Data9);
 
 	D3DRECT newExtents = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
 

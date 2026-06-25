@@ -764,10 +764,9 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					case D3DPROCESSVERTICES_TRANSFORM:
 					case D3DPROCESSVERTICES_TRANSFORMLIGHT:
 					{
-						const bool IsLight = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT && IsMaterialSet());
+						const bool IsLight = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT && !(Flags & D3DPROCESSVERTICES_NOCOLOR) && IsMaterialSet());
 
 						// Flags
-						DWORD psFlags = (Flags & D3DPROCESSVERTICES_NOCOLOR) ? D3DPV_DONOTCOPYDATA : 0;
 						DWORD VertexOp = D3DVOP_TRANSFORM | D3DVOP_CLIP | (IsLight ? D3DVOP_LIGHT : 0) | (UpdateExtents ? D3DVOP_EXTENTS : 0);
 
 						// FVF
@@ -780,7 +779,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 						D3DRECT drExtent = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
 
-						hr = m_IDirect3DVertexBufferX::ProcessVerticesUP(VertexOp, destVertices, DestVertexTypeDesc, 0, Count, srcVertices, SrcVertexTypeDesc, 0, drExtent, (LPDIRECT3DDEVICE7)GetWrapperInterfaceX(1), psFlags);
+						hr = m_IDirect3DVertexBufferX::ProcessVerticesUP(VertexOp, destVertices, DestVertexTypeDesc, 0, Count, srcVertices, SrcVertexTypeDesc, 0, drExtent, (LPDIRECT3DDEVICE7)GetWrapperInterfaceX(1), 0);
 
 						if (SUCCEEDED(hr))
 						{
