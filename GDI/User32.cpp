@@ -54,8 +54,6 @@ HWND WINAPI user_CreateWindowExT(D CreateWindowExT, DWORD dwExStyle, T lpClassNa
 		return nullptr;
 	}
 
-	WndProc::RemoveInactiveWndProcs();
-
 	// Handle popup window type (some games forget to initialize the nWidth and nHeight values)
 	if ((dwStyle & WS_POPUP) && !(nWidth & CW_USEDEFAULT) && (nWidth > 20000 || nHeight > 20000))
 	{
@@ -110,8 +108,6 @@ BOOL WINAPI user_DestroyWindow(HWND hWnd)
 	{
 		RedrawWindow(ownd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 	}
-
-	WndProc::RemoveInactiveWndProcs();
 
 	return result;
 }
