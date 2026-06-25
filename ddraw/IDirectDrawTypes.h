@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ddraw.h>
+#include "ddraw.h"
 
 class m_IDirectDrawX;
 
@@ -81,41 +81,6 @@ static constexpr D3DFORMAT FourCCTypes[] =
 	D3DFMT_UYVY,
 	D3DFMT_AYUV,
 };
-
-typedef struct {
-	DWORD dwSize;
-	DWORD dwFlags;
-	DWORD dwFourCC;
-	DWORD dwRGBBitCount;
-	DWORD dwRBitMask;
-	DWORD dwGBitMask;
-	DWORD dwBBitMask;
-	DWORD dwABitMask;
-} DDS_PIXELFORMAT;
-
-typedef struct {
-	DWORD           dwSize;
-	DWORD           dwFlags;
-	DWORD           dwHeight;
-	DWORD           dwWidth;
-	DWORD           dwPitchOrLinearSize;
-	DWORD           dwDepth;
-	DWORD           dwMipMapCount;
-	DWORD           dwReserved1[11];
-	DDS_PIXELFORMAT ddspf;
-	DWORD           dwCaps;
-	DWORD           dwCaps2;
-	DWORD           dwCaps3;
-	DWORD           dwCaps4;
-	DWORD           dwReserved2;
-} DDS_HEADER;
-
-typedef struct {
-	DWORD               dwMagic;
-	DDS_HEADER          header;
-#pragma warning (suppress : 4200)
-	BYTE bdata[];
-} DDS_BUFFER;
 
 // Mouse hook
 struct MOUSEHOOK
@@ -257,11 +222,6 @@ const ZFormatEntry zFormats[] = {
 	{ DDBD_32, { D3DFMT_D32 } },
 };
 
-static constexpr DWORD DDS_MAGIC				= 0x20534444; // "DDS "
-static constexpr DWORD DDS_HEADER_SIZE			= sizeof(DWORD) + sizeof(DDS_HEADER);
-static constexpr DWORD DDS_HEADER_FLAGS_TEXTURE	= 0x00001007; // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT 
-static constexpr DWORD DDS_HEADER_FLAGS_PITCH	= 0x00000008;
-
 void AddDisplayResolution(DWORD Width, DWORD Height);
 bool IsDisplayResolution(DWORD Width, DWORD Height);
 template <typename T>
@@ -279,7 +239,6 @@ bool ClipRectToBounds(RECT* r, LONG width, LONG height);
 void ConvertSurfaceDesc(DDSURFACEDESC& Desc, const DDSURFACEDESC2& Desc2);
 void ConvertSurfaceDesc(DDSURFACEDESC2& Desc2, const DDSURFACEDESC& Desc);
 void ClearUnusedValues(DDSURFACEDESC2& Desc2);
-void ConvertPixelFormat(DDPIXELFORMAT& Format, const DDS_PIXELFORMAT& Format2);
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER& DeviceID, const DDDEVICEIDENTIFIER2& DeviceID2);
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2& DeviceID2, const DDDEVICEIDENTIFIER& DeviceID);
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2& DeviceID, const D3DADAPTER_IDENTIFIER9& Identifier9);

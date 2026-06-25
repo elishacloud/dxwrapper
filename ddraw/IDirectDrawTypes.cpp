@@ -554,22 +554,6 @@ void ClearUnusedValues(DDSURFACEDESC2& Desc2)
 	if (!(Desc2.dwFlags & DDSD_TEXTURESTAGE)) Desc2.dwTextureStage = 0;
 }
 
-void ConvertPixelFormat(DDPIXELFORMAT& Format, const DDS_PIXELFORMAT& Format2)
-{
-	if (Format.dwSize != sizeof(DDPIXELFORMAT) || Format2.dwSize != sizeof(DDS_PIXELFORMAT))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Format.dwSize << " " << Format2.dwSize);
-		return;
-	}
-	Format.dwFlags = Format2.dwFlags;
-	Format.dwFourCC = Format2.dwFourCC;
-	Format.dwRGBBitCount = Format2.dwRGBBitCount;
-	Format.dwRBitMask = Format2.dwRBitMask;
-	Format.dwGBitMask = Format2.dwGBitMask;
-	Format.dwBBitMask = Format2.dwBBitMask;
-	Format.dwRGBAlphaBitMask = Format2.dwABitMask;
-}
-
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER& DeviceID, const DDDEVICEIDENTIFIER2& DeviceID2)
 {
 	CopyMemory(&DeviceID, &DeviceID2, sizeof(DDDEVICEIDENTIFIER));

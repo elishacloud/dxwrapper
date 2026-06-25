@@ -31,13 +31,13 @@
 #include "Logging\Logging.h"
 // Wrappers last
 #include "IClassFactory\IClassFactory.h"
+#include "Libraries\d3dx9.h"
 #include "d3d9\d3d9External.h"
 #include "ddraw\ddrawExternal.h"
 #include "dinput\dinputExternal.h"
 #include "dinput8\dinput8External.h"
 #include "d3d8\d3d8External.h"
 #include "dsound\dsoundExternal.h"
-#include "Libraries\d3dx9.h"
 #include "Libraries\ScopeGuard.h"
 #include "dxwrapper.h"
 

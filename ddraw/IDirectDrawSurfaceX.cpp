@@ -7107,64 +7107,6 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 	return DD_OK;
 }
 
-HRESULT m_IDirectDrawSurfaceX::SaveDXTDataToDDS(const void *data, size_t dataSize, const char *filename, int dxtVersion) const
-{
-	int blockSize = 0;
-	DWORD fourCC = 0;
-
-	switch(dxtVersion)
-	{
-	case 1:
-		blockSize = 8;
-		fourCC = '1TXD';
-		break;
-
-	case 3:
-		blockSize = 16;
-		fourCC = '3TXD';
-		break;
-
-	case 5:
-		blockSize = 16;
-		fourCC = '5TXD';
-		break;
-
-	default:
-		Logging::Log() << __FUNCTION__ << " Error: unsupported DXT version!";
-		return D3DERR_INVALIDCALL;
-	}
-
-	std::ofstream outFile(filename, std::ios::binary | std::ios::out);
-	if (outFile.is_open())
-	{
-		DDS_HEADER header = {};
-		header.dwSize = sizeof(DDS_HEADER);
-		header.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_LINEARSIZE;
-		header.dwHeight = surfaceDesc2.dwHeight;
-		header.dwWidth = surfaceDesc2.dwHeight;
-		header.dwPitchOrLinearSize = max(1, (surfaceDesc2.dwWidth + 3) / 4) * blockSize;  // 8 for DXT1, 16 for others
-		header.dwDepth = 0;
-		header.dwMipMapCount = 0;
-		header.ddspf.dwSize = sizeof(DDS_PIXELFORMAT);
-		header.ddspf.dwFlags = DDPF_FOURCC;
-		header.ddspf.dwFourCC = fourCC;
-		header.dwCaps = DDSCAPS_TEXTURE;// | DDSCAPS_COMPLEX | DDSCAPS_MIPMAP;
-		header.dwCaps2 = 0x00000000;
-		header.dwCaps3 = 0x00000000;
-		header.dwCaps4 = 0x00000000;
-		header.dwReserved2 = 0;
-
-		outFile.write("DDS ", 4);
-		outFile.write((char*)&header, sizeof(DDS_HEADER));
-		outFile.write((char*)data, dataSize);
-		outFile.close();
-
-		return D3D_OK;
-	}
-
-	return DDERR_GENERIC;
-}
-
 HRESULT m_IDirectDrawSurfaceX::Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDestPoint, LPDIRECTDRAWSURFACE7 lpSrcTex, LPRECT lprcSrcRect, DWORD dwFlags)
 {
 	if (!lpDestTex || !lpSrcTex)
@@ -7241,25 +7183,6 @@ HRESULT m_IDirectDrawSurfaceX::Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDe
 			if (surfaceDesc2.dwFlags & DDSD_CKDESTBLT) surfaceDesc2.ddckCKDestBlt = pSrcSurfaceX->surfaceDesc2.ddckCKDestBlt;
 			if (surfaceDesc2.dwFlags & DDSD_CKSRCOVERLAY) surfaceDesc2.ddckCKSrcOverlay = pSrcSurfaceX->surfaceDesc2.ddckCKSrcOverlay;
 			if (surfaceDesc2.dwFlags & DDSD_CKSRCBLT) surfaceDesc2.ddckCKSrcBlt = pSrcSurfaceX->surfaceDesc2.ddckCKSrcBlt;
-		}
-	}
-
-	return hr;
-}
-
-HRESULT m_IDirectDrawSurfaceX::SaveSurfaceToFile(const char *filename, D3DXIMAGE_FILEFORMAT format)
-{
-	ComPtr<ID3DXBuffer> pDestBuf;
-	HRESULT hr = D3DXSaveSurfaceToFileInMemory(pDestBuf.GetAddressOf(), format, Get3DSurface(), nullptr, nullptr);
-
-	if (SUCCEEDED(hr))
-	{
-		// Save the buffer to a file
-		std::ofstream outFile(filename, std::ios::binary | std::ios::out);
-		if (outFile.is_open())
-		{
-			outFile.write((const char*)pDestBuf->GetBufferPointer(), pDestBuf->GetBufferSize());
-			outFile.close();
 		}
 	}
 

@@ -3,8 +3,8 @@
 #define INITGUID
 
 #include <d3d9.h>
-#include "d3d9\d3d9External.h"
 #include "d3dx9.h"
+#include "d3d9\d3d9External.h"
 #include <ddraw.h>
 #include <ddrawex.h>
 #include "ddraw\ddrawExternal.h"

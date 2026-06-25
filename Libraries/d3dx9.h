@@ -1,5 +1,7 @@
 #pragma once
 
+#define D3DX9_LIBRARY
+
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
