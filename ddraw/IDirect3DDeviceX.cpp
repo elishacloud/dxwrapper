@@ -768,7 +768,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 						// Flags
 						DWORD psFlags = (Flags & D3DPROCESSVERTICES_NOCOLOR) ? D3DPV_DONOTCOPYDATA : 0;
-						DWORD VertexOp = D3DVOP_TRANSFORM | (IsLight ? D3DVOP_LIGHT : 0) | (UpdateExtents ? D3DVOP_EXTENTS : 0);
+						DWORD VertexOp = D3DVOP_TRANSFORM | D3DVOP_CLIP | (IsLight ? D3DVOP_LIGHT : 0) | (UpdateExtents ? D3DVOP_EXTENTS : 0);
 
 						// FVF
 						DWORD SrcVertexTypeDesc = IsLight ? D3DFVF_VERTEX : D3DFVF_LVERTEX;
@@ -4170,10 +4170,15 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 			return DDERR_INVALIDOBJECT;
 		}
 
-		// Clear viewport scaling
-		DeviceStates.Viewport.UseViewportScale = false;
+		HRESULT hr = SetD9Viewport(reinterpret_cast<const D3DVIEWPORT9*>(lpViewport));
 
-		return SetD9Viewport((D3DVIEWPORT9*)lpViewport);
+		if (SUCCEEDED(hr))
+		{
+			// Clear viewport scaling
+			DeviceStates.Viewport.UseViewportScale = false;
+		}
+
+		return hr;
 	}
 
 	return GetProxyInterfaceV7()->SetViewport(lpViewport);
@@ -6617,6 +6622,18 @@ void m_IDirect3DDeviceX::ClearDeviceState()
 	// Index Stream
 	static const INDEXSTREAMINFO DefaultIndexStreamInfo;
 	IndexStreamInfo = DefaultIndexStreamInfo;
+}
+
+D3DMATRIX m_IDirect3DDeviceX::GetUpdatedProjectionMatrix(const D3DMATRIX& DeviceMatrix, bool SetClipping) const
+{
+	D3DMATRIX result = DeviceMatrix;
+
+	if (DeviceStates.Viewport.UseViewportScale)
+	{
+		result = UpdateProjectionMatrix(DeviceMatrix, DeviceStates.Viewport.Scale, DeviceStates.Viewport.ClipScale, SetClipping);
+	}
+
+	return result;
 }
 
 void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion)

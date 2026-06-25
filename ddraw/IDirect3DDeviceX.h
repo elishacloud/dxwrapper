@@ -522,6 +522,9 @@ public:
 	bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == DeviceStates.LightState[D3DLIGHTSTATE_MATERIAL]); }
 	inline bool IsMaterialSet() const { return DeviceStates.Material.Set; };
 
+	// Matrix functions
+	D3DMATRIX GetUpdatedProjectionMatrix(const D3DMATRIX& DeviceMatrix, bool SetClipping) const;
+
 	// Light index functions
 	bool IsLightInUse(m_IDirect3DLight* pLightX);
 	void GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLightList);

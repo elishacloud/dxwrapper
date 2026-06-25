@@ -1025,6 +1025,8 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 		return DDERR_GENERIC;
 	}
 
+	matProj = pDirect3DDeviceX->GetUpdatedProjectionMatrix(matProj, (dwVertexOp & D3DVOP_CLIP));
+
 	D3DMATRIX matWorldView = {}, matWorldViewProj = {};
 	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
 	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
@@ -1226,10 +1228,10 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 	return D3D_OK;
 }
 
-template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<XYZ>(m_IDirect3DDeviceX* , XYZ*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, D3DRECT&);
-template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<D3DLVERTEX>(m_IDirect3DDeviceX* , D3DLVERTEX*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, D3DRECT&);
+template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<XYZ>(m_IDirect3DDeviceX* , XYZ*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, DWORD, const VIEWPORTINFO&, D3DRECT&);
+template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<D3DLVERTEX>(m_IDirect3DDeviceX* , D3DLVERTEX*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, DWORD, const VIEWPORTINFO&, D3DRECT&);
 template <typename T>
-HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, T* srcVertex, D3DTLVERTEX* destVertex, D3DHVERTEX* pHOut, const DWORD dwCount, D3DRECT& drExtent)
+HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, T* srcVertex, D3DTLVERTEX* destVertex, D3DHVERTEX* pHOut, const DWORD dwCount, DWORD dwFlags, const VIEWPORTINFO& Viewport, D3DRECT& drExtent)
 {
 	D3DMATRIX matWorld, matView, matProj;
 	if (FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_WORLD, &matWorld)) ||
@@ -1240,17 +1242,14 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 		return DDERR_GENERIC;
 	}
 
+	matProj = UpdateProjectionMatrix(matProj, Viewport.Scale, Viewport.ClipScale, (dwFlags & D3DTRANSFORM_CLIPPED));
+
 	D3DMATRIX matWorldView = {}, matWorldViewProj = {};
 	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
 	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
 
 	// Get viewport
-	D3DVIEWPORT7 vp = {};
-	if (FAILED(pDirect3DDeviceX->GetViewport(&vp)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get viewport");
-		return DDERR_GENERIC;
-	}
+	D3DVIEWPORT7 vp = *reinterpret_cast<const D3DVIEWPORT7*>(&Viewport.Data9);
 
 	D3DRECT newExtents = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
 

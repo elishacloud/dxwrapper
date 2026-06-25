@@ -287,11 +287,6 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (dwFlags & D3DTRANSFORM_CLIPPED)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DTRANSFORM_CLIPPED is ignored");
-		}
-
 		// D3DTRANSFORM_UNCLIPPED: flag can be safily ignored
 
 		if (AttachedD3DDevices.empty())
@@ -323,12 +318,12 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 		if (lpData->dwInSize == sizeof(XYZ))
 		{
 			XYZ* pIn = reinterpret_cast<XYZ*>(lpData->lpIn);
-			hr = m_IDirect3DVertexBufferX::TransformVertexUP(pDirect3DDeviceX, pIn, pOut, pHOut, dwVertexCount, lpData->drExtent);
+			hr = m_IDirect3DVertexBufferX::TransformVertexUP(pDirect3DDeviceX, pIn, pOut, pHOut, dwVertexCount, dwFlags, Viewport, lpData->drExtent);
 		}
 		else if (lpData->dwInSize == sizeof(D3DLVERTEX))
 		{
 			D3DLVERTEX* pIn = reinterpret_cast<D3DLVERTEX*>(lpData->lpIn);
-			hr = m_IDirect3DVertexBufferX::TransformVertexUP(pDirect3DDeviceX, pIn, pOut, pHOut, dwVertexCount, lpData->drExtent);
+			hr = m_IDirect3DVertexBufferX::TransformVertexUP(pDirect3DDeviceX, pIn, pOut, pHOut, dwVertexCount, dwFlags, Viewport, lpData->drExtent);
 		}
 		else
 		{
@@ -747,8 +742,8 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 		Viewport.ClipScale.z = 1.0f / (Viewport.MaxZ - Viewport.MinZ);
 
 		// Set viewport clip
-		Viewport.Clip.x = -1.0f - (2.0f * lpData->dvClipX / clipWidth);
-		Viewport.Clip.y = 1.0f - (2.0f * lpData->dvClipY / clipHeight);
+		Viewport.Clip.x = (-2.0f * lpData->dvClipX / clipWidth) - 1.0f;
+		Viewport.Clip.y = (-2.0f * lpData->dvClipY / clipHeight) + 1.0f;
 		Viewport.Clip.z = -Viewport.MinZ / (Viewport.MaxZ - Viewport.MinZ);
 
 		// If current viewport is set then use new viewport
