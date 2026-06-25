@@ -146,7 +146,7 @@ HRESULT DumpSurfaceToFile(IDirect3DSurface9* pSurface, D3DXIMAGE_FILEFORMAT form
 	return hr;
 }
 
-bool DumpHDCToBMP(const std::string& filename, HDC hdc)
+bool DumpHDCToBMP(const char* filename, HDC hdc)
 {
 	if (!hdc) return false;
 
@@ -202,7 +202,7 @@ bool DumpHDCToBMP(const std::string& filename, HDC hdc)
 	DeleteDC(tempDC);
 
 	FILE* file = nullptr;
-	fopen_s(&file, ("dxwrapper - " + filename).c_str(), "wb");
+	fopen_s(&file, filename, "wb");
 	if (!file)
 	{
 		delete[] bits;
