@@ -6965,7 +6965,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 				}
 			}
 
-		} while (FALSE);
+		} while (false);
 
 		if (SUCCEEDED(hr))
 		{
