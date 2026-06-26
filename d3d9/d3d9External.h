@@ -44,7 +44,7 @@ HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrid
 
 HRESULT DumpDXTDataToDDS(const void* data, size_t dataSize, int dxtVersion, DWORD Width, DWORD Height, const char* filename);
 HRESULT DumpSurfaceToFile(IDirect3DSurface9* pSurface, D3DXIMAGE_FILEFORMAT format, const char* filename);
-bool DumpHDCToBMP(const char* filename, HDC hdc);
+bool DumpHDCToBMP(HDC hdc, const char* filename);
 
 class m_IDirect3D9Ex
 {
