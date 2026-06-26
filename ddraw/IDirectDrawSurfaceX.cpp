@@ -6890,6 +6890,8 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 
 			const bool IsUsingCurrentRenderTarget = (ddrawParent->GetRenderTargetSurface() == this);
 
+			ScopedGetMipMapContext Dest(this, MipMapLevel);
+
 			// Set new render target
 			ComPtr<IDirect3DSurface9> pRenderTarget = nullptr;
 			ComPtr<IDirect3DSurface9> pDepthStencil = nullptr;
@@ -6914,7 +6916,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get render target: " << (DDERR)hr);
 					break;
 				}
-				hr = (*d3d9Device)->SetRenderTarget(0, surface.Surface);
+				hr = (*d3d9Device)->SetRenderTarget(0, Dest.GetSurface());
 				if (FAILED(hr))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set render target: " << (DDERR)hr);
@@ -6924,7 +6926,7 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 
 			// Query surface size
 			D3DSURFACE_DESC Desc = {};
-			surface.Surface->GetDesc(&Desc);
+			Dest.GetSurface()->GetDesc(&Desc);
 
 			// Get current viewport
 			D3DVIEWPORT9 Viewport = {};
