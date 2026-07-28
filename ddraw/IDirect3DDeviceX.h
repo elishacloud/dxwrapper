@@ -353,7 +353,7 @@ private:
 public:
 	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal), ClassID(IID_IDirect3DHALDevice)
 	{
-		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
+		ProxyDirectXVersion = DdrawWrapper::GetGUIDVersion(GetWrapperType(DirectXVersion));
 
 		ClientDirectXVersion = DirectXVersion;
 

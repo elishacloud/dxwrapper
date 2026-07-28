@@ -20,6 +20,8 @@ namespace {
 	constexpr DWORD ExtraDataBufferSize = 256;
 }
 
+using namespace DdrawWrapper;
+
 // ******************************
 // IUnknown functions
 // ******************************

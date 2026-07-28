@@ -118,8 +118,6 @@ enum DirectDrawEnumerateTypes
 #include "ComPtr.h"
 #include "ScopeGuard.h"
 
-using namespace DdrawWrapper;
-
 // Direct3D Helpers
 #include "IDirect3DTypes.h"
 // DirectDraw Helpers

@@ -154,6 +154,8 @@ namespace {
 	std::unordered_map<HWND, m_IDirectDrawX*> g_hookmap;
 }
 
+using namespace DdrawWrapper;
+
 // ******************************
 // IUnknown functions
 // ******************************

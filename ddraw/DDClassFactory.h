@@ -3,14 +3,16 @@
 #include <new>
 #include "External\dinputto8\ClassFactory.h"
 
+#define m_ddrawFactory m_dinput8Factory
+
 class DDClassFactory final : public ClassFactoryBase
 {
 private:
 	const GUID ClassID;
 
 public:
-	explicit DDClassFactory(IClassFactory* dinput8Factory, REFCLSID riid)
-		: ClassFactoryBase(dinput8Factory), ClassID(riid)
+	explicit DDClassFactory(IClassFactory* ddrawFactory, REFCLSID riid)
+		: ClassFactoryBase(ddrawFactory), ClassID(riid)
 	{
 	}
 
@@ -24,7 +26,7 @@ public:
 		*ppvObject = nullptr;
 
 		// Dd7to9
-		if (m_dinput8Factory == nullptr)
+		if (m_ddrawFactory == nullptr)
 		{
 			if (ClassID == CLSID_DirectDraw || ClassID == CLSID_DirectDraw7)
 			{
@@ -85,7 +87,7 @@ public:
 		if (ClassID == CLSID_DirectDraw || ClassID == CLSID_DirectDraw7)
 		{
 			IDirectDraw7* proxyObject = nullptr;
-			HRESULT proxyHr = m_dinput8Factory->CreateInstance(pUnkOuter, riid, reinterpret_cast<void**>(&proxyObject));
+			HRESULT proxyHr = m_ddrawFactory->CreateInstance(pUnkOuter, riid, reinterpret_cast<void**>(&proxyObject));
 			if (FAILED(proxyHr))
 			{
 				return proxyHr;
@@ -107,7 +109,7 @@ public:
 		else if (ClassID == CLSID_DirectDrawClipper)
 		{
 			IDirectDrawClipper* proxyObject = nullptr;
-			HRESULT proxyHr = m_dinput8Factory->CreateInstance(pUnkOuter, riid, reinterpret_cast<void**>(&proxyObject));
+			HRESULT proxyHr = m_ddrawFactory->CreateInstance(pUnkOuter, riid, reinterpret_cast<void**>(&proxyObject));
 			if (FAILED(proxyHr))
 			{
 				return proxyHr;
@@ -127,7 +129,7 @@ public:
 		else if (ClassID == CLSID_DirectDrawFactory)
 		{
 			IDirectDrawFactory* proxyObject = nullptr;
-			HRESULT proxyHr = m_dinput8Factory->CreateInstance(pUnkOuter, riid, reinterpret_cast<void**>(&proxyObject));
+			HRESULT proxyHr = m_ddrawFactory->CreateInstance(pUnkOuter, riid, reinterpret_cast<void**>(&proxyObject));
 			if (FAILED(proxyHr))
 			{
 				return proxyHr;

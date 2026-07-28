@@ -20,6 +20,8 @@
 
 const DWORD ReserveCount = 64;
 
+using namespace DdrawWrapper;
+
 // ******************************
 // IUnknown functions
 // ******************************

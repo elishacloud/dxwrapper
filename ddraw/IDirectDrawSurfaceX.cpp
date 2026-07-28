@@ -56,6 +56,8 @@ namespace {
 	std::vector<EMUSURFACE*> memorySurfaces;
 }
 
+using namespace DdrawWrapper;
+
 // ******************************
 // IUnknown functions
 // ******************************

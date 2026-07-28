@@ -17,6 +17,8 @@
 #include "ddraw.h"
 #include "Utils\Utils.h"
 
+using namespace DdrawWrapper;
+
 // ******************************
 // IUnknown functions
 // ******************************

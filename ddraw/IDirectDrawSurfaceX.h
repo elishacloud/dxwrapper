@@ -411,7 +411,7 @@ private:
 public:
 	m_IDirectDrawSurfaceX(IDirectDrawSurface7 *pOriginal, DWORD DirectXVersion) : ProxyInterface(pOriginal), CreatedVersion(DirectXVersion)
 	{
-		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
+		ProxyDirectXVersion = DdrawWrapper::GetGUIDVersion(GetWrapperType(DirectXVersion));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{

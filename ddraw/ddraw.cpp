@@ -75,10 +75,10 @@ namespace DdrawWrapper
 	}
 }
 
-using namespace DdrawWrapper;
-
 static void SetAllAppCompatData();
 static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType);
+
+using namespace DdrawWrapper;
 
 // ******************************
 // ddraw.dll export functions

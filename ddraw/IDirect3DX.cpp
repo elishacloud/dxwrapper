@@ -26,6 +26,8 @@ namespace {
 	HMODULE hD3DIm700 = nullptr;
 }
 
+using namespace DdrawWrapper;
+
 // ******************************
 // IUnknown functions
 // ******************************

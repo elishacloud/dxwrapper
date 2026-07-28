@@ -26,7 +26,7 @@ HRESULT m_IDirect3DViewport::QueryInterface(REFIID riid, LPVOID * ppvObj)
 		}
 		return E_NOINTERFACE;
 	}
-	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
+	return ProxyInterface->QueryInterface(DdrawWrapper::ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3DViewport::AddRef()

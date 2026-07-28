@@ -43,7 +43,7 @@ private:
 public:
 	m_IDirect3DMaterialX(IDirect3DMaterial3 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
-		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
+		ProxyDirectXVersion = DdrawWrapper::GetGUIDVersion(GetWrapperType(DirectXVersion));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{

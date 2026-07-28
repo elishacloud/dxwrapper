@@ -16,6 +16,8 @@
 
 #include "ddraw.h"
 
+using namespace DdrawWrapper;
+
 // ******************************
 // IUnknown functions
 // ******************************

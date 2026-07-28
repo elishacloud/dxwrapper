@@ -26,7 +26,7 @@ HRESULT m_IDirectDraw3::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 		}
 		return E_NOINTERFACE;
 	}
-	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
+	return ProxyInterface->QueryInterface(DdrawWrapper::ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirectDraw3::AddRef()

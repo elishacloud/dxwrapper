@@ -84,7 +84,7 @@ private:
 public:
 	m_IDirect3DViewportX(IDirect3DViewport3 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
-		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
+		ProxyDirectXVersion = DdrawWrapper::GetGUIDVersion(GetWrapperType(DirectXVersion));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
