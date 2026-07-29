@@ -573,7 +573,7 @@ HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv)
 	HRESULT hr = E_OUTOFMEMORY;
 	*ppv = nullptr;
 
-	if (rclsid != CLSID_DirectDraw && rclsid != CLSID_DirectDraw7 && rclsid != CLSID_DirectDrawClipper && rclsid != CLSID_DirectDrawFactory)
+	if (rclsid != CLSID_DirectDraw && rclsid != CLSID_DirectDraw7 && rclsid != CLSID_DirectDrawClipper)
 	{
 		return CLASS_E_CLASSNOTAVAILABLE;
 	}

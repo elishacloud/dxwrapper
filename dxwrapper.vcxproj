@@ -544,6 +544,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     </ClCompile>
     <ClCompile Include="ddraw\AddressLookupTable.cpp" />
     <ClCompile Include="ddraw\ddraw.cpp" />
+    <ClCompile Include="ddraw\ddrawex.cpp" />
     <ClCompile Include="ddraw\IDirect3DDeviceX.cpp" />
     <ClCompile Include="ddraw\IDirect3DMaterialX.cpp" />
     <ClCompile Include="ddraw\IDirect3DTextureX.cpp" />
@@ -1172,6 +1173,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="ddraw\AddressLookupTable.h" />
     <ClInclude Include="ddraw\DDClassFactory.h" />
     <ClInclude Include="ddraw\ddraw.h" />
+    <ClInclude Include="ddraw\ddrawex.h" />
     <ClInclude Include="ddraw\ddrawExternal.h" />
     <ClInclude Include="ddraw\IDirect3DDeviceX.h" />
     <ClInclude Include="ddraw\IDirect3DMaterialX.h" />
