@@ -1992,7 +1992,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 				if (!modeFound)
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: Mode not found: " << dwWidth << "x" << dwHeight);
-					return DDERR_INVALIDMODE;
+					return DDERR_UNSUPPORTED;
 				}
 			}
 
