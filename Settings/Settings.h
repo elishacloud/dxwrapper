@@ -161,6 +161,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(PrimaryBufferBits) \
 	visit(PrimaryBufferChannels) \
 	visit(PrimaryBufferSamples) \
+	visit(ProcAffinityMask) \
 	visit(RealDllPath) \
 	visit(ResetMemoryAfter) \
 	visit(ResetScreenRes) \
@@ -385,6 +386,7 @@ struct CONFIG
 	DWORD WindowSleepTime = 0;					// Time to wait (sleep) for window handle and screen updates to finish, requires FullScreen
 	DWORD ShowFPSCounter = 0;					// Shows the FPS counter. 1 = top left; 2 = top right; 3 = bottom right; 4 = bottom left
 	DWORD SingleProcAffinity = 0;				// Sets the CPU affinity for this process
+	DWORD ProcAffinityMask = 0;					// Sets the mask for the SingleProcAffinity feature
 	DWORD SetFullScreenLayer = 0;				// The layer to be selected for fullscreen, requires FullScreen
 	DWORD SetPOW2Caps = 0;						// Force caps change: 1 = force both, 2 = force D3DPTEXTURECAPS_NONPOW2CONDITIONAL, 3 = force D3DPTEXTURECAPS_POW2, 4 = remove both
 	DWORD AnisotropicFiltering = 0;				// Enable Anisotropic Filtering for d3d9

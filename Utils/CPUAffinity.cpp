@@ -133,12 +133,21 @@ DWORD_PTR Utils::GetCPUMask()
 	DWORD_PTR ProcessAffinityMask, SystemAffinityMask;
 	if (GetProcessAffinityMask(GetCurrentProcess(), &ProcessAffinityMask, &SystemAffinityMask))
 	{
+		DWORD BitMove = 0;
 		DWORD_PTR AffinityLow = 1;
 		while (AffinityLow && (AffinityLow & SystemAffinityMask) == 0)
 		{
+			BitMove++;
 			AffinityLow <<= 1;
 		}
-		if (AffinityLow)
+
+		// Try using ProcAffinityMask
+		nMask = BitMove > 0 ?
+			((Config.ProcAffinityMask << (BitMove + Config.SingleProcAffinity - 1)) & SystemAffinityMask) :
+			((Config.ProcAffinityMask << (Config.SingleProcAffinity - 1)) & SystemAffinityMask);
+
+		// Just use SingleProcAffinity
+		if (AffinityLow && !nMask)
 		{
 			nMask = ((AffinityLow << (Config.SingleProcAffinity - 1)) & SystemAffinityMask) ? (AffinityLow << (Config.SingleProcAffinity - 1)) : AffinityLow;
 		}
