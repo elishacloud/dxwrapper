@@ -870,6 +870,9 @@ void CONFIG::SetConfig()
 	// Windows Lie
 	WinVersionLieSP = (WinVersionLieSP > 0 && WinVersionLieSP <= 5) ? WinVersionLieSP : 0;
 
+	// Process affinity
+	SingleProcAffinity = SingleProcAffinity == 0 ? (ProcAffinityMask != 0) : SingleProcAffinity;
+
 	// Set unset options
 	CacheClipPlane = (CacheClipPlane != 0);
 	DdrawResolutionHack = (DdrawResolutionHack != 0);
