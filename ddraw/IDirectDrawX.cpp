@@ -959,6 +959,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 			// Check mode
 			if (!IsResolutionAlreadySent && IsResolutionSupported &&
+				d3ddispmode.Width && d3ddispmode.Height &&
 				(!EnumWidth || d3ddispmode.Width == EnumWidth) && (!EnumHeight || d3ddispmode.Height == EnumHeight))
 			{
 				// Store resolution
@@ -1946,7 +1947,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		if (!dwWidth || !dwHeight || (dwBPP != 8 && dwBPP != 16 && dwBPP != 24 && dwBPP != 32))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters: " << dwWidth << "x" << dwHeight << " " << dwBPP);
-			return DDERR_INVALIDPARAMS;
+			return DDERR_UNSUPPORTED;
 		}
 
 		bool WasDeviceCreated = false;
