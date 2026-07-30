@@ -14,6 +14,8 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#pragma comment(linker, "/SECTION:.rdata,RW")
+
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <Shlwapi.h>
