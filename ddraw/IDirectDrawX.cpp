@@ -1002,37 +1002,17 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		}
 
 		// Loop through each bit count
-		if (DirectXVersion == 1)
-		{
-			for (const auto& entry : ResolutionList)
-			{
-				for (DWORD bpMode : BitCountList)
-				{
-					// Get surface desc options
-					DDSURFACEDESC2 Desc2 = {};
-					EnumDisplay::GetSurfaceDesc2(Desc2, entry.Width, entry.Height, entry.RefreshRate, bpMode);
-
-					if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
-					{
-						return DD_OK;
-					}
-				}
-			}
-		}
-		else
+		for (const auto& entry : ResolutionList)
 		{
 			for (DWORD bpMode : BitCountList)
 			{
-				for (const auto& entry : ResolutionList)
-				{
-					// Get surface desc options
-					DDSURFACEDESC2 Desc2 = {};
-					EnumDisplay::GetSurfaceDesc2(Desc2, entry.Width, entry.Height, entry.RefreshRate, bpMode);
+				// Get surface desc options
+				DDSURFACEDESC2 Desc2 = {};
+				EnumDisplay::GetSurfaceDesc2(Desc2, entry.Width, entry.Height, entry.RefreshRate, bpMode);
 
-					if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
-					{
-						return DD_OK;
-					}
+				if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
+				{
+					return DD_OK;
 				}
 			}
 		}
