@@ -5017,7 +5017,14 @@ void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 				CurrentRenderTarget = AttachedSurface;
 				lpCurrentRenderTargetX = lpDDSrcSurfaceX;
 
-				lpDDSrcSurfaceX->AddRefRoot(AttachedSurface);
+				if (ClientDirectXVersion >= 3)
+				{
+					lpDDSrcSurfaceX->AddRefRoot(AttachedSurface);
+				}
+				else
+				{
+					AttachedSurface->AddRef();
+				}
 
 				DepthBitCount = lpDDSrcSurfaceX->GetAttachedDepthStencilZBits();
 
@@ -5054,7 +5061,14 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 
 	if (AttachedSurface && lpAttachedSurfaceX)
 	{
-		lpAttachedSurfaceX->ReleaseRoot(AttachedSurface);
+		if (ClientDirectXVersion >= 3)
+		{
+			lpAttachedSurfaceX->ReleaseRoot(AttachedSurface);
+		}
+		else
+		{
+			AttachedSurface->Release();
+		}
 	}
 	AttachedSurface = nullptr;
 	lpAttachedSurfaceX = nullptr;
