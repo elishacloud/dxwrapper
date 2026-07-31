@@ -258,8 +258,9 @@ constexpr D3DRENDERSTATETYPE StateBlockVertexRenderStates[] = {
 };
 
 typedef enum _DX_D3DDEVTYPE {
-    D3DDEVTYPE_RAMP = (D3DDEVTYPE)(5),
-    D3DDEVTYPE_TNLHAL = (D3DDEVTYPE)(6)
+    D3DDEVTYPE_RGB = (D3DDEVTYPE)(5),
+    D3DDEVTYPE_RAMP = (D3DDEVTYPE)(6),
+    D3DDEVTYPE_TNLHAL = (D3DDEVTYPE)(7)
 } DX_D3DDEVTYPE;
 
 typedef struct _D3DSTATE7 {
@@ -444,7 +445,7 @@ DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value);
 bool IsValidTransformState(D3DTRANSFORMSTATETYPE State);
 D3DMATRIX UpdateProjectionMatrix(const D3DMATRIX& Matrix, D3DVECTOR Scale, D3DVECTOR Clip, bool SetClipping);
 void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7);
-void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, const CLSID* guid, DWORD DirectXVersion);
+void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, DWORD dwDeviceZBufferBitDepth, const CLSID* guid, DWORD DirectXVersion);
 void ConvertLVertex(DXLVERTEX7* lFVF7, const DXLVERTEX9* lFVF9, DWORD NumVertices);
 void ConvertLVertex(DXLVERTEX9* lFVF9, const DXLVERTEX7* lFVF7, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);

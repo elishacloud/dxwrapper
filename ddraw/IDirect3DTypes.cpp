@@ -14,6 +14,7 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#include <objbase.h>
 #include "ddraw.h"
 #include "d3d9\d3d9External.h"
 
@@ -420,7 +421,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7)
 	// Desc.dwVertexProcessingCaps = Desc7.dwVertexProcessingCaps;
 }
 
-void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, const CLSID* guid, DWORD DirectXVersion)
+void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, DWORD dwDeviceZBufferBitDepth, const CLSID* guid, DWORD DirectXVersion)
 {
 	// Initialize the output structure
 	ZeroMemory(&Desc7, sizeof(D3DDEVICEDESC7));
@@ -442,7 +443,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, const CLSID
 			D3DDEVCAPS_DRAWPRIMITIVES2 |
 			D3DDEVCAPS_DRAWPRIMITIVES2EX |
 			D3DDEVCAPS_HWTRANSFORMANDLIGHT |
-			D3DDEVCAPS_CANBLTSYSTONONLOCAL |
+			//D3DDEVCAPS_CANBLTSYSTONONLOCAL |
 			D3DDEVCAPS_HWRASTERIZATION));
 
 	// Stencil capabilities
@@ -612,8 +613,8 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, const CLSID
 		D3DPTEXTURECAPS_TRANSPARENCY |
 		D3DPTEXTURECAPS_BORDER |
 		D3DPTEXTURECAPS_COLORKEYBLEND |
-		D3DPTEXTURECAPS_POW2 |
-		D3DPTEXTURECAPS_NONPOW2CONDITIONAL |
+		D3DPTEXTURECAPS_POW2 |					// Always reported on early D3D cards
+		D3DPTEXTURECAPS_NONPOW2CONDITIONAL |	// Reported only on later (D3D7/8) D3D cards
 		(Caps9.TextureCaps &
 			(D3DPTEXTURECAPS_PERSPECTIVE |
 			D3DPTEXTURECAPS_ALPHA |
@@ -678,14 +679,19 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, const CLSID
 	Desc7.dvMaxVertexW = Caps9.MaxVertexW;
 	Desc7.wMaxUserClipPlanes = (WORD)min(Caps9.MaxUserClipPlanes, MaxClipPlaneIndex);
 	Desc7.wMaxVertexBlendMatrices = (WORD)min(Caps9.MaxVertexBlendMatrices, USHRT_MAX);
+	Desc7.dwDeviceZBufferBitDepth = dwDeviceZBufferBitDepth;
 
 	// Get device type
 	const DWORD DeviceType =
 		guid == nullptr ? Caps9.DeviceType :
-		*guid == IID_IDirect3DRampDevice ? D3DDEVTYPE_RAMP :
-		*guid == IID_IDirect3DRGBDevice ? D3DDEVTYPE_REF :
-		*guid == IID_IDirect3DHALDevice ? D3DDEVTYPE_HAL :
 		*guid == IID_IDirect3DTnLHalDevice ? D3DDEVTYPE_TNLHAL :
+		*guid == IID_IDirect3DHALDevice ? D3DDEVTYPE_HAL :
+		*guid == IID_IDirect3DRGBDevice ? D3DDEVTYPE_RGB :
+		*guid == IID_IDirect3DRampDevice ? D3DDEVTYPE_RAMP :
+		*guid == IID_IDirect3DMMXDevice ? D3DDEVTYPE_RGB :
+		*guid == IID_IDirect3DRefDevice ? D3DDEVTYPE_RGB :
+		*guid == IID_IDirect3DNullDevice ? D3DDEVTYPE_RGB :
+		*guid == GUID_NULL ? D3DDEVTYPE_RGB :
 		Caps9.DeviceType;
 
 	// Specific settings
@@ -696,43 +702,51 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, const CLSID
 		if (DirectXVersion < 7)
 		{
 			Desc7.dpcLineCaps.dwTextureCaps &=
+				~D3DPTEXTURECAPS_PERSPECTIVE &
 				~D3DPTEXTURECAPS_POW2 &
-				~D3DPTEXTURECAPS_NONPOW2CONDITIONAL &
-				~D3DPTEXTURECAPS_PERSPECTIVE;
+				~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
 		}
-		Desc7.dwDevCaps &= ~(D3DDEVCAPS_HWRASTERIZATION | D3DDEVCAPS_HWTRANSFORMANDLIGHT);
+		Desc7.dwDevCaps &=
+			~D3DDEVCAPS_HWRASTERIZATION &
+			~D3DDEVCAPS_HWTRANSFORMANDLIGHT;
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_24 | DDBD_32;
-		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24;
 		break;
 
 	default:
-	case D3DDEVTYPE_REF:
+	case D3DDEVTYPE_RGB:
 		Desc7.deviceGUID = IID_IDirect3DRGBDevice;
 		if (DirectXVersion < 7)
 		{
 			Desc7.dpcLineCaps.dwTextureCaps &=
+				~D3DPTEXTURECAPS_PERSPECTIVE &
 				~D3DPTEXTURECAPS_POW2 &
-				~D3DPTEXTURECAPS_NONPOW2CONDITIONAL &
-				~D3DPTEXTURECAPS_PERSPECTIVE;
+				~D3DPTEXTURECAPS_NONPOW2CONDITIONAL;
 		}
-		Desc7.dwDevCaps &= ~(D3DDEVCAPS_HWRASTERIZATION | D3DDEVCAPS_HWTRANSFORMANDLIGHT);
+		Desc7.dwDevCaps &=
+			~D3DDEVCAPS_HWRASTERIZATION &
+			~D3DDEVCAPS_HWTRANSFORMANDLIGHT;
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_24 | DDBD_32;
-		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24;
 		break;
 
 	case D3DDEVTYPE_HAL:
 		Desc7.deviceGUID = IID_IDirect3DHALDevice;
-		Desc7.dwDevCaps = (Desc7.dwDevCaps | D3DDEVCAPS_HWRASTERIZATION) & ~D3DDEVCAPS_HWTRANSFORMANDLIGHT;
+		Desc7.dwDevCaps |=
+			D3DDEVCAPS_HWRASTERIZATION |
+			D3DDEVCAPS_DRAWPRIMITIVES2 |
+			D3DDEVCAPS_DRAWPRIMITIVES2EX;
+		Desc7.dwDevCaps &= ~D3DDEVCAPS_HWTRANSFORMANDLIGHT;
 		Desc7.dwDeviceRenderBitDepth = DDBD_16 | DDBD_32;
-		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24;
 		break;
 
 	case D3DDEVTYPE_TNLHAL:
 		Desc7.deviceGUID = IID_IDirect3DTnLHalDevice;
 		// If D3DDEVCAPS_HWTRANSFORMANDLIGHT is set, then D3DDEVCAPS_DRAWPRIMITIVES2EX must also be set.
-		Desc7.dwDevCaps |= D3DDEVCAPS_HWRASTERIZATION | D3DDEVCAPS_HWTRANSFORMANDLIGHT | D3DDEVCAPS_DRAWPRIMITIVES2EX;
+		Desc7.dwDevCaps |=
+			D3DDEVCAPS_HWRASTERIZATION |
+			D3DDEVCAPS_HWTRANSFORMANDLIGHT |
+			D3DDEVCAPS_DRAWPRIMITIVES2 |
+			D3DDEVCAPS_DRAWPRIMITIVES2EX;
 		Desc7.dwDeviceRenderBitDepth = DDBD_16 | DDBD_32;
-		Desc7.dwDeviceZBufferBitDepth = DDBD_16 | DDBD_24;
 		break;
 	}
 

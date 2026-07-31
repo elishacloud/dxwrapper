@@ -4092,7 +4092,7 @@ HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC7 lpD3DDevDesc, DWORD DirectX
 			return DDERR_INVALIDOBJECT;
 		}
 
-		ConvertDeviceDesc(*lpD3DDevDesc, Caps9, &ClassID, DirectXVersion);
+		ConvertDeviceDesc(*lpD3DDevDesc, Caps9, ddrawParent->GetD9ZBufferBitDepth(), &ClassID, DirectXVersion);
 
 		return D3D_OK;
 	}

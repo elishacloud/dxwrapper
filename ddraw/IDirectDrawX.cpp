@@ -3947,6 +3947,19 @@ void m_IDirectDrawX::GetD9Caps(D3DCAPS9& Caps9, DWORD& dwDeviceZBufferBitDepth, 
 	zFormat = D9Cache.zFormat;
 }
 
+DWORD m_IDirectDrawX::GetD9ZBufferBitDepth()
+{
+	GetD9Cache();
+
+	// Check cache
+	if (D9Cache.empty())
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: could not get Cap9 cache!");
+	}
+
+	return D9Cache.dwDeviceZBufferBitDepth;
+}
+
 void m_IDirectDrawX::GetD9SupportedTextures(std::vector<D3DFORMAT>& TextureFormat)
 {
 	GetD9Cache();

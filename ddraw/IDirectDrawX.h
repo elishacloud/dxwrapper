@@ -258,6 +258,7 @@ public:
 	void GetD9Cache();
 	void GetD9Caps(D3DCAPS9& Caps9);
 	void GetD9Caps(D3DCAPS9& Caps9, DWORD& dwDeviceZBufferBitDepth, std::vector<D3DFORMAT>& zFormat);
+	DWORD GetD9ZBufferBitDepth();
 	void GetD9SupportedTextures(std::vector<D3DFORMAT>& TextureFormat);
 
 	// Default State block and Viewport functions
