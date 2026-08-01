@@ -690,9 +690,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, DWORD dwDev
 		*guid == IID_IDirect3DRampDevice ? D3DDEVTYPE_RAMP :
 		*guid == IID_IDirect3DMMXDevice ? D3DDEVTYPE_RGB :
 		*guid == IID_IDirect3DRefDevice ? D3DDEVTYPE_RGB :
-		*guid == IID_IDirect3DNullDevice ? D3DDEVTYPE_RGB :
-		*guid == GUID_NULL ? D3DDEVTYPE_RGB :
-		Caps9.DeviceType;
+		D3DDEVTYPE_HAL;
 
 	// Specific settings
 	switch (DeviceType)
@@ -712,7 +710,6 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, DWORD dwDev
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_24 | DDBD_32;
 		break;
 
-	default:
 	case D3DDEVTYPE_RGB:
 		Desc7.deviceGUID = IID_IDirect3DRGBDevice;
 		if (DirectXVersion < 7)
@@ -728,6 +725,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, DWORD dwDev
 		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_24 | DDBD_32;
 		break;
 
+	default:
 	case D3DDEVTYPE_HAL:
 		Desc7.deviceGUID = IID_IDirect3DHALDevice;
 		Desc7.dwDevCaps |=
@@ -755,6 +753,17 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, DWORD dwDev
 
 	// Triangle capabilities (same as line caps)
 	Desc7.dpcTriCaps = Desc7.dpcLineCaps;
+}
+
+bool IsValid3DDeviceGUID(REFCLSID rclsid)
+{
+	return
+		rclsid == IID_IDirect3DTnLHalDevice ||
+		rclsid == IID_IDirect3DHALDevice ||
+		rclsid == IID_IDirect3DRGBDevice ||
+		rclsid == IID_IDirect3DRampDevice ||
+		rclsid == IID_IDirect3DMMXDevice ||
+		rclsid == IID_IDirect3DRefDevice;
 }
 
 void ConvertLVertex(DXLVERTEX7* lFVF7, const DXLVERTEX9* lFVF9, DWORD NumVertices)
