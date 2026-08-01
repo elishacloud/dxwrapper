@@ -433,6 +433,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 		{
 			bool Found = false;
 			LPD3DFINDDEVICESEARCH lpD3DFDS = nullptr;
+			GUID Guid = {};
 			D3DDEVICEDESC ddHwDesc = {};
 			D3DDEVICEDESC ddSwDesc = {};
 
@@ -442,6 +443,8 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 				UNREFERENCED_PARAMETER(lpDeviceName);
 
 				EnumFindDevice* self = (EnumFindDevice*)lpContext;
+
+				// Note: the D3DFDS_HARDWARE flag indicates that the bHardware value is to be used.  Default to hardware unless the game specifies otherwise.
 				LPD3DDEVICEDESC lpdd = (self->lpD3DFDS->dwFlags & D3DFDS_HARDWARE) && !self->lpD3DFDS->bHardware ? lpddSwDesc : lpddHwDesc;
 
 				if ((self->lpD3DFDS->dwFlags & D3DFDS_COLORMODEL) &&
@@ -451,13 +454,18 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 				}
 
 				const bool CheckGuid = (self->lpD3DFDS->dwFlags & D3DFDS_GUID) && lpGuid;
-				const bool GuidRGBMatch = CheckGuid && (IsEqualGUID(self->lpD3DFDS->guid, IID_IDirect3DRGBDevice) &&
-					(IsEqualGUID(*lpGuid, IID_IDirect3DMMXDevice) || IsEqualGUID(*lpGuid, IID_IDirect3DRefDevice)));
+				if (!CheckGuid && !IsEqualGUID(*lpGuid, IID_IDirect3DHALDevice))
+				{
+					return DDENUMRET_OK;	// Default to HAL when not checking GUID
+				}
 
-				if (CheckGuid && !GuidRGBMatch &&
-					!IsEqualGUID(*lpGuid, self->lpD3DFDS->guid) &&
-					!IsEqualGUID(*lpGuid, IID_IDirect3DNullDevice) &&
-					!IsEqualGUID(*lpGuid, GUID_NULL))
+				const bool GuidRGBMatch = CheckGuid && (IsEqualGUID(*lpGuid, IID_IDirect3DRGBDevice) &&
+					(IsEqualGUID(self->lpD3DFDS->guid, IID_IDirect3DMMXDevice) || IsEqualGUID(self->lpD3DFDS->guid, IID_IDirect3DRefDevice)));
+				const bool GuidREFMatch = CheckGuid && (IsEqualGUID(*lpGuid, IID_IDirect3DHALDevice) &&
+					(IsEqualGUID(self->lpD3DFDS->guid, IID_IDirect3DNullDevice) || IsEqualGUID(self->lpD3DFDS->guid, GUID_NULL)));
+
+				if (CheckGuid && !GuidRGBMatch && !GuidREFMatch &&
+					!IsEqualGUID(self->lpD3DFDS->guid, *lpGuid))
 				{
 					return DDENUMRET_OK;	// Doesn't match continue
 				}
@@ -474,7 +482,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 					PrimCaps.push_back(&lpdd->dpcLineCaps);
 				}
 
-				for (auto lpPrimCaps : PrimCaps)
+				for (const auto& lpPrimCaps : PrimCaps)
 				{
 					if ((self->lpD3DFDS->dwFlags & D3DFDS_MISCCAPS) &&
 						((lpPrimCaps->dwMiscCaps & self->lpD3DFDS->dpcPrimCaps.dwMiscCaps) != self->lpD3DFDS->dpcPrimCaps.dwMiscCaps))
@@ -545,6 +553,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 
 				// All requested flags matched
 				self->Found = true;
+				self->Guid = *lpGuid;
 				self->ddHwDesc = *lpddHwDesc;
 				self->ddSwDesc = *lpddSwDesc;
 
@@ -557,7 +566,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 
 		if (CallbackContext.Found)
 		{
-			lpD3DFDR->guid = CallbackContext.lpD3DFDS->guid;
+			lpD3DFDR->guid = CallbackContext.Guid;
 
 			LPD3DDEVICEDESC lpddHwDesc = &lpD3DFDR->ddHwDesc;
 			memcpy(lpddHwDesc, &CallbackContext.ddHwDesc, Size);
