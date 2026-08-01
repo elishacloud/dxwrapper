@@ -381,22 +381,6 @@ private:
 	HRESULT CopyEmulatedSurfaceToGDI(LPRECT lpDestRect);
 
 	// Wrapper interface functions
-	inline REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirectDrawSurface :
-			(DirectXVersion == 2) ? IID_IDirectDrawSurface2 :
-			(DirectXVersion == 3) ? IID_IDirectDrawSurface3 :
-			(DirectXVersion == 4) ? IID_IDirectDrawSurface4 :
-			(DirectXVersion == 7) ? IID_IDirectDrawSurface7 : IID_IUnknown;
-	}
-	inline bool CheckWrapperType(REFIID IID)
-	{
-		return (IID == IID_IDirectDrawSurface ||
-			IID == IID_IDirectDrawSurface2 ||
-			IID == IID_IDirectDrawSurface3 ||
-			IID == IID_IDirectDrawSurface4 ||
-			IID == IID_IDirectDrawSurface7) ? true : false;
-	}
 	inline IDirectDrawSurface *GetProxyInterfaceV1() { return (IDirectDrawSurface *)ProxyInterface; }
 	inline IDirectDrawSurface2 *GetProxyInterfaceV2() { return (IDirectDrawSurface2 *)ProxyInterface; }
 	inline IDirectDrawSurface3 *GetProxyInterfaceV3() { return (IDirectDrawSurface3 *)ProxyInterface; }
@@ -520,6 +504,23 @@ public:
 	STDMETHOD(GetPriority)(THIS_ LPDWORD);
 	STDMETHOD(SetLOD)(THIS_ DWORD);
 	STDMETHOD(GetLOD)(THIS_ LPDWORD);
+
+	static inline REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirectDrawSurface :
+			(DirectXVersion == 2) ? IID_IDirectDrawSurface2 :
+			(DirectXVersion == 3) ? IID_IDirectDrawSurface3 :
+			(DirectXVersion == 4) ? IID_IDirectDrawSurface4 :
+			(DirectXVersion == 7) ? IID_IDirectDrawSurface7 : IID_IUnknown;
+	}
+	static inline bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirectDrawSurface ||
+			IID == IID_IDirectDrawSurface2 ||
+			IID == IID_IDirectDrawSurface3 ||
+			IID == IID_IDirectDrawSurface4 ||
+			IID == IID_IDirectDrawSurface7) ? true : false;
+	}
 
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);

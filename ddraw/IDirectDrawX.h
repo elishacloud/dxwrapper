@@ -94,22 +94,6 @@ private:
 	HRESULT SetBrightnessLevel(D3DGAMMARAMP& RampData);
 
 	// Wrapper interface functions
-	inline REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirectDraw :
-			(DirectXVersion == 2) ? IID_IDirectDraw2 :
-			(DirectXVersion == 3) ? IID_IDirectDraw3 :
-			(DirectXVersion == 4) ? IID_IDirectDraw4 :
-			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IUnknown;
-	}
-	inline bool CheckWrapperType(REFIID IID)
-	{
-		return (IID == IID_IDirectDraw ||
-			IID == IID_IDirectDraw2 ||
-			IID == IID_IDirectDraw3 ||
-			IID == IID_IDirectDraw4 ||
-			IID == IID_IDirectDraw7) ? true : false;
-	}
 	inline IDirectDraw *GetProxyInterfaceV1() { return (IDirectDraw *)ProxyInterface; }
 	inline IDirectDraw2 *GetProxyInterfaceV2() { return (IDirectDraw2 *)ProxyInterface; }
 	inline IDirectDraw3 *GetProxyInterfaceV3() { return (IDirectDraw3 *)ProxyInterface; }
@@ -204,6 +188,23 @@ public:
 	/*** Added in the V7 Interface ***/
 	STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD);
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
+
+	static inline REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirectDraw :
+			(DirectXVersion == 2) ? IID_IDirectDraw2 :
+			(DirectXVersion == 3) ? IID_IDirectDraw3 :
+			(DirectXVersion == 4) ? IID_IDirectDraw4 :
+			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IUnknown;
+	}
+	static inline bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirectDraw ||
+			IID == IID_IDirectDraw2 ||
+			IID == IID_IDirectDraw3 ||
+			IID == IID_IDirectDraw4 ||
+			IID == IID_IDirectDraw7) ? true : false;
+	}
 
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);

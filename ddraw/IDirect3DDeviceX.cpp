@@ -58,6 +58,11 @@ HRESULT m_IDirect3DDeviceX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWO
 		return D3D_OK;
 	}
 
+	if (GetWrapperType(DirectXVersion) == IID_IUnknown)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: DirectXVersion is unsupported version: " << DirectXVersion);
+	}
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
@@ -98,13 +103,13 @@ ULONG m_IDirect3DDeviceX::Release(DWORD DirectXVersion)
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref;
-
 		// Some Direct3DDevices share reference count with parent surfaces
 		if (parent3DSurface.Interface)
 		{
 			return parent3DSurface.Interface->Release(parent3DSurface.DxVersion);
 		}
+
+		ULONG ref;
 
 		switch (DirectXVersion)
 		{
@@ -5017,13 +5022,9 @@ void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 				CurrentRenderTarget = AttachedSurface;
 				lpCurrentRenderTargetX = lpDDSrcSurfaceX;
 
-				if (ClientDirectXVersion >= 3)
+				if (!parent3DSurface.Interface)
 				{
 					lpDDSrcSurfaceX->AddRefRoot(AttachedSurface);
-				}
-				else
-				{
-					AttachedSurface->AddRef();
 				}
 
 				DepthBitCount = lpDDSrcSurfaceX->GetAttachedDepthStencilZBits();
@@ -5061,13 +5062,9 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 
 	if (AttachedSurface && lpAttachedSurfaceX)
 	{
-		if (ClientDirectXVersion >= 3)
+		if (!parent3DSurface.Interface)
 		{
 			lpAttachedSurfaceX->ReleaseRoot(AttachedSurface);
-		}
-		else
-		{
-			AttachedSurface->Release();
 		}
 	}
 	AttachedSurface = nullptr;

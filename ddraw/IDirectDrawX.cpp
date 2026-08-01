@@ -204,6 +204,11 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		return DD_OK;
 	}
 
+	if (GetWrapperType(DirectXVersion) == IID_IUnknown)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: DirectXVersion is unsupported version: " << DirectXVersion);
+	}
+
 	if (Config.Dd7to9)
 	{
 		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7)
@@ -226,11 +231,12 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 			if (!D3DInterface)
 			{
+				// No need to add a ref when creating a device because it is already added when creating the device
 				D3DInterface = new m_IDirect3DX(this, DxVersion, DirectXVersion);
 			}
 			else
 			{
-				D3DInterface->AddRef(DxVersion);	// No need to add a ref when creating a device because it is already added when creating the device
+				D3DInterface->AddRef(DxVersion);
 			}
 
 			*ppvObj = D3DInterface->GetWrapperInterfaceX(DxVersion);
@@ -5203,7 +5209,7 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurfac
 	d3d9Device->GetRenderTarget(0, pRenderTarget.GetAddressOf());
 
 	// Get depth stencil
-	ComPtr<IDirect3DSurface9> pDepthStencil = nullptr;
+	ComPtr<IDirect3DSurface9> pDepthStencil;
 	d3d9Device->GetDepthStencilSurface(pDepthStencil.GetAddressOf());
 
 	// Set backbuffer to render target

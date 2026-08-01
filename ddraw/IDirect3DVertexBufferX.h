@@ -62,16 +62,6 @@ private:
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DVertexBuffer);
 
 	// Wrapper interface functions
-	inline REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3DVertexBuffer :
-			(DirectXVersion == 7) ? IID_IDirect3DVertexBuffer7 : IID_IUnknown;
-	}
-	inline bool CheckWrapperType(REFIID IID)
-	{
-		return (IID == IID_IDirect3DVertexBuffer ||
-			IID == IID_IDirect3DVertexBuffer7) ? true : false;
-	}
 	inline IDirect3DVertexBuffer *GetProxyInterfaceV1() { return (IDirect3DVertexBuffer *)ProxyInterface; }
 	inline IDirect3DVertexBuffer7 *GetProxyInterfaceV7() { return ProxyInterface; }
 
@@ -137,6 +127,17 @@ public:
 
 	/*** IDirect3DVertexBuffer7 methods ***/
 	STDMETHOD(ProcessVerticesStrided)(THIS_ DWORD, DWORD, DWORD, LPD3DDRAWPRIMITIVESTRIDEDDATA, DWORD, LPDIRECT3DDEVICE7, DWORD);
+
+	static inline REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3DVertexBuffer :
+			(DirectXVersion == 7) ? IID_IDirect3DVertexBuffer7 : IID_IUnknown;
+	}
+	static inline bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirect3DVertexBuffer ||
+			IID == IID_IDirect3DVertexBuffer7) ? true : false;
+	}
 
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);

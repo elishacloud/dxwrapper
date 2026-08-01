@@ -101,6 +101,11 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		return DD_OK;
 	}
 
+	if (GetWrapperType(DirectXVersion) == IID_IUnknown)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: DirectXVersion is unsupported version: " << DirectXVersion);
+	}
+
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
@@ -126,20 +131,26 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3D not setup when creating Direct3DDevice.");
 			}
 
-			DxVersion = (DxVersion == 4) ? 3 : DxVersion;
+			DxVersion =
+				(DirectXVersion == 1) ? 1 :
+				(DirectXVersion == 2) ? 1 :
+				(DirectXVersion == 3) ? 2 :
+				(DirectXVersion == 4) ? 3 :
+				DirectXVersion;
 
 			if (!attached3DDevice)
 			{
-				attached3DDevice = new m_IDirect3DDeviceX(ddrawParent, D3DX, (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(DirectXVersion), riid, DirectXVersion);
+				SURFACE_PARENT ParentSurface = { this, DirectXVersion };
 
-				attached3DDevice->SetParent3DSurface(this, DirectXVersion);
+				// No need to add a ref when creating a device because it is already added when creating the device
+				attached3DDevice = new m_IDirect3DDeviceX(ddrawParent, D3DX, (LPDIRECTDRAWSURFACE7)GetWrapperInterfaceX(DirectXVersion), riid, &ParentSurface, DxVersion);
 			}
 			else
 			{
-				attached3DDevice->AddRef(DxVersion);	// No need to add a ref when creating a device because it is already added when creating the device
+				attached3DDevice->AddRef(DxVersion);
 			}
 
-			*ppvObj = (LPDIRECT3DDEVICE7)attached3DDevice->GetWrapperInterfaceX(DxVersion);
+			*ppvObj = attached3DDevice->GetWrapperInterfaceX(DxVersion);
 
 			return D3D_OK;
 		}
@@ -1954,6 +1965,7 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags, bool CheckOnly)
 				DWORD dwCaps = 0;
 
 				// Loop through each surface
+				m_IDirectDrawSurfaceX* lpLastTargetSurface = lpTargetSurface;
 				for (const auto& it : lpTargetSurface->AttachedSurfaceMap)
 				{
 					dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
@@ -1965,7 +1977,7 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags, bool CheckOnly)
 				}
 
 				// Stop looping when at end of loop
-				if (!lpTargetSurface || lpTargetSurface == this)
+				if (!lpTargetSurface || lpTargetSurface == this || lpTargetSurface == lpLastTargetSurface)
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: Could not find front buffer!");
 					return DDERR_INVALIDSURFACETYPE;
@@ -4048,16 +4060,13 @@ ULONG m_IDirectDrawSurfaceX::AddRefRoot(LPDIRECTDRAWSURFACE7 WrapperAddress)
 		return 0;
 	}
 
-	if (ComplexChild)
+	LPDIRECTDRAWSURFACE7 WrapperRootX = GetWrapperInterfaceRootX(WrapperAddress);
+	if (WrapperRootX)
 	{
-		LPDIRECTDRAWSURFACE7 WrapperRootX = GetWrapperInterfaceRootX(WrapperAddress);
-		if (WrapperRootX)
-		{
-			return WrapperRootX->AddRef();
-		}
+		return WrapperRootX->AddRef();
 	}
 
-	return WrapperAddress->AddRef();
+	return 0;
 }
 
 ULONG m_IDirectDrawSurfaceX::ReleaseRoot(LPDIRECTDRAWSURFACE7 WrapperAddress)
@@ -4068,20 +4077,22 @@ ULONG m_IDirectDrawSurfaceX::ReleaseRoot(LPDIRECTDRAWSURFACE7 WrapperAddress)
 		return 0;
 	}
 
-	if (ComplexChild)
+	LPDIRECTDRAWSURFACE7 WrapperRootX = GetWrapperInterfaceRootX(WrapperAddress);
+	if (WrapperRootX)
 	{
-		LPDIRECTDRAWSURFACE7 WrapperRootX = GetWrapperInterfaceRootX(WrapperAddress);
-		if (WrapperRootX)
-		{
-			return WrapperRootX->Release();
-		}
+		return WrapperRootX->Release();
 	}
 
-	return WrapperAddress->Release();
+	return 0;
 }
 
 LPDIRECTDRAWSURFACE7 m_IDirectDrawSurfaceX::GetWrapperInterfaceRootX(LPDIRECTDRAWSURFACE7 WrapperAddress)
 {
+	if (!WrapperAddress || !ComplexChild)
+	{
+		return WrapperAddress;
+	}
+
 	const DWORD DirectXVersion =
 		((void*)WrapperAddress == (void*)WrapperInterface7) ? 7 :
 		((void*)WrapperAddress == (void*)WrapperInterface4) ? 4 :
@@ -4099,6 +4110,7 @@ LPDIRECTDRAWSURFACE7 m_IDirectDrawSurfaceX::GetWrapperInterfaceRootX(LPDIRECTDRA
 	m_IDirectDrawSurfaceX* lpTargetSurface = this;
 	do {
 		// Loop through each surface
+		m_IDirectDrawSurfaceX* lpLastTargetSurface = lpTargetSurface;
 		for (const auto& it : lpTargetSurface->AttachedSurfaceMap)
 		{
 			if (it.second.pSurface->ComplexChild || it.second.pSurface->ComplexRoot)
@@ -4109,9 +4121,8 @@ LPDIRECTDRAWSURFACE7 m_IDirectDrawSurfaceX::GetWrapperInterfaceRootX(LPDIRECTDRA
 		}
 
 		// Stop looping when at end of loop
-		if (!lpTargetSurface || lpTargetSurface == this)
+		if (!lpTargetSurface || lpTargetSurface == this || lpTargetSurface == lpLastTargetSurface)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Could not find ComplexRoot!");
 			break;
 		}
 
@@ -4122,6 +4133,7 @@ LPDIRECTDRAWSURFACE7 m_IDirectDrawSurfaceX::GetWrapperInterfaceRootX(LPDIRECTDRA
 		}
 	} while (true);
 
+	LOG_LIMIT(100, __FUNCTION__ << " Error: Could not find ComplexRoot!");
 	return nullptr;
 }
 
@@ -6502,7 +6514,7 @@ void m_IDirectDrawSurfaceX::ClearSurfaceLostFlag()
 			}
 
 			// Stop looping when no more children are found
-			if (!lpTargetSurface || lpTargetSurface == lpLastTargetSurface)
+			if (!lpTargetSurface || lpTargetSurface == this || lpTargetSurface == lpLastTargetSurface)
 			{
 				break;
 			}
@@ -6935,8 +6947,8 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 			ScopedGetMipMapContext Dest(this, MipMapLevel);
 
 			// Set new render target
-			ComPtr<IDirect3DSurface9> pRenderTarget = nullptr;
-			ComPtr<IDirect3DSurface9> pDepthStencil = nullptr;
+			ComPtr<IDirect3DSurface9> pRenderTarget;
+			ComPtr<IDirect3DSurface9> pDepthStencil;
 			if (!IsUsingCurrentRenderTarget)
 			{
 				hr = (*d3d9Device)->GetDepthStencilSurface(pDepthStencil.GetAddressOf());
@@ -8109,7 +8121,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 	const bool IsUsingCurrentZBuffer = (ddrawParent->GetDepthStencilSurface() == this);
 
 	// Set new depth stencil
-	ComPtr<IDirect3DSurface9> pDepthStencil = nullptr;
+	ComPtr<IDirect3DSurface9> pDepthStencil;
 	if (!IsUsingCurrentZBuffer)
 	{
 		HRESULT hr = (*d3d9Device)->GetDepthStencilSurface(pDepthStencil.GetAddressOf());
@@ -8620,6 +8632,7 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipList(std::vector<m_IDirectDrawSurfaceX*>& 
 			DWORD dwCaps = 0;
 
 			// Loop through each surface
+			m_IDirectDrawSurfaceX* lpLastTargetSurface = lpTargetSurface;
 			for (const auto& it : lpTargetSurface->AttachedSurfaceMap)
 			{
 				dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
@@ -8631,7 +8644,7 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipList(std::vector<m_IDirectDrawSurfaceX*>& 
 			}
 
 			// Stop looping when frontbuffer is found
-			if (!lpTargetSurface || lpTargetSurface == this || dwCaps & DDSCAPS_FRONTBUFFER)
+			if (!lpTargetSurface || lpTargetSurface == this || lpTargetSurface == lpLastTargetSurface || dwCaps & DDSCAPS_FRONTBUFFER)
 			{
 				break;
 			}

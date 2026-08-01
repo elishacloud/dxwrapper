@@ -57,18 +57,6 @@ private:
 	}
 
 	// Wrapper interface functions
-	inline REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3DViewport :
-			(DirectXVersion == 2) ? IID_IDirect3DViewport2 :
-			(DirectXVersion == 3) ? IID_IDirect3DViewport3 : IID_IUnknown;
-	}
-	inline bool CheckWrapperType(REFIID IID)
-	{
-		return (IID == IID_IDirect3DViewport ||
-			IID == IID_IDirect3DViewport2 ||
-			IID == IID_IDirect3DViewport3) ? true : false;
-	}
 	inline IDirect3DViewport *GetProxyInterfaceV1() { return (IDirect3DViewport *)ProxyInterface; }
 	inline IDirect3DViewport2 *GetProxyInterfaceV2() { return (IDirect3DViewport2 *)ProxyInterface; }
 	inline IDirect3DViewport3 *GetProxyInterfaceV3() { return ProxyInterface; }
@@ -151,6 +139,19 @@ public:
 	STDMETHOD(SetBackgroundDepth2)(THIS_ LPDIRECTDRAWSURFACE4);
 	STDMETHOD(GetBackgroundDepth2)(THIS_ LPDIRECTDRAWSURFACE4*, LPBOOL, DWORD DirectXVersion);
 	STDMETHOD(Clear2)(THIS_ DWORD, LPD3DRECT, DWORD, D3DCOLOR, D3DVALUE, DWORD);
+
+	static inline REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3DViewport :
+			(DirectXVersion == 2) ? IID_IDirect3DViewport2 :
+			(DirectXVersion == 3) ? IID_IDirect3DViewport3 : IID_IUnknown;
+	}
+	static inline bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirect3DViewport ||
+			IID == IID_IDirect3DViewport2 ||
+			IID == IID_IDirect3DViewport3) ? true : false;
+	}
 
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);

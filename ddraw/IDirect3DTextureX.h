@@ -20,16 +20,6 @@ private:
 	} parent3DSurface;
 
 	// Wrapper interface functions
-	inline REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3DTexture :
-			(DirectXVersion == 2) ? IID_IDirect3DTexture2 : IID_IUnknown;
-	}
-	inline bool CheckWrapperType(REFIID IID)
-	{
-		return (IID == IID_IDirect3DTexture ||
-			IID == IID_IDirect3DTexture2) ? true : false;
-	}
 	inline IDirect3DTexture *GetProxyInterfaceV1() { return (IDirect3DTexture *)ProxyInterface; }
 	inline IDirect3DTexture2 *GetProxyInterfaceV2() { return ProxyInterface; }
 
@@ -86,6 +76,17 @@ public:
 	STDMETHOD(PaletteChanged)(THIS_ DWORD, DWORD);
 	STDMETHOD(Load)(THIS_ LPDIRECT3DTEXTURE2);
 	STDMETHOD(Unload)(THIS);
+
+	static inline REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3DTexture :
+			(DirectXVersion == 2) ? IID_IDirect3DTexture2 : IID_IUnknown;
+	}
+	static inline bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirect3DTexture ||
+			IID == IID_IDirect3DTexture2) ? true : false;
+	}
 
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);

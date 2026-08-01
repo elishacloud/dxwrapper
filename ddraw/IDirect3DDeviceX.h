@@ -26,10 +26,7 @@ private:
 	LPDIRECT3DVERTEXSHADER9* fixupVertexShader = nullptr;
 	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
 	m_IDirect3DViewportX* lpCurrentViewportX = nullptr;
-	struct {
-		m_IDirectDrawSurfaceX* Interface = nullptr;
-		DWORD DxVersion = 0;
-	} parent3DSurface;
+	SURFACE_PARENT parent3DSurface;
 
 #ifdef ENABLE_PROFILING
 	std::chrono::steady_clock::time_point sceneTime;
@@ -327,20 +324,6 @@ private:
 	}
 
 	// Wrapper interface functions
-	inline REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3DDevice :
-			(DirectXVersion == 2) ? IID_IDirect3DDevice2 :
-			(DirectXVersion == 3) ? IID_IDirect3DDevice3 :
-			(DirectXVersion == 7) ? IID_IDirect3DDevice7 : IID_IUnknown;
-	}
-	inline bool CheckWrapperType(REFIID IID)
-	{
-		return (IID == IID_IDirect3DDevice ||
-			IID == IID_IDirect3DDevice2 ||
-			IID == IID_IDirect3DDevice3 ||
-			IID == IID_IDirect3DDevice7) ? true : false;
-	}
 	inline IDirect3DDevice *GetProxyInterfaceV1() { return (IDirect3DDevice *)ProxyInterface; }
 	inline IDirect3DDevice2 *GetProxyInterfaceV2() { return (IDirect3DDevice2 *)ProxyInterface; }
 	inline IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
@@ -372,7 +355,7 @@ public:
 
 		InitInterface(DirectXVersion);
 	}
-	m_IDirect3DDeviceX(m_IDirectDrawX* lpDdraw, m_IDirect3DX* lpD3D, LPDIRECTDRAWSURFACE7 pRenderTarget, REFCLSID rclsid, DWORD DirectXVersion) :
+	m_IDirect3DDeviceX(m_IDirectDrawX* lpDdraw, m_IDirect3DX* lpD3D, LPDIRECTDRAWSURFACE7 pRenderTarget, REFCLSID rclsid, SURFACE_PARENT* ParentSurface, DWORD DirectXVersion) :
 		ddrawParent(lpDdraw), D3DInterface(lpD3D), AttachedSurface(pRenderTarget), ClassID(rclsid)
 	{
 		ProxyDirectXVersion = 9;
@@ -380,6 +363,12 @@ public:
 		ClientDirectXVersion = DirectXVersion;
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+
+		if (ParentSurface)
+		{
+			parent3DSurface.DxVersion = ParentSurface->DxVersion;
+			parent3DSurface.Interface = ParentSurface->Interface;
+		}
 
 		InitInterface(DirectXVersion);
 	}
@@ -473,13 +462,27 @@ public:
 	STDMETHOD(GetClipPlane)(THIS_ DWORD, D3DVALUE*);
 	STDMETHOD(GetInfo)(THIS_ DWORD, LPVOID, DWORD);
 
+	static inline REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3DDevice :
+			(DirectXVersion == 2) ? IID_IDirect3DDevice2 :
+			(DirectXVersion == 3) ? IID_IDirect3DDevice3 :
+			(DirectXVersion == 7) ? IID_IDirect3DDevice7 : IID_IUnknown;
+	}
+	static inline bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirect3DDevice ||
+			IID == IID_IDirect3DDevice2 ||
+			IID == IID_IDirect3DDevice3 ||
+			IID == IID_IDirect3DDevice7) ? true : false;
+	}
+
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 	bool IsDeviceInScene() const { return IsInScene; }
-	void SetParent3DSurface(m_IDirectDrawSurfaceX* lpSurfaceX, DWORD DxVersion) { parent3DSurface = { lpSurfaceX, DxVersion }; }
 
 	// ExecuteBuffer
 	void AddExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer);

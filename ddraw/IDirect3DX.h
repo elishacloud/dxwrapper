@@ -63,20 +63,6 @@ private:
 	void ResolutionHack();
 
 	// Wrapper interface functions
-	inline REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3D :
-			(DirectXVersion == 2) ? IID_IDirect3D2 :
-			(DirectXVersion == 3) ? IID_IDirect3D3 :
-			(DirectXVersion == 7) ? IID_IDirect3D7 : IID_IUnknown;
-	}
-	inline bool CheckWrapperType(REFIID IID)
-	{
-		return (IID == IID_IDirect3D ||
-			IID == IID_IDirect3D2 ||
-			IID == IID_IDirect3D3 ||
-			IID == IID_IDirect3D7) ? true : false;
-	}
 	inline IDirect3D *GetProxyInterfaceV1() { return (IDirect3D *)ProxyInterface; }
 	inline IDirect3D2 *GetProxyInterfaceV2() { return (IDirect3D2 *)ProxyInterface; }
 	inline IDirect3D3 *GetProxyInterfaceV3() { return (IDirect3D3 *)ProxyInterface; }
@@ -138,6 +124,21 @@ public:
 	STDMETHOD(CreateVertexBuffer)(THIS_ LPD3DVERTEXBUFFERDESC, LPDIRECT3DVERTEXBUFFER7*, DWORD, LPUNKNOWN, DWORD);
 	STDMETHOD(EnumZBufferFormats)(THIS_ REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 	STDMETHOD(EvictManagedTextures)(THIS);
+
+	static inline REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3D :
+			(DirectXVersion == 2) ? IID_IDirect3D2 :
+			(DirectXVersion == 3) ? IID_IDirect3D3 :
+			(DirectXVersion == 7) ? IID_IDirect3D7 : IID_IUnknown;
+	}
+	static inline bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirect3D ||
+			IID == IID_IDirect3D2 ||
+			IID == IID_IDirect3D3 ||
+			IID == IID_IDirect3D7) ? true : false;
+	}
 
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);

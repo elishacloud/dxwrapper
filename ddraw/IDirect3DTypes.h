@@ -416,6 +416,11 @@ typedef enum _D3DSURFACETYPE {
     D3DTYPE_DEPTHSTENCIL = 4
 } D3DSURFACETYPE;
 
+struct SURFACE_PARENT {
+    m_IDirectDrawSurfaceX* Interface = nullptr;
+    DWORD DxVersion = 0;
+};
+
 #define CLAMP(val,zmin,zmax) (max((zmin),min((zmax),(val))))
 
 // Clamp rhw values
