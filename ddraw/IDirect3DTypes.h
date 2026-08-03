@@ -11,8 +11,9 @@
 #define D3DRENDERSTATE_NONE (D3DRENDERSTATETYPE)0
 
 #define D3DDP_FORCE_DWORD               0x0000001Fl
-#define D3DDP_DXW_COLORKEYENABLE        0x00000020l
-#define D3DDP_DXW_ALPHACOLORKEY         0x00000040l
+#define D3DDP_DXW_SCALEMATRIX           0x00000020l
+#define D3DDP_DXW_COLORKEYENABLE        0x00000040l
+#define D3DDP_DXW_ALPHACOLORKEY         0x00000080l
 
 #define D3DDEVICEDESC1_SIZE 172
 #define D3DDEVICEDESC5_SIZE 204
@@ -256,7 +257,11 @@ constexpr D3DRENDERSTATETYPE StateBlockVertexRenderStates[] = {
     D3DRENDERSTATE_VERTEXBLEND
 };
 
-typedef enum _DX_D3DDEVTYPE { D3DDEVTYPE_TNLHAL = (D3DDEVTYPE)(D3DDEVTYPE_HAL + 0x10) } DX_D3DDEVTYPE;
+typedef enum _DX_D3DDEVTYPE {
+    D3DDEVTYPE_RGB = (D3DDEVTYPE)(5),
+    D3DDEVTYPE_RAMP = (D3DDEVTYPE)(6),
+    D3DDEVTYPE_TNLHAL = (D3DDEVTYPE)(7)
+} DX_D3DDEVTYPE;
 
 typedef struct _D3DSTATE7 {
     union {
@@ -378,6 +383,31 @@ struct TLVERTEX
     float u, v;
 };
 
+struct VERTEXSTREAMINFO {
+    bool IsInBegin = false;
+    D3DPRIMITIVETYPE d3dpt = {};
+    D3DVERTEXTYPE d3dvt = {};
+    DWORD VertexStride = 0;
+    std::vector<BYTE> Stream;
+    DWORD dwFlags = 0;
+};
+
+struct INDEXSTREAMINFO {
+    bool IsInBegin = false;
+    D3DPRIMITIVETYPE d3dpt = {};
+    D3DVERTEXTYPE d3dvt = {};
+    std::vector<WORD> Stream;
+    DWORD dwFlags = 0;
+};
+
+struct VIEWPORTINFO {
+    D3DVIEWPORT9 Data9 = {};
+    float MinZ = 0;
+    float MaxZ = 0;
+    D3DVECTOR Scale = {};
+    D3DVECTOR Clip = {};
+};
+
 typedef enum _D3DSURFACETYPE {
     D3DTYPE_NONE = 0,
     D3DTYPE_OFFPLAINSURFACE = 1,
@@ -398,31 +428,42 @@ struct CONVERTHOMOGENEOUS
     float ToWorld_GameCameraPitch = 0.0f;
 };
 
+struct SURFACE_PARENT {
+    m_IDirectDrawSurfaceX* Interface = nullptr;
+    DWORD DxVersion = 0;
+};
+
 #define CLAMP(val,zmin,zmax) (max((zmin),min((zmax),(val))))
 
 // Clamp rhw values
 const float max_rhw = static_cast<float>(1u << 31);
 const float min_rhw = 1.0f / max_rhw;
 
+inline bool IsRectZero(const D3DRECT& r)
+{
+    return r.x1 == 0 && r.y1 == 0 && r.x2 == 0 && r.y2 == 0;
+}
+inline bool IsColorValueZero(const D3DCOLORVALUE c)
+{
+    return c.r == 0.0f && c.g == 0.0f && c.b == 0.0f && c.a == 0.0f;
+}
+
+void GetDXLight(DXLIGHT7& DxLight7, const D3DLIGHT2& Light2);
+void GetDXLight(DXLIGHT7& DxLight7, const D3DLIGHT9& Light9);
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light);
 D3DLIGHT9 FixLight(const D3DLIGHT9& Light);
 void ConvertMaterial(D3DMATERIAL& Material, const D3DMATERIAL7& Material7);
 void ConvertMaterial(D3DMATERIAL7& Material7, const D3DMATERIAL& Material);
-void ConvertViewport(D3DVIEWPORT& Viewport, const D3DVIEWPORT2& Viewport2);
-void ConvertViewport(D3DVIEWPORT2& Viewport2, const D3DVIEWPORT& Viewport);
-void ConvertViewport(D3DVIEWPORT& Viewport, const D3DVIEWPORT7& Viewport7);
-void ConvertViewport(D3DVIEWPORT2& Viewport2, const D3DVIEWPORT7& Viewport7);
-void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT& Viewport);
-void ConvertViewport(D3DVIEWPORT7& Viewport7, const D3DVIEWPORT2& Viewport2);
-void ConvertViewport(D3DVIEWPORT7& Viewport, const D3DVIEWPORT7& Viewport7);
+D3DVIEWPORT9 FixViewport(const D3DVIEWPORT9& Viewport);
 bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
 bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
 DWORD GetDepthBias(DWORD ZBias, DWORD DepthBitCount);
 DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value);
 bool IsValidTransformState(D3DTRANSFORMSTATETYPE State);
-D3DMATRIX FixMatrix(const D3DMATRIX& Matrix, D3DTRANSFORMSTATETYPE State, D3DVIEWPORT Viewport, bool ScaleMatrix);
+D3DMATRIX UpdateProjectionMatrix(const D3DMATRIX& Matrix, D3DVECTOR Scale, D3DVECTOR Clip, bool SetClipping);
 void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7);
-void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9);
+void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, DWORD dwDeviceZBufferBitDepth, const CLSID* guid, DWORD DirectXVersion);
+bool IsValid3DDeviceGUID(REFCLSID rclsid);
 void ConvertLVertex(DXLVERTEX7* lFVF7, const DXLVERTEX9* lFVF9, DWORD NumVertices);
 void ConvertLVertex(DXLVERTEX9* lFVF9, const DXLVERTEX7* lFVF7, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);

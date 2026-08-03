@@ -16,27 +16,33 @@
 
 #include "d3d9.h"
 
+// ******************************
+// IUnknown functions
+// ******************************
+
 HRESULT m_IDirect3DTexture9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+
 	if (riid == IID_IUnknown || riid == WrapperID || riid == IID_IDirect3DBaseTexture9 || riid == IID_IDirect3DResource9)
 	{
-		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
+		AddRef();
 
-		if (SUCCEEDED(hr))
-		{
-			*ppvObj = this;
-		}
+		*ppvObj = this;
 
-		return hr;
+		return D3D_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
 
 	if (SUCCEEDED(hr))
 	{
-		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
+		D3d9Wrapper::genericQueryInterface(riid, WrapperID, ppvObj, m_pDeviceEx);
 	}
 
 	return hr;
@@ -55,26 +61,33 @@ ULONG m_IDirect3DTexture9::Release(THIS)
 
 	ULONG ref = ProxyInterface->Release();
 
-	if (ref == 0 && m_pDeviceEx->GetClientDXVersion() < 8)
+	if (ref == 0)
 	{
-		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
-
-		delete this;
+		while (!SurfaceLevelList.empty())
+		{
+			auto it = SurfaceLevelList.begin();
+			(*it)->ClearTextureContainer();
+			SurfaceLevelList.erase(it);
+		}
 	}
 
 	return ref;
 }
 
+// ******************************
+// IDirect3DTexture9 methods
+// ******************************
+
 HRESULT m_IDirect3DTexture9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppDevice)
+	if (FAILED(m_pDeviceEx->QueryInterface(m_pDeviceEx->GetIID(), (LPVOID*)ppDevice)))
 	{
 		return D3DERR_INVALIDCALL;
 	}
 
-	return m_pDeviceEx->QueryInterface(m_pDeviceEx->GetIID(), (LPVOID*)ppDevice);
+	return D3D_OK;
 }
 
 HRESULT m_IDirect3DTexture9::SetPrivateData(THIS_ REFGUID refguid, CONST void* pData, DWORD SizeOfData, DWORD Flags)
@@ -151,12 +164,22 @@ HRESULT m_IDirect3DTexture9::SetAutoGenFilterType(THIS_ D3DTEXTUREFILTERTYPE Fil
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (IsForcingMipMaps)
+	{
+		return D3D_OK;
+	}
+
 	return ProxyInterface->SetAutoGenFilterType(FilterType);
 }
 
 D3DTEXTUREFILTERTYPE m_IDirect3DTexture9::GetAutoGenFilterType(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (IsForcingMipMaps)
+	{
+		return D3DTEXF_NONE;
+	}
 
 	return ProxyInterface->GetAutoGenFilterType();
 }
@@ -172,7 +195,17 @@ HRESULT m_IDirect3DTexture9::GetLevelDesc(THIS_ UINT Level, D3DSURFACE_DESC *pDe
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetLevelDesc(Level, pDesc);
+	HRESULT hr = ProxyInterface->GetLevelDesc(Level, pDesc);
+
+	if (SUCCEEDED(hr))
+	{
+		if (IsForcingMipMaps && pDesc)
+		{
+			pDesc->Usage &= ~D3DUSAGE_AUTOGENMIPMAP;
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DTexture9::GetSurfaceLevel(THIS_ UINT Level, IDirect3DSurface9** ppSurfaceLevel)
@@ -183,7 +216,12 @@ HRESULT m_IDirect3DTexture9::GetSurfaceLevel(THIS_ UINT Level, IDirect3DSurface9
 
 	if (SUCCEEDED(hr) && ppSurfaceLevel)
 	{
-		*ppSurfaceLevel = m_pDeviceEx->GetLookupTable()->FindCreateAddress<m_IDirect3DSurface9, m_IDirect3DDevice9Ex, LPVOID>(*ppSurfaceLevel, m_pDeviceEx, IID_IDirect3DSurface9, nullptr);
+		D3d9Wrapper::genericQueryInterface(IID_IDirect3DSurface9, WrapperID, (LPVOID*)ppSurfaceLevel, m_pDeviceEx);
+
+		if (Level == 0)
+		{
+			reinterpret_cast<m_IDirect3DSurface9*>(*ppSurfaceLevel)->SetTextureContainer(this);
+		}
 	}
 
 	return hr;
@@ -193,7 +231,18 @@ HRESULT m_IDirect3DTexture9::LockRect(THIS_ UINT Level, D3DLOCKED_RECT* pLockedR
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->LockRect(Level, pLockedRect, pRect, Flags);
+	HRESULT hr = ProxyInterface->LockRect(Level, pLockedRect, pRect, Flags);
+
+	if (SUCCEEDED(hr))
+	{
+		if (Level == 0)
+		{
+			const bool IncreamentUSN = !(Flags & D3DLOCK_READONLY);
+			PrepareWritingToTexture(IncreamentUSN);
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirect3DTexture9::UnlockRect(THIS_ UINT Level)
@@ -208,4 +257,25 @@ HRESULT m_IDirect3DTexture9::AddDirtyRect(THIS_ CONST RECT* pDirtyRect)
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
 	return ProxyInterface->AddDirtyRect(pDirtyRect);
+}
+
+// Helper functions
+void m_IDirect3DTexture9::PrepareReadingFromTexture()
+{
+	for (const auto& pSurface : SurfaceLevelList)
+	{
+		pSurface->CopyToRealSurface();
+	}
+}
+
+void m_IDirect3DTexture9::PrepareWritingToTexture(bool IncreamentUSN)
+{
+	for (const auto& pSurface : SurfaceLevelList)
+	{
+		pSurface->CopyToRealSurface();
+	}
+	if (IncreamentUSN)
+	{
+		IncrementTextureUSN();
+	}
 }

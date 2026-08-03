@@ -1,16 +1,16 @@
 #pragma once
 
-class m_IDirectDrawX : public IUnknown, public AddressLookupTableDdrawObject
+class m_IDirectDrawX final : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDraw7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
 	DWORD ClientDirectXVersion;
-	ULONG RefCount1 = 0;
-	ULONG RefCount2 = 0;
-	ULONG RefCount3 = 0;
-	ULONG RefCount4 = 0;
-	ULONG RefCount7 = 0;
+	LONG RefCount1 = 0;
+	LONG RefCount2 = 0;
+	LONG RefCount3 = 0;
+	LONG RefCount4 = 0;
+	LONG RefCount7 = 0;
 
 	// Store version wrappers
 	m_IDirectDraw* WrapperInterface = nullptr;
@@ -21,6 +21,7 @@ private:
 
 	// Cached DirectDraw flags
 	const bool IsUsingEx = false;
+	bool CreatedByDDFactory = false;
 	bool Using3D = false;
 	const UINT AdapterIndex = D3DADAPTER_DEFAULT;
 
@@ -74,15 +75,14 @@ private:
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice);
 	void FindMonitorHandle() const;
 	HRESULT CreateD9Object();
-	void BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height);
+	void BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Width, DWORD Height, bool IsUsingPalette);
 	void RestoreState(DRAWSTATEBACKUP& DrawStates);
-	HRESULT CopyPrimarySurface(LPDIRECT3DSURFACE9 pDestBuffer);
-	HRESULT DrawPrimarySurface(LPDIRECT3DTEXTURE9 pDisplayTexture);
+	HRESULT CopyPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurface, LPDIRECT3DSURFACE9 pDestBuffer);
+	HRESULT DrawPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurface, LPDIRECT3DTEXTURE9 pDisplayTexture);
 	static DWORD WINAPI PresentThreadFunction(LPVOID);
 	HRESULT Present(RECT* pSourceRect, RECT* pDestRect);
 	void RestoreD3DDeviceState();
-	void Clear3DFlagForAllSurfaces();
-	void MarkAllSurfacesDirty();
+	void Clear3DSurfaceFlag();
 	void ResetAllSurfaceDisplay();
 	void ReleaseD3D9IndexBuffer(LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer, DWORD& IndexBufferSize);
 	void ReleaseAllD9Resources(bool BackupData, bool ResetInterface);
@@ -94,22 +94,6 @@ private:
 	HRESULT SetBrightnessLevel(D3DGAMMARAMP& RampData);
 
 	// Wrapper interface functions
-	inline REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirectDraw :
-			(DirectXVersion == 2) ? IID_IDirectDraw2 :
-			(DirectXVersion == 3) ? IID_IDirectDraw3 :
-			(DirectXVersion == 4) ? IID_IDirectDraw4 :
-			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IUnknown;
-	}
-	inline bool CheckWrapperType(REFIID IID)
-	{
-		return (IID == IID_IDirectDraw ||
-			IID == IID_IDirectDraw2 ||
-			IID == IID_IDirectDraw3 ||
-			IID == IID_IDirectDraw4 ||
-			IID == IID_IDirectDraw7) ? true : false;
-	}
 	inline IDirectDraw *GetProxyInterfaceV1() { return (IDirectDraw *)ProxyInterface; }
 	inline IDirectDraw2 *GetProxyInterfaceV2() { return (IDirectDraw2 *)ProxyInterface; }
 	inline IDirectDraw3 *GetProxyInterfaceV3() { return (IDirectDraw3 *)ProxyInterface; }
@@ -123,7 +107,7 @@ private:
 public:
 	m_IDirectDrawX(IDirectDraw7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
-		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
+		ProxyDirectXVersion = DdrawWrapper::GetGUIDVersion(GetWrapperType(DirectXVersion));
 
 		ClientDirectXVersion = DirectXVersion;
 
@@ -171,8 +155,8 @@ public:
 	HRESULT CreateSurface(LPDDSURFACEDESC, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *, DWORD);
 	HRESULT CreateSurface2(LPDDSURFACEDESC2, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *, DWORD);
 	STDMETHOD(DuplicateSurface)(THIS_ LPDIRECTDRAWSURFACE7, LPDIRECTDRAWSURFACE7 FAR *, DWORD);
-	HRESULT EnumDisplayModes(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK, DWORD);
-	HRESULT EnumDisplayModes2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2, DWORD);
+	HRESULT EnumDisplayModes(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK);
+	HRESULT EnumDisplayModes2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2);
 	HRESULT EnumSurfaces(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMSURFACESCALLBACK, DWORD);
 	HRESULT EnumSurfaces2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7, LPDDENUMSURFACESCALLBACK, DWORD);
 	STDMETHOD(FlipToGDISurface)(THIS);
@@ -205,11 +189,29 @@ public:
 	STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD);
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
 
+	static inline REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirectDraw :
+			(DirectXVersion == 2) ? IID_IDirectDraw2 :
+			(DirectXVersion == 3) ? IID_IDirectDraw3 :
+			(DirectXVersion == 4) ? IID_IDirectDraw4 :
+			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IUnknown;
+	}
+	static inline bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirectDraw ||
+			IID == IID_IDirectDraw2 ||
+			IID == IID_IDirectDraw3 ||
+			IID == IID_IDirectDraw4 ||
+			IID == IID_IDirectDraw7) ? true : false;
+	}
+
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
+	void SetAsCreatedByDDFactory() { CreatedByDDFactory = true; }
 
 	// Direct3D interfaces
 	m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
@@ -221,20 +223,20 @@ public:
 	bool IsInScene();
 
 	// Direct3D9 interfaces
-	UINT GetAdapterIndex() const { return AdapterIndex; }
+	UINT GetAdapterIndex() const;
 	bool CheckD9Device(char* FunctionName);
 	LPDIRECT3D9 GetDirectD9Object();
 	LPDIRECT3DDEVICE9 *GetDirectD9Device();
 	bool CreatePalettePixelShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyPixelShader();
 	LPDIRECT3DVERTEXSHADER9* GetFixupVertexShader();
-	LPDIRECT3DVERTEXBUFFER9 GetValidateDeviceVertexBuffer(DWORD& FVF, DWORD& Size);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBufferX(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& IndexBufferSize, LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer);
-	D3DMULTISAMPLE_TYPE GetMultiSampleTypeQuality(D3DFORMAT Format, DWORD MaxSampleType, DWORD& QualityLevels) const;
-	HRESULT ResetD9Device();
-	void FixWindowPos(HWND hWnd, int X, int Y, int cx, int cy);
+	void GetMultiSampleTypeQuality(D3DMULTISAMPLE_TYPE& MaxSampleType, DWORD& QualityLevels) const;
+	void AfterDeviceCreation();
+	void Clear3DDeviceState(bool SetDefaultStateBlock);
 	HRESULT CreateD9Device(char* FunctionName);
+	HRESULT ResetD9Device();
 	void UpdateVertices(DWORD Width, DWORD Height);
 	HRESULT TestD3D9CooperativeLevel();
 
@@ -245,17 +247,24 @@ public:
 	HWND GetHwnd();
 	DWORD GetHwndThreadID();
 	HDC GetDC();
-	DWORD GetDisplayBPP();
-	bool IsExclusiveMode();
+	DWORD GetPresentUSN();
+	static bool IsExclusiveMode();
 	DWORD GetLastDrawDevice();
 	void SetLastDrawDevice(DWORD DrawDevice);
 	void GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, DWORD& RefreshRate);
 	void GetViewportResolution(DWORD& Width, DWORD& Height);
 	void GetDisplayPixelFormat(DDPIXELFORMAT& ddpfPixelFormat, DWORD BPP);
 
-	// State block functions
+	// Cache Caps
+	void GetD9Cache();
+	void GetD9Caps(D3DCAPS9& Caps9);
+	void GetD9Caps(D3DCAPS9& Caps9, DWORD& dwDeviceZBufferBitDepth, std::vector<D3DFORMAT>& zFormat);
+	DWORD GetD9ZBufferBitDepth();
+	void GetD9SupportedTextures(std::vector<D3DFORMAT>& TextureFormat);
+
+	// Default State block and Viewport functions
+	void GetDefaultViewport(D3DVIEWPORT9& Viewport);
 	void GetDefaultStates();
-	void GetDefaultViewport(D3DVIEWPORT9* pViewport);
 	void ApplyStateBlock();
 
 	// Surface vector functions
@@ -308,11 +317,15 @@ public:
 	HRESULT GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
 	HRESULT SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData);
 	bool IsUsingThreadPresent();
-	HRESULT PresentScene(RECT* pRect);
+	HRESULT PresentScene(m_IDirectDrawSurfaceX* pPrimarySurface, RECT* pRect);
 
 	// External static functions
+	static LPDIRECT3D9 GetD9Object();
 	static bool CheckDirectDrawXInterface(void* pInterface);
-	static void CheckWindowPosChange(HWND hWnd, WINDOWPOS* wPos);
+	static HRESULT TriggerDeviceReset(HWND hWnd);
+	static void TriggerDeviceRelease(HWND hWnd);
+	static void CheckFixWindowPos(HWND hWnd, WINDOWPOS* wPos);
+	static DWORD GetDisplayBPP(HMONITOR hMon);
 	static DWORD GetDDrawBitsPixel(HWND hWnd);
 	static DWORD GetDDrawWidth();
 	static DWORD GetDDrawHeight();

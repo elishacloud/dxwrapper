@@ -1,14 +1,14 @@
 #pragma once
 
-class m_IDirect3DX : public IUnknown, public AddressLookupTableDdrawObject
+class m_IDirect3DX final : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
 	IDirect3D7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	ULONG RefCount1 = 0;
-	ULONG RefCount2 = 0;
-	ULONG RefCount3 = 0;
-	ULONG RefCount7 = 0;
+	LONG RefCount1 = 0;
+	LONG RefCount2 = 0;
+	LONG RefCount3 = 0;
+	LONG RefCount7 = 0;
 
 	// Store version wrappers
 	m_IDirect3D *WrapperInterface = nullptr;
@@ -28,13 +28,18 @@ private:
 	};
 	std::vector<D3DDEVICELIST> D3DDeviceList;
 
-	// Cache Cap9
-	struct DUALCAP9 {
-		D3DCAPS9 REF = {};
-		D3DCAPS9 HAL = {};
+	// D9Cache
+	struct D9CAPS_CACHE {
+		D3DCAPS9 Caps9 = {};
+		DWORD dwDeviceZBufferBitDepth = 0;
+		std::vector<D3DFORMAT> zFormat;
+
+		bool empty() const
+		{
+			return Caps9.DeviceType == 0;
+		}
 	};
-	std::vector<DUALCAP9> Cap9Cache;
-	DWORD dwDeviceZBufferBitDepthCache = 0;
+	D9CAPS_CACHE D9Cache;
 
 	// Light array
 	std::vector<m_IDirect3DLight*> LightList;
@@ -58,20 +63,6 @@ private:
 	void ResolutionHack();
 
 	// Wrapper interface functions
-	inline REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3D :
-			(DirectXVersion == 2) ? IID_IDirect3D2 :
-			(DirectXVersion == 3) ? IID_IDirect3D3 :
-			(DirectXVersion == 7) ? IID_IDirect3D7 : IID_IUnknown;
-	}
-	inline bool CheckWrapperType(REFIID IID)
-	{
-		return (IID == IID_IDirect3D ||
-			IID == IID_IDirect3D2 ||
-			IID == IID_IDirect3D3 ||
-			IID == IID_IDirect3D7) ? true : false;
-	}
 	inline IDirect3D *GetProxyInterfaceV1() { return (IDirect3D *)ProxyInterface; }
 	inline IDirect3D2 *GetProxyInterfaceV2() { return (IDirect3D2 *)ProxyInterface; }
 	inline IDirect3D3 *GetProxyInterfaceV3() { return (IDirect3D3 *)ProxyInterface; }
@@ -84,7 +75,7 @@ private:
 public:
 	m_IDirect3DX(IDirect3D7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
-		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
+		ProxyDirectXVersion = DdrawWrapper::GetGUIDVersion(GetWrapperType(DirectXVersion));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
@@ -124,7 +115,7 @@ public:
 	/*** IDirect3D methods ***/
 	STDMETHOD(Initialize)(THIS_ REFCLSID);
 	HRESULT EnumDevices(LPD3DENUMDEVICESCALLBACK, LPVOID, DWORD);
-	HRESULT EnumDevices7(LPD3DENUMDEVICESCALLBACK7, LPD3DENUMDEVICESCALLBACK, LPVOID, DWORD);
+	HRESULT EnumDevices7(LPD3DENUMDEVICESCALLBACK7, LPD3DENUMDEVICESCALLBACK, LPVOID, bool, DWORD);
 	STDMETHOD(CreateLight)(THIS_ LPDIRECT3DLIGHT*, LPUNKNOWN);
 	STDMETHOD(CreateMaterial)(THIS_ LPDIRECT3DMATERIAL3*, LPUNKNOWN, DWORD);
 	STDMETHOD(CreateViewport)(THIS_ LPDIRECT3DVIEWPORT3*, LPUNKNOWN, DWORD);
@@ -133,6 +124,21 @@ public:
 	STDMETHOD(CreateVertexBuffer)(THIS_ LPD3DVERTEXBUFFERDESC, LPDIRECT3DVERTEXBUFFER7*, DWORD, LPUNKNOWN, DWORD);
 	STDMETHOD(EnumZBufferFormats)(THIS_ REFCLSID, LPD3DENUMPIXELFORMATSCALLBACK, LPVOID);
 	STDMETHOD(EvictManagedTextures)(THIS);
+
+	static inline REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3D :
+			(DirectXVersion == 2) ? IID_IDirect3D2 :
+			(DirectXVersion == 3) ? IID_IDirect3D3 :
+			(DirectXVersion == 7) ? IID_IDirect3D7 : IID_IUnknown;
+	}
+	static inline bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirect3D ||
+			IID == IID_IDirect3D2 ||
+			IID == IID_IDirect3D3 ||
+			IID == IID_IDirect3D7) ? true : false;
+	}
 
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);

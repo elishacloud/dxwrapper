@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -19,6 +19,8 @@
 namespace {
 	constexpr DWORD ExtraDataBufferSize = 256;
 }
+
+using namespace DdrawWrapper;
 
 // ******************************
 // IUnknown functions
@@ -77,7 +79,7 @@ ULONG m_IDirect3DExecuteBuffer::AddRef()
 
 	if (Config.Dd7to9)
 	{
-		return InterlockedIncrement(&RefCount);
+		return _InterlockedIncrement(&RefCount);
 	}
 
 	return ProxyInterface->AddRef();
@@ -94,7 +96,7 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref = (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
+		ULONG ref = InterlockedDecrementIfPositive(&RefCount);
 
 		if (ref == 0)
 		{
@@ -133,11 +135,7 @@ HRESULT m_IDirect3DExecuteBuffer::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, 
 		return DDERR_ALREADYINITIALIZED;
 	}
 
-	if (lpDirect3DDevice &&
-		(ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirect3DDevice*)lpDirect3DDevice) ||
-			ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirect3DDevice2*)lpDirect3DDevice) ||
-			ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirect3DDevice3*)lpDirect3DDevice) ||
-			ProxyAddressLookupTable.IsValidWrapperAddress((m_IDirect3DDevice7*)lpDirect3DDevice)))
+	if (lpDirect3DDevice && ProxyAddressLookupTableDdraw.IsValidWrapperAddress((m_IDirect3DDevice*)lpDirect3DDevice))
 	{
 		lpDirect3DDevice->QueryInterface(IID_GetRealInterface, (LPVOID*)&lpDirect3DDevice);
 	}
@@ -170,18 +168,22 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 		lpDesc->dwFlags = NULL;
 		lpDesc->lpData = nullptr;
 
+		// Set Locking flag
+		ScopedFlagSet SetLockFlag(IsLocking);
+
+		// Check if the buffer is already locked
+		DWORD ThreadID = GetCurrentThreadId();
+		if (LockedCount != 0 && ThreadID != LockedThread)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is already locked! Thread: " << ThreadID << "->" << LockedThread);
+			return D3DERR_EXECUTE_LOCKED;
+		}
+
+		// Check if the buffer is being executed
 		if (IsExecuting)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is still in use!");
 			return D3DERR_WASSTILLDRAWING;
-		}
-
-		// Check if the buffer is already locked
-		DWORD ThreadID = GetCurrentThreadId();
-		if (LockedThread && ThreadID != LockedThread)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is already locked! Thread: " << ThreadID << "->" << LockedThread);
-			return D3DERR_EXECUTE_LOCKED;
 		}
 
 		// Create buffer on first Lock
@@ -227,10 +229,9 @@ HRESULT m_IDirect3DExecuteBuffer::Unlock()
 	if (Config.Dd7to9)
 	{
 		// Check if the buffer is not locked
-		DWORD ThreadID = GetCurrentThreadId();
-		if (LockedCount == 0 || ThreadID != LockedThread)
+		if (LockedCount == 0)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is not locked! Thread: " << ThreadID << "->" << LockedThread);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is not locked!");
 			return D3DERR_EXECUTE_NOT_LOCKED;
 		}
 

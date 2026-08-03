@@ -16,6 +16,10 @@
 
 #include "d3d9.h"
 
+// ******************************
+// IUnknown functions
+// ******************************
+
 HRESULT m_IDirect3DSwapChain9Ex::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
@@ -24,32 +28,27 @@ HRESULT m_IDirect3DSwapChain9Ex::QueryInterface(THIS_ REFIID riid, void** ppvObj
 	{
 		return E_POINTER;
 	}
-	*ppvObj = nullptr;
 
-	if (riid == IID_IUnknown || riid == WrapperID || (Config.D3d9to9Ex && riid == IID_IDirect3DSwapChain9))
+	if (riid == IID_IDirect3DSwapChain9Ex && WrapperID == IID_IDirect3DSwapChain9)
 	{
-		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
+		*ppvObj = nullptr;
+		return E_NOINTERFACE;
+	}
 
-		if (SUCCEEDED(hr))
-		{
-			*ppvObj = this;
-		}
+	if (riid == IID_IUnknown || riid == IID_IDirect3DSwapChain9 || riid == IID_IDirect3DSwapChain9Ex)
+	{
+		AddRef();
 
-		return hr;
+		*ppvObj = this;
+
+		return S_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
 
 	if (SUCCEEDED(hr))
 	{
-		if (riid == IID_IDirect3DSwapChain9 || riid == IID_IDirect3DSwapChain9Ex)
-		{
-			*ppvObj = m_pDeviceEx->GetLookupTable()->FindCreateAddress<m_IDirect3DSwapChain9Ex, m_IDirect3DDevice9Ex, LPVOID>(*ppvObj, m_pDeviceEx, riid, nullptr);
-		}
-		else
-		{
-			D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
-		}
+		D3d9Wrapper::genericQueryInterface(riid, WrapperID, ppvObj, m_pDeviceEx);
 	}
 
 	return hr;
@@ -66,17 +65,12 @@ ULONG m_IDirect3DSwapChain9Ex::Release(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ULONG ref = ProxyInterface->Release();
-
-	if (ref == 0 && m_pDeviceEx->GetClientDXVersion() < 8)
-	{
-		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
-
-		delete this;
-	}
-
-	return ref;
+	return ProxyInterface->Release();
 }
+
+// ******************************
+// IDirect3DSwapChain9 methods
+// ******************************
 
 HRESULT m_IDirect3DSwapChain9Ex::Present(THIS_ CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion, DWORD dwFlags)
 {
@@ -122,25 +116,26 @@ HRESULT m_IDirect3DSwapChain9Ex::GetDisplayMode(THIS_ D3DDISPLAYMODE* pMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.D3d9to9Ex && ProxyInterfaceEx)
+	if (IsForcingD3d9to9Ex())
 	{
-		if (!pMode)
-		{
-			return D3DERR_INVALIDCALL;
-		}
-
 		D3DDISPLAYMODEEX ModeEx = {};
 		ModeEx.Size = sizeof(D3DDISPLAYMODEEX);
-		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
+		D3DDISPLAYMODEEX* pModeEx = pMode ? &ModeEx : nullptr;
 
-		HRESULT hr = GetDisplayModeEx(&ModeEx, &Rotation);
+		D3DDISPLAYROTATION Rotation = D3DDISPLAYROTATION_IDENTITY;
+		D3DDISPLAYROTATION* pRotation = pMode ? &Rotation : nullptr;
+
+		HRESULT hr = GetDisplayModeEx(pModeEx, pRotation);
 
 		if (SUCCEEDED(hr))
 		{
-			m_IDirect3DDevice9Ex::ModeExToMode(ModeEx, *pMode);
-		}
+			if (pMode)
+			{
+				m_IDirect3DDevice9Ex::ModeExToMode(ModeEx, *pMode);
+			}
 
-		return hr;
+			return hr;
+		}
 	}
 
 	return ProxyInterface->GetDisplayMode(pMode);
@@ -150,12 +145,12 @@ HRESULT m_IDirect3DSwapChain9Ex::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ppDevice)
+	if (FAILED(m_pDeviceEx->QueryInterface(WrapperID == IID_IDirect3DSwapChain9Ex ? IID_IDirect3DDevice9Ex : m_pDeviceEx->GetIID(), (LPVOID*)ppDevice)))
 	{
 		return D3DERR_INVALIDCALL;
 	}
 
-	return m_pDeviceEx->QueryInterface(WrapperID == IID_IDirect3DSwapChain9Ex ? IID_IDirect3DDevice9Ex : m_pDeviceEx->GetIID(), (LPVOID*)ppDevice);
+	return D3D_OK;
 }
 
 HRESULT m_IDirect3DSwapChain9Ex::GetPresentParameters(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters)
@@ -164,6 +159,10 @@ HRESULT m_IDirect3DSwapChain9Ex::GetPresentParameters(THIS_ D3DPRESENT_PARAMETER
 
 	return ProxyInterface->GetPresentParameters(pPresentationParameters);
 }
+
+// ******************************
+// IDirect3DSwapChain9Ex methods
+// ******************************
 
 HRESULT m_IDirect3DSwapChain9Ex::GetLastPresentCount(THIS_ UINT* pLastPresentCount)
 {

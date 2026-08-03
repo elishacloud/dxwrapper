@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -91,17 +91,13 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 
 	if (!*ppvObj)
 	{
-		if (Config.DirectShowEmulation && (riid == IID_IMediaStream || riid == IID_IAMMediaStream))
-		{
-			*ppvObj = new m_IAMMediaStream(riid);
-		}
-		else if (riid == IID_IClassFactory)
-		{
-			*ppvObj = new m_IClassFactory(nullptr, genericQueryInterface);
-		}
-		else if (riid == IID_IDirectDrawFactory)
+		if (riid == IID_IDirectDrawFactory)
 		{
 			*ppvObj = new m_IDirectDrawFactory(nullptr);
+		}
+		else if (Config.DirectShowEmulation && (riid == IID_IMediaStream || riid == IID_IAMMediaStream))
+		{
+			*ppvObj = new m_IAMMediaStream(riid);
 		}
 
 		if (*ppvObj && !Config.Dd7to9)
@@ -115,7 +111,7 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 #define QUERYINTERFACE(x) \
 	if (riid == IID_ ## x) \
 		{ \
-			*ppvObj = ProxyAddressLookupTable.FindAddress<m_ ## x>(*ppvObj); \
+			*ppvObj = ProxyAddressLookupTableDdraw.FindAddress<m_ ## x>(*ppvObj); \
 		}
 
 	QUERYINTERFACE(IDirect3D);
@@ -153,10 +149,6 @@ void WINAPI DdrawWrapper::genericQueryInterface(REFIID riid, LPVOID *ppvObj)
 	QUERYINTERFACE(IDirectDrawSurface4);
 	QUERYINTERFACE(IDirectDrawSurface7);
 
-	if (riid == IID_IClassFactory)
-	{
-		*ppvObj = new m_IClassFactory((IClassFactory*)*ppvObj, genericQueryInterface);
-	}
 	if (riid == IID_IDirectDrawFactory)
 	{
 		*ppvObj = new m_IDirectDrawFactory((IDirectDrawFactory*)*ppvObj);

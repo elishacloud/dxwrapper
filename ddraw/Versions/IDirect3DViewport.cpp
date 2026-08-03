@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -26,7 +26,7 @@ HRESULT m_IDirect3DViewport::QueryInterface(REFIID riid, LPVOID * ppvObj)
 		}
 		return E_NOINTERFACE;
 	}
-	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
+	return ProxyInterface->QueryInterface(DdrawWrapper::ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3DViewport::AddRef()
@@ -89,7 +89,7 @@ HRESULT m_IDirect3DViewport::LightElements(DWORD a, LPD3DLIGHTDATA b)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->LightElements(a, b, DirectXVersion);
+	return ProxyInterface->LightElements(a, b);
 }
 
 HRESULT m_IDirect3DViewport::SetBackground(D3DMATERIALHANDLE a)

@@ -70,5 +70,10 @@ BOOL WINAPI gdi_SetDeviceGammaRamp(HDC hdc, LPVOID lpRamp)
 		return TRUE;
 	}
 
+	if (!SetDeviceGammaRamp)
+	{
+		return FALSE;
+	}
+
 	return SetDeviceGammaRamp(hdc, lpRamp);
 }

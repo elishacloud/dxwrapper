@@ -86,7 +86,6 @@ void TestRenderState(D3DDType* pDevice, const DWORD Unchangeable[], size_t Array
         {
             continue;
         }
-
         bool ChangeValue = true;
         for (UINT y = 0; y < ArraySize; y++)
         {
@@ -102,21 +101,24 @@ void TestRenderState(D3DDType* pDevice, const DWORD Unchangeable[], size_t Array
 
         if (ChangeValue)
         {
+            const DWORD D3D_VALUE = x == D3DRENDERSTATE_TEXTUREMAPBLEND ? D3DTBLEND_MODULATE : NewValue;
+            const char* StringValue = x == D3DRENDERSTATE_TEXTUREMAPBLEND ? "D3DTBLEND_MODULATE" : (NewValue ? "TRUE" : "FALSE");
+
             // Set new value
-            hr = pDevice->SetRenderState((D3DRENDERSTATETYPE)x, NewValue);
+            hr = pDevice->SetRenderState((D3DRENDERSTATETYPE)x, D3D_VALUE);
             if (hr != DD_OK)
             {
-                LOG_TEST_RESULT(x, "Failed return value when trying to set -1- Render State to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
+                LOG_TEST_RESULT(x, "Failed return value when trying to set Render State to " << StringValue << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
             }
             hr = pDevice->GetRenderState((D3DRENDERSTATETYPE)x, &rsValue);
             if (hr != DD_OK)
             {
-                LOG_TEST_RESULT(x, "Failed return value when trying to get -1- Render State. Error: ", (DDERR)hr, (DDERR)DD_OK);
+                LOG_TEST_RESULT(x, "Failed return value when trying to get Render State. Error: ", (DDERR)hr, (DDERR)DD_OK);
             }
 
-            if (rsValue != (DWORD)NewValue)
+            if (rsValue != (DWORD)D3D_VALUE)
             {
-                LOG_TEST_RESULT(x, "Failed to set -1- Render State to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", rsValue, NewValue);
+                LOG_TEST_RESULT(x, "Failed to set Render State to " << StringValue << ". Error: ", rsValue, NewValue);
             }
         }
         // Check if setting can be modified
@@ -129,20 +131,20 @@ void TestRenderState(D3DDType* pDevice, const DWORD Unchangeable[], size_t Array
             {
                 if (hr != DDERR_INVALIDPARAMS)
                 {
-                    LOG_TEST_RESULT(x, "Failed return value when trying to get -1- Render State. Error: ", (DDERR)hr, (DDERR)DDERR_INVALIDPARAMS);
+                    LOG_TEST_RESULT(x, "Failed return value when trying to get Render State. Error: ", (DDERR)hr, (DDERR)DDERR_INVALIDPARAMS);
                 }
             }
             else
             {
                 if (hr != DD_OK)
                 {
-                    LOG_TEST_RESULT(x, "Failed return value when trying to get -1- Render State. Error: ", (DDERR)hr, (DDERR)DD_OK);
+                    LOG_TEST_RESULT(x, "Failed return value when trying to get Render State. Error: ", (DDERR)hr, (DDERR)DD_OK);
                 }
             }
 
             if (rsValue == tmpValue)
             {
-                LOG_TEST_RESULT(x, "Failed! -1- Render State shouldn't be able to be changed. Error: ", rsValue, TEST_FAILED);
+                LOG_TEST_RESULT(x, "Failed! Render State shouldn't be able to be changed. Error: ", rsValue, TEST_FAILED);
             }
         }
     }
@@ -182,17 +184,17 @@ void TestTextureStageState(D3DDType* pDevice, BOOL NewValue)
             HRESULT hr = pDevice->SetTextureStageState(x, (D3DTEXTURESTAGESTATETYPE)y, NewValue);
             if (hr != DD_OK)
             {
-                LOG_TEST_RESULT(y, "Failed return when trying to get -1- Texture State Stage " << x << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
+                LOG_TEST_RESULT(y, "Failed return when trying to get Texture State Stage " << x << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
             }
             hr = pDevice->GetTextureStageState(x, (D3DTEXTURESTAGESTATETYPE)y, &ssValue);
             if (hr != DD_OK)
             {
-                LOG_TEST_RESULT(y, "Failed return when trying to set -1- Texture State Stage " << x << " to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
+                LOG_TEST_RESULT(y, "Failed return when trying to set Texture State Stage " << x << " to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
             }
 
             if (ssValue != (DWORD)NewValue)
             {
-                LOG_TEST_RESULT(y, "Failed to set -1- Texture State Stage " << x << " to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", ssValue, NewValue);
+                LOG_TEST_RESULT(y, "Failed to set Texture State Stage " << x << " to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", ssValue, NewValue);
             }
         }
     }
@@ -236,7 +238,7 @@ void TestLightState(D3DDType* pDevice, BOOL NewValue, DWORD MaxLightState)
 
         if (hr != DD_OK)
         {
-            LOG_TEST_RESULT(x, "Failed return when trying to Set -1- Light State to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
+            LOG_TEST_RESULT(x, "Failed return when trying to Set Light State to " << (NewValue ? "TRUE" : "FALSE") << ". Error: ", (DDERR)hr, (DDERR)DD_OK);
         }
 
         DWORD ssValue = 0;
@@ -244,12 +246,12 @@ void TestLightState(D3DDType* pDevice, BOOL NewValue, DWORD MaxLightState)
 
         if (hr != DD_OK)
         {
-            LOG_TEST_RESULT(x, "Failed return when trying to Get -1- Light State. Error: ", (DDERR)hr, (DDERR)DD_OK);
+            LOG_TEST_RESULT(x, "Failed return when trying to Get Light State. Error: ", (DDERR)hr, (DDERR)DD_OK);
         }
 
         if (ssValue != (DWORD)NewValue)
         {
-            LOG_TEST_RESULT(x, "Failed to set correct -1- Light State. Error: ", ssValue, NewValue);
+            LOG_TEST_RESULT(x, "Failed to set correct Light State. Error: ", ssValue, NewValue);
         }
     }
 }

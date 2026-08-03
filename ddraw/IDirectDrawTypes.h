@@ -1,17 +1,25 @@
 #pragma once
 
-#include <ddraw.h>
+#include "ddraw.h"
 
 class m_IDirectDrawX;
 
-static constexpr DWORD MaxVidMemory     = 512 * 1024 * 1024;	// 512 MBs
-static constexpr DWORD MinUsedVidMemory = 8 * 1024;			// 8 KBs
+static constexpr DWORD MaxVidMemory     = INT32_MAX - (16 * 1024 * 1024);	// Max 2 GBs - 16 MBs
+static constexpr DWORD MinUsedVidMemory = 8 * 1024 * 1024;					// 8 MBs
 
 static constexpr D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
+
+static constexpr D3DMULTISAMPLE_TYPE D9SampleType = D3DMULTISAMPLE_4_SAMPLES;
 
 static constexpr DWORD MaxPaletteSize = 256;
 
 static constexpr DWORD DXW_ALL_SURFACE_LEVELS = 0xFFFF;
+
+// Indicates surface was created using CreateSurface()
+#define DDSCAPS4_CREATESURFACE  0x0001
+
+// Indicates surface is a child of a complex surface
+#define DDSCAPS4_COMPLEXCHILD   0x0002
 
 #define BLT_MIRRORLEFTRIGHT		0x00000002l
 #define BLT_MIRRORUPDOWN		0x00000004l
@@ -74,41 +82,6 @@ static constexpr D3DFORMAT FourCCTypes[] =
 	D3DFMT_AYUV,
 };
 
-typedef struct {
-	DWORD dwSize;
-	DWORD dwFlags;
-	DWORD dwFourCC;
-	DWORD dwRGBBitCount;
-	DWORD dwRBitMask;
-	DWORD dwGBitMask;
-	DWORD dwBBitMask;
-	DWORD dwABitMask;
-} DDS_PIXELFORMAT;
-
-typedef struct {
-	DWORD           dwSize;
-	DWORD           dwFlags;
-	DWORD           dwHeight;
-	DWORD           dwWidth;
-	DWORD           dwPitchOrLinearSize;
-	DWORD           dwDepth;
-	DWORD           dwMipMapCount;
-	DWORD           dwReserved1[11];
-	DDS_PIXELFORMAT ddspf;
-	DWORD           dwCaps;
-	DWORD           dwCaps2;
-	DWORD           dwCaps3;
-	DWORD           dwCaps4;
-	DWORD           dwReserved2;
-} DDS_HEADER;
-
-typedef struct {
-	DWORD               dwMagic;
-	DDS_HEADER          header;
-#pragma warning (suppress : 4200)
-	BYTE bdata[];
-} DDS_BUFFER;
-
 // Mouse hook
 struct MOUSEHOOK
 {
@@ -160,7 +133,6 @@ struct DEVICESETTINGS
 	bool AntiAliasing;
 	bool MultiThreaded;
 	bool FPUPreserve;
-	bool FPUSetup;
 	bool NoWindowChanges;
 	DWORD Width;
 	DWORD Height;
@@ -238,40 +210,47 @@ struct TRIBYTE
 	}
 };
 
-static constexpr DWORD DDS_MAGIC				= 0x20534444; // "DDS "
-static constexpr DWORD DDS_HEADER_SIZE			= sizeof(DWORD) + sizeof(DDS_HEADER);
-static constexpr DWORD DDS_HEADER_FLAGS_TEXTURE	= 0x00001007; // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT 
-static constexpr DWORD DDS_HEADER_FLAGS_PITCH	= 0x00000008;
+struct ZFormatEntry
+{
+	DWORD bitDepthFlag;
+	std::initializer_list<D3DFORMAT> formats;
+};
+
+const ZFormatEntry zFormats[] = {
+	{ DDBD_16, { D3DFMT_D16 } },
+	{ DDBD_24, { D3DFMT_D24S8, D3DFMT_D24X8 } },
+	{ DDBD_32, { D3DFMT_D32 } },
+};
 
 void AddDisplayResolution(DWORD Width, DWORD Height);
 bool IsDisplayResolution(DWORD Width, DWORD Height);
 template <typename T>
-void SimpleColorKeyCopy(T ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
+void SimpleColorKeyCopy(T ColorKey, T ColorKeyMask, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
 template <typename T>
-void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
-DWORD GetDepthFillValue(float depthValue, D3DFORMAT Format);
+void ComplexCopy(T ColorKey, T ColorKeyMask, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
+D3DCOLOR ConvertPixelColor(D3DCOLOR PixelColor, const DDPIXELFORMAT& ddpfPixelFormat);
+bool HasStencil(D3DFORMAT Format);
+DWORD GetDepthColor(float DepthValue, D3DFORMAT Format, DWORD& BPP);
 template <typename T>
 HRESULT ComplexZBufferCopy(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSourceSurfaceD9, RECT SrcRect, RECT DestRect, D3DFORMAT Format);
-DWORD ComputeRND(DWORD Seed, DWORD Num);
 bool DoRectsMatch(const RECT& lhs, const RECT& rhs);
 bool GetOverlappingRect(const RECT& rect1, const RECT& rect2, RECT& outOverlapRect);
 bool ClipRectToBounds(RECT* r, LONG width, LONG height);
 void ConvertSurfaceDesc(DDSURFACEDESC& Desc, const DDSURFACEDESC2& Desc2);
 void ConvertSurfaceDesc(DDSURFACEDESC2& Desc2, const DDSURFACEDESC& Desc);
 void ClearUnusedValues(DDSURFACEDESC2& Desc2);
-void ConvertPixelFormat(DDPIXELFORMAT& Format, const DDS_PIXELFORMAT& Format2);
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER& DeviceID, const DDDEVICEIDENTIFIER2& DeviceID2);
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2& DeviceID2, const DDDEVICEIDENTIFIER& DeviceID);
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2& DeviceID, const D3DADAPTER_IDENTIFIER9& Identifier9);
 void ConvertCaps(DDSCAPS& Caps, const DDSCAPS2& Caps2);
 void ConvertCaps(DDSCAPS2& Caps2, const DDSCAPS& Caps);
-void ConvertCaps(DDCAPS& Caps, const DDCAPS& Caps2);
 void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9);
 void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
 DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount);
 DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height);
 DWORD GetBitCount(const DDPIXELFORMAT& ddpfPixelFormat);
 DWORD GetBitCount(D3DFORMAT Format);
+DWORD GetUsedPixelBitsMask(D3DFORMAT Format, DWORD BitCount);
 DWORD ComputePitch(D3DFORMAT Format, DWORD Width, DWORD Height);
 DWORD GetSurfaceSize(D3DFORMAT Format, DWORD Width, DWORD Height, INT Pitch);
 DWORD GetARGBColorKey(DWORD ColorKey, const DDPIXELFORMAT& ddpfPixelFormat);

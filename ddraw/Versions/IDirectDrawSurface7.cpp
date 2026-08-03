@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -39,7 +39,7 @@ HRESULT m_IDirectDrawSurface7::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 
 		return DD_OK;
 	}
-	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
+	return ProxyInterface->QueryInterface(DdrawWrapper::ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirectDrawSurface7::AddRef()
@@ -440,7 +440,7 @@ HRESULT m_IDirectDrawSurface7::SetPrivateData(REFGUID a, LPVOID b, DWORD c, DWOR
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->SetPrivateData(a, b, c, d);
+	return ProxyInterface->SetPrivateData(a, b, c, d, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface7::GetPrivateData(REFGUID a, LPVOID b, LPDWORD c)
@@ -449,7 +449,7 @@ HRESULT m_IDirectDrawSurface7::GetPrivateData(REFGUID a, LPVOID b, LPDWORD c)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetPrivateData(a, b, c);
+	return ProxyInterface->GetPrivateData(a, b, c, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface7::FreePrivateData(REFGUID a)
@@ -458,7 +458,7 @@ HRESULT m_IDirectDrawSurface7::FreePrivateData(REFGUID a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->FreePrivateData(a);
+	return ProxyInterface->FreePrivateData(a, MipMapLevel);
 }
 
 HRESULT m_IDirectDrawSurface7::GetUniquenessValue(LPDWORD a)

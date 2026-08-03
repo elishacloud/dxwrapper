@@ -3,8 +3,8 @@
 #define INITGUID
 
 #include <d3d9.h>
-#include "d3d9\d3d9External.h"
 #include "d3dx9.h"
+#include "d3d9\d3d9External.h"
 #include <ddraw.h>
 #include <ddrawex.h>
 #include "ddraw\ddrawExternal.h"
@@ -64,16 +64,10 @@ class m_IDirectDrawGammaControl;
 
 #include "External\DirectXMath\Inc\DirectXMath.h"
 #include "AddressLookupTable.h"
+#include "External\dinputto8\ModuleObjectCount.h"
 #include "IClassFactory\IClassFactory.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
-
-#define DDWRAPPER_TYPEX 0x80
-
-// Indicates surface was created using CreateSurface()
-#define DDSCAPS4_CREATESURFACE  0x0001
-// Indicates surface is a child of a complex surface
-#define DDSCAPS4_COMPLEXCHILD   0x0002
 
 // ddraw proc typedefs
 typedef HRESULT(WINAPI *AcquireDDThreadLockProc)();
@@ -111,7 +105,7 @@ namespace DdrawWrapper
 	CRITICAL_SECTION* GetPECriticalSection();
 }
 
-extern AddressLookupTableDdraw<void> ProxyAddressLookupTable;
+extern AddressLookupTableDdraw<void> ProxyAddressLookupTableDdraw;
 
 enum DirectDrawEnumerateTypes
 {
@@ -124,8 +118,10 @@ enum DirectDrawEnumerateTypes
 #include "ComPtr.h"
 #include "ScopeGuard.h"
 
-using namespace DdrawWrapper;
-
+// Direct3D Helpers
+#include "IDirect3DTypes.h"
+// DirectDraw Helpers
+#include "IDirectDrawTypes.h"
 // Direct3D Version Wrappers
 #include "Versions\IDirect3D.h"
 #include "Versions\IDirect3D2.h"
@@ -156,10 +152,6 @@ using namespace DdrawWrapper;
 #include "Versions\IDirectDrawSurface3.h"
 #include "Versions\IDirectDrawSurface4.h"
 #include "Versions\IDirectDrawSurface7.h"
-// Direct3D Helpers
-#include "IDirect3DTypes.h"
-// DirectDraw Helpers
-#include "IDirectDrawTypes.h"
 // DirectDraw Interfaces
 #include "IDirectDrawClipper.h"
 #include "IDirectDrawColorControl.h"
@@ -177,3 +169,5 @@ using namespace DdrawWrapper;
 #include "IDirect3DTextureX.h"
 #include "IDirect3DVertexBufferX.h"
 #include "IDirect3DViewportX.h"
+// ClassFactory Interfaces
+#include "DDClassFactory.h"

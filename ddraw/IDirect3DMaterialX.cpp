@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -15,6 +15,8 @@
 */
 
 #include "ddraw.h"
+
+using namespace DdrawWrapper;
 
 // ******************************
 // IUnknown functions
@@ -52,6 +54,11 @@ HRESULT m_IDirect3DMaterialX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, D
 		return D3D_OK;
 	}
 
+	if (GetWrapperType(DirectXVersion) == IID_IUnknown)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: DirectXVersion is unsupported version: " << DirectXVersion);
+	}
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
@@ -64,11 +71,11 @@ ULONG m_IDirect3DMaterialX::AddRef(DWORD DirectXVersion)
 		switch (DirectXVersion)
 		{
 		case 1:
-			return InterlockedIncrement(&RefCount1);
+			return _InterlockedIncrement(&RefCount1);
 		case 2:
-			return InterlockedIncrement(&RefCount2);
+			return _InterlockedIncrement(&RefCount2);
 		case 3:
-			return InterlockedIncrement(&RefCount3);
+			return _InterlockedIncrement(&RefCount3);
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 			return 0;
@@ -89,21 +96,21 @@ ULONG m_IDirect3DMaterialX::Release(DWORD DirectXVersion)
 		switch (DirectXVersion)
 		{
 		case 1:
-			ref = (InterlockedCompareExchange(&RefCount1, 0, 0)) ? InterlockedDecrement(&RefCount1) : 0;
+			ref = InterlockedDecrementIfPositive(&RefCount1);
 			break;
 		case 2:
-			ref = (InterlockedCompareExchange(&RefCount2, 0, 0)) ? InterlockedDecrement(&RefCount2) : 0;
+			ref = InterlockedDecrementIfPositive(&RefCount2);
 			break;
 		case 3:
-			ref = (InterlockedCompareExchange(&RefCount3, 0, 0)) ? InterlockedDecrement(&RefCount3) : 0;
+			ref = InterlockedDecrementIfPositive(&RefCount3);
 			break;
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 			ref = 0;
 		}
 
-		if (InterlockedCompareExchange(&RefCount1, 0, 0) + InterlockedCompareExchange(&RefCount2, 0, 0) +
-			InterlockedCompareExchange(&RefCount3, 0, 0) == 0)
+		if (AtomicRead(RefCount1) + AtomicRead(RefCount2) +
+			AtomicRead(RefCount3) == 0)
 		{
 			delete this;
 		}
@@ -156,20 +163,13 @@ HRESULT m_IDirect3DMaterialX::SetMaterial(LPD3DMATERIAL lpMat)
 		}
 
 		// If current material is set then use new material
-		if (mHandle)
+		if (mHandle && D3DInterface)
 		{
-			DWORD x = 0;
-			while (D3DInterface)
+			for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
 			{
-				m_IDirect3DDeviceX* D3DDeviceInterface = D3DInterface->GetNextD3DDevice(x++);
-
-				if (!D3DDeviceInterface)
+				if (D3DDeviceX->CheckIfMaterialSet(mHandle))
 				{
-					break;
-				}
-				if (D3DDeviceInterface->CheckIfMaterialSet(mHandle))
-				{
-					if (FAILED(D3DDeviceInterface->SetMaterial(lpMat)))
+					if (FAILED(D3DDeviceX->SetMaterial(lpMat)))
 					{
 						return DDERR_GENERIC;
 					}
@@ -329,15 +329,15 @@ void m_IDirect3DMaterialX::ReleaseInterface()
 		return;
 	}
 
-	if (D3DInterface)
-	{
-		D3DInterface->ClearMaterial(this, mHandle);
-	}
-
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface);
 	SaveInterfaceAddress(WrapperInterface2);
 	SaveInterfaceAddress(WrapperInterface3);
+
+	if (D3DInterface)
+	{
+		D3DInterface->ClearMaterial(this, mHandle);
+	}
 }
 
 void* m_IDirect3DMaterialX::GetWrapperInterfaceX(DWORD DirectXVersion)

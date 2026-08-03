@@ -17,8 +17,6 @@ Direct3D8 *WINAPI d8_Direct3DCreate8(UINT SDKVersion);
 namespace D3d8Wrapper
 {
 	VISIT_PROCS_D3D8(DECLARE_IN_WRAPPED_PROC);
-
-	EXPORT_OUT_WRAPPED_PROC(Direct3DCreate9, unused);
 }
 
 #undef DECLARE_IN_WRAPPED_PROC

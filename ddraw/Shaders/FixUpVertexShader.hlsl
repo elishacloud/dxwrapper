@@ -1,30 +1,42 @@
-float4 g_offset          : register(c1);   // Pixel offset (usually -0.5, -0.5, 0, 0)
-
 struct VS
 {
-    float4 pos : POSITION;
-    float fog : FOG;
-    float4 color[2] : COLOR;
-    float4 tex[8] : TEXCOORD;
+    float4 pos      : POSITION;   // XYZRHW
+    float4 diffuse  : COLOR0;     // Diffuse
+    float4 specular : COLOR1;     // Specular
+    float2 tex0     : TEXCOORD0;  // First texture
 };
 
-// D3DFVF_XYZ	    POSITION	float3 pos : POSITION;
-// D3DFVF_XYZRHW	POSITION	float4 pos : POSITION;
-// D3DFVF_NORMAL	NORMAL	    float3 normal : NORMAL;
-// D3DFVF_DIFFUSE	COLOR0	    float4 color[0] : COLOR0;
-// D3DFVF_SPECULAR	COLOR1	    float4 color[1] : COLOR1;
-// D3DFVF_TEX1	    TEXCOORD0	float2 tex[0] : TEXCOORD0;
-// D3DFVF_TEX2	    ...	        float2 tex[1] : TEXCOORD1; 
-
-VS main(VS i)
+VS main(VS v)
 {
-    VS o = i;
+    const float max_rhw = 1U << 31;
+    const float min_rhw = 1.0f / max_rhw;
+    
+    VS o;
 
-    // Apply pixel center offset (usually -0.5 on X and Y)
-    o.pos = i.pos + g_offset;
+    // Fix RHW and Z
+    float rhw = v.pos.w;
+    float z   = v.pos.z;
 
-    // Clamp Z to [0.0, 1.0]
-    o.pos.z = saturate(i.pos.z);
+    if (!isfinite(rhw) || rhw == 0.0f)
+    {
+        rhw = 1.0f;
+    }
+    else
+    {
+        float tw = 1.0f / rhw;
+        float tz = z * tw;
+
+        tw = clamp(tw, min_rhw, max_rhw);
+
+        z   = tz / tw;
+        rhw = 1.0f / tw;
+    }
+
+    // Output
+    o.pos      = float4(v.pos.x, v.pos.y, z, rhw);
+    o.diffuse  = v.diffuse;
+    o.specular = v.specular;
+    o.tex0     = v.tex0;
 
     return o;
 }

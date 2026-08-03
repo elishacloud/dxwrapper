@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DTexture : public IDirect3DTexture, public AddressLookupTableDdrawObject
+class m_IDirect3DTexture final : public IDirect3DTexture, public AddressLookupTableDdrawObject
 {
 private:
 	m_IDirect3DTextureX *ProxyInterface;
@@ -10,11 +10,11 @@ private:
 public:
 	m_IDirect3DTexture(IDirect3DTexture *, m_IDirect3DTextureX *Interface) : ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DTexture()
 	{
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
 	void SetProxy(m_IDirect3DTextureX* NewProxyInterface)
@@ -22,23 +22,23 @@ public:
 		ProxyInterface = NewProxyInterface;
 		if (NewProxyInterface)
 		{
-			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+			ProxyAddressLookupTableDdraw.SaveAddress(this, ProxyInterface);
 		}
 		else
 		{
-			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 		}
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DTexture methods ***/
-	STDMETHOD(Initialize)(THIS_ LPDIRECT3DDEVICE, LPDIRECTDRAWSURFACE);
-	STDMETHOD(GetHandle)(THIS_ LPDIRECT3DDEVICE, LPD3DTEXTUREHANDLE);
-	STDMETHOD(PaletteChanged)(THIS_ DWORD, DWORD);
-	STDMETHOD(Load)(THIS_ LPDIRECT3DTEXTURE);
-	STDMETHOD(Unload)(THIS);
+	IFACEMETHOD(Initialize)(THIS_ LPDIRECT3DDEVICE, LPDIRECTDRAWSURFACE) override;
+	IFACEMETHOD(GetHandle)(THIS_ LPDIRECT3DDEVICE, LPD3DTEXTUREHANDLE) override;
+	IFACEMETHOD(PaletteChanged)(THIS_ DWORD, DWORD) override;
+	IFACEMETHOD(Load)(THIS_ LPDIRECT3DTEXTURE) override;
+	IFACEMETHOD(Unload)(THIS) override;
 };

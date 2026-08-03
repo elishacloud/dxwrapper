@@ -1,10 +1,10 @@
 #pragma once
 
-class m_IDirectDrawColorControl : public IDirectDrawColorControl, public AddressLookupTableDdrawObject
+class m_IDirectDrawColorControl final : public IDirectDrawColorControl, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDrawColorControl *ProxyInterface = nullptr;
-	ULONG RefCount = 1;
+	LONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawColorControl;
 
 	// Convert to Direct3D9
@@ -27,7 +27,7 @@ public:
 
 		InitInterface();
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	m_IDirectDrawColorControl(m_IDirectDrawX *Interface) : ddrawParent(Interface)
 	{
@@ -35,7 +35,7 @@ public:
 
 		InitInterface();
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirectDrawColorControl()
 	{
@@ -43,7 +43,7 @@ public:
 
 		ReleaseInterface();
 
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
 	void SetProxy(IDirectDrawColorControl* NewProxyInterface, m_IDirectDrawX* NewParent)
@@ -54,25 +54,25 @@ public:
 			ProxyInterface = NewProxyInterface;
 			ddrawParent = NewParent;
 			InitInterface();
-			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+			ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
 		else
 		{
 			ReleaseInterface();
-			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			ddrawParent = nullptr;
 		}
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
-	STDMETHOD_(ULONG, AddRef) (THIS);
-	STDMETHOD_(ULONG, Release) (THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef) (THIS) override;
+	IFACEMETHOD_(ULONG, Release) (THIS) override;
 
 	/*** IDirectDrawColorControl methods ***/
-	STDMETHOD(GetColorControls)(THIS_ LPDDCOLORCONTROL);
-	STDMETHOD(SetColorControls)(THIS_ LPDDCOLORCONTROL);
+	IFACEMETHOD(GetColorControls)(THIS_ LPDDCOLORCONTROL) override;
+	IFACEMETHOD(SetColorControls)(THIS_ LPDDCOLORCONTROL) override;
 
 	// Functions handling the ddraw parent interface
 	void ClearDdraw() { ddrawParent = nullptr; }

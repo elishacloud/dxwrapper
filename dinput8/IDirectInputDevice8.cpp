@@ -15,45 +15,48 @@
 */
 
 #include "dinput8.h"
+#include "ScopeGuard.h"
 #include "GDI\WndProc.h"
-
-constexpr DWORD SignBit = 0x80000000;
 
 HRESULT m_IDirectInputDevice8::QueryInterface(REFIID riid, LPVOID* ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == WrapperID || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
 	{
-		AddRef();
-
-		*ppvObj = this;
-
-		return DI_OK;
+		return E_POINTER;
 	}
 
-	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
 
-	if (SUCCEEDED(hr))
+	if (riid == IID_IUnknown || riid == IID_IDirectInputDevice8W)
 	{
-		genericQueryInterface(riid, ppvObj);
+		*ppvObj = static_cast<IDirectInputDevice8W*>(this);
+	}
+	else if (riid == IID_IDirectInputDevice8A)
+	{
+		*ppvObj = static_cast<IDirectInputDevice8A*>(this);
+	}
+	else
+	{
+		return ProxyInterface->QueryInterface(riid, ppvObj);
 	}
 
-	return hr;
+	AddRef();
+	return S_OK;
 }
 
 ULONG m_IDirectInputDevice8::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->AddRef();
+	return _InterlockedIncrement(&RefCount);
 }
 
 ULONG m_IDirectInputDevice8::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ULONG ref = ProxyInterface->Release();
+	LONG ref = _InterlockedDecrement(&RefCount);
 
 	if (ref == 0)
 	{
@@ -70,21 +73,39 @@ HRESULT m_IDirectInputDevice8::GetCapabilities(LPDIDEVCAPS lpDIDevCaps)
 	return ProxyInterface->GetCapabilities(lpDIDevCaps);
 }
 
-template HRESULT m_IDirectInputDevice8::EnumObjectsT<IDirectInputDevice8A, LPDIENUMDEVICEOBJECTSCALLBACKA>(LPDIENUMDEVICEOBJECTSCALLBACKA, LPVOID, DWORD);
-template HRESULT m_IDirectInputDevice8::EnumObjectsT<IDirectInputDevice8W, LPDIENUMDEVICEOBJECTSCALLBACKW>(LPDIENUMDEVICEOBJECTSCALLBACKW, LPVOID, DWORD);
+template HRESULT m_IDirectInputDevice8::EnumObjectsT<IDirectInputDevice8A, LPDIENUMDEVICEOBJECTSCALLBACKA>(IDirectInputDevice8A*, LPDIENUMDEVICEOBJECTSCALLBACKA, LPVOID, DWORD);
+template HRESULT m_IDirectInputDevice8::EnumObjectsT<IDirectInputDevice8W, LPDIENUMDEVICEOBJECTSCALLBACKW>(IDirectInputDevice8W*, LPDIENUMDEVICEOBJECTSCALLBACKW, LPVOID, DWORD);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::EnumObjectsT(V lpCallback, LPVOID pvRef, DWORD dwFlags)
+HRESULT m_IDirectInputDevice8::EnumObjectsT(T* ProxyInterfaceT, V lpCallback, LPVOID pvRef, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->EnumObjects(lpCallback, pvRef, dwFlags);
+	return ProxyInterfaceT->EnumObjects(lpCallback, pvRef, dwFlags);
 }
 
 HRESULT m_IDirectInputDevice8::GetProperty(REFGUID rguidProp, LPDIPROPHEADER pdiph)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetProperty(rguidProp, pdiph);
+	HRESULT hr = ProxyInterface->GetProperty(rguidProp, pdiph);
+
+	if (SUCCEEDED(hr))
+	{
+		// Handle mouse input buffer size
+		if (IsMouse && Config.FixHighFrequencyMouse)
+		{
+			if ((DWORD)&rguidProp == (DWORD)&DIPROP_BUFFERSIZE && RequestedMouseBufferSize)
+			{
+				if (pdiph && pdiph->dwSize == sizeof(DIPROPDWORD))
+				{
+					DIPROPDWORD* pOut = reinterpret_cast<DIPROPDWORD*>(pdiph);
+					pOut->dwData = RequestedMouseBufferSize;
+				}
+			}
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectInputDevice8::SetProperty(REFGUID rguidProp, LPCDIPROPHEADER pdiph)
@@ -99,12 +120,44 @@ HRESULT m_IDirectInputDevice8::SetProperty(REFGUID rguidProp, LPCDIPROPHEADER pd
 		// Verify buffer is large enough
 		if ((DWORD)&rguidProp == (DWORD)&DIPROP_BUFFERSIZE)
 		{
-			DIPROPDWORD dipdw = (pdiph && pdiph->dwSize == sizeof(DIPROPDWORD)) ? *(LPDIPROPDWORD)pdiph :
-				DIPROPDWORD{ sizeof(DIPROPDWORD), sizeof(DIPROPHEADER), 0, DIPH_DEVICE, 0 };
-			dipdw.dwData = max(dipdw.dwData, dwMinBufferSize);
-			MouseBufferSize = dipdw.dwData;
+			if (pdiph && pdiph->dwSize == sizeof(DIPROPDWORD))
+			{
+				const DIPROPDWORD* pIn = reinterpret_cast<const DIPROPDWORD*>(pdiph);
 
-			return ProxyInterface->SetProperty(rguidProp, &dipdw.diph);
+				DIPROPDWORD dipdw = *pIn;
+
+				DWORD requested = dipdw.dwData ? dipdw.dwData : RequestedMouseBufferSize;
+				dipdw.dwData = max(dipdw.dwData, dwMinBufferSize);
+
+				if (requested == 0)
+				{
+					DIPROPDWORD r_dipdw = {};
+					r_dipdw.diph.dwSize = sizeof(DIPROPDWORD);
+					r_dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+					r_dipdw.diph.dwObj = 0;
+					r_dipdw.diph.dwHow = DIPH_DEVICE;
+
+					if (SUCCEEDED(ProxyInterface->GetProperty(DIPROP_BUFFERSIZE, &r_dipdw.diph)))
+					{
+						requested = r_dipdw.dwData;
+					}
+				}
+
+				HRESULT hr = ProxyInterface->SetProperty(rguidProp, &dipdw.diph);
+
+				if (SUCCEEDED(hr))
+				{
+					if (dipdw.dwData > MouseBufferSize)
+					{
+						SentBufferOverflow = false;		// Send buffer overflow message again once buffer size is increased
+					}
+
+					RequestedMouseBufferSize = requested;
+					MouseBufferSize = dipdw.dwData;
+				}
+
+				return hr;
+			}
 		}
 
 		// Override deadzone for mice
@@ -135,195 +188,223 @@ HRESULT m_IDirectInputDevice8::GetDeviceState(DWORD cbData, LPVOID lpvData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetDeviceState(cbData, lpvData);
+	HRESULT hr = ProxyInterface->GetDeviceState(cbData, lpvData);
+
+	if (SUCCEEDED(hr) && lpvData)
+	{
+		if (IsMouse && Config.FixHighFrequencyMouse)
+		{
+			// Apply movement adjustment using stored offsets
+			if (Ofs.x >= 0)
+			{
+				AdjustMouseAxis(*((LONG*)((BYTE*)lpvData + Ofs.x)), false);
+			}
+			if (Ofs.y >= 0)
+			{
+				AdjustMouseAxis(*((LONG*)((BYTE*)lpvData + Ofs.y)), true);
+			}
+		}
+	}
+
+	return hr;
 }
 
-HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICEOBJECTDATA rgdod, LPDWORD pdwInOut, DWORD dwFlags)
+template <class T>
+HRESULT m_IDirectInputDevice8::GetMouseDeviceData(DWORD cbObjectData, LPDIDEVICEOBJECTDATA rgdod, LPDWORD pdwInOut, DWORD dwFlags, std::vector<T>& dod)
 {
 	// Check arguments
-	if (!pdwInOut || (rgdod && cbObjectData != sizeof(DIDEVICEOBJECTDATA) && cbObjectData != sizeof(DIDEVICEOBJECTDATA_DX3)))
+	if (!pdwInOut || (rgdod && *pdwInOut == 0))
 	{
-		if (pdwInOut)
-		{
-			*pdwInOut = 0;
-		}
 		return DIERR_INVALIDPARAM;
 	}
-	bool isPeek = (dwFlags == DIGDD_PEEK);
+	if (cbObjectData != sizeof(T))
+	{
+		*pdwInOut = 0;
+		return DIERR_INVALIDPARAM;
+	}
+	const bool isPeek = (dwFlags == DIGDD_PEEK);
+	const bool isFlushingData = (rgdod == nullptr && *pdwInOut == INFINITE && !isPeek);
+	const bool isRequestingOverflow = (rgdod == nullptr && *pdwInOut == 0);
 
 	// Lock for concurrency
-	EnterCriticalSection(&dics);
+	ScopedCriticalSection ThreadLock(&dics);
 
-	// Get latest mouse data from the DirectInput8 buffer
-	if (*pdwInOut > dod.size())
+	bool isBufferOverflow = false;
+	DWORD dwItems = INFINITE;
+
+	// Determine number of records to store
+	HRESULT hr = ProxyInterface->GetDeviceData(cbObjectData, nullptr, &dwItems, DIGDD_PEEK);
+	if (hr == DI_BUFFEROVERFLOW)
 	{
-		// Get buffer
-		DWORD dwItems = 0;
-		LPDIDEVICEOBJECTDATA lpdod = (cbObjectData == sizeof(DIDEVICEOBJECTDATA_DX3)) ?
-			GetObjectDataBuffer(dod_dx3, MouseBufferSize, dwItems) :
-			GetObjectDataBuffer(dod_dx8, MouseBufferSize, dwItems);
+		isBufferOverflow = true;
+	}
+	else if (FAILED(hr))
+	{
+		*pdwInOut = 0;
+		return hr;
+	}
+	if (dwItems == INFINITE)
+	{
+		dwItems = MouseBufferSize ? MouseBufferSize : 32;	// Resonable default
+	}
 
-		// Get device data from buffer
-		HRESULT hr = ProxyInterface->GetDeviceData(cbObjectData, lpdod, &dwItems, 0);
-		if (FAILED(hr))
-		{
-			// Unlock
-			LeaveCriticalSection(&dics);
+	// Ensure buffer is large enough
+	const DWORD requiredBytes = dwItems * cbObjectData;
+	if (tmp_dod.size() < requiredBytes)
+	{
+		tmp_dod.resize(requiredBytes);
+	}
 
-			return hr;
-		}
+	// Pointer to first record
+	LPDIDEVICEOBJECTDATA lpdod = reinterpret_cast<LPDIDEVICEOBJECTDATA>(tmp_dod.data());
 
+	// Get device data from buffer
+	hr = ProxyInterface->GetDeviceData(cbObjectData, lpdod, &dwItems, 0);
+	if (hr == DI_BUFFEROVERFLOW)
+	{
+		isBufferOverflow = true;
+	}
+	else if (FAILED(hr))
+	{
+		*pdwInOut = 0;
+		return hr;
+	}
+
+	// Merge and store device object data
+	if (!isFlushingData && dwItems)
+	{
 		bool isSet[3] = { false };
 		DWORD Loc[3] = { 0 };
 
-		// Check for existing records to merge
-		for (UINT x = 0; x < dod.size(); x++)
+		if (SequenceCounter == 0)
 		{
-			// Movement record exists
-			if (dod[x].dwOfs == DIMOFS_X || dod[x].dwOfs == DIMOFS_Y || dod[x].dwOfs == DIMOFS_Z)
-			{
-				int v = dod[x].dwOfs == DIMOFS_X ? 0 : dod[x].dwOfs == DIMOFS_Y ? 1 : 2;
-
-				if (!dod[x].wasPeeked)
-				{
-					isSet[v] = true;
-					Loc[v] = x;
-				}
-			}
-			// Button press found, reset records
-			else
-			{
-				isSet[0] = false;
-				isSet[1] = false;
-				isSet[2] = false;
-			}
+			SequenceCounter = lpdod->dwSequence;
 		}
 
 		// Loop through buffer and merge like data
 		for (UINT x = 0; x < dwItems; x++)
 		{
-			// Storing movement data
-			if (lpdod->dwOfs == DIMOFS_X || lpdod->dwOfs == DIMOFS_Y || lpdod->dwOfs == DIMOFS_Z)
-			{
-				int v = lpdod->dwOfs == DIMOFS_X ? 0 : lpdod->dwOfs == DIMOFS_Y ? 1 : 2;
+			bool InsertNewRecord = true;
 
-				// Merge records
-				if (isSet[v] &&														// Check if there is an existing record
-					(dod[Loc[v]].lData & SignBit) == (lpdod->dwData & SignBit))		// Check if the mouse direction is the same
+			// Handle movement data
+			if (lpdod->dwOfs == Ofs.x || lpdod->dwOfs == Ofs.y || lpdod->dwOfs == Ofs.z)
+			{
+				const int v = lpdod->dwOfs == Ofs.x ? 0 : lpdod->dwOfs == Ofs.y ? 1 : 2;
+
+				// Merge data only
+				if (isSet[v])
 				{
+					InsertNewRecord = false;
 					dod[Loc[v]].lData += (LONG)lpdod->dwData;
-					dod[Loc[v]].dwTimeStamp = lpdod->dwTimeStamp;
-					dod[Loc[v]].dwSequence = lpdod->dwSequence;
-					if (cbObjectData == sizeof(DIDEVICEOBJECTDATA))
-					{
-						dod[Loc[v]].uAppData = lpdod->uAppData;
-					}
 				}
 				// Storing new movement data
 				else
 				{
-					dod.push_back({ (LONG)lpdod->dwData, lpdod->dwOfs, lpdod->dwTimeStamp, lpdod->dwSequence, (cbObjectData == sizeof(DIDEVICEOBJECTDATA)) ? lpdod->uAppData : NULL, isPeek });
 					isSet[v] = true;
-					Loc[v] = dod.size() - 1;
+					Loc[v] = dod.size();
 				}
 			}
-			// Storing button data
-			else
-			{
-				dod.push_back({ (LONG)lpdod->dwData, lpdod->dwOfs, lpdod->dwTimeStamp, lpdod->dwSequence, (cbObjectData == sizeof(DIDEVICEOBJECTDATA)) ? lpdod->uAppData : NULL, isPeek });
 
-				// Reset records
-				isSet[0] = false;
-				isSet[1] = false;
-				isSet[2] = false;
+			// Store data
+			if (InsertNewRecord)
+			{
+				if constexpr (std::is_same_v<T, MOUSECACHEDATA_DX3>)
+				{
+					dod.push_back({ lpdod->dwOfs, (LONG)lpdod->dwData, lpdod->dwTimeStamp, SequenceCounter++ });
+				}
+				else
+				{
+					dod.push_back({ lpdod->dwOfs, (LONG)lpdod->dwData, lpdod->dwTimeStamp, SequenceCounter++, lpdod->uAppData });
+				}
 			}
-			lpdod = (LPDIDEVICEOBJECTDATA)((DWORD)lpdod + cbObjectData);
+
+			lpdod = (LPDIDEVICEOBJECTDATA)((BYTE*)lpdod + cbObjectData);
 		}
+
+		// Update data for mouse factor and padding
+		for (DWORD item : { Ofs.x, Ofs.y })
+		{
+			const int v = item == Ofs.x ? 0 : item == Ofs.y ? 1 : 2;
+
+			if (isSet[v])
+			{
+				AdjustMouseAxis(dod[Loc[v]].lData, (item == Ofs.y));
+			}
+		}
+	}
+
+	// Check buffer size
+	if (MouseBufferSize == 0)
+	{
+		DIPROPDWORD dipdw = {};
+		dipdw.diph.dwSize = sizeof(DIPROPDWORD);
+		dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+		dipdw.diph.dwObj = 0;
+		dipdw.diph.dwHow = DIPH_DEVICE;
+
+		SetProperty(DIPROP_BUFFERSIZE, &dipdw.diph);
 	}
 
 	DWORD dwOut = 0;
 
-	// Checking for overflow
-	if (rgdod == nullptr && *pdwInOut == 0)
+	// Checking for device object data
+	if (rgdod == nullptr)
 	{
-		// Never return overflow
-	}
-	// Flush buffer
-	else if (rgdod == nullptr && *pdwInOut == INFINITE && !isPeek)
-	{
-		dod.clear();
-	}
-	// Number of records in the buffer
-	else if (rgdod == nullptr && *pdwInOut == INFINITE && isPeek)
-	{
-		dwOut = dod.size();
-	}
-	// Fill device object data
-	else if (rgdod)
-	{
-		LPDIDEVICEOBJECTDATA p_rgdod = rgdod;
-
-		for (DWORD i = 0; i < *pdwInOut; i++)
-		{
-			if (dwOut < dod.size())
-			{
-				p_rgdod->dwOfs = dod[dwOut].dwOfs;
-				if (p_rgdod->dwOfs == DIMOFS_X)
-				{
-					LONG Sign = dod[dwOut].lData < 0 ? -1 : 1;
-					p_rgdod->dwData = (LONG)round(dod[dwOut].lData * Config.MouseMovementFactor) + (Sign * Config.MouseMovementPadding);
-				}
-				else if (p_rgdod->dwOfs == DIMOFS_Y)
-				{
-					LONG Sign = dod[dwOut].lData < 0 ? -1 : 1;
-					p_rgdod->dwData = (LONG)round(dod[dwOut].lData * abs(Config.MouseMovementFactor)) + (Sign * Config.MouseMovementPadding);
-				}
-				else
-				{
-					p_rgdod->dwData = dod[dwOut].lData;
-				}
-				p_rgdod->dwTimeStamp = dod[dwOut].dwTimeStamp;
-				p_rgdod->dwSequence = dod[dwOut].dwSequence;
-				if (cbObjectData == sizeof(DIDEVICEOBJECTDATA))
-				{
-					p_rgdod->uAppData = dod[dwOut].uAppData;
-				}
-
-				dwOut++;
-			}
-			// No more data to sent
-			else
-			{
-				break;
-			}
-			p_rgdod = (LPDIDEVICEOBJECTDATA)((DWORD)p_rgdod + cbObjectData);
-		}
-	}
-
-	// Remove used entries from buffer
-	if (!isPeek && dwOut)
-	{
-		// Save unsent mouse data
-		if (dwOut < dod.size())
-		{
-			std::vector<MOUSECACHEDATA> tmp_dod;
-			for (size_t x = dwOut; x < dod.size(); x++)
-			{
-				tmp_dod.push_back(dod[x]);
-			}
-			dod = std::move(tmp_dod);
-		}
-		// Clear buffer if all entries were used
-		else
+		// Flush buffer
+		if (isFlushingData)
 		{
 			dod.clear();
 		}
+		// Get number of records in the buffer
+		else
+		{
+			dwOut = dod.size();
+		}
+	}
+	// Fill device object data
+	else if (*pdwInOut)
+	{
+		DWORD requested = *pdwInOut;
+		if (requested == INFINITE && RequestedMouseBufferSize)
+		{
+			requested = RequestedMouseBufferSize;
+		}
+		dwOut = min(dod.size(), requested);
+
+		// Check for buffer overflow (attempt to handle buffer starvation case)
+		if (dwOut < dod.size() && (!RequestedMouseBufferSize || RequestedMouseBufferSize < dod.size()))
+		{
+			isBufferOverflow = true;
+		}
+
+		memcpy(rgdod, dod.data(), sizeof(T) * dwOut);
+
+		// Remove used entries from buffer
+		if (dwOut && !isPeek)
+		{
+			if (dwOut < dod.size())
+			{
+				dod.erase(dod.begin(), dod.begin() + dwOut);
+			}
+			else
+			{
+				dod.clear();
+			}
+		}
 	}
 
-	// Unlock
-	LeaveCriticalSection(&dics);
-
 	*pdwInOut = dwOut;
+
+	if (isBufferOverflow)
+	{
+		SequenceCounter += 5;	// Simulate overflow
+
+		if (isRequestingOverflow || !SentBufferOverflow)
+		{
+			SentBufferOverflow = true;
+			return DI_BUFFEROVERFLOW;
+		}
+	}
 
 	return DI_OK;
 }
@@ -351,7 +432,42 @@ HRESULT m_IDirectInputDevice8::GetDeviceData(DWORD cbObjectData, LPDIDEVICEOBJEC
 
 	if (IsMouse && Config.FixHighFrequencyMouse)
 	{
-		return GetMouseDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
+		if (rgdod && cbObjectData != sizeof(DIDEVICEOBJECTDATA_DX3) && cbObjectData != sizeof(DIDEVICEOBJECTDATA))
+		{
+			if (pdwInOut)
+			{
+				*pdwInOut = 0;
+			}
+			return DIERR_INVALIDPARAM;
+		}
+		if (cbObjectData == sizeof(DIDEVICEOBJECTDATA_DX3) || cbObjectData == sizeof(DIDEVICEOBJECTDATA))
+		{
+			LastObjectSize = cbObjectData;
+		}
+		else
+		{
+			cbObjectData = LastObjectSize ? LastObjectSize : sizeof(DIDEVICEOBJECTDATA);
+		}
+		if (cbObjectData == sizeof(DIDEVICEOBJECTDATA_DX3))
+		{
+			if (dod_dx8.size())
+			{
+				// Lock for concurrency
+				ScopedCriticalSection ThreadLock(&dics);
+
+				for (auto& item : dod_dx8)
+				{
+					dod_dx3.push_back({ item.dwOfs, item.lData, item.dwTimeStamp, item.dwSequence });
+				}
+				dod_dx8.clear();
+			}
+
+			return GetMouseDeviceData<MOUSECACHEDATA_DX3>(sizeof(DIDEVICEOBJECTDATA_DX3), rgdod, pdwInOut, dwFlags, dod_dx3);
+		}
+		else
+		{
+			return GetMouseDeviceData<MOUSECACHEDATA>(sizeof(DIDEVICEOBJECTDATA), rgdod, pdwInOut, dwFlags, dod_dx8);
+		}
 	}
 
 	return ProxyInterface->GetDeviceData(cbObjectData, rgdod, pdwInOut, dwFlags);
@@ -361,7 +477,37 @@ HRESULT m_IDirectInputDevice8::SetDataFormat(LPCDIDATAFORMAT lpdf)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->SetDataFormat(lpdf);
+	HRESULT hr = ProxyInterface->SetDataFormat(lpdf);
+
+	if (SUCCEEDED(hr))
+	{
+		if (IsMouse && lpdf && lpdf->rgodf && lpdf->dwNumObjs)
+		{
+			for (DWORD i = 0; i < lpdf->dwNumObjs; i++)
+			{
+				const DIOBJECTDATAFORMAT& obj = lpdf->rgodf[i];
+
+				// Check if this object is an axis (relative)
+				if (DIDFT_GETTYPE(obj.dwType) & DIDFT_RELAXIS)
+				{
+					if (obj.pguid && IsEqualGUID(GUID_XAxis, *obj.pguid))
+					{
+						Ofs.x = obj.dwOfs;
+					}
+					else if (obj.pguid && IsEqualGUID(GUID_YAxis, *obj.pguid))
+					{
+						Ofs.y = obj.dwOfs;
+					}
+					else if (obj.pguid && IsEqualGUID(GUID_ZAxis, *obj.pguid))
+					{
+						Ofs.z = obj.dwOfs;
+					}
+				}
+			}
+		}
+	}
+
+	return hr;
 }
 
 HRESULT m_IDirectInputDevice8::SetEventNotification(HANDLE hEvent)
@@ -380,24 +526,24 @@ HRESULT m_IDirectInputDevice8::SetCooperativeLevel(HWND hwnd, DWORD dwFlags)
 	return ProxyInterface->SetCooperativeLevel(hwnd, dwFlags);
 }
 
-template HRESULT m_IDirectInputDevice8::GetObjectInfoT<IDirectInputDevice8A, LPDIDEVICEOBJECTINSTANCEA>(LPDIDEVICEOBJECTINSTANCEA, DWORD, DWORD);
-template HRESULT m_IDirectInputDevice8::GetObjectInfoT<IDirectInputDevice8W, LPDIDEVICEOBJECTINSTANCEW>(LPDIDEVICEOBJECTINSTANCEW, DWORD, DWORD);
+template HRESULT m_IDirectInputDevice8::GetObjectInfoT<IDirectInputDevice8A, LPDIDEVICEOBJECTINSTANCEA>(IDirectInputDevice8A*, LPDIDEVICEOBJECTINSTANCEA, DWORD, DWORD);
+template HRESULT m_IDirectInputDevice8::GetObjectInfoT<IDirectInputDevice8W, LPDIDEVICEOBJECTINSTANCEW>(IDirectInputDevice8W*, LPDIDEVICEOBJECTINSTANCEW, DWORD, DWORD);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::GetObjectInfoT(V pdidoi, DWORD dwObj, DWORD dwHow)
+HRESULT m_IDirectInputDevice8::GetObjectInfoT(T* ProxyInterfaceT, V pdidoi, DWORD dwObj, DWORD dwHow)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->GetObjectInfo(pdidoi, dwObj, dwHow);
+	return ProxyInterfaceT->GetObjectInfo(pdidoi, dwObj, dwHow);
 }
 
-template HRESULT m_IDirectInputDevice8::GetDeviceInfoT<IDirectInputDevice8A, LPDIDEVICEINSTANCEA>(LPDIDEVICEINSTANCEA);
-template HRESULT m_IDirectInputDevice8::GetDeviceInfoT<IDirectInputDevice8W, LPDIDEVICEINSTANCEW>(LPDIDEVICEINSTANCEW);
+template HRESULT m_IDirectInputDevice8::GetDeviceInfoT<IDirectInputDevice8A, LPDIDEVICEINSTANCEA>(IDirectInputDevice8A*, LPDIDEVICEINSTANCEA);
+template HRESULT m_IDirectInputDevice8::GetDeviceInfoT<IDirectInputDevice8W, LPDIDEVICEINSTANCEW>(IDirectInputDevice8W*, LPDIDEVICEINSTANCEW);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::GetDeviceInfoT(V pdidi)
+HRESULT m_IDirectInputDevice8::GetDeviceInfoT(T* ProxyInterfaceT, V pdidi)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->GetDeviceInfo(pdidi);
+	return ProxyInterfaceT->GetDeviceInfo(pdidi);
 }
 
 HRESULT m_IDirectInputDevice8::RunControlPanel(HWND hwndOwner, DWORD dwFlags)
@@ -414,38 +560,61 @@ HRESULT m_IDirectInputDevice8::Initialize(HINSTANCE hinst, DWORD dwVersion, REFG
 	return ProxyInterface->Initialize(hinst, dwVersion, rguid);
 }
 
-HRESULT m_IDirectInputDevice8::CreateEffect(REFGUID rguid, LPCDIEFFECT lpeff, LPDIRECTINPUTEFFECT * ppdeff, LPUNKNOWN punkOuter)
+HRESULT m_IDirectInputDevice8::CreateEffect(REFGUID rguid, LPCDIEFFECT lpeff, LPDIRECTINPUTEFFECT* ppdeff, LPUNKNOWN punkOuter)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	DIEFFECT eff = {};
+	DICONSTANTFORCE constantForce = {};
+
+	// Fixes a force feedback issue with 'The Real Car Simulator R'
+	if (Config.InvertForceDirection
+		&& lpeff
+		&& rguid == GUID_ConstantForce
+		&& lpeff->lpvTypeSpecificParams
+		&& lpeff->cbTypeSpecificParams == sizeof(DICONSTANTFORCE))
+	{
+		eff = *lpeff;
+		constantForce = *static_cast<DICONSTANTFORCE*>(lpeff->lpvTypeSpecificParams);
+
+		constantForce.lMagnitude = -(constantForce.lMagnitude);
+
+		LOG_LIMIT(3, __FUNCTION__ << " Inverting ConstantForce magnitude: " << constantForce.lMagnitude << " -> " << -(constantForce.lMagnitude));
+
+		eff.lpvTypeSpecificParams = &constantForce;
+		lpeff = &eff;
+	}
 
 	HRESULT hr = ProxyInterface->CreateEffect(rguid, lpeff, ppdeff, punkOuter);
 
 	if (SUCCEEDED(hr) && ppdeff)
 	{
-		*ppdeff = new m_IDirectInputEffect8(*ppdeff, IID_IDirectInputEffect);
+		m_IDirectInputEffect8* pEffect = new m_IDirectInputEffect8(*ppdeff);
+		pEffect->SetGUID(rguid);
+		*ppdeff = pEffect;
 	}
 
 	return hr;
 }
 
-template HRESULT m_IDirectInputDevice8::EnumEffectsT<IDirectInputDevice8A, LPDIENUMEFFECTSCALLBACKA>(LPDIENUMEFFECTSCALLBACKA, LPVOID, DWORD);
-template HRESULT m_IDirectInputDevice8::EnumEffectsT<IDirectInputDevice8W, LPDIENUMEFFECTSCALLBACKW>(LPDIENUMEFFECTSCALLBACKW, LPVOID, DWORD);
+template HRESULT m_IDirectInputDevice8::EnumEffectsT<IDirectInputDevice8A, LPDIENUMEFFECTSCALLBACKA>(IDirectInputDevice8A*, LPDIENUMEFFECTSCALLBACKA, LPVOID, DWORD);
+template HRESULT m_IDirectInputDevice8::EnumEffectsT<IDirectInputDevice8W, LPDIENUMEFFECTSCALLBACKW>(IDirectInputDevice8W*, LPDIENUMEFFECTSCALLBACKW, LPVOID, DWORD);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::EnumEffectsT(V lpCallback, LPVOID pvRef, DWORD dwEffType)
+HRESULT m_IDirectInputDevice8::EnumEffectsT(T* ProxyInterfaceT, V lpCallback, LPVOID pvRef, DWORD dwEffType)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->EnumEffects(lpCallback, pvRef, dwEffType);
+	return ProxyInterfaceT->EnumEffects(lpCallback, pvRef, dwEffType);
 }
 
-template HRESULT m_IDirectInputDevice8::GetEffectInfoT<IDirectInputDevice8A, LPDIEFFECTINFOA>(LPDIEFFECTINFOA, REFGUID);
-template HRESULT m_IDirectInputDevice8::GetEffectInfoT<IDirectInputDevice8W, LPDIEFFECTINFOW>(LPDIEFFECTINFOW, REFGUID);
+template HRESULT m_IDirectInputDevice8::GetEffectInfoT<IDirectInputDevice8A, LPDIEFFECTINFOA>(IDirectInputDevice8A*, LPDIEFFECTINFOA, REFGUID);
+template HRESULT m_IDirectInputDevice8::GetEffectInfoT<IDirectInputDevice8W, LPDIEFFECTINFOW>(IDirectInputDevice8W*, LPDIEFFECTINFOW, REFGUID);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::GetEffectInfoT(V pdei, REFGUID rguid)
+HRESULT m_IDirectInputDevice8::GetEffectInfoT(T* ProxyInterfaceT, V pdei, REFGUID rguid)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->GetEffectInfo(pdei, rguid);
+	return ProxyInterfaceT->GetEffectInfo(pdei, rguid);
 }
 
 HRESULT m_IDirectInputDevice8::GetForceFeedbackState(LPDWORD pdwOut)
@@ -471,27 +640,32 @@ HRESULT m_IDirectInputDevice8::EnumCreatedEffectObjects(LPDIENUMCREATEDEFFECTOBJ
 		return DIERR_INVALIDPARAM;
 	}
 
-	struct EnumEffect
+	struct EffectEnumerator
 	{
 		LPVOID pvRef = nullptr;
 		LPDIENUMCREATEDEFFECTOBJECTSCALLBACK lpCallback = nullptr;
 
-		static BOOL CALLBACK EnumEffectCallback(LPDIRECTINPUTEFFECT a, LPVOID pvRef)
+		static BOOL CALLBACK EnumEffectCallback(LPDIRECTINPUTEFFECT pdeff, LPVOID pvRef)
 		{
-			EnumEffect *self = (EnumEffect*)pvRef;
+			EffectEnumerator* self = static_cast<EffectEnumerator*>(pvRef);
 
-			if (a)
+			if (pdeff)
 			{
-				a = ProxyAddressLookupTableDinput8.FindAddress<m_IDirectInputEffect8>(a, IID_IDirectInputEffect);
+				m_IDirectInputEffect8* WrapperEffect = ProxyAddressLookupTableDinput8.FindAddress<m_IDirectInputEffect8>(pdeff);
+				if (WrapperEffect == nullptr)
+				{
+					WrapperEffect = new m_IDirectInputEffect8(pdeff);
+				}
+				pdeff = WrapperEffect;
 			}
 
-			return self->lpCallback(a, self->pvRef);
+			return self->lpCallback(pdeff, self->pvRef);
 		}
 	} CallbackContext;
 	CallbackContext.pvRef = pvRef;
 	CallbackContext.lpCallback = lpCallback;
 
-	return ProxyInterface->EnumCreatedEffectObjects(EnumEffect::EnumEffectCallback, &CallbackContext, fl);
+	return ProxyInterface->EnumCreatedEffectObjects(EffectEnumerator::EnumEffectCallback, &CallbackContext, fl);
 }
 
 HRESULT m_IDirectInputDevice8::Escape(LPDIEFFESCAPE pesc)
@@ -515,52 +689,81 @@ HRESULT m_IDirectInputDevice8::SendDeviceData(DWORD cbObjectData, LPCDIDEVICEOBJ
 	return ProxyInterface->SendDeviceData(cbObjectData, rgdod, pdwInOut, fl);
 }
 
-template HRESULT m_IDirectInputDevice8::EnumEffectsInFileT<IDirectInputDevice8A, LPCSTR>(LPCSTR, LPDIENUMEFFECTSINFILECALLBACK, LPVOID, DWORD);
-template HRESULT m_IDirectInputDevice8::EnumEffectsInFileT<IDirectInputDevice8W, LPCWSTR>(LPCWSTR, LPDIENUMEFFECTSINFILECALLBACK, LPVOID, DWORD);
+template HRESULT m_IDirectInputDevice8::EnumEffectsInFileT<IDirectInputDevice8A, LPCSTR>(IDirectInputDevice8A*, LPCSTR, LPDIENUMEFFECTSINFILECALLBACK, LPVOID, DWORD);
+template HRESULT m_IDirectInputDevice8::EnumEffectsInFileT<IDirectInputDevice8W, LPCWSTR>(IDirectInputDevice8W*, LPCWSTR, LPDIENUMEFFECTSINFILECALLBACK, LPVOID, DWORD);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::EnumEffectsInFileT(V lpszFileName, LPDIENUMEFFECTSINFILECALLBACK pec, LPVOID pvRef, DWORD dwFlags)
+HRESULT m_IDirectInputDevice8::EnumEffectsInFileT(T* ProxyInterfaceT, V lpszFileName, LPDIENUMEFFECTSINFILECALLBACK pec, LPVOID pvRef, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->EnumEffectsInFile(lpszFileName, pec, pvRef, dwFlags);
+	return ProxyInterfaceT->EnumEffectsInFile(lpszFileName, pec, pvRef, dwFlags);
 }
 
-template HRESULT m_IDirectInputDevice8::WriteEffectToFileT<IDirectInputDevice8A, LPCSTR>(LPCSTR, DWORD, LPDIFILEEFFECT, DWORD);
-template HRESULT m_IDirectInputDevice8::WriteEffectToFileT<IDirectInputDevice8W, LPCWSTR>(LPCWSTR, DWORD, LPDIFILEEFFECT, DWORD);
+template HRESULT m_IDirectInputDevice8::WriteEffectToFileT<IDirectInputDevice8A, LPCSTR>(IDirectInputDevice8A*, LPCSTR, DWORD, LPDIFILEEFFECT, DWORD);
+template HRESULT m_IDirectInputDevice8::WriteEffectToFileT<IDirectInputDevice8W, LPCWSTR>(IDirectInputDevice8W*, LPCWSTR, DWORD, LPDIFILEEFFECT, DWORD);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::WriteEffectToFileT(V lpszFileName, DWORD dwEntries, LPDIFILEEFFECT rgDiFileEft, DWORD dwFlags)
+HRESULT m_IDirectInputDevice8::WriteEffectToFileT(T* ProxyInterfaceT, V lpszFileName, DWORD dwEntries, LPDIFILEEFFECT rgDiFileEft, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->WriteEffectToFile(lpszFileName, dwEntries, rgDiFileEft, dwFlags);
+	return ProxyInterfaceT->WriteEffectToFile(lpszFileName, dwEntries, rgDiFileEft, dwFlags);
 }
 
-template HRESULT m_IDirectInputDevice8::BuildActionMapT<IDirectInputDevice8A, LPDIACTIONFORMATA, LPCSTR>(LPDIACTIONFORMATA, LPCSTR, DWORD);
-template HRESULT m_IDirectInputDevice8::BuildActionMapT<IDirectInputDevice8W, LPDIACTIONFORMATW, LPCWSTR>(LPDIACTIONFORMATW, LPCWSTR, DWORD);
+template HRESULT m_IDirectInputDevice8::BuildActionMapT<IDirectInputDevice8A, LPDIACTIONFORMATA, LPCSTR>(IDirectInputDevice8A*, LPDIACTIONFORMATA, LPCSTR, DWORD);
+template HRESULT m_IDirectInputDevice8::BuildActionMapT<IDirectInputDevice8W, LPDIACTIONFORMATW, LPCWSTR>(IDirectInputDevice8W*, LPDIACTIONFORMATW, LPCWSTR, DWORD);
 template <class T, class V, class W>
-HRESULT m_IDirectInputDevice8::BuildActionMapT(V lpdiaf, W lpszUserName, DWORD dwFlags)
+HRESULT m_IDirectInputDevice8::BuildActionMapT(T* ProxyInterfaceT, V lpdiaf, W lpszUserName, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->BuildActionMap(lpdiaf, lpszUserName, dwFlags);
+	return ProxyInterfaceT->BuildActionMap(lpdiaf, lpszUserName, dwFlags);
 }
 
-template HRESULT m_IDirectInputDevice8::SetActionMapT<IDirectInputDevice8A, LPDIACTIONFORMATA, LPCSTR>(LPDIACTIONFORMATA, LPCSTR, DWORD);
-template HRESULT m_IDirectInputDevice8::SetActionMapT<IDirectInputDevice8W, LPDIACTIONFORMATW, LPCWSTR>(LPDIACTIONFORMATW, LPCWSTR, DWORD);
+template HRESULT m_IDirectInputDevice8::SetActionMapT<IDirectInputDevice8A, LPDIACTIONFORMATA, LPCSTR>(IDirectInputDevice8A*, LPDIACTIONFORMATA, LPCSTR, DWORD);
+template HRESULT m_IDirectInputDevice8::SetActionMapT<IDirectInputDevice8W, LPDIACTIONFORMATW, LPCWSTR>(IDirectInputDevice8W*, LPDIACTIONFORMATW, LPCWSTR, DWORD);
 template <class T, class V, class W>
-HRESULT m_IDirectInputDevice8::SetActionMapT(V lpdiActionFormat, W lptszUserName, DWORD dwFlags)
+HRESULT m_IDirectInputDevice8::SetActionMapT(T* ProxyInterfaceT, V lpdiActionFormat, W lptszUserName, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->SetActionMap(lpdiActionFormat, lptszUserName, dwFlags);
+	return ProxyInterfaceT->SetActionMap(lpdiActionFormat, lptszUserName, dwFlags);
 }
 
-template HRESULT m_IDirectInputDevice8::GetImageInfoT<IDirectInputDevice8A, LPDIDEVICEIMAGEINFOHEADERA>(LPDIDEVICEIMAGEINFOHEADERA);
-template HRESULT m_IDirectInputDevice8::GetImageInfoT<IDirectInputDevice8W, LPDIDEVICEIMAGEINFOHEADERW>(LPDIDEVICEIMAGEINFOHEADERW);
+template HRESULT m_IDirectInputDevice8::GetImageInfoT<IDirectInputDevice8A, LPDIDEVICEIMAGEINFOHEADERA>(IDirectInputDevice8A*, LPDIDEVICEIMAGEINFOHEADERA);
+template HRESULT m_IDirectInputDevice8::GetImageInfoT<IDirectInputDevice8W, LPDIDEVICEIMAGEINFOHEADERW>(IDirectInputDevice8W*, LPDIDEVICEIMAGEINFOHEADERW);
 template <class T, class V>
-HRESULT m_IDirectInputDevice8::GetImageInfoT(V lpdiDevImageInfoHeader)
+HRESULT m_IDirectInputDevice8::GetImageInfoT(T* ProxyInterfaceT, V lpdiDevImageInfoHeader)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return GetProxyInterface<T>()->GetImageInfo(lpdiDevImageInfoHeader);
+	return ProxyInterfaceT->GetImageInfo(lpdiDevImageInfoHeader);
+}
+
+// Helper functions
+void m_IDirectInputDevice8::AdjustMouseAxis(LONG& value, bool isY)
+{
+	if (value == 0)
+	{
+		return;
+	}
+
+	const double factor = isY ?
+		Config.MouseMovementFactorY :
+		Config.MouseMovementFactorX;
+
+	const LONG padding = isY ?
+		static_cast<LONG>(Config.MouseMovementPaddingY) :
+		static_cast<LONG>(Config.MouseMovementPaddingX);
+
+	const LONG baseMovement =
+		static_cast<LONG>(std::round(value * factor));
+
+	if (std::abs(baseMovement) < padding)
+	{
+		value = (value < 0) ? -padding : padding;
+	}
+	else
+	{
+		value = baseMovement;
+	}
 }

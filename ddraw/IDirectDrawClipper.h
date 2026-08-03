@@ -1,10 +1,10 @@
 #pragma once
 
-class m_IDirectDrawClipper : public IDirectDrawClipper, public AddressLookupTableDdrawObject
+class m_IDirectDrawClipper final : public IDirectDrawClipper, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDrawClipper *ProxyInterface = nullptr;
-	ULONG RefCount = 1;
+	LONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawClipper;
 
 	// Convert to Direct3D9
@@ -34,7 +34,7 @@ public:
 
 		InitInterface(0);
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	m_IDirectDrawClipper(m_IDirectDrawX* Interface, DWORD dwFlags) : ddrawParent(Interface)
 	{
@@ -42,7 +42,7 @@ public:
 
 		InitInterface(dwFlags);
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirectDrawClipper()
 	{
@@ -50,7 +50,7 @@ public:
 
 		ReleaseInterface();
 
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
 	void SetProxy(IDirectDrawClipper* NewProxyInterface, m_IDirectDrawX* NewParent, DWORD dwFlags)
@@ -61,29 +61,29 @@ public:
 			ProxyInterface = NewProxyInterface;
 			ddrawParent = NewParent;
 			InitInterface(dwFlags);
-			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+			ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
 		else
 		{
 			ReleaseInterface();
-			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			ddrawParent = nullptr;
 		}
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
-	STDMETHOD_(ULONG, AddRef) (THIS);
-	STDMETHOD_(ULONG, Release) (THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef) (THIS) override;
+	IFACEMETHOD_(ULONG, Release) (THIS) override;
 
 	/*** IDirectDrawClipper methods ***/
-	STDMETHOD(GetClipList)(THIS_ LPRECT, LPRGNDATA, LPDWORD);
-	STDMETHOD(GetHWnd)(THIS_ HWND FAR *);
-	STDMETHOD(Initialize)(THIS_ LPDIRECTDRAW, DWORD);
-	STDMETHOD(IsClipListChanged)(THIS_ BOOL FAR *);
-	STDMETHOD(SetClipList)(THIS_ LPRGNDATA, DWORD);
-	STDMETHOD(SetHWnd)(THIS_ DWORD, HWND);
+	IFACEMETHOD(GetClipList)(THIS_ LPRECT, LPRGNDATA, LPDWORD) override;
+	IFACEMETHOD(GetHWnd)(THIS_ HWND FAR *) override;
+	IFACEMETHOD(Initialize)(THIS_ LPDIRECTDRAW, DWORD) override;
+	IFACEMETHOD(IsClipListChanged)(THIS_ BOOL FAR *) override;
+	IFACEMETHOD(SetClipList)(THIS_ LPRGNDATA, DWORD) override;
+	IFACEMETHOD(SetHWnd)(THIS_ DWORD, HWND) override;
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }

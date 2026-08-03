@@ -17,14 +17,10 @@
 #include "dinput8\dinput8External.h"
 #include "External\dinputto8\resource.h"
 #include "External\dinputto8\dinputto8.h"
-#include "IClassFactory\IClassFactory.h"
 #include "Utils\Utils.h"
 
 namespace DinputWrapper
 {
-	VISIT_PROCS_DINPUT_SHARED(INITIALIZE_OUT_WRAPPED_PROC);
-	INITIALIZE_OUT_WRAPPED_PROC(DirectInput8Create, unused);
-
 	static void CheckSystemModule()
 	{
 		static bool RunOnce = true;
@@ -40,7 +36,7 @@ using namespace DinputWrapper;
 
 DWORD diVersion = 0;
 
-AddressLookupTableDinput<void> ProxyAddressLookupTable = AddressLookupTableDinput<void>();
+AddressLookupTableDinput ProxyAddressLookupTable;
 
 HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID riid, LPVOID * lplpDD, LPUNKNOWN pUnkOuter);
 
@@ -64,11 +60,11 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 
 	CheckSystemModule();
 
-	DEFINE_STATIC_PROC_ADDRESS(DirectInput8CreateProc, DirectInput8Create, DirectInput8Create_out);
-
-	if (!DirectInput8Create)
+	// DirectInputCreateEx can only be called with IDirectInput interfaces, not with IUnknown!
+	if (riid != IID_IDirectInputA && riid != IID_IDirectInput2A && riid != IID_IDirectInput7A &&
+		riid != IID_IDirectInputW && riid != IID_IDirectInput2W && riid != IID_IDirectInput7W)
 	{
-		return DIERR_GENERIC;
+		return DIERR_NOINTERFACE;
 	}
 
 	LOG_ONCE("Starting dinputto8 v" << APP_VERSION);
@@ -81,17 +77,18 @@ HRESULT WINAPI di_DirectInputCreateEx(HINSTANCE hinst, DWORD dwVersion, REFIID r
 	}
 
 	HRESULT hr = hresValidInstanceAndVersion(hinst, dwVersion);
-
 	if (SUCCEEDED(hr))
 	{
-		hr = DirectInput8Create(hinst, 0x0800, ConvertREFIID(riid), lplpDD, nullptr);
+		typename m_IDirectInputX::proxy_type* Proxy;
+		hr = di8_DirectInput8Create(hinst, 0x0800, m_IDirectInputX::proxy_iid, reinterpret_cast<LPVOID*>(&Proxy), nullptr);
 
-		if (SUCCEEDED(hr) && lplpDD)
+		if (SUCCEEDED(hr))
 		{
-			m_IDirectInputX* Interface = new m_IDirectInputX((IDirectInput8W*)*lplpDD, riid);
+			m_IDirectInputX* Interface = new m_IDirectInputX(Proxy);
 			Interface->SetVersion(dwVersion);
 
-			*lplpDD = Interface->GetWrapperInterfaceX(GetGUIDVersion(riid));
+			hr = Interface->QueryInterface(riid, lplpDD);
+			Interface->Release();
 		}
 	}
 
@@ -102,41 +99,66 @@ HRESULT WINAPI di_DllCanUnloadNow()
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	DEFINE_STATIC_PROC_ADDRESS(DllCanUnloadNowProc, DllCanUnloadNow, DllCanUnloadNow_out);
-
-	if (!DllCanUnloadNow)
+	if (ModuleObjectCount::AnyObjectsInUse())
 	{
-		return DIERR_GENERIC;
+		return S_FALSE;
 	}
 
-	return DllCanUnloadNow();
+	return di8_DllCanUnloadNow();
 }
 
 HRESULT WINAPI di_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVOID FAR* ppv)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	DEFINE_STATIC_PROC_ADDRESS(DllGetClassObjectProc, DllGetClassObject, DllGetClassObject_out);
-
-	if (!DllGetClassObject)
+	if (ppv == nullptr)
 	{
-		return DIERR_GENERIC;
+		return E_POINTER;
 	}
 
-	HRESULT hr = DllGetClassObject(dinputto8::ConvertREFCLSID(rclsid), dinputto8::ConvertREFIID(riid), ppv);
+	HRESULT hr = E_OUTOFMEMORY;
+	*ppv = nullptr;
 
-	if (SUCCEEDED(hr) && ppv)
+	ClassFactoryBase* wrapperFactory = nullptr;
+	if (rclsid == m_IDirectInputX::wrapper_clsid)
 	{
-		if (riid == IID_IClassFactory)
+		IClassFactory* proxyFactory = nullptr;
+		HRESULT proxyHr = di8_DllGetClassObject(m_IDirectInputX::proxy_clsid, IID_PPV_ARGS(&proxyFactory));
+		if (FAILED(proxyHr))
 		{
-			*ppv = new m_IClassFactory((IClassFactory*)*ppv, genericQueryInterface);
-
-			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
-
-			return DI_OK;
+			return proxyHr;
 		}
 
-		genericQueryInterface(riid, ppv);
+		wrapperFactory = new (std::nothrow) ClassFactory<m_IDirectInputX>(proxyFactory);
+		if (!wrapperFactory)
+		{
+			proxyFactory->Release();
+		}
+	}
+	else if (rclsid == m_IDirectInputDeviceX::wrapper_clsid)
+	{
+		IClassFactory* proxyFactory = nullptr;
+		HRESULT proxyHr = di8_DllGetClassObject(m_IDirectInputDeviceX::proxy_clsid, IID_PPV_ARGS(&proxyFactory));
+		if (FAILED(proxyHr))
+		{
+			return proxyHr;
+		}
+
+		wrapperFactory = new (std::nothrow) ClassFactory<m_IDirectInputDeviceX>(proxyFactory);
+		if (!wrapperFactory)
+		{
+			proxyFactory->Release();
+		}
+	}
+	else
+	{
+		return CLASS_E_CLASSNOTAVAILABLE;
+	}
+
+	if (wrapperFactory != nullptr)
+	{
+		hr = wrapperFactory->QueryInterface(riid, ppv);
+		wrapperFactory->Release();
 	}
 
 	return hr;
@@ -146,26 +168,12 @@ HRESULT WINAPI di_DllRegisterServer()
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	DEFINE_STATIC_PROC_ADDRESS(DllRegisterServerProc, DllRegisterServer, DllRegisterServer_out);
-
-	if (!DllRegisterServer)
-	{
-		return DIERR_GENERIC;
-	}
-
-	return DllRegisterServer();
+	return di8_DllRegisterServer();
 }
 
 HRESULT WINAPI di_DllUnregisterServer()
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	DEFINE_STATIC_PROC_ADDRESS(DllUnregisterServerProc, DllUnregisterServer, DllUnregisterServer_out);
-
-	if (!DllUnregisterServer)
-	{
-		return DIERR_GENERIC;
-	}
-
-	return DllUnregisterServer();
+	return di8_DllUnregisterServer();
 }

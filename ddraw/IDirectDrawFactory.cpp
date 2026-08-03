@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -15,6 +15,8 @@
 */
 
 #include "ddraw.h"
+
+using namespace DdrawWrapper;
 
 // ******************************
 // IUnknown functions
@@ -42,7 +44,7 @@ ULONG m_IDirectDrawFactory::AddRef()
 
 	if (!ProxyInterface)
 	{
-		return InterlockedIncrement(&RefCount);
+		return _InterlockedIncrement(&RefCount);
 	}
 
 	return ProxyInterface->AddRef();
@@ -54,7 +56,7 @@ ULONG m_IDirectDrawFactory::Release()
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref = (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
+		ULONG ref = InterlockedDecrementIfPositive(&RefCount);
 
 		if (ref == 0)
 		{
@@ -88,7 +90,14 @@ HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dw
 
 		if (SUCCEEDED(hr) && ppDirectDraw)
 		{
+			m_IDirectDrawX* pDirectDrawX = nullptr;
+			if (SUCCEEDED((*ppDirectDraw)->QueryInterface(IID_GetInterfaceX, reinterpret_cast<LPVOID*>(&pDirectDrawX))))
+			{
+				pDirectDrawX->SetAsCreatedByDDFactory();
+			}
+
 			hr = (*ppDirectDraw)->SetCooperativeLevel(hWnd, dwCoopLevelFlags);
+
 			if (FAILED(hr))
 			{
 				ULONG ref = (*ppDirectDraw)->Release();
@@ -97,6 +106,8 @@ HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dw
 					Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'DirectDraw' " << ref;
 				}
 				*ppDirectDraw = nullptr;
+
+				return hr;
 			}
 		}
 

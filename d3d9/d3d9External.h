@@ -9,6 +9,22 @@
 // Initial screen resolution
 extern volatile LONG InitWidth;
 extern volatile LONG InitHeight;
+extern volatile DWORD InitRefreshRate;
+
+#ifndef D3DX9_LIBRARY
+typedef enum D3DXIMAGE_FILEFORMAT {
+	D3DXIFF_BMP = 0,
+	D3DXIFF_JPG = 1,
+	D3DXIFF_TGA = 2,
+	D3DXIFF_PNG = 3,
+	D3DXIFF_DDS = 4,
+	D3DXIFF_PPM = 5,
+	D3DXIFF_DIB = 6,
+	D3DXIFF_HDR = 7,
+	D3DXIFF_PFM = 8,
+	D3DXIFF_FORCE_DWORD = 0x7fffffff
+} D3DXIMAGE_FILEFORMAT, * LPD3DXIMAGE_FILEFORMAT;
+#endif
 
 typedef LPDIRECT3D9(WINAPI* Direct3DCreate9Proc)(UINT SDKVersion);
 typedef HRESULT(WINAPI* Direct3DCreate9ExProc)(UINT, IDirect3D9Ex**);
@@ -26,12 +42,23 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppD3D);
 IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries);
 HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrideList, UINT NumOverrideEntries, IDirect3D9Ex** ppOutputInterface);
 
+HRESULT DumpDXTDataToDDS(const void* data, size_t dataSize, int dxtVersion, DWORD Width, DWORD Height, const char* filename);
+HRESULT DumpSurfaceToFile(IDirect3DSurface9* pSurface, D3DXIMAGE_FILEFORMAT format, const char* filename);
+bool DumpHDCToBMP(HDC hdc, const char* filename);
+
 class m_IDirect3D9Ex
 {
 public:
 	void SetDirectXVersion(DWORD DxVersion);
 	static DWORD AdjustPOW2Caps(DWORD OriginalCaps);
-	static void AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool EnableWindowMode, bool FullscreenWindowMode);
+	static void AdjustWindowSize(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool EnableWindowMode, bool FullscreenWindowMode);
+};
+
+class m_IDirect3DDevice9Ex
+{
+public:
+	void CalculateFPS();
+	double GetAverageFPSCounter() const;
 };
 
 #define DECLARE_IN_WRAPPED_PROC(procName, unused) \

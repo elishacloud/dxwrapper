@@ -21,6 +21,8 @@
 #include <fstream>
 #include "Logging\Logging.h"
 
+//#define TROUBLESHOOT_ORDINAL_PROCS
+
 namespace dsound
 {
 	extern volatile FARPROC GetDeviceID_var;
@@ -32,6 +34,52 @@ namespace ddraw
 }
 
 #define VISIT_PROCS_BLANK(visit)
+
+#ifdef TROUBLESHOOT_ORDINAL_PROCS
+
+extern "C" void __stdcall ProcForwarder(const char* name)
+{
+	// Show the function name in a MessageBox
+	MessageBoxA(nullptr, "Function Called", name, MB_OK | MB_ICONINFORMATION);
+}
+
+#define CREATE_PROC_STUB(procName, unused) \
+	volatile FARPROC procName ## _var = nullptr; \
+    extern "C" void __stdcall procName ## _forward() \
+    { \
+        ProcForwarder(#procName); \
+    } \
+	extern "C" __declspec(naked) void __stdcall procName() \
+	{ \
+		__asm mov edi, edi \
+		__asm pushfd \
+		__asm pushad \
+		__asm call procName ## _forward \
+		__asm popad \
+		__asm popfd \
+		__asm jmp procName ## _var \
+	} \
+	volatile FARPROC procName ## _funct = (FARPROC)*procName;
+
+#define CREATE_PROC_STUB_SHARED(procName, procName_shared, unused) \
+	volatile FARPROC procName ## _var = nullptr; \
+	extern "C" void __stdcall procName_shared ## _forward() \
+	{ \
+		ProcForwarder(#procName_shared); \
+	} \
+	extern "C" __declspec(naked) void __stdcall procName_shared() \
+	{ \
+		__asm mov edi, edi \
+		__asm pushfd \
+		__asm pushad \
+		__asm call procName_shared ## _forward \
+		__asm popad \
+		__asm popfd \
+		__asm jmp procName ## _var \
+	} \
+	volatile FARPROC procName ## _funct = (FARPROC)*procName_shared;
+
+#else
 
 #define CREATE_PROC_STUB(procName, unused) \
 	volatile FARPROC procName ## _var = nullptr; \
@@ -50,6 +98,8 @@ namespace ddraw
 		__asm jmp procName ## _var \
 	} \
 	volatile FARPROC procName ## _funct = (FARPROC)*procName_shared;
+
+#endif
 
 #define	CREATE_PROC_STUB_ORDINALS(procName, num, prodAddr) \
 	CREATE_PROC_STUB(procName, prodAddr)
@@ -227,6 +277,11 @@ const char *Wrapper::GetWrapperName(const char *WrapperMode)
 	{ using namespace dllName; if (_stricmp(WrapperMode, Name) == 0) { return Name; }}
 
 	VISIT_DLLS(CHECK_WRAPPER);
+
+#ifdef VISIT_PROCS_DPLAYX
+	// Special handling for dplay.dll because it is sharing procs from dplayx
+	{ using namespace dplayx; if (_stricmp(WrapperMode, "dplay.dll") == 0) { return "dplayx.dll"; } }
+#endif
 
 #ifdef VISIT_PROCS_WINMM
 	// Special handling for winmm.dll because sometimes it is changed to win32 or winnm or some other name

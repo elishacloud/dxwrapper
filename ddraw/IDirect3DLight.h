@@ -1,11 +1,11 @@
 #pragma once
 
-class m_IDirect3DLight : public IDirect3DLight, public AddressLookupTableDdrawObject
+class m_IDirect3DLight final : public IDirect3DLight, public AddressLookupTableDdrawObject
 {
 private:
 	IDirect3DLight *ProxyInterface = nullptr;
 	const IID WrapperID = IID_IDirect3DLight;
-	ULONG RefCount = 1;
+	LONG RefCount = 1;
 
 	// Convert Light
 	m_IDirect3DX* D3DInterface = nullptr;
@@ -28,7 +28,7 @@ public:
 
 		InitInterface();
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	m_IDirect3DLight(m_IDirect3DX *D3D) : D3DInterface(D3D)
 	{
@@ -36,7 +36,7 @@ public:
 
 		InitInterface();
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirect3DLight()
 	{
@@ -44,7 +44,7 @@ public:
 
 		ReleaseInterface();
 
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
 	void SetProxy(IDirect3DLight* NewProxyInterface, m_IDirect3DX* NewD3DInterface)
@@ -55,26 +55,26 @@ public:
 			ProxyInterface = NewProxyInterface;
 			D3DInterface = NewD3DInterface;
 			InitInterface();
-			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+			ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
 		else
 		{
 			ReleaseInterface();
-			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			D3DInterface = nullptr;
 		}
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DLight methods ***/
-	STDMETHOD(Initialize)(THIS_ LPDIRECT3D);
-	STDMETHOD(SetLight)(THIS_ LPD3DLIGHT);
-	STDMETHOD(GetLight)(THIS_ LPD3DLIGHT);
+	IFACEMETHOD(Initialize)(THIS_ LPDIRECT3D) override;
+	IFACEMETHOD(SetLight)(THIS_ LPD3DLIGHT) override;
+	IFACEMETHOD(GetLight)(THIS_ LPD3DLIGHT) override;
 
 	// Helper function
 	void ClearD3D() { D3DInterface = nullptr; }

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -19,24 +19,14 @@
 #include "Utils\Utils.h"
 
 namespace {
-	struct ZFormatEntry
-	{
-		DWORD bitDepthFlag;
-		std::initializer_list<D3DFORMAT> formats;
-	};
-
-	const ZFormatEntry zFormats[] = {
-		{ DDBD_16, { D3DFMT_D16, D3DFMT_D15S1 } },
-		{ DDBD_24, { D3DFMT_D24S8, D3DFMT_D24X8, D3DFMT_D24X4S4 } },
-		{ DDBD_32, { D3DFMT_D32 } },
-	};
-
 	bool GetD3DPath = true;
 	char D3DImPath[MAX_PATH] = { '\0' };
 	char D3DIm700Path[MAX_PATH] = { '\0' };
 	HMODULE hD3DIm = nullptr;
 	HMODULE hD3DIm700 = nullptr;
 }
+
+using namespace DdrawWrapper;
 
 // ******************************
 // IUnknown functions
@@ -95,6 +85,11 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD Dir
 		return D3D_OK;
 	}
 
+	if (GetWrapperType(DirectXVersion) == IID_IUnknown)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: DirectXVersion is unsupported version: " << DirectXVersion);
+	}
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
@@ -113,13 +108,13 @@ ULONG m_IDirect3DX::AddRef(DWORD DirectXVersion)
 		switch (DirectXVersion)
 		{
 		case 1:
-			return InterlockedIncrement(&RefCount1);
+			return _InterlockedIncrement(&RefCount1);
 		case 2:
-			return InterlockedIncrement(&RefCount2);
+			return _InterlockedIncrement(&RefCount2);
 		case 3:
-			return InterlockedIncrement(&RefCount3);
+			return _InterlockedIncrement(&RefCount3);
 		case 7:
-			return InterlockedIncrement(&RefCount7);
+			return _InterlockedIncrement(&RefCount7);
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 			return 0;
@@ -146,24 +141,24 @@ ULONG m_IDirect3DX::Release(DWORD DirectXVersion)
 		switch (DirectXVersion)
 		{
 		case 1:
-			ref = (InterlockedCompareExchange(&RefCount1, 0, 0)) ? InterlockedDecrement(&RefCount1) : 0;
+			ref = InterlockedDecrementIfPositive(&RefCount1);
 			break;
 		case 2:
-			ref = (InterlockedCompareExchange(&RefCount2, 0, 0)) ? InterlockedDecrement(&RefCount2) : 0;
+			ref = InterlockedDecrementIfPositive(&RefCount2);
 			break;
 		case 3:
-			ref = (InterlockedCompareExchange(&RefCount3, 0, 0)) ? InterlockedDecrement(&RefCount3) : 0;
+			ref = InterlockedDecrementIfPositive(&RefCount3);
 			break;
 		case 7:
-			ref = (InterlockedCompareExchange(&RefCount7, 0, 0)) ? InterlockedDecrement(&RefCount7) : 0;
+			ref = InterlockedDecrementIfPositive(&RefCount7);
 			break;
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 			ref = 0;
 		}
 
-		if (InterlockedCompareExchange(&RefCount1, 0, 0) + InterlockedCompareExchange(&RefCount2, 0, 0) +
-			InterlockedCompareExchange(&RefCount3, 0, 0) + InterlockedCompareExchange(&RefCount7, 0, 0) == 0)
+		if (AtomicRead(RefCount1) + AtomicRead(RefCount2) +
+			AtomicRead(RefCount3) + AtomicRead(RefCount7) == 0)
 		{
 			delete this;
 		}
@@ -204,7 +199,7 @@ HRESULT m_IDirect3DX::EnumDevices(LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback
 
 	if (Config.Dd7to9)
 	{
-		return EnumDevices7(nullptr, lpEnumDevicesCallback, lpUserArg, DirectXVersion);
+		return EnumDevices7(nullptr, lpEnumDevicesCallback, lpUserArg, false, DirectXVersion);
 	}
 
 	switch (ProxyDirectXVersion)
@@ -443,6 +438,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 		{
 			bool Found = false;
 			LPD3DFINDDEVICESEARCH lpD3DFDS = nullptr;
+			GUID Guid = {};
 			D3DDEVICEDESC ddHwDesc = {};
 			D3DDEVICEDESC ddSwDesc = {};
 
@@ -452,6 +448,8 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 				UNREFERENCED_PARAMETER(lpDeviceName);
 
 				EnumFindDevice* self = (EnumFindDevice*)lpContext;
+
+				// Note: the D3DFDS_HARDWARE flag indicates that the bHardware value is to be used.  Default to hardware unless the game specifies otherwise.
 				LPD3DDEVICEDESC lpdd = (self->lpD3DFDS->dwFlags & D3DFDS_HARDWARE) && !self->lpD3DFDS->bHardware ? lpddSwDesc : lpddHwDesc;
 
 				if ((self->lpD3DFDS->dwFlags & D3DFDS_COLORMODEL) &&
@@ -460,8 +458,14 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 					return DDENUMRET_OK;	// Doesn't match continue
 				}
 
-				if ((self->lpD3DFDS->dwFlags & D3DFDS_GUID) &&
-					(lpGuid && !IsEqualGUID(*lpGuid, self->lpD3DFDS->guid)))
+				const bool CheckGuid = (self->lpD3DFDS->dwFlags & D3DFDS_GUID) && lpGuid;
+				const bool GuidRGBMatch = CheckGuid && (IsEqualGUID(*lpGuid, IID_IDirect3DRGBDevice) &&
+					(IsEqualGUID(self->lpD3DFDS->guid, IID_IDirect3DMMXDevice) || IsEqualGUID(self->lpD3DFDS->guid, IID_IDirect3DRefDevice)));
+				const bool GuidREFMatch = CheckGuid && (IsEqualGUID(*lpGuid, IID_IDirect3DHALDevice) &&
+					(IsEqualGUID(self->lpD3DFDS->guid, IID_IDirect3DNullDevice) || IsEqualGUID(self->lpD3DFDS->guid, GUID_NULL)));
+
+				if (CheckGuid && !GuidRGBMatch && !GuidREFMatch &&
+					!IsEqualGUID(self->lpD3DFDS->guid, *lpGuid))
 				{
 					return DDENUMRET_OK;	// Doesn't match continue
 				}
@@ -473,12 +477,12 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 					PrimCaps.push_back(&lpdd->dpcTriCaps);
 				}
 
-				if (self->lpD3DFDS->dwFlags & D3DFDS_LINES)	
+				if (self->lpD3DFDS->dwFlags & D3DFDS_LINES)
 				{
 					PrimCaps.push_back(&lpdd->dpcLineCaps);
 				}
 
-				for (auto lpPrimCaps : PrimCaps)
+				for (const auto& lpPrimCaps : PrimCaps)
 				{
 					if ((self->lpD3DFDS->dwFlags & D3DFDS_MISCCAPS) &&
 						((lpPrimCaps->dwMiscCaps & self->lpD3DFDS->dpcPrimCaps.dwMiscCaps) != self->lpD3DFDS->dpcPrimCaps.dwMiscCaps))
@@ -549,6 +553,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 
 				// All requested flags matched
 				self->Found = true;
+				self->Guid = *lpGuid;
 				self->ddHwDesc = *lpddHwDesc;
 				self->ddSwDesc = *lpddSwDesc;
 
@@ -557,32 +562,32 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 		} CallbackContext;
 		CallbackContext.lpD3DFDS = lpD3DFDS;
 
-		EnumDevices7(nullptr, EnumFindDevice::ConvertCallback, &CallbackContext, DirectXVersion);
+		EnumDevices7(nullptr, EnumFindDevice::ConvertCallback, &CallbackContext, true, DirectXVersion);
 
-		if (CallbackContext.Found)
+		if (!CallbackContext.Found)
 		{
-			lpD3DFDR->guid = lpD3DFDS->guid;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: could not find device: "
+				<< lpD3DFDS->guid
+				<< " Flags: " << Logging::hex(lpD3DFDS->dwFlags)
+				<< " Hardware: " << lpD3DFDS->bHardware
+				<< " ColorModel: " << lpD3DFDS->dcmColorModel
+				<< " Caps: " << Logging::hex(lpD3DFDS->dwCaps)
+				<< " PrimCaps: " << lpD3DFDS->dpcPrimCaps);
 
-			LPD3DDEVICEDESC lpddHwDesc = &lpD3DFDR->ddHwDesc;
-			memcpy(lpddHwDesc, &CallbackContext.ddHwDesc, Size);
-			lpddHwDesc->dwSize = Size;
-
-			LPD3DDEVICEDESC lpddSwDesc = (LPD3DDEVICEDESC)(((BYTE*)lpddHwDesc) + Size);
-			memcpy(lpddSwDesc, &CallbackContext.ddSwDesc, Size);
-			lpddSwDesc->dwSize = Size;
-
-			return D3D_OK;
+			return DDERR_NOTFOUND;
 		}
 
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: could not find device: "
-			<< lpD3DFDS->guid
-			<< " Flags: " << Logging::hex(lpD3DFDS->dwFlags)
-			<< " Hardware: " << lpD3DFDS->bHardware
-			<< " ColorModel: " << lpD3DFDS->dcmColorModel
-			<< " Caps: " << Logging::hex(lpD3DFDS->dwCaps)
-			<< " PrimCaps: " << lpD3DFDS->dpcPrimCaps);
+		lpD3DFDR->guid = CallbackContext.Guid;
 
-		return DDERR_NOTFOUND;
+		LPD3DDEVICEDESC lpddHwDesc = &lpD3DFDR->ddHwDesc;
+		memcpy(lpddHwDesc, &CallbackContext.ddHwDesc, Size);
+		lpddHwDesc->dwSize = Size;
+
+		LPD3DDEVICEDESC lpddSwDesc = (LPD3DDEVICEDESC)(((BYTE*)lpddHwDesc) + Size);
+		memcpy(lpddSwDesc, &CallbackContext.ddSwDesc, Size);
+		lpddSwDesc->dwSize = Size;
+
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -644,7 +649,12 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Direct3DDevice is already setup. Multiple Direct3DDevice's not fully implemented!");
 		}
 
-		m_IDirect3DDeviceX* Interface = new m_IDirect3DDeviceX(ddrawParent, this, lpDDS, rclsid, DirectXVersion);
+		if (!IsValid3DDeviceGUID(rclsid))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Device class ID not supported: " << rclsid);
+		}
+
+		m_IDirect3DDeviceX* Interface = new m_IDirect3DDeviceX(ddrawParent, this, lpDDS, rclsid, nullptr, DirectXVersion);
 
 		if (ddrawParent && ddrawParent->IsCreatedEx())
 		{
@@ -824,62 +834,36 @@ HRESULT m_IDirect3DX::EnumZBufferFormats(REFCLSID riidDevice, LPD3DENUMPIXELFORM
 			return DDERR_INVALIDOBJECT;
 		}
 
-		// Get d3d9Object
-		IDirect3D9* d3d9Object = ddrawParent->GetDirectD9Object();
+		// Update Cap9 cache
+		GetCap9Cache();
 
-		if (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DMMXDevice || riidDevice == IID_IDirect3DRefDevice ||
-			riidDevice == IID_IDirect3DHALDevice || riidDevice == IID_IDirect3DTnLHalDevice || riidDevice == GUID_NULL)
+		// Check cache
+		if (D9Cache.empty())
 		{
-			D3DDEVICEDESC7 Desc7 = {};
-			D3DCAPS9 Caps9;
-			ZeroMemory(&Caps9, sizeof(D3DCAPS9));
-			Caps9.DeviceType = (riidDevice == IID_IDirect3DRGBDevice || riidDevice == IID_IDirect3DMMXDevice || riidDevice == IID_IDirect3DRefDevice) ? D3DDEVTYPE_REF :
-				(riidDevice == IID_IDirect3DHALDevice) ? D3DDEVTYPE_HAL :
-				(riidDevice == IID_IDirect3DTnLHalDevice) ? (D3DDEVTYPE)D3DDEVTYPE_TNLHAL :
-				D3DDEVTYPE_NULLREF;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Cap9 cache!");
+			return DDERR_INVALIDOBJECT;
+		}
 
-			ConvertDeviceDesc(Desc7, Caps9);
-			Desc7.dwDeviceZBufferBitDepth = dwDeviceZBufferBitDepthCache;
+		if (!IsValid3DDeviceGUID(riidDevice))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Device class ID not supported: " << riidDevice);
+		}
 
+		// Send supported formats to callback function
+		for (const auto& Format : D9Cache.zFormat)
+		{
 			DDPIXELFORMAT PixelFormat = {};
 			PixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 
-			// Send supported formats to callback function
-			for (const auto& entry : zFormats)
-			{
-				if (Desc7.dwDeviceZBufferBitDepth & entry.bitDepthFlag)
-				{
-					for (const auto& Format : entry.formats)
-					{
-						if (SUCCEEDED(d3d9Object->CheckDeviceFormat(ddrawParent->GetAdapterIndex(), D3DDEVTYPE_HAL, D9DisplayFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, Format)))
-						{
-							SetPixelDisplayFormat(Format, PixelFormat);
+			SetPixelDisplayFormat(Format, PixelFormat);
 
-							if (PixelFormat.dwFlags && lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
-							{
-								return D3D_OK;
-							}
-						}
-					}
-				}
+			if (PixelFormat.dwFlags && lpEnumCallback(&PixelFormat, lpContext) == DDENUMRET_CANCEL)
+			{
+				return D3D_OK;
 			}
-			return D3D_OK;
 		}
-		else if (riidDevice == IID_IDirect3DRampDevice)
-		{
-			// The IID_IDirect3DRampDevice, used for the ramp emulation device, is not supported by interfaces later than IDirect3D2
-			return DDERR_NOZBUFFERHW;
-		}
-		else if (riidDevice == IID_IDirect3DNullDevice)
-		{
-			// NullDevice renders nothing
-			return D3D_OK;
-		}
-		else
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Not Implemented " << riidDevice);
-			return DDERR_NOZBUFFERHW;
-		}
+
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -922,7 +906,7 @@ HRESULT m_IDirect3DX::EvictManagedTextures()
 // IDirect3D v7 functions
 // ******************************
 
-HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallback7, LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback, LPVOID lpUserArg, DWORD DirectXVersion)
+HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallback7, LPD3DENUMDEVICESCALLBACK lpEnumDevicesCallback, LPVOID lpUserArg, bool ReverseOrder, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -937,7 +921,7 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 		GetCap9Cache();
 
 		// Check cache
-		if (Cap9Cache.empty())
+		if (D9Cache.empty())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Cap9 cache!");
 			return DDERR_INVALIDOBJECT;
@@ -948,76 +932,97 @@ HRESULT m_IDirect3DX::EnumDevices7(LPD3DENUMDEVICESCALLBACK7 lpEnumDevicesCallba
 			(DirectXVersion == 2) ? D3DDEVICEDESC5_SIZE :
 			(DirectXVersion == 3) ? D3DDEVICEDESC6_SIZE : sizeof(D3DDEVICEDESC);
 
+		static constexpr DWORD DeviceTypesForward[] = { D3DDEVTYPE_RAMP, D3DDEVTYPE_RGB, D3DDEVTYPE_HAL, D3DDEVTYPE_TNLHAL };
+		static constexpr DWORD DeviceTypesReverse[] = { D3DDEVTYPE_TNLHAL, D3DDEVTYPE_HAL, D3DDEVTYPE_RGB, D3DDEVTYPE_RAMP };
+
+		const auto& DeviceTypeList = ReverseOrder ? DeviceTypesReverse : DeviceTypesForward;
+
 		// Loop through all adapters
-		for (auto& entry : Cap9Cache)
+		for (const auto& Type : DeviceTypeList)
 		{
-			for (D3DDEVTYPE Type : { D3DDEVTYPE_REF, D3DDEVTYPE_HAL, (D3DDEVTYPE)D3DDEVTYPE_TNLHAL })
+			// Get Device Caps
+			D3DCAPS9 Caps9 = D9Cache.Caps9;
+
+			// Convert device desc
+			D3DDEVICEDESC7 DeviceDesc7;
+			Caps9.DeviceType = (D3DDEVTYPE)Type;
+			ConvertDeviceDesc(DeviceDesc7, Caps9, D9Cache.dwDeviceZBufferBitDepth, nullptr, DirectXVersion);
+
+			LPSTR lpDescription = nullptr, lpName = nullptr;
+
+			switch (Type)
 			{
-				// Get Device Caps
-				D3DCAPS9 Caps9 = (Type == D3DDEVTYPE_REF) ? entry.REF : entry.HAL;
+			case D3DDEVTYPE_RAMP:
+				lpName = "Direct3D Ramp Device";
+				lpDescription = "Microsoft Direct3D Ramp Software Emulation";
+				break;
 
-				// Convert device desc
-				D3DDEVICEDESC7 DeviceDesc7;
-				Caps9.DeviceType = Type;
-				ConvertDeviceDesc(DeviceDesc7, Caps9);
-				DeviceDesc7.dwDeviceZBufferBitDepth = dwDeviceZBufferBitDepthCache;
+			default:
+			case D3DDEVTYPE_RGB:
+				lpName = "RGB Emulation";
+				lpDescription = "Microsoft Direct3D RGB Software Emulation";
+				break;
 
+			case D3DDEVTYPE_HAL:
+				lpName = "Direct3D HAL";
+				lpDescription = "Microsoft Direct3D Hardware acceleration through Direct3D HAL";
+				break;
+
+			case D3DDEVTYPE_TNLHAL:
+				lpName = "Direct3D T&L HAL";
+				lpDescription = "Microsoft Direct3D Hardware Transform and Lighting acceleration capable device";
+				break;
+			}
+
+			char Desc[MAX_PATH] = {};
+			char Name[MAX_PATH] = {};
+
+			strcpy_s(Desc, lpDescription);
+			strcpy_s(Name, lpName);
+
+			if (lpEnumDevicesCallback && Type != D3DDEVTYPE_TNLHAL)
+			{
+				// Get device GUID
 				GUID deviceGUID = DeviceDesc7.deviceGUID;
-				LPSTR lpDescription = nullptr, lpName = nullptr;
 
 				// For conversion
 				D3DDEVICEDESC D3DDRVDevDesc = {}, D3DSWDevDesc = {};
 				D3DDRVDevDesc.dwSize = sizeof(D3DDEVICEDESC);
 				D3DSWDevDesc.dwSize = sizeof(D3DDEVICEDESC);
 
-				char Desc[MAX_PATH] = {};
-				char Name[MAX_PATH] = {};
+				// Get D3DDRVDevDesc data (D3DDEVTYPE_HAL)
+				Caps9.DeviceType = D3DDEVTYPE_HAL;
+				ConvertDeviceDesc(DeviceDesc7, Caps9, D9Cache.dwDeviceZBufferBitDepth, nullptr, DirectXVersion);
+				ConvertDeviceDesc(D3DDRVDevDesc, DeviceDesc7);
 
-				switch ((DWORD)Type)
+				// Get D3DSWDevDesc data (D3DDEVTYPE_RAMP / D3DDEVTYPE_RGB)
+				Caps9.DeviceType = (D3DDEVTYPE)(Type == D3DDEVTYPE_RAMP ? D3DDEVTYPE_RAMP : D3DDEVTYPE_RGB);
+				ConvertDeviceDesc(DeviceDesc7, Caps9, D9Cache.dwDeviceZBufferBitDepth, nullptr, DirectXVersion);
+				ConvertDeviceDesc(D3DSWDevDesc, DeviceDesc7);
+
+				// Special handling for Ramp
+				if (Type == D3DDEVTYPE_RAMP)
 				{
-				case D3DDEVTYPE_REF:
-					lpName = "RGB Emulation";
-					lpDescription = "Microsoft Direct3D RGB Software Emulation";
-					break;
-				case D3DDEVTYPE_HAL:
-					lpName = "Direct3D HAL";
-					lpDescription = "Microsoft Direct3D Hardware acceleration through Direct3D HAL";
-					break;
-				default:
-				case D3DDEVTYPE_TNLHAL:
-					lpName = "Direct3D T&L HAL";
-					lpDescription = "Microsoft Direct3D Hardware Transform and Lighting acceleration capable device";
-					break;
+					D3DDRVDevDesc.dwFlags = 0;
+					D3DDRVDevDesc.dcmColorModel = D3DCOLOR_MONO;
+
+					D3DSWDevDesc.dwFlags = 0;
+					D3DSWDevDesc.dcmColorModel = D3DCOLOR_MONO;
 				}
 
-				strcpy_s(Desc, lpDescription);
-				strcpy_s(Name, lpName);
+				D3DDRVDevDesc.dwSize = DevSize;
+				D3DSWDevDesc.dwSize = DevSize;
 
-				if (lpEnumDevicesCallback)
+				if (lpEnumDevicesCallback(&deviceGUID, Desc, Name, &D3DDRVDevDesc, &D3DSWDevDesc, lpUserArg) == DDENUMRET_CANCEL)
 				{
-					// Get D3DSWDevDesc data (D3DDEVTYPE_REF)
-					ConvertDeviceDesc(D3DSWDevDesc, DeviceDesc7);
-
-					// Get D3DDRVDevDesc data (D3DDEVTYPE_HAL)
-					Caps9 = entry.HAL;
-					Caps9.DeviceType = D3DDEVTYPE_HAL;
-					ConvertDeviceDesc(DeviceDesc7, Caps9);
-					ConvertDeviceDesc(D3DDRVDevDesc, DeviceDesc7);
-
-					D3DDRVDevDesc.dwSize = DevSize;
-					D3DSWDevDesc.dwSize = DevSize;
-
-					if (lpEnumDevicesCallback(&deviceGUID, Desc, Name, &D3DDRVDevDesc, &D3DSWDevDesc, lpUserArg) == DDENUMRET_CANCEL)
-					{
-						return D3D_OK;
-					}
+					return D3D_OK;
 				}
-				else if (lpEnumDevicesCallback7)
+			}
+			else if (lpEnumDevicesCallback7 && Type != D3DDEVTYPE_RAMP)
+			{
+				if (lpEnumDevicesCallback7(Desc, Name, &DeviceDesc7, lpUserArg) == DDENUMRET_CANCEL)
 				{
-					if (lpEnumDevicesCallback7(Desc, Name, &DeviceDesc7, lpUserArg) == DDENUMRET_CANCEL)
-					{
-						return D3D_OK;
-					}
+					return D3D_OK;
 				}
 			}
 		}
@@ -1054,17 +1059,17 @@ void m_IDirect3DX::ReleaseInterface()
 		return;
 	}
 
-	// Release device
-	for (auto& entry : D3DDeviceList)
-	{
-		entry.Interface->ClearD3D(this);
-	}
-
 	// Don't delete wrapper interface
 	SaveInterfaceAddress(WrapperInterface);
 	SaveInterfaceAddress(WrapperInterface2);
 	SaveInterfaceAddress(WrapperInterface3);
 	SaveInterfaceAddress(WrapperInterface7);
+
+	// Release device
+	for (auto& entry : D3DDeviceList)
+	{
+		entry.Interface->ClearD3D(this);
+	}
 
 	// Release Light
 	for (auto& entry : LightList)
@@ -1119,42 +1124,7 @@ void m_IDirect3DX::GetCap9Cache()
 	// Check for device
 	if (ddrawParent)
 	{
-		// Get d3d9Object
-		IDirect3D9* d3d9Object = ddrawParent->GetDirectD9Object();
-		if (d3d9Object)
-		{
-			UINT AdapterCount = d3d9Object->GetAdapterCount();
-			if (AdapterCount)
-			{
-				Cap9Cache.clear();
-
-				// Loop through all adapters
-				for (UINT i = 0; i < AdapterCount; i++)
-				{
-					// Get Device Caps
-					DUALCAP9 DCaps9;
-					if (SUCCEEDED(d3d9Object->GetDeviceCaps(i, D3DDEVTYPE_REF, &DCaps9.REF)) && SUCCEEDED(d3d9Object->GetDeviceCaps(i, D3DDEVTYPE_HAL, &DCaps9.HAL)))
-					{
-						Cap9Cache.push_back(DCaps9);
-					}
-				}
-			}
-
-			dwDeviceZBufferBitDepthCache = 0;
-
-			// Get supported zbuffer format bit depth
-			for (const auto& entry : zFormats)
-			{
-				for (const auto& Format : entry.formats)
-				{
-					if (SUCCEEDED(d3d9Object->CheckDeviceFormat(ddrawParent->GetAdapterIndex(), D3DDEVTYPE_HAL, D9DisplayFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, Format)))
-					{
-						dwDeviceZBufferBitDepthCache |= entry.bitDepthFlag;
-						break;
-					}
-				}
-			}
-		}
+		ddrawParent->GetD9Caps(D9Cache.Caps9, D9Cache.dwDeviceZBufferBitDepth, D9Cache.zFormat);
 	}
 }
 

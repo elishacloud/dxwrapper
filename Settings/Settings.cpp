@@ -46,7 +46,10 @@ namespace Settings
 	bool DDrawCompatExperimental = false;
 	bool DDrawCompat30 = false;
 	bool DDrawCompat31 = false;
+	bool DisableHighDPIScaling = false;
+	bool DisableHighDPIScaling_Set = false;
 	bool ForceDirect3D9On12 = false;
+	bool ForceMipMapAutoGen = false;
 
 	// Function declarations
 	bool IsValueEnabled(char*);
@@ -322,7 +325,14 @@ void __stdcall Settings::ParseCallback(char* name, char* value)
 	SET_LOCAL_VALUE(DDrawCompatExperimental);
 	SET_LOCAL_VALUE(DDrawCompat30);
 	SET_LOCAL_VALUE(DDrawCompat31);
+	SET_LOCAL_VALUE(DisableHighDPIScaling);
 	SET_LOCAL_VALUE(ForceDirect3D9On12);
+	SET_LOCAL_VALUE(ForceMipMapAutoGen);
+
+	if (!_stricmp(name, "DisableHighDPIScaling"))
+	{
+		DisableHighDPIScaling_Set = true;
+	}
 
 	// Set Value of local settings
 	VISIT_LOCAL_SETTINGS(SET_LOCAL_VALUE);
@@ -497,11 +507,11 @@ void Settings::SetDefaultConfigSettings()
 	Config.EnableD3d9Wrapper = NOT_EXIST;
 	Config.DdrawHookSystem32 = NOT_EXIST;
 	Config.D3d8HookSystem32 = NOT_EXIST;
-	Config.D3d9HookSystem32 = NOT_EXIST;
 	Config.DinputHookSystem32 = NOT_EXIST;
 	Config.Dinput8HookSystem32 = NOT_EXIST;
 	Config.DsoundHookSystem32 = NOT_EXIST;
 	Config.DdrawResolutionHack = NOT_EXIST;
+	Config.ConfigureDpiAwareness = NOT_EXIST;
 	Config.CacheClipPlane = NOT_EXIST;
 	Config.LimitStateBlocks = NOT_EXIST;
 	Config.WindowModeGammaShader = NOT_EXIST;
@@ -510,7 +520,6 @@ void Settings::SetDefaultConfigSettings()
 	Config.DisableMaxWindowedModeNotSet = true;
 
 	// Set defaults
-	Config.DisableHighDPIScaling = true;
 	Config.FixSpeakerConfigType = true;
 
 	// Set other default values
@@ -544,23 +553,21 @@ void CONFIG::Init()
 	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)Settings::ClearConfigSettings, &hModule);
 
 	// Declare variables
-	HeapBuffer<char> p_wName(MAX_PATH);
-	HeapBuffer<char> p_pName(MAX_PATH);
+	CreateScopedHeapBuffer(char, p_wName, MAX_PATH);
+	CreateScopedHeapBuffer(char, p_pName, MAX_PATH);
 
 	// Get module name
-	HeapBuffer<char> wrappername(MAX_PATH);
-	GetModuleFileName(hModule, wrappername.data(), MAX_PATH);
-	if (strrchr(wrappername.data(), '\\'))
+	CreateScopedHeapBuffer(char, wrappername, MAX_PATH);
+	if (GetModuleFileName(hModule, wrappername, MAX_PATH) && strrchr(wrappername, '\\'))
 	{
-		strcpy_s(p_wName.data(), MAX_PATH, strrchr(wrappername.data(), '\\') + 1);
+		strcpy_s(p_wName, MAX_PATH, strrchr(wrappername, '\\') + 1);
 	}
 
 	// Get process name
-	HeapBuffer<char> processname(MAX_PATH);
-	GetModuleFileName(nullptr, processname.data(), MAX_PATH);
-	if (strrchr(processname.data(), '\\'))
+	CreateScopedHeapBuffer(char, processname, MAX_PATH);
+	if (GetModuleFileName(nullptr, processname, MAX_PATH) && strrchr(processname, '\\'))
 	{
-		strcpy_s(p_pName.data(), MAX_PATH, strrchr(processname.data(), '\\') + 1);
+		strcpy_s(p_pName, MAX_PATH, strrchr(processname, '\\') + 1);
 	}
 
 	// Set default settings
@@ -571,15 +578,15 @@ void CONFIG::Init()
 	{
 		const char* szEnvPrefix = "DXWRAPPER_";
 		char* szEnvVar = p_envStrings;
-		HeapBuffer<char> szSetting(MAX_ENV_VAR);
+		CreateScopedHeapBuffer(char, szSetting, MAX_PATH);
 
 		while (*szEnvVar)
 		{
 			if (!_strnicmp(szEnvVar, szEnvPrefix, strlen(szEnvPrefix)))
 			{
 				szEnvVar += strlen(szEnvPrefix);
-				strcpy_s(szSetting.data(), MAX_ENV_VAR, szEnvVar);
-				Parse(szSetting.data(), ParseCallback);
+				strcpy_s(szSetting, MAX_ENV_VAR, szEnvVar);
+				Parse(szSetting, ParseCallback);
 			}
 			szEnvVar += strlen(szEnvVar) + 1;
 		}
@@ -588,16 +595,16 @@ void CONFIG::Init()
 	}
 
 	// Check for memory loading
-	if (_stricmp(p_wName.data(), p_pName.data()) == 0)
+	if (_stricmp(p_wName, p_pName) == 0)
 	{
-		strcpy_s(wrappername.data(), MAX_PATH, processname.data());
-		strcpy_s(strrchr(wrappername.data(), '\\'), MAX_PATH - strlen(wrappername.data()), "\\dxwrapper.dll");
+		strcpy_s(wrappername, MAX_PATH, processname);
+		strcpy_s(strrchr(wrappername, '\\'), MAX_PATH - strlen(wrappername), "\\dxwrapper.dll");
 	}
 
 	// Get config path to include process name
-	strcpy_s(configpath, MAX_PATH, wrappername.data());
+	strcpy_s(configpath, MAX_PATH, wrappername);
 	strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), "-");
-	strcat_s(configpath, MAX_PATH, p_pName.data());
+	strcat_s(configpath, MAX_PATH, p_pName);
 	strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), ".ini");
 
 	// Read defualt config file
@@ -614,7 +621,7 @@ void CONFIG::Init()
 	else
 	{
 		// Get config file path
-		strcpy_s(configpath, MAX_PATH, wrappername.data());
+		strcpy_s(configpath, MAX_PATH, wrappername);
 		strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), ".ini");
 
 		// Open config file
@@ -630,13 +637,13 @@ void CONFIG::Init()
 	}
 
 	// Set module name
-	if (_stricmp(p_wName.data(), p_pName.data()) == 0)
+	if (_stricmp(p_wName, p_pName) == 0)
 	{
 		WrapperName.assign("dxwrapper.dll");
 	}
 	else
 	{
-		WrapperName.assign(p_wName.data());
+		WrapperName.assign(p_wName);
 		std::transform(WrapperName.begin(), WrapperName.end(), WrapperName.begin(),
 			[](char c) {return static_cast<char>(::tolower(c)); });
 	}
@@ -666,8 +673,8 @@ void CONFIG::Init()
 	// Check if process should be excluded or not included
 	// if so, then clear all settings (disable everything)
 	ProcessExcluded = false;
-	if ((ExcludeProcess.size() != 0 && IfStringExistsInList(p_pName.data(), ExcludeProcess, false)) ||
-		(IncludeProcess.size() != 0 && !IfStringExistsInList(p_pName.data(), IncludeProcess, false)))
+	if ((ExcludeProcess.size() != 0 && IfStringExistsInList(p_pName, ExcludeProcess, false)) ||
+		(IncludeProcess.size() != 0 && !IfStringExistsInList(p_pName, IncludeProcess, false)))
 	{
 		ProcessExcluded = true;
 	}
@@ -756,14 +763,12 @@ void CONFIG::SetConfig()
 	{
 		DDrawCompat20 = false;
 	}
-	D3d9on12 = (D3d9on12 || ForceDirect3D9On12);
+	D3d9on12 = (D3d9on12 || ForceDirect3D9On12);																				// For legacy purposes
 	EnableDdrawWrapper = (EnableDdrawWrapper || IsSet(DdrawHookSystem32) || IsSet(DdrawResolutionHack) || DdrawUseDirect3D9Caps || Dd7to9);
 	D3d8to9 = (D3d8to9 || IsSet(D3d8HookSystem32));
 	DdrawAutoFrameSkip = (AutoFrameSkip || DdrawAutoFrameSkip);																	// For legacy purposes
 	EnableWindowMode = (FullscreenWindowMode) ? true : EnableWindowMode;
-	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || IsSet(D3d9HookSystem32) || D3d9to9Ex || D3d9on12 ||
-		(EnableD3d9Wrapper == NOT_EXIST && (AnisotropicFiltering || AntiAliasing || IsSet(CacheClipPlane) || EnableVSync ||		// For legacy purposes
-			ForceMixedVertexProcessing || ForceSystemMemVertexCache || ForceVsyncMode || EnableWindowMode)));					// For legacy purposes
+	EnableD3d9Wrapper = (IsSet(EnableD3d9Wrapper) || D3d9HookSystem32 || D3d9to9Ex || D3d9on12);
 	EnvironmentCubeMapFix = EnvironmentCubeMapFix || EnvironmentMapCubeFix;														// For legacy purposes
 
 	// Set ddraw color bit mode
@@ -804,7 +809,7 @@ void CONFIG::SetConfig()
 	// Check if any DXPrimaryEmulation flags are set
 	for (UINT x = 1; x <= 12; x++)
 	{
-		if (Config.DXPrimaryEmulation[x])
+		if (DXPrimaryEmulation[x])
 		{
 			isAppCompatDataSet = true;
 		}
@@ -817,27 +822,65 @@ void CONFIG::SetConfig()
 	}
 
 	// Set mouse scroll factor
-	if (abs(MouseMovementFactor) < 0.01f || abs(MouseMovementFactor - 1.0f) < 0.01f)
+	auto NormalizeMouseMovementFactor = [&](float& Factor)
 	{
-		MouseMovementFactor = 1.0f;
+		if (abs(Factor) < 0.01f ||
+			abs(abs(Factor) - 1.0f) < 0.01f)
+		{
+			Factor = 1.0f;
+		}
+		else if (Factor != 0.0f)
+		{
+			FixHighFrequencyMouse = true;
+		}
+	};
+	NormalizeMouseMovementFactor(MouseMovementFactor);
+	NormalizeMouseMovementFactor(MouseMovementFactorX);
+	NormalizeMouseMovementFactor(MouseMovementFactorY);
+
+	if (MouseMovementFactor != 1.0f)
+	{
+		if (MouseMovementFactorX == 1.0f)
+		{
+			MouseMovementFactorX = abs(MouseMovementFactor);
+		}
+
+		if (MouseMovementFactorY == 1.0f)
+		{
+			MouseMovementFactorY = MouseMovementFactor;
+		}
 	}
-	else if (MouseMovementFactor != 0.0f)
+
+	// Mouse movement padding
+	if (MouseMovementPadding || MouseMovementPaddingX || MouseMovementPaddingY)
 	{
 		FixHighFrequencyMouse = true;
 	}
 
-	// Mouse movement padding
 	if (MouseMovementPadding)
 	{
-		FixHighFrequencyMouse = true;
+		if (!MouseMovementPaddingX)
+		{
+			MouseMovementPaddingX = MouseMovementPadding;
+		}
+
+		if (!MouseMovementPaddingY)
+		{
+			MouseMovementPaddingY = MouseMovementPadding;
+		}
 	}
 
 	// Windows Lie
 	WinVersionLieSP = (WinVersionLieSP > 0 && WinVersionLieSP <= 5) ? WinVersionLieSP : 0;
 
+	// Process affinity
+	SingleProcAffinity = SingleProcAffinity == 0 ? (ProcAffinityMask != 0) : SingleProcAffinity;
+
 	// Set unset options
 	CacheClipPlane = (CacheClipPlane != 0);
 	DdrawResolutionHack = (DdrawResolutionHack != 0);
+	ConfigureDpiAwareness = IsSet(ConfigureDpiAwareness) ? ConfigureDpiAwareness : DisableHighDPIScaling_Set ? DisableHighDPIScaling : 1;
+	ForceMipMapUsage = (ForceMipMapUsage || ForceMipMapAutoGen);
 	LimitStateBlocks = (LimitStateBlocks != NOT_EXIST) ? LimitStateBlocks : (Dd7to9 || D3d8to9);
 	WindowModeGammaShader = (WindowModeGammaShader != NOT_EXIST) ? WindowModeGammaShader : 1;
 }

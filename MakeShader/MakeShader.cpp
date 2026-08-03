@@ -24,6 +24,7 @@
 #include <sys/stat.h>
 #include <d3d9.h>
 #include "d3dx9.h"
+#include "..\IClassFactory\IClassFactory.h"
 #include "Settings\Settings.h"
 #include "Utils\Utils.h"
 #include "External\Hooking\Hook.h"
@@ -199,6 +200,9 @@ int main(int argc, char* argv[])
             return 0;  // Exit early, no need to compile or update header
         }
     }
+
+    // Initialize d3dx9 first
+    LoadD3dx9();
 
     LPD3DXBUFFER compiledShader = nullptr;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-class m_IDirect3DVertexBuffer7 : public IDirect3DVertexBuffer7, public AddressLookupTableDdrawObject
+class m_IDirect3DVertexBuffer7 final : public IDirect3DVertexBuffer7, public AddressLookupTableDdrawObject
 {
 private:
 	m_IDirect3DVertexBufferX *ProxyInterface;
@@ -10,11 +10,11 @@ private:
 public:
 	m_IDirect3DVertexBuffer7(IDirect3DVertexBuffer7 *, m_IDirect3DVertexBufferX *Interface) : ProxyInterface(Interface)
 	{
-		ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DVertexBuffer7()
 	{
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
 	void SetProxy(m_IDirect3DVertexBufferX* NewProxyInterface)
@@ -22,25 +22,25 @@ public:
 		ProxyInterface = NewProxyInterface;
 		if (NewProxyInterface)
 		{
-			ProxyAddressLookupTable.SaveAddress(this, ProxyInterface);
+			ProxyAddressLookupTableDdraw.SaveAddress(this, ProxyInterface);
 		}
 		else
 		{
-			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 		}
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DVertexBuffer methods ***/
-	STDMETHOD(Lock)(THIS_ DWORD, LPVOID*, LPDWORD);
-	STDMETHOD(Unlock)(THIS);
-	STDMETHOD(ProcessVertices)(THIS_ DWORD, DWORD, DWORD, LPDIRECT3DVERTEXBUFFER7, DWORD, LPDIRECT3DDEVICE7, DWORD);
-	STDMETHOD(GetVertexBufferDesc)(THIS_ LPD3DVERTEXBUFFERDESC);
-	STDMETHOD(Optimize)(THIS_ LPDIRECT3DDEVICE7, DWORD);
+	IFACEMETHOD(Lock)(THIS_ DWORD, LPVOID*, LPDWORD) override;
+	IFACEMETHOD(Unlock)(THIS) override;
+	IFACEMETHOD(ProcessVertices)(THIS_ DWORD, DWORD, DWORD, LPDIRECT3DVERTEXBUFFER7, DWORD, LPDIRECT3DDEVICE7, DWORD) override;
+	IFACEMETHOD(GetVertexBufferDesc)(THIS_ LPD3DVERTEXBUFFERDESC) override;
+	IFACEMETHOD(Optimize)(THIS_ LPDIRECT3DDEVICE7, DWORD) override;
 	/*** IDirect3DVertexBuffer7 methods ***/
-	STDMETHOD(ProcessVerticesStrided)(THIS_ DWORD, DWORD, DWORD, LPD3DDRAWPRIMITIVESTRIDEDDATA, DWORD, LPDIRECT3DDEVICE7, DWORD);
+	IFACEMETHOD(ProcessVerticesStrided)(THIS_ DWORD, DWORD, DWORD, LPD3DDRAWPRIMITIVESTRIDEDDATA, DWORD, LPDIRECT3DDEVICE7, DWORD) override;
 };

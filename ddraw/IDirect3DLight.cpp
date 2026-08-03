@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -15,6 +15,8 @@
 */
 
 #include "ddraw.h"
+
+using namespace DdrawWrapper;
 
 // ******************************
 // IUnknown functions
@@ -73,7 +75,7 @@ ULONG m_IDirect3DLight::AddRef()
 
 	if (Config.Dd7to9)
 	{
-		return InterlockedIncrement(&RefCount);
+		return _InterlockedIncrement(&RefCount);
 	}
 
 	return ProxyInterface->AddRef();
@@ -90,7 +92,7 @@ ULONG m_IDirect3DLight::Release()
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref = (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
+		ULONG ref = InterlockedDecrementIfPositive(&RefCount);
 
 		if (ref == 0)
 		{
@@ -204,19 +206,14 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 			tmpLight2.dwFlags |= D3DLIGHT_ACTIVE;
 		}
 
-		// If current light is in use then update device
+		// Is light in use then update device
+		if (D3DInterface)
 		{
-			DWORD x = 0;
-			while (D3DInterface)
+			for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
 			{
-				m_IDirect3DDeviceX* D3DDeviceInterface = D3DInterface->GetNextD3DDevice(x++);
-				if (!D3DDeviceInterface)
+				if (D3DDeviceX->IsLightInUse(this))
 				{
-					break;
-				}
-				if (D3DDeviceInterface->IsLightInUse(this))
-				{
-					if (FAILED(D3DDeviceInterface->SetLight(this, reinterpret_cast<LPD3DLIGHT>(&tmpLight2))))
+					if (FAILED(D3DDeviceX->SetLight(this, reinterpret_cast<LPD3DLIGHT>(&tmpLight2))))
 					{
 						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set light!");
 						return D3DERR_LIGHT_SET_FAILED;

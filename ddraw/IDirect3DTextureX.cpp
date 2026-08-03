@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -15,6 +15,8 @@
 */
 
 #include "ddraw.h"
+
+using namespace DdrawWrapper;
 
 // ******************************
 // IUnknown functions
@@ -52,6 +54,24 @@ HRESULT m_IDirect3DTextureX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DW
 		return D3D_OK;
 	}
 
+	if (GetWrapperType(DirectXVersion) == IID_IUnknown)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: DirectXVersion is unsupported version: " << DirectXVersion);
+	}
+
+	if (riid == IID_IDirectDrawSurface || riid == IID_IDirectDrawSurface2 || riid == IID_IDirectDrawSurface3 || riid == IID_IDirectDrawSurface4 || riid == IID_IDirectDrawSurface7)
+	{
+		m_IDirectDrawSurfaceX* pSurface = GetSurface();
+
+		if (!pSurface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface!");
+			return E_NOINTERFACE;
+		}
+
+		return pSurface->QueryInterface(riid, ppvObj, GetGUIDVersion(riid));
+	}
+
 	return ProxyQueryInterface(ProxyInterface, riid, ppvObj, GetWrapperType(DirectXVersion));
 }
 
@@ -70,9 +90,9 @@ ULONG m_IDirect3DTextureX::AddRef(DWORD DirectXVersion)
 		switch (DirectXVersion)
 		{
 		case 1:
-			return InterlockedIncrement(&RefCount1);
+			return _InterlockedIncrement(&RefCount1);
 		case 2:
-			return InterlockedIncrement(&RefCount2);
+			return _InterlockedIncrement(&RefCount2);
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 			return 0;
@@ -99,17 +119,17 @@ ULONG m_IDirect3DTextureX::Release(DWORD DirectXVersion)
 		switch (DirectXVersion)
 		{
 		case 1:
-			ref = (InterlockedCompareExchange(&RefCount1, 0, 0)) ? InterlockedDecrement(&RefCount1) : 0;
+			ref = InterlockedDecrementIfPositive(&RefCount1);
 			break;
 		case 2:
-			ref = (InterlockedCompareExchange(&RefCount2, 0, 0)) ? InterlockedDecrement(&RefCount2) : 0;
+			ref = InterlockedDecrementIfPositive(&RefCount2);
 			break;
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 			ref = 0;
 		}
 
-		if (InterlockedCompareExchange(&RefCount1, 0, 0) + InterlockedCompareExchange(&RefCount2, 0, 0) == 0)
+		if (AtomicRead(RefCount1) + AtomicRead(RefCount2) == 0)
 		{
 			delete this;
 		}
@@ -240,6 +260,11 @@ HRESULT m_IDirect3DTextureX::Load(LPDIRECT3DTEXTURE2 lpD3DTexture2)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: surface is not attached!");
 			return DDERR_GENERIC;
+		}
+
+		if (parent3DSurface.Interface->IsSurfaceMarkedAsLost())
+		{
+			return DDERR_SURFACELOST;
 		}
 
 		m_IDirect3DTextureX* pSrcTextureX = nullptr;

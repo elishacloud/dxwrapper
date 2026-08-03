@@ -1,13 +1,13 @@
 #pragma once
 
-class m_IDirect3DMaterialX : public IUnknown, public AddressLookupTableDdrawObject
+class m_IDirect3DMaterialX final : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
 	IDirect3DMaterial3 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	ULONG RefCount1 = 0;
-	ULONG RefCount2 = 0;
-	ULONG RefCount3 = 0;
+	LONG RefCount1 = 0;
+	LONG RefCount2 = 0;
+	LONG RefCount3 = 0;
 
 	// Store version wrappers
 	m_IDirect3DMaterial* WrapperInterface = nullptr;
@@ -20,18 +20,6 @@ private:
 	D3DMATERIALHANDLE mHandle = 0;
 
 	// Wrapper interface functions
-	inline REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3DMaterial :
-			(DirectXVersion == 2) ? IID_IDirect3DMaterial2 :
-			(DirectXVersion == 3) ? IID_IDirect3DMaterial3 : IID_IUnknown;
-	}
-	inline bool CheckWrapperType(REFIID IID)
-	{
-		return (IID == IID_IDirect3DMaterial ||
-			IID == IID_IDirect3DMaterial2 ||
-			IID == IID_IDirect3DMaterial3) ? true : false;
-	}
 	inline IDirect3DMaterial *GetProxyInterfaceV1() { return (IDirect3DMaterial *)ProxyInterface; }
 	inline IDirect3DMaterial2 *GetProxyInterfaceV2() { return (IDirect3DMaterial2 *)ProxyInterface; }
 	inline IDirect3DMaterial3 *GetProxyInterfaceV3() { return ProxyInterface; }
@@ -43,7 +31,7 @@ private:
 public:
 	m_IDirect3DMaterialX(IDirect3DMaterial3 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
-		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
+		ProxyDirectXVersion = DdrawWrapper::GetGUIDVersion(GetWrapperType(DirectXVersion));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
@@ -94,6 +82,19 @@ public:
 	STDMETHOD(GetHandle)(THIS_ LPDIRECT3DDEVICE3, LPD3DMATERIALHANDLE);
 	STDMETHOD(Reserve)(THIS);
 	STDMETHOD(Unreserve)(THIS);
+
+	static inline REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3DMaterial :
+			(DirectXVersion == 2) ? IID_IDirect3DMaterial2 :
+			(DirectXVersion == 3) ? IID_IDirect3DMaterial3 : IID_IUnknown;
+	}
+	static inline bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirect3DMaterial ||
+			IID == IID_IDirect3DMaterial2 ||
+			IID == IID_IDirect3DMaterial3) ? true : false;
+	}
 
 	// Helper function
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);

@@ -5,8 +5,8 @@ EXPORTS
 ; ****
 ;LIBRARY "dxwrapper" <---  Used by stub for reteriving settings and logging events
 ; ****
-DxWrapperSettings
-DxWrapperLogging
+DxWrapperSettings				@100
+DxWrapperLogging				@101
 
 
 ; ****
@@ -29,64 +29,64 @@ DirectSoundCaptureCreate8		@12
 ; ****
 ;LIBRARY "ddraw"
 ; ****
-AcquireDDThreadLock
-CompleteCreateSysmemSurface
-D3DParseUnknownCommand
-DDGetAttachedSurfaceLcl
-DDInternalLock
-DDInternalUnlock
-DSoundHelp
-DirectDrawCreate
-DirectDrawCreateClipper
-DirectDrawCreateEx
-DirectDrawEnumerateA
-DirectDrawEnumerateExA
-DirectDrawEnumerateExW
-DirectDrawEnumerateW
+AcquireDDThreadLock				@102
+CompleteCreateSysmemSurface		@103
+D3DParseUnknownCommand			@104
+DDGetAttachedSurfaceLcl			@105
+DDInternalLock					@106
+DDInternalUnlock				@107
+DSoundHelp						@108
+DirectDrawCreate				@109
+DirectDrawCreateClipper			@110
+DirectDrawCreateEx				@111
+DirectDrawEnumerateA			@112
+DirectDrawEnumerateExA			@113
+DirectDrawEnumerateExW			@114
+DirectDrawEnumerateW			@115
 DllCanUnloadNow					PRIVATE
 DllGetClassObject				PRIVATE
-GetDDSurfaceLocal
-GetOLEThunkData
-GetSurfaceFromDC
-RegisterSpecialCase
-ReleaseDDThreadLock
-SetAppCompatData
+GetDDSurfaceLocal				@116
+GetOLEThunkData					@117
+GetSurfaceFromDC				@118
+RegisterSpecialCase				@119
+ReleaseDDThreadLock				@120
+SetAppCompatData				@121
 
 
 ; ****
 ;LIBRARY "d3d8"
 ; ****
-ValidatePixelShader
-ValidateVertexShader
-Direct3DCreate8
+ValidatePixelShader				@122
+ValidateVertexShader			@123
+Direct3DCreate8					@124
 
 
 ; ****
 ;LIBRARY "d3d9"
 ; ****
-D3DPERF_BeginEvent
-D3DPERF_EndEvent
-D3DPERF_GetStatus
-D3DPERF_QueryRepeatFrame
-D3DPERF_SetMarker
-D3DPERF_SetOptions
-D3DPERF_SetRegion
-Direct3DCreate9
-Direct3DCreate9Ex
-Direct3DCreate9On12
-Direct3DCreate9On12Ex
+D3DPERF_BeginEvent				@125
+D3DPERF_EndEvent				@126
+D3DPERF_GetStatus				@127
+D3DPERF_QueryRepeatFrame		@128
+D3DPERF_SetMarker				@129
+D3DPERF_SetOptions				@130
+D3DPERF_SetRegion				@131
+Direct3DCreate9					@132
+Direct3DCreate9Ex				@133
+Direct3DCreate9On12				@134
+Direct3DCreate9On12Ex			@135
 
 
 ; ****
 ;LIBRARY "dinput"
 ; ****
-DirectInputCreateA
-DirectInputCreateEx
-DirectInputCreateW
+DirectInputCreateA				@136
+DirectInputCreateEx				@137
+DirectInputCreateW				@138
 
 
 ; ****
 ;LIBRARY "dinput8"
 ; ****
-DirectInput8Create
-GetdfDIJoystick
+DirectInput8Create				@139
+GetdfDIJoystick					@140

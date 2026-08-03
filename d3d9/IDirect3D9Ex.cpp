@@ -20,17 +20,15 @@
 // Initial screen resolution
 volatile LONG InitWidth = 0;
 volatile LONG InitHeight = 0;
+volatile DWORD InitRefreshRate = 0;
 
-AddressLookupTableD3d9 ProxyAddressLookupTable9;		// Just used for m_IDirect3D9Ex interfaces only
+AddressLookupTableD3d9 ProxyAddressLookupTable9;
 
-void m_IDirect3D9Ex::InitInterface()
-{
-	ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
-}
-void m_IDirect3D9Ex::ReleaseInterface()
-{
-	ProxyAddressLookupTable9.DeleteAddress(this);
-}
+std::unordered_map<UINT, std::unique_ptr<DEVICEDETAILS>> DeviceDetailsMap;
+
+// ******************************
+// IUnknown functions
+// ******************************
 
 HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 {
@@ -47,30 +45,26 @@ HRESULT m_IDirect3D9Ex::QueryInterface(REFIID riid, void** ppvObj)
 		return D3D_OK;
 	}
 
-	if (riid == IID_IUnknown || riid == WrapperID || (Config.D3d9to9Ex && riid == IID_IDirect3D9))
+	if (riid == IID_IDirect3D9Ex && WrapperID == IID_IDirect3D9)
 	{
-		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
+		*ppvObj = nullptr;
+		return E_NOINTERFACE;
+	}
 
-		if (SUCCEEDED(hr))
-		{
-			*ppvObj = this;
-		}
+	if (riid == IID_IUnknown || riid == IID_IDirect3D9 || riid == IID_IDirect3D9Ex)
+	{
+		AddRef();
 
-		return hr;
+		*ppvObj = this;
+
+		return S_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
 
 	if (SUCCEEDED(hr))
 	{
-		if (riid == IID_IDirect3D9 || riid == IID_IDirect3D9Ex)
-		{
-			*ppvObj = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3D9Ex, void, LPVOID>(*ppvObj, nullptr, riid, nullptr);
-		}
-		else
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
-		}
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: not wrapping interface: " << riid);
 	}
 
 	return hr;
@@ -97,38 +91,49 @@ ULONG m_IDirect3D9Ex::Release()
 	return ref;
 }
 
-void m_IDirect3D9Ex::LogAdapterNames()
+// ******************************
+// IDirect3D9 methods
+// ******************************
+
+HRESULT m_IDirect3D9Ex::RegisterSoftwareDevice(void* pInitializeFunction)
 {
-#ifndef DEBUG
-	static bool RunOnce = true;
-	if (!RunOnce)
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	return ProxyInterface->RegisterSoftwareDevice(pInitializeFunction);
+}
+
+UINT m_IDirect3D9Ex::GetAdapterCount()
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	return ProxyInterface->GetAdapterCount();
+}
+
+HRESULT m_IDirect3D9Ex::GetAdapterIdentifier(UINT Adapter, DWORD Flags, D3DADAPTER_IDENTIFIER9* pIdentifier)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	return ProxyInterface->GetAdapterIdentifier(Adapter, Flags, pIdentifier);
+}
+
+UINT m_IDirect3D9Ex::GetAdapterModeCount(THIS_ UINT Adapter, D3DFORMAT Format)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (UseCachedDisplayModes())
 	{
-		return;
+		return GetAdapterModeCache(Adapter, Format, false, nullptr);
 	}
-	RunOnce = false;
-#endif // DEBUG
-	UINT Adapter = ProxyInterface->GetAdapterCount();
-	for (UINT x = 0; x < Adapter; x++)
-	{
-		D3DADAPTER_IDENTIFIER9 Identifier = {};
-		if (SUCCEEDED(ProxyInterface->GetAdapterIdentifier(x, NULL, &Identifier)))
-		{
-			Logging::Log() << __FUNCTION__ << " Adapter: " << x << " " << Identifier.DeviceName << " " << Identifier.Description;
-		}
-	}
+
+	return ProxyInterface->GetAdapterModeCount(Adapter, Format);
 }
 
 HRESULT m_IDirect3D9Ex::EnumAdapterModes(THIS_ UINT Adapter, D3DFORMAT Format, UINT Mode, D3DDISPLAYMODE* pMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.LimitDisplayModeCount || Config.OverrideRefreshRate)
+	if (UseCachedDisplayModes() && pMode)
 	{
-		if (!pMode)
-		{
-			return D3DERR_INVALIDCALL;
-		}
-
 		// Required to build the cache, if it doesn't exist
 		if (Mode >= GetAdapterModeCache(Adapter, Format, false, nullptr))
 		{
@@ -155,13 +160,6 @@ HRESULT m_IDirect3D9Ex::EnumAdapterModes(THIS_ UINT Adapter, D3DFORMAT Format, U
 	return ProxyInterface->EnumAdapterModes(Adapter, Format, Mode, pMode);
 }
 
-UINT m_IDirect3D9Ex::GetAdapterCount()
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	return ProxyInterface->GetAdapterCount();
-}
-
 HRESULT m_IDirect3D9Ex::GetAdapterDisplayMode(UINT Adapter, D3DDISPLAYMODE *pMode)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
@@ -169,11 +167,232 @@ HRESULT m_IDirect3D9Ex::GetAdapterDisplayMode(UINT Adapter, D3DDISPLAYMODE *pMod
 	return ProxyInterface->GetAdapterDisplayMode(Adapter, pMode);
 }
 
-HRESULT m_IDirect3D9Ex::GetAdapterIdentifier(UINT Adapter, DWORD Flags, D3DADAPTER_IDENTIFIER9 *pIdentifier)
+HRESULT m_IDirect3D9Ex::CheckDeviceType(UINT Adapter, D3DDEVTYPE CheckType, D3DFORMAT DisplayFormat, D3DFORMAT BackBufferFormat, BOOL Windowed)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->GetAdapterIdentifier(Adapter, Flags, pIdentifier);
+	if (Config.EnableWindowMode)
+	{
+		Windowed = TRUE;
+	}
+
+	return ProxyInterface->CheckDeviceType(Adapter, CheckType, DisplayFormat, BackBufferFormat, Windowed);
+}
+
+HRESULT m_IDirect3D9Ex::CheckDeviceFormat(UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT AdapterFormat, DWORD Usage, D3DRESOURCETYPE RType, D3DFORMAT CheckFormat)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	return ProxyInterface->CheckDeviceFormat(Adapter, DeviceType, AdapterFormat, Usage, RType, CheckFormat);
+}
+
+HRESULT m_IDirect3D9Ex::CheckDeviceMultiSampleType(THIS_ UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT SurfaceFormat, BOOL Windowed, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD* pQualityLevels)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (Config.EnableWindowMode)
+	{
+		Windowed = TRUE;
+	}
+
+	return ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, SurfaceFormat, Windowed, MultiSampleType, pQualityLevels);
+}
+
+HRESULT m_IDirect3D9Ex::CheckDepthStencilMatch(UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT AdapterFormat, D3DFORMAT RenderTargetFormat, D3DFORMAT DepthStencilFormat)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	return ProxyInterface->CheckDepthStencilMatch(Adapter, DeviceType, AdapterFormat, RenderTargetFormat, DepthStencilFormat);
+}
+
+HRESULT m_IDirect3D9Ex::CheckDeviceFormatConversion(THIS_ UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT SourceFormat, D3DFORMAT TargetFormat)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	return ProxyInterface->CheckDeviceFormatConversion(Adapter, DeviceType, SourceFormat, TargetFormat);
+}
+
+HRESULT m_IDirect3D9Ex::GetDeviceCaps(UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS9* pCaps)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	HRESULT hr = ProxyInterface->GetDeviceCaps(Adapter, DeviceType, pCaps);
+
+	if (SUCCEEDED(hr))
+	{
+		pCaps->TextureCaps = AdjustPOW2Caps(pCaps->TextureCaps);
+	}
+
+	return hr;
+}
+
+HMONITOR m_IDirect3D9Ex::GetAdapterMonitor(UINT Adapter)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	return ProxyInterface->GetAdapterMonitor(Adapter);
+}
+
+HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DDevice9 **ppReturnedDeviceInterface)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (IsForcingD3d9to9Ex())
+	{
+		D3DDISPLAYMODEEX* pFullscreenMode = nullptr;
+		D3DDISPLAYMODEEX FullscreenDisplayMode = {};
+
+		// Fill fullscreen display mode only in fullscreen mode
+		if (pPresentationParameters && !pPresentationParameters->Windowed)
+		{
+			GetFullscreenDisplayMode(*pPresentationParameters, FullscreenDisplayMode);
+			pFullscreenMode = &FullscreenDisplayMode;
+		}
+
+		if (SUCCEEDED(CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenMode, reinterpret_cast<IDirect3DDevice9Ex**>(ppReturnedDeviceInterface))))
+		{
+			return D3D_OK;
+		}
+	}
+
+	DEVICEDETAILS DeviceDetails;
+
+	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, false, nullptr, ppReturnedDeviceInterface);
+
+	if (SUCCEEDED(hr) && ppReturnedDeviceInterface)
+	{
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9, DeviceDetails);
+
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Adapter << " " << DeviceType << " " << hFocusWindow << " " << BehaviorFlags << " " << pPresentationParameters;
+	
+	return hr;
+}
+
+// ******************************
+// IDirect3D9Ex methods
+// ******************************
+
+UINT m_IDirect3D9Ex::GetAdapterModeCountEx(THIS_ UINT Adapter, CONST D3DDISPLAYMODEFILTER* pFilter)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return 0;
+	}
+
+	if (UseCachedDisplayModes())
+	{
+		return GetAdapterModeCache(Adapter, D3DFMT_UNKNOWN, true, pFilter);
+	}
+
+	return ProxyInterfaceEx->GetAdapterModeCountEx(Adapter, pFilter);
+}
+
+HRESULT m_IDirect3D9Ex::EnumAdapterModesEx(THIS_ UINT Adapter, CONST D3DDISPLAYMODEFILTER* pFilter, UINT Mode, D3DDISPLAYMODEEX* pMode)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	if (UseCachedDisplayModes() && pMode)
+	{
+		// Required to build the cache, if it doesn't exist
+		if (Mode >= GetAdapterModeCache(Adapter, D3DFMT_UNKNOWN, true, pFilter))
+		{
+			return D3DERR_INVALIDCALL;
+		}
+
+		for (auto& entry : AdapterModesCache)
+		{
+			if (entry.Adapter == Adapter && entry.IsEx && entry.Filter.Format == pFilter->Format && entry.Filter.ScanLineOrdering == pFilter->ScanLineOrdering)
+			{
+				if (Mode < entry.DisplayModeList.size())
+				{
+					*pMode = entry.DisplayModeList[Mode].DataEx();
+
+					return D3D_OK;
+				}
+				return D3DERR_INVALIDCALL;
+			}
+		}
+
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->EnumAdapterModesEx(Adapter, pFilter, Mode, pMode);
+}
+
+HRESULT m_IDirect3D9Ex::GetAdapterDisplayModeEx(THIS_ UINT Adapter, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->GetAdapterDisplayModeEx(Adapter, pMode, pRotation);
+}
+
+HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, IDirect3DDevice9Ex** ppReturnedDeviceInterface)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	DEVICEDETAILS DeviceDetails;
+
+	HRESULT hr = CreateDeviceT(DeviceDetails, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, true, pFullscreenDisplayMode, ppReturnedDeviceInterface);
+
+	if (SUCCEEDED(hr) && ppReturnedDeviceInterface)
+	{
+		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, DeviceDetails);
+
+		return D3D_OK;
+	}
+
+	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Adapter << " " << DeviceType << " " << hFocusWindow << " " << BehaviorFlags << " " << pPresentationParameters << " " << pFullscreenDisplayMode;
+
+	return hr;
+}
+
+HRESULT m_IDirect3D9Ex::GetAdapterLUID(THIS_ UINT Adapter, LUID * pLUID)
+{
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterfaceEx)
+	{
+		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
+		return D3DERR_INVALIDCALL;
+	}
+
+	return ProxyInterfaceEx->GetAdapterLUID(Adapter, pLUID);
+}
+
+// ******************************
+// Helper functions
+// ******************************
+
+void m_IDirect3D9Ex::InitInterface()
+{
+	if (Config.D3d9to9Ex && !IsForcingD3d9to9Ex())
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: Creating non-Ex interface when using D3d9to9Ex!");
+	}
 }
 
 UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, bool IsEx, CONST D3DDISPLAYMODEFILTER* pFilter)
@@ -229,6 +448,9 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 		Count = ProxyInterfaceEx->GetAdapterModeCountEx(Adapter, pFilter);
 	}
 
+	const DWORD TargetRefresh = Config.OverrideRefreshRate ? Config.OverrideRefreshRate :
+		Config.LimitRefreshRates ? InitRefreshRate : 0;
+
 	UINT RefreshRate = 0;
 	std::vector<D3DDISPLAYMODEEX_CONVERT> NewDisplayModeList;
 
@@ -239,8 +461,8 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 		if (SUCCEEDED(!IsEx ? ProxyInterface->EnumAdapterModes(Adapter, Format, x, DisplayMode.Ptr()) :
 			ProxyInterfaceEx->EnumAdapterModesEx(Adapter, pFilter, x, DisplayMode.PtrEx())))
 		{
-			if (Config.OverrideRefreshRate &&
-				(RefreshRate == 0 || std::abs((INT)Config.OverrideRefreshRate - (INT)DisplayMode.RefreshRate) < std::abs((INT)Config.OverrideRefreshRate - (INT)RefreshRate)))
+			if (TargetRefresh &&
+				(RefreshRate == 0 || std::abs((INT)TargetRefresh - (INT)DisplayMode.RefreshRate) < std::abs((INT)TargetRefresh - (INT)RefreshRate)))
 			{
 				RefreshRate = DisplayMode.RefreshRate;
 			}
@@ -265,7 +487,7 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 				}));
 
 		// Check if refresh rate is suported
-		bool IsRefreshSupported = (!Config.OverrideRefreshRate || entry.RefreshRate == RefreshRate);
+		bool IsRefreshSupported = (TargetRefresh == 0 || entry.RefreshRate == RefreshRate);
 
 		// Store entry
 		if (!IsResolutionAlreadySent && IsResolutionSupported && IsRefreshSupported)
@@ -279,111 +501,26 @@ UINT m_IDirect3D9Ex::GetAdapterModeCache(THIS_ UINT Adapter, D3DFORMAT Format, b
 	return NewCacheEntry.DisplayModeList.size();
 }
 
-UINT m_IDirect3D9Ex::GetAdapterModeCount(THIS_ UINT Adapter, D3DFORMAT Format)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (Config.LimitDisplayModeCount || Config.OverrideRefreshRate)
-	{
-		return GetAdapterModeCache(Adapter, Format, false, nullptr);
-	}
-
-	return ProxyInterface->GetAdapterModeCount(Adapter, Format);
-}
-
-HMONITOR m_IDirect3D9Ex::GetAdapterMonitor(UINT Adapter)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	return ProxyInterface->GetAdapterMonitor(Adapter);
-}
-
-HRESULT m_IDirect3D9Ex::GetDeviceCaps(UINT Adapter, D3DDEVTYPE DeviceType, D3DCAPS9 *pCaps)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	HRESULT hr = ProxyInterface->GetDeviceCaps(Adapter, DeviceType, pCaps);
-
-	if (SUCCEEDED(hr))
-	{
-		pCaps->TextureCaps = AdjustPOW2Caps(pCaps->TextureCaps);
-	}
-
-	return hr;
-}
-
-HRESULT m_IDirect3D9Ex::RegisterSoftwareDevice(void *pInitializeFunction)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	return ProxyInterface->RegisterSoftwareDevice(pInitializeFunction);
-}
-
-HRESULT m_IDirect3D9Ex::CheckDepthStencilMatch(UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT AdapterFormat, D3DFORMAT RenderTargetFormat, D3DFORMAT DepthStencilFormat)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	return ProxyInterface->CheckDepthStencilMatch(Adapter, DeviceType, AdapterFormat, RenderTargetFormat, DepthStencilFormat);
-}
-
-HRESULT m_IDirect3D9Ex::CheckDeviceFormat(UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT AdapterFormat, DWORD Usage, D3DRESOURCETYPE RType, D3DFORMAT CheckFormat)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	return ProxyInterface->CheckDeviceFormat(Adapter, DeviceType, AdapterFormat, Usage, RType, CheckFormat);
-}
-
-HRESULT m_IDirect3D9Ex::CheckDeviceMultiSampleType(THIS_ UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT SurfaceFormat, BOOL Windowed, D3DMULTISAMPLE_TYPE MultiSampleType, DWORD* pQualityLevels)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (Config.EnableWindowMode)
-	{
-		Windowed = TRUE;
-	}
-
-	return ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, SurfaceFormat, Windowed, MultiSampleType, pQualityLevels);
-}
-
-HRESULT m_IDirect3D9Ex::CheckDeviceType(UINT Adapter, D3DDEVTYPE CheckType, D3DFORMAT DisplayFormat, D3DFORMAT BackBufferFormat, BOOL Windowed)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (Config.EnableWindowMode)
-	{
-		Windowed = TRUE;
-	}
-
-	return ProxyInterface->CheckDeviceType(Adapter, CheckType, DisplayFormat, BackBufferFormat, Windowed);
-}
-
-HRESULT m_IDirect3D9Ex::CheckDeviceFormatConversion(THIS_ UINT Adapter, D3DDEVTYPE DeviceType, D3DFORMAT SourceFormat, D3DFORMAT TargetFormat)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	return ProxyInterface->CheckDeviceFormatConversion(Adapter, DeviceType, SourceFormat, TargetFormat);
-}
-
 template <typename T>
 HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, bool IsEx, D3DDISPLAYMODEEX* pFullscreenDisplayMode, T ppReturnedDeviceInterface)
 {
-	if (!pPresentationParameters || !ppReturnedDeviceInterface)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
 	// Hook WndProc before creating device
-	HWND hWnd = (hFocusWindow ? hFocusWindow : pPresentationParameters ? pPresentationParameters->hDeviceWindow : nullptr);
+	const HWND hWnd = (hFocusWindow && IsWindow(hFocusWindow) ? hFocusWindow :
+		(pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : nullptr));
 	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
+
+	WndProc::ScopedSetDeviceCreationFlag SetCreatingDevice(WndDataStruct);
+
 	if (WndDataStruct)
 	{
 		WndDataStruct->IsDirect3D9 = true;
-		if (!WndDataStruct->IsDirectDraw)
+		WndDataStruct->DirectXVersion = ClientDirectXVersion;
+		if (pPresentationParameters && !WndDataStruct->IsDirectDraw)
 		{
 			// Already set by DirectDraw
-			WndDataStruct->IsCreatingDevice = true;
 			WndDataStruct->IsExclusiveMode = !pPresentationParameters->Windowed;
-			WndDataStruct->DirectXVersion = ClientDirectXVersion;
+			WndDataStruct->ClipWidth = pPresentationParameters->BackBufferWidth;
+			WndDataStruct->ClipHeight = pPresentationParameters->BackBufferHeight;
 		}
 		DeviceDetails.IsDirectDrawDevice = WndDataStruct->IsDirectDraw;
 	}
@@ -406,279 +543,137 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	}
 
 	// Needs to be set before updating present parameters
+	DeviceDetails.IsDirectDrawDevice = (DeviceDetails.IsDirectDrawDevice || ClientDirectXVersion <= 7);
 	DeviceDetails.ClientDirectXVersion = ClientDirectXVersion;
 	DeviceDetails.Adapter = Adapter;
 	DeviceDetails.DeviceType = DeviceType;
 	DeviceDetails.hMonitor = hMonitor;
 
 	// Check fullscreen
-	bool ForceFullscreen = TestResolution(Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
-
-	// Setup presentation parameters
-	D3DPRESENT_PARAMETERS d3dpp;
-	CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-	UpdatePresentParameter(&d3dpp, hFocusWindow, DeviceDetails, IsEx, ForceFullscreen, true);
-
-	bool IsWindowMode = d3dpp.Windowed != FALSE;
-
+	bool ForceFullscreen = false;
 	bool MultiSampleFlag = false;
 
-	// Check for AntiAliasing (doesn't work with FlipEx)
-	if (Config.AntiAliasing && !(IsEx && Config.FlipEx))
+	// Setup presentation parameters
+	D3DPRESENT_PARAMETERS d3dpp = {};
+	D3DPRESENT_PARAMETERS* p_d3dpp = pPresentationParameters ? &d3dpp : nullptr;
+	if (pPresentationParameters)
 	{
-		DWORD QualityLevels = 0;
+		DeviceDetails.AppRequestedWindowMode = pPresentationParameters->Windowed;
+		DeviceDetails.UseAppMultiSampleState = (pPresentationParameters->MultiSampleType != D3DMULTISAMPLE_NONE);
 
-		// Check AntiAliasing quality
-		for (int x = min(D3DMULTISAMPLE_16_SAMPLES, Config.AntiAliasing); x > 0; x--)
+		ForceFullscreen = TestResolution(Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
+
+		CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+
+		UpdatePresentParameter(p_d3dpp, hFocusWindow, DeviceDetails, true, IsEx, ForceFullscreen, true);
+
+		// Check for AntiAliasing (doesn't work with FlipEx)
+		if (Config.AntiAliasing)
 		{
-			D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
-			D3DFORMAT BufferFormat = (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8;
-			D3DFORMAT StencilFormat = (d3dpp.AutoDepthStencilFormat) ? d3dpp.AutoDepthStencilFormat : D3DFMT_X8R8G8B8;
-
-			if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, BufferFormat, d3dpp.Windowed, Samples, &QualityLevels)) &&
-				SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, StencilFormat, d3dpp.Windowed, Samples, &QualityLevels)))
+			if (IsEx && Config.FlipEx)
 			{
-				// Update Present Parameter for Multisample
-				UpdatePresentParameterForMultisample(&d3dpp, Samples, (QualityLevels > 0) ? QualityLevels - 1 : 0);
+				LOG_LIMIT(3, __FUNCTION__ << " Warning: AntiAliasing is not supported on FlipEx presentation mode!");
+			}
+			else
+			{
+				DWORD QualityLevels = 0;
 
-				// Create Device
-				hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed ? nullptr : pFullscreenDisplayMode), ppReturnedDeviceInterface);
-
-				// Check if device was created successfully
-				if (SUCCEEDED(hr))
+				// Check AntiAliasing quality
+				for (int x = min(D3DMULTISAMPLE_16_SAMPLES, Config.AntiAliasing); x > 0; x--)
 				{
-					MultiSampleFlag = true;
-					(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-					LOG_LIMIT(3, "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality);
-					break;
+					D3DMULTISAMPLE_TYPE Samples = (D3DMULTISAMPLE_TYPE)x;
+					D3DFORMAT BufferFormat = (d3dpp.BackBufferFormat) ? d3dpp.BackBufferFormat : D3DFMT_X8R8G8B8;
+					D3DFORMAT StencilFormat = (d3dpp.AutoDepthStencilFormat) ? d3dpp.AutoDepthStencilFormat : D3DFMT_X8R8G8B8;
+
+					if (SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, BufferFormat, d3dpp.Windowed, Samples, &QualityLevels)) &&
+						SUCCEEDED(ProxyInterface->CheckDeviceMultiSampleType(Adapter, DeviceType, StencilFormat, d3dpp.Windowed, Samples, &QualityLevels)))
+					{
+						// Update Present Parameter for Multisample
+						UpdatePresentParameterForMultisample(p_d3dpp, Samples, (QualityLevels > 0) ? QualityLevels - 1 : 0);
+
+						// Create Device
+						hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, p_d3dpp, (d3dpp.Windowed ? nullptr : pFullscreenDisplayMode), ppReturnedDeviceInterface);
+
+						// Check if device was created successfully
+						if (SUCCEEDED(hr) && ppReturnedDeviceInterface)
+						{
+							MultiSampleFlag = true;
+
+							(*ppReturnedDeviceInterface)->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+
+							LOG_LIMIT(3, "Setting MultiSample " << d3dpp.MultiSampleType << " Quality " << d3dpp.MultiSampleQuality);
+
+							break;
+						}
+					}
+				}
+				if (FAILED(hr))
+				{
+					// Reset presentation parameters
+					CopyMemory(p_d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
+
+					UpdatePresentParameter(p_d3dpp, hFocusWindow, DeviceDetails, true, IsEx, ForceFullscreen, false);
+
+					LOG_LIMIT(100, __FUNCTION__ << " Failed to enable AntiAliasing!");
 				}
 			}
 		}
-		if (FAILED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Failed to enable AntiAliasing!");
-		}
-	}
-	else if (Config.AntiAliasing && IsEx && Config.FlipEx)
-	{
-		LOG_LIMIT(3, __FUNCTION__ << " Warning: AntiAliasing is not supported on FlipEx presentation mode!");
 	}
 
 	// Create Device
 	if (FAILED(hr))
 	{
-		// Update presentation parameters
-		CopyMemory(&d3dpp, pPresentationParameters, sizeof(D3DPRESENT_PARAMETERS));
-		UpdatePresentParameter(&d3dpp, hFocusWindow, DeviceDetails, IsEx, ForceFullscreen, false);
-
-		// Create Device
-		hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &d3dpp, (d3dpp.Windowed ? nullptr : pFullscreenDisplayMode), ppReturnedDeviceInterface);
+		hr = CreateDeviceT(Adapter, DeviceType, hFocusWindow, BehaviorFlags, p_d3dpp, (d3dpp.Windowed ? nullptr : pFullscreenDisplayMode), ppReturnedDeviceInterface);
 	}
 
 	if (SUCCEEDED(hr))
 	{
-		GetFinalPresentParameter(&d3dpp, DeviceDetails);
-
-		if (WndDataStruct && WndDataStruct->IsExclusiveMode)
+		if (pPresentationParameters)
 		{
-			d3dpp.Windowed = FALSE;
-		}
+			GetFinalPresentParameter(p_d3dpp, DeviceDetails);
 
-		if (MultiSampleFlag)
-		{
-			DeviceDetails.DeviceMultiSampleFlag = true;
-			DeviceDetails.DeviceMultiSampleType = d3dpp.MultiSampleType;
-			DeviceDetails.DeviceMultiSampleQuality = d3dpp.MultiSampleQuality;
-		}
+			d3dpp.Windowed = DeviceDetails.AppRequestedWindowMode;
 
-		DeviceDetails.IsWindowMode = IsWindowMode;
-
-		CopyMemory(pPresentationParameters, &d3dpp, sizeof(D3DPRESENT_PARAMETERS));
-	}
-
-	// Update WndProc after creating device
-	if (WndDataStruct && !WndDataStruct->IsDirectDraw)
-	{
-		// Already set by DirectDraw
-		WndDataStruct->IsCreatingDevice = false;
-	}
-
-	return hr;
-}
-
-HRESULT m_IDirect3D9Ex::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS *pPresentationParameters, IDirect3DDevice9 **ppReturnedDeviceInterface)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!pPresentationParameters || !ppReturnedDeviceInterface)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
-	if (Config.D3d9to9Ex)
-	{
-		D3DDISPLAYMODEEX* pFullscreenMode = nullptr;
-		D3DDISPLAYMODEEX FullscreenDisplayMode = {};
-
-		// Fill fullscreen display mode only in fullscreen mode
-		if (!pPresentationParameters->Windowed)
-		{
-			GetFullscreenDisplayMode(*pPresentationParameters, FullscreenDisplayMode);
-			pFullscreenMode = &FullscreenDisplayMode;
-		}
-
-		if (SUCCEEDED(CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, pFullscreenMode, reinterpret_cast<IDirect3DDevice9Ex**>(ppReturnedDeviceInterface))))
-		{
-			return D3D_OK;
-		}
-	}
-
-	auto DeviceDetails = std::make_unique<DEVICEDETAILS>();
-
-	HRESULT hr = CreateDeviceT(*DeviceDetails.get(), Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, false, nullptr, ppReturnedDeviceInterface);
-
-	if (SUCCEEDED(hr))
-	{
-		GUID riid = IID_IDirect3DDevice9;
-
-		if (Config.D3d9to9Ex)
-		{
-			IDirect3DDevice9* pD3DD = *ppReturnedDeviceInterface;
-			IDirect3DDevice9Ex* pD3DDEx = nullptr;
-
-			if (SUCCEEDED(pD3DD->QueryInterface(IID_IDirect3DDevice9Ex, reinterpret_cast<LPVOID*>(&pD3DDEx))))
+			if (MultiSampleFlag || (pPresentationParameters->MultiSampleType && DeviceDetails.IsDirectDrawDevice))
 			{
-				pD3DD->Release();
-				*ppReturnedDeviceInterface = pD3DDEx;
-				riid = IID_IDirect3DDevice9Ex;
+				DeviceDetails.DeviceMultiSampleFlag = true;
+				DeviceDetails.SetMultiSampleState = true;
+				DeviceDetails.DeviceMultiSampleType = d3dpp.MultiSampleType;
+				DeviceDetails.DeviceMultiSampleQuality = d3dpp.MultiSampleQuality;
+			}
+
+			CopyMemory(pPresentationParameters, p_d3dpp, sizeof(D3DPRESENT_PARAMETERS));
+
+			// Enable mouse clipping
+			if (Config.EnableCursorClip && !DeviceDetails.IsDirectDrawDevice && WndDataStruct)
+			{
+				Utils::ClipMouseCursor(DeviceDetails.DeviceWindow, WndDataStruct->ClipWidth, WndDataStruct->ClipHeight);
 			}
 		}
-
-		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.get();
-		DeviceDetailsMap[DDKey] = std::move(DeviceDetails);
-
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex((LPDIRECT3DDEVICE9EX)*ppReturnedDeviceInterface, this, riid, DDKey);
-
-		return D3D_OK;
 	}
 
-	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Adapter << " " << DeviceType << " " << hFocusWindow << " " << BehaviorFlags << " " << pPresentationParameters;
-	
 	return hr;
 }
 
-UINT m_IDirect3D9Ex::GetAdapterModeCountEx(THIS_ UINT Adapter, CONST D3DDISPLAYMODEFILTER* pFilter)
+void m_IDirect3D9Ex::LogAdapterNames()
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!ProxyInterfaceEx)
+#ifndef DEBUG
+	static bool RunOnce = true;
+	if (!RunOnce)
 	{
-		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
-		return 0;
+		return;
 	}
-
-	if (Config.LimitDisplayModeCount || Config.OverrideRefreshRate)
+	RunOnce = false;
+#endif // DEBUG
+	UINT Adapter = ProxyInterface->GetAdapterCount();
+	for (UINT x = 0; x < Adapter; x++)
 	{
-		return GetAdapterModeCache(Adapter, D3DFMT_UNKNOWN, true, pFilter);
-	}
-
-	return ProxyInterfaceEx->GetAdapterModeCountEx(Adapter, pFilter);
-}
-
-HRESULT m_IDirect3D9Ex::EnumAdapterModesEx(THIS_ UINT Adapter, CONST D3DDISPLAYMODEFILTER* pFilter, UINT Mode, D3DDISPLAYMODEEX* pMode)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!ProxyInterfaceEx)
-	{
-		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
-		return D3DERR_INVALIDCALL;
-	}
-
-	if (Config.LimitDisplayModeCount || Config.OverrideRefreshRate)
-	{
-		if (!pMode)
+		D3DADAPTER_IDENTIFIER9 Identifier = {};
+		if (SUCCEEDED(ProxyInterface->GetAdapterIdentifier(x, NULL, &Identifier)))
 		{
-			return D3DERR_INVALIDCALL;
+			Logging::Log() << __FUNCTION__ << " Adapter: " << x << " " << Identifier.DeviceName << " " << Identifier.Description;
 		}
-
-		// Required to build the cache, if it doesn't exist
-		if (Mode >= GetAdapterModeCache(Adapter, D3DFMT_UNKNOWN, true, pFilter))
-		{
-			return D3DERR_INVALIDCALL;
-		}
-
-		for (auto& entry : AdapterModesCache)
-		{
-			if (entry.Adapter == Adapter && entry.IsEx && entry.Filter.Format == pFilter->Format && entry.Filter.ScanLineOrdering == pFilter->ScanLineOrdering)
-			{
-				if (Mode < entry.DisplayModeList.size())
-				{
-					*pMode = entry.DisplayModeList[Mode].DataEx();
-
-					return D3D_OK;
-				}
-				return D3DERR_INVALIDCALL;
-			}
-		}
-
-		return D3DERR_INVALIDCALL;
 	}
-
-	return ProxyInterfaceEx->EnumAdapterModesEx(Adapter, pFilter, Mode, pMode);
-}
-
-HRESULT m_IDirect3D9Ex::GetAdapterDisplayModeEx(THIS_ UINT Adapter, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!ProxyInterfaceEx)
-	{
-		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
-		return D3DERR_INVALIDCALL;
-	}
-
-	return ProxyInterfaceEx->GetAdapterDisplayModeEx(Adapter, pMode, pRotation);
-}
-
-HRESULT m_IDirect3D9Ex::CreateDeviceEx(THIS_ UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode, IDirect3DDevice9Ex** ppReturnedDeviceInterface)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!pPresentationParameters || !ppReturnedDeviceInterface)
-	{
-		return D3DERR_INVALIDCALL;
-	}
-
-	auto DeviceDetails = std::make_unique<DEVICEDETAILS>();
-
-	HRESULT hr = CreateDeviceT(*DeviceDetails.get(), Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, true, pFullscreenDisplayMode, ppReturnedDeviceInterface);
-
-	if (SUCCEEDED(hr))
-	{
-		UINT DDKey = (UINT)ppReturnedDeviceInterface + (UINT)*ppReturnedDeviceInterface + (UINT)DeviceDetails.get();
-		DeviceDetailsMap[DDKey] = std::move(DeviceDetails);
-
-		*ppReturnedDeviceInterface = new m_IDirect3DDevice9Ex(*ppReturnedDeviceInterface, this, IID_IDirect3DDevice9Ex, DDKey);
-
-		return D3D_OK;
-	}
-
-	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Adapter << " " << DeviceType << " " << hFocusWindow << " " << BehaviorFlags << " " << pPresentationParameters << " " << pFullscreenDisplayMode;
-	return hr;
-}
-
-HRESULT m_IDirect3D9Ex::GetAdapterLUID(THIS_ UINT Adapter, LUID * pLUID)
-{
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	if (!ProxyInterfaceEx)
-	{
-		Logging::Log() << __FUNCTION__ << " Error: Calling extension function from a non-extension device!";
-		return D3DERR_INVALIDCALL;
-	}
-
-	return ProxyInterfaceEx->GetAdapterLUID(Adapter, pLUID);
 }
 
 void m_IDirect3D9Ex::SetDirectXVersion(DWORD DxVersion)
@@ -731,7 +726,9 @@ DWORD m_IDirect3D9Ex::AdjustPOW2Caps(DWORD OriginalCaps)
 
 DWORD m_IDirect3D9Ex::UpdateBehaviorFlags(DWORD BehaviorFlags)
 {
-	if (Config.ForceMixedVertexProcessing || (BehaviorFlags & D3DCREATE_MIXED_VERTEXPROCESSING) ||
+	if (Config.ForceMixedVertexProcessing ||
+		(Config.ForceSystemMemVertexCache && (BehaviorFlags & D3DCREATE_HARDWARE_VERTEXPROCESSING)) ||
+		(BehaviorFlags & D3DCREATE_MIXED_VERTEXPROCESSING) ||
 		((BehaviorFlags & D3DCREATE_SOFTWARE_VERTEXPROCESSING) && (BehaviorFlags & D3DCREATE_HARDWARE_VERTEXPROCESSING)))
 	{
 		BehaviorFlags &= ~(D3DCREATE_PUREDEVICE | D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
@@ -751,7 +748,7 @@ DWORD m_IDirect3D9Ex::UpdateBehaviorFlags(DWORD BehaviorFlags)
 }
 
 // Update Presentation Parameters
-void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool IsEx, bool ForceExclusiveFullscreen, bool SetWindow)
+void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, HWND hFocusWindow, DEVICEDETAILS& DeviceDetails, bool CreatingDevice, bool IsEx, bool ForceExclusiveFullscreen, bool SetWindow)
 {
 	if (!pPresentationParameters)
 	{
@@ -787,6 +784,12 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 		pPresentationParameters->FullScreen_RefreshRateInHz = 0;
 	}
 
+	// Set refresh rate if using exclusive fullscreen mode
+	if (Config.OverrideRefreshRate && !pPresentationParameters->Windowed)
+	{
+		pPresentationParameters->FullScreen_RefreshRateInHz = Config.OverrideRefreshRate;
+	}
+
 	// Get Backbuffer count before setting FlipEx (must be at least 1)
 	DeviceDetails.BackBufferCount = max(1, pPresentationParameters->BackBufferCount);
 
@@ -814,6 +817,13 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: FlipEx presentation mode is only supported with windowed mode!");
 		}
 	}
+	else if (IsEx && Config.D3d9to9Ex)
+	{
+		if (pPresentationParameters->SwapEffect == D3DSWAPEFFECT_FLIP)
+		{
+			pPresentationParameters->SwapEffect = D3DSWAPEFFECT_FLIPEX;
+		}
+	}
 
 	// Override stencil format
 	if (Config.OverrideStencilFormat && pPresentationParameters->EnableAutoDepthStencil)
@@ -830,30 +840,16 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 	// Get current window data
 	if (IsWindow(pPresentationParameters->hDeviceWindow) || IsWindow(DeviceDetails.DeviceWindow) || IsWindow(hFocusWindow))
 	{
-		DeviceDetails.BufferWidth = (pPresentationParameters->BackBufferWidth) ? pPresentationParameters->BackBufferWidth : DeviceDetails.BufferWidth;
-		DeviceDetails.BufferHeight = (pPresentationParameters->BackBufferHeight) ? pPresentationParameters->BackBufferHeight : DeviceDetails.BufferHeight;
-		DeviceDetails.DeviceWindow = (IsWindow(hFocusWindow)) ? hFocusWindow :
-			(IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow :
+		DeviceDetails.BufferWidth = pPresentationParameters->BackBufferWidth ? pPresentationParameters->BackBufferWidth : DeviceDetails.BufferWidth;
+		DeviceDetails.BufferHeight = pPresentationParameters->BackBufferHeight ? pPresentationParameters->BackBufferHeight : DeviceDetails.BufferHeight;
+		DeviceDetails.DeviceWindow = IsWindow(hFocusWindow) ? hFocusWindow :
+			IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow :
 			DeviceDetails.DeviceWindow;
 
-		// Check if window is minimized
-		if (IsIconic(DeviceDetails.DeviceWindow))
+		// Adjust window styles before adjusting window
+		if (CreatingDevice && SetWindow)
 		{
-			ShowWindow(DeviceDetails.DeviceWindow, SW_RESTORE);
-		}
-
-		// Remove tool and topmost window
-		if (DeviceDetails.DeviceWindow != LastDeviceWindow)
-		{
-			LONG lExStyle = GetWindowLong(DeviceDetails.DeviceWindow, GWL_EXSTYLE);
-			if (lExStyle & (WS_EX_TOOLWINDOW | WS_EX_TOPMOST))
-			{
-				LOG_LIMIT(3, __FUNCTION__ << " Removing window" << ((lExStyle & WS_EX_TOOLWINDOW) ? " WS_EX_TOOLWINDOW" : "") << ((lExStyle & WS_EX_TOPMOST) ? " WS_EX_TOPMOST" : ""));
-
-				SetWindowLong(DeviceDetails.DeviceWindow, GWL_EXSTYLE, lExStyle & ~(WS_EX_TOOLWINDOW | WS_EX_TOPMOST));
-				SetWindowPos(DeviceDetails.DeviceWindow, ((lExStyle & WS_EX_TOPMOST) ? HWND_NOTOPMOST : HWND_TOP),
-					0, 0, 0, 0, ((lExStyle & WS_EX_TOPMOST) ? NULL : SWP_NOZORDER) | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
-			}
+			AdjustWindowStyle(DeviceDetails.DeviceWindow, DeviceDetails.IsDirectDrawDevice, pPresentationParameters->Windowed == FALSE);
 		}
 
 		// Get window width and height
@@ -875,7 +871,7 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 			GetClientRect(DeviceDetails.DeviceWindow, &Rect);
 			if (AnyChange || Rect.right - Rect.left != DeviceDetails.BufferWidth || Rect.bottom - Rect.top != DeviceDetails.BufferHeight)
 			{
-				AdjustWindow(DeviceDetails.hMonitor, DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, Config.EnableWindowMode, Config.FullscreenWindowMode);
+				AdjustWindowSize(DeviceDetails.hMonitor, DeviceDetails.DeviceWindow, DeviceDetails.BufferWidth, DeviceDetails.BufferHeight, Config.EnableWindowMode, Config.FullscreenWindowMode);
 			}
 
 			// Set fullscreen resolution
@@ -889,11 +885,17 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 
 void m_IDirect3D9Ex::GetFinalPresentParameter(D3DPRESENT_PARAMETERS* pPresentationParameters, DEVICEDETAILS& DeviceDetails)
 {
-	if (pPresentationParameters && (IsWindow(pPresentationParameters->hDeviceWindow) || IsWindow(DeviceDetails.DeviceWindow)))
+	if (!pPresentationParameters)
 	{
-		DeviceDetails.BufferWidth = (pPresentationParameters->BackBufferWidth) ? pPresentationParameters->BackBufferWidth : DeviceDetails.BufferWidth;
-		DeviceDetails.BufferHeight = (pPresentationParameters->BackBufferHeight) ? pPresentationParameters->BackBufferHeight : DeviceDetails.BufferHeight;
-		DeviceDetails.DeviceWindow = (IsWindow(pPresentationParameters->hDeviceWindow)) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow;
+		return;
+	}
+
+	if (IsWindow(pPresentationParameters->hDeviceWindow) || IsWindow(DeviceDetails.DeviceWindow))
+	{
+		DeviceDetails.DeviceWindow = IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow;
+		DeviceDetails.BufferWidth = pPresentationParameters->BackBufferWidth ? pPresentationParameters->BackBufferWidth : DeviceDetails.BufferWidth;
+		DeviceDetails.BufferHeight = pPresentationParameters->BackBufferHeight ? pPresentationParameters->BackBufferHeight : DeviceDetails.BufferHeight;
+		DeviceDetails.IsWindowMode = pPresentationParameters->Windowed;
 	}
 }
 
@@ -911,7 +913,7 @@ void m_IDirect3D9Ex::UpdatePresentParameterForMultisample(D3DPRESENT_PARAMETERS*
 	pPresentationParameters->Flags &= ~D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 	pPresentationParameters->SwapEffect = D3DSWAPEFFECT_DISCARD;
 
-	pPresentationParameters->BackBufferCount = (pPresentationParameters->BackBufferCount) ? pPresentationParameters->BackBufferCount : 1;
+	pPresentationParameters->BackBufferCount = pPresentationParameters->BackBufferCount ? pPresentationParameters->BackBufferCount : 1;
 }
 
 void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DDISPLAYMODEEX& Mode)
@@ -932,63 +934,142 @@ void m_IDirect3D9Ex::GetFullscreenDisplayMode(D3DPRESENT_PARAMETERS& d3dpp, D3DD
 	Mode.ScanLineOrdering = D3DSCANLINEORDERING_PROGRESSIVE;
 }
 
-// Adjusting the window position for WindowMode
-void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG displayWidth, LONG displayHeight, bool EnableWindowMode, bool FullscreenWindowMode)
+void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd, bool IsDirectDrawDevice, bool IsExclusive)
 {
-	if (!IsWindow(MainhWnd) || !displayWidth || !displayHeight)
+	const LONG lStyle = GetWindowLong(hWnd, GWL_STYLE);
+	const LONG lExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+
+	LONG newStyle = lStyle;
+	LONG newExStyle = lExStyle;
+
+	bool frameStyleChanged = false;
+
+	// Add border if Vulkan is being used
+	if (IsDirectDrawDevice && (newStyle & WS_POPUP) && !(newStyle & WS_BORDER))
+	{
+		if (Utils::IsVulkanModuleLoaded())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Vulkan detected adding WS_BORDER");
+
+			newStyle |= WS_BORDER;
+			frameStyleChanged = true;
+		}
+	}
+
+	// Remove clip children if SetSwapEffectShim is disabled
+	if ((newStyle & WS_CLIPCHILDREN) && !Config.SetSwapEffectShim)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: removing WS_CLIPCHILDREN");
+
+		newStyle &= ~WS_CLIPCHILDREN;
+	}
+
+	// Remove tool window style
+	if (newExStyle & WS_EX_TOOLWINDOW)
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: removing WS_EX_TOOLWINDOW");
+
+		newExStyle &= ~WS_EX_TOOLWINDOW;
+	}
+
+	// Add app window style if it's not a root owner or if the window was a tool window
+	if (!(newExStyle & WS_EX_APPWINDOW) && (GetAncestor(hWnd, GA_ROOTOWNER) != hWnd || (lExStyle & WS_EX_TOOLWINDOW)))
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: adding WS_EX_APPWINDOW");
+
+		newExStyle |= WS_EX_APPWINDOW;
+	}
+
+	// Apply styles once
+	if (newStyle != lStyle)
+	{
+		SetWindowLong(hWnd, GWL_STYLE, newStyle);
+	}
+
+	if (newExStyle != lExStyle)
+	{
+		SetWindowLong(hWnd, GWL_EXSTYLE, newExStyle);
+	}
+
+	// Ensure visibility before frame change
+	if (IsDirectDrawDevice && !IsWindowVisible(hWnd))
+	{
+		ShowWindowAsync(hWnd, SW_SHOWNA);
+	}
+
+	// Check if window is minimized
+	if (IsIconic(hWnd))
+	{
+		ShowWindow(hWnd, SW_RESTORE);
+	}
+
+	// Only change z-order if currently topmost or not in foreground
+	bool isWindowTopMost = (lExStyle & WS_EX_TOPMOST);
+	bool needsZOrderChange = isWindowTopMost ||
+		((IsExclusive || Config.EnableWindowMode) && hWnd != GetForegroundWindow());
+
+	// Only call if something actually changed
+	if (frameStyleChanged || needsZOrderChange)
+	{
+		LOG_LIMIT(3, __FUNCTION__ << " Warning: setting window position." <<
+			" Frame changed: '" << frameStyleChanged << "' Making window top most: '" << (!isWindowTopMost) << "' Changing window zorder: '" << needsZOrderChange << "'"
+		);
+
+		SetWindowPos(
+			hWnd,
+			(isWindowTopMost ? HWND_NOTOPMOST : HWND_TOP),
+			0,
+			0,
+			0,
+			0,
+			(frameStyleChanged ? SWP_FRAMECHANGED : 0) | (needsZOrderChange ? 0 : SWP_NOZORDER) | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
+		);
+	}
+
+	// Log style changes
+	if (newStyle != lStyle || newExStyle != lExStyle || frameStyleChanged || needsZOrderChange)
+	{
+		LOG_LIMIT(3, __FUNCTION__ <<
+			" Window Style: " << Logging::hex(lStyle) << " -> " << Logging::hex(newStyle) <<
+			" ExStyle: " << Logging::hex(lExStyle) << " -> " << Logging::hex(newExStyle)
+		);
+	}
+}
+
+// Adjusting the window position for WindowMode
+void m_IDirect3D9Ex::AdjustWindowSize(HMONITOR hMonitor, HWND hWnd, LONG displayWidth, LONG displayHeight, bool EnableWindowMode, bool FullscreenWindowMode)
+{
+	if (!IsWindow(hWnd) || !displayWidth || !displayHeight)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not set window size, nullptr.");
 		return;
+	}
+
+	// Get window style
+	const LONG lOrgStyle = GetWindowLong(hWnd, GWL_STYLE);
+	LONG lStyle = lOrgStyle;
+	LONG lExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+	const BOOL HasMenu = (GetMenu(hWnd) != NULL);
+
+	// Bring the window to top
+	if (hWnd != GetForegroundWindow() && hWnd != GetFocus() && hWnd != GetActiveWindow())
+	{
+		// Set topmost
+		SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+		// Set not topmost
+		SetWindowPos(hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+		// Set window active
+		if (lOrgStyle & WS_VISIBLE)
+		{
+			SetActiveWindow(hWnd);
+		}
 	}
 
 	// Verify monitor handle
 	if (!Utils::IsMonitorValid(hMonitor))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: monitor handle is invalid, using window location instead.");
-		hMonitor = Utils::GetMonitorFromWindow(MainhWnd);
-	}
-
-	// Remove clip children for popup windows
-	LONG lStyle = GetWindowLong(MainhWnd, GWL_STYLE);
-	if ((lStyle & WS_POPUP) && (lStyle & WS_CLIPCHILDREN))
-	{
-		SetWindowLong(MainhWnd, GWL_STYLE, lStyle & ~WS_CLIPCHILDREN);
-		SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
-	}
-
-	// Move window to top if not already topmost
-	LONG lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
-	if (!(lExStyle & WS_EX_TOPMOST))
-	{
-		SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle | WS_EX_TOPMOST);
-		SetWindowPos(MainhWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
-		SetWindowLong(MainhWnd, GWL_EXSTYLE, lExStyle & ~WS_EX_TOPMOST);
-		SetWindowPos(MainhWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
-	}
-
-	// Set active and foreground if needed
-	if (MainhWnd != GetFocus() || MainhWnd != GetActiveWindow())
-	{
-		DWORD currentThreadId = GetCurrentThreadId();
-		DWORD foregroundThreadId = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
-
-		bool shouldAttachThreadID = currentThreadId != foregroundThreadId;
-
-		// Attach the input of the foreground window and current window
-		if (shouldAttachThreadID)
-		{
-			AttachThreadInput(currentThreadId, foregroundThreadId, TRUE);
-		}
-
-		SetFocus(MainhWnd);
-		SetActiveWindow(MainhWnd);
-		BringWindowToTop(MainhWnd);
-
-		// Detach the input from the foreground window
-		if (shouldAttachThreadID)
-		{
-			AttachThreadInput(currentThreadId, foregroundThreadId, FALSE);
-		}
+		hMonitor = Utils::GetMonitorFromWindow(hWnd);
 	}
 
 	// Get screen area and width and height
@@ -998,12 +1079,6 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 	Utils::GetScreenClientRect(hMonitor, screenClientRect);
 	LONG screenClientWidth = screenClientRect.right - screenClientRect.left;
 	LONG screenClientHeight = screenClientRect.bottom - screenClientRect.top;
-
-	// Get window style
-	LONG lOrgStyle = GetWindowLong(MainhWnd, GWL_STYLE);
-	lStyle = lOrgStyle;
-	lExStyle = GetWindowLong(MainhWnd, GWL_EXSTYLE);
-	BOOL HasMenu = (GetMenu(MainhWnd) != NULL);
 
 	// Set window style
 	bool clientWidthOverlap = false, clientHeightOverlap = false;
@@ -1074,8 +1149,8 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		// Set style if it needs to change
 		if (lOrgStyle != lStyle)
 		{
-			SetWindowLong(MainhWnd, GWL_STYLE, lStyle);
-			SetWindowPos(MainhWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+			SetWindowLong(hWnd, GWL_STYLE, lStyle);
+			SetWindowPos(hWnd, HWND_TOP, 0, 0, 0, 0, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 		}
 	}
 
@@ -1103,7 +1178,7 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 	}
 
 	// Ensure the window doesn't cross over the desktop client area
-	if (!FullscreenWindowMode)
+	if (!FullscreenWindowMode && EnableWindowMode)
 	{
 		if (!clientWidthOverlap)
 		{
@@ -1135,20 +1210,20 @@ void m_IDirect3D9Ex::AdjustWindow(HMONITOR hMonitor, HWND MainhWnd, LONG display
 		// Use SetWindowPlacement to center and adjust size
 		WINDOWPLACEMENT wndpl = {};
 		wndpl.length = sizeof(WINDOWPLACEMENT);
-		if (GetWindowPlacement(MainhWnd, &wndpl))
+		if (GetWindowPlacement(hWnd, &wndpl))
 		{
 			// Force restore first if maximized/fullscreen
-			if (wndpl.showCmd == SW_MAXIMIZE || IsZoomed(MainhWnd))
+			if (wndpl.showCmd == SW_MAXIMIZE || IsZoomed(hWnd))
 			{
-				ShowWindow(MainhWnd, SW_RESTORE);
+				ShowWindow(hWnd, SW_RESTORE);
 			}
 
 			wndpl.showCmd = SW_NORMAL;
 			wndpl.rcNormalPosition = { xLoc, yLoc, Rect.right + xLoc, Rect.bottom + yLoc };
-			Utils::SetWindowPlacementToMonitor(hMonitor, MainhWnd, &wndpl);
+			Utils::SetWindowPlacementToMonitor(hMonitor, hWnd, &wndpl);
 		}
 
 		// Use SetWindowPos to center and adjust size
-		Utils::SetWindowPosToMonitor(hMonitor, MainhWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_NOZORDER | SWP_NOACTIVATE);
+		Utils::SetWindowPosToMonitor(hMonitor, hWnd, HWND_TOP, xLoc, yLoc, Rect.right, Rect.bottom, SWP_NOZORDER | SWP_NOACTIVATE);
 	}
 }

@@ -6,6 +6,7 @@
 #include "d3d9Shared.h"
 #include <Dxva.h>
 #include <unordered_map>
+#include <unordered_set>
 #include <deque>
 #include <algorithm>
 
@@ -26,9 +27,9 @@ class m_IDirect3DVolume9;
 class m_IDirect3DVolumeTexture9;
 class m_IDirect3DVideoDevice9;
 class m_IDirect3DDXVADevice9;
+class ShadowSurfaceStorage;
 
 #include "AddressLookupTable.h"
-#include "ShadowSurfaceStorage.h"
 #include "IClassFactory\IClassFactory.h"
 #include "GDI\GDI.h"
 #include "Utils\Utils.h"
@@ -94,6 +95,42 @@ struct D3DDISPLAYMODEEX_CONVERT : public D3DDISPLAYMODEEX {
 	}
 };
 
+inline bool IsMSAACompatibleRenderTargetFormat(D3DFORMAT Format)
+{
+	switch (Format)
+	{
+		// 16-bit RGB
+	case D3DFMT_R5G6B5:
+	case D3DFMT_X1R5G5B5:
+	case D3DFMT_A1R5G5B5:
+	case D3DFMT_A4R4G4B4:
+
+		// 32-bit RGB
+	case D3DFMT_X8R8G8B8:
+	case D3DFMT_A8R8G8B8:
+	case D3DFMT_A2R10G10B10:
+
+		// HDR
+	case D3DFMT_A16B16G16R16:
+	case D3DFMT_A16B16G16R16F:
+	case D3DFMT_A32B32G32R32F:
+
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+struct DEVICE_REFCOUNT_CHECKER {
+	bool Texture = false;
+	bool StateBlock = false;
+	bool RenderTarget = false;
+	bool PixelShader = false;
+	bool D3DXFont = false;
+	bool D3DXSprite = false;
+};
+
 typedef int(WINAPI* D3DPERF_BeginEventProc)(D3DCOLOR, LPCWSTR);
 typedef int(WINAPI* D3DPERF_EndEventProc)();
 typedef DWORD(WINAPI* D3DPERF_GetStatusProc)();
@@ -108,10 +145,12 @@ typedef HRESULT(WINAPI* Direct3DCreate9On12ExProc)(UINT SDKVersion, D3D9ON12_ARG
 
 constexpr UINT NO_MAP_VALUE = 0xFFFFFFFF;
 
+void WINAPI Direct3D9SetSwapEffectUpgradeShim(int Unknown);
+
 namespace D3d9Wrapper
 {
-	void WINAPI genericQueryInterface(REFIID riid, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
-	void TestAllDeviceRefs(IDirect3DDevice9* device);
+	void WINAPI genericQueryInterface(REFIID riid, REFIID WrapperID, LPVOID* ppvObj, m_IDirect3DDevice9Ex* m_pDeviceEx);
+	void TestAllDeviceRefs(IDirect3DDevice9* device, DEVICE_REFCOUNT_CHECKER &dref);
 }
 
 #include "ComPtr.h"
@@ -133,3 +172,4 @@ namespace D3d9Wrapper
 #include "IDirect3DVolumeTexture9.h"
 #include "IDirect3DVideoDevice9.h"
 #include "IDirect3DDXVADevice9.h"
+#include "ShadowSurfaceStorage.h"

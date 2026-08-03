@@ -16,27 +16,33 @@
 
 #include "d3d9.h"
 
+// ******************************
+// IUnknown functions
+// ******************************
+
 HRESULT m_IDirect3DVideoDevice9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if (riid == IID_IUnknown || riid == WrapperID || riid == IID_IDirect3DBaseTexture9 || riid == IID_IDirect3DResource9)
+	if (!ppvObj)
 	{
-		HRESULT hr = ProxyInterface->QueryInterface(WrapperID, ppvObj);
+		return E_POINTER;
+	}
 
-		if (SUCCEEDED(hr))
-		{
-			*ppvObj = this;
-		}
+	if (riid == IID_IUnknown || riid == WrapperID)
+	{
+		AddRef();
 
-		return hr;
+		*ppvObj = this;
+
+		return D3D_OK;
 	}
 
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
 
 	if (SUCCEEDED(hr))
 	{
-		D3d9Wrapper::genericQueryInterface(riid, ppvObj, m_pDeviceEx);
+		D3d9Wrapper::genericQueryInterface(riid, WrapperID, ppvObj, m_pDeviceEx);
 	}
 
 	return hr;
@@ -53,17 +59,12 @@ ULONG m_IDirect3DVideoDevice9::Release(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ULONG ref = ProxyInterface->Release();
-
-	if (ref == 0 && m_pDeviceEx->GetClientDXVersion() < 8)
-	{
-		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
-
-		delete this;
-	}
-
-	return ref;
+	return ProxyInterface->Release();
 }
+
+// ******************************
+// IDirect3DVideoDevice9 methods
+// ******************************
 
 HRESULT m_IDirect3DVideoDevice9::CreateSurface(THIS_ UINT Width, UINT Height, UINT BackBuffers, D3DFORMAT Format, D3DPOOL Pool, DWORD Usage, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle)
 {

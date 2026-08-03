@@ -19,6 +19,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include <psapi.h>
 #include <cctype>
 #include <iomanip>
 #include <tlhelp32.h>
@@ -35,6 +36,7 @@
 #include "d3d9\d3d9External.h"
 #include "External\Hooking\Hook.h"
 #include "External\Hooking\Disasm.h"
+#include "Libraries\ScopeGuard.h"
 #include "Logging\Logging.h"
 
 #undef LoadLibrary
@@ -66,6 +68,7 @@ typedef FARPROC(WINAPI *GetProcAddressProc)(HMODULE, LPSTR);
 typedef DWORD(WINAPI *GetModuleFileNameAProc)(HMODULE, LPSTR, DWORD);
 typedef DWORD(WINAPI *GetModuleFileNameWProc)(HMODULE, LPWSTR, DWORD);
 typedef BOOL(WINAPI* GetDiskFreeSpaceAProc)(LPCSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters);
+typedef BOOL(WINAPI* GetDiskFreeSpaceExAProc)(LPCSTR lpDirectoryName, PULARGE_INTEGER lpFreeBytesAvailableToCaller, PULARGE_INTEGER lpTotalNumberOfBytes, PULARGE_INTEGER lpTotalNumberOfFreeBytes);
 typedef BOOL(WINAPI *CreateProcessAFunc)(LPCSTR lpApplicationName, LPSTR lpCommandLine, LPSECURITY_ATTRIBUTES lpProcessAttributes, LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles, DWORD dwCreationFlags,
 	LPVOID lpEnvironment, LPCSTR lpCurrentDirectory, LPSTARTUPINFOA lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
 typedef HANDLE(WINAPI* CreateThreadProc)(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
@@ -81,6 +84,14 @@ typedef DWORD(WINAPI* GetTickCountProc)();
 typedef LONGLONG(WINAPI* GetTickCount64Proc)();
 typedef DWORD(WINAPI* timeGetTimeProc)();
 typedef MMRESULT(WINAPI* timeGetSystemTimeProc)(LPMMTIME pmmt, UINT cbmmt);
+#ifndef CFG_CALL_TARGET_VALID
+#define CFG_CALL_TARGET_VALID                               (0x00000001)
+typedef struct _CFG_CALL_TARGET_INFO {
+	ULONG_PTR Offset;
+	ULONG_PTR Flags;
+} CFG_CALL_TARGET_INFO, * PCFG_CALL_TARGET_INFO;
+#endif
+typedef BOOL(WINAPI* PFN_SetProcessValidCallTargets)(HANDLE Process, PVOID VirtualAddress, SIZE_T RegionSize, ULONG NumberOfOffsets, PCFG_CALL_TARGET_INFO OffsetInformation);
 
 namespace Utils
 {
@@ -111,6 +122,7 @@ namespace Utils
 	INITIALIZE_OUT_WRAPPED_PROC(GetModuleFileNameA, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(GetModuleFileNameW, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
+	INITIALIZE_OUT_WRAPPED_PROC(GetDiskFreeSpaceExA, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(CreateThread, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(CreateFileA, unused);
 	INITIALIZE_OUT_WRAPPED_PROC(VirtualAlloc, unused);
@@ -130,8 +142,6 @@ namespace Utils
 
 	DWORD SubtractTimeInMS_gtc = 0;
 	int64_t SubtractTimeInMS_gtc64 = 0;
-	DWORD SubtractTimeInMS_tmt = 0;
-	DWORD SubtractTimeInMS_mmt = 0;
 	int64_t SubtractTimeInTicks_qpc = 0;
 	bool IsPerformanceFrequencyCapped = false;
 	uint64_t PerformanceFrequency_real = 0;
@@ -179,49 +189,156 @@ void Utils::Shell(const char* fileName)
 	return;
 }
 
-// Sets application DPI aware which disables DPI virtulization/High DPI scaling for this process
-void Utils::DisableHighDPIScaling()
+// Sets application DPI aware which can enable or disable DPI virtulization or High DPI scaling for this process
+void Utils::ConfigureDpiAwareness()
 {
 #ifdef _DPI_AWARENESS_CONTEXTS_
-	Logging::Log() << "Disabling High DPI Scaling...";
 
-	BOOL setDpiAware = FALSE;
-	HMODULE hUser32 = LoadLibrary("user32.dll");
-	HMODULE hShcore = LoadLibrary("shcore.dll");
-	if (hUser32 && !setDpiAware)
+	Logging::Log() << "Configuring DPI awareness...";
+
+	enum DPI_MODE
 	{
-		SetProcessDpiAwarenessContextProc setProcessDpiAwarenessContext = (SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
+		DPI_SYSTEM_AWARE = 1,
+		DPI_UNAWARE = 2,
+		DPI_UNAWARE_GDI_SCALED = 3,
+		DPI_PER_MONITOR_AWARE = 4,
+		DPI_PER_MONITOR_AWARE_V2 = 5,
+	};
 
-		if (setProcessDpiAwarenessContext)
+	bool dpiConfigured = false;
+	const char* dpiAwareness = nullptr;
+	const char* procUsed = nullptr;
+
+	HMODULE hUser32 = LoadLibraryA("user32.dll");
+	if (hUser32)
+	{
+		SetProcessDpiAwarenessContextProc SetProcessDpiAwarenessContext = (SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
+
+		if (SetProcessDpiAwarenessContext)
 		{
-			setDpiAware = setProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+			BOOL result = FALSE;
+			switch (Config.ConfigureDpiAwareness)
+			{
+			default:
+			case DPI_SYSTEM_AWARE:
+				result = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
+				dpiAwareness = "SystemAware";
+				break;
+
+			case DPI_UNAWARE:
+				result = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE);
+				dpiAwareness = "Unaware";
+				break;
+
+			case DPI_UNAWARE_GDI_SCALED:
+				result = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED);
+				dpiAwareness = "UnawareGdiScaled";
+				break;
+
+			case DPI_PER_MONITOR_AWARE:
+				result = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
+				dpiAwareness = "PerMonitorAware";
+				break;
+
+			case DPI_PER_MONITOR_AWARE_V2:
+				result = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+				dpiAwareness = "PerMonitorAwareV2";
+				break;
+			}
+
+			if (result)
+			{
+				dpiConfigured = true;
+				procUsed = "SetProcessDpiAwarenessContext()";
+			}
+			else
+			{
+				DWORD err = GetLastError();
+				if (err == ERROR_ACCESS_DENIED)
+				{
+					Logging::Log() << "DPI awareness was already configured by the process.";
+					FreeLibrary(hUser32);
+					return;
+				}
+			}
 		}
 	}
-	if (hShcore && !setDpiAware)
+	if (!dpiConfigured)
 	{
-		SetProcessDpiAwarenessProc setProcessDpiAwareness = (SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
-
-		if (setProcessDpiAwareness)
+		HMODULE hShcore = LoadLibraryA("shcore.dll");
+		if (hShcore)
 		{
-			HRESULT result = setProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+			SetProcessDpiAwarenessProc SetProcessDpiAwareness = (SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
 
-			setDpiAware = (SUCCEEDED(result) || result == E_ACCESSDENIED);
+			if (SetProcessDpiAwareness)
+			{
+				HRESULT result = E_FAIL;
+				switch (Config.ConfigureDpiAwareness)
+				{
+				default:
+				case DPI_SYSTEM_AWARE:
+					result = SetProcessDpiAwareness(PROCESS_SYSTEM_DPI_AWARE);
+					dpiAwareness = "SystemAware";
+					break;
+
+				case DPI_UNAWARE:
+				case DPI_UNAWARE_GDI_SCALED:
+					result = SetProcessDpiAwareness(PROCESS_DPI_UNAWARE);
+					dpiAwareness = "Unaware";
+					break;
+
+				case DPI_PER_MONITOR_AWARE:
+				case DPI_PER_MONITOR_AWARE_V2:
+					result = SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+					dpiAwareness = "PerMonitorAware";
+					break;
+				}
+
+				if (SUCCEEDED(result))
+				{
+					dpiConfigured = true;
+					procUsed = "SetProcessDpiAwareness()";
+				}
+				else if (result == E_ACCESSDENIED)
+				{
+					Logging::Log() << "DPI awareness was already configured by the process.";
+					FreeLibrary(hUser32);
+					FreeLibrary(hShcore);
+					return;
+				}
+			}
+
+			FreeLibrary(hShcore);
 		}
 	}
-	if (hUser32 && !setDpiAware)
+	if (!dpiConfigured && hUser32)
 	{
-		SetProcessDPIAwareProc setProcessDPIAware = (SetProcessDPIAwareProc)GetProcAddress(hUser32, "SetProcessDPIAware");
+		SetProcessDPIAwareProc SetProcessDPIAware = (SetProcessDPIAwareProc)GetProcAddress(hUser32, "SetProcessDPIAware");
 
-		if (setProcessDPIAware)
+		if (SetProcessDPIAware)
 		{
-			setDpiAware = setProcessDPIAware();
+			if (SetProcessDPIAware() != FALSE)
+			{
+				dpiConfigured = true;
+				dpiAwareness = "SystemAware";
+				procUsed = "SetProcessDPIAware()";
+			}
 		}
 	}
 
-	if (!setDpiAware)
+	if (hUser32)
 	{
-		Logging::Log() << "Failed to disable High DPI Scaling!";
+		FreeLibrary(hUser32);
 	}
+
+	if (!dpiConfigured)
+	{
+		Logging::Log() << "Failed to configure DPI awareness!";
+		return;
+	}
+
+	Logging::Log() << "Set DPI awareness to '" << dpiAwareness << "' using " << procUsed;
+
 #endif // _DPI_AWARENESS_CONTEXTS_
 }
 
@@ -331,24 +448,85 @@ BOOL WINAPI Utils::kernel_GetDiskFreeSpaceA(LPCSTR lpRootPathName, LPDWORD lpSec
 		return FALSE;
 	}
 
+	// Older games often calculate:
+	// TotalBytes = SectorsPerCluster * BytesPerSector * TotalClusters
+
 	BOOL result = GetDiskFreeSpaceA(lpRootPathName, lpSectorsPerCluster, lpBytesPerSector, lpNumberOfFreeClusters, lpTotalNumberOfClusters);
 
-	// Limit the reported disk space
-	if (lpSectorsPerCluster)
+	if (!result)
 	{
-		*lpSectorsPerCluster = min(0x00000040, *lpSectorsPerCluster);
+		return result;
 	}
-	if (lpBytesPerSector)
+
+	// Keep reported disk size below 2GB
+	const ULONGLONG maxSize = 0x7FFFFFFF;
+
+	const DWORD sectorsPerCluster = (lpSectorsPerCluster && *lpSectorsPerCluster) ? *lpSectorsPerCluster : 1;
+
+	const DWORD bytesPerSector = (lpBytesPerSector && *lpBytesPerSector) ? *lpBytesPerSector : 512;
+
+	ULONGLONG clusterSize = (ULONGLONG)sectorsPerCluster * (ULONGLONG)bytesPerSector;
+
+	if (clusterSize == 0)
 	{
-		*lpBytesPerSector = min(0x00000200, *lpBytesPerSector);
+		clusterSize = 1;
 	}
-	if (lpNumberOfFreeClusters)
-	{
-		*lpNumberOfFreeClusters = min(0x0000F000, *lpNumberOfFreeClusters);
-	}
+
+	const DWORD maxClusters = (DWORD)(maxSize / clusterSize);
+
 	if (lpTotalNumberOfClusters)
 	{
-		*lpTotalNumberOfClusters = min(0x0000FFF6, *lpTotalNumberOfClusters);
+		*lpTotalNumberOfClusters = min(*lpTotalNumberOfClusters, maxClusters);
+	}
+
+	if (lpNumberOfFreeClusters)
+	{
+		const DWORD totalNumberOfClusters = (lpTotalNumberOfClusters && *lpTotalNumberOfClusters) ? *lpTotalNumberOfClusters : maxClusters;
+
+		*lpNumberOfFreeClusters = min(*lpNumberOfFreeClusters, totalNumberOfClusters);
+	}
+
+	return result;
+}
+
+BOOL WINAPI Utils::kernel_GetDiskFreeSpaceExA(LPCSTR lpDirectoryName, PULARGE_INTEGER lpFreeBytesAvailableToCaller, PULARGE_INTEGER lpTotalNumberOfBytes, PULARGE_INTEGER lpTotalNumberOfFreeBytes)
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	DEFINE_STATIC_PROC_ADDRESS(GetDiskFreeSpaceExAProc, GetDiskFreeSpaceExA, GetDiskFreeSpaceExA_out);
+
+	if (!GetDiskFreeSpaceExA)
+	{
+		return FALSE;
+	}
+
+	BOOL result = GetDiskFreeSpaceExA(lpDirectoryName, lpFreeBytesAvailableToCaller, lpTotalNumberOfBytes, lpTotalNumberOfFreeBytes);
+
+	if (!result)
+	{
+		return result;
+	}
+
+	// Keep reported disk size below 2GB
+	const ULONGLONG maxSize = 0x7FFFFFFF;
+
+	if (lpTotalNumberOfBytes)
+	{
+		lpTotalNumberOfBytes->QuadPart = min(lpTotalNumberOfBytes->QuadPart, maxSize);
+	}
+
+	if (lpTotalNumberOfFreeBytes)
+	{
+		const ULONGLONG totalBytes = (lpTotalNumberOfBytes) ? lpTotalNumberOfBytes->QuadPart : maxSize;
+
+		lpTotalNumberOfFreeBytes->QuadPart = min(lpTotalNumberOfFreeBytes->QuadPart, totalBytes);
+	}
+
+	if (lpFreeBytesAvailableToCaller)
+	{
+		const ULONGLONG totalBytes = (lpTotalNumberOfBytes) ? lpTotalNumberOfBytes->QuadPart : maxSize;
+
+		lpFreeBytesAvailableToCaller->QuadPart = min(lpFreeBytesAvailableToCaller->QuadPart, totalBytes);
 	}
 
 	return result;
@@ -526,7 +704,7 @@ SIZE_T WINAPI Utils::kernel_HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem)
 
 bool Utils::InitUpTimeOffsets()
 {
-	const uint64_t MS_PER_DAY = 86400000ULL;
+	constexpr uint64_t MS_PER_HOUR = 1000ULL * 60 * 60;
 
 	// Gather system uptime values
 	LARGE_INTEGER qpc, freq;
@@ -538,33 +716,12 @@ bool Utils::InitUpTimeOffsets()
 	}
 	uint64_t ms_qpc = (qpc.QuadPart * 1000ULL) / freq.QuadPart;
 
-	MMTIME mmt = {};
-	mmt.wType = TIME_MS;
-	if (timeGetSystemTime(&mmt, sizeof(mmt)) != MMSYSERR_NOERROR || mmt.wType != TIME_MS)
-	{
-		Logging::Log() << __FUNCTION__ << " Error: timeGetSystemTime failed!";
-
-		return false;
-	}
-
-	DWORD tmt = timeGetTime();
-
-	DWORD gtc = GetTickCount();
-#if (_WIN32_WINNT >= 0x0502)
-	ULONGLONG gtc64 = GetTickCount64();
-#endif
-
 	// Calculate full days from uptime in ms
-	uint64_t timeInDays = ms_qpc / MS_PER_DAY;
-	uint64_t timeInMS = timeInDays * MS_PER_DAY;
-	uint64_t remainderTimeMS = ms_qpc - timeInMS;
+	uint64_t timeInHours = ms_qpc / MS_PER_HOUR;  // total hours since boot
+	uint64_t timeInMS = timeInHours * MS_PER_HOUR;  // milliseconds in those hours
 
-	SubtractTimeInMS_gtc = static_cast<DWORD>(gtc - remainderTimeMS);
-#if (_WIN32_WINNT >= 0x0502)
-	SubtractTimeInMS_gtc64 = gtc64 - remainderTimeMS;
-#endif
-	SubtractTimeInMS_tmt = static_cast<DWORD>(tmt - remainderTimeMS);
-	SubtractTimeInMS_mmt = static_cast<DWORD>(mmt.u.ms - remainderTimeMS);
+	SubtractTimeInMS_gtc = static_cast<DWORD>(timeInMS);
+	SubtractTimeInMS_gtc64 = timeInMS;
 	SubtractTimeInTicks_qpc = (timeInMS * freq.QuadPart) / 1000ULL;
 
 	PerformanceFrequency_real = freq.QuadPart;
@@ -579,7 +736,7 @@ bool Utils::InitUpTimeOffsets()
 			" Capped: " << ((double)PerformanceFrequency_cap / 1'000'000'000.0) << " GHz";
 	}
 
-	Logging::Log() << __FUNCTION__ << " Found " << timeInDays << " day" << (timeInDays == 1 ? "" : "s") << " system up time!";
+	Logging::Log() << __FUNCTION__ << " Found " << timeInHours << " hours" << (timeInHours == 1 ? "" : "s") << " system up time!";
 
 	return true;
 }
@@ -706,7 +863,7 @@ DWORD WINAPI Utils::winmm_timeGetTime()
 		return 0;
 	}
 
-	return timeGetTime() - SubtractTimeInMS_tmt;
+	return timeGetTime() - SubtractTimeInMS_gtc;
 }
 
 MMRESULT WINAPI Utils::winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt)
@@ -723,10 +880,34 @@ MMRESULT WINAPI Utils::winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt)
 	{
 		if (cbmmt == sizeof(MMTIME) && pmmt->wType == TIME_MS)
 		{
-			pmmt->u.ms -= SubtractTimeInMS_mmt;
+			pmmt->u.ms -= SubtractTimeInMS_gtc;
 		}
 	}
 	return result;
+}
+
+void Utils::MarkAsValidCallTarget(void* allocationBase, size_t regionSize, size_t entryOffset)
+{
+	// CFG does not exist pre Win8.1
+	static HMODULE hKernel32 = GetModuleHandleA("kernel32.dll");
+	if (!hKernel32)
+	{
+		return;
+	}
+
+	static auto pSetProcessValidCallTargets = reinterpret_cast<PFN_SetProcessValidCallTargets>(GetProcAddress(hKernel32, "SetProcessValidCallTargets"));
+
+	if (!pSetProcessValidCallTargets)
+	{
+		// Older OS (XP, Vista, 7, 8.0) ? CFG not supported
+		return;
+	}
+
+	CFG_CALL_TARGET_INFO info = {};
+	info.Offset = static_cast<ULONG_PTR>(entryOffset);
+	info.Flags = CFG_CALL_TARGET_VALID;
+
+	pSetProcessValidCallTargets(GetCurrentProcess(), allocationBase, regionSize, 1, &info);
 }
 
 static inline void ToLower(char* str)
@@ -753,26 +934,32 @@ bool Utils::CheckIfSystemModuleLoaded(const char* moduleName)
 	}
 
 	// Build: <System32>\<moduleName>
-	char sysDir[MAX_PATH] = {};
-	GetSystemDirectoryA(sysDir, MAX_PATH);
+	CreateScopedHeapBuffer(char, sysDir, MAX_PATH);
+	if (GetSystemDirectoryA(sysDir, MAX_PATH) == 0)
+	{
+		return false; // couldn't get system directory
+	}
 	std::string sysPath = sysDir;
 	sysPath += "\\";
 	sysPath += moduleName;
 	// lowercase
-	char sysPathC[MAX_PATH];
-	strncpy_s(sysPathC, sysPath.c_str(), MAX_PATH);
+	CreateScopedHeapBuffer(char, sysPathC, MAX_PATH);
+	strncpy_s(sysPathC, MAX_PATH, sysPath.c_str(), _TRUNCATE);
 	sysPathC[MAX_PATH - 1] = 0;
 	ToLower(sysPathC);
 
 	// Build: <Windows>\SysWOW64\<moduleName>
-	char windowsDir[MAX_PATH] = {};
-	GetWindowsDirectoryA(windowsDir, MAX_PATH);
+	CreateScopedHeapBuffer(char, windowsDir, MAX_PATH);
+	if (GetWindowsDirectoryA(windowsDir, MAX_PATH) == 0)
+	{
+		return false; // couldn't get windows directory
+	}
 	std::string wowPath = windowsDir;
 	wowPath += "\\SysWOW64\\";
 	wowPath += moduleName;
 	// lowercase
-	char wowPathC[MAX_PATH];
-	strncpy_s(wowPathC, wowPath.c_str(), MAX_PATH);
+	CreateScopedHeapBuffer(char, wowPathC, MAX_PATH);
+	strncpy_s(wowPathC, MAX_PATH, wowPath.c_str(), _TRUNCATE);
 	wowPathC[MAX_PATH - 1] = 0;
 	ToLower(wowPathC);
 
@@ -803,7 +990,7 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 	// Declare vars
 	HMODULE dll = nullptr;
 	const char *loadpath;
-	char path[MAX_PATH] = { 0 };
+	CreateScopedHeapBuffer(char, path, MAX_PATH);
 
 	// Check if dll is already loaded
 	for (size_t x = 0; x < custom_dll.size(); x++)
@@ -828,10 +1015,9 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 	}
 
 	// Load system dll
-	if (!dll)
+	if (!dll && GetSystemDirectoryA(path, MAX_PATH))
 	{
 		//Load library
-		GetSystemDirectory(path, MAX_PATH);
 		strcat_s(path, MAX_PATH, "\\");
 		strcat_s(path, MAX_PATH, dllname);
 		loadpath = path;
@@ -894,7 +1080,7 @@ void Utils::InitializeASI(HMODULE hModule)
 // Find asi plugins to load
 void Utils::FindFiles(WIN32_FIND_DATA* fd)
 {
-	char dir[MAX_PATH];
+	CreateScopedHeapBuffer(char, dir, MAX_PATH);
 	if (!GetCurrentDirectoryA(MAX_PATH, dir))
 	{
 		Logging::Log() << "Failed to get current directory.";
@@ -918,7 +1104,7 @@ void Utils::FindFiles(WIN32_FIND_DATA* fd)
 		// Check for ".asi" extension (case-insensitive)
 		if (len >= 4 && _stricmp(&filename[len - 4], ".asi") == 0)
 		{
-			char fullPath[MAX_PATH];
+			CreateScopedHeapBuffer(char, fullPath, MAX_PATH);
 			snprintf(fullPath, MAX_PATH, "%s\\%s", dir, filename);
 
 			HMODULE h = LoadLibraryA(fullPath);
@@ -946,7 +1132,7 @@ void Utils::LoadPlugins()
 {
 	Logging::Log() << "Loading ASI Plugins";
 
-	char originalDir[MAX_PATH];
+	CreateScopedHeapBuffer(char, originalDir, MAX_PATH);
 	if (!GetCurrentDirectoryA(MAX_PATH, originalDir))
 	{
 		Logging::Log() << "Failed to get current directory.";
@@ -954,15 +1140,15 @@ void Utils::LoadPlugins()
 	}
 
 	// Get directory of the DLL
-	char selfPath[MAX_PATH];
+	CreateScopedHeapBuffer(char, selfPath, MAX_PATH);
 	if (!GetModuleFileNameA(hModule_dll, selfPath, MAX_PATH))
 	{
 		Logging::Log() << "Failed to get module file name.";
 		return;
 	}
 
-	char baseDir[MAX_PATH];
-	strcpy_s(baseDir, selfPath);
+	CreateScopedHeapBuffer(char, baseDir, MAX_PATH);
+	strcpy_s(baseDir, MAX_PATH, selfPath);
 	char* lastSlash = strrchr(baseDir, '\\');
 	if (lastSlash) *lastSlash = '\0'; // remove the filename
 
@@ -979,7 +1165,7 @@ void Utils::LoadPlugins()
 	const char* subDirs[] = { "scripts", "plugins" };
 	for (const auto& dir : subDirs)
 	{
-		char fullPath[MAX_PATH];
+		CreateScopedHeapBuffer(char, fullPath, MAX_PATH);
 		if (PathCombineA(fullPath, baseDir, dir) && SetCurrentDirectoryA(fullPath))
 		{
 			FindFiles(&fd);
@@ -1036,6 +1222,29 @@ HMEMORYMODULE Utils::LoadResourceToMemory(DWORD ResID)
 	return nullptr;
 }
 
+bool Utils::IsVulkanModuleLoaded()
+{
+	HMODULE hMods[1024];
+	DWORD cbNeeded;
+	HANDLE hProcess = GetCurrentProcess();
+
+	if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded))
+	{
+		for (DWORD i = 0; i < (cbNeeded / sizeof(HMODULE)); ++i)
+		{
+			char szModName[MAX_PATH] = {};
+			if (GetModuleFileNameExA(hProcess, hMods[i], szModName, sizeof(szModName)))
+			{
+				if (stristr(szModName, "vulkan", MAX_PATH))
+				{
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
 // Searches the memory
 void *Utils::memmem(const void *l, size_t l_len, const void *s, size_t s_len)
 {
@@ -1086,6 +1295,16 @@ DWORD Utils::ReverseBits(DWORD v)
 	v = ((v >> 4) & 0x0F0F0F0F) | ((v & 0x0F0F0F0F) << 4);	// swap nibbles
 	v = ((v >> 8) & 0x00FF00FF) | ((v & 0x00FF00FF) << 8);	// swap bytes
 	return (v >> 16) | (v << 16);							// swap 2-byte long pairs
+}
+
+DWORD Utils::ComputeRND(DWORD Seed, DWORD Num)
+{
+	LARGE_INTEGER pc = {};
+	QueryPerformanceCounter(&pc);
+
+	DWORD newSeed = pc.LowPart ^ pc.HighPart;
+	DWORD rotated = (newSeed << 16) | (newSeed >> 16);
+	return (Seed ^ newSeed) ^ (Num ^ rotated) ^ ReverseBits(newSeed);
 }
 
 // Removes the artificial resolution limit from Direct3D7 and below
@@ -1377,7 +1596,7 @@ static BOOL WINAPI kernel_CreateProcessA(LPCSTR lpApplicationName, LPSTR lpComma
 	{
 		Logging::Log() << __FUNCTION__ << " " << lpCommandLine;
 
-		char CommandLine[MAX_PATH] = { '\0' };
+		CreateScopedHeapBuffer(char, CommandLine, MAX_PATH);
 
 		for (int x = 0; x < MAX_PATH && lpCommandLine && lpCommandLine[x] != ',' && lpCommandLine[x] != '\0'; x++)
 		{
@@ -1416,7 +1635,7 @@ static BOOL WINAPI kernel_CreateProcessW(LPCWSTR lpApplicationName, LPWSTR lpCom
 	{
 		Logging::Log() << __FUNCTION__ << " " << lpCommandLine;
 
-		wchar_t CommandLine[MAX_PATH] = { '\0' };
+		CreateScopedHeapBuffer(wchar_t, CommandLine, MAX_PATH);
 
 		for (int x = 0; x < MAX_PATH && lpCommandLine && lpCommandLine[x] != ',' && lpCommandLine[x] != '\0'; x++)
 		{
@@ -1647,4 +1866,41 @@ LRESULT CALLBACK Utils::WndProcFilter(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 	Logging::LogDebug() << __FUNCTION__ << " " << Logging::hex(uMsg);
 
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+void Utils::ClipMouseCursor(HWND hWnd, const LONG clipWidth, const LONG clipHeight)
+{
+	Logging::LogDebug() << __FUNCTION__ << " " << hWnd;
+
+	RECT clientRect;
+
+	if (!IsWindow(hWnd) || !GetClientRect(hWnd, &clientRect) || clipWidth < 1 || clipHeight < 1)
+	{
+		return;
+	}
+
+	POINT clientTopLeft = { 0, 0 };
+
+	ClientToScreen(hWnd, &clientTopLeft);
+
+	LONG clientWidth = clientRect.right - clientRect.left;
+	LONG clientHeight = clientRect.bottom - clientRect.top;
+	// If window client is larger use clipWidth/clipHeight
+	bool useClipSize = (clientWidth > clipWidth || clientHeight > clipHeight);
+
+	RECT clipRect = {
+		clientTopLeft.x,
+		clientTopLeft.y,
+		clientTopLeft.x + (useClipSize ? clipWidth : clientWidth),
+		clientTopLeft.y + (useClipSize ? clipHeight : clientHeight)
+	};
+
+	ClipCursor(&clipRect);
+}
+
+void Utils::UnClipMouseCursor()
+{
+	Logging::LogDebug() << __FUNCTION__;
+
+	ClipCursor(nullptr);
 }

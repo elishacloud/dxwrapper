@@ -1,15 +1,15 @@
 #pragma once
 
-class m_IDirect3DDeviceX : public IUnknown, public AddressLookupTableDdrawObject
+class m_IDirect3DDeviceX final : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
 	IDirect3DDevice7* ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
 	DWORD ClientDirectXVersion;
-	ULONG RefCount1 = 0;
-	ULONG RefCount2 = 0;
-	ULONG RefCount3 = 0;
-	ULONG RefCount7 = 0;
+	LONG RefCount1 = 0;
+	LONG RefCount2 = 0;
+	LONG RefCount3 = 0;
+	LONG RefCount7 = 0;
 	const CLSID ClassID = IID_IUnknown;
 
 	// Store version wrappers
@@ -26,10 +26,7 @@ private:
 	LPDIRECT3DVERTEXSHADER9* fixupVertexShader = nullptr;
 	LPDIRECT3DVIEWPORT3 lpCurrentViewport = nullptr;
 	m_IDirect3DViewportX* lpCurrentViewportX = nullptr;
-	struct {
-		m_IDirectDrawSurfaceX* Interface = nullptr;
-		DWORD DxVersion = 0;
-	} parent3DSurface;
+	SURFACE_PARENT parent3DSurface;
 
 #ifdef ENABLE_PROFILING
 	std::chrono::steady_clock::time_point sceneTime;
@@ -46,7 +43,9 @@ private:
 	struct VIEWPORTSTRUCT {
 		bool Set = false;
 		D3DVIEWPORT9 View = {};
-		D3DVIEWPORT ViewportScale = {};
+		D3DVIEWPORT9 FixedView = {};
+		D3DVECTOR Scale = {};
+		D3DVECTOR Clip = {};
 		bool UseViewportScale = false;
 	};
 	struct MATERIALSTRUCT {
@@ -71,6 +70,7 @@ private:
 		DWORD rsMap161 = 0;	// D3DRS_MULTISAMPLEANTIALIAS
 		DWORD rsMap162 = 0;	// D3DRS_MULTISAMPLEMASK
 		DWORD rsMap195 = 0;	// D3DRS_DEPTHBIAS
+		bool alphaOpSet = false;
 	};
 	DEVICESTATE DeviceStates;
 
@@ -131,6 +131,7 @@ private:
 		DWORD rsClipping = 0;
 		DWORD rsLighting = 0;
 		//DWORD rsExtents = 0;
+		D3DMATRIX ProjectionMatrix = {};
 		DWORD rsAlphaTestEnable = 0;
 		DWORD rsAlphaFunc = 0;
 		DWORD rsAlphaRef = 0;
@@ -139,6 +140,12 @@ private:
 		float lowColorKey[4] = {};
 		float highColorKey[4] = {};
 	} DrawStates;
+
+	// Vertex Stream
+	VERTEXSTREAMINFO VertexStreamInfo;
+
+	// Index Stream
+	INDEXSTREAMINFO IndexStreamInfo;
 
 	// Flags
 	bool bSetDefaults = true;
@@ -188,16 +195,27 @@ private:
 			}
 			Data.erase(Token);
 		}
+
+		void clear()
+		{
+			IsRecording = false;
+			RecordingToken = 0;
+			Tokens.clear();
+			Data.clear();
+		}
 	} StateBlock;
 
 	// Default settings
 	D3DCAPS9 Caps9 = {};
 	D3DVIEWPORT9 DefaultViewport = {};
 
+	// Attached surface
+	LPDIRECTDRAWSURFACE7 AttachedSurface = nullptr;
+	m_IDirectDrawSurfaceX* lpAttachedSurfaceX = nullptr;
+
 	// Render target
 	LPDIRECTDRAWSURFACE7 CurrentRenderTarget = nullptr;
 	m_IDirectDrawSurfaceX* lpCurrentRenderTargetX = nullptr;
-	D3DMULTISAMPLE_TYPE RenderTargetMultiSampleType = D3DMULTISAMPLE_NONE;
 	DWORD DepthBitCount = 0;
 
 	// SetTexture array
@@ -223,6 +241,9 @@ private:
 	// ExecuteBuffer array
 	std::vector<m_IDirect3DExecuteBuffer*> ExecuteBufferList;
 
+	// Pick records
+	std::vector<D3DPICKRECORD> PickRecords;
+
 	// Vector temporary buffer cache
 	std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexCache;
 
@@ -234,9 +255,11 @@ private:
 
 	// Helper functions
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice);
+	HRESULT GetReturnResult(HRESULT hr);
 
 	// Execute buffer function
 	void CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& DestVertexCount, BYTE* SrcVertex, DWORD SrcIndex, DWORD VertexTypeDesc);
+	void MergeExecuteExtents(D3DRECT& currentExtent1, D3DRECT& newExtent2, DWORD& dwFlags);
 	HRESULT DrawExecutePoint(D3DPOINT* point, WORD pointCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 	HRESULT DrawExecuteSpan(D3DSPAN* span, WORD spanCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
 	HRESULT DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc);
@@ -244,24 +267,25 @@ private:
 
 	HRESULT SetTextureHandle(DWORD TexHandle);
 	HRESULT SetMaterialHandle(DWORD MatHandle);
+	inline HRESULT GetStateBlockRenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue);
 	inline HRESULT SetStateBlockRenderState(D3DRENDERSTATETYPE State, DWORD Value);
-	inline HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue) const;
+	inline HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue);
 	inline HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
-	inline HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue) const;
+	inline HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue);
 	inline HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
-	inline HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue) const;
+	inline HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue);
 	inline HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
-	HRESULT GetD9Light(DWORD Index, D3DLIGHT9* lpLight) const;
+	HRESULT GetD9Light(DWORD Index, D3DLIGHT9* lpLight);
 	HRESULT SetD9Light(DWORD Index, const D3DLIGHT9* lpLight);
-	HRESULT GetD9LightEnable(DWORD Index, LPBOOL lpEnable) const;
+	HRESULT GetD9LightEnable(DWORD Index, LPBOOL lpEnable);
 	HRESULT D9LightEnable(DWORD Index, BOOL Enable);
-	HRESULT GetD9ClipPlane(DWORD Index, float* lpPlane) const;
+	HRESULT GetD9ClipPlane(DWORD Index, float* lpPlane);
 	HRESULT SetD9ClipPlane(DWORD Index, const float* lpPlane);
-	HRESULT GetD9Viewport(D3DVIEWPORT9* lpViewport) const;
+	HRESULT GetD9Viewport(D3DVIEWPORT9* lpViewport);
 	HRESULT SetD9Viewport(const D3DVIEWPORT9* lpViewport);
-	HRESULT GetD9Material(D3DMATERIAL9* lpMaterial) const;
+	HRESULT GetD9Material(D3DMATERIAL9* lpMaterial);
 	HRESULT SetD9Material(const D3DMATERIAL9* lpMaterial);
-	HRESULT GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* lpMatrix) const;
+	HRESULT GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* lpMatrix);
 	HRESULT SetD9Transform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* lpMatrix);
 	HRESULT D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* pMatrix);
 
@@ -303,20 +327,6 @@ private:
 	}
 
 	// Wrapper interface functions
-	inline REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3DDevice :
-			(DirectXVersion == 2) ? IID_IDirect3DDevice2 :
-			(DirectXVersion == 3) ? IID_IDirect3DDevice3 :
-			(DirectXVersion == 7) ? IID_IDirect3DDevice7 : IID_IUnknown;
-	}
-	inline bool CheckWrapperType(REFIID IID)
-	{
-		return (IID == IID_IDirect3DDevice ||
-			IID == IID_IDirect3DDevice2 ||
-			IID == IID_IDirect3DDevice3 ||
-			IID == IID_IDirect3DDevice7) ? true : false;
-	}
 	inline IDirect3DDevice *GetProxyInterfaceV1() { return (IDirect3DDevice *)ProxyInterface; }
 	inline IDirect3DDevice2 *GetProxyInterfaceV2() { return (IDirect3DDevice2 *)ProxyInterface; }
 	inline IDirect3DDevice3 *GetProxyInterfaceV3() { return (IDirect3DDevice3 *)ProxyInterface; }
@@ -329,7 +339,7 @@ private:
 public:
 	m_IDirect3DDeviceX(IDirect3DDevice7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal), ClassID(IID_IDirect3DHALDevice)
 	{
-		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
+		ProxyDirectXVersion = DdrawWrapper::GetGUIDVersion(GetWrapperType(DirectXVersion));
 
 		ClientDirectXVersion = DirectXVersion;
 
@@ -348,14 +358,20 @@ public:
 
 		InitInterface(DirectXVersion);
 	}
-	m_IDirect3DDeviceX(m_IDirectDrawX* lpDdraw, m_IDirect3DX* lpD3D, LPDIRECTDRAWSURFACE7 pRenderTarget, REFCLSID rclsid, DWORD DirectXVersion) :
-		ddrawParent(lpDdraw), D3DInterface(lpD3D), CurrentRenderTarget(pRenderTarget), ClassID(rclsid)
+	m_IDirect3DDeviceX(m_IDirectDrawX* lpDdraw, m_IDirect3DX* lpD3D, LPDIRECTDRAWSURFACE7 pRenderTarget, REFCLSID rclsid, SURFACE_PARENT* ParentSurface, DWORD DirectXVersion) :
+		ddrawParent(lpDdraw), D3DInterface(lpD3D), AttachedSurface(pRenderTarget), ClassID(rclsid)
 	{
 		ProxyDirectXVersion = 9;
 
 		ClientDirectXVersion = DirectXVersion;
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
+
+		if (ParentSurface)
+		{
+			parent3DSurface.DxVersion = ParentSurface->DxVersion;
+			parent3DSurface.Interface = ParentSurface->Interface;
+		}
 
 		InitInterface(DirectXVersion);
 	}
@@ -397,8 +413,8 @@ public:
 	STDMETHOD(GetRenderTarget)(THIS_ LPDIRECTDRAWSURFACE7 *, DWORD);
 	STDMETHOD(GetTextureStageState)(THIS_ DWORD, D3DTEXTURESTAGESTATETYPE, LPDWORD);
 	STDMETHOD(SetTextureStageState)(THIS_ DWORD, D3DTEXTURESTAGESTATETYPE, DWORD);
-	STDMETHOD(GetCaps)(THIS_ LPD3DDEVICEDESC, LPD3DDEVICEDESC);
-	STDMETHOD(GetCaps)(THIS_ LPD3DDEVICEDESC7);
+	STDMETHOD(GetCaps)(THIS_ LPD3DDEVICEDESC, LPD3DDEVICEDESC, DWORD);
+	STDMETHOD(GetCaps)(THIS_ LPD3DDEVICEDESC7, DWORD);
 	STDMETHOD(GetStats)(THIS_ LPD3DSTATS);
 	STDMETHOD(AddViewport)(THIS_ LPDIRECT3DVIEWPORT3);
 	STDMETHOD(DeleteViewport)(THIS_ LPDIRECT3DVIEWPORT3);
@@ -407,11 +423,11 @@ public:
 	STDMETHOD(GetCurrentViewport)(THIS_ LPDIRECT3DVIEWPORT3 *, DWORD);
 	STDMETHOD(SetViewport)(THIS_ LPD3DVIEWPORT7);
 	STDMETHOD(GetViewport)(THIS_ LPD3DVIEWPORT7);
-	STDMETHOD(Begin)(THIS_ D3DPRIMITIVETYPE, DWORD, DWORD);
-	STDMETHOD(BeginIndexed)(THIS_ D3DPRIMITIVETYPE, DWORD, LPVOID, DWORD, DWORD);
+	STDMETHOD(Begin)(THIS_ D3DPRIMITIVETYPE, DWORD, DWORD, DWORD);
+	STDMETHOD(BeginIndexed)(THIS_ D3DPRIMITIVETYPE, DWORD, LPVOID, DWORD, DWORD, DWORD);
 	STDMETHOD(Vertex)(THIS_ LPVOID);
 	STDMETHOD(Index)(THIS_ WORD);
-	STDMETHOD(End)(THIS_ DWORD);
+	STDMETHOD(End)(THIS_ DWORD, DWORD);
 	STDMETHOD(BeginScene)(THIS);
 	STDMETHOD(EndScene)(THIS);
 	STDMETHOD(Clear)(THIS_ DWORD, LPD3DRECT, DWORD, D3DCOLOR, D3DVALUE, DWORD);
@@ -449,20 +465,34 @@ public:
 	STDMETHOD(GetClipPlane)(THIS_ DWORD, D3DVALUE*);
 	STDMETHOD(GetInfo)(THIS_ DWORD, LPVOID, DWORD);
 
+	static inline REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3DDevice :
+			(DirectXVersion == 2) ? IID_IDirect3DDevice2 :
+			(DirectXVersion == 3) ? IID_IDirect3DDevice3 :
+			(DirectXVersion == 7) ? IID_IDirect3DDevice7 : IID_IUnknown;
+	}
+	static inline bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirect3DDevice ||
+			IID == IID_IDirect3DDevice2 ||
+			IID == IID_IDirect3DDevice3 ||
+			IID == IID_IDirect3DDevice7) ? true : false;
+	}
+
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 	bool IsDeviceInScene() const { return IsInScene; }
-	void SetParent3DSurface(m_IDirectDrawSurfaceX* lpSurfaceX, DWORD DxVersion) { parent3DSurface = { lpSurfaceX, DxVersion }; }
-	LPDIRECT3DDEVICE9* GetD3d9Device();
 
 	// ExecuteBuffer
 	void AddExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer);
 	void ClearExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteBuffer);
 
 	// Viewport functions
+	HRESULT Clear(const D3DVIEWPORT9& Viewport, DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags, D3DCOLOR dwColor, D3DVALUE dvZ, DWORD dwStencil);
 	void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
 	m_IDirect3DViewportX* GetCurrentViewport() { return lpCurrentViewportX; }
 	bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
@@ -482,21 +512,27 @@ public:
 		return false;
 	}
 
-	// Viewport vector function
-	HRESULT SetViewport(LPD3DVIEWPORT lpViewport);
-	HRESULT SetViewport(LPD3DVIEWPORT2 lpViewport);
+	// Viewport vector functions
+	HRESULT SetViewportData(VIEWPORTINFO& Viewport);
 	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX);
 
-	// Texture handle function
+	// Render target functions
+	m_IDirectDrawSurfaceX* GetRenderTargetX() { return lpCurrentRenderTargetX; };
+
+	// Texture handle functions
 	void ClearTextureHandle(D3DTEXTUREHANDLE tHandle);
 	HRESULT SetTextureHandle(D3DTEXTUREHANDLE& tHandle, m_IDirect3DTextureX* pTextureX);
 
-	// Material handle function
+	// Material handle functions
 	void ClearMaterialHandle(D3DMATERIALHANDLE mHandle);
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial);
 	bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == DeviceStates.LightState[D3DLIGHTSTATE_MATERIAL]); }
+	inline bool IsMaterialSet() const { return DeviceStates.Material.Set; };
 
-	// Light index function
+	// Matrix functions
+	D3DMATRIX GetUpdatedProjectionMatrix(const D3DMATRIX& DeviceMatrix, bool SetClipping) const;
+
+	// Light index functions
 	bool IsLightInUse(m_IDirect3DLight* pLightX);
 	void GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLightList);
 	void ClearLight(m_IDirect3DLight* lpLight);
@@ -510,4 +546,5 @@ public:
 	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw();
 	void AfterResetDevice();
+	void ClearDeviceState();
 };

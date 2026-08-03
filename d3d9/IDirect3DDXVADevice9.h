@@ -1,9 +1,9 @@
 #pragma once
 
-class m_IDirect3DDXVADevice9 : public IDirect3DDXVADevice9, public AddressLookupTableD3d9Object
+class m_IDirect3DDXVADevice9 final : public IDirect3DDXVADevice9, public AddressLookupTableD3d9Object
 {
 private:
-	m_IDirect3DDXVADevice9* ProxyInterface;
+	IDirect3DDXVADevice9* ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	const IID WrapperID = IID_IDirect3DDXVADevice9;
 
@@ -22,17 +22,17 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DDXVADevice9 methods ***/
-	STDMETHOD(BeginFrame)(THIS_ IDirect3DSurface9* pDstSurface, DWORD SizeInputData, VOID* pInputData, DWORD* pSizeOutputData, VOID* pOutputData);
-	STDMETHOD(EndFrame)(THIS_ DWORD SizeMiscData, VOID* pMiscData);
-	STDMETHOD(Execute)(THIS_ DWORD FunctionNum, VOID* pInputData, DWORD InputSize, VOID* OuputData, DWORD OutputSize, DWORD NumBuffers, DXVABufferInfo* pBufferInfo);
-	STDMETHOD(QueryStatus)(THIS_ IDirect3DSurface9* pSurface, DWORD Flags);
+	IFACEMETHOD(BeginFrame)(THIS_ IDirect3DSurface9* pDstSurface, DWORD SizeInputData, VOID* pInputData, DWORD* pSizeOutputData, VOID* pOutputData) override;
+	IFACEMETHOD(EndFrame)(THIS_ DWORD SizeMiscData, VOID* pMiscData) override;
+	IFACEMETHOD(Execute)(THIS_ DWORD FunctionNum, VOID* pInputData, DWORD InputSize, VOID* OuputData, DWORD OutputSize, DWORD NumBuffers, DXVABufferInfo* pBufferInfo) override;
+	IFACEMETHOD(QueryStatus)(THIS_ IDirect3DSurface9* pSurface, DWORD Flags) override;
 
 	// Helper functions
-	m_IDirect3DDXVADevice9* GetProxyInterface() const { return ProxyInterface; }
+	IDirect3DDXVADevice9* GetProxyInterface() const { return ProxyInterface; }
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };

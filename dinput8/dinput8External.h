@@ -8,7 +8,7 @@
 
 typedef HRESULT(WINAPI* DirectInput8CreateProc)(HINSTANCE hinst, DWORD dwVersion, REFIID riidltf, LPVOID* ppvOut, LPUNKNOWN punkOuter);
 
-HRESULT WINAPI di8_DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID riidltf, LPVOID * ppvOut, LPUNKNOWN punkOuter);
+HRESULT WINAPI di8_DirectInput8Create(HINSTANCE hinst, DWORD dwVersion, REFIID riid, LPVOID * ppvOut, LPUNKNOWN punkOuter);
 HRESULT WINAPI di8_DllCanUnloadNow();
 HRESULT WINAPI di8_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVOID FAR* ppv);
 HRESULT WINAPI di8_DllRegisterServer();

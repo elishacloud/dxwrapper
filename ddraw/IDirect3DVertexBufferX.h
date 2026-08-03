@@ -1,12 +1,12 @@
 #pragma once
 
-class m_IDirect3DVertexBufferX : public IDirect3DVertexBuffer7, public AddressLookupTableDdrawObject
+class m_IDirect3DVertexBufferX final : public IUnknown, public AddressLookupTableDdrawObject
 {
 private:
 	IDirect3DVertexBuffer7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	ULONG RefCount1 = 0;
-	ULONG RefCount7 = 0;
+	LONG RefCount1 = 0;
+	LONG RefCount7 = 0;
 
 	// Store version wrappers
 	m_IDirect3DVertexBuffer* WrapperInterface = nullptr;
@@ -34,6 +34,26 @@ private:
 		DWORD Flags = 0;
 	} LastLock;
 
+	// Lighting data
+	struct LightingState
+	{
+		bool UseSpecular;
+		bool LocalViewer;
+		bool NormalizeNormals;
+		bool ColorVertex;
+
+		DWORD DiffuseMaterialSource;
+		DWORD AmbientMaterialSource;
+		DWORD SpecularMaterialSource;
+		DWORD EmissiveMaterialSource;
+
+		D3DCOLOR AmbientRenderState;
+
+		D3DMATRIX ViewMatrix;
+
+		D3DMATERIAL7 Material;
+	};
+
 	// Direct3D9 interface functions
 	HRESULT CreateD3D9VertexBuffer();
 	void ReleaseD3D9VertexBuffer();
@@ -42,21 +62,8 @@ private:
 	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice, bool CheckD3DVertexBuffer);
 
 	// Wrapper interface functions
-	inline REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirect3DVertexBuffer :
-			(DirectXVersion == 7) ? IID_IDirect3DVertexBuffer7 : IID_IUnknown;
-	}
-	inline bool CheckWrapperType(REFIID IID)
-	{
-		return (IID == IID_IDirect3DVertexBuffer ||
-			IID == IID_IDirect3DVertexBuffer7) ? true : false;
-	}
 	inline IDirect3DVertexBuffer *GetProxyInterfaceV1() { return (IDirect3DVertexBuffer *)ProxyInterface; }
 	inline IDirect3DVertexBuffer7 *GetProxyInterfaceV7() { return ProxyInterface; }
-
-	// Helper functions
-	HRESULT ProcessVerticesUP(DWORD dwVertexOp, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags);
 
 	// Interface initialization functions
 	void InitInterface(DWORD DirectXVersion);
@@ -65,7 +72,7 @@ private:
 public:
 	m_IDirect3DVertexBufferX(IDirect3DVertexBuffer7 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
 	{
-		ProxyDirectXVersion = GetGUIDVersion(GetWrapperType(DirectXVersion));
+		ProxyDirectXVersion = DdrawWrapper::GetGUIDVersion(GetWrapperType(DirectXVersion));
 
 		if (ProxyDirectXVersion != DirectXVersion)
 		{
@@ -121,6 +128,17 @@ public:
 	/*** IDirect3DVertexBuffer7 methods ***/
 	STDMETHOD(ProcessVerticesStrided)(THIS_ DWORD, DWORD, DWORD, LPD3DDRAWPRIMITIVESTRIDEDDATA, DWORD, LPDIRECT3DDEVICE7, DWORD);
 
+	static inline REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirect3DVertexBuffer :
+			(DirectXVersion == 7) ? IID_IDirect3DVertexBuffer7 : IID_IUnknown;
+	}
+	static inline bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirect3DVertexBuffer ||
+			IID == IID_IDirect3DVertexBuffer7) ? true : false;
+	}
+
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
@@ -139,8 +157,9 @@ public:
 	DWORD GetFVF9() const { return d3d9VBDesc.FVF; };
 
 	// Static functions
-	static bool InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, const DWORD dwVertexStart, const DWORD dwNumVertices, const DWORD dwVertexTypeDesc);
+	static HRESULT InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, const DWORD dwVertexStart, const DWORD dwNumVertices, const DWORD dwVertexTypeDesc);
+	static HRESULT ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVertexTypeDesc, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, D3DRECT& drExtent, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags);
 	template <typename T>
-	static HRESULT TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, T* srcVertex, D3DTLVERTEX* destVertex, D3DHVERTEX* pHOut, const DWORD dwCount, D3DRECT& drExtent, bool bLight, bool bUpdateExtents);
-	static void ComputeLightColor(D3DCOLOR& outColor, D3DCOLOR& outSpecular, const D3DXVECTOR3& Position, const D3DXVECTOR3& Normal, const std::vector<DXLIGHT7>& cachedLights, const D3DXMATRIX& matWorldView, const D3DMATRIX& matWorld, const D3DMATRIX& matView, const D3DMATERIAL7& mat, bool UseMaterial);
+	static HRESULT TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, T* srcVertex, D3DTLVERTEX* destVertex, D3DHVERTEX* pHOut, const DWORD dwCount, DWORD dwFlags, const VIEWPORTINFO& Viewport, D3DRECT& drExtent);
+	static void ComputeLighting(const D3DVECTOR& Position, const D3DVECTOR& Normal, const std::vector<DXLIGHT7>& lights, const LightingState* s, D3DCOLOR& inoutColor, D3DCOLOR& inoutSpecular);
 };

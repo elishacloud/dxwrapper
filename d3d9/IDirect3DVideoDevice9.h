@@ -1,9 +1,9 @@
 #pragma once
 
-class m_IDirect3DVideoDevice9 : public IDirect3DVideoDevice9, public AddressLookupTableD3d9Object
+class m_IDirect3DVideoDevice9 final : public IDirect3DVideoDevice9, public AddressLookupTableD3d9Object
 {
 private:
-	m_IDirect3DVideoDevice9* ProxyInterface;
+	IDirect3DVideoDevice9* ProxyInterface;
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	const IID WrapperID = IID_IDirect3DVideoDevice9;
 
@@ -22,19 +22,19 @@ public:
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DVideoDevice9 methods ***/
-	STDMETHOD(CreateSurface)(THIS_ UINT Width, UINT Height, UINT BackBuffers, D3DFORMAT Format, D3DPOOL Pool, DWORD Usage, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle);
-	STDMETHOD(GetDXVACompressedBufferInfo)(THIS_ GUID* pGuid, DXVAUncompDataInfo* pUncompData, DWORD* pNumBuffers, DXVACompBufferInfo* pBufferInfo);
-	STDMETHOD(GetDXVAGuids)(THIS_ DWORD* pNumGuids, GUID* pGuids);
-	STDMETHOD(GetDXVAInternalInfo)(THIS_ GUID* pGuid, DXVAUncompDataInfo* pUncompData, DWORD* pMemoryUsed);
-	STDMETHOD(GetUncompressedDXVAFormats)(THIS_ GUID* pGuid, DWORD* pNumFormats, D3DFORMAT* pFormats);
-	STDMETHOD(CreateDXVADevice)(THIS_ GUID* pGuid, DXVAUncompDataInfo* pUncompData, LPVOID pData, DWORD DataSize, IDirect3DDXVADevice9** ppDXVADevice);
+	IFACEMETHOD(CreateSurface)(THIS_ UINT Width, UINT Height, UINT BackBuffers, D3DFORMAT Format, D3DPOOL Pool, DWORD Usage, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle) override;
+	IFACEMETHOD(GetDXVACompressedBufferInfo)(THIS_ GUID* pGuid, DXVAUncompDataInfo* pUncompData, DWORD* pNumBuffers, DXVACompBufferInfo* pBufferInfo) override;
+	IFACEMETHOD(GetDXVAGuids)(THIS_ DWORD* pNumGuids, GUID* pGuids) override;
+	IFACEMETHOD(GetDXVAInternalInfo)(THIS_ GUID* pGuid, DXVAUncompDataInfo* pUncompData, DWORD* pMemoryUsed) override;
+	IFACEMETHOD(GetUncompressedDXVAFormats)(THIS_ GUID* pGuid, DWORD* pNumFormats, D3DFORMAT* pFormats) override;
+	IFACEMETHOD(CreateDXVADevice)(THIS_ GUID* pGuid, DXVAUncompDataInfo* pUncompData, LPVOID pData, DWORD DataSize, IDirect3DDXVADevice9** ppDXVADevice) override;
 
 	// Helper functions
-	m_IDirect3DVideoDevice9* GetProxyInterface() const { return ProxyInterface; }
+	IDirect3DVideoDevice9* GetProxyInterface() const { return ProxyInterface; }
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };

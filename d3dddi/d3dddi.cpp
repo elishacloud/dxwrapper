@@ -119,22 +119,27 @@ bool D3DDDIGetVideoMemory(DWORD& TotalMemory, DWORD& AvailableMemory)
 
 	if (!D3DKMTQueryVideoMemoryInfo)
 	{
-		LOG_LIMIT(1, __FUNCTION__ << " Error: failed to get \"D3DKMTQueryVideoMemoryInfo\" address from gdi.dll.");
+		LOG_LIMIT(1, __FUNCTION__ << " Error: failed to get D3DKMTQueryVideoMemoryInfo.");
 		return false;
 	}
 
-	D3DKMT_QUERYVIDEOMEMORYINFO VideoMemoryInfo = {};
-	VideoMemoryInfo.hAdapter = openAdapter.hAdapter;
+	D3DKMT_QUERYVIDEOMEMORYINFO info = {};
+	info.hAdapter = openAdapter.hAdapter;
+	info.MemorySegmentGroup = D3DKMT_MEMORY_SEGMENT_GROUP_LOCAL;
 
-	// Query the video memory info for the adapter
-	if (D3DKMTQueryVideoMemoryInfo(&VideoMemoryInfo) == STATUS_SUCCESS)
+	if (D3DKMTQueryVideoMemoryInfo(&info) != STATUS_SUCCESS)
 	{
-		// Return the video memory size
-		TotalMemory = (DWORD)min(VideoMemoryInfo.Budget, 0xFFFFFFFF);
-		AvailableMemory = (DWORD)min(VideoMemoryInfo.Budget - VideoMemoryInfo.CurrentUsage, 0xFFFFFFFF);
-		return true;
+		return false;
 	}
-	return false;
+
+	// Note: Budget is not the adapter size. It is only the process budget.
+	UINT64 Budget = info.Budget;
+	UINT64 Used = min(info.CurrentUsage, Budget);
+
+	AvailableMemory = (DWORD)min(Budget - Used, (UINT64)UINT32_MAX);
+	TotalMemory = (DWORD)min(Budget, (UINT64)UINT32_MAX);
+
+	return true;
 }
 
 #endif

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -26,7 +26,7 @@ HRESULT m_IDirect3DDevice2::QueryInterface(REFIID riid, LPVOID * ppvObj)
 		}
 		return E_NOINTERFACE;
 	}
-	return ProxyInterface->QueryInterface(ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
+	return ProxyInterface->QueryInterface(DdrawWrapper::ReplaceIIDUnknown(riid, WrapperID), ppvObj, DirectXVersion);
 }
 
 ULONG m_IDirect3DDevice2::AddRef()
@@ -53,7 +53,7 @@ HRESULT m_IDirect3DDevice2::GetCaps(LPD3DDEVICEDESC a, LPD3DDEVICEDESC b)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetCaps(a, b);
+	return ProxyInterface->GetCaps(a, b, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice2::SwapTextureHandles(LPDIRECT3DTEXTURE2 a, LPDIRECT3DTEXTURE2 b)
@@ -191,7 +191,7 @@ HRESULT m_IDirect3DDevice2::Begin(D3DPRIMITIVETYPE a, D3DVERTEXTYPE b, DWORD c)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->Begin(a, b, c);
+	return ProxyInterface->Begin(a, b, c, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice2::BeginIndexed(D3DPRIMITIVETYPE a, D3DVERTEXTYPE b, LPVOID c, DWORD d, DWORD e)
@@ -200,7 +200,7 @@ HRESULT m_IDirect3DDevice2::BeginIndexed(D3DPRIMITIVETYPE a, D3DVERTEXTYPE b, LP
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->BeginIndexed(a, b, c, d, e);
+	return ProxyInterface->BeginIndexed(a, b, c, d, e, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice2::Vertex(LPVOID a)
@@ -227,7 +227,7 @@ HRESULT m_IDirect3DDevice2::End(DWORD a)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->End(a);
+	return ProxyInterface->End(a, DirectXVersion);
 }
 
 HRESULT m_IDirect3DDevice2::GetRenderState(D3DRENDERSTATETYPE a, LPDWORD b)

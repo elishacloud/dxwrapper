@@ -17,6 +17,7 @@ namespace Utils
 	EXPORT_OUT_WRAPPED_PROC(GetModuleFileNameA, unused);
 	EXPORT_OUT_WRAPPED_PROC(GetModuleFileNameW, unused);
 	EXPORT_OUT_WRAPPED_PROC(GetDiskFreeSpaceA, unused);
+	EXPORT_OUT_WRAPPED_PROC(GetDiskFreeSpaceExA, unused);
 	EXPORT_OUT_WRAPPED_PROC(CreateThread, unused);
 	EXPORT_OUT_WRAPPED_PROC(CreateFileA, unused);
 	EXPORT_OUT_WRAPPED_PROC(VirtualAlloc, unused);
@@ -44,12 +45,13 @@ namespace Utils
 	};
 
 	void Shell(const char*);
-	void DisableHighDPIScaling();
+	void ConfigureDpiAwareness();
 	FARPROC GetProcAddress(HMODULE hModule, LPCSTR FunctionName, FARPROC SetReturnValue);
 	FARPROC WINAPI GetProcAddressHandler(HMODULE hModule, LPSTR lpProcName);
 	DWORD WINAPI GetModuleFileNameAHandler(HMODULE hModule, LPSTR lpFilename, DWORD nSize);
 	DWORD WINAPI GetModuleFileNameWHandler(HMODULE hModule, LPWSTR lpFilename, DWORD nSize);
 	BOOL WINAPI kernel_GetDiskFreeSpaceA(LPCSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters);
+	BOOL WINAPI kernel_GetDiskFreeSpaceExA(LPCSTR lpDirectoryName, PULARGE_INTEGER lpFreeBytesAvailableToCaller, PULARGE_INTEGER lpTotalNumberOfBytes, PULARGE_INTEGER lpTotalNumberOfFreeBytes);
 	HANDLE WINAPI kernel_CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId);
 	HANDLE WINAPI kernel_CreateFileA(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
 	LPVOID WINAPI kernel_VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect);
@@ -62,9 +64,8 @@ namespace Utils
 	ULONGLONG WINAPI kernel_GetTickCount64();
 	DWORD WINAPI winmm_timeGetTime();
 	MMRESULT WINAPI winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt);
-	void SetCustomExceptionHandler();
-	void RemoveCustomExceptionHandler();
-	LONG WINAPI Vectored_Exception_Handler(EXCEPTION_POINTERS* ExceptionInfo);
+	void MarkAsValidCallTarget(void* allocationBase, size_t regionSize, size_t entryOffset);
+	LONG WINAPI VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo);
 	void AddHandleToVector(HMODULE dll, const char *name);
 	bool CheckIfSystemModuleLoaded(const char* moduleName);
 	HMODULE LoadLibrary(const char *dllname, bool EnableLogging = false);
@@ -73,7 +74,9 @@ namespace Utils
 	void UnloadAllDlls();
 	HMEMORYMODULE LoadMemoryToDLL(LPVOID pMemory, DWORD Size);
 	HMEMORYMODULE LoadResourceToMemory(DWORD ResID);
+	bool IsVulkanModuleLoaded();
 	DWORD ReverseBits(DWORD v);
+	DWORD ComputeRND(DWORD Seed, DWORD Num);
 	void DDrawResolutionHack(HMODULE hD3DIm);
 	void ResetInvalidFPUState();
 	void CheckMessageQueue(HWND hWnd);
@@ -107,6 +110,8 @@ namespace Utils
 	void GetScreenSize(HMONITOR hMonitor, volatile LONG &screenWidth, volatile LONG &screenHeight);
 	void GetScreenSize(HMONITOR hMonitor, int& screenWidth, int& screenHeight);
 	void GetScreenClientRect(HMONITOR hMonitor, RECT& workAreaOut);
+	void ClipMouseCursor(HWND hWnd, const LONG clipWidth, const LONG clipHeight);
+	void UnClipMouseCursor();
 
 	// CPU Affinity
 	void SetProcessAffinity();

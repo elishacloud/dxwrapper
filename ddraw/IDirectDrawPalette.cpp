@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -15,6 +15,9 @@
 */
 
 #include "ddraw.h"
+#include "Utils\Utils.h"
+
+using namespace DdrawWrapper;
 
 // ******************************
 // IUnknown functions
@@ -73,7 +76,7 @@ ULONG m_IDirectDrawPalette::AddRef()
 
 	if (Config.Dd7to9)
 	{
-		return InterlockedIncrement(&RefCount);
+		return _InterlockedIncrement(&RefCount);
 	}
 
 	return ProxyInterface->AddRef();
@@ -90,7 +93,7 @@ ULONG m_IDirectDrawPalette::Release()
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref = (InterlockedCompareExchange(&RefCount, 0, 0)) ? InterlockedDecrement(&RefCount) : 0;
+		ULONG ref = InterlockedDecrementIfPositive(&RefCount);
 
 		if (ref == 0)
 		{
@@ -225,53 +228,54 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 			End = min(255, End);
 		}
 
-		// lpEntries array location
-		DWORD x = (Start - dwStartingEntry);
-
-		// Check if new palette data found
-		if (!(Start < End) || memcmp(&(rawPalette[Start]), &lpEntries[x], (End - Start) * sizeof(PALETTEENTRY)) == S_OK)
+		// Check new palette range
+		if (Start >= End)
 		{
-			return DD_OK;	// No new data found
+			return DD_OK;
 		}
 
 		// Update palette data
+		bool FoundNewRecords = false;
 		{
+			const bool UsingAlpha = (paletteCaps & DDPCAPS_ALPHA);
+
+			// lpEntries array location
+			DWORD x = (Start - dwStartingEntry);
+
 			ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
 
 			// Translate new raw pallete entries to RGB
 			for (UINT i = Start; i < End; i++, x++)
 			{
-				BYTE alpha = (paletteCaps & DDPCAPS_ALPHA) ? lpEntries[x].peFlags : 0xFF;
+				DXPALETTEENTRY SingleEntry = lpEntries[x];
+				SingleEntry.peFlags = UsingAlpha ? SingleEntry.peFlags : 0xFF;
+
+				FoundNewRecords = FoundNewRecords || rawPalette[i] != SingleEntry;
+
 				// Palette entry
-				rawPalette[i].peFlags = alpha;
-				rawPalette[i].peRed = lpEntries[x].peRed;
-				rawPalette[i].peGreen = lpEntries[x].peGreen;
-				rawPalette[i].peBlue = lpEntries[x].peBlue;
+				rawPalette[i] = SingleEntry;
 				// RGB palette
-				rgbPalette[i].rgbBlue = lpEntries[x].peBlue;
-				rgbPalette[i].rgbGreen = lpEntries[x].peGreen;
-				rgbPalette[i].rgbRed = lpEntries[x].peRed;
-				rgbPalette[i].rgbReserved = alpha;
+				rgbPalette[i] = SingleEntry;
 			}
 
 			// Note that there is new palette data
-			PaletteUSN++;
+			if (FoundNewRecords)
+			{
+				PaletteUSN++;
+			}
 		}
 
-		// Present new palette
-		if (ddrawParent)
+		// Present new palette updates
+		if (FoundNewRecords)
 		{
-			if (paletteCaps & DDPCAPS_PRIMARYSURFACE)
+			if (ddrawParent && (paletteCaps & DDPCAPS_PRIMARYSURFACE))
 			{
-				if (paletteCaps & DDPCAPS_VSYNC)
-				{
-					ddrawParent->SetVsync();
-				}
+				const bool SetVsync = (paletteCaps & DDPCAPS_VSYNC);
 
-				m_IDirectDrawSurfaceX *lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
+				m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = ddrawParent->GetPrimarySurface();
 				if (lpDDSrcSurfaceX)
 				{
-					lpDDSrcSurfaceX->EndWritePresent(nullptr, false);
+					lpDDSrcSurfaceX->EndWritePresent(nullptr, 0, SetVsync, false);
 				}
 			}
 		}
@@ -298,7 +302,7 @@ void m_IDirectDrawPalette::InitInterface(DWORD dwFlags, LPPALETTEENTRY lpDDColor
 		paletteCaps = (dwFlags & ~DDPCAPS_INITIALIZE);
 
 		// Compute new USN number
-		PaletteUSN = ComputeRND(PaletteUSN, (DWORD)this);
+		PaletteUSN = Utils::ComputeRND(PaletteUSN, (DWORD)this);
 
 		// Create palette of requested bit size
 		if ((paletteCaps & DDPCAPS_8BIT) || (paletteCaps & DDPCAPS_ALLOW256))

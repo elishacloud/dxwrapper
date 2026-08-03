@@ -1,10 +1,10 @@
 #pragma once
 
-class m_IDirectDrawGammaControl : public IDirectDrawGammaControl, public AddressLookupTableDdrawObject
+class m_IDirectDrawGammaControl final : public IDirectDrawGammaControl, public AddressLookupTableDdrawObject
 {
 private:
 	IDirectDrawGammaControl *ProxyInterface = nullptr;
-	ULONG RefCount = 1;
+	LONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawGammaControl;
 
 	// Convert to Direct3D9
@@ -26,7 +26,7 @@ public:
 
 		InitInterface();
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	m_IDirectDrawGammaControl(m_IDirectDrawX *Interface) : ddrawParent(Interface)
 	{
@@ -34,7 +34,7 @@ public:
 
 		InitInterface();
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirectDrawGammaControl()
 	{
@@ -42,7 +42,7 @@ public:
 
 		ReleaseInterface();
 
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
 	void SetProxy(IDirectDrawGammaControl* NewProxyInterface, m_IDirectDrawX* NewParent)
@@ -53,25 +53,25 @@ public:
 			ProxyInterface = NewProxyInterface;
 			ddrawParent = NewParent;
 			InitInterface();
-			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+			ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
 		else
 		{
 			ReleaseInterface();
-			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			ddrawParent = nullptr;
 		}
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj);
-	STDMETHOD_(ULONG, AddRef) (THIS);
-	STDMETHOD_(ULONG, Release) (THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef) (THIS) override;
+	IFACEMETHOD_(ULONG, Release) (THIS) override;
 
 	/*** IDirectDrawGammaControl methods ***/
-	STDMETHOD(GetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP);
-	STDMETHOD(SetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP);
+	IFACEMETHOD(GetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP) override;
+	IFACEMETHOD(SetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP) override;
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }

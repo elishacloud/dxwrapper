@@ -20,10 +20,12 @@
 #include <sstream>
 #include "External\Hooking\Hook.h"
 #include "Utils.h"
+#include "Settings\Settings.h"
 #include "Logging\Logging.h"
 
 namespace {
 	bool g_Enabled = false;
+	bool g_UnloadHKL = false;
 	HKL g_ForcedHKL = nullptr;
 	HKL g_PreviousHKL = nullptr;
 };
@@ -65,27 +67,25 @@ void KeyboardLayout::ForceKeyboardLayout(DWORD layoutID)
 		return;
 	}
 
-	// Try GetKeyboardLayoutList to check if this layout is installed
-	{
-		HKL foundID = FindInstalledHKL(langId);
-		if (!foundID)
-		{
-			WCHAR klidStr[16] = {}; swprintf_s(klidStr, L"%08X", layoutID);
-			HKL test = LoadKeyboardLayoutW(klidStr, KLF_NOTELLSHELL | KLF_SUBSTITUTE_OK);
+	// Convert LANGID to HKL form if only low word is provided
+	HKL foundID = FindInstalledHKL(langId);
 
-			if (!test)
-			{
-				Logging::Log() << __FUNCTION__ << " Keyboard layout not supported: " << std::hex << layoutID;
-				return;
-			}
-		}
+	if (!foundID)
+	{
+		WCHAR klidStr[16] = {};
+		swprintf_s(klidStr, L"%08X", layoutID);
+
+		g_UnloadHKL = true;
+		foundID = LoadKeyboardLayoutW(klidStr, KLF_NOTELLSHELL | KLF_SUBSTITUTE_OK);
 	}
 
-	// Convert LANGID to HKL form if only low word is provided
-	// Many Windows APIs expect HKL = (DWORD)((device<<16) | langid)
-	// If user provides only 0x0409, convert to 0x04090409
-	g_ForcedHKL = reinterpret_cast<HKL>((HIWORD(layoutID) == 0) ? MAKELONG(langId, langId) : layoutID);
+	if (!foundID)
+	{
+		Logging::Log() << __FUNCTION__ << " Keyboard layout not supported: " << std::hex << layoutID;
+		return;
+	}
 
+	g_ForcedHKL = foundID;
 	g_Enabled = true;
 
 	Logging::Log() << __FUNCTION__ << " Successfully forced keyboard layout: " << std::uppercase << Logging::hex(layoutID) << std::nouppercase;
@@ -93,7 +93,11 @@ void KeyboardLayout::ForceKeyboardLayout(DWORD layoutID)
 
 void KeyboardLayout::SetForcedKeyboardLayout()
 {
-	if (g_Enabled)
+	if (Config.Exiting)
+	{
+		DisableForcedKeyboardLayout();
+	}
+	else if (g_Enabled)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Forcing keyboard layout!");
 
@@ -106,7 +110,7 @@ void KeyboardLayout::SetForcedKeyboardLayout()
 	}
 }
 
-void KeyboardLayout::UnSetForcedKeyboardLayout()
+static void UnSetLayout()
 {
 	if (g_PreviousHKL)
 	{
@@ -116,11 +120,37 @@ void KeyboardLayout::UnSetForcedKeyboardLayout()
 	}
 }
 
+void KeyboardLayout::UnSetForcedKeyboardLayout()
+{
+	if (Config.Exiting)
+	{
+		DisableForcedKeyboardLayout();
+	}
+	else
+	{
+		UnSetLayout();
+	}
+}
+
 void KeyboardLayout::DisableForcedKeyboardLayout()
 {
 	if (g_Enabled)
 	{
 		g_Enabled = false;
-		UnSetForcedKeyboardLayout();
+
+		HWND hwndForeground = GetForegroundWindow();
+		DWORD fgThread = GetWindowThreadProcessId(hwndForeground, NULL);
+		DWORD curThread = GetCurrentThreadId();
+
+		AttachThreadInput(curThread, fgThread, TRUE);
+
+		UnSetLayout();
+
+		if (g_UnloadHKL && g_ForcedHKL)
+		{
+			UnloadKeyboardLayout(g_ForcedHKL);
+		}
+
+		AttachThreadInput(curThread, fgThread, FALSE);
 	}
 }

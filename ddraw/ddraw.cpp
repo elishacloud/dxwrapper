@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -18,13 +18,14 @@
 */
 
 #include "ddraw.h"
+#include "deque"
 #include "Dllmain\Dllmain.h"
 #include "d3d9\d3d9External.h"
 #include "Utils\Utils.h"
 #include "GDI\GDI.h"
 #include "External\Hooking\Hook.h"
 
-AddressLookupTableDdraw<void> ProxyAddressLookupTable = AddressLookupTableDdraw<void>();
+AddressLookupTableDdraw<void> ProxyAddressLookupTableDdraw = AddressLookupTableDdraw<void>();
 
 static UINT GetAdapterIndex(GUID FAR* lpGUID);
 
@@ -32,7 +33,6 @@ namespace DdrawWrapper
 {
 	VISIT_PROCS_DDRAW(INITIALIZE_OUT_WRAPPED_PROC);
 	VISIT_PROCS_DDRAW_SHARED(INITIALIZE_OUT_WRAPPED_PROC);
-	INITIALIZE_OUT_WRAPPED_PROC(Direct3DCreate9, unused);
 
 	bool IsInitialized = false;
 	CRITICAL_SECTION ddcs;
@@ -51,7 +51,8 @@ namespace DdrawWrapper
 		}
 	};
 
-	std::vector<DDDeviceInfo> g_DeviceCache;
+	// Use deque to ensure that existing records aren't relocated when adding new records
+	std::deque<DDDeviceInfo> g_DeviceCache;
 
 	CRITICAL_SECTION* GetDDCriticalSection()
 	{
@@ -74,10 +75,10 @@ namespace DdrawWrapper
 	}
 }
 
-using namespace DdrawWrapper;
-
 static void SetAllAppCompatData();
 static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, DWORD dwFlags, DirectDrawEnumerateTypes DDETType);
+
+using namespace DdrawWrapper;
 
 // ******************************
 // ddraw.dll export functions
@@ -287,12 +288,15 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
 
-		m_IDirectDrawX* p_IDirectDrawX = new m_IDirectDrawX(1, GetAdapterIndex(lpGUID), false);
+		m_IDirectDrawX* pDirectDraw = new (std::nothrow) m_IDirectDrawX(1, GetAdapterIndex(lpGUID), false);
+		if (!pDirectDraw)
+		{
+			return E_OUTOFMEMORY;
+		}
 
-		*lplpDD = reinterpret_cast<LPDIRECTDRAW>(p_IDirectDrawX->GetWrapperInterfaceX(1));
-
-		// Success
-		return DD_OK;
+		HRESULT hr = pDirectDraw->QueryInterface(IID_IDirectDraw, reinterpret_cast<void**>(lplpDD), 1);
+		pDirectDraw->Release(1);
+		return hr;
 	}
 
 	DEFINE_STATIC_PROC_ADDRESS(DirectDrawCreateProc, DirectDrawCreate, DirectDrawCreate_out);
@@ -312,11 +316,17 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 
 	HRESULT hr = DirectDrawCreate(lpGUID, lplpDD, pUnkOuter);
 
-	if (SUCCEEDED(hr) && lplpDD && *lplpDD)
+	if (SUCCEEDED(hr))
 	{
-		m_IDirectDrawX* Interface = new m_IDirectDrawX((IDirectDraw7*)*lplpDD, 1);
+		m_IDirectDrawX* pDirectDraw = new (std::nothrow) m_IDirectDrawX((IDirectDraw7*)*lplpDD, 1);
+		if (!pDirectDraw)
+		{
+			(*lplpDD)->Release();
+			return E_OUTOFMEMORY;
+		}
 
-		*lplpDD = (LPDIRECTDRAW)Interface->GetWrapperInterfaceX(1);
+		hr = pDirectDraw->QueryInterface(IID_IDirectDraw, reinterpret_cast<void**>(lplpDD), 1);
+		pDirectDraw->Release(1);
 	}
 
 	return hr;
@@ -397,12 +407,15 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 			Direct3D9SetSwapEffectUpgradeShim(Config.SetSwapEffectShim);
 		}
 
-		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX(7, GetAdapterIndex(lpGUID), true);
+		m_IDirectDrawX * pDirectDraw = new (std::nothrow) m_IDirectDrawX(7, GetAdapterIndex(lpGUID), true);
+		if (!pDirectDraw)
+		{
+			return E_OUTOFMEMORY;
+		}
 
-		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(7);
-
-		// Success
-		return DD_OK;
+		HRESULT hr = pDirectDraw->QueryInterface(riid, lplpDD, 7);
+		pDirectDraw->Release(7);
+		return hr;
 	}
 
 	DEFINE_STATIC_PROC_ADDRESS(DirectDrawCreateExProc, DirectDrawCreateEx, DirectDrawCreateEx_out);
@@ -420,15 +433,19 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 
 	LOG_LIMIT(3, "Redirecting 'DirectDrawCreateEx' ...");
 
-	HRESULT hr = DirectDrawCreateEx(lpGUID, lplpDD, IID_IDirectDraw7, pUnkOuter);
+	HRESULT hr = DirectDrawCreateEx(lpGUID, lplpDD, riid, pUnkOuter);
 
 	if (SUCCEEDED(hr))
 	{
-		DWORD DxVersion = GetGUIDVersion(riid);
+		m_IDirectDrawX * pDirectDraw = new (std::nothrow) m_IDirectDrawX(reinterpret_cast<IDirectDraw7*>(*lplpDD), 7);
+		if (!pDirectDraw)
+		{
+			(reinterpret_cast<IDirectDraw7*>(*lplpDD))->Release();
+			return E_OUTOFMEMORY;
+		}
 
-		m_IDirectDrawX *p_IDirectDrawX = new m_IDirectDrawX((IDirectDraw7*)*lplpDD, DxVersion);
-
-		*lplpDD = p_IDirectDrawX->GetWrapperInterfaceX(DxVersion);
+		hr = pDirectDraw->QueryInterface(riid, lplpDD, 7);
+		pDirectDraw->Release(7);
 	}
 
 	return hr;
@@ -544,52 +561,56 @@ HRESULT WINAPI dd_DllCanUnloadNow()
 	return DllCanUnloadNow();
 }
 
-HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
+HRESULT WINAPI dd_DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
+	if (ppv == nullptr)
+	{
+		return E_POINTER;
+	}
+
+	HRESULT hr = E_OUTOFMEMORY;
+	*ppv = nullptr;
+
+	if (rclsid != CLSID_DirectDraw && rclsid != CLSID_DirectDraw7 && rclsid != CLSID_DirectDrawClipper && rclsid != CLSID_DirectDrawFactory)
+	{
+		return CLASS_E_CLASSNOTAVAILABLE;
+	}
+
+	ClassFactoryBase* wrapperFactory = nullptr;
+
 	if (Config.Dd7to9)
 	{
-		if (!ppv)
+		wrapperFactory = new (std::nothrow) DDClassFactory(nullptr, rclsid);
+	}
+	else
+	{
+		DEFINE_STATIC_PROC_ADDRESS(DllGetClassObjectProc, DllGetClassObject, DllGetClassObject_out);
+
+		if (!DllGetClassObject)
 		{
-			return E_POINTER;
+			return DDERR_GENERIC;
 		}
 
-		HRESULT hr = ProxyQueryInterface(nullptr, riid, ppv, rclsid);
-
-		if (SUCCEEDED(hr) && ppv && *ppv)
+		IClassFactory* proxyFactory = nullptr;
+		HRESULT proxyHr = DllGetClassObject(rclsid, IID_PPV_ARGS(&proxyFactory));
+		if (FAILED(proxyHr))
 		{
-			if (riid == IID_IClassFactory)
-			{
-				((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
-			}
-			((IUnknown*)ppv)->AddRef();
+			return proxyHr;
 		}
 
-		return hr;
+		wrapperFactory = new (std::nothrow) DDClassFactory(proxyFactory, rclsid);
+		if (!wrapperFactory)
+		{
+			proxyFactory->Release();
+		}
 	}
 
-	DEFINE_STATIC_PROC_ADDRESS(DllGetClassObjectProc, DllGetClassObject, DllGetClassObject_out);
-
-	if (!DllGetClassObject)
+	if (wrapperFactory != nullptr)
 	{
-		return DDERR_UNSUPPORTED;
-	}
-
-	HRESULT hr = DllGetClassObject(rclsid, riid, ppv);
-
-	if (SUCCEEDED(hr) && ppv)
-	{
-		if (riid == IID_IClassFactory)
-		{
-			*ppv = new m_IClassFactory((IClassFactory*)*ppv, genericQueryInterface);
-
-			((m_IClassFactory*)(*ppv))->SetCLSID(rclsid);
-
-			return DD_OK;
-		}
-
-		genericQueryInterface(riid, ppv);
+		hr = wrapperFactory->QueryInterface(riid, ppv);
+		wrapperFactory->Release();
 	}
 
 	return hr;
@@ -741,10 +762,12 @@ void InitDDraw()
 	{
 		if (!InitializeCriticalSectionAndSpinCount(&ddcs, 4000))
 		{
+			Logging::Log() << __FUNCTION__ << " Warning: failed to initialize CriticalSectionAndSpinCount for ddcs.  Failing over to CriticalSection!";
 			InitializeCriticalSection(&ddcs);
 		}
 		if (!InitializeCriticalSectionAndSpinCount(&pecs, 4000))
 		{
+			Logging::Log() << __FUNCTION__ << " Warning: failed to initialize CriticalSectionAndSpinCount for pecs.  Failing over to CriticalSection!";
 			InitializeCriticalSection(&pecs);
 		}
 		IsInitialized = true;
@@ -780,6 +803,7 @@ void InitDDraw()
 		{
 			Logging::Log() << "Installing Kernel32 hooks";
 			Utils::GetDiskFreeSpaceA_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetDiskFreeSpaceA"), "GetDiskFreeSpaceA", Utils::kernel_GetDiskFreeSpaceA);
+			Utils::GetDiskFreeSpaceExA_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetDiskFreeSpaceExA"), "GetDiskFreeSpaceExA", Utils::kernel_GetDiskFreeSpaceExA);
 			if (!Utils::CreateThread_out)
 			{
 				Utils::CreateThread_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "CreateThread"), "CreateThread", Utils::kernel_CreateThread);
@@ -895,17 +919,18 @@ static HRESULT DirectDrawEnumerateHandler(LPVOID lpCallback, LPVOID lpContext, D
 		return DDERR_INVALIDPARAMS;
 	}
 
-	// Declare Direct3DCreate9
-	DEFINE_STATIC_PROC_ADDRESS(Direct3DCreate9Proc, Direct3DCreate9, Direct3DCreate9_out);
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
-	if (!Direct3DCreate9)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get 'Direct3DCreate9' ProcAddress of d3d9.dll!");
-		return DDERR_UNSUPPORTED;
-	}
+	// Get existing Direct3D9 object
+	IDirect3D9* d3d9Object = m_IDirectDrawX::GetD9Object();
+	ComPtr<IDirect3D9> ComObjectD9;
 
 	// Create Direct3D9 object
-	ComPtr<IDirect3D9> d3d9Object(Direct3DCreate9(D3D_SDK_VERSION));
+	if (!d3d9Object)
+	{
+		*ComObjectD9.GetAddressOf() = d9_Direct3DCreate9(D3D_SDK_VERSION);
+		d3d9Object = ComObjectD9.Get();
+	}
 
 	// Error handling
 	if (!d3d9Object)

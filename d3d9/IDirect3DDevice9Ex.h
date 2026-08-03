@@ -6,21 +6,10 @@ const std::chrono::seconds FPS_CALCULATION_WINDOW(1);	// Define a constant for t
 
 struct DEVICEDETAILS
 {
-	DEVICEDETAILS()
-	{
-		if (!InitializeCriticalSectionAndSpinCount(&d9cs, 4000))
-		{
-			InitializeCriticalSection(&d9cs);
-		}
-	}
-	~DEVICEDETAILS()
-	{
-		DeleteCriticalSection(&d9cs);
-	}
-
-	// Window handle and size
+	// Device window handle and size
 	DWORD ClientDirectXVersion = 0;
 	bool IsWindowMode = false;
+	bool AppRequestedWindowMode = false;
 	bool IsDirectDrawDevice = false;
 	UINT Adapter = D3DADAPTER_DEFAULT;
 	D3DDEVTYPE DeviceType = D3DDEVTYPE_HAL;
@@ -30,29 +19,10 @@ struct DEVICEDETAILS
 	LONG BufferWidth = 0, BufferHeight = 0;
 	LONG screenWidth = 0, screenHeight = 0;
 
-	CRITICAL_SECTION d9cs = {};
-
-	std::unordered_map<m_IDirect3DDevice9Ex*, BOOL> DeviceMap;
-
-	AddressLookupTableD3d9 ProxyAddressLookupTable9;
-
-	StateBlockCache StateBlockTable;
-
-	StateBlockCache DeletedStateBlocks;
-
-	// Limit frame rate
-	struct {
-		DWORD FrameCounter = 0;
-		LARGE_INTEGER LastPresentTime = {};
-	} Counter;
-
-	// Frame counter
-	double AverageFPSCounter = 0.0;
-	std::deque<std::pair<std::chrono::steady_clock::time_point, std::chrono::duration<double>>> frameTimes;	// Store frame times in a deque
-	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();	// Store start time for PFS counter
-
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;
+	bool SetMultiSampleState = false;
+	bool UseAppMultiSampleState = false;
 	bool SetSSAA = false;
 	bool SetATOC = false;
 	D3DMULTISAMPLE_TYPE DeviceMultiSampleType = D3DMULTISAMPLE_NONE;
@@ -63,25 +33,38 @@ extern std::unordered_map<UINT, std::unique_ptr<DEVICEDETAILS>> DeviceDetailsMap
 
 #include "IDirect3D9Ex.h"
 
-#define SHARED (*DeviceDetailsMap[DDKey].get())
-
-class m_IDirect3DDevice9Ex : public IDirect3DDevice9Ex, public AddressLookupTableD3d9Object
+class m_IDirect3DDevice9Ex final : public IDirect3DDevice9Ex
 {
 private:
 	LPDIRECT3DDEVICE9 ProxyInterface;
 	LPDIRECT3DDEVICE9EX ProxyInterfaceEx = nullptr;
 	m_IDirect3D9Ex* m_pD3DEx;
 	const IID WrapperID;
-	ShadowSurfaceStorage ShadowBackbuffer;
+	std::unique_ptr<ShadowSurfaceStorage> ShadowBackbuffer = std::make_unique<ShadowSurfaceStorage>();
 	std::vector<IDirect3DSurface9*> BackBufferList;
 
-	UINT DDKey;
+	LONG RefCount = 1;
+
+	AddressLookupTableD3d9 ProxyAddressLookupTable9;
+
+	DEVICEDETAILS DeviceDetails;
+
+	CRITICAL_SECTION d9cs = {};
+
+	DEVICE_REFCOUNT_CHECKER dref;
 
 	D3DCAPS9 Caps = {};
+	bool AnisotropyMin = false;
+	bool AnisotropyMag = false;
 
 	// Begin/End Scene
 	bool IsInScene = false;
 	bool BeginSceneCalled = false;
+
+	std::unordered_set<m_IDirect3DSurface9*> EmulatedSurfaceList;
+
+	StateBlockCache StateBlockTable;
+	StateBlockCache DeletedStateBlocks;
 
 	// FPS display
 	LPD3DXFONT pFont = nullptr;
@@ -89,8 +72,23 @@ private:
 	LPD3DXSPRITE pSprite = nullptr;
 	DWORD SprintRefCount = 0;
 
+	// Frame counter
+	double AverageFPSCounter = 0.0;
+	std::deque<std::pair<std::chrono::steady_clock::time_point, std::chrono::duration<double>>> frameTimes;	// Store frame times in a deque
+	std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();	// Store start time for PFS counter
+
+	// Limit frame rate
+	struct {
+		DWORD FrameCounter = 0;
+		LARGE_INTEGER LastPresentTime = {};
+	} Counter;
+
 	// State block
 	IDirect3DStateBlock9* pStateBlock = nullptr;
+
+	// Forcing MipMaps
+	bool IsUsingForcedMipMapTexture = false;
+	DWORD ssMipFilter = D3DTEXF_NONE;
 
 	// For environment map cube
 	bool isTextureCubeMap[MAX_TEXTURE_STAGES] = {};
@@ -117,28 +115,34 @@ private:
 
 	// Anisotropic Filtering
 	DWORD MaxAnisotropy = 0;
-	bool isAnisotropySet = false;
-	bool AnisotropyDisabledFlag = false;	// Tracks when Anisotropic Fintering was disabled becasue lack of multi-stage texture support
 
-	void ApplyDrawFixes();
+	// Antialiasing
+	struct {
+		bool MultiSampleMismatch = false;
+		bool RenderTargetNonMultiSampled = false;
+		bool DepthStencilNonMultiSampled = false;
+		bool NullDepthStencil = false;
+		m_IDirect3DSurface9* RenderTarget = nullptr;
+	} msaa;
+
+	void ApplyPreDrawFixes();
+	void ApplyPostDrawFixes();
 	void ApplyPrePresentFixes();
 	void ApplyPostPresentFixes();
 
-	HRESULT CallBeginScene();
-	HRESULT CallEndScene();
+	void ApplyClipPlanes();
 
-	inline bool RequirePresentHandling() const { return ((Config.WindowModeGammaShader && IsGammaSet) || Config.ShowFPSCounter || ShadowBackbuffer.Count()); }
+	void AfterBeginScene();
+	void BeforeEndScene();
+
+	inline bool RequirePresentHandling() const;
+	inline bool UsingShadowBackBuffer(DWORD iSwapChain = 0) const;
 
 	// Limit frame rate
-	void LimitFrameRate() const;
+	void LimitFrameRate();
 
 	// Frame counter
-	void CalculateFPS() const;
 	void DrawFPS(float fps, const RECT& presentRect, DWORD position);
-
-	// Anisotropic Filtering
-	void DisableAnisotropicSamplerState(bool AnisotropyMin, bool AnisotropyMag);
-	void ReeableAnisotropicSamplerState();
 
 	// Gamma
 	HRESULT SetBrightnessLevel(D3DGAMMARAMP& Ramp);
@@ -156,208 +160,224 @@ private:
 	void ReInitInterface();
 	void CreateShadowBackbuffer();
 	void ReleaseShadowBackbuffer();
-	void ClearVars(D3DPRESENT_PARAMETERS* pPresentationParameters);
+	void ClearVars();
 	typedef HRESULT(WINAPI* fReset)(D3DPRESENT_PARAMETERS* pPresentationParameters);
 	typedef HRESULT(WINAPI* fResetEx)(D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
 	template <typename T>
-	HRESULT ResetT(T, D3DPRESENT_PARAMETERS* pPresentationParameters, bool IsEx, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
+	HRESULT ResetT(T, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode);
 	inline HRESULT ResetT(fReset, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX*)
 	{ return ProxyInterface->Reset(pPresentationParameters); }
 	inline HRESULT ResetT(fResetEx, D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX* pFullscreenDisplayMode)
 	{ return (ProxyInterfaceEx) ? ProxyInterfaceEx->ResetEx(pPresentationParameters, pFullscreenDisplayMode) : D3DERR_INVALIDCALL; }
 
 public:
-	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, UINT Key) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID), DDKey(Key)
+	m_IDirect3DDevice9Ex(LPDIRECT3DDEVICE9EX pDevice, m_IDirect3D9Ex* pD3D, REFIID DeviceID, DEVICEDETAILS Details) : ProxyInterface(pDevice), m_pD3DEx(pD3D), WrapperID(DeviceID), DeviceDetails(Details)
 	{
-		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID << " game interface v" << SHARED.ClientDirectXVersion);
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ") " << WrapperID << " game interface v" << DeviceDetails.ClientDirectXVersion);
 
 		if (WrapperID == IID_IDirect3DDevice9Ex)
 		{
 			ProxyInterfaceEx = pDevice;
 		}
 
-		D3d9Wrapper::TestAllDeviceRefs(ProxyInterface);
+		D3d9Wrapper::TestAllDeviceRefs(ProxyInterface, dref);
 
 		// Check for SSAA
-		if (SHARED.DeviceMultiSampleType && m_pD3DEx)
+		if (DeviceDetails.DeviceMultiSampleType && m_pD3DEx)
 		{
-			if (m_pD3DEx->CheckDeviceFormat(SHARED.Adapter, SHARED.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
+			if (m_pD3DEx->CheckDeviceFormat(DeviceDetails.Adapter, DeviceDetails.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('S', 'S', 'A', 'A')) == S_OK)
 			{
-				SHARED.SetSSAA = true;
+				DeviceDetails.SetSSAA = true;
 			}
 			if (Config.EnableMultisamplingATOC &&
-				m_pD3DEx->CheckDeviceFormat(SHARED.Adapter, SHARED.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('A', 'T', 'O', 'C')) == S_OK)
+				m_pD3DEx->CheckDeviceFormat(DeviceDetails.Adapter, DeviceDetails.DeviceType, D3DFMT_X8R8G8B8, 0, D3DRTYPE_SURFACE, (D3DFORMAT)MAKEFOURCC('A', 'T', 'O', 'C')) == S_OK)
 			{
-				SHARED.SetATOC = true;
+				DeviceDetails.SetATOC = true;
 			}
 		}
 
+		if (!InitializeCriticalSectionAndSpinCount(&d9cs, 4000))
+		{
+			Logging::Log() << __FUNCTION__ << " Warning: failed to initialize CriticalSectionAndSpinCount for d9cs.  Failing over to CriticalSection!";
+			InitializeCriticalSection(&d9cs);
+		}
+
 		ReInitInterface();
-
-		SHARED.DeviceMap[this] = TRUE;
-
-		SHARED.ProxyAddressLookupTable9.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirect3DDevice9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
+
+		DeleteCriticalSection(&d9cs);
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DDevice9 methods ***/
-	STDMETHOD(TestCooperativeLevel)(THIS);
-	STDMETHOD_(UINT, GetAvailableTextureMem)(THIS);
-	STDMETHOD(EvictManagedResources)(THIS);
-	STDMETHOD(GetDirect3D)(THIS_ IDirect3D9** ppD3D9);
-	STDMETHOD(GetDeviceCaps)(THIS_ D3DCAPS9* pCaps);
-	STDMETHOD(GetDisplayMode)(THIS_ UINT iSwapChain, D3DDISPLAYMODE* pMode);
-	STDMETHOD(GetCreationParameters)(THIS_ D3DDEVICE_CREATION_PARAMETERS *pParameters);
-	STDMETHOD(SetCursorProperties)(THIS_ UINT XHotSpot, UINT YHotSpot, IDirect3DSurface9* pCursorBitmap);
-	STDMETHOD_(void, SetCursorPosition)(THIS_ int X, int Y, DWORD Flags);
-	STDMETHOD_(BOOL, ShowCursor)(THIS_ BOOL bShow);
-	STDMETHOD(CreateAdditionalSwapChain)(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters, IDirect3DSwapChain9** pSwapChain);
-	STDMETHOD(GetSwapChain)(THIS_ UINT iSwapChain, IDirect3DSwapChain9** pSwapChain);
-	STDMETHOD_(UINT, GetNumberOfSwapChains)(THIS);
-	STDMETHOD(Reset)(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters);
-	STDMETHOD(Present)(THIS_ CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion);
-	STDMETHOD(GetBackBuffer)(THIS_ UINT iSwapChain, UINT iBackBuffer, D3DBACKBUFFER_TYPE Type, IDirect3DSurface9** ppBackBuffer);
-	STDMETHOD(GetRasterStatus)(THIS_ UINT iSwapChain, D3DRASTER_STATUS* pRasterStatus);
-	STDMETHOD(SetDialogBoxMode)(THIS_ BOOL bEnableDialogs);
-	STDMETHOD_(void, SetGammaRamp)(THIS_ UINT iSwapChain, DWORD Flags, CONST D3DGAMMARAMP* pRamp);
-	STDMETHOD_(void, GetGammaRamp)(THIS_ UINT iSwapChain, D3DGAMMARAMP* pRamp);
-	STDMETHOD(CreateTexture)(THIS_ UINT Width, UINT Height, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DTexture9** ppTexture, HANDLE* pSharedHandle);
-	STDMETHOD(CreateVolumeTexture)(THIS_ UINT Width, UINT Height, UINT Depth, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DVolumeTexture9** ppVolumeTexture, HANDLE* pSharedHandle);
-	STDMETHOD(CreateCubeTexture)(THIS_ UINT EdgeLength, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DCubeTexture9** ppCubeTexture, HANDLE* pSharedHandle);
-	STDMETHOD(CreateVertexBuffer)(THIS_ UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle);
-	STDMETHOD(CreateIndexBuffer)(THIS_ UINT Length, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DIndexBuffer9** ppIndexBuffer, HANDLE* pSharedHandle);
-	STDMETHOD(CreateRenderTarget)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Lockable, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle);
-	STDMETHOD(CreateDepthStencilSurface)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Discard, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle);
-	STDMETHOD(UpdateSurface)(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestinationSurface, CONST POINT* pDestPoint);
-	STDMETHOD(UpdateTexture)(THIS_ IDirect3DBaseTexture9* pSourceTexture, IDirect3DBaseTexture9* pDestinationTexture);
-	STDMETHOD(GetRenderTargetData)(THIS_ IDirect3DSurface9* pRenderTarget, IDirect3DSurface9* pDestSurface);
-	STDMETHOD(GetFrontBufferData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
-	STDMETHOD(GetFrontBufferShadowData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
-	STDMETHOD(FakeGetFrontBufferData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
-	STDMETHOD(CopyRects)(THIS_ IDirect3DSurface9 *pSourceSurface, const RECT *pSourceRectsArray, UINT cRects, IDirect3DSurface9 *pDestinationSurface, const POINT *pDestPointsArray);
-	STDMETHOD(StretchRect)(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestSurface, CONST RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter);
-	STDMETHOD(ColorFill)(THIS_ IDirect3DSurface9* pSurface, CONST RECT* pRect, D3DCOLOR color);
-	STDMETHOD(CreateOffscreenPlainSurface)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DPOOL Pool, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle);
-	STDMETHOD(SetRenderTarget)(THIS_ DWORD RenderTargetIndex, IDirect3DSurface9* pRenderTarget);
-	STDMETHOD(GetRenderTarget)(THIS_ DWORD RenderTargetIndex, IDirect3DSurface9** ppRenderTarget);
-	STDMETHOD(SetDepthStencilSurface)(THIS_ IDirect3DSurface9* pNewZStencil);
-	STDMETHOD(GetDepthStencilSurface)(THIS_ IDirect3DSurface9** ppZStencilSurface);
-	STDMETHOD(BeginScene)(THIS);
-	STDMETHOD(EndScene)(THIS);
-	STDMETHOD(Clear)(THIS_ DWORD Count, CONST D3DRECT* pRects, DWORD Flags, D3DCOLOR Color, float Z, DWORD Stencil);
-	STDMETHOD(SetTransform)(THIS_ D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix);
-	STDMETHOD(GetTransform)(THIS_ D3DTRANSFORMSTATETYPE State, D3DMATRIX* pMatrix);
-	STDMETHOD(MultiplyTransform)(THIS_ D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX *pMatrix);
-	STDMETHOD(SetViewport)(THIS_ CONST D3DVIEWPORT9* pViewport);
-	STDMETHOD(GetViewport)(THIS_ D3DVIEWPORT9* pViewport);
-	STDMETHOD(SetMaterial)(THIS_ CONST D3DMATERIAL9* pMaterial);
-	STDMETHOD(GetMaterial)(THIS_ D3DMATERIAL9* pMaterial);
-	STDMETHOD(SetLight)(THIS_ DWORD Index, CONST D3DLIGHT9* pLight);
-	STDMETHOD(GetLight)(THIS_ DWORD Index, D3DLIGHT9* pLight);
-	STDMETHOD(LightEnable)(THIS_ DWORD Index, BOOL Enable);
-	STDMETHOD(GetLightEnable)(THIS_ DWORD Index, BOOL* pEnable);
-	STDMETHOD(SetClipPlane)(THIS_ DWORD Index, CONST float* pPlane);
-	STDMETHOD(GetClipPlane)(THIS_ DWORD Index, float* pPlane);
-	void ApplyClipPlanes();
-	STDMETHOD(SetRenderState)(THIS_ D3DRENDERSTATETYPE State, DWORD Value);
-	STDMETHOD(GetRenderState)(THIS_ D3DRENDERSTATETYPE State, DWORD* pValue);
-	STDMETHOD(CreateStateBlock)(THIS_ D3DSTATEBLOCKTYPE Type, IDirect3DStateBlock9** ppSB);
-	STDMETHOD(BeginStateBlock)(THIS);
-	STDMETHOD(EndStateBlock)(THIS_ IDirect3DStateBlock9** ppSB);
-	STDMETHOD(SetClipStatus)(THIS_ CONST D3DCLIPSTATUS9* pClipStatus);
-	STDMETHOD(GetClipStatus)(THIS_ D3DCLIPSTATUS9* pClipStatus);
-	STDMETHOD(GetTexture)(THIS_ DWORD Stage, IDirect3DBaseTexture9** ppTexture);
-	STDMETHOD(SetTexture)(THIS_ DWORD Stage, IDirect3DBaseTexture9* pTexture);
-	STDMETHOD(GetTextureStageState)(THIS_ DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD* pValue);
-	STDMETHOD(SetTextureStageState)(THIS_ DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
-	STDMETHOD(GetSamplerState)(THIS_ DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD* pValue);
-	STDMETHOD(SetSamplerState)(THIS_ DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
-	STDMETHOD(ValidateDevice)(THIS_ DWORD* pNumPasses);
-	STDMETHOD(SetPaletteEntries)(THIS_ UINT PaletteNumber, CONST PALETTEENTRY* pEntries);
-	STDMETHOD(GetPaletteEntries)(THIS_ UINT PaletteNumber, PALETTEENTRY* pEntries);
-	STDMETHOD(SetCurrentTexturePalette)(THIS_ UINT PaletteNumber);
-	STDMETHOD(GetCurrentTexturePalette)(THIS_ UINT *PaletteNumber);
-	STDMETHOD(SetScissorRect)(THIS_ CONST RECT* pRect);
-	STDMETHOD(GetScissorRect)(THIS_ RECT* pRect);
-	STDMETHOD(SetSoftwareVertexProcessing)(THIS_ BOOL bSoftware);
-	STDMETHOD_(BOOL, GetSoftwareVertexProcessing)(THIS);
-	STDMETHOD(SetNPatchMode)(THIS_ float nSegments);
-	STDMETHOD_(float, GetNPatchMode)(THIS);
-	STDMETHOD(DrawPrimitive)(THIS_ D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount);
-	STDMETHOD(DrawIndexedPrimitive)(THIS_ D3DPRIMITIVETYPE, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount);
-	STDMETHOD(DrawPrimitiveUP)(THIS_ D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, CONST void* pVertexStreamZeroData, UINT VertexStreamZeroStride);
-	STDMETHOD(DrawIndexedPrimitiveUP)(THIS_ D3DPRIMITIVETYPE PrimitiveType, UINT MinVertexIndex, UINT NumVertices, UINT PrimitiveCount, CONST void* pIndexData, D3DFORMAT IndexDataFormat, CONST void* pVertexStreamZeroData, UINT VertexStreamZeroStride);
-	STDMETHOD(ProcessVertices)(THIS_ UINT SrcStartIndex, UINT DestIndex, UINT VertexCount, IDirect3DVertexBuffer9* pDestBuffer, IDirect3DVertexDeclaration9* pVertexDecl, DWORD Flags);
-	STDMETHOD(CreateVertexDeclaration)(THIS_ CONST D3DVERTEXELEMENT9* pVertexElements, IDirect3DVertexDeclaration9** ppDecl);
-	STDMETHOD(SetVertexDeclaration)(THIS_ IDirect3DVertexDeclaration9* pDecl);
-	STDMETHOD(GetVertexDeclaration)(THIS_ IDirect3DVertexDeclaration9** ppDecl);
-	STDMETHOD(SetFVF)(THIS_ DWORD FVF);
-	STDMETHOD(GetFVF)(THIS_ DWORD* pFVF);
-	STDMETHOD(CreateVertexShader)(THIS_ CONST DWORD* pFunction, IDirect3DVertexShader9** ppShader);
-	STDMETHOD(SetVertexShader)(THIS_ IDirect3DVertexShader9* pShader);
-	STDMETHOD(GetVertexShader)(THIS_ IDirect3DVertexShader9** ppShader);
-	STDMETHOD(SetVertexShaderConstantF)(THIS_ UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount);
-	STDMETHOD(GetVertexShaderConstantF)(THIS_ UINT StartRegister, float* pConstantData, UINT Vector4fCount);
-	STDMETHOD(SetVertexShaderConstantI)(THIS_ UINT StartRegister, CONST int* pConstantData, UINT Vector4iCount);
-	STDMETHOD(GetVertexShaderConstantI)(THIS_ UINT StartRegister, int* pConstantData, UINT Vector4iCount);
-	STDMETHOD(SetVertexShaderConstantB)(THIS_ UINT StartRegister, CONST BOOL* pConstantData, UINT  BoolCount);
-	STDMETHOD(GetVertexShaderConstantB)(THIS_ UINT StartRegister, BOOL* pConstantData, UINT BoolCount);
-	STDMETHOD(SetStreamSource)(THIS_ UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride);
-	STDMETHOD(GetStreamSource)(THIS_ UINT StreamNumber, IDirect3DVertexBuffer9** ppStreamData, UINT* pOffsetInBytes, UINT* pStride);
-	STDMETHOD(SetStreamSourceFreq)(THIS_ UINT StreamNumber, UINT Setting);
-	STDMETHOD(GetStreamSourceFreq)(THIS_ UINT StreamNumber, UINT* pSetting);
-	STDMETHOD(SetIndices)(THIS_ IDirect3DIndexBuffer9* pIndexData);
-	STDMETHOD(GetIndices)(THIS_ IDirect3DIndexBuffer9** ppIndexData);
-	STDMETHOD(CreatePixelShader)(THIS_ CONST DWORD* pFunction, IDirect3DPixelShader9** ppShader);
-	STDMETHOD(SetPixelShader)(THIS_ IDirect3DPixelShader9* pShader);
-	STDMETHOD(GetPixelShader)(THIS_ IDirect3DPixelShader9** ppShader);
-	STDMETHOD(SetPixelShaderConstantF)(THIS_ UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount);
-	STDMETHOD(GetPixelShaderConstantF)(THIS_ UINT StartRegister, float* pConstantData, UINT Vector4fCount);
-	STDMETHOD(SetPixelShaderConstantI)(THIS_ UINT StartRegister, CONST int* pConstantData, UINT Vector4iCount);
-	STDMETHOD(GetPixelShaderConstantI)(THIS_ UINT StartRegister, int* pConstantData, UINT Vector4iCount);
-	STDMETHOD(SetPixelShaderConstantB)(THIS_ UINT StartRegister, CONST BOOL* pConstantData, UINT  BoolCount);
-	STDMETHOD(GetPixelShaderConstantB)(THIS_ UINT StartRegister, BOOL* pConstantData, UINT BoolCount);
-	STDMETHOD(DrawRectPatch)(THIS_ UINT Handle, CONST float* pNumSegs, CONST D3DRECTPATCH_INFO* pRectPatchInfo);
-	STDMETHOD(DrawTriPatch)(THIS_ UINT Handle, CONST float* pNumSegs, CONST D3DTRIPATCH_INFO* pTriPatchInfo);
-	STDMETHOD(DeletePatch)(THIS_ UINT Handle);
-	STDMETHOD(CreateQuery)(THIS_ D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery);
+	IFACEMETHOD(TestCooperativeLevel)(THIS) override;
+	IFACEMETHOD_(UINT, GetAvailableTextureMem)(THIS) override;
+	IFACEMETHOD(EvictManagedResources)(THIS) override;
+	IFACEMETHOD(GetDirect3D)(THIS_ IDirect3D9** ppD3D9) override;
+	IFACEMETHOD(GetDeviceCaps)(THIS_ D3DCAPS9* pCaps) override;
+	IFACEMETHOD(GetDisplayMode)(THIS_ UINT iSwapChain, D3DDISPLAYMODE* pMode) override;
+	IFACEMETHOD(GetCreationParameters)(THIS_ D3DDEVICE_CREATION_PARAMETERS *pParameters) override;
+	IFACEMETHOD(SetCursorProperties)(THIS_ UINT XHotSpot, UINT YHotSpot, IDirect3DSurface9* pCursorBitmap) override;
+	IFACEMETHOD_(void, SetCursorPosition)(THIS_ int X, int Y, DWORD Flags) override;
+	IFACEMETHOD_(BOOL, ShowCursor)(THIS_ BOOL bShow) override;
+	IFACEMETHOD(CreateAdditionalSwapChain)(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters, IDirect3DSwapChain9** pSwapChain) override;
+	IFACEMETHOD(GetSwapChain)(THIS_ UINT iSwapChain, IDirect3DSwapChain9** pSwapChain) override;
+	IFACEMETHOD_(UINT, GetNumberOfSwapChains)(THIS) override;
+	IFACEMETHOD(Reset)(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters) override;
+	IFACEMETHOD(Present)(THIS_ CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion) override;
+	IFACEMETHOD(GetBackBuffer)(THIS_ UINT iSwapChain, UINT iBackBuffer, D3DBACKBUFFER_TYPE Type, IDirect3DSurface9** ppBackBuffer) override;
+	IFACEMETHOD(GetRasterStatus)(THIS_ UINT iSwapChain, D3DRASTER_STATUS* pRasterStatus) override;
+	IFACEMETHOD(SetDialogBoxMode)(THIS_ BOOL bEnableDialogs) override;
+	IFACEMETHOD_(void, SetGammaRamp)(THIS_ UINT iSwapChain, DWORD Flags, CONST D3DGAMMARAMP* pRamp) override;
+	IFACEMETHOD_(void, GetGammaRamp)(THIS_ UINT iSwapChain, D3DGAMMARAMP* pRamp) override;
+	IFACEMETHOD(CreateTexture)(THIS_ UINT Width, UINT Height, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DTexture9** ppTexture, HANDLE* pSharedHandle) override;
+	IFACEMETHOD(CreateVolumeTexture)(THIS_ UINT Width, UINT Height, UINT Depth, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DVolumeTexture9** ppVolumeTexture, HANDLE* pSharedHandle) override;
+	IFACEMETHOD(CreateCubeTexture)(THIS_ UINT EdgeLength, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DCubeTexture9** ppCubeTexture, HANDLE* pSharedHandle) override;
+	IFACEMETHOD(CreateVertexBuffer)(THIS_ UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle) override;
+	IFACEMETHOD(CreateIndexBuffer)(THIS_ UINT Length, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DIndexBuffer9** ppIndexBuffer, HANDLE* pSharedHandle) override;
+	IFACEMETHOD(CreateRenderTarget)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Lockable, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle) override;
+	IFACEMETHOD(CreateDepthStencilSurface)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Discard, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle) override;
+	IFACEMETHOD(UpdateSurface)(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestSurface, CONST POINT* pDestPoint) override;
+	IFACEMETHOD(UpdateTexture)(THIS_ IDirect3DBaseTexture9* pSourceTexture, IDirect3DBaseTexture9* pDestinationTexture) override;
+	IFACEMETHOD(GetRenderTargetData)(THIS_ IDirect3DSurface9* pRenderTarget, IDirect3DSurface9* pDestSurface) override;
+	IFACEMETHOD(GetFrontBufferData)(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface) override;
+	IFACEMETHOD(StretchRect)(THIS_ IDirect3DSurface9* pSourceSurface, CONST RECT* pSourceRect, IDirect3DSurface9* pDestSurface, CONST RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter) override;
+	IFACEMETHOD(ColorFill)(THIS_ IDirect3DSurface9* pSurface, CONST RECT* pRect, D3DCOLOR color) override;
+	IFACEMETHOD(CreateOffscreenPlainSurface)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DPOOL Pool, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle) override;
+	IFACEMETHOD(SetRenderTarget)(THIS_ DWORD RenderTargetIndex, IDirect3DSurface9* pRenderTarget) override;
+	IFACEMETHOD(GetRenderTarget)(THIS_ DWORD RenderTargetIndex, IDirect3DSurface9** ppRenderTarget) override;
+	IFACEMETHOD(SetDepthStencilSurface)(THIS_ IDirect3DSurface9* pNewZStencil) override;
+	IFACEMETHOD(GetDepthStencilSurface)(THIS_ IDirect3DSurface9** ppZStencilSurface) override;
+	IFACEMETHOD(BeginScene)(THIS) override;
+	IFACEMETHOD(EndScene)(THIS) override;
+	IFACEMETHOD(Clear)(THIS_ DWORD Count, CONST D3DRECT* pRects, DWORD Flags, D3DCOLOR Color, float Z, DWORD Stencil) override;
+	IFACEMETHOD(SetTransform)(THIS_ D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix) override;
+	IFACEMETHOD(GetTransform)(THIS_ D3DTRANSFORMSTATETYPE State, D3DMATRIX* pMatrix) override;
+	IFACEMETHOD(MultiplyTransform)(THIS_ D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX *pMatrix) override;
+	IFACEMETHOD(SetViewport)(THIS_ CONST D3DVIEWPORT9* pViewport) override;
+	IFACEMETHOD(GetViewport)(THIS_ D3DVIEWPORT9* pViewport) override;
+	IFACEMETHOD(SetMaterial)(THIS_ CONST D3DMATERIAL9* pMaterial) override;
+	IFACEMETHOD(GetMaterial)(THIS_ D3DMATERIAL9* pMaterial) override;
+	IFACEMETHOD(SetLight)(THIS_ DWORD Index, CONST D3DLIGHT9* pLight) override;
+	IFACEMETHOD(GetLight)(THIS_ DWORD Index, D3DLIGHT9* pLight) override;
+	IFACEMETHOD(LightEnable)(THIS_ DWORD Index, BOOL Enable) override;
+	IFACEMETHOD(GetLightEnable)(THIS_ DWORD Index, BOOL* pEnable) override;
+	IFACEMETHOD(SetClipPlane)(THIS_ DWORD Index, CONST float* pPlane) override;
+	IFACEMETHOD(GetClipPlane)(THIS_ DWORD Index, float* pPlane) override;
+	IFACEMETHOD(SetRenderState)(THIS_ D3DRENDERSTATETYPE State, DWORD Value) override;
+	IFACEMETHOD(GetRenderState)(THIS_ D3DRENDERSTATETYPE State, DWORD* pValue) override;
+	IFACEMETHOD(CreateStateBlock)(THIS_ D3DSTATEBLOCKTYPE Type, IDirect3DStateBlock9** ppSB) override;
+	IFACEMETHOD(BeginStateBlock)(THIS) override;
+	IFACEMETHOD(EndStateBlock)(THIS_ IDirect3DStateBlock9** ppSB) override;
+	IFACEMETHOD(SetClipStatus)(THIS_ CONST D3DCLIPSTATUS9* pClipStatus) override;
+	IFACEMETHOD(GetClipStatus)(THIS_ D3DCLIPSTATUS9* pClipStatus) override;
+	IFACEMETHOD(GetTexture)(THIS_ DWORD Stage, IDirect3DBaseTexture9** ppTexture) override;
+	IFACEMETHOD(SetTexture)(THIS_ DWORD Stage, IDirect3DBaseTexture9* pTexture) override;
+	IFACEMETHOD(GetTextureStageState)(THIS_ DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD* pValue) override;
+	IFACEMETHOD(SetTextureStageState)(THIS_ DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value) override;
+	IFACEMETHOD(GetSamplerState)(THIS_ DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD* pValue) override;
+	IFACEMETHOD(SetSamplerState)(THIS_ DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value) override;
+	IFACEMETHOD(ValidateDevice)(THIS_ DWORD* pNumPasses) override;
+	IFACEMETHOD(SetPaletteEntries)(THIS_ UINT PaletteNumber, CONST PALETTEENTRY* pEntries) override;
+	IFACEMETHOD(GetPaletteEntries)(THIS_ UINT PaletteNumber, PALETTEENTRY* pEntries) override;
+	IFACEMETHOD(SetCurrentTexturePalette)(THIS_ UINT PaletteNumber) override;
+	IFACEMETHOD(GetCurrentTexturePalette)(THIS_ UINT *PaletteNumber) override;
+	IFACEMETHOD(SetScissorRect)(THIS_ CONST RECT* pRect) override;
+	IFACEMETHOD(GetScissorRect)(THIS_ RECT* pRect) override;
+	IFACEMETHOD(SetSoftwareVertexProcessing)(THIS_ BOOL bSoftware) override;
+	IFACEMETHOD_(BOOL, GetSoftwareVertexProcessing)(THIS) override;
+	IFACEMETHOD(SetNPatchMode)(THIS_ float nSegments) override;
+	IFACEMETHOD_(float, GetNPatchMode)(THIS) override;
+	IFACEMETHOD(DrawPrimitive)(THIS_ D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount) override;
+	IFACEMETHOD(DrawIndexedPrimitive)(THIS_ D3DPRIMITIVETYPE, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount) override;
+	IFACEMETHOD(DrawPrimitiveUP)(THIS_ D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, CONST void* pVertexStreamZeroData, UINT VertexStreamZeroStride) override;
+	IFACEMETHOD(DrawIndexedPrimitiveUP)(THIS_ D3DPRIMITIVETYPE PrimitiveType, UINT MinVertexIndex, UINT NumVertices, UINT PrimitiveCount, CONST void* pIndexData, D3DFORMAT IndexDataFormat, CONST void* pVertexStreamZeroData, UINT VertexStreamZeroStride) override;
+	IFACEMETHOD(ProcessVertices)(THIS_ UINT SrcStartIndex, UINT DestIndex, UINT VertexCount, IDirect3DVertexBuffer9* pDestBuffer, IDirect3DVertexDeclaration9* pVertexDecl, DWORD Flags) override;
+	IFACEMETHOD(CreateVertexDeclaration)(THIS_ CONST D3DVERTEXELEMENT9* pVertexElements, IDirect3DVertexDeclaration9** ppDecl) override;
+	IFACEMETHOD(SetVertexDeclaration)(THIS_ IDirect3DVertexDeclaration9* pDecl) override;
+	IFACEMETHOD(GetVertexDeclaration)(THIS_ IDirect3DVertexDeclaration9** ppDecl) override;
+	IFACEMETHOD(SetFVF)(THIS_ DWORD FVF) override;
+	IFACEMETHOD(GetFVF)(THIS_ DWORD* pFVF) override;
+	IFACEMETHOD(CreateVertexShader)(THIS_ CONST DWORD* pFunction, IDirect3DVertexShader9** ppShader) override;
+	IFACEMETHOD(SetVertexShader)(THIS_ IDirect3DVertexShader9* pShader) override;
+	IFACEMETHOD(GetVertexShader)(THIS_ IDirect3DVertexShader9** ppShader) override;
+	IFACEMETHOD(SetVertexShaderConstantF)(THIS_ UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount) override;
+	IFACEMETHOD(GetVertexShaderConstantF)(THIS_ UINT StartRegister, float* pConstantData, UINT Vector4fCount) override;
+	IFACEMETHOD(SetVertexShaderConstantI)(THIS_ UINT StartRegister, CONST int* pConstantData, UINT Vector4iCount) override;
+	IFACEMETHOD(GetVertexShaderConstantI)(THIS_ UINT StartRegister, int* pConstantData, UINT Vector4iCount) override;
+	IFACEMETHOD(SetVertexShaderConstantB)(THIS_ UINT StartRegister, CONST BOOL* pConstantData, UINT  BoolCount) override;
+	IFACEMETHOD(GetVertexShaderConstantB)(THIS_ UINT StartRegister, BOOL* pConstantData, UINT BoolCount) override;
+	IFACEMETHOD(SetStreamSource)(THIS_ UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride) override;
+	IFACEMETHOD(GetStreamSource)(THIS_ UINT StreamNumber, IDirect3DVertexBuffer9** ppStreamData, UINT* pOffsetInBytes, UINT* pStride) override;
+	IFACEMETHOD(SetStreamSourceFreq)(THIS_ UINT StreamNumber, UINT Setting) override;
+	IFACEMETHOD(GetStreamSourceFreq)(THIS_ UINT StreamNumber, UINT* pSetting) override;
+	IFACEMETHOD(SetIndices)(THIS_ IDirect3DIndexBuffer9* pIndexData) override;
+	IFACEMETHOD(GetIndices)(THIS_ IDirect3DIndexBuffer9** ppIndexData) override;
+	IFACEMETHOD(CreatePixelShader)(THIS_ CONST DWORD* pFunction, IDirect3DPixelShader9** ppShader) override;
+	IFACEMETHOD(SetPixelShader)(THIS_ IDirect3DPixelShader9* pShader) override;
+	IFACEMETHOD(GetPixelShader)(THIS_ IDirect3DPixelShader9** ppShader) override;
+	IFACEMETHOD(SetPixelShaderConstantF)(THIS_ UINT StartRegister, CONST float* pConstantData, UINT Vector4fCount) override;
+	IFACEMETHOD(GetPixelShaderConstantF)(THIS_ UINT StartRegister, float* pConstantData, UINT Vector4fCount) override;
+	IFACEMETHOD(SetPixelShaderConstantI)(THIS_ UINT StartRegister, CONST int* pConstantData, UINT Vector4iCount) override;
+	IFACEMETHOD(GetPixelShaderConstantI)(THIS_ UINT StartRegister, int* pConstantData, UINT Vector4iCount) override;
+	IFACEMETHOD(SetPixelShaderConstantB)(THIS_ UINT StartRegister, CONST BOOL* pConstantData, UINT  BoolCount) override;
+	IFACEMETHOD(GetPixelShaderConstantB)(THIS_ UINT StartRegister, BOOL* pConstantData, UINT BoolCount) override;
+	IFACEMETHOD(DrawRectPatch)(THIS_ UINT Handle, CONST float* pNumSegs, CONST D3DRECTPATCH_INFO* pRectPatchInfo) override;
+	IFACEMETHOD(DrawTriPatch)(THIS_ UINT Handle, CONST float* pNumSegs, CONST D3DTRIPATCH_INFO* pTriPatchInfo) override;
+	IFACEMETHOD(DeletePatch)(THIS_ UINT Handle) override;
+	IFACEMETHOD(CreateQuery)(THIS_ D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery) override;
 
 	/*** IDirect3DDevice9Ex methods ***/
-	STDMETHOD(SetConvolutionMonoKernel)(THIS_ UINT width, UINT height, float* rows, float* columns);
-	STDMETHOD(ComposeRects)(THIS_ IDirect3DSurface9* pSrc, IDirect3DSurface9* pDst, IDirect3DVertexBuffer9* pSrcRectDescs, UINT NumRects, IDirect3DVertexBuffer9* pDstRectDescs, D3DCOMPOSERECTSOP Operation, int Xoffset, int Yoffset);
-	STDMETHOD(PresentEx)(THIS_ CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion, DWORD dwFlags);
-	STDMETHOD(GetGPUThreadPriority)(THIS_ INT* pPriority);
-	STDMETHOD(SetGPUThreadPriority)(THIS_ INT Priority);
-	STDMETHOD(WaitForVBlank)(THIS_ UINT iSwapChain);
-	STDMETHOD(CheckResourceResidency)(THIS_ IDirect3DResource9** pResourceArray, UINT32 NumResources);
-	STDMETHOD(SetMaximumFrameLatency)(THIS_ UINT MaxLatency);
-	STDMETHOD(GetMaximumFrameLatency)(THIS_ UINT* pMaxLatency);
-	STDMETHOD(CheckDeviceState)(THIS_ HWND hDestinationWindow);
-	STDMETHOD(CreateRenderTargetEx)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Lockable, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage);
-	STDMETHOD(CreateOffscreenPlainSurfaceEx)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DPOOL Pool, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage);
-	STDMETHOD(CreateDepthStencilSurfaceEx)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Discard, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage);
-	STDMETHOD(ResetEx)(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX *pFullscreenDisplayMode);
-	STDMETHOD(GetDisplayModeEx)(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation);
+	IFACEMETHOD(SetConvolutionMonoKernel)(THIS_ UINT width, UINT height, float* rows, float* columns) override;
+	IFACEMETHOD(ComposeRects)(THIS_ IDirect3DSurface9* pSrc, IDirect3DSurface9* pDst, IDirect3DVertexBuffer9* pSrcRectDescs, UINT NumRects, IDirect3DVertexBuffer9* pDstRectDescs, D3DCOMPOSERECTSOP Operation, int Xoffset, int Yoffset) override;
+	IFACEMETHOD(PresentEx)(THIS_ CONST RECT* pSourceRect, CONST RECT* pDestRect, HWND hDestWindowOverride, CONST RGNDATA* pDirtyRegion, DWORD dwFlags) override;
+	IFACEMETHOD(GetGPUThreadPriority)(THIS_ INT* pPriority) override;
+	IFACEMETHOD(SetGPUThreadPriority)(THIS_ INT Priority) override;
+	IFACEMETHOD(WaitForVBlank)(THIS_ UINT iSwapChain) override;
+	IFACEMETHOD(CheckResourceResidency)(THIS_ IDirect3DResource9** pResourceArray, UINT32 NumResources) override;
+	IFACEMETHOD(SetMaximumFrameLatency)(THIS_ UINT MaxLatency) override;
+	IFACEMETHOD(GetMaximumFrameLatency)(THIS_ UINT* pMaxLatency) override;
+	IFACEMETHOD(CheckDeviceState)(THIS_ HWND hDestinationWindow) override;
+	IFACEMETHOD(CreateRenderTargetEx)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Lockable, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage) override;
+	IFACEMETHOD(CreateOffscreenPlainSurfaceEx)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DPOOL Pool, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage) override;
+	IFACEMETHOD(CreateDepthStencilSurfaceEx)(THIS_ UINT Width, UINT Height, D3DFORMAT Format, D3DMULTISAMPLE_TYPE MultiSample, DWORD MultisampleQuality, BOOL Discard, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle, DWORD Usage) override;
+	IFACEMETHOD(ResetEx)(THIS_ D3DPRESENT_PARAMETERS* pPresentationParameters, D3DDISPLAYMODEEX *pFullscreenDisplayMode) override;
+	IFACEMETHOD(GetDisplayModeEx)(THIS_ UINT iSwapChain, D3DDISPLAYMODEEX* pMode, D3DDISPLAYROTATION* pRotation) override;
 
-	// Helper functions
+	// Information functions
 	LPDIRECT3DDEVICE9 GetProxyInterface() const { return ProxyInterface; }
 	void InitInterface(void*, REFIID, UINT) {}	// Stub only
-	AddressLookupTableD3d9* GetLookupTable() const { return &SHARED.ProxyAddressLookupTable9; }
-	StateBlockCache* GetStateBlockTable() const { return &SHARED.StateBlockTable; }
-	StateBlockCache* GetDeletedStateBlock() const { return &SHARED.DeletedStateBlocks; }
-	m_IDirect3DStateBlock9* GetCreateStateBlock(IDirect3DStateBlock9* pSB);
-	DWORD GetClientDXVersion() const { return SHARED.ClientDirectXVersion; }
+	AddressLookupTableD3d9* GetLookupTable() { return &ProxyAddressLookupTable9; }
+	StateBlockCache* GetStateBlockTable() { return &StateBlockTable; }
+	StateBlockCache* GetDeletedStateBlock() { return &DeletedStateBlocks; }
+	void ClearDeletedStateBlock(m_IDirect3DStateBlock9* StateBlockX);
+	bool GetDeviceMultiSampleFlag() const { return DeviceDetails.DeviceMultiSampleFlag; }
+	D3DMULTISAMPLE_TYPE GetDeviceMultiSampleType() const { return DeviceDetails.DeviceMultiSampleType; }
+	DWORD GetDeviceMultiSampleQuality() const { return DeviceDetails.DeviceMultiSampleQuality; }
+	DWORD GetClientDXVersion() const { return DeviceDetails.ClientDirectXVersion; }
 	REFIID GetIID() { return WrapperID; }
+	void AddSurfaceToList(m_IDirect3DSurface9* pSurface) { EmulatedSurfaceList.insert(pSurface); }
+	void RemoveSurfaceFromList(m_IDirect3DSurface9* pSurface) { EmulatedSurfaceList.erase(pSurface); }
+
+	// Frame counter
+	void CalculateFPS();
+	double GetAverageFPSCounter() const;
+
+	// Helper functions
+	HRESULT GetFakeFrontBufferData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
+	HRESULT GetShadowFrontBufferData(THIS_ UINT iSwapChain, IDirect3DSurface9* pDestSurface);
+	m_IDirect3DStateBlock9* GetCreateStateBlock(IDirect3DStateBlock9* pSB);
+
+	// Information
+	inline bool IsForcingD3d9to9Ex() const { return (Config.D3d9to9Ex && ProxyInterface == ProxyInterfaceEx); }
 
 	// Static functions
 	static void ModeExToMode(D3DDISPLAYMODEEX& ModeEx, D3DDISPLAYMODE& Mode);
 };
-#undef SHARED

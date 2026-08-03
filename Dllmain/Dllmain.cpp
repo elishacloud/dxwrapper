@@ -14,6 +14,8 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#pragma comment(linker, "/SECTION:.rdata,RW")
+
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <Shlwapi.h>
@@ -31,12 +33,14 @@
 #include "Logging\Logging.h"
 // Wrappers last
 #include "IClassFactory\IClassFactory.h"
+#include "Libraries\d3dx9.h"
 #include "d3d9\d3d9External.h"
 #include "ddraw\ddrawExternal.h"
 #include "dinput\dinputExternal.h"
 #include "dinput8\dinput8External.h"
 #include "d3d8\d3d8External.h"
 #include "dsound\dsoundExternal.h"
+#include "Libraries\ScopeGuard.h"
 #include "dxwrapper.h"
 
 #include <sstream>
@@ -91,17 +95,22 @@ typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
 static HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSystem32)
 {
 	HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
-	HMODULE currentdll = GetModuleHandle(dllname);
 
-	if (dllname && (Config.IsSet(HookSystem32) || (HookSystem32 == NOT_EXIST && currentdll && GetProcAddress(currentdll, "DxWrapperSettings") == nullptr)))
+	if (dllname)
 	{
-		char path[MAX_PATH];
-		GetSystemDirectory(path, MAX_PATH);
-		PathAppend(path, dllname);
-		HMODULE lib = LoadLibrary(path);
-		if (lib)
+		CreateScopedHeapBuffer(char, path, MAX_PATH);
+		if (GetSystemDirectoryA(path, MAX_PATH))
 		{
-			dll = lib;
+			PathAppend(path, dllname);
+
+			if (Config.IsSet(HookSystem32) || (HookSystem32 == NOT_EXIST && GetModuleHandleA(path)))
+			{
+				HMODULE lib = LoadLibrary(path);
+				if (lib)
+				{
+					dll = lib;
+				}
+			}
 		}
 	}
 
@@ -116,7 +125,7 @@ static HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSyste
 static bool CheckForDuplicateLoad(HMODULE hModule, HANDLE& hMutex)
 {
 	// Get mutex name
-	char MutexName[MAX_PATH] = { 0 };
+	CreateScopedHeapBuffer(char, MutexName, MAX_PATH);
 	if (Config.RealWrapperMode == dtype.dxwrapper)
 	{
 		sprintf_s(MutexName, MAX_PATH, "DxWrapper_%d", GetCurrentProcessId());
@@ -134,7 +143,7 @@ static bool CheckForDuplicateLoad(HMODULE hModule, HANDLE& hMutex)
 
 		// Prepare message
 		std::stringstream message;
-		char dllPath[MAX_PATH] = { 0 };
+		CreateScopedHeapBuffer(char, dllPath, MAX_PATH);
 
 		// Get the DLL path if possible
 		if (GetModuleFileNameA(hModule, dllPath, MAX_PATH))
@@ -221,7 +230,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		bool IsRunningFromMemory = false;
 		Logging::Log() << "Starting DxWrapper v" << APP_VERSION;
 		{
-			char path[MAX_PATH] = {};
+			CreateScopedHeapBuffer(char, path, MAX_PATH);
 			SetLastError(0);
 			DWORD size = GetModuleFileName(hModule, path, MAX_PATH);
 			DWORD errorCode = GetLastError();
@@ -324,7 +333,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			// Add the exception handler to the end of the chain if available
 			if (add_handler)
 			{
-				g_exception_handle = add_handler(0, Utils::Vectored_Exception_Handler);  // Set to 0 for end of chain
+				g_exception_handle = add_handler(0, Utils::VectoredExceptionHandler);  // Set to 0 for end of chain
 			}
 		}
 
@@ -397,9 +406,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			WriteMemory::WriteMemory();
 		}
-		if (Config.DisableHighDPIScaling)
+		if (Config.ConfigureDpiAwareness)
 		{
-			Utils::DisableHighDPIScaling();
+			Utils::ConfigureDpiAwareness();
 		}
 		if (Config.SingleProcAffinity)
 		{
@@ -413,10 +422,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.DisableGameUX)
 		{
 			Utils::DisableGameUX();
-		}
-		if (Config.HandleExceptions)
-		{
-			Utils::SetCustomExceptionHandler();
 		}
 
 		// Hook CoCreateInstance
@@ -517,16 +522,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				}
 			}
 
-			// dinputto8 -> dinput8Wrapper
-			if (Config.Dinputto8)
-			{
-				DinputWrapper::DirectInput8Create_out = DirectInput8Create_in;
-				DinputWrapper::DllCanUnloadNow_out = DllCanUnloadNow_in;
-				DinputWrapper::DllGetClassObject_out = DllGetClassObject_in;
-				DinputWrapper::DllRegisterServer_out = DllRegisterServer_in;
-				DinputWrapper::DllUnregisterServer_out = DllUnregisterServer_in;
-			}
-
 			// Prepare wrapper
 			VISIT_PROCS_DINPUT8(SHIM_WRAPPED_PROC);
 			VISIT_PROCS_DINPUT8_SHARED(SHIM_WRAPPED_PROC);
@@ -535,6 +530,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Start ddraw.dll module
 		if (Config.EnableDdrawWrapper || Config.DDrawCompat)
 		{
+			// Initialize d3dx9 first
+			LoadD3dx9();
+
 			// Initialize ddraw wrapper procs
 			if (Config.RealWrapperMode == dtype.ddraw)
 			{
@@ -571,8 +569,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				using namespace DdrawWrapper;
 				VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
 				VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
-				HMODULE d3d9_dll = LoadLibrary("d3d9.dll");
-				DdrawWrapper::Direct3DCreate9_out = GetProcAddress(d3d9_dll, "Direct3DCreate9");
 			}
 			else
 			{
@@ -613,6 +609,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			Logging::Log() << "Enabling d3d8to9 wrapper";
 
+			// Initialize d3dx9 first
+			LoadD3dx9();
+
 			using namespace d3d8;
 			using namespace D3d8Wrapper;
 
@@ -637,6 +636,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			Logging::Log() << "Enabling d3d9 wrapper";
 
+			// Initialize d3dx9 first
+			LoadD3dx9();
+
 			using namespace d3d9;
 			using namespace D3d9Wrapper;
 
@@ -658,23 +660,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				}
 			}
 
-			// Redirect d3d8to9 -> D3d9Wrapper
-			if (Config.D3d8to9)
-			{
-				D3d8Wrapper::Direct3DCreate9_out = Direct3DCreate9_in;
-			}
-
-			// Redirect DdrawWrapper -> D3d9Wrapper
-			if (Config.Dd7to9)
-			{
-				DdrawWrapper::Direct3DCreate9_out = Direct3DCreate9_in;
-			}
-
 			// Prepare wrapper
 			VISIT_PROCS_D3D9(SHIM_WRAPPED_PROC);
 
 			// Get default display resolution
 			Utils::GetScreenSize(nullptr, InitWidth, InitHeight);
+			InitRefreshRate = Utils::GetRefreshRate(nullptr);
 		}
 
 		bool DDrawCompatEnabed = false;
@@ -702,7 +693,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		{
 			InitDDraw();
 		}
-		else if (Config.ForceKeyboardLayout)
+		else if (Config.EnableD3d9Wrapper || Config.D3d8to9 || Config.ForceKeyboardLayout)
 		{
 			Logging::Log() << "Installing User32 hooks";
 			HMODULE user32 = GetModuleHandleA("user32.dll");
@@ -711,6 +702,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				using namespace GdiWrapper;
 				CreateWindowExA_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "CreateWindowExA"), "CreateWindowExA", user_CreateWindowExA);
 				CreateWindowExW_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "CreateWindowExW"), "CreateWindowExW", user_CreateWindowExW);
+				DestroyWindow_out = (FARPROC)Hook::HotPatch(GetProcAddress(user32, "DestroyWindow"), "DestroyWindow", user_DestroyWindow);
 			}
 		}
 
@@ -853,13 +845,8 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Unhook keyboard layout
 		if (Config.ForceKeyboardLayout)
 		{
-			KeyboardLayout::DisableForcedKeyboardLayout();
-		}
-
-		// Unload exception handler
-		if (Config.HandleExceptions)
-		{
-			Utils::RemoveCustomExceptionHandler();
+			// Use WndProc for disabling so it can be done from the foreground window
+			WndProc::DisableForcedKeyboardLayout();
 		}
 
 		// Remove the exception handler if it was added

@@ -1,11 +1,11 @@
 #pragma once
 
-class m_IDirect3DExecuteBuffer : public IDirect3DExecuteBuffer, public AddressLookupTableDdrawObject
+class m_IDirect3DExecuteBuffer final : public IDirect3DExecuteBuffer, public AddressLookupTableDdrawObject
 {
 private:
 	IDirect3DExecuteBuffer *ProxyInterface = nullptr;
 	const IID WrapperID = IID_IDirect3DExecuteBuffer;
-	ULONG RefCount = 1;
+	LONG RefCount = 1;
 
 	// Convert Buffer
 	m_IDirect3DDeviceX *D3DDeviceInterface = nullptr;
@@ -14,8 +14,8 @@ private:
 	D3DEXECUTEDATA ExecuteData = {};
 	DWORD LockedCount = 0;
 	DWORD LockedThread = 0;
-	bool IsExecuting = false;
-	bool tmpIsExecuting = false;
+	std::atomic<bool> IsLocking = false;
+	std::atomic<bool> IsExecuting = false;
 	bool IsDataValidated = false;
 	bool UsingAppMemory = false;
 
@@ -38,7 +38,7 @@ public:
 
 		InitInterface(nullptr);
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	m_IDirect3DExecuteBuffer(m_IDirect3DDeviceX *D3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc) : D3DDeviceInterface(D3DDInterface)
 	{
@@ -46,7 +46,7 @@ public:
 
 		InitInterface(lpDesc);
 
-		ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+		ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 	}
 	~m_IDirect3DExecuteBuffer()
 	{
@@ -54,7 +54,7 @@ public:
 
 		ReleaseInterface();
 
-		ProxyAddressLookupTable.DeleteAddress(this);
+		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
 	void SetProxy(IDirect3DExecuteBuffer* NewProxyInterface, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc)
@@ -65,34 +65,35 @@ public:
 			ProxyInterface = NewProxyInterface;
 			D3DDeviceInterface = NewD3DDInterface;
 			InitInterface(lpDesc);
-			ProxyAddressLookupTable.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
+			ProxyAddressLookupTableDdraw.SaveAddress(this, (ProxyInterface) ? ProxyInterface : (void*)this);
 		}
 		else
 		{
 			ReleaseInterface();
-			ProxyAddressLookupTable.DeleteAddress(this);
+			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			D3DDeviceInterface = nullptr;
 		}
 	}
 
 	/*** IUnknown methods ***/
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID * ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	/*** IDirect3DExecuteBuffer methods ***/
-	STDMETHOD(Initialize)(THIS_ LPDIRECT3DDEVICE, LPD3DEXECUTEBUFFERDESC);
-	STDMETHOD(Lock)(THIS_ LPD3DEXECUTEBUFFERDESC);
-	STDMETHOD(Unlock)(THIS);
-	STDMETHOD(SetExecuteData)(THIS_ LPD3DEXECUTEDATA);
-	STDMETHOD(GetExecuteData)(THIS_ LPD3DEXECUTEDATA);
-	STDMETHOD(Validate)(THIS_ LPDWORD, LPD3DVALIDATECALLBACK, LPVOID, DWORD);
-	STDMETHOD(Optimize)(THIS_ DWORD);
+	IFACEMETHOD(Initialize)(THIS_ LPDIRECT3DDEVICE, LPD3DEXECUTEBUFFERDESC) override;
+	IFACEMETHOD(Lock)(THIS_ LPD3DEXECUTEBUFFERDESC) override;
+	IFACEMETHOD(Unlock)(THIS) override;
+	IFACEMETHOD(SetExecuteData)(THIS_ LPD3DEXECUTEDATA) override;
+	IFACEMETHOD(GetExecuteData)(THIS_ LPD3DEXECUTEDATA) override;
+	IFACEMETHOD(Validate)(THIS_ LPDWORD, LPD3DVALIDATECALLBACK, LPVOID, DWORD) override;
+	IFACEMETHOD(Optimize)(THIS_ DWORD) override;
 
 	// Helper functions
 	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 	HRESULT GetBuffer(LPVOID* lplpData, D3DEXECUTEDATA& CurrentExecuteData, LPD3DSTATUS* lplpStatus);
-	bool& CheckLockStatus(bool& IsLocked) { if (LockedCount == 0) { IsLocked = false; return IsExecuting; } else { IsLocked = true; return tmpIsExecuting; } }
+	bool IsBufferLocked() const { return (IsLocking || LockedCount != 0); }
+	std::atomic<bool>& GetExecuteFlag() { return IsExecuting; }
 	static m_IDirect3DExecuteBuffer* CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc);
 };

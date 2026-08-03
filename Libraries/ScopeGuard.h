@@ -1,58 +1,247 @@
 #pragma once
 
+#include <atomic>
+
+inline LONG AtomicRead(LONG& ref)
+{
+    return InterlockedCompareExchange(&ref, 0, 0);
+}
+
+inline LONG InterlockedDecrementIfPositive(LONG* value)
+{
+    while (true)
+    {
+        LONG current = *value;
+
+        if (current <= 0)
+        {
+            return 0;
+        }
+
+        if (_InterlockedCompareExchange(value, current - 1, current) == current)
+        {
+            return current - 1;
+        }
+    }
+}
+
+class CriticalSectionInit
+{
+private:
+    CRITICAL_SECTION Cs;
+    volatile LONG InitState;
+
+    void Init()
+    {
+        if (InterlockedCompareExchange(&InitState, 2, 2) != 2)
+        {
+            if (InterlockedCompareExchange(&InitState, 1, 0) == 0)
+            {
+                InitializeCriticalSection(&Cs);
+                InterlockedExchange(&InitState, 2);
+            }
+            else
+            {
+                while (InterlockedCompareExchange(&InitState, 2, 2) != 2)
+                {
+                    SwitchToThread();
+                }
+            }
+        }
+    }
+
+public:
+    CriticalSectionInit() : InitState(0)
+    {
+        ZeroMemory(&Cs, sizeof(Cs));
+    }
+    ~CriticalSectionInit()
+    {
+        if (InterlockedCompareExchange(&InitState, 2, 2) == 2)
+        {
+            DeleteCriticalSection(&Cs);
+        }
+    }
+    void Enter()
+    {
+        Init();
+        EnterCriticalSection(&Cs);
+    }
+
+    void Leave()
+    {
+        LeaveCriticalSection(&Cs);
+    }
+
+    // Prevent copying
+    CriticalSectionInit(const CriticalSectionInit&) = delete;
+    CriticalSectionInit& operator=(const CriticalSectionInit&) = delete;
+
+    class Lock
+    {
+    private:
+        CriticalSectionInit& LockObj;
+
+    public:
+        Lock(CriticalSectionInit& Obj) : LockObj(Obj)
+        {
+            LockObj.Enter();
+        }
+
+        ~Lock()
+        {
+            LockObj.Leave();
+        }
+
+        // Prevent copying
+        Lock(const Lock&) = delete;
+        Lock& operator=(const Lock&) = delete;
+    };
+};
+
+class ScopedAtomicLock
+{
+private:
+    volatile LONG& State;
+    bool Locked = false;
+
+public:
+    ScopedAtomicLock(volatile LONG& State) : State(State)
+    {
+        while (true)
+        {
+            if (InterlockedCompareExchange(&State, 1, 0) == 0)
+            {
+                Locked = true;
+                break;
+            }
+
+            SwitchToThread();
+        }
+    }
+
+    ~ScopedAtomicLock()
+    {
+        if (Locked)
+        {
+            InterlockedExchange(&State, 0);
+        }
+    }
+
+    // Prevent copying
+    ScopedAtomicLock(const ScopedAtomicLock&) = delete;
+    ScopedAtomicLock& operator=(const ScopedAtomicLock&) = delete;
+};
+
+template<typename T>
 struct ScopedFlagSet
 {
 private:
-    bool& flag;
+    bool enable;
+    T& flag;
 public:
     // Constructor sets the flag to true
-    ScopedFlagSet(bool& setflag) : flag(setflag)
+    ScopedFlagSet(T& setflag, bool activate = true) : flag(setflag), enable(activate)
     {
-        flag = true;
+        if (enable)
+        {
+            flag = true;
+        }
     }
     // Destructor sets the flag back to false
     ~ScopedFlagSet()
     {
-        flag = false;
+        if (enable)
+        {
+            flag = false;
+        }
     }
+
+    // Prevent copying
+    ScopedFlagSet(const ScopedFlagSet&) = delete;
+    ScopedFlagSet& operator=(const ScopedFlagSet&) = delete;
 };
 
 template<typename T>
-struct HeapBuffer
+struct ScopedIncrement
 {
 private:
-    T* buffer = nullptr;
+    bool enable;
+    T& num;
+
 public:
-    // Constructor: allocate and initialize buffer
-    HeapBuffer(size_t bufferSize)
+    // Constructor increments num
+    ScopedIncrement(T& num, bool activate = true) : num(num), enable(activate)
     {
-        buffer = new T[bufferSize](); // value-initialized
+        if (enable)
+        {
+            num++;
+        }
     }
-    // Destructor: free memory
-    ~HeapBuffer()
+    // Destructor decrements num
+    ~ScopedIncrement()
+    {
+        if (enable)
+        {
+            num--;
+        }
+    }
+
+    // Prevent copying
+    ScopedIncrement(const ScopedIncrement&) = delete;
+    ScopedIncrement& operator=(const ScopedIncrement&) = delete;
+};
+
+#define CreateScopedHeapBuffer(type, name, size) \
+    __HeapBuffer<type> name##_heap(size); \
+    type* const name = name##_heap.buffer;
+
+template<typename T>
+struct __HeapBuffer
+{
+    T* buffer;
+
+    explicit __HeapBuffer(size_t count)
+        : buffer(new T[count]()) // zero-initialize
+    {
+    }
+
+    ~__HeapBuffer()
     {
         delete[] buffer;
     }
-    // Get buffer pointer
-    T* data()
+
+    // Prevent copying
+    __HeapBuffer(const __HeapBuffer&) = delete;
+    __HeapBuffer& operator=(const __HeapBuffer&) = delete;
+
+    // Allow move
+    __HeapBuffer(__HeapBuffer&& other) noexcept : buffer(other.buffer)
     {
-        return buffer;
+        other.buffer = nullptr;
     }
-    // Disable copy to prevent accidental copies
-    HeapBuffer(const HeapBuffer&) = delete;
-    HeapBuffer& operator=(const HeapBuffer&) = delete;
+    __HeapBuffer& operator=(__HeapBuffer&& other) noexcept
+    {
+        if (this != &other)
+        {
+            delete[] buffer;
+            buffer = other.buffer;
+            other.buffer = nullptr;
+        }
+        return *this;
+    }
 };
 
 struct ScopedCriticalSection
 {
 private:
-    bool flag;
+    bool enable;
     CRITICAL_SECTION* cs;
 public:
     // Constructor enters critical section
-    ScopedCriticalSection(CRITICAL_SECTION* cs, bool enable = true) : cs(cs), flag(enable)
+    ScopedCriticalSection(CRITICAL_SECTION* cs, bool activate = true) : cs(cs), enable(activate)
     {
-        if (flag && cs)
+        if (enable && cs)
         {
             EnterCriticalSection(cs);
         }
@@ -60,28 +249,36 @@ public:
     // Destructor leaves critical section
     ~ScopedCriticalSection()
     {
-        if (flag && cs)
+        if (enable && cs)
         {
             LeaveCriticalSection(cs);
         }
     }
+
+    // Prevent copying
+    ScopedCriticalSection(const ScopedCriticalSection&) = delete;
+    ScopedCriticalSection& operator=(const ScopedCriticalSection&) = delete;
 };
 
 struct ScopedLeaveCriticalSection
 {
 private:
-    bool flag;
+    bool enable;
     CRITICAL_SECTION* cs;
 public:
-    ScopedLeaveCriticalSection(CRITICAL_SECTION* cs, bool enable = true) : cs(cs), flag(enable) {}
+    ScopedLeaveCriticalSection(CRITICAL_SECTION* cs, bool activate = true) : cs(cs), enable(activate) {}
     // Destructor leaves critical section
     ~ScopedLeaveCriticalSection()
     {
-        if (flag && cs)
+        if (enable && cs)
         {
             LeaveCriticalSection(cs);
         }
     }
+
+    // Prevent copying
+    ScopedLeaveCriticalSection(const ScopedLeaveCriticalSection&) = delete;
+    ScopedLeaveCriticalSection& operator=(const ScopedLeaveCriticalSection&) = delete;
 };
 
 template <typename T, std::size_t Alignment>

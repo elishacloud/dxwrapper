@@ -1,31 +1,27 @@
 #pragma once
 
-class m_IDirectSoundNotify8 : public IDirectSoundNotify8, public AddressLookupTableDsoundObject
+class m_IDirectSoundNotify8 final : public IDirectSoundNotify8, AddressLookupTableDsoundObject<m_IDirectSoundNotify8>
 {
 private:
 	LPDIRECTSOUNDNOTIFY8 ProxyInterface;
 
 public:
-	m_IDirectSoundNotify8(LPDIRECTSOUNDNOTIFY8 pSound8) : ProxyInterface(pSound8)
+	m_IDirectSoundNotify8(LPDIRECTSOUNDNOTIFY8 pSound8) : AddressLookupTableDsoundObject(pSound8), ProxyInterface(pSound8)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
-
-		ProxyAddressLookupTableDsound.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectSoundNotify8()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
-
-		ProxyAddressLookupTableDsound.DeleteAddress(this);
 	}
 
 	// IUnknown methods
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID* ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR* ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	// IDirectSoundNotify methods
-	STDMETHOD(SetNotificationPositions)(THIS_ DWORD dwPositionNotifies, _In_reads_(dwPositionNotifies) LPCDSBPOSITIONNOTIFY pcPositionNotifies);
+	IFACEMETHOD(SetNotificationPositions)(THIS_ DWORD dwPositionNotifies, _In_reads_(dwPositionNotifies) LPCDSBPOSITIONNOTIFY pcPositionNotifies) override;
 
 	// Helper functions
 	LPDIRECTSOUNDNOTIFY8 GetProxyInterface() { return ProxyInterface; }

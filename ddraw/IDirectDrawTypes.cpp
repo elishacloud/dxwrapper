@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -41,12 +41,12 @@ bool IsDisplayResolution(DWORD Width, DWORD Height)
 }
 
 // Simple copy with ColorKey and Mirroring
-template void SimpleColorKeyCopy<BYTE>(BYTE ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
-template void SimpleColorKeyCopy<WORD>(WORD ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
-template void SimpleColorKeyCopy<TRIBYTE>(TRIBYTE ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
-template void SimpleColorKeyCopy<DWORD>(DWORD ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
+template void SimpleColorKeyCopy<BYTE>(BYTE ColorKey, BYTE ColorKeyMask, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
+template void SimpleColorKeyCopy<WORD>(WORD ColorKey, WORD ColorKeyMask, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
+template void SimpleColorKeyCopy<TRIBYTE>(TRIBYTE ColorKey, TRIBYTE ColorKeyMask, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
+template void SimpleColorKeyCopy<DWORD>(DWORD ColorKey, DWORD ColorKeyMask, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight);
 template <typename T>
-void SimpleColorKeyCopy(T ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight)
+void SimpleColorKeyCopy(T ColorKey, T ColorKeyMask, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPitch, INT DestPitch, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorLeftRight)
 {
 	T* SrcBufferLoop = reinterpret_cast<T*>(SrcBuffer);
 	T* DestBufferLoop = reinterpret_cast<T*>(DestBuffer);
@@ -56,7 +56,7 @@ void SimpleColorKeyCopy(T ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPi
 		for (LONG x = 0; x < DestRectWidth; x++)
 		{
 			T PixelColor = SrcBufferLoop[IsMirrorLeftRight ? DestRectWidth - x - 1 : x];
-			if (!IsColorKey || PixelColor != ColorKey)
+			if (!IsColorKey || (PixelColor & ColorKeyMask) != ColorKey)
 			{
 				DestBufferLoop[x] = PixelColor;
 			}
@@ -67,12 +67,12 @@ void SimpleColorKeyCopy(T ColorKey, BYTE* SrcBuffer, BYTE* DestBuffer, INT SrcPi
 }
 
 // Copy memory (complex)
-template void ComplexCopy<BYTE>(BYTE ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
-template void ComplexCopy<WORD>(WORD ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
-template void ComplexCopy<TRIBYTE>(TRIBYTE ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
-template void ComplexCopy<DWORD>(DWORD ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
+template void ComplexCopy<BYTE>(BYTE ColorKey, BYTE ColorKeyMask, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
+template void ComplexCopy<WORD>(WORD ColorKey, WORD ColorKeyMask, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
+template void ComplexCopy<TRIBYTE>(TRIBYTE ColorKey, TRIBYTE ColorKeyMask, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
+template void ComplexCopy<DWORD>(DWORD ColorKey, DWORD ColorKeyMask, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight);
 template <typename T>
-void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight)
+void ComplexCopy(T ColorKey, T ColorKeyMask, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLockRect, LONG SrcRectWidth, LONG SrcRectHeight, LONG DestRectWidth, LONG DestRectHeight, bool IsColorKey, bool IsMirrorUpDown, bool IsMirrorLeftRight)
 {
 	float WidthRatio = ((float)SrcRectWidth / (float)DestRectWidth);
 	float HeightRatio = ((float)SrcRectHeight / (float)DestRectHeight);
@@ -87,7 +87,7 @@ void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLock
 			DWORD sx = (DWORD)((float)x * WidthRatio);
 			T PixelColor = SrcBufferLoop[IsMirrorLeftRight ? SrcRectWidth - sx - 1 : sx];
 
-			if (!IsColorKey || PixelColor != ColorKey)
+			if (!IsColorKey || (PixelColor & ColorKeyMask) != ColorKey)
 			{
 				DestBufferLoop[x] = PixelColor;
 			}
@@ -98,40 +98,110 @@ void ComplexCopy(T ColorKey, D3DLOCKED_RECT SrcLockRect, D3DLOCKED_RECT DestLock
 	}
 }
 
-DWORD GetDepthFillValue(float depthValue, D3DFORMAT Format)
+D3DCOLOR ConvertPixelColor(D3DCOLOR PixelColor, const DDPIXELFORMAT& ddpfPixelFormat)
+{
+	auto ExtractChannel = [](UINT pixel, UINT mask) -> UINT
+		{
+			if (mask == 0) return 0;
+			// shift mask down to LSB
+			UINT shift = 0;
+			UINT m = mask;
+			while ((m & 1) == 0) { m >>= 1; shift++; }
+
+			// extract bits
+			UINT value = (pixel & mask) >> shift;
+
+			// scale to 0-255
+			UINT bits = 0;
+			m = mask >> shift;
+			while (m) { bits++; m >>= 1; }
+			if (bits == 8) return value;
+			return (value * 255 + ((1 << bits) / 2)) / ((1 << bits) - 1);
+		};
+
+	UINT r = ExtractChannel(PixelColor, ddpfPixelFormat.dwRBitMask);
+	UINT g = ExtractChannel(PixelColor, ddpfPixelFormat.dwGBitMask);
+	UINT b = ExtractChannel(PixelColor, ddpfPixelFormat.dwBBitMask);
+	UINT a = ExtractChannel(PixelColor, ddpfPixelFormat.dwRGBAlphaBitMask);
+
+	// Compose D3DCOLOR (0xAARRGGBB)
+	return (a << 24) | (r << 16) | (g << 8) | b;
+}
+
+bool HasStencil(D3DFORMAT Format)
 {
 	switch ((DWORD)Format)
 	{
-	case D3DFMT_S1D15:
-		return uint16_t(depthValue * static_cast<float>(0x7FFF) + 0.5f); // 15-bit depth
-
 	case D3DFMT_D15S1:
-		// Shift the depth value by 1 bits before extracting
-		return uint16_t(depthValue * static_cast<float>(0x7FFF) + 0.5f) << 1; // 15-bit depth
-
-	case D3DFMT_D16:
-	case D3DFMT_D16_LOCKABLE:
-		return uint16_t(depthValue * static_cast<float>(0xFFFF) + 0.5f); // 16-bit depth
-
-	case D3DFMT_X8D24:
-	case D3DFMT_S8D24:
-	case D3DFMT_X4S4D24:
-		return uint32_t(depthValue * static_cast<float>(0xFFFFFF) + 0.5f); // 24-bit depth
-
-	case D3DFMT_D24X8:
-	case D3DFMT_D24S8:
-	case D3DFMT_D24FS8:
+	case D3DFMT_S1D15:
 	case D3DFMT_D24X4S4:
-		// Shift the depth value by 8 bits before extracting
-		return uint32_t(depthValue * static_cast<float>(0xFFFFFF) + 0.5f) << 8; // 24-bit depth
+	case D3DFMT_X4S4D24:
+	case D3DFMT_D24S8:
+	case D3DFMT_S8D24:
+	case D3DFMT_D24FS8:
+		return true;
+	default:
+		return false;
+	}
+}
 
-	case D3DFMT_D32:
+DWORD GetDepthColor(float DepthValue, D3DFORMAT Format, DWORD& BPP)
+{
+	DepthValue = CLAMP(DepthValue, 0.0f, 1.0f);
+
+	switch ((DWORD)Format)
+	{
+	case D3DFMT_S1D15:   // 1-bit stencil + 15-bit depth
+	case D3DFMT_D15S1:
+	{
+		BPP = 16;
+		uint16_t z = (uint16_t)(DepthValue * 0x7FFF);
+		return (z & 0x7FFF) | 0x8000;
+	}
+
+	case D3DFMT_D16:     // 16-bit depth
+	case D3DFMT_D16_LOCKABLE:
+		BPP = 16;
+		return (uint16_t)(DepthValue * 0xFFFF);
+
+	case D3DFMT_X8D24:   // 24-bit depth
+	case D3DFMT_D24X8:
+		BPP = 32;
+		return (uint32_t)(DepthValue * 0x00FFFFFF);
+
+	case D3DFMT_X4S4D24: // 4-bit stencil + 24-bit depth
+	case D3DFMT_D24X4S4:
+	{
+		BPP = 32;
+		uint32_t z = (uint32_t)(DepthValue * 0x00FFFFFF);
+		return z | (0xF << 28); // 4-bit stencil
+	}
+
+	case D3DFMT_S8D24:  // 8-bit stencil + 24-bit depth
+	case D3DFMT_D24S8:
+	case D3DFMT_D24FS8: // 8-bit stencil + 24-bit depth float
+	{
+		BPP = 32;
+		uint32_t z = (uint32_t)(DepthValue * 0x00FFFFFF);
+		return z | (0xFF << 24); // 8-bit stencil
+	}
+
+	case D3DFMT_D32:   // 32-bit depth
 	case D3DFMT_D32_LOCKABLE:
-	case D3DFMT_D32F_LOCKABLE:
-		return uint32_t(depthValue * static_cast<float>(0xFFFFFFFF) + 0.5f); // 32-bit depth
+		BPP = 32;
+		return (uint32_t)(0xFFFFFFFFUL * (double)DepthValue);
+
+	case D3DFMT_D32F_LOCKABLE:	// 32-bit depth float
+	{
+		BPP = 32;
+		DWORD value;
+		memcpy(&value, &DepthValue, sizeof(value));
+		return value;
+	}
 
 	default:
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Depth Stencil format not Implemented: " << Format);
+		BPP = 0;
 		return 0;
 	}
 }
@@ -256,14 +326,6 @@ HRESULT ComplexZBufferCopy(IDirect3DDevice9* d3d9Device, IDirect3DSurface9* pSou
 	}
 
 	return DD_OK;
-}
-
-DWORD ComputeRND(DWORD Seed, DWORD Num)
-{
-	LARGE_INTEGER PerformanceCount = {};
-	QueryPerformanceCounter(&PerformanceCount);
-	DWORD NewSeed = PerformanceCount.HighPart ^ PerformanceCount.LowPart;
-	return (Seed ^ NewSeed) + (Num ^ ((NewSeed << 16) + (NewSeed >> 16))) + Utils::ReverseBits(NewSeed);
 }
 
 bool DoRectsMatch(const RECT& lhs, const RECT& rhs)
@@ -492,22 +554,6 @@ void ClearUnusedValues(DDSURFACEDESC2& Desc2)
 	if (!(Desc2.dwFlags & DDSD_TEXTURESTAGE)) Desc2.dwTextureStage = 0;
 }
 
-void ConvertPixelFormat(DDPIXELFORMAT& Format, const DDS_PIXELFORMAT& Format2)
-{
-	if (Format.dwSize != sizeof(DDPIXELFORMAT) || Format2.dwSize != sizeof(DDS_PIXELFORMAT))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Format.dwSize << " " << Format2.dwSize);
-		return;
-	}
-	Format.dwFlags = Format2.dwFlags;
-	Format.dwFourCC = Format2.dwFourCC;
-	Format.dwRGBBitCount = Format2.dwRGBBitCount;
-	Format.dwRBitMask = Format2.dwRBitMask;
-	Format.dwGBitMask = Format2.dwGBitMask;
-	Format.dwBBitMask = Format2.dwBBitMask;
-	Format.dwRGBAlphaBitMask = Format2.dwABitMask;
-}
-
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER& DeviceID, const DDDEVICEIDENTIFIER2& DeviceID2)
 {
 	CopyMemory(&DeviceID, &DeviceID2, sizeof(DDDEVICEIDENTIFIER));
@@ -552,24 +598,6 @@ void ConvertCaps(DDSCAPS2& Caps2, const DDSCAPS& Caps)
 	Caps2.dwCaps3 = 0;				// Not used
 	Caps2.dwCaps4 = 0;				// Not used
 	Caps2.dwVolumeDepth = 0;
-}
-
-void ConvertCaps(DDCAPS& Caps, const DDCAPS& Caps2)
-{
-	if ((Caps.dwSize != sizeof(DDCAPS_DX1) && Caps.dwSize != sizeof(DDCAPS_DX3) &&
-		Caps.dwSize != sizeof(DDCAPS_DX5) && Caps.dwSize != sizeof(DDCAPS_DX6) &&
-		Caps.dwSize != sizeof(DDCAPS_DX7)) || (Caps2.dwSize != sizeof(DDCAPS_DX1) &&
-		Caps2.dwSize != sizeof(DDCAPS_DX3) && Caps2.dwSize != sizeof(DDCAPS_DX5) &&
-		Caps2.dwSize != sizeof(DDCAPS_DX6) && Caps2.dwSize != sizeof(DDCAPS_DX7)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << Caps.dwSize << " " << Caps2.dwSize);
-		return;
-	}
-	DWORD Size = Caps.dwSize;
-	ZeroMemory(&Caps, Caps.dwSize);
-	Caps.dwSize = Size;
-	CopyMemory(&Caps, &Caps2, min(Caps.dwSize, Caps2.dwSize));
-	AdjustVidMemory(&Caps.dwVidMemTotal, &Caps.dwVidMemFree);
 }
 
 void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9)
@@ -761,15 +789,18 @@ void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9)
 
 void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
 {
-	DWORD TotalVidMem = (lpdwTotal && *lpdwTotal) ? *lpdwTotal : (lpdwFree && *lpdwFree) ? *lpdwFree + MinUsedVidMemory : MaxVidMemory;
+	const bool UseTotal = (lpdwTotal && *lpdwTotal);
+	const bool UseFree = (lpdwFree && *lpdwFree);
+
+	DWORD TotalVidMem = UseTotal ? *lpdwTotal : UseFree ? *lpdwFree + MinUsedVidMemory : MaxVidMemory;
 	TotalVidMem = min(TotalVidMem, MaxVidMemory);
-	DWORD AvailVidMem = (lpdwFree && *lpdwFree) ? *lpdwFree : TotalVidMem - MinUsedVidMemory;
+	DWORD AvailVidMem = UseFree ? *lpdwFree : TotalVidMem - MinUsedVidMemory;
 	AvailVidMem = min(AvailVidMem, TotalVidMem - MinUsedVidMemory);
-	if (lpdwTotal && *lpdwTotal)
+	if (lpdwTotal)
 	{
 		*lpdwTotal = TotalVidMem;
 	}
-	if (lpdwFree && *lpdwFree)
+	if (lpdwFree)
 	{
 		*lpdwFree = AvailVidMem;
 	}
@@ -928,6 +959,33 @@ DWORD GetBitCount(D3DFORMAT Format)
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Display format not Implemented: " << Format);
 		return 0;
 	};
+}
+
+DWORD GetUsedPixelBitsMask(D3DFORMAT Format, DWORD BitCount)
+{
+	switch (Format)
+	{
+	case D3DFMT_X8R8G8B8:
+	case D3DFMT_X8L8V8U8:
+	case D3DFMT_X8B8G8R8:
+		return 0xFFFFFF;
+	case D3DFMT_X1R5G5B5:
+		return 0X7FFF;
+	case D3DFMT_X4R4G4B4:
+		return 0xFFF;
+	default:
+		switch (BitCount)
+		{
+		case 8:
+			return 0xFF;
+		case 16:
+			return 0xFFFF;
+		case 24:
+			return 0xFFFFFF;
+		default:
+			return 0xFFFFFFFF;
+		}
+	}
 }
 
 DWORD ComputePitch(D3DFORMAT Format, DWORD Width, DWORD Height)

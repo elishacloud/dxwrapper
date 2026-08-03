@@ -16,41 +16,40 @@
 
 #include "dinput8.h"
 
-HRESULT m_IDirectInputEffect8::QueryInterface(REFIID riid, LPVOID * ppvObj)
+HRESULT m_IDirectInputEffect8::QueryInterface(REFIID riid, LPVOID* ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if ((riid == WrapperID || riid == IID_IUnknown) && ppvObj)
+	if (!ppvObj)
 	{
-		AddRef();
-
-		*ppvObj = this;
-
-		return DI_OK;
+		return E_POINTER;
 	}
 
-	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
-
-	if (SUCCEEDED(hr))
+	if (riid == IID_IUnknown || riid == IID_IDirectInputEffect)
 	{
-		genericQueryInterface(riid, ppvObj);
+		*ppvObj = static_cast<IDirectInputEffect*>(this);
+	}
+	else
+	{
+		return ProxyInterface->QueryInterface(riid, ppvObj);
 	}
 
-	return hr;
+	AddRef();
+	return S_OK;
 }
 
 ULONG m_IDirectInputEffect8::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->AddRef();
+	return _InterlockedIncrement(&RefCount);
 }
 
 ULONG m_IDirectInputEffect8::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ULONG ref = ProxyInterface->Release();
+	LONG ref = _InterlockedDecrement(&RefCount);
 
 	if (ref == 0)
 	{
@@ -81,11 +80,32 @@ HRESULT m_IDirectInputEffect8::GetParameters(LPDIEFFECT peff, DWORD dwFlags)
 	return ProxyInterface->GetParameters(peff, dwFlags);
 }
 
-HRESULT m_IDirectInputEffect8::SetParameters(LPCDIEFFECT peff, DWORD dwFlags)
+HRESULT m_IDirectInputEffect8::SetParameters(LPCDIEFFECT lpeff, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return ProxyInterface->SetParameters(peff, dwFlags);
+	DIEFFECT eff = {};
+	DICONSTANTFORCE constantForce = {};
+
+	// Fixes a force feedback issue with 'The Real Car Simulator R'
+	if (Config.InvertForceDirection
+		&& lpeff
+		&& guid == GUID_ConstantForce
+		&& lpeff->lpvTypeSpecificParams
+		&& lpeff->cbTypeSpecificParams == sizeof(DICONSTANTFORCE))
+	{
+		eff = *lpeff;
+		constantForce = *static_cast<DICONSTANTFORCE*>(lpeff->lpvTypeSpecificParams);
+
+		constantForce.lMagnitude = -(constantForce.lMagnitude);
+
+		LOG_LIMIT(3, __FUNCTION__ << " Inverting ConstantForce magnitude: " << constantForce.lMagnitude << " -> " << -(constantForce.lMagnitude));
+
+		eff.lpvTypeSpecificParams = &constantForce;
+		lpeff = &eff;
+	}
+
+	return ProxyInterface->SetParameters(lpeff, dwFlags);
 }
 
 HRESULT m_IDirectInputEffect8::Start(DWORD dwIterations, DWORD dwFlags)

@@ -18,6 +18,8 @@
 #define __DXVA1_DEPRECATED_INTERFACES__
 #define DIRECTINPUT_VERSION 0x0800
 
+typedef enum _DDSCAPS2_LOG {} DDSCAPS2_LOG;
+
 #include <d3d9.h>
 #include <d3d9types.h>
 #include <Dxva.h>
@@ -274,102 +276,102 @@ std::ostream& operator<<(std::ostream& os, const D3DRESOURCETYPE& Resource)
 	return os << (DWORD)Resource;
 }
 
-std::ostream& operator<<(std::ostream& os, const DDCAPS& cp)
+std::ostream& operator<<(std::ostream& os, const DDCAPS& caps)
 {
-	DDCAPS caps = {};
-	memcpy(&caps, &cp, min(sizeof(DDCAPS), cp.dwSize));
+	DDCAPS dwCaps = {};
+	memcpy(&dwCaps, &caps, min(sizeof(DDCAPS), caps.dwSize));
 	return Logging::LogStruct(os)
-		<< Logging::hex(caps.dwCaps)
-		<< Logging::hex(caps.dwCaps2)
-		<< Logging::hex(caps.dwCKeyCaps)
-		<< Logging::hex(caps.dwFXCaps)
-		<< Logging::hex(caps.dwFXAlphaCaps)
-		<< Logging::hex(caps.dwPalCaps)
-		<< Logging::hex(caps.dwSVCaps)
-		<< caps.dwAlphaBltConstBitDepths
-		<< caps.dwAlphaBltPixelBitDepths
-		<< caps.dwAlphaBltSurfaceBitDepths
-		<< caps.dwAlphaOverlayConstBitDepths
-		<< caps.dwAlphaOverlayPixelBitDepths
-		<< caps.dwAlphaOverlaySurfaceBitDepths
-		<< caps.dwZBufferBitDepths
-		<< caps.dwVidMemTotal
-		<< caps.dwVidMemFree
-		<< caps.dwMaxVisibleOverlays
-		<< caps.dwCurrVisibleOverlays
-		<< caps.dwNumFourCCCodes
-		<< caps.dwAlignBoundarySrc
-		<< caps.dwAlignSizeSrc
-		<< caps.dwAlignBoundaryDest
-		<< caps.dwAlignSizeDest
-		<< caps.dwAlignStrideAlign
-		<< "{" << caps.dwRops[0]
-		<< caps.dwRops[1]
-		<< caps.dwRops[2]
-		<< caps.dwRops[3]
-		<< caps.dwRops[4]
-		<< caps.dwRops[5]
-		<< caps.dwRops[6]
-		<< caps.dwRops[7] << "}"
-		<< caps.ddsOldCaps
-		<< caps.dwMinOverlayStretch
-		<< caps.dwMaxOverlayStretch
-		<< caps.dwMinLiveVideoStretch
-		<< caps.dwMaxLiveVideoStretch
-		<< caps.dwMinHwCodecStretch
-		<< caps.dwMaxHwCodecStretch
-		<< caps.dwReserved1
-		<< caps.dwReserved2
-		<< caps.dwReserved3
-		<< Logging::hex(caps.dwSVBCaps)
-		<< Logging::hex(caps.dwSVBCKeyCaps)
-		<< Logging::hex(caps.dwSVBFXCaps)
-		<< "{" << caps.dwSVBRops[0]
-		<< caps.dwSVBRops[1]
-		<< caps.dwSVBRops[2]
-		<< caps.dwSVBRops[3]
-		<< caps.dwSVBRops[4]
-		<< caps.dwSVBRops[5]
-		<< caps.dwSVBRops[6]
-		<< caps.dwSVBRops[7] << "}"
-		<< Logging::hex(caps.dwVSBCaps)
-		<< Logging::hex(caps.dwVSBCKeyCaps)
-		<< Logging::hex(caps.dwVSBFXCaps)
-		<< "{" << caps.dwVSBRops[0]
-		<< caps.dwVSBRops[1]
-		<< caps.dwVSBRops[2]
-		<< caps.dwVSBRops[3]
-		<< caps.dwVSBRops[4]
-		<< caps.dwVSBRops[5]
-		<< caps.dwVSBRops[6]
-		<< caps.dwVSBRops[7] << "}"
-		<< Logging::hex(caps.dwSSBCaps)
-		<< Logging::hex(caps.dwSSBCKeyCaps)
-		<< Logging::hex(caps.dwSSBFXCaps)
-		<< "{" << caps.dwSSBRops[0]
-		<< caps.dwSSBRops[1]
-		<< caps.dwSSBRops[2]
-		<< caps.dwSSBRops[3]
-		<< caps.dwSSBRops[4]
-		<< caps.dwSSBRops[5]
-		<< caps.dwSSBRops[6]
-		<< caps.dwSSBRops[7] << "}"
-		<< caps.dwMaxVideoPorts
-		<< caps.dwCurrVideoPorts
-		<< Logging::hex(caps.dwSVBCaps2)
-		<< Logging::hex(caps.dwNLVBCaps)
-		<< Logging::hex(caps.dwNLVBCaps2)
-		<< Logging::hex(caps.dwNLVBCKeyCaps)
-		<< Logging::hex(caps.dwNLVBFXCaps)
-		<< "{" << caps.dwNLVBRops[0]
-		<< caps.dwNLVBRops[1]
-		<< caps.dwNLVBRops[2]
-		<< caps.dwNLVBRops[3]
-		<< caps.dwNLVBRops[4]
-		<< caps.dwNLVBRops[5]
-		<< caps.dwNLVBRops[6]
-		<< caps.dwNLVBRops[7] << "}"
-		<< caps.ddsCaps;
+		<< Logging::hex(dwCaps.dwCaps)
+		<< Logging::hex(dwCaps.dwCaps2)
+		<< Logging::hex(dwCaps.dwCKeyCaps)
+		<< Logging::hex(dwCaps.dwFXCaps)
+		<< Logging::hex(dwCaps.dwFXAlphaCaps)
+		<< Logging::hex(dwCaps.dwPalCaps)
+		<< Logging::hex(dwCaps.dwSVCaps)
+		<< dwCaps.dwAlphaBltConstBitDepths
+		<< dwCaps.dwAlphaBltPixelBitDepths
+		<< dwCaps.dwAlphaBltSurfaceBitDepths
+		<< dwCaps.dwAlphaOverlayConstBitDepths
+		<< dwCaps.dwAlphaOverlayPixelBitDepths
+		<< dwCaps.dwAlphaOverlaySurfaceBitDepths
+		<< dwCaps.dwZBufferBitDepths
+		<< dwCaps.dwVidMemTotal
+		<< dwCaps.dwVidMemFree
+		<< dwCaps.dwMaxVisibleOverlays
+		<< dwCaps.dwCurrVisibleOverlays
+		<< dwCaps.dwNumFourCCCodes
+		<< dwCaps.dwAlignBoundarySrc
+		<< dwCaps.dwAlignSizeSrc
+		<< dwCaps.dwAlignBoundaryDest
+		<< dwCaps.dwAlignSizeDest
+		<< dwCaps.dwAlignStrideAlign
+		<< "{" << dwCaps.dwRops[0]
+		<< dwCaps.dwRops[1]
+		<< dwCaps.dwRops[2]
+		<< dwCaps.dwRops[3]
+		<< dwCaps.dwRops[4]
+		<< dwCaps.dwRops[5]
+		<< dwCaps.dwRops[6]
+		<< dwCaps.dwRops[7] << "}"
+		<< dwCaps.ddsOldCaps
+		<< dwCaps.dwMinOverlayStretch
+		<< dwCaps.dwMaxOverlayStretch
+		<< dwCaps.dwMinLiveVideoStretch
+		<< dwCaps.dwMaxLiveVideoStretch
+		<< dwCaps.dwMinHwCodecStretch
+		<< dwCaps.dwMaxHwCodecStretch
+		<< dwCaps.dwReserved1
+		<< dwCaps.dwReserved2
+		<< dwCaps.dwReserved3
+		<< Logging::hex(dwCaps.dwSVBCaps)
+		<< Logging::hex(dwCaps.dwSVBCKeyCaps)
+		<< Logging::hex(dwCaps.dwSVBFXCaps)
+		<< "{" << dwCaps.dwSVBRops[0]
+		<< dwCaps.dwSVBRops[1]
+		<< dwCaps.dwSVBRops[2]
+		<< dwCaps.dwSVBRops[3]
+		<< dwCaps.dwSVBRops[4]
+		<< dwCaps.dwSVBRops[5]
+		<< dwCaps.dwSVBRops[6]
+		<< dwCaps.dwSVBRops[7] << "}"
+		<< Logging::hex(dwCaps.dwVSBCaps)
+		<< Logging::hex(dwCaps.dwVSBCKeyCaps)
+		<< Logging::hex(dwCaps.dwVSBFXCaps)
+		<< "{" << dwCaps.dwVSBRops[0]
+		<< dwCaps.dwVSBRops[1]
+		<< dwCaps.dwVSBRops[2]
+		<< dwCaps.dwVSBRops[3]
+		<< dwCaps.dwVSBRops[4]
+		<< dwCaps.dwVSBRops[5]
+		<< dwCaps.dwVSBRops[6]
+		<< dwCaps.dwVSBRops[7] << "}"
+		<< Logging::hex(dwCaps.dwSSBCaps)
+		<< Logging::hex(dwCaps.dwSSBCKeyCaps)
+		<< Logging::hex(dwCaps.dwSSBFXCaps)
+		<< "{" << dwCaps.dwSSBRops[0]
+		<< dwCaps.dwSSBRops[1]
+		<< dwCaps.dwSSBRops[2]
+		<< dwCaps.dwSSBRops[3]
+		<< dwCaps.dwSSBRops[4]
+		<< dwCaps.dwSSBRops[5]
+		<< dwCaps.dwSSBRops[6]
+		<< dwCaps.dwSSBRops[7] << "}"
+		<< dwCaps.dwMaxVideoPorts
+		<< dwCaps.dwCurrVideoPorts
+		<< Logging::hex(dwCaps.dwSVBCaps2)
+		<< Logging::hex(dwCaps.dwNLVBCaps)
+		<< Logging::hex(dwCaps.dwNLVBCaps2)
+		<< Logging::hex(dwCaps.dwNLVBCKeyCaps)
+		<< Logging::hex(dwCaps.dwNLVBFXCaps)
+		<< "{" << dwCaps.dwNLVBRops[0]
+		<< dwCaps.dwNLVBRops[1]
+		<< dwCaps.dwNLVBRops[2]
+		<< dwCaps.dwNLVBRops[3]
+		<< dwCaps.dwNLVBRops[4]
+		<< dwCaps.dwNLVBRops[5]
+		<< dwCaps.dwNLVBRops[6]
+		<< dwCaps.dwNLVBRops[7] << "}"
+		<< dwCaps.ddsCaps;
 }
 
 std::ostream& operator<<(std::ostream& os, const DDSCAPS& dwCaps)
@@ -404,13 +406,45 @@ std::ostream& operator<<(std::ostream& os, const DDSCAPS& dwCaps)
 		<< ((dwCaps.dwCaps & DDSCAPS_ZBUFFER) ? " DDSCAPS_ZBUFFER " : "");
 }
 
-std::ostream& operator<<(std::ostream& os, const DDSCAPS2& caps)
+static std::ostream& operator<<(std::ostream& os, const DDSCAPS2_LOG& dwCaps2)
+{
+	return Logging::LogStructNull(os)
+		<< ((dwCaps2 & DDSCAPS2_RESERVED4) ? " DDSCAPS2_RESERVED4 " : "")
+		<< ((dwCaps2 & DDSCAPS2_HINTDYNAMIC) ? " DDSCAPS2_HINTDYNAMIC " : "")
+		<< ((dwCaps2 & DDSCAPS2_HINTSTATIC) ? " DDSCAPS2_HINTSTATIC " : "")
+		<< ((dwCaps2 & DDSCAPS2_TEXTUREMANAGE) ? " DDSCAPS2_TEXTUREMANAGE " : "")
+		<< ((dwCaps2 & DDSCAPS2_RESERVED1) ? " DDSCAPS2_RESERVED1 " : "")
+		<< ((dwCaps2 & DDSCAPS2_RESERVED2) ? " DDSCAPS2_RESERVED2 " : "")
+		<< ((dwCaps2 & DDSCAPS2_OPAQUE) ? " DDSCAPS2_OPAQUE " : "")
+		<< ((dwCaps2 & DDSCAPS2_HINTANTIALIASING) ? " DDSCAPS2_HINTANTIALIASING " : "")
+		<< ((dwCaps2 & DDSCAPS2_CUBEMAP) ? " DDSCAPS2_CUBEMAP " : "")
+		<< ((dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEX) ? " DDSCAPS2_CUBEMAP_POSITIVEX " : "")
+		<< ((dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEX) ? " DDSCAPS2_CUBEMAP_NEGATIVEX " : "")
+		<< ((dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEY) ? " DDSCAPS2_CUBEMAP_POSITIVEY " : "")
+		<< ((dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEY) ? " DDSCAPS2_CUBEMAP_NEGATIVEY " : "")
+		<< ((dwCaps2 & DDSCAPS2_CUBEMAP_POSITIVEZ) ? " DDSCAPS2_CUBEMAP_POSITIVEZ " : "")
+		<< ((dwCaps2 & DDSCAPS2_CUBEMAP_NEGATIVEZ) ? " DDSCAPS2_CUBEMAP_NEGATIVEZ " : "")
+		<< ((dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL) ? " DDSCAPS2_MIPMAPSUBLEVEL " : "")
+		<< ((dwCaps2 & DDSCAPS2_D3DTEXTUREMANAGE) ? " DDSCAPS2_D3DTEXTUREMANAGE " : "")
+		<< ((dwCaps2 & DDSCAPS2_DONOTPERSIST) ? " DDSCAPS2_DONOTPERSIST " : "")
+		<< ((dwCaps2 & DDSCAPS2_STEREOSURFACELEFT) ? " DDSCAPS2_STEREOSURFACELEFT " : "")
+		<< ((dwCaps2 & DDSCAPS2_VOLUME) ? " DDSCAPS2_VOLUME " : "")
+		<< ((dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE) ? " DDSCAPS2_NOTUSERLOCKABLE " : "")
+		<< ((dwCaps2 & DDSCAPS2_POINTS) ? " DDSCAPS2_POINTS " : "")
+		<< ((dwCaps2 & DDSCAPS2_RTPATCHES) ? " DDSCAPS2_RTPATCHES " : "")
+		<< ((dwCaps2 & DDSCAPS2_NPATCHES) ? " DDSCAPS2_NPATCHES " : "")
+		<< ((dwCaps2 & DDSCAPS2_RESERVED3) ? " DDSCAPS2_RESERVED3 " : "")
+		<< ((dwCaps2 & DDSCAPS2_DISCARDBACKBUFFER) ? " DDSCAPS2_DISCARDBACKBUFFER " : "")
+		<< ((dwCaps2 & DDSCAPS2_ENABLEALPHACHANNEL) ? " DDSCAPS2_ENABLEALPHACHANNEL " : "");
+}
+
+std::ostream& operator<<(std::ostream& os, const DDSCAPS2& dwCaps)
 {
 	return Logging::LogStruct(os)
-		<< *(DDSCAPS*)&caps
-		<< Logging::hex(caps.dwCaps2)
-		<< Logging::hex(caps.dwCaps3)
-		<< Logging::hex(caps.dwCaps4);
+		<< *(DDSCAPS*)&dwCaps
+		<< *(DDSCAPS2_LOG*)&dwCaps.dwCaps2
+		<< ((dwCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK) ? "{ DDSCAPS3_MULTISAMPLE_MASK }" : "0x0")
+		<< Logging::hex(dwCaps.dwCaps4);
 }
 
 std::ostream& operator<<(std::ostream& os, const D3DSURFACETYPE& ddType)
@@ -454,6 +488,33 @@ std::ostream& operator<<(std::ostream& os, const DDCOLORKEY& ck)
 	return Logging::LogStruct(os)
 		<< Logging::hex(ck.dwColorSpaceLowValue)
 		<< Logging::hex(ck.dwColorSpaceHighValue);
+}
+
+std::ostream& operator<<(std::ostream& os, const DDBLTFX& fx)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(fx.dwDDFX)
+		<< Logging::hex(fx.dwROP)
+		<< Logging::hex(fx.dwDDROP)
+		<< fx.dwRotationAngle
+		<< fx.dwZBufferOpCode
+		<< fx.dwZBufferLow
+		<< fx.dwZBufferHigh
+		<< fx.dwZBufferBaseDest
+		<< fx.dwZDestConstBitDepth
+		<< fx.dwZDestConst
+		<< fx.dwZSrcConstBitDepth
+		<< fx.dwZSrcConst
+		<< fx.dwAlphaEdgeBlendBitDepth
+		<< fx.dwAlphaEdgeBlend
+		<< fx.dwReserved
+		<< fx.dwAlphaDestConstBitDepth
+		<< fx.dwAlphaDestConst
+		<< fx.dwAlphaSrcConstBitDepth
+		<< fx.dwAlphaSrcConst
+		<< fx.dwFillColor
+		<< fx.ddckDestColorkey
+		<< fx.ddckSrcColorkey;
 }
 
 std::ostream& operator<<(std::ostream& os, const DDSURFACEDESC& sd)
@@ -903,6 +964,7 @@ DEFINE_GUID(IID_IDirect3DVolume8, 0xbd7349f5, 0x14f1, 0x42e4, 0x9c, 0x79, 0x97, 
 DEFINE_GUID(IID_IDirect3DSwapChain8, 0x928c088b, 0x76b9, 0x4c6b, 0xa5, 0x36, 0xa5, 0x90, 0x85, 0x38, 0x76, 0xcd);
 #endif
 // DirectShow
+DEFINE_GUID(CLSID_AMSFilterStream, 0x49c47ce0, 0x9ba4, 0x11d0, 0x82, 0x12, 0x00, 0xc0, 0x4f, 0xc3, 0x2c, 0x45);
 DEFINE_GUID(IID_IAMMultiMediaStream, 0xbebe595c, 0x9a6f, 0x11d0, 0x8f, 0xde, 0x00, 0xc0, 0x4f, 0xd9, 0x18, 0x9d);
 DEFINE_GUID(IID_IAMMediaStream, 0xbebe595d, 0x9a6f, 0x11d0, 0x8f, 0xde, 0x00, 0xc0, 0x4f, 0xd9, 0x18, 0x9d);
 DEFINE_GUID(IID_IMediaStreamFilter, 0xbebe595e, 0x9a6f, 0x11d0, 0x8f, 0xde, 0x00, 0xc0, 0x4f, 0xd9, 0x18, 0x9d);
@@ -1112,6 +1174,7 @@ std::ostream& operator<<(std::ostream& os, REFIID riid)
 	CHECK_REFIID(IID, IReferenceClock);
 	CHECK_REFIID(IID, IKsPropertySet);
 	// DirectShow
+	CHECK_REFIID(CLSID, AMSFilterStream);
 	CHECK_REFIID(CLSID, AMMultiMediaStream);
 	CHECK_REFIID(CLSID, AMDirectDrawStream);
 	CHECK_REFIID(CLSID, AMAudioStream);

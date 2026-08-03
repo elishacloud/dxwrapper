@@ -1,33 +1,29 @@
 #pragma once
 
-class m_IDirectSoundCaptureFXNoiseSuppress8 : public IDirectSoundCaptureFXNoiseSuppress8, public AddressLookupTableDsoundObject
+class m_IDirectSoundCaptureFXNoiseSuppress8 final : public IDirectSoundCaptureFXNoiseSuppress8, AddressLookupTableDsoundObject<m_IDirectSoundCaptureFXNoiseSuppress8>
 {
 private:
 	LPDIRECTSOUNDCAPTUREFXNOISESUPPRESS8 ProxyInterface;
 
 public:
-	m_IDirectSoundCaptureFXNoiseSuppress8(LPDIRECTSOUNDCAPTUREFXNOISESUPPRESS8 pSound8) : ProxyInterface(pSound8)
+	m_IDirectSoundCaptureFXNoiseSuppress8(LPDIRECTSOUNDCAPTUREFXNOISESUPPRESS8 pSound8) : AddressLookupTableDsoundObject(pSound8), ProxyInterface(pSound8)
 	{
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
-
-		ProxyAddressLookupTableDsound.SaveAddress(this, ProxyInterface);
 	}
 	~m_IDirectSoundCaptureFXNoiseSuppress8()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
-
-		ProxyAddressLookupTableDsound.DeleteAddress(this);
 	}
 
 	// IUnknown methods
-	STDMETHOD(QueryInterface)(THIS_ REFIID riid, LPVOID* ppvObj);
-	STDMETHOD_(ULONG, AddRef)(THIS);
-	STDMETHOD_(ULONG, Release)(THIS);
+	IFACEMETHOD(QueryInterface) (THIS_ REFIID riid, LPVOID FAR* ppvObj) override;
+	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
+	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
 	// IDirectSoundCaptureFXNoiseSuppress methods
-	STDMETHOD(SetAllParameters)(THIS_ _In_ LPCDSCFXNoiseSuppress pcDscFxNoiseSuppress);
-	STDMETHOD(GetAllParameters)(THIS_ _Out_ LPDSCFXNoiseSuppress pDscFxNoiseSuppress);
-	STDMETHOD(Reset)(THIS);
+	IFACEMETHOD(SetAllParameters)(THIS_ _In_ LPCDSCFXNoiseSuppress pcDscFxNoiseSuppress) override;
+	IFACEMETHOD(GetAllParameters)(THIS_ _Out_ LPDSCFXNoiseSuppress pDscFxNoiseSuppress) override;
+	IFACEMETHOD(Reset)(THIS) override;
 
 	// Helper functions
 	LPDIRECTSOUNDCAPTUREFXNOISESUPPRESS8 GetProxyInterface() { return ProxyInterface; }
