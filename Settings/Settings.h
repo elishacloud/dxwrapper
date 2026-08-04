@@ -92,6 +92,8 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DeviceLookupCacheTime) \
 	visit(DisableGameUX) \
 	visit(DisableGDIGammaRamp) \
+	visit(DisplayBrightness) \
+	visit(DisplayContrast) \
 	visit(ConfigureDpiAwareness) \
 	visit(DisableLogging) \
 	visit(DirectShowEmulation) \
@@ -323,8 +325,10 @@ struct CONFIG
 	bool DirectShowEmulation = false;			// Emulates DirectShow APIs
 	bool DisableGameUX = false;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
 	bool DisableGDIGammaRamp = false;			// Disables gamma ramp for GDI, some games look washed out with gamme ramp enabled
-	DWORD ConfigureDpiAwareness = 0;			// Configures DPI awareness: 1) SystemAware, 2) Unaware, 3) UnawareGdiScaled, 4) PerMonitorAware, 5) PerMonitorAwareV2
 	bool DisableLogging = false;				// Disables the logging file
+	LONG DisplayBrightness = 0;					// Brightness overwrite for the appication display
+	LONG DisplayContrast = 0;					// Contrast overwrite for the appication display
+	DWORD ConfigureDpiAwareness = 0;			// Configures DPI awareness: 1) SystemAware, 2) Unaware, 3) UnawareGdiScaled, 4) PerMonitorAware, 5) PerMonitorAwareV2
 	DWORD SetSwapEffectShim = 0;				// Disables the call to d3d9.dll 'Direct3D9SetSwapEffectUpgradeShim' to switch present mode
 	DWORD CacheClipPlane = 0;					// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
 	bool EnvironmentCubeMapFix = false;			// Fixes environment cube maps when no texture is applied, issue exists in d3d8

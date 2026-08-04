@@ -136,6 +136,7 @@ private:
 	void BeforeEndScene();
 
 	inline bool RequirePresentHandling() const;
+	inline bool ShouldEnableGammaShader() const;
 	inline bool UsingShadowBackBuffer(DWORD iSwapChain = 0) const;
 
 	// Limit frame rate
@@ -145,9 +146,9 @@ private:
 	void DrawFPS(float fps, const RECT& presentRect, DWORD position);
 
 	// Gamma
-	HRESULT SetBrightnessLevel(D3DGAMMARAMP& Ramp);
+	HRESULT SetGammaLevel(D3DGAMMARAMP& Ramp);
 	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader();
-	void ApplyBrightnessLevel();
+	void DrawSurfaceToBackbuffer();
 	DWORD GetResourceRefCount();
 	void ReleaseResources(bool isReset);
 

@@ -524,6 +524,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		}
 		DeviceDetails.IsDirectDrawDevice = WndDataStruct->IsDirectDraw;
 	}
+	DeviceDetails.IsDirectDrawDevice = DeviceDetails.IsDirectDrawDevice || ClientDirectXVersion <= 7;
 
 	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
 

@@ -91,7 +91,8 @@ private:
 
 	// Gamma functions
 	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader();
-	HRESULT SetBrightnessLevel(D3DGAMMARAMP& RampData);
+	void SetDefaultGamma();
+	HRESULT SetGammaLevel(D3DGAMMARAMP& RampData);
 
 	// Wrapper interface functions
 	inline IDirectDraw *GetProxyInterfaceV1() { return (IDirectDraw *)ProxyInterface; }

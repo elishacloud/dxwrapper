@@ -23,6 +23,7 @@
 #include "d3dddi\d3dddiExternal.h"
 #include "Shaders\PalettePixelShader.h"
 #include "Shaders\ColorKeyPixelShader.h"
+#include "Shaders\BrightnessPixelShader.h"
 #include "Shaders\GammaPixelShader.h"
 #include "Shaders\FixUpVertexShader.h"
 
@@ -2594,17 +2595,7 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		}
 
 		// Default gamma
-		IsGammaSet = false;
-		for (int i = 0; i < 256; ++i)
-		{
-			WORD value = static_cast<WORD>(i * 65535 / 255); // Linear interpolation from 0 to 65535
-			RampData.red[i] = value;
-			RampData.green[i] = value;
-			RampData.blue[i] = value;
-			DefaultRampData.red[i] = value;
-			DefaultRampData.green[i] = value;
-			DefaultRampData.blue[i] = value;
-		}
+		SetDefaultGamma();
 
 		// High resolution counter
 		Counter = {};
@@ -3150,7 +3141,14 @@ LPDIRECT3DPIXELSHADER9 m_IDirectDrawX::GetGammaPixelShader()
 	// Create pixel shader
 	if (d3d9Device && !gammaPixelShader)
 	{
-		d3d9Device->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &gammaPixelShader);
+		if (Config.DisplayBrightness || Config.DisplayContrast)
+		{
+			d3d9Device->CreatePixelShader((DWORD*)BrightnessPixelShaderSrc, &gammaPixelShader);
+		}
+		else
+		{
+			d3d9Device->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &gammaPixelShader);
+		}
 	}
 	return gammaPixelShader;
 }
@@ -4597,6 +4595,8 @@ void m_IDirectDrawX::ClearGammaControl(m_IDirectDrawGammaControl* lpGammaControl
 		Logging::Log() << __FUNCTION__ << " Warning: released GammaControl interface does not match cached one!";
 	}
 
+	SetDefaultGamma();
+
 	GammaControlInterface = nullptr;
 }
 
@@ -4903,7 +4903,23 @@ HRESULT m_IDirectDrawX::GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 	return DD_OK;
 }
 
-HRESULT m_IDirectDrawX::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
+void m_IDirectDrawX::SetDefaultGamma()
+{
+	// Default gamma
+	IsGammaSet = false;
+	for (int i = 0; i < 256; ++i)
+	{
+		WORD value = static_cast<WORD>(i * 65535 / 255); // Linear interpolation from 0 to 65535
+		RampData.red[i] = value;
+		RampData.green[i] = value;
+		RampData.blue[i] = value;
+		DefaultRampData.red[i] = value;
+		DefaultRampData.green[i] = value;
+		DefaultRampData.blue[i] = value;
+	}
+}
+
+HRESULT m_IDirectDrawX::SetGammaLevel(D3DGAMMARAMP& Ramp)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -4982,7 +4998,7 @@ HRESULT m_IDirectDrawX::SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 	if (memcmp(&DefaultRampData, &RampData, sizeof(D3DGAMMARAMP)) != S_OK)
 	{
 		IsGammaSet = true;
-		SetBrightnessLevel(RampData);
+		SetGammaLevel(RampData);
 	}
 
 	return DD_OK;
@@ -5180,16 +5196,35 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurfac
 		}
 	}
 	// For gamma
-	else if (IsGammaSet && GammaControlInterface)
+	else if (IsGammaSet || Config.DisplayBrightness || Config.DisplayContrast)
 	{
 		// Create gamma texture
 		if (!GammaLUTTexture)
 		{
-			SetBrightnessLevel(RampData);
+			SetGammaLevel(RampData);
 		}
 
 		// Set gamma texture
 		d3d9Device->SetTexture(1, GammaLUTTexture);
+
+		// Set contrast / brightness values
+		if (Config.DisplayBrightness || Config.DisplayContrast)
+		{
+			const float contrast = max(0.01f,
+				1.0f + Config.DisplayContrast / 100.0f);
+
+			const float brightness =
+				Config.DisplayBrightness / 300.0f;
+
+			const float Adjustments[4] =
+			{
+				contrast,
+				brightness,
+				0.0f,
+				0.0f
+			};
+			d3d9Device->SetPixelShaderConstantF(0, Adjustments, 1);
+		}
 
 		// Set pixel shader
 		d3d9Device->SetPixelShader(GetGammaPixelShader());
@@ -5386,7 +5421,7 @@ HRESULT m_IDirectDrawX::PresentScene(m_IDirectDrawSurfaceX* pPrimarySurface, REC
 	// Copy or draw primary surface before presenting
 	if (IsPrimaryRenderTarget() && !pPrimarySurface->GetD9Texture(false))
 	{
-		if (IsGammaSet && GammaControlInterface)
+		if (IsGammaSet || Config.DisplayBrightness || Config.DisplayContrast)
 		{
 			ComPtr<IDirect3DSurface9> pBackBuffer;
 			if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))

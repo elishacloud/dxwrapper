@@ -23,6 +23,8 @@
 #include "Wrappers\wrapper.h"
 #include "Logging\Logging.h"
 
+#define CLAMP(val,zmin,zmax) (max((zmin),min((zmax),(val))))
+
 CONFIG Config;
 
 namespace Settings
@@ -56,16 +58,18 @@ namespace Settings
 	void ClearValue(void**);
 	void ClearValue(std::vector<std::string>*);
 	void ClearValue(std::string*);
+	void ClearValue(LONG*);
 	void ClearValue(DWORD*);
-	void ClearValue(DHEX* setting);
+	void ClearValue(DHEX*);
 	void ClearValue(float*);
 	void ClearValue(double*);
 	void ClearValue(bool*);
 	void SetValue(char*, char*, MEMORYINFO*);
 	void SetValue(char*, char*, void**);
 	void SetValue(char*, char*, std::string*);
+	void SetValue(char*, char*, LONG*);
 	void SetValue(char*, char*, DWORD*);
-	void SetValue(char* name, char* value, DHEX* setting);
+	void SetValue(char*, char*, DHEX*);
 	void SetValue(char*, char*, float*);
 	void SetValue(char*, char*, double*);
 	void SetValue(char*, char*, bool*);
@@ -225,6 +229,21 @@ void Settings::SetValue(char* name, char* value, std::string* setting)
 		setting->assign(newString);
 #ifdef _DEBUG
 		Logging::Log() << name << " set to '" << setting->c_str() << "'";
+#else
+		UNREFERENCED_PARAMETER(name);
+#endif
+	}
+}
+
+// Set value for LONG
+void Settings::SetValue(char* name, char* value, LONG* setting)
+{
+	LONG NewValue = atoi(value);
+	if (*setting != NewValue)
+	{
+		*setting = (NewValue) ? NewValue : IsValueEnabled(value);
+#ifdef _DEBUG
+		Logging::Log() << name << " set to '" << *setting << "'";
 #else
 		UNREFERENCED_PARAMETER(name);
 #endif
@@ -420,6 +439,12 @@ void Settings::ClearValue(std::string* setting)
 
 // Clear DHEX
 void Settings::ClearValue(DHEX* setting)
+{
+	*setting = 0;
+}
+
+// Clear LONG
+void Settings::ClearValue(LONG* setting)
 {
 	*setting = 0;
 }
@@ -866,6 +891,10 @@ void CONFIG::SetConfig()
 			MouseMovementPaddingY = MouseMovementPadding;
 		}
 	}
+
+	// Brightness / Contrast
+	DisplayBrightness = CLAMP(DisplayBrightness, -100L, 100L);
+	DisplayContrast = CLAMP(DisplayContrast, -100L, 100L);
 
 	// Windows Lie
 	WinVersionLieSP = (WinVersionLieSP > 0 && WinVersionLieSP <= 5) ? WinVersionLieSP : 0;
