@@ -324,7 +324,6 @@ struct CONFIG
 	DWORD OverrideStencilFormat = 0;			// Force Direct3d9 to use this AutoStencilFormat
 	DWORD DdrawOverrideStencilFormat = 0;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
 	DWORD DdrawFlipFillColor = 0;				// Color used to fill the primary surface before flipping
-	bool DdrawForceMipMapAutoGen = false;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
 	bool DdrawEnableMouseHook = false;			// Allow to hook into mouse to limit it to the chosen resolution
 	bool DdrawDisableLighting = false;			// Allow to disable lighting
 	bool DdrawFilterActivateApp = false;		// Filters the WM_ACTIVATEAPP from the game, some games have issues with this message
