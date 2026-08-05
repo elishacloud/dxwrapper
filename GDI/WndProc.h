@@ -18,15 +18,19 @@ namespace WndProc
 	struct DATASTRUCT {
 		WNDPROC AppWndProc = nullptr;
 		std::atomic<DWORD> DirectXVersion = 0;
+		std::atomic<int> DeviceCounter = 0;
 		std::atomic<bool> IsDirectDraw = false;
 		std::atomic<bool> IsDirect3D9 = false;
 		std::atomic<bool> IsCreatingDevice = false;
 		std::atomic<bool> IsExclusiveMode = false;
 		std::atomic<bool> NoWindowChanges = false;
+		std::atomic<BOOL> IsIconic = FALSE;
+		std::atomic<bool> IsForeground = false;
 		std::atomic<bool> InSizeMove = false;
-		std::atomic<WPARAM> IsWindowActive = UINT32_MAX;
-		std::atomic<BOOL> IsWindowIconic = UINT32_MAX;
-		std::atomic<int> DeviceCounter = 0;
+		struct {
+			std::atomic<WPARAM> data = UINT32_MAX;
+			std::atomic<BOOL> iconic = UINT32_MAX;
+		} WindowActive;
 		std::atomic<LONG> ClipWidth = 0;
 		std::atomic<LONG> ClipHeight = 0;
 	};

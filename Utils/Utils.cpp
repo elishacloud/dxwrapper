@@ -153,6 +153,7 @@ namespace Utils
 	void FindFiles(WIN32_FIND_DATA*);
 	void *memmem(const void *l, size_t l_len, const void *s, size_t s_len);
 	LRESULT CALLBACK WndProcFilter(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	bool IsRectTopBelowMonitor(HWND hWnd, RECT& rect);
 }
 
 // Execute a specified string
@@ -1868,13 +1869,28 @@ LRESULT CALLBACK Utils::WndProcFilter(HWND hWnd, UINT uMsg, WPARAM wParam, LPARA
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
+inline bool Utils::IsRectTopBelowMonitor(HWND hWnd, RECT& rect)
+{
+	HMONITOR hMonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+
+	MONITORINFO mi = {};
+	mi.cbSize = sizeof(mi);
+
+	if (!GetMonitorInfo(hMonitor, &mi))
+	{
+		return false;
+	}
+
+	return rect.top > mi.rcMonitor.top;
+}
+
 void Utils::ClipMouseCursor(HWND hWnd, const LONG clipWidth, const LONG clipHeight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " " << hWnd;
 
-	RECT clientRect;
+	RECT windowRect, clientRect;
 
-	if (!IsWindow(hWnd) || !GetClientRect(hWnd, &clientRect) || clipWidth < 1 || clipHeight < 1)
+	if (!IsWindow(hWnd) || !GetWindowRect(hWnd, &windowRect) || !GetClientRect(hWnd, &clientRect) || clipWidth < 1 || clipHeight < 1)
 	{
 		return;
 	}
@@ -1885,6 +1901,7 @@ void Utils::ClipMouseCursor(HWND hWnd, const LONG clipWidth, const LONG clipHeig
 
 	LONG clientWidth = clientRect.right - clientRect.left;
 	LONG clientHeight = clientRect.bottom - clientRect.top;
+
 	// If window client is larger use clipWidth/clipHeight
 	bool useClipSize = (clientWidth > clipWidth || clientHeight > clipHeight);
 
@@ -1894,6 +1911,13 @@ void Utils::ClipMouseCursor(HWND hWnd, const LONG clipWidth, const LONG clipHeig
 		clientTopLeft.x + (useClipSize ? clipWidth : clientWidth),
 		clientTopLeft.y + (useClipSize ? clipHeight : clientHeight)
 	};
+
+	if (Config.EnableCursorClip == 1 && IsRectTopBelowMonitor(hWnd, clipRect))
+	{
+		// Assuming windowed game use window rect for clipping
+		ClipCursor(&windowRect);
+		return;
+	}
 
 	ClipCursor(&clipRect);
 }

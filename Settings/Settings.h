@@ -79,7 +79,6 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DdrawUseShadowSurface) \
 	visit(DdrawUseNativeResolution) \
 	visit(DdrawVertexLockDiscard) \
-	visit(EnableCursorClip) \
 	visit(DdrawHookSystem32) \
 	visit(D3d8HookSystem32) \
 	visit(D3d9HookSystem32) \
@@ -99,6 +98,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DirectShowEmulation) \
 	visit(CacheClipPlane) \
 	visit(EnvironmentCubeMapFix) \
+	visit(EnableCursorClip) \
 	visit(EnableDdrawWrapper) \
 	visit(EnableD3d9Wrapper) \
 	visit(EnableDinput8Wrapper) \
@@ -312,7 +312,6 @@ struct CONFIG
 	DWORD DdrawFlipFillColor = 0;				// Color used to fill the primary surface before flipping
 	bool DdrawFilterActivateApp = false;		// Filters the WM_ACTIVATEAPP from the game, some games have issues with this message
 	bool DdrawForceMipMapAutoGen = false;		// Force Direct3d9 to use this AutoGenMipMap when using Dd7to9
-	bool EnableCursorClip = false;				// Use ClipCursor system to limit mouse movement
 	DWORD DdrawHookSystem32 = 0;				// Hooks the ddraw.dll file in the Windows System32 folder
 	DWORD D3d8HookSystem32 = 0;					// Hooks the d3d8.dll file in the Windows System32 folder
 	bool D3d9HookSystem32 = false;				// Hooks the d3d9.dll file in the Windows System32 folder
@@ -334,6 +333,7 @@ struct CONFIG
 	bool EnvironmentCubeMapFix = false;			// Fixes environment cube maps when no texture is applied, issue exists in d3d8
 	DWORD CustomDisplayWidth = 0;				// Custom resolution width when using LimitDisplayModeCount, resolution must be supported by video card and monitor
 	DWORD CustomDisplayHeight = 0;				// Custom resolution height when using LimitDisplayModeCount, resolution must be supported by video card and monitor
+	DWORD EnableCursorClip = 0;					// Use ClipCursor system to limit mouse movement
 	bool EnableDdrawWrapper = false;			// Enables the ddraw wrapper
 	DWORD EnableD3d9Wrapper = 0;				// Enables the d3d9 wrapper
 	bool EnableDinput8Wrapper = false;			// Enables the dinput8 wrapper
