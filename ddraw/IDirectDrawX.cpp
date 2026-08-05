@@ -1780,7 +1780,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		if (IsWindow(DisplayMode.hWnd) && ((!hWnd && Config.DdrawIntroVideoFix) || DisplayMode.hWnd == hWnd))
 		{
 			// Hook WndProc
-			WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
+			auto WndDataStruct = WndProc::AddWndProc(hWnd);
 			if (WndDataStruct)
 			{
 				WndDataStruct->IsDirectDraw = true;
@@ -3351,7 +3351,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	}
 
 	// Hook WndProc before creating device
-	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
+	auto WndDataStruct = WndProc::AddWndProc(hWnd);
 	if (WndDataStruct)
 	{
 		WndDataStruct->IsDirectDraw = true;
@@ -3783,7 +3783,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 	}
 
 	// Hook WndProc before creating device
-	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(GetHwnd());
+	auto WndDataStruct = WndProc::AddWndProc(GetHwnd());
 
 	// Mark as creating device
 	WndProc::ScopedSetDeviceCreationFlag SetCreatingDevice(WndDataStruct);

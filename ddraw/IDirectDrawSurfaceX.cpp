@@ -1374,10 +1374,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		std::deque<ScopedCriticalSection> ThreadLocks;
 		{
 			// Collect each unique critical section
-			std::unordered_set<CRITICAL_SECTION*> CriticalSectionList;
+			std::vector<CRITICAL_SECTION*> CriticalSectionList;
 			for (const auto& pSurfaceX : FlipList)
 			{
-				CriticalSectionList.insert(pSurfaceX->GetCriticalSection());
+				CriticalSectionList.push_back(pSurfaceX->GetCriticalSection());
 			}
 
 			// Construct each unique critical section
@@ -4718,7 +4718,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	if (Config.EnableCursorClip && IsPrimarySurface())
 	{
 		const HWND hWnd = ddrawParent->GetHwnd();
-		WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
+		auto WndDataStruct = WndProc::AddWndProc(hWnd);
 
 		if (WndDataStruct)
 		{

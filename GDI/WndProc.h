@@ -3,6 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <atomic>
+#include <memory>
 
 #define WM_APP_CREATE_D3D9_DEVICE      (WM_APP + 0xFFF - 0x1)
 #define WM_APP_RESET_D3D9_DEVICE       (WM_APP + 0xFFF - 0x2)
@@ -15,6 +16,7 @@
 namespace WndProc
 {
 	struct DATASTRUCT {
+		WNDPROC AppWndProc = nullptr;
 		std::atomic<DWORD> DirectXVersion = 0;
 		std::atomic<bool> IsDirectDraw = false;
 		std::atomic<bool> IsDirect3D9 = false;
@@ -37,10 +39,10 @@ namespace WndProc
 		inline static int Counter = 0;
 
 		const bool enable;
-		DATASTRUCT* pDataStruct;
+		std::shared_ptr<DATASTRUCT> pDataStruct;
 	public:
 		// Constructor sets the flag to true
-		ScopedSetDeviceCreationFlag(DATASTRUCT* pDataStruct, bool activate = true) : pDataStruct(pDataStruct), enable(activate && pDataStruct != nullptr)
+		ScopedSetDeviceCreationFlag(std::shared_ptr<DATASTRUCT> pDataStruct, bool activate = true) : pDataStruct(pDataStruct), enable(activate && pDataStruct != nullptr)
 		{
 			if (enable)
 			{
@@ -66,11 +68,9 @@ namespace WndProc
 		ScopedSetDeviceCreationFlag& operator=(const ScopedSetDeviceCreationFlag&) = delete;
 	};
 
-	extern bool SwitchingResolution;
+	extern std::atomic<bool> SwitchingResolution;
 
 	bool ShouldHook(HWND hWnd);
-	DATASTRUCT* AddWndProc(HWND hWnd);
-	void RemoveInactiveWndProcs();
-	DATASTRUCT* GetWndProctStruct(HWND hWnd);
+	std::shared_ptr<DATASTRUCT> AddWndProc(HWND hWnd);
 	void DisableForcedKeyboardLayout();
 }

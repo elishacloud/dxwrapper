@@ -3645,7 +3645,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 
 	// Hook WndProc before creating device
 	const HWND hWnd = (pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow);
-	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
+	auto WndDataStruct = WndProc::AddWndProc(hWnd);
 
 	WndProc::ScopedSetDeviceCreationFlag SetCreatingDevice(WndDataStruct);
 
