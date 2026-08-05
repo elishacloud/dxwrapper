@@ -340,7 +340,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	const BOOL IsWindowIconic = IsIconic(hWnd);
 
 	// Handle focus change on function exit
-	bool WindowFocusChange = (pDataStruct->IsForeground != IsWindowForeground);
+	bool WindowFocusChange = IsWindowForeground && (pDataStruct->IsForeground != IsWindowForeground);
 	ScopedWindowFocusChange HandleFocusChange(hWnd, pDataStruct, IsWindowForeground, WindowFocusChange);
 
 	// Store updated data
@@ -416,9 +416,9 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_ACTIVATEAPP:
 		// Handle window focus loss
-		if (wParam == FALSE)
+		WindowFocusChange = (wParam != FALSE);
+		if (!WindowFocusChange)
 		{
-			WindowFocusChange = false;
 			HandleWindowFocus(hWnd, pDataStruct, false);
 		}
 
@@ -445,13 +445,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		break;
 
 	case WM_ACTIVATE:
-		// Handle window focus loss
-		if (LOWORD(wParam) == WA_INACTIVE)
-		{
-			WindowFocusChange = false;
-			HandleWindowFocus(hWnd, pDataStruct, false);
-		}
-
 		// Filter duplicate messages when using DirectDraw
 		if (pDataStruct->IsDirectDraw)
 		{
