@@ -416,9 +416,9 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_ACTIVATEAPP:
 		// Handle window focus loss
-		WindowFocusChange = (wParam != FALSE);
-		if (!WindowFocusChange)
+		if (wParam == FALSE)
 		{
+			WindowFocusChange = false;
 			HandleWindowFocus(hWnd, pDataStruct, false);
 		}
 
