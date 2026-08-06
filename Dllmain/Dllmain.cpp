@@ -846,7 +846,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.ForceKeyboardLayout)
 		{
 			// Use WndProc for disabling so it can be done from the foreground window
-			WndProc::DisableForcedKeyboardLayout();
+			KeyboardLayout::DisableForcedKeyboardLayout();
 		}
 
 		// Remove the exception handler if it was added

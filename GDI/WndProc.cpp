@@ -34,7 +34,6 @@ namespace WndProc
 	std::unordered_map<HWND, std::shared_ptr<DATASTRUCT>> WndProcList;
 
 	std::atomic<bool> SwitchingResolution = false;
-	std::atomic<bool> IsKeyboardActive = false;
 
 	WNDPROC GetWndProc(HWND hWnd);
 	LONG SetWndProc(HWND hWnd, WNDPROC ProcAddress);
@@ -49,7 +48,7 @@ namespace WndProc
 	void HandleWindowFocus(HWND hWnd, std::shared_ptr<DATASTRUCT> pDataStruct, bool IsActivating);
 	void HandleClipMouseCursor(HWND hWnd, std::shared_ptr<DATASTRUCT> pDataStruct, bool IsActivating);
 
-	void SetKeyboardLayoutFocus(HWND hWnd, bool IsActivating);
+	void SetKeyboardLayoutFocus(std::shared_ptr<DATASTRUCT> pDataStruct, bool IsActivating);
 
 	LRESULT CALLBACK Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 
@@ -256,7 +255,7 @@ inline void WndProc::HandleWindowFocus(HWND hWnd, std::shared_ptr<DATASTRUCT> pD
 	// Handle keyboard layout
 	if (Config.ForceKeyboardLayout)
 	{
-		SetKeyboardLayoutFocus(hWnd, IsActivating);
+		SetKeyboardLayoutFocus(pDataStruct, IsActivating);
 	}
 
 	// Handle window clipping
@@ -278,38 +277,28 @@ inline void WndProc::HandleClipMouseCursor(HWND hWnd, std::shared_ptr<DATASTRUCT
 	}
 }
 
-inline void WndProc::SetKeyboardLayoutFocus(HWND hWnd, bool IsActivating)
+inline void WndProc::SetKeyboardLayoutFocus(std::shared_ptr<DATASTRUCT> pDataStruct, bool IsActivating)
 {
-	// On Activation
+	if (pDataStruct->InSizeMove)
+	{
+		return;
+	}
+
 	if (IsActivating)
 	{
-		PostMessage(hWnd, WM_APP_SET_KEYBOARD_LAYOUT, (WPARAM)hWnd, WM_MAKE_KEY(hWnd, hWnd));
+		KeyboardLayout::SetForcedKeyboardLayout();
 	}
-	// On Deactivation
-	else if (IsKeyboardActive && IsForeground(hWnd))
+	else
 	{
-		IsKeyboardActive = false;
 		KeyboardLayout::UnSetForcedKeyboardLayout();
 	}
-}
-
-void WndProc::DisableForcedKeyboardLayout()
-{
-	HWND hWnd = GetForegroundWindow();
-
-	if (GetWndProctStruct(hWnd))
-	{
-		PostMessage(hWnd, WM_APP_DISABLE_KEYBOARD_LAYOUT, (WPARAM)hWnd, WM_MAKE_KEY(hWnd, hWnd));
-	}
-
-	KeyboardLayout::DisableForcedKeyboardLayout();
 }
 
 LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	if (Msg != WM_PAINT)
 	{
-		//Logging::Log() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd);
+		//Logging::Log() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd) << " IsForeground: " << IsForeground(hWnd);
 	}
 
 	// Validate window handle
@@ -333,19 +322,17 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		return DefWndProc(hWnd, Msg, wParam, lParam);
 	}
 
-	// Window foreground
+	// Window data
 	const bool IsWindowForeground = IsForeground(hWnd);
-
-	// Window iconic
 	const BOOL IsWindowIconic = IsIconic(hWnd);
 
-	// Handle focus change on function exit
-	bool WindowFocusChange = IsWindowForeground && (pDataStruct->IsForeground != IsWindowForeground);
-	ScopedWindowFocusChange HandleFocusChange(hWnd, pDataStruct, IsWindowForeground, WindowFocusChange);
-
 	// Store updated data
+	bool WindowFocusChange = IsWindowForeground && (pDataStruct->IsForeground != IsWindowForeground);
 	pDataStruct->IsForeground = IsWindowForeground;
 	pDataStruct->IsIconic = IsWindowIconic;
+
+	// Handle focus change on function exit
+	ScopedWindowFocusChange HandleFocusChange(hWnd, pDataStruct, IsWindowForeground, WindowFocusChange);
 
 	// Handle other window messages
 	switch (Msg)
@@ -374,42 +361,27 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			}
 
 			// Reset device once restored
-			if (!IsWindowIconic)
+			if (!IsIconic(hWnd))
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Attempting to reset device.");
 
-				if (m_IDirectDrawX::TriggerDeviceReset(hWnd) == DDERR_SURFACELOST)
+				HRESULT hr = m_IDirectDrawX::TriggerDeviceReset(hWnd);
+				if (hr == DDERR_SURFACELOST || (FAILED(hr) && !IsForeground(hWnd)))
 				{
 					LOG_LIMIT(3, __FUNCTION__ << " Reset failed because device is still lost!");
 
 					ShowWindow(hWnd, SW_MINIMIZE);
 					ShowWindow(hWnd, SW_RESTORE);
+					m_IDirectDrawX::TriggerDeviceReset(hWnd);
 				}
 			}
 
-			return 0;
-		}
-		break;
-
-	case WM_APP_SET_KEYBOARD_LAYOUT:
-		if (WM_MAKE_KEY(hWnd, wParam) == lParam)
-		{
-			if (Config.ForceKeyboardLayout && IsWindowForeground)
+			// Handle focus change
+			if (!IsWindowForeground && IsForeground(hWnd))
 			{
-				IsKeyboardActive = true;
-				KeyboardLayout::SetForcedKeyboardLayout();
+				PostMessage(hWnd, WM_ACTIVATE, WA_ACTIVE, 0);
 			}
-			return 0;
-		}
-		break;
 
-	case WM_APP_DISABLE_KEYBOARD_LAYOUT:
-		if (WM_MAKE_KEY(hWnd, wParam) == lParam)
-		{
-			if (Config.ForceKeyboardLayout && IsWindowForeground)
-			{
-				KeyboardLayout::DisableForcedKeyboardLayout();
-			}
 			return 0;
 		}
 		break;
@@ -473,15 +445,23 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 				PostMessage(hWnd, WM_APP_RESET_D3D9_DEVICE, (WPARAM)hWnd, WM_MAKE_KEY(hWnd, hWnd));
 			}
 
+			HRESULT hr;
 			if (filterMessage)
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_ACTIVATE when iconic. Active: " << activateState);
-				return DefWndProc(hWnd, Msg, wParam, lParam);
+				hr = DefWndProc(hWnd, Msg, wParam, lParam);
 			}
 			else
 			{
-				return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);;
+				hr = CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);;
 			}
+
+			if (isActivating)
+			{
+				PostMessage(hWnd, WM_APP_RESET_D3D9_DEVICE, (WPARAM)hWnd, WM_MAKE_KEY(hWnd, hWnd));
+			}
+
+			return hr;
 		}
 
 		// Filter messages for loss of focus or minimize
@@ -568,8 +548,8 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			WindowFocusChange = true;
 		}
-
 		[[fallthrough]];
+
 	case WM_STYLECHANGING:
 	case WM_STYLECHANGED:
 	case WM_SIZING:
@@ -602,6 +582,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			}
 		}
 		[[fallthrough]];
+
 	case WM_WINDOWPOSCHANGING:
 		if (lParam)
 		{
@@ -693,10 +674,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		break;
 
 	case WM_NCDESTROY:
-		// Handle window focus loss
-		WindowFocusChange = false;
-		HandleWindowFocus(hWnd, pDataStruct, false);
-
 		// Release d3d9 interface
 		if (pDataStruct->IsDirectDraw)
 		{
