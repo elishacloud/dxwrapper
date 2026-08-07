@@ -868,6 +868,9 @@
     <ClCompile Include="d3d9\d3d9ResourceDumper.cpp">
       <Filter>d3d9</Filter>
     </ClCompile>
+    <ClCompile Include="ddraw\ddrawex.cpp">
+      <Filter>ddraw</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\AllSettings.ini">
@@ -1821,6 +1824,9 @@
       <Filter>External\dinputto8</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\DDClassFactory.h">
+      <Filter>ddraw</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\ddrawex.h">
       <Filter>ddraw</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\Shaders\BrightnessPixelShader.h">

@@ -22,6 +22,7 @@
 #ifdef DDRAW
 #include "ddraw\ddrawExternal.h"
 #include "ddraw\ddraw.h"
+#include "ddraw\ddrawex.h"
 #endif
 #ifdef DINPUT
 #include "dinput\dinputExternal.h"
@@ -104,12 +105,19 @@ HRESULT WINAPI CoGetClassObjectHandle(REFCLSID rclsid, DWORD dwClsContext, LPVOI
 #ifdef DDRAW
 	if (Config.Dd7to9)
 	{
-		if (rclsid == CLSID_DirectDraw || rclsid == CLSID_DirectDraw7 || rclsid == CLSID_DirectDrawClipper || rclsid == CLSID_DirectDrawFactory)
+		if (rclsid == CLSID_DirectDraw || rclsid == CLSID_DirectDraw7 || rclsid == CLSID_DirectDrawClipper)
 		{
 			LOG_LIMIT(3, __FUNCTION__ " Wrapping: " << rclsid << " -> " << riid);
 
 			// Dd7to9 is handled differently, just call DllGetClassObject
 			return dd_DllGetClassObject(rclsid, riid, ppv);
+		}
+		else if (rclsid == CLSID_DirectDrawFactory)
+		{
+			LOG_LIMIT(3, __FUNCTION__ " Wrapping: " << rclsid << " -> " << riid);
+
+			// Dd7to9 is handled differently, just call DllGetClassObject
+			return ddex_DllGetClassObject(rclsid, riid, ppv);
 		}
 	}
 #endif

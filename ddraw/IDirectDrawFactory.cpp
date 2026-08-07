@@ -54,7 +54,7 @@ ULONG m_IDirectDrawFactory::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.Dd7to9)
+	if (!ProxyInterface)
 	{
 		ULONG ref = InterlockedDecrementIfPositive(&RefCount);
 
@@ -80,47 +80,38 @@ ULONG m_IDirectDrawFactory::Release()
 // IDirectDrawFactory functions
 // ******************************
 
-HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dwCoopLevelFlags, DWORD dwReserved, IUnknown * pUnkOuter, IDirectDraw * * ppDirectDraw)
+HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID* pGUID, HWND hWnd, DWORD dwCoopLevelFlags, DWORD dwReserved, IUnknown* pUnkOuter, IDirectDraw** ppDirectDraw)
 {
+	UNREFERENCED_PARAMETER(dwReserved);
+
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.Dd7to9)
-	{
-		HRESULT hr = dd_DirectDrawCreate(pGUID, ppDirectDraw, pUnkOuter);
+	HRESULT hr = dd_DirectDrawCreate(pGUID, ppDirectDraw, pUnkOuter);
 
-		if (SUCCEEDED(hr) && ppDirectDraw)
+	if (SUCCEEDED(hr) && ppDirectDraw)
+	{
+		if (Config.Dd7to9)
 		{
 			m_IDirectDrawX* pDirectDrawX = nullptr;
 			if (SUCCEEDED((*ppDirectDraw)->QueryInterface(IID_GetInterfaceX, reinterpret_cast<LPVOID*>(&pDirectDrawX))))
 			{
 				pDirectDrawX->SetAsCreatedByDDFactory();
 			}
-
-			hr = (*ppDirectDraw)->SetCooperativeLevel(hWnd, dwCoopLevelFlags);
-
-			if (FAILED(hr))
-			{
-				ULONG ref = (*ppDirectDraw)->Release();
-				if (ref)
-				{
-					Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'DirectDraw' " << ref;
-				}
-				*ppDirectDraw = nullptr;
-
-				return hr;
-			}
 		}
 
-		return hr;
-	}
+		hr = (*ppDirectDraw)->SetCooperativeLevel(hWnd, dwCoopLevelFlags);
 
-	HRESULT hr = ProxyInterface->CreateDirectDraw(pGUID, hWnd, dwCoopLevelFlags, dwReserved, pUnkOuter, ppDirectDraw);
+		if (FAILED(hr))
+		{
+			ULONG ref = (*ppDirectDraw)->Release();
+			if (ref)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'DirectDraw' " << ref;
+			}
+			*ppDirectDraw = nullptr;
 
-	if (SUCCEEDED(hr) && ppDirectDraw)
-	{
-		m_IDirectDrawX *Interface = new m_IDirectDrawX((IDirectDraw7*)*ppDirectDraw, 1);
-
-		*ppDirectDraw = (LPDIRECTDRAW)Interface->GetWrapperInterfaceX(1);
+			return hr;
+		}
 	}
 
 	return hr;
@@ -130,22 +121,12 @@ HRESULT m_IDirectDrawFactory::DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback,
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.Dd7to9)
-	{
-		return dd_DirectDrawEnumerateA(lpCallback, lpContext);
-	}
-
-	return ProxyInterface->DirectDrawEnumerateA(lpCallback, lpContext);
+	return dd_DirectDrawEnumerateA(lpCallback, lpContext);
 }
 
 HRESULT m_IDirectDrawFactory::DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpContext)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (Config.Dd7to9)
-	{
-		return dd_DirectDrawEnumerateW(lpCallback, lpContext);
-	}
-
-	return ProxyInterface->DirectDrawEnumerateW(lpCallback, lpContext);
+	return dd_DirectDrawEnumerateW(lpCallback, lpContext);
 }

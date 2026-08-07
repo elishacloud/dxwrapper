@@ -36,6 +36,7 @@
 #include "Libraries\d3dx9.h"
 #include "d3d9\d3d9External.h"
 #include "ddraw\ddrawExternal.h"
+#include "ddraw\ddrawex.h"
 #include "dinput\dinputExternal.h"
 #include "dinput8\dinput8External.h"
 #include "d3d8\d3d8External.h"
@@ -600,6 +601,19 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 					using namespace DdrawWrapper;
 					VISIT_PROCS_DDRAW(SHIM_WRAPPED_PROC);
 					VISIT_PROCS_DDRAW_SHARED(SHIM_WRAPPED_PROC);
+				}
+
+				// Add ddrawex hooking
+				{
+					using namespace ddrawex;
+
+					// Load ddrawex
+					HMODULE dll = LoadLibraryA("ddrawex.dll");
+
+					// Hook ddrawex.dll
+					Logging::Log() << "Hooking ddrawex.dll APIs...";
+					VISIT_PROCS_DDRAWEX(HOOK_WRAPPED_PROC);
+					VISIT_PROCS_DDRAWEX(SHIM_WRAPPED_PROC);
 				}
 			}
 		}
