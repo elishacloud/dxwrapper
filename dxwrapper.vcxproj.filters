@@ -1829,6 +1829,9 @@
     <ClInclude Include="ddraw\ddrawex.h">
       <Filter>ddraw</Filter>
     </ClInclude>
+    <ClInclude Include="ddraw\Shaders\BrightnessPixelShader.h">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
@@ -1849,6 +1852,9 @@
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
     <CustomBuild Include="ddraw\Shaders\FixUpVertexShader.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ddraw\Shaders\BrightnessPixelShader.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
   </ItemGroup>

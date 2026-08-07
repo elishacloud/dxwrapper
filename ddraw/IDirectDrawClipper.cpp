@@ -26,6 +26,15 @@ HRESULT m_IDirectDrawClipper::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
+	if (IsInterfaceDeleted)
+	{
+		if (ppvObj)
+		{
+			*ppvObj = nullptr;
+		}
+		return E_NOINTERFACE;
+	}
+
 	if (!ppvObj)
 	{
 		return E_POINTER;
@@ -59,6 +68,11 @@ ULONG m_IDirectDrawClipper::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (IsInterfaceDeleted)
+	{
+		return 0;
+	}
+
 	if (Config.Dd7to9)
 	{
 		return _InterlockedIncrement(&RefCount);
@@ -70,6 +84,11 @@ ULONG m_IDirectDrawClipper::AddRef()
 ULONG m_IDirectDrawClipper::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (IsInterfaceDeleted)
+	{
+		return 0;
+	}
 
 	if (Config.Dd7to9)
 	{
@@ -100,6 +119,11 @@ ULONG m_IDirectDrawClipper::Release()
 HRESULT m_IDirectDrawClipper::GetClipList(LPRECT lpRect, LPRGNDATA lpClipList, LPDWORD lpdwSize)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (IsInterfaceDeleted)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 
 	if (Config.Dd7to9)
 	{
@@ -223,6 +247,11 @@ HRESULT m_IDirectDrawClipper::GetHWnd(HWND FAR * lphWnd)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (IsInterfaceDeleted)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
+
 	if (Config.Dd7to9)
 	{
 		if (!lphWnd)
@@ -249,6 +278,11 @@ HRESULT m_IDirectDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (IsInterfaceDeleted)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
+
 	if (Config.Dd7to9)
 	{
 		// Returns D3D_OK if successful, otherwise it returns an error.
@@ -266,6 +300,11 @@ HRESULT m_IDirectDrawClipper::Initialize(LPDIRECTDRAW lpDD, DWORD dwFlags)
 HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * lpbChanged)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (IsInterfaceDeleted)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 
 	if (Config.Dd7to9)
 	{
@@ -310,6 +349,11 @@ HRESULT m_IDirectDrawClipper::IsClipListChanged(BOOL FAR * lpbChanged)
 HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (IsInterfaceDeleted)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 
 	if (Config.Dd7to9)
 	{
@@ -374,6 +418,11 @@ HRESULT m_IDirectDrawClipper::SetClipList(LPRGNDATA lpClipList, DWORD dwFlags)
 HRESULT m_IDirectDrawClipper::SetHWnd(DWORD dwFlags, HWND hWnd)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (IsInterfaceDeleted)
+	{
+		return DDERR_INVALIDOBJECT;
+	}
 
 	if (Config.Dd7to9)
 	{
@@ -494,6 +543,7 @@ m_IDirectDrawClipper* m_IDirectDrawClipper::CreateDirectDrawClipper(IDirectDrawC
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewParent, dwFlags);
+		Interface->IsInterfaceDeleted = false;
 	}
 	else
 	{

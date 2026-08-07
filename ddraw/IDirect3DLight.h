@@ -4,8 +4,9 @@ class m_IDirect3DLight final : public IDirect3DLight, public AddressLookupTableD
 {
 private:
 	IDirect3DLight *ProxyInterface = nullptr;
-	const IID WrapperID = IID_IDirect3DLight;
 	LONG RefCount = 1;
+	const IID WrapperID = IID_IDirect3DLight;
+	bool IsInterfaceDeleted = false;
 
 	// Convert Light
 	m_IDirect3DX* D3DInterface = nullptr;
@@ -64,6 +65,7 @@ public:
 			ProxyInterface = nullptr;
 			D3DInterface = nullptr;
 		}
+		IsInterfaceDeleted = true;
 	}
 
 	/*** IUnknown methods ***/

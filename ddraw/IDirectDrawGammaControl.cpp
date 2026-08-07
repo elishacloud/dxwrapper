@@ -26,7 +26,7 @@ HRESULT m_IDirectDrawGammaControl::QueryInterface(REFIID riid, LPVOID FAR * ppvO
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		if (ppvObj)
 		{
@@ -68,7 +68,7 @@ ULONG m_IDirectDrawGammaControl::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		return 0;
 	}
@@ -85,7 +85,7 @@ ULONG m_IDirectDrawGammaControl::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		return 0;
 	}
@@ -120,7 +120,7 @@ HRESULT m_IDirectDrawGammaControl::GetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -147,7 +147,7 @@ HRESULT m_IDirectDrawGammaControl::SetGammaRamp(DWORD dwFlags, LPDDGAMMARAMP lpR
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -201,6 +201,7 @@ m_IDirectDrawGammaControl* m_IDirectDrawGammaControl::CreateDirectDrawGammaContr
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewParent);
+		Interface->IsInterfaceDeleted = false;
 	}
 	else
 	{

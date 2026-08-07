@@ -16,6 +16,7 @@
 
 #include "d3d9.h"
 #include <d3dhal.h>
+#include "ddraw\Shaders\BrightnessPixelShader.h"
 #include "ddraw\Shaders\GammaPixelShader.h"
 #include "GDI\WndProc.h"
 #include "Utils\Utils.h"
@@ -550,7 +551,7 @@ void m_IDirect3DDevice9Ex::SetGammaRamp(THIS_ UINT iSwapChain, DWORD Flags, CONS
 		if (memcmp(&DefaultRampData, &RampData, sizeof(D3DGAMMARAMP)) != S_OK)
 		{
 			IsGammaSet = true;
-			SetBrightnessLevel(RampData);
+			SetGammaLevel(RampData);
 		}
 
 		return;
@@ -2604,10 +2605,10 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 					ProxyInterface->SetRenderTarget(0, pBackBuffer.Get());
 				}
 
-				// Apply brightness level
-				if (UsingShadowBackBuffer() || IsGammaSet)
+				// Draw surface to back buffer
+				if (UsingShadowBackBuffer() || ShouldEnableGammaShader())
 				{
-					ApplyBrightnessLevel();
+					DrawSurfaceToBackbuffer();
 				}
 
 				// Draw FPS counter to screen
@@ -2733,7 +2734,12 @@ void m_IDirect3DDevice9Ex::BeforeEndScene()
 
 bool m_IDirect3DDevice9Ex::RequirePresentHandling() const
 {
-	return ((Config.WindowModeGammaShader && IsGammaSet) || Config.ShowFPSCounter || UsingShadowBackBuffer());
+	return (UsingShadowBackBuffer() || ShouldEnableGammaShader() || Config.ShowFPSCounter);
+}
+
+bool m_IDirect3DDevice9Ex::ShouldEnableGammaShader() const
+{
+	return (IsGammaSet || Config.DisplayBrightness || Config.DisplayContrast) && !DeviceDetails.IsDirectDrawDevice;
 }
 
 bool m_IDirect3DDevice9Ex::UsingShadowBackBuffer(DWORD iSwapChain) const
@@ -2935,7 +2941,7 @@ void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD pos
 	}
 }
 
-HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
+HRESULT m_IDirect3DDevice9Ex::SetGammaLevel(D3DGAMMARAMP& Ramp)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -2998,18 +3004,25 @@ LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader()
 	// Create pixel shaders
 	if (!gammaPixelShader)
 	{
-		ProxyInterface->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &gammaPixelShader);
+		if (Config.DisplayBrightness || Config.DisplayContrast)
+		{
+			ProxyInterface->CreatePixelShader((DWORD*)BrightnessPixelShaderSrc, &gammaPixelShader);
+		}
+		else
+		{
+			ProxyInterface->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &gammaPixelShader);
+		}
 	}
 	return gammaPixelShader;
 }
 
-void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
+void m_IDirect3DDevice9Ex::DrawSurfaceToBackbuffer()
 {
-	if (IsGammaSet && !GammaLUTTexture)
+	if (ShouldEnableGammaShader() && !GammaLUTTexture)
 	{
-		SetBrightnessLevel(RampData);
+		SetGammaLevel(RampData);
 	}
-	bool UsingGamma = IsGammaSet && GammaLUTTexture;
+	const bool UsingGamma = ShouldEnableGammaShader() && GammaLUTTexture;
 
 	// Set shader
 	IDirect3DPixelShader9* pShader = UsingGamma ? GetGammaPixelShader() : nullptr;
@@ -3019,41 +3032,43 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		return;
 	}
 
-	// Get current backbuffer (make sure to get it from wrapper not proxy)
-	ComPtr<IDirect3DSurface9> pBackBuffer;
-	{
-		ComPtr<m_IDirect3DSurface9> tmpBackBuffer;
-		if (FAILED(GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, reinterpret_cast<IDirect3DSurface9**>(tmpBackBuffer.GetAddressOf()))))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get back buffer!");
-			return;
-		}
-		*pBackBuffer.GetAddressOf() = tmpBackBuffer->GetProxyInterface();
-		pBackBuffer->AddRef();
-	}
-
-	// Create intermediate texture for shader input
 	D3DSURFACE_DESC desc;
-	pBackBuffer->GetDesc(&desc);
-	if (!ScreenCopyTexture)
 	{
-		if (FAILED(ProxyInterface->CreateTexture(desc.Width, desc.Height, 1, D3DUSAGE_RENDERTARGET, desc.Format, D3DPOOL_DEFAULT, &ScreenCopyTexture, nullptr)))
+		// Get current backbuffer (make sure to get it from wrapper not proxy)
+		ComPtr<IDirect3DSurface9> pBackBuffer;
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create screen copy texture!");
+			ComPtr<m_IDirect3DSurface9> tmpBackBuffer;
+			if (FAILED(GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, reinterpret_cast<IDirect3DSurface9**>(tmpBackBuffer.GetAddressOf()))))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get back buffer!");
+				return;
+			}
+			*pBackBuffer.GetAddressOf() = tmpBackBuffer->GetProxyInterface();
+			pBackBuffer->AddRef();
+		}
+
+		// Create intermediate texture for shader input
+		pBackBuffer->GetDesc(&desc);
+		if (!ScreenCopyTexture)
+		{
+			if (FAILED(ProxyInterface->CreateTexture(desc.Width, desc.Height, 1, D3DUSAGE_RENDERTARGET, desc.Format, D3DPOOL_DEFAULT, &ScreenCopyTexture, nullptr)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create screen copy texture!");
+				return;
+			}
+		}
+
+		ComPtr<IDirect3DSurface9> pCopySurface;
+		if (FAILED(ScreenCopyTexture->GetSurfaceLevel(0, pCopySurface.GetAddressOf())))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get surface level from screen copy texture!");
 			return;
 		}
-	}
-
-	ComPtr<IDirect3DSurface9> pCopySurface;
-	if (FAILED(ScreenCopyTexture->GetSurfaceLevel(0, pCopySurface.GetAddressOf())))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get surface level from screen copy texture!");
-		return;
-	}
-	if (FAILED(ProxyInterface->StretchRect(pBackBuffer.Get(), nullptr, pCopySurface.Get(), nullptr, D3DTEXF_NONE)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to copy render target!");
-		return;
+		if (FAILED(ProxyInterface->StretchRect(pBackBuffer.Get(), nullptr, pCopySurface.Get(), nullptr, D3DTEXF_NONE)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to copy render target!");
+			return;
+		}
 	}
 
 	// Set render states
@@ -3101,7 +3116,14 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 
 	// Set texture
 	ProxyInterface->SetTexture(0, ScreenCopyTexture);
-	ProxyInterface->SetTexture(1, GammaLUTTexture);
+	if (UsingGamma)
+	{
+		ProxyInterface->SetTexture(1, GammaLUTTexture);
+	}
+	else
+	{
+		ProxyInterface->SetTexture(1, nullptr);
+	}
 
 	// Clear textures
 	for (int x = 2; x < MAX_TEXTURE_STAGES; x++)
@@ -3109,8 +3131,35 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		ProxyInterface->SetTexture(x, nullptr);
 	}
 
-	// Set shader
-	ProxyInterface->SetPixelShader(pShader);
+	// Gamma shader
+	float OldAdjustment[4] = {};
+	if (UsingGamma)
+	{
+		if (Config.DisplayBrightness || Config.DisplayContrast)
+		{
+			// Get shader constant 
+			ProxyInterface->GetPixelShaderConstantF(0, OldAdjustment, 1);
+
+			// Set contrast / brightness values
+			const float contrast = max(0.01f,
+				1.0f + Config.DisplayContrast / 100.0f);
+
+			const float brightness =
+				Config.DisplayBrightness / 300.0f;
+
+			const float Adjustments[4] =
+			{
+				contrast,
+				brightness,
+				0.0f,
+				0.0f
+			};
+			ProxyInterface->SetPixelShaderConstantF(0, Adjustments, 1);
+		}
+
+		// Set shader
+		ProxyInterface->SetPixelShader(pShader);
+	}
 
 	const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);
 	struct TLVERTEX
@@ -3134,8 +3183,18 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to draw primitive!");
 	}
 
-	// Clear shader
-	ProxyInterface->SetPixelShader(nullptr);
+	// Gamma shader
+	if (UsingGamma)
+	{
+		// Clear shader
+		ProxyInterface->SetPixelShader(nullptr);
+
+		// Restore game constant
+		if (Config.DisplayBrightness || Config.DisplayContrast)
+		{
+			ProxyInterface->SetPixelShaderConstantF(0, OldAdjustment, 1);
+		}
+	}
 
 	// Clear texture
 	ProxyInterface->SetTexture(0, nullptr);
@@ -3586,7 +3645,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 
 	// Hook WndProc before creating device
 	const HWND hWnd = (pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow);
-	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
+	auto WndDataStruct = WndProc::AddWndProc(hWnd);
 
 	WndProc::ScopedSetDeviceCreationFlag SetCreatingDevice(WndDataStruct);
 

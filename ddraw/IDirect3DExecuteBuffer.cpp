@@ -30,7 +30,7 @@ HRESULT m_IDirect3DExecuteBuffer::QueryInterface(REFIID riid, LPVOID FAR * ppvOb
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		if (ppvObj)
 		{
@@ -72,7 +72,7 @@ ULONG m_IDirect3DExecuteBuffer::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return 0;
 	}
@@ -89,7 +89,7 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return 0;
 	}
@@ -124,7 +124,7 @@ HRESULT m_IDirect3DExecuteBuffer::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, 
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -147,7 +147,7 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -221,7 +221,7 @@ HRESULT m_IDirect3DExecuteBuffer::Unlock()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -249,7 +249,7 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpExecuteData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -312,7 +312,7 @@ HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpExecuteData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -350,7 +350,7 @@ HRESULT m_IDirect3DExecuteBuffer::Validate(LPDWORD lpdwOffset, LPD3DVALIDATECALL
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -374,7 +374,7 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -667,6 +667,7 @@ m_IDirect3DExecuteBuffer* m_IDirect3DExecuteBuffer::CreateDirect3DExecuteBuffer(
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewD3DDInterface, lpDesc);
+		Interface->IsInterfaceDeleted = false;
 	}
 	else
 	{

@@ -14,6 +14,8 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#pragma comment(linker, "/SECTION:.rdata,RW")
+
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <Shlwapi.h>
@@ -858,7 +860,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.ForceKeyboardLayout)
 		{
 			// Use WndProc for disabling so it can be done from the foreground window
-			WndProc::DisableForcedKeyboardLayout();
+			KeyboardLayout::DisableForcedKeyboardLayout();
 		}
 
 		// Remove the exception handler if it was added

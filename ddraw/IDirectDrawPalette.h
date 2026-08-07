@@ -6,6 +6,7 @@ private:
 	IDirectDrawPalette *ProxyInterface = nullptr;
 	LONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawPalette;
+	bool IsInterfaceDeleted = false;
 
 	struct DXPALETTEENTRY : public PALETTEENTRY
 	{
@@ -103,6 +104,7 @@ public:
 			ProxyInterface = nullptr;
 			ddrawParent = nullptr;
 		}
+		IsInterfaceDeleted = true;
 	}
 
 	/*** IUnknown methods ***/

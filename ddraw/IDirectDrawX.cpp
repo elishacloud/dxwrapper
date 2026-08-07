@@ -23,6 +23,7 @@
 #include "d3dddi\d3dddiExternal.h"
 #include "Shaders\PalettePixelShader.h"
 #include "Shaders\ColorKeyPixelShader.h"
+#include "Shaders\BrightnessPixelShader.h"
 #include "Shaders\GammaPixelShader.h"
 #include "Shaders\FixUpVertexShader.h"
 
@@ -204,6 +205,11 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 		return DD_OK;
 	}
 
+	if (GetWrapperType(DirectXVersion) == IID_IUnknown)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: DirectXVersion is unsupported version: " << DirectXVersion);
+	}
+
 	if (Config.Dd7to9)
 	{
 		if (riid == IID_IDirect3D || riid == IID_IDirect3D2 || riid == IID_IDirect3D3 || riid == IID_IDirect3D7)
@@ -226,11 +232,12 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 			if (!D3DInterface)
 			{
+				// No need to add a ref when creating a device because it is already added when creating the device
 				D3DInterface = new m_IDirect3DX(this, DxVersion, DirectXVersion);
 			}
 			else
 			{
-				D3DInterface->AddRef(DxVersion);	// No need to add a ref when creating a device because it is already added when creating the device
+				D3DInterface->AddRef(DxVersion);
 			}
 
 			*ppvObj = D3DInterface->GetWrapperInterfaceX(DxVersion);
@@ -823,7 +830,7 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 	return hr;
 }
 
-HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK lpEnumModesCallback, DWORD DirectXVersion)
+HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurfaceDesc, LPVOID lpContext, LPDDENUMMODESCALLBACK lpEnumModesCallback)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -861,13 +868,13 @@ HRESULT m_IDirectDrawX::EnumDisplayModes(DWORD dwFlags, LPDDSURFACEDESC lpDDSurf
 			ConvertSurfaceDesc(Desc2, *lpDDSurfaceDesc);
 		}
 
-		return EnumDisplayModes2(dwFlags, (lpDDSurfaceDesc ? &Desc2 : nullptr), &CallbackContext, EnumDisplay::ConvertCallback, DirectXVersion);
+		return EnumDisplayModes2(dwFlags, (lpDDSurfaceDesc ? &Desc2 : nullptr), &CallbackContext, EnumDisplay::ConvertCallback);
 	}
 
 	return GetProxyInterfaceV3()->EnumDisplayModes(dwFlags, lpDDSurfaceDesc, lpContext, lpEnumModesCallback);
 }
 
-HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback2, DWORD DirectXVersion)
+HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPVOID lpContext, LPDDENUMMODESCALLBACK2 lpEnumModesCallback2)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -959,6 +966,7 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 			// Check mode
 			if (!IsResolutionAlreadySent && IsResolutionSupported &&
+				d3ddispmode.Width && d3ddispmode.Height &&
 				(!EnumWidth || d3ddispmode.Width == EnumWidth) && (!EnumHeight || d3ddispmode.Height == EnumHeight))
 			{
 				// Store resolution
@@ -1001,37 +1009,17 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 		}
 
 		// Loop through each bit count
-		if (DirectXVersion == 1)
-		{
-			for (const auto& entry : ResolutionList)
-			{
-				for (DWORD bpMode : BitCountList)
-				{
-					// Get surface desc options
-					DDSURFACEDESC2 Desc2 = {};
-					EnumDisplay::GetSurfaceDesc2(Desc2, entry.Width, entry.Height, entry.RefreshRate, bpMode);
-
-					if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
-					{
-						return DD_OK;
-					}
-				}
-			}
-		}
-		else
+		for (const auto& entry : ResolutionList)
 		{
 			for (DWORD bpMode : BitCountList)
 			{
-				for (const auto& entry : ResolutionList)
-				{
-					// Get surface desc options
-					DDSURFACEDESC2 Desc2 = {};
-					EnumDisplay::GetSurfaceDesc2(Desc2, entry.Width, entry.Height, entry.RefreshRate, bpMode);
+				// Get surface desc options
+				DDSURFACEDESC2 Desc2 = {};
+				EnumDisplay::GetSurfaceDesc2(Desc2, entry.Width, entry.Height, entry.RefreshRate, bpMode);
 
-					if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
-					{
-						return DD_OK;
-					}
+				if (lpEnumModesCallback2(&Desc2, lpContext) == DDENUMRET_CANCEL)
+				{
+					return DD_OK;
 				}
 			}
 		}
@@ -1792,7 +1780,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 		if (IsWindow(DisplayMode.hWnd) && ((!hWnd && Config.DdrawIntroVideoFix) || DisplayMode.hWnd == hWnd))
 		{
 			// Hook WndProc
-			WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
+			auto WndDataStruct = WndProc::AddWndProc(hWnd);
 			if (WndDataStruct)
 			{
 				WndDataStruct->IsDirectDraw = true;
@@ -1946,7 +1934,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 		if (!dwWidth || !dwHeight || (dwBPP != 8 && dwBPP != 16 && dwBPP != 24 && dwBPP != 32))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters: " << dwWidth << "x" << dwHeight << " " << dwBPP);
-			return DDERR_INVALIDPARAMS;
+			return DDERR_UNSUPPORTED;
 		}
 
 		bool WasDeviceCreated = false;
@@ -2011,7 +1999,7 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 				if (!modeFound)
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: Mode not found: " << dwWidth << "x" << dwHeight);
-					return DDERR_INVALIDMODE;
+					return DDERR_UNSUPPORTED;
 				}
 			}
 
@@ -2607,17 +2595,7 @@ void m_IDirectDrawX::InitInterface(DWORD DirectXVersion)
 		}
 
 		// Default gamma
-		IsGammaSet = false;
-		for (int i = 0; i < 256; ++i)
-		{
-			WORD value = static_cast<WORD>(i * 65535 / 255); // Linear interpolation from 0 to 65535
-			RampData.red[i] = value;
-			RampData.green[i] = value;
-			RampData.blue[i] = value;
-			DefaultRampData.red[i] = value;
-			DefaultRampData.green[i] = value;
-			DefaultRampData.blue[i] = value;
-		}
+		SetDefaultGamma();
 
 		// High resolution counter
 		Counter = {};
@@ -3163,7 +3141,14 @@ LPDIRECT3DPIXELSHADER9 m_IDirectDrawX::GetGammaPixelShader()
 	// Create pixel shader
 	if (d3d9Device && !gammaPixelShader)
 	{
-		d3d9Device->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &gammaPixelShader);
+		if (Config.DisplayBrightness || Config.DisplayContrast)
+		{
+			d3d9Device->CreatePixelShader((DWORD*)BrightnessPixelShaderSrc, &gammaPixelShader);
+		}
+		else
+		{
+			d3d9Device->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &gammaPixelShader);
+		}
 	}
 	return gammaPixelShader;
 }
@@ -3366,7 +3351,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	}
 
 	// Hook WndProc before creating device
-	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
+	auto WndDataStruct = WndProc::AddWndProc(hWnd);
 	if (WndDataStruct)
 	{
 		WndDataStruct->IsDirectDraw = true;
@@ -3798,7 +3783,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 	}
 
 	// Hook WndProc before creating device
-	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(GetHwnd());
+	auto WndDataStruct = WndProc::AddWndProc(GetHwnd());
 
 	// Mark as creating device
 	WndProc::ScopedSetDeviceCreationFlag SetCreatingDevice(WndDataStruct);
@@ -3964,6 +3949,19 @@ void m_IDirectDrawX::GetD9Caps(D3DCAPS9& Caps9, DWORD& dwDeviceZBufferBitDepth, 
 	Caps9 = D9Cache.Caps9;
 	dwDeviceZBufferBitDepth = D9Cache.dwDeviceZBufferBitDepth;
 	zFormat = D9Cache.zFormat;
+}
+
+DWORD m_IDirectDrawX::GetD9ZBufferBitDepth()
+{
+	GetD9Cache();
+
+	// Check cache
+	if (D9Cache.empty())
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: could not get Cap9 cache!");
+	}
+
+	return D9Cache.dwDeviceZBufferBitDepth;
 }
 
 void m_IDirectDrawX::GetD9SupportedTextures(std::vector<D3DFORMAT>& TextureFormat)
@@ -4597,6 +4595,8 @@ void m_IDirectDrawX::ClearGammaControl(m_IDirectDrawGammaControl* lpGammaControl
 		Logging::Log() << __FUNCTION__ << " Warning: released GammaControl interface does not match cached one!";
 	}
 
+	SetDefaultGamma();
+
 	GammaControlInterface = nullptr;
 }
 
@@ -4903,7 +4903,23 @@ HRESULT m_IDirectDrawX::GetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 	return DD_OK;
 }
 
-HRESULT m_IDirectDrawX::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
+void m_IDirectDrawX::SetDefaultGamma()
+{
+	// Default gamma
+	IsGammaSet = false;
+	for (int i = 0; i < 256; ++i)
+	{
+		WORD value = static_cast<WORD>(i * 65535 / 255); // Linear interpolation from 0 to 65535
+		RampData.red[i] = value;
+		RampData.green[i] = value;
+		RampData.blue[i] = value;
+		DefaultRampData.red[i] = value;
+		DefaultRampData.green[i] = value;
+		DefaultRampData.blue[i] = value;
+	}
+}
+
+HRESULT m_IDirectDrawX::SetGammaLevel(D3DGAMMARAMP& Ramp)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -4982,7 +4998,7 @@ HRESULT m_IDirectDrawX::SetD9Gamma(DWORD dwFlags, LPDDGAMMARAMP lpRampData)
 	if (memcmp(&DefaultRampData, &RampData, sizeof(D3DGAMMARAMP)) != S_OK)
 	{
 		IsGammaSet = true;
-		SetBrightnessLevel(RampData);
+		SetGammaLevel(RampData);
 	}
 
 	return DD_OK;
@@ -5180,16 +5196,35 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurfac
 		}
 	}
 	// For gamma
-	else if (IsGammaSet && GammaControlInterface)
+	else if (IsGammaSet || Config.DisplayBrightness || Config.DisplayContrast)
 	{
 		// Create gamma texture
 		if (!GammaLUTTexture)
 		{
-			SetBrightnessLevel(RampData);
+			SetGammaLevel(RampData);
 		}
 
 		// Set gamma texture
 		d3d9Device->SetTexture(1, GammaLUTTexture);
+
+		// Set contrast / brightness values
+		if (Config.DisplayBrightness || Config.DisplayContrast)
+		{
+			const float contrast = max(0.01f,
+				1.0f + Config.DisplayContrast / 100.0f);
+
+			const float brightness =
+				Config.DisplayBrightness / 300.0f;
+
+			const float Adjustments[4] =
+			{
+				contrast,
+				brightness,
+				0.0f,
+				0.0f
+			};
+			d3d9Device->SetPixelShaderConstantF(0, Adjustments, 1);
+		}
 
 		// Set pixel shader
 		d3d9Device->SetPixelShader(GetGammaPixelShader());
@@ -5209,7 +5244,7 @@ HRESULT m_IDirectDrawX::DrawPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurfac
 	d3d9Device->GetRenderTarget(0, pRenderTarget.GetAddressOf());
 
 	// Get depth stencil
-	ComPtr<IDirect3DSurface9> pDepthStencil = nullptr;
+	ComPtr<IDirect3DSurface9> pDepthStencil;
 	d3d9Device->GetDepthStencilSurface(pDepthStencil.GetAddressOf());
 
 	// Set backbuffer to render target
@@ -5386,7 +5421,7 @@ HRESULT m_IDirectDrawX::PresentScene(m_IDirectDrawSurfaceX* pPrimarySurface, REC
 	// Copy or draw primary surface before presenting
 	if (IsPrimaryRenderTarget() && !pPrimarySurface->GetD9Texture(false))
 	{
-		if (IsGammaSet && GammaControlInterface)
+		if (IsGammaSet || Config.DisplayBrightness || Config.DisplayContrast)
 		{
 			ComPtr<IDirect3DSurface9> pBackBuffer;
 			if (SUCCEEDED(d3d9Device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackBuffer.GetAddressOf())))

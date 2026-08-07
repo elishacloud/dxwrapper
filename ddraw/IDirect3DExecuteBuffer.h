@@ -6,6 +6,7 @@ private:
 	IDirect3DExecuteBuffer *ProxyInterface = nullptr;
 	const IID WrapperID = IID_IDirect3DExecuteBuffer;
 	LONG RefCount = 1;
+	bool IsInterfaceDeleted = false;
 
 	// Convert Buffer
 	m_IDirect3DDeviceX *D3DDeviceInterface = nullptr;
@@ -74,6 +75,7 @@ public:
 			ProxyInterface = nullptr;
 			D3DDeviceInterface = nullptr;
 		}
+		IsInterfaceDeleted = true;
 	}
 
 	/*** IUnknown methods ***/

@@ -91,25 +91,10 @@ private:
 
 	// Gamma functions
 	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader();
-	HRESULT SetBrightnessLevel(D3DGAMMARAMP& RampData);
+	void SetDefaultGamma();
+	HRESULT SetGammaLevel(D3DGAMMARAMP& RampData);
 
 	// Wrapper interface functions
-	inline REFIID GetWrapperType(DWORD DirectXVersion)
-	{
-		return (DirectXVersion == 1) ? IID_IDirectDraw :
-			(DirectXVersion == 2) ? IID_IDirectDraw2 :
-			(DirectXVersion == 3) ? IID_IDirectDraw3 :
-			(DirectXVersion == 4) ? IID_IDirectDraw4 :
-			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IUnknown;
-	}
-	inline bool CheckWrapperType(REFIID IID)
-	{
-		return (IID == IID_IDirectDraw ||
-			IID == IID_IDirectDraw2 ||
-			IID == IID_IDirectDraw3 ||
-			IID == IID_IDirectDraw4 ||
-			IID == IID_IDirectDraw7) ? true : false;
-	}
 	inline IDirectDraw *GetProxyInterfaceV1() { return (IDirectDraw *)ProxyInterface; }
 	inline IDirectDraw2 *GetProxyInterfaceV2() { return (IDirectDraw2 *)ProxyInterface; }
 	inline IDirectDraw3 *GetProxyInterfaceV3() { return (IDirectDraw3 *)ProxyInterface; }
@@ -171,8 +156,8 @@ public:
 	HRESULT CreateSurface(LPDDSURFACEDESC, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *, DWORD);
 	HRESULT CreateSurface2(LPDDSURFACEDESC2, LPDIRECTDRAWSURFACE7 FAR *, IUnknown FAR *, DWORD);
 	STDMETHOD(DuplicateSurface)(THIS_ LPDIRECTDRAWSURFACE7, LPDIRECTDRAWSURFACE7 FAR *, DWORD);
-	HRESULT EnumDisplayModes(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK, DWORD);
-	HRESULT EnumDisplayModes2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2, DWORD);
+	HRESULT EnumDisplayModes(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMMODESCALLBACK);
+	HRESULT EnumDisplayModes2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMMODESCALLBACK2);
 	HRESULT EnumSurfaces(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMSURFACESCALLBACK, DWORD);
 	HRESULT EnumSurfaces2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7, LPDDENUMSURFACESCALLBACK, DWORD);
 	STDMETHOD(FlipToGDISurface)(THIS);
@@ -204,6 +189,23 @@ public:
 	/*** Added in the V7 Interface ***/
 	STDMETHOD(StartModeTest)(THIS_ LPSIZE, DWORD, DWORD);
 	STDMETHOD(EvaluateMode)(THIS_ DWORD, DWORD *);
+
+	static inline REFIID GetWrapperType(DWORD DirectXVersion)
+	{
+		return (DirectXVersion == 1) ? IID_IDirectDraw :
+			(DirectXVersion == 2) ? IID_IDirectDraw2 :
+			(DirectXVersion == 3) ? IID_IDirectDraw3 :
+			(DirectXVersion == 4) ? IID_IDirectDraw4 :
+			(DirectXVersion == 7) ? IID_IDirectDraw7 : IID_IUnknown;
+	}
+	static inline bool CheckWrapperType(REFIID IID)
+	{
+		return (IID == IID_IDirectDraw ||
+			IID == IID_IDirectDraw2 ||
+			IID == IID_IDirectDraw3 ||
+			IID == IID_IDirectDraw4 ||
+			IID == IID_IDirectDraw7) ? true : false;
+	}
 
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
@@ -258,6 +260,7 @@ public:
 	void GetD9Cache();
 	void GetD9Caps(D3DCAPS9& Caps9);
 	void GetD9Caps(D3DCAPS9& Caps9, DWORD& dwDeviceZBufferBitDepth, std::vector<D3DFORMAT>& zFormat);
+	DWORD GetD9ZBufferBitDepth();
 	void GetD9SupportedTextures(std::vector<D3DFORMAT>& TextureFormat);
 
 	// Default State block and Viewport functions
