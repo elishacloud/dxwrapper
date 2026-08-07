@@ -26,4 +26,4 @@ extern AddressLookupTableDinput8 ProxyAddressLookupTableDinput8;
 #include "IDirectInput8.h"
 #include "IDirectInputDevice8.h"
 #include "IDirectInputEffect8.h"
-#include "External\dinputto8\ClassFactory.h"
+#include "IClassFactory\DXClassFactory.h"

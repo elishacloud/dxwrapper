@@ -128,6 +128,8 @@ static void RunAllTests()
         return;
     }
 
+    CoCreateInstance();
+
     TestEnumDisplaySettings();
     TestDirectDrawCreate<IDirectDraw>();
     TestDirectDrawCreate<IDirectDraw2>();

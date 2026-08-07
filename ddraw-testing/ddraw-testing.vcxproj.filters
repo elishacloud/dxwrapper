@@ -11,6 +11,8 @@
     <ClCompile Include="IDirect3DDevice.cpp" />
     <ClCompile Include="EnumDisplaySettings.cpp" />
     <ClCompile Include="Logging.cpp" />
+    <ClCompile Include="CoCreateInstance.cpp" />
+    <ClCompile Include="CoCreateInstanceHelper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />

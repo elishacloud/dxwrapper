@@ -70,4 +70,4 @@ using namespace DsoundWrapper;
 #include "IDirectSoundFXWavesReverb8.h"
 #include "IDirectSoundNotify8.h"
 #include "IKsPropertySet.h"
-#include "External\dinputto8\ClassFactory.h"
+#include "IClassFactory\DXClassFactory.h"

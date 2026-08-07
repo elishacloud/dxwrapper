@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -122,7 +122,7 @@ HRESULT WINAPI ds_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPVO
 			return proxyHr;
 		}
 
-		wrapperFactory = new (std::nothrow) ClassFactory<m_IDirectSound8>(proxyFactory);
+		wrapperFactory = new (std::nothrow) DXClassFactory<m_IDirectSound8>(proxyFactory);
 		if (!wrapperFactory)
 		{
 			proxyFactory->Release();

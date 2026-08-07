@@ -57,6 +57,18 @@ static UINT GetRefCount(T IUnknownAddr)
     return ref;
 }
 
+struct TestEntry
+{
+	REFCLSID clsid;
+	const char* name;
+	REFIID iid;
+};
+
+extern TestEntry tests[10];
+
+const char* GetTestIIDName(REFIID riid);
+void CoCreateInstance();
+
 void TestEnumDisplaySettings();
 
 template <typename DDType>

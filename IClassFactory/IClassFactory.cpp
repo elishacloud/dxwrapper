@@ -135,7 +135,7 @@ HRESULT WINAPI CoGetClassObjectHandle(REFCLSID rclsid, DWORD dwClsContext, LPVOI
 				return proxyHr;
 			}
 
-			ClassFactoryBase* wrapperFactory = new (std::nothrow) ClassFactory<m_IDirectInputX>(proxyFactory);
+			ClassFactoryBase* wrapperFactory = new (std::nothrow) DXClassFactory<m_IDirectInputX>(proxyFactory);
 			if (!wrapperFactory)
 			{
 				proxyFactory->Release();
@@ -157,7 +157,7 @@ HRESULT WINAPI CoGetClassObjectHandle(REFCLSID rclsid, DWORD dwClsContext, LPVOI
 				return proxyHr;
 			}
 
-			ClassFactoryBase* wrapperFactory = new (std::nothrow) ClassFactory<m_IDirectInputDeviceX>(proxyFactory);
+			ClassFactoryBase* wrapperFactory = new (std::nothrow) DXClassFactory<m_IDirectInputDeviceX>(proxyFactory);
 			if (!wrapperFactory)
 			{
 				proxyFactory->Release();
@@ -206,7 +206,7 @@ HRESULT WINAPI CoGetClassObjectHandle(REFCLSID rclsid, DWORD dwClsContext, LPVOI
 		{
 			LOG_LIMIT(3, __FUNCTION__ " Wrapping: " << rclsid << " -> " << riid);
 
-			ClassFactoryBase* wrapperFactory = new (std::nothrow) ClassFactory<m_IDirectInput8>(reinterpret_cast<IClassFactory*>(*ppv));
+			ClassFactoryBase* wrapperFactory = new (std::nothrow) DXClassFactory<m_IDirectInput8>(reinterpret_cast<IClassFactory*>(*ppv));
 			if (!wrapperFactory)
 			{
 				(reinterpret_cast<IClassFactory*>(*ppv))->Release();
@@ -221,7 +221,7 @@ HRESULT WINAPI CoGetClassObjectHandle(REFCLSID rclsid, DWORD dwClsContext, LPVOI
 		{
 			LOG_LIMIT(3, __FUNCTION__ " Wrapping: " << rclsid << " -> " << riid);
 
-			ClassFactoryBase* wrapperFactory = new (std::nothrow) ClassFactory<m_IDirectInputDevice8>(reinterpret_cast<IClassFactory*>(*ppv));
+			ClassFactoryBase* wrapperFactory = new (std::nothrow) DXClassFactory<m_IDirectInputDevice8>(reinterpret_cast<IClassFactory*>(*ppv));
 			if (!wrapperFactory)
 			{
 				(reinterpret_cast<IClassFactory*>(*ppv))->Release();
@@ -242,7 +242,7 @@ HRESULT WINAPI CoGetClassObjectHandle(REFCLSID rclsid, DWORD dwClsContext, LPVOI
 		{
 			LOG_LIMIT(3, __FUNCTION__ " Wrapping: " << rclsid << " -> " << riid);
 
-			ClassFactoryBase* wrapperFactory = new (std::nothrow) ClassFactory<m_IDirectSound8>(reinterpret_cast<IClassFactory*>(*ppv));
+			ClassFactoryBase* wrapperFactory = new (std::nothrow) DXClassFactory<m_IDirectSound8>(reinterpret_cast<IClassFactory*>(*ppv));
 			if (!wrapperFactory)
 			{
 				(reinterpret_cast<IClassFactory*>(*ppv))->Release();
@@ -413,6 +413,12 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 	{
 		if (rclsid == CLSID_DirectDraw || rclsid == CLSID_DirectDraw7)
 		{
+			// Check if interface is already wrapped
+			if (void* p = nullptr; SUCCEEDED(reinterpret_cast<IUnknown*>(*ppv)->QueryInterface(IID_GetInterfaceX, &p)))
+			{
+				return hr;
+			}
+
 			LOG_LIMIT(3, __FUNCTION__ " Wrapping: " << rclsid << " -> " << riid);
 
 			const DWORD DxVersion = rclsid == CLSID_DirectDraw ? 1 : 7;
@@ -430,6 +436,12 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		}
 		else if (rclsid == CLSID_DirectDrawClipper)
 		{
+			// Check if interface is already wrapped
+			if (void* p = nullptr; SUCCEEDED(reinterpret_cast<IUnknown*>(*ppv)->QueryInterface(IID_GetInterfaceX, &p)))
+			{
+				return hr;
+			}
+
 			LOG_LIMIT(3, __FUNCTION__ " Wrapping: " << rclsid << " -> " << riid);
 
 			m_IDirectDrawClipper* pDirectDrawClipper = new (std::nothrow) m_IDirectDrawClipper(reinterpret_cast<IDirectDrawClipper*>(*ppv));
@@ -445,6 +457,12 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		}
 		else if (rclsid == CLSID_DirectDrawFactory)
 		{
+			// Check if interface is already wrapped
+			if (void* p = nullptr; SUCCEEDED(reinterpret_cast<IUnknown*>(*ppv)->QueryInterface(IID_GetInterfaceX, &p)))
+			{
+				return hr;
+			}
+
 			LOG_LIMIT(3, __FUNCTION__ " Wrapping: " << rclsid << " -> " << riid);
 
 			m_IDirectDrawFactory* pDirectDrawFactory = new (std::nothrow) m_IDirectDrawFactory(reinterpret_cast<IDirectDrawFactory*>(*ppv));
@@ -466,6 +484,12 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 	{
 		if (rclsid == CLSID_DirectInput8)
 		{
+			// Check if interface is already wrapped
+			if (void* p = nullptr; SUCCEEDED(reinterpret_cast<IUnknown*>(*ppv)->QueryInterface(IID_GetInterfaceX, &p)))
+			{
+				return hr;
+			}
+
 			LOG_LIMIT(3, __FUNCTION__ " Wrapping: " << rclsid << " -> " << riid);
 
 			m_IDirectInput8* pDirectInput = new (std::nothrow) m_IDirectInput8(reinterpret_cast<IDirectInput8W*>(*ppv));
@@ -481,6 +505,12 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 		}
 		else if (rclsid == CLSID_DirectInputDevice8)
 		{
+			// Check if interface is already wrapped
+			if (void* p = nullptr; SUCCEEDED(reinterpret_cast<IUnknown*>(*ppv)->QueryInterface(IID_GetInterfaceX, &p)))
+			{
+				return hr;
+			}
+
 			LOG_LIMIT(3, __FUNCTION__ " Wrapping: " << rclsid << " -> " << riid);
 
 			m_IDirectInputDevice8* pDirectInputDevice = new (std::nothrow) m_IDirectInputDevice8(reinterpret_cast<IDirectInputDevice8W*>(*ppv));
@@ -502,6 +532,12 @@ HRESULT WINAPI CoCreateInstanceHandle(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWOR
 	{
 		if (rclsid == CLSID_DirectSound || rclsid == CLSID_DirectSound8)
 		{
+			// Check if interface is already wrapped
+			if (void* p = nullptr; SUCCEEDED(reinterpret_cast<IUnknown*>(*ppv)->QueryInterface(IID_GetInterfaceX, &p)))
+			{
+				return hr;
+			}
+
 			LOG_LIMIT(3, __FUNCTION__ " Wrapping: " << rclsid << " -> " << riid);
 
 			m_IDirectSound8* pDirectSound = new (std::nothrow) m_IDirectSound8(reinterpret_cast<IDirectSound8*>(*ppv));

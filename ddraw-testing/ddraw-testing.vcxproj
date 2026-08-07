@@ -130,6 +130,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\External\Logging\Logging.cpp" />
+    <ClCompile Include="CoCreateInstance.cpp" />
+    <ClCompile Include="CoCreateInstanceHelper.cpp" />
     <ClCompile Include="EnumDisplaySettings.cpp" />
     <ClCompile Include="IDirect3D.cpp" />
     <ClCompile Include="IDirect3DDevice.cpp" />
