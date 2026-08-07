@@ -6,6 +6,7 @@ private:
 	IDirectDrawGammaControl *ProxyInterface = nullptr;
 	LONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawGammaControl;
+	bool IsInterfaceDeleted = false;
 
 	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;
@@ -62,6 +63,7 @@ public:
 			ProxyInterface = nullptr;
 			ddrawParent = nullptr;
 		}
+		IsInterfaceDeleted = true;
 	}
 
 	/*** IUnknown methods ***/

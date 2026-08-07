@@ -26,7 +26,7 @@ HRESULT m_IDirectDrawColorControl::QueryInterface(REFIID riid, LPVOID FAR * ppvO
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		if (ppvObj)
 		{
@@ -68,7 +68,7 @@ ULONG m_IDirectDrawColorControl::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		return 0;
 	}
@@ -85,7 +85,7 @@ ULONG m_IDirectDrawColorControl::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		return 0;
 	}
@@ -120,7 +120,7 @@ HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorCont
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -144,7 +144,7 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -206,6 +206,7 @@ m_IDirectDrawColorControl* m_IDirectDrawColorControl::CreateDirectDrawColorContr
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewParent);
+		Interface->IsInterfaceDeleted = false;
 	}
 	else
 	{

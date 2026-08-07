@@ -26,7 +26,7 @@ HRESULT m_IDirect3DLight::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if (!ProxyInterface && !D3DInterface)
+	if (IsInterfaceDeleted)
 	{
 		if (ppvObj)
 		{
@@ -68,7 +68,7 @@ ULONG m_IDirect3DLight::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DInterface)
+	if (IsInterfaceDeleted)
 	{
 		return 0;
 	}
@@ -85,7 +85,7 @@ ULONG m_IDirect3DLight::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DInterface)
+	if (IsInterfaceDeleted)
 	{
 		return 0;
 	}
@@ -120,7 +120,7 @@ HRESULT m_IDirect3DLight::Initialize(LPDIRECT3D lpDirect3D)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -143,7 +143,7 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -239,7 +239,7 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -317,6 +317,7 @@ m_IDirect3DLight* m_IDirect3DLight::CreateDirect3DLight(IDirect3DLight* aOrigina
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewD3DInterface);
+		Interface->IsInterfaceDeleted = false;
 	}
 	else
 	{
