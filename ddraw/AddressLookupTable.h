@@ -60,7 +60,7 @@ inline void SaveInterfaceAddress(T*& Interface, bool KeepInterface = false)
 		}
 		else if constexpr (std::is_same_v<T, m_IDirectDrawClipper>)
 		{
-			Interface->SetProxy(nullptr, nullptr, 0);
+			Interface->SetProxy(nullptr, nullptr, 0, false);
 		}
 		else if constexpr (std::is_same_v<T, m_IDirect3DLight> || std::is_same_v<T, m_IDirectDrawColorControl> || std::is_same_v<T, m_IDirectDrawGammaControl>)
 		{

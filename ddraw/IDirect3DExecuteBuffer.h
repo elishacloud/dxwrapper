@@ -62,6 +62,7 @@ public:
 	{
 		if (NewProxyInterface || NewD3DDInterface)
 		{
+			IsInterfaceDeleted = false;	// Mark as not deleted first
 			RefCount = 1;
 			ProxyInterface = NewProxyInterface;
 			D3DDeviceInterface = NewD3DDInterface;
@@ -74,8 +75,8 @@ public:
 			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			D3DDeviceInterface = nullptr;
+			IsInterfaceDeleted = true;	// Mark as deleted last
 		}
-		IsInterfaceDeleted = true;
 	}
 
 	/*** IUnknown methods ***/

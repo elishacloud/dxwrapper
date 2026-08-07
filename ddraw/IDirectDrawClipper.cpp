@@ -542,8 +542,7 @@ m_IDirectDrawClipper* m_IDirectDrawClipper::CreateDirectDrawClipper(IDirectDrawC
 	m_IDirectDrawClipper* Interface = InterfaceAddressCache<m_IDirectDrawClipper>(nullptr);
 	if (Interface)
 	{
-		Interface->SetProxy(aOriginal, NewParent, dwFlags);
-		Interface->IsInterfaceDeleted = false;
+		Interface->SetProxy(aOriginal, NewParent, dwFlags, true);
 	}
 	else
 	{

@@ -667,7 +667,6 @@ m_IDirect3DExecuteBuffer* m_IDirect3DExecuteBuffer::CreateDirect3DExecuteBuffer(
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewD3DDInterface, lpDesc);
-		Interface->IsInterfaceDeleted = false;
 	}
 	else
 	{

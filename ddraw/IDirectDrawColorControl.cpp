@@ -206,7 +206,6 @@ m_IDirectDrawColorControl* m_IDirectDrawColorControl::CreateDirectDrawColorContr
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewParent);
-		Interface->IsInterfaceDeleted = false;
 	}
 	else
 	{

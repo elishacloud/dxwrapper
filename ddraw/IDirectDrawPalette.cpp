@@ -388,7 +388,6 @@ m_IDirectDrawPalette* m_IDirectDrawPalette::CreateDirectDrawPalette(IDirectDrawP
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewParent, dwFlags, lpDDColorArray);
-		Interface->IsInterfaceDeleted = false;
 	}
 	else
 	{

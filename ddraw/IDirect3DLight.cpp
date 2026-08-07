@@ -317,7 +317,6 @@ m_IDirect3DLight* m_IDirect3DLight::CreateDirect3DLight(IDirect3DLight* aOrigina
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewD3DInterface);
-		Interface->IsInterfaceDeleted = false;
 	}
 	else
 	{

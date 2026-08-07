@@ -51,6 +51,7 @@ public:
 	{
 		if (NewProxyInterface || NewParent)
 		{
+			IsInterfaceDeleted = false;	// Mark as not deleted first
 			RefCount = 1;
 			ProxyInterface = NewProxyInterface;
 			ddrawParent = NewParent;
@@ -63,8 +64,8 @@ public:
 			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			ddrawParent = nullptr;
+			IsInterfaceDeleted = true;	// Mark as deleted last
 		}
-		IsInterfaceDeleted = true;
 	}
 
 	/*** IUnknown methods ***/

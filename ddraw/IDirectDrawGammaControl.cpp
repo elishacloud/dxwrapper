@@ -201,7 +201,6 @@ m_IDirectDrawGammaControl* m_IDirectDrawGammaControl::CreateDirectDrawGammaContr
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewParent);
-		Interface->IsInterfaceDeleted = false;
 	}
 	else
 	{
