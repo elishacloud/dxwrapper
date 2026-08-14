@@ -726,35 +726,35 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 					const DWORD op = Flags & D3DPROCESSVERTICES_OPMASK;
 
-					// Copy vertices only
 					switch (op)
 					{
 					case D3DPROCESSVERTICES_COPY:
 					{
-						// Assume copy vertices always uses D3DFVF_TLVERTEX
-						D3DTLVERTEX* srcVertices = reinterpret_cast<D3DTLVERTEX*>(inputVerts) + processVertices[i].wStart;
-						D3DTLVERTEX* destVertices = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
+						const bool IsClipped = (dwFlags & D3DEXECUTE_CLIPPED) && !(dwFlags & D3DEXECUTE_UNCLIPPED);
 
-						D3DRECT drExtent = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
+						// Copy vertices always uses D3DFVF_TLVERTEX
+						memcpy(outputVerts + processVertices[i].wDest, inputVerts + processVertices[i].wStart, sizeof(D3DTLVERTEX)* Count);
 
-						for (UINT x = 0; x < Count; x++)
+						// Handle status and extents
+						if (IsClipped)
 						{
-							destVertices[x] = srcVertices[x];
+							// Update flags
+							lpStatus->dwFlags |= D3DSETSTATUS_STATUS;
+							lpStatus->dwStatus = 0; // Just set no clip flags and no ZNOTVISIBLE
 
 							// Update extents
 							if (UpdateExtents)
 							{
-								// floor/ceil convert to integer extents
-								drExtent.x1 = min(drExtent.x1, static_cast<LONG>(floor(destVertices[x].sx)));
-								drExtent.y1 = min(drExtent.y1, static_cast<LONG>(floor(destVertices[x].sy)));
-								drExtent.x2 = max(drExtent.x2, static_cast<LONG>(ceil(destVertices[x].sx)));
-								drExtent.y2 = max(drExtent.y2, static_cast<LONG>(ceil(destVertices[x].sy)));
-							}
-						}
+								if (D3DVIEWPORT9 vp = {}; SUCCEEDED(GetD9Viewport(&vp)))
+								{
+									lpStatus->dwFlags |= D3DSETSTATUS_EXTENTS;
 
-						if (UpdateExtents && drExtent.x1 != LONG_MAX)
-						{
-							MergeExecuteExtents(lpStatus->drExtent, drExtent, lpStatus->dwFlags);
+									lpStatus->drExtent.x1 = vp.X;
+									lpStatus->drExtent.y1 = vp.Y;
+									lpStatus->drExtent.x2 = vp.X + vp.Width;
+									lpStatus->drExtent.y2 = vp.Y + vp.Height;
+								}
+							}
 						}
 						break;
 					}
@@ -762,9 +762,10 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					case D3DPROCESSVERTICES_TRANSFORMLIGHT:
 					{
 						const bool IsLight = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT && !(Flags & D3DPROCESSVERTICES_NOCOLOR) && IsMaterialSet());
+						const bool IsClipped = (dwFlags & D3DEXECUTE_CLIPPED) && !(dwFlags & D3DEXECUTE_UNCLIPPED);
 
 						// Flags
-						DWORD VertexOp = D3DVOP_TRANSFORM | D3DVOP_CLIP | (IsLight ? D3DVOP_LIGHT : 0) | (UpdateExtents ? D3DVOP_EXTENTS : 0);
+						DWORD VertexOp = D3DVOP_TRANSFORM | (IsClipped ? D3DVOP_CLIP : 0) | (IsLight ? D3DVOP_LIGHT : 0) | (UpdateExtents ? D3DVOP_EXTENTS : 0);
 
 						// FVF
 						DWORD SrcVertexTypeDesc = IsLight ? D3DFVF_VERTEX : D3DFVF_LVERTEX;
@@ -774,18 +775,31 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						D3DVERTEX* srcVertices = reinterpret_cast<D3DVERTEX*>(inputVerts) + processVertices[i].wStart;
 						D3DTLVERTEX* destVertices = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
 
-						D3DRECT drExtent = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
+						// Process verticies
+						hr = m_IDirect3DVertexBufferX::ProcessVerticesUP(VertexOp, destVertices, DestVertexTypeDesc, 0, Count, srcVertices, SrcVertexTypeDesc, 0, (LPDIRECT3DDEVICE7)GetWrapperInterfaceX(1), 0);
 
-						hr = m_IDirect3DVertexBufferX::ProcessVerticesUP(VertexOp, destVertices, DestVertexTypeDesc, 0, Count, srcVertices, SrcVertexTypeDesc, 0, drExtent, (LPDIRECT3DDEVICE7)GetWrapperInterfaceX(1), 0);
-
+						// Handle status and extents
 						if (SUCCEEDED(hr))
 						{
-							lpStatus->dwFlags |= D3DSETSTATUS_STATUS;
-							lpStatus->dwStatus = 0; // Just set no clip flags and no ZNOTVISIBLE
-
-							if (UpdateExtents)
+							if (IsClipped)
 							{
-								MergeExecuteExtents(lpStatus->drExtent, drExtent, lpStatus->dwFlags);
+								// Update flags
+								lpStatus->dwFlags |= D3DSETSTATUS_STATUS;
+								lpStatus->dwStatus = 0; // Just set no clip flags and no ZNOTVISIBLE
+
+								// Update extents
+								if (UpdateExtents)
+								{
+									if (D3DVIEWPORT9 vp = {}; SUCCEEDED(GetD9Viewport(&vp)))
+									{
+										lpStatus->dwFlags |= D3DSETSTATUS_EXTENTS;
+
+										lpStatus->drExtent.x1 = vp.X;
+										lpStatus->drExtent.y1 = vp.Y;
+										lpStatus->drExtent.x2 = vp.X + vp.Width;
+										lpStatus->drExtent.y2 = vp.Y + vp.Height;
+									}
+								}
 							}
 						}
 						break;
@@ -5480,29 +5494,6 @@ void m_IDirect3DDeviceX::CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& Dest
 		*((D3DTLVERTEX*)DestVertex) = ((D3DTLVERTEX*)SrcVertex)[SrcIndex];
 		DestVertex += sizeof(D3DTLVERTEX);
 		return;
-	}
-}
-
-void m_IDirect3DDeviceX::MergeExecuteExtents(D3DRECT& currentExtent, D3DRECT& newExtent, DWORD& dwFlags)
-{
-	if (!IsRectZero(newExtent))
-	{
-		// Merge with existing extents if valid
-		if ((dwFlags & D3DSETSTATUS_EXTENTS) && !IsRectZero(currentExtent))
-		{
-			currentExtent.x1 = min(currentExtent.x1, newExtent.x1);
-			currentExtent.y1 = min(currentExtent.y1, newExtent.y1);
-			currentExtent.x2 = max(currentExtent.x2, newExtent.x2);
-			currentExtent.y2 = max(currentExtent.y2, newExtent.y2);
-		}
-		else
-		{
-			// First valid extents
-			currentExtent = newExtent;
-		}
-
-		// Always set the flag when writing valid extents
-		dwFlags |= D3DSETSTATUS_EXTENTS;
 	}
 }
 

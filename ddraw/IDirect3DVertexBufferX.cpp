@@ -389,9 +389,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 			return DDERR_GENERIC;
 		}
 
-		D3DRECT drExtent = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
-
-		HRESULT hr = ProcessVerticesUP(dwVertexOp, pDestVertices, dwDestVertexTypeDesc, dwDestIndex, dwCount, pSrcVertices, dwSrcVertexTypeDesc, dwSrcIndex, drExtent, lpD3DDevice, dwFlags);
+		HRESULT hr = ProcessVerticesUP(dwVertexOp, pDestVertices, dwDestVertexTypeDesc, dwDestIndex, dwCount, pSrcVertices, dwSrcVertexTypeDesc, dwSrcIndex, lpD3DDevice, dwFlags);
 
 		// Unlock destination vertex buffer
 		Unlock();
@@ -545,9 +543,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 			return DDERR_GENERIC;
 		}
 
-		D3DRECT drExtent = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
-
-		HRESULT hr = ProcessVerticesUP(dwVertexOp, pDestVertices, dwDestVertexTypeDesc, dwDestIndex, dwCount, VertexCache.data(), dwVertexTypeDesc, dwSrcIndex, drExtent, lpD3DDevice, dwFlags);
+		HRESULT hr = ProcessVerticesUP(dwVertexOp, pDestVertices, dwDestVertexTypeDesc, dwDestIndex, dwCount, VertexCache.data(), dwVertexTypeDesc, dwSrcIndex, lpD3DDevice, dwFlags);
 
 		// Unlock destination vertex buffer
 		Unlock();
@@ -900,7 +896,7 @@ HRESULT m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, 
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVertexTypeDesc, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, D3DRECT& drExtent, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags)
+HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVertexTypeDesc, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags)
 {
 	if (dwCount == 0)
 	{
@@ -936,15 +932,8 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 		return D3DERR_INVALIDVERTEXTYPE;
 	}
 
-	// Handle dwVertexOp
-	if (dwVertexOp & D3DVOP_CLIP)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_CLIP' not handled!");
-	}
-	if (dwVertexOp & D3DVOP_EXTENTS)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_EXTENTS' not handled!");
-	}
+	// Just ignore D3DVOP_CLIP ans D3DVOP_EXTENTS in dwVertexOp
+
 	// D3DVOP_TRANSFORM is inherently handled by ProcessVertices() as it performs vertex transformations based on the current world, view, and projection matrices.
 	if (!(dwVertexOp & D3DVOP_TRANSFORM))
 	{
@@ -955,7 +944,6 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 	// If the rendering device does not have a material assigned to it, the Direct3D lighting engine is disabled.
 	bool bLighting = (dwVertexOp & D3DVOP_LIGHT) && pDirect3DDeviceX->IsMaterialSet();
 	bool DoNotCopyData = (dwFlags & D3DPV_DONOTCOPYDATA) != 0;
-	bool bUpdateExtents = (dwVertexOp & D3DVOP_EXTENTS);
 
 	// Check lighting state
 	if (bLighting)
@@ -1051,7 +1039,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 		return DDERR_GENERIC;
 	}
 
-	matProj = pDirect3DDeviceX->GetUpdatedProjectionMatrix(matProj, (dwVertexOp & D3DVOP_CLIP));
+	matProj = pDirect3DDeviceX->GetUpdatedProjectionMatrix(matProj, true);
 
 	D3DMATRIX matWorldView = {}, matWorldViewProj = {};
 	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
@@ -1131,8 +1119,6 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 			memcpy(pDestVertex, pSrcVertex, dwCount * DestStride);
 		}
 	}
-
-	D3DRECT newExtents = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
 
 	for (UINT i = 0; i < dwCount; ++i)
 	{
@@ -1216,39 +1202,9 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 			*reinterpret_cast<D3DCOLOR*>(pDestVertex + SpecularDestOffset) = Specular;
 		}
 
-		// Update extents
-		if (bUpdateExtents)
-		{
-			// floor/ceil convert to integer extents
-			newExtents.x1 = min(newExtents.x1, static_cast<LONG>(floorf(dst.x)));
-			newExtents.y1 = min(newExtents.y1, static_cast<LONG>(floorf(dst.y)));
-			newExtents.x2 = max(newExtents.x2, static_cast<LONG>(ceilf(dst.x)));
-			newExtents.y2 = max(newExtents.y2, static_cast<LONG>(ceilf(dst.y)));
-		}
-
 		// Move to the next vertex
 		pSrcVertex += SrcStride;
 		pDestVertex += DestStride;
-	}
-
-	if (bUpdateExtents && newExtents.x1 != LONG_MAX)
-	{
-		if (!IsRectZero(drExtent))
-		{
-			// Merge with existing extents if valid
-			drExtent.x1 = min(drExtent.x1, newExtents.x1);
-			drExtent.y1 = min(drExtent.y1, newExtents.y1);
-			drExtent.x2 = max(drExtent.x2, newExtents.x2);
-			drExtent.y2 = max(drExtent.y2, newExtents.y2);
-		}
-		else
-		{
-			// First valid extents
-			drExtent.x1 = newExtents.x1;
-			drExtent.y1 = newExtents.y1;
-			drExtent.x2 = newExtents.x2;
-			drExtent.y2 = newExtents.y2;
-		}
 	}
 
 	return D3D_OK;
