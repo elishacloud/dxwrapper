@@ -722,20 +722,11 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						continue;
 					}
 
+					const bool IsClipped = (dwFlags & D3DEXECUTE_CLIPPED) && !(dwFlags & D3DEXECUTE_UNCLIPPED);
 					const bool UpdateExtents = (Flags & D3DPROCESSVERTICES_UPDATEEXTENTS);
 
-					const DWORD op = Flags & D3DPROCESSVERTICES_OPMASK;
-
-					switch (op)
+					auto SetStatus = [&](LPD3DSTATUS lpStatus)
 					{
-					case D3DPROCESSVERTICES_COPY:
-					{
-						const bool IsClipped = (dwFlags & D3DEXECUTE_CLIPPED) && !(dwFlags & D3DEXECUTE_UNCLIPPED);
-
-						// Copy vertices always uses D3DFVF_TLVERTEX
-						memcpy(outputVerts + processVertices[i].wDest, inputVerts + processVertices[i].wStart, sizeof(D3DTLVERTEX)* Count);
-
-						// Handle status and extents
 						if (IsClipped)
 						{
 							// Update flags
@@ -756,13 +747,26 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 								}
 							}
 						}
+					};
+
+					const DWORD op = Flags & D3DPROCESSVERTICES_OPMASK;
+
+					switch (op)
+					{
+					case D3DPROCESSVERTICES_COPY:
+					{
+						// Copy vertices always uses D3DFVF_TLVERTEX
+						memcpy(outputVerts + processVertices[i].wDest, inputVerts + processVertices[i].wStart, sizeof(D3DTLVERTEX)* Count);
+
+						// Handle status and extents
+						SetStatus(lpStatus);
+
 						break;
 					}
 					case D3DPROCESSVERTICES_TRANSFORM:
 					case D3DPROCESSVERTICES_TRANSFORMLIGHT:
 					{
 						const bool IsLight = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT && !(Flags & D3DPROCESSVERTICES_NOCOLOR) && IsMaterialSet());
-						const bool IsClipped = (dwFlags & D3DEXECUTE_CLIPPED) && !(dwFlags & D3DEXECUTE_UNCLIPPED);
 
 						// Flags
 						DWORD VertexOp = D3DVOP_TRANSFORM | (IsClipped ? D3DVOP_CLIP : 0) | (IsLight ? D3DVOP_LIGHT : 0) | (UpdateExtents ? D3DVOP_EXTENTS : 0);
@@ -781,26 +785,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						// Handle status and extents
 						if (SUCCEEDED(hr))
 						{
-							if (IsClipped)
-							{
-								// Update flags
-								lpStatus->dwFlags |= D3DSETSTATUS_STATUS;
-								lpStatus->dwStatus = 0; // Just set no clip flags and no ZNOTVISIBLE
-
-								// Update extents
-								if (UpdateExtents)
-								{
-									if (D3DVIEWPORT9 vp = {}; SUCCEEDED(GetD9Viewport(&vp)))
-									{
-										lpStatus->dwFlags |= D3DSETSTATUS_EXTENTS;
-
-										lpStatus->drExtent.x1 = vp.X;
-										lpStatus->drExtent.y1 = vp.Y;
-										lpStatus->drExtent.x2 = vp.X + vp.Width;
-										lpStatus->drExtent.y2 = vp.Y + vp.Height;
-									}
-								}
-							}
+							SetStatus(lpStatus);
 						}
 						break;
 					}
@@ -3195,9 +3180,7 @@ HRESULT m_IDirect3DDeviceX::GetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 
 		*lpD3DClipStatus = D3DClipStatus;
 
-		D3DVIEWPORT9 vp = {};
-
-		if (SUCCEEDED(GetD9Viewport(&vp)))
+		if (D3DVIEWPORT9 vp = {}; SUCCEEDED(GetD9Viewport(&vp)))
 		{
 			lpD3DClipStatus->dwFlags |= D3DCLIPSTATUS_EXTENTS2;
 
