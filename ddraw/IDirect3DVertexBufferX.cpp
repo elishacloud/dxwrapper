@@ -949,7 +949,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 	if (bLighting)
 	{
 		DWORD rsLighting = FALSE;
-		if (FAILED(pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_LIGHTING, &rsLighting)) || rsLighting == FALSE)
+		if (FAILED(pDirect3DDeviceX->GetD9RenderState(D3DRS_LIGHTING, &rsLighting)) || rsLighting == FALSE)
 		{
 			bLighting = false;
 		}
@@ -1031,9 +1031,9 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 
 	// Get transformation matrices
 	D3DMATRIX matWorld, matView, matProj;
-	if (FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_WORLD, &matWorld)) ||
-		FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_VIEW, &matView)) ||
-		FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_PROJECTION, &matProj)))
+	if (FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_WORLD, &matWorld)) ||
+		FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_VIEW, &matView)) ||
+		FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_PROJECTION, &matProj)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get transform matrices");
 		return DDERR_GENERIC;
@@ -1046,8 +1046,8 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
 
 	// Get viewport
-	D3DVIEWPORT7 vp = {};
-	if (FAILED(pDirect3DDeviceX->GetViewport(&vp)))
+	D3DVIEWPORT9 vp = {};
+	if (FAILED(pDirect3DDeviceX->GetD9Viewport(&vp)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get viewport");
 		return DDERR_GENERIC;
@@ -1059,7 +1059,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 
 	if (DWORD rsColorVertex = 0;
 		(DiffuseSrcOffset || SpecularSrcOffset) &&
-		SUCCEEDED(pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_COLORVERTEX, &rsColorVertex)))
+		SUCCEEDED(pDirect3DDeviceX->GetD9RenderState(D3DRS_COLORVERTEX, &rsColorVertex)))
 	{
 		lsState.ColorVertex = rsColorVertex != FALSE;
 	}
@@ -1075,35 +1075,40 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 		lsState.ViewMatrix = matView;
 
 		if (DWORD rsSpecular = 0;
-			SUCCEEDED(pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_SPECULARENABLE, &rsSpecular)))
+			SUCCEEDED(pDirect3DDeviceX->GetD9RenderState(D3DRS_SPECULARENABLE, &rsSpecular)))
 		{
 			lsState.UseSpecular = rsSpecular != FALSE;
 		}
 
 		if (DWORD rsLocalViewer = 0;
-			SUCCEEDED(pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_LOCALVIEWER, &rsLocalViewer)))
+			SUCCEEDED(pDirect3DDeviceX->GetD9RenderState(D3DRS_LOCALVIEWER, &rsLocalViewer)))
 		{
 			lsState.LocalViewer = rsLocalViewer != FALSE;
 		}
 
 		if (DWORD rsNormalizeNormals = 0;
-			SUCCEEDED(pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_NORMALIZENORMALS, &rsNormalizeNormals)))
+			SUCCEEDED(pDirect3DDeviceX->GetD9RenderState(D3DRS_NORMALIZENORMALS, &rsNormalizeNormals)))
 		{
 			lsState.NormalizeNormals = rsNormalizeNormals != FALSE;
 		}
 
-		pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_AMBIENT, &lsState.AmbientRenderState);
+		pDirect3DDeviceX->GetD9RenderState(D3DRS_AMBIENT, &lsState.AmbientRenderState);
 
-		pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_DIFFUSEMATERIALSOURCE, &lsState.DiffuseMaterialSource);
-		pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_SPECULARMATERIALSOURCE, &lsState.SpecularMaterialSource);
-		pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_AMBIENTMATERIALSOURCE, &lsState.AmbientMaterialSource);
-		pDirect3DDeviceX->GetRenderState(D3DRENDERSTATE_EMISSIVEMATERIALSOURCE, &lsState.EmissiveMaterialSource);
+		pDirect3DDeviceX->GetD9RenderState(D3DRS_DIFFUSEMATERIALSOURCE, &lsState.DiffuseMaterialSource);
+		pDirect3DDeviceX->GetD9RenderState(D3DRS_SPECULARMATERIALSOURCE, &lsState.SpecularMaterialSource);
+		pDirect3DDeviceX->GetD9RenderState(D3DRS_AMBIENTMATERIALSOURCE, &lsState.AmbientMaterialSource);
+		pDirect3DDeviceX->GetD9RenderState(D3DRS_EMISSIVEMATERIALSOURCE, &lsState.EmissiveMaterialSource);
 
-		pDirect3DDeviceX->GetMaterial(&lsState.Material);
+		pDirect3DDeviceX->GetD9Material(&lsState.Material);
 
 		D3DXMatrixInverse(&matNormal, nullptr, &matWorld);
 		D3DXMatrixTranspose(&matNormal, &matNormal);
 	}
+
+	// Precalculate a few static viewport factors, to save on per-vertex cycles
+	const float viewportHalfWidth = static_cast<float>(vp.Width) * 0.5f;
+	const float viewportHalfHeight = static_cast<float>(vp.Height) * 0.5f;
+	const float viewportZDelta = vp.MaxZ - vp.MinZ;
 
 	BYTE* pSrcVertex = (BYTE*)lpSrcBuffer + (dwSrcIndex * SrcStride);
 	BYTE* pDestVertex = (BYTE*)lpDestBuffer + (dwDestIndex * DestStride);
@@ -1137,27 +1142,22 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 
 		// Source position
 		D3DXVECTOR3& src = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex);
-		D3DXVECTOR4 pos4(src.x, src.y, src.z, 1.0f);
-
-		// View-space position
-		D3DXVECTOR4 viewPos4;
-		D3DXVec4Transform(&viewPos4, &pos4, &matWorldView);
 
 		// Projection-space position
 		D3DXVECTOR4 h;
+		D3DXVECTOR4 pos4(src.x, src.y, src.z, 1.0f);
 		D3DXVec4Transform(&h, &pos4, &matWorldViewProj);
 
 		// Output vertex
-		D3DXVECTOR4& dst = *reinterpret_cast<D3DXVECTOR4*>(pDestVertex);
+		D3DVERTEX4& dst = *reinterpret_cast<D3DVERTEX4*>(pDestVertex);
 
 		// Preserve INF/NAN behavior
-		float rhw = 1.0f / h.w;
+		dst.rhw = 1.0f / h.w;
 
 		// Convert to screen-space TL coords
-		dst.x = vp.dwX + ((h.x * rhw + 1.0f) * vp.dwWidth * 0.5f);
-		dst.y = vp.dwY + ((1.0f - h.y * rhw) * vp.dwHeight * 0.5f);
-		dst.z = vp.dvMinZ + ((h.z * rhw) * (vp.dvMaxZ - vp.dvMinZ));
-		dst.w = rhw;
+		dst.sx = vp.X + (h.x * dst.rhw + 1.0f) * viewportHalfWidth;
+		dst.sy = vp.Y + (1.0f - h.y * dst.rhw) * viewportHalfHeight;
+		dst.sz = vp.MinZ + (h.z * dst.rhw) * viewportZDelta;
 
 		D3DCOLOR Diffuse = 0xFFFFFFFF, Specular = 0;	// Default diffuse to white
 
@@ -1177,10 +1177,9 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 		// Lighting
 		if (bLighting)
 		{
-			// Transform normal
-			D3DXVECTOR3 normal = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex + NormalSrcOffset);
-			D3DXVECTOR3 transformedNormal;
-			D3DXVec3TransformNormal(&transformedNormal, &normal, &matNormal);
+			// View-space position
+			D3DXVECTOR4 viewPos4;
+			D3DXVec4Transform(&viewPos4, &pos4, &matWorldView);
 
 			D3DXVECTOR3 transformedPos =
 			{
@@ -1188,6 +1187,11 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 				viewPos4.y / viewPos4.w,
 				viewPos4.z / viewPos4.w
 			};
+
+			// Transform normal
+			D3DXVECTOR3 normal = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex + NormalSrcOffset);
+			D3DXVECTOR3 transformedNormal;
+			D3DXVec3TransformNormal(&transformedNormal, &normal, &matNormal);
 
 			ComputeLighting(transformedPos, transformedNormal, cachedLights, &lsState, Diffuse, Specular);
 		}
@@ -1210,56 +1214,154 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 	return D3D_OK;
 }
 
-template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<XYZ>(m_IDirect3DDeviceX* , XYZ*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, DWORD, const VIEWPORTINFO&, D3DRECT&);
-template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<D3DLVERTEX>(m_IDirect3DDeviceX* , D3DLVERTEX*, D3DTLVERTEX*, D3DHVERTEX*, const DWORD, DWORD, const VIEWPORTINFO&, D3DRECT&);
+template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<XYZ>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, DWORD, const VIEWPORTINFO&, LPDWORD);
+template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<D3DLVERTEX>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, DWORD, const VIEWPORTINFO&, LPDWORD);
 template <typename T>
-HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, T* srcVertex, D3DTLVERTEX* destVertex, D3DHVERTEX* pHOut, const DWORD dwCount, DWORD dwFlags, const VIEWPORTINFO& Viewport, D3DRECT& drExtent)
+HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, DWORD dwFlags, const VIEWPORTINFO& Viewport, LPDWORD lpOffscreen)
 {
+	if (!lpData)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	// Check dwSize parameters
+	if (lpData->dwSize != sizeof(D3DTRANSFORMDATA))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: dwSize doesn't match: " << sizeof(D3DTRANSFORMDATA) << " -> " << lpData->dwSize);
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (!lpData->lpIn || !lpData->lpOut)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (lpData->dwInSize < sizeof(T))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: dwInSize is too small: " << sizeof(T) << " -> " << lpData->dwInSize);
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (lpData->dwOutSize < sizeof(D3DTLVERTEX))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: dwOutSize is too small: " << sizeof(D3DTLVERTEX) << " -> " << lpData->dwOutSize);
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if ((dwFlags & (D3DTRANSFORM_CLIPPED | D3DTRANSFORM_UNCLIPPED)) == 0)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid dwFlags: " << Logging::hex(dwFlags));
+		return DDERR_INVALIDPARAMS;
+	}
+
+	const bool IsClipped = (dwFlags & D3DTRANSFORM_CLIPPED) && !(dwFlags & D3DTRANSFORM_UNCLIPPED);
+
 	D3DMATRIX matWorld, matView, matProj;
-	if (FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_WORLD, &matWorld)) ||
-		FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_VIEW, &matView)) ||
-		FAILED(pDirect3DDeviceX->GetTransform(D3DTRANSFORMSTATE_PROJECTION, &matProj)))
+	if (FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_WORLD, &matWorld)) ||
+		FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_VIEW, &matView)) ||
+		FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_PROJECTION, &matProj)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get transform matrices");
 		return DDERR_GENERIC;
 	}
 
-	matProj = UpdateProjectionMatrix(matProj, Viewport.Scale, Viewport.Clip, (dwFlags & D3DTRANSFORM_CLIPPED));
+	matProj = UpdateProjectionMatrix(matProj, Viewport.Scale, Viewport.Clip, IsClipped);
 
 	D3DMATRIX matWorldView = {}, matWorldViewProj = {};
 	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
 	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
 
 	// Get viewport
-	const D3DVIEWPORT7& vp = *reinterpret_cast<const D3DVIEWPORT7*>(&Viewport.Data9);
+	const D3DVIEWPORT9& vp = Viewport.Data9;
+	const D3DVECTOR& legacyClip = Viewport.Clip;
+	const D3DVECTOR& legacyScale = Viewport.Scale;
 
-	D3DRECT newExtents = { LONG_MAX, LONG_MAX, LONG_MIN, LONG_MIN };
+	// Precalculate a few static viewport factors, to save on per-vertex cycles
+	const float viewportHalfWidth = static_cast<float>(vp.Width) * 0.5f;
+	const float viewportHalfHeight = static_cast<float>(vp.Height) * 0.5f;
+	const float viewportZDelta = vp.MaxZ - vp.MinZ;
+
+	bool allOffscreen = true;
+	DWORD clipIntersection = UINT_MAX;
+	DWORD clipUnion = 0;
+
+	D3DHVERTEX* pHOut = reinterpret_cast<D3DHVERTEX*>(lpData->lpHOut);
 
 	for (DWORD i = 0; i < dwCount; ++i)
 	{
-		// Source position
-		T& src = srcVertex[i];
-		D3DXVECTOR4 pos4(src.x, src.y, src.z, 1.0f);
-
-		// View-space position
-		D3DXVECTOR4 viewPos4;
-		D3DXVec4Transform(&viewPos4, &pos4, &matWorldView);
+		// Source position (can have arbitrary stride set by application and defined via dwInSize)
+		T& src = *(reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(lpData->lpIn) + lpData->dwInSize * i));
 
 		// Projection-space position
 		D3DXVECTOR4 h;
+		D3DXVECTOR4 pos4(src.x, src.y, src.z, 1.0f);
 		D3DXVec4Transform(&h, &pos4, &matWorldViewProj);
 
-		// Output vertex
-		D3DTLVERTEX& dst = destVertex[i];
+		// Output vertex (can have arbitrary stride set by application and defined via dwOutSize)
+		D3DTLVERTEX& dst = *(reinterpret_cast<D3DTLVERTEX*>(reinterpret_cast<uint8_t*>(lpData->lpOut) + lpData->dwOutSize * i));
+
+		if (IsClipped)
+		{
+			DWORD clipFlags = 0;
+
+			if (h.x > h.w)
+				clipFlags |= D3DCLIP_RIGHT;
+
+			if (h.x < -h.w)
+				clipFlags |= D3DCLIP_LEFT;
+
+			if (h.y > h.w)
+				clipFlags |= D3DCLIP_TOP;
+
+			if (h.y < -h.w)
+				clipFlags |= D3DCLIP_BOTTOM;
+
+			if (h.z < 0.0f)
+				clipFlags |= D3DCLIP_FRONT;
+
+			if (h.z > h.w)
+				clipFlags |= D3DCLIP_BACK;
+
+			allOffscreen &= (clipFlags != 0);
+			clipIntersection &= clipFlags;
+			clipUnion |= clipFlags;
+
+			if (clipFlags)
+			{
+				// Fill homogeneous out if the vertex is clipped
+				if (pHOut)
+				{
+					D3DHVERTEX& hdst = pHOut[i];
+
+					// Store pre-divide homogeneous coords (applying legacyClip/legacyScale here seems to be what native Windows does)
+					hdst.hx = (h.x - legacyClip.x * h.w) / legacyScale.x;
+					hdst.hy = (h.y - legacyClip.y * h.w) / legacyScale.y;
+					hdst.hz = (h.z - legacyClip.z * h.w) / legacyScale.z;
+					hdst.dwFlags = clipFlags;
+				}
+
+				// Native windows seems to do this
+				dst.sx = h.x;
+				dst.sy = h.y;
+				dst.sz = h.z;
+				dst.rhw = h.w;
+				continue;
+			}
+		}
 
 		// Preserve INF/NAN behavior
-		float rhw = 1.0f / h.w;
+		dst.rhw = 1.0f / h.w;
 
 		// Convert to screen-space TL coords
-		dst.sx = vp.dwX + ((h.x * rhw + 1.0f) * vp.dwWidth * 0.5f);
-		dst.sy = vp.dwY + ((1.0f - h.y * rhw) * vp.dwHeight * 0.5f);
-		dst.sz = vp.dvMinZ + ((h.z * rhw) * (vp.dvMaxZ - vp.dvMinZ));
-		dst.rhw = rhw;
+		dst.sx = vp.X + (h.x * dst.rhw + 1.0f) * viewportHalfWidth;
+		dst.sy = vp.Y + (1.0f - h.y * dst.rhw) * viewportHalfHeight;
+		dst.sz = vp.MinZ + (h.z * dst.rhw) * viewportZDelta;
+
+		// Set extent contains for visible vertices (disable this for now unless it is needed by some game)
+		//lpData->drExtent.x1 = min(lpData->drExtent.x1, static_cast<LONG>(floorf(dst.sx)));
+		//lpData->drExtent.y1 = min(lpData->drExtent.y1, static_cast<LONG>(floorf(dst.sy)));
+		//lpData->drExtent.x2 = max(lpData->drExtent.x2, static_cast<LONG>(ceilf(dst.sx)));
+		//lpData->drExtent.y2 = max(lpData->drExtent.y2, static_cast<LONG>(ceilf(dst.sy)));
 
 		// Default values: set for XYZ or copy for detailed vertex
 		if constexpr (std::is_same_v<T, XYZ>)
@@ -1280,44 +1382,15 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 		{
 			static_assert(false);
 		}
-
-		// Fill homogeneous out if requested
-		if (pHOut)
-		{
-			D3DHVERTEX& hdst = pHOut[i];
-			// Store pre-divide homogeneous coords
-			hdst.hx = h.x;
-			hdst.hy = h.y;
-			hdst.hz = h.z;
-			hdst.dwFlags = 0; // Clip flags not computed here (TransformVertices only sets them if clipping performed upstream)
-		}
-
-		// floor/ceil convert to integer extents
-		newExtents.x1 = min(newExtents.x1, static_cast<LONG>(floorf(dst.sx)));
-		newExtents.y1 = min(newExtents.y1, static_cast<LONG>(floorf(dst.sy)));
-		newExtents.x2 = max(newExtents.x2, static_cast<LONG>(ceilf(dst.sx)));
-		newExtents.y2 = max(newExtents.y2, static_cast<LONG>(ceilf(dst.sy)));
 	}
 
-	if (newExtents.x1 != LONG_MAX)
+	// Address of a variable that is set to a nonzero value if the resulting vertices are all off-screen.
+	if (lpOffscreen)
 	{
-		if (!IsRectZero(drExtent))
-		{
-			// Merge with existing extents if valid
-			drExtent.x1 = min(drExtent.x1, newExtents.x1);
-			drExtent.y1 = min(drExtent.y1, newExtents.y1);
-			drExtent.x2 = max(drExtent.x2, newExtents.x2);
-			drExtent.y2 = max(drExtent.y2, newExtents.y2);
-		}
-		else
-		{
-			// First valid extents
-			drExtent.x1 = newExtents.x1;
-			drExtent.y1 = newExtents.y1;
-			drExtent.x2 = newExtents.x2;
-			drExtent.y2 = newExtents.y2;
-		}
+		*lpOffscreen = IsClipped && allOffscreen ? clipIntersection | D3DSTATUS_ZNOTVISIBLE : FALSE;
 	}
+	lpData->dwClipIntersection = IsClipped ? clipIntersection << 12 : 0;
+	lpData->dwClipUnion = IsClipped ? clipUnion : 0;
 
 	return D3D_OK;
 }
@@ -1388,7 +1461,7 @@ void m_IDirect3DVertexBufferX::ComputeLighting(const D3DVECTOR& Position, const 
 
 	D3DCOLORVALUE ambient = ToColor(s->AmbientRenderState);
 
-	const float materialPower = s->UseSpecular ? s->Material.power : 0.0f;
+	const float materialPower = s->UseSpecular ? s->Material.Power : 0.0f;
 
 	// Light loop
 	for (const auto& light : lights)
@@ -1540,16 +1613,16 @@ void m_IDirect3DVertexBufferX::ComputeLighting(const D3DVECTOR& Position, const 
 	}
 
 	// Material sourcing
-	D3DCOLORVALUE materialDiffuse = Src(s->DiffuseMaterialSource, s->Material.diffuse, inDiffuse, inSpecular);
-	D3DCOLORVALUE materialSpecular = Src(s->SpecularMaterialSource, s->Material.specular, inDiffuse, inSpecular);
-	D3DCOLORVALUE materialAmbient = Src(s->AmbientMaterialSource, s->Material.ambient, inDiffuse, inSpecular);
-	D3DCOLORVALUE materialEmissive = Src(s->EmissiveMaterialSource, s->Material.emissive, inDiffuse, inSpecular);
+	D3DCOLORVALUE materialDiffuse = Src(s->DiffuseMaterialSource, s->Material.Diffuse, inDiffuse, inSpecular);
+	D3DCOLORVALUE materialSpecular = Src(s->SpecularMaterialSource, s->Material.Specular, inDiffuse, inSpecular);
+	D3DCOLORVALUE materialAmbient = Src(s->AmbientMaterialSource, s->Material.Ambient, inDiffuse, inSpecular);
+	D3DCOLORVALUE materialEmissive = Src(s->EmissiveMaterialSource, s->Material.Emissive, inDiffuse, inSpecular);
 
 	// Final combine
 	diffuse.r = (ambient.r * materialAmbient.r) + (diffuse.r * materialDiffuse.r) + materialEmissive.r;
 	diffuse.g = (ambient.g * materialAmbient.g) + (diffuse.g * materialDiffuse.g) + materialEmissive.g;
 	diffuse.b = (ambient.b * materialAmbient.b) + (diffuse.b * materialDiffuse.b) + materialEmissive.b;
-	diffuse.a = s->Material.diffuse.a;
+	diffuse.a = s->Material.Diffuse.a;
 
 	specular.r *= materialSpecular.r;
 	specular.g *= materialSpecular.g;

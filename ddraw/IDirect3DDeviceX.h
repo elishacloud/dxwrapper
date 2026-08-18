@@ -263,25 +263,21 @@ private:
 
 	HRESULT SetTextureHandle(DWORD TexHandle);
 	HRESULT SetMaterialHandle(DWORD MatHandle);
-	inline HRESULT GetStateBlockRenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue);
-	inline HRESULT SetStateBlockRenderState(D3DRENDERSTATETYPE State, DWORD Value);
-	inline HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue);
-	inline HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
-	inline HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue);
-	inline HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
-	inline HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue);
-	inline HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
+	HRESULT GetStateBlockRenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue);
+	HRESULT SetStateBlockRenderState(D3DRENDERSTATETYPE State, DWORD Value);
+	HRESULT SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Value);
+	HRESULT GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, LPDWORD lpValue);
+	HRESULT SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value);
+	HRESULT GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, LPDWORD lpValue);
+	HRESULT SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value);
 	HRESULT GetD9Light(DWORD Index, D3DLIGHT9* lpLight);
 	HRESULT SetD9Light(DWORD Index, const D3DLIGHT9* lpLight);
 	HRESULT GetD9LightEnable(DWORD Index, LPBOOL lpEnable);
 	HRESULT D9LightEnable(DWORD Index, BOOL Enable);
 	HRESULT GetD9ClipPlane(DWORD Index, float* lpPlane);
 	HRESULT SetD9ClipPlane(DWORD Index, const float* lpPlane);
-	HRESULT GetD9Viewport(D3DVIEWPORT9* lpViewport);
 	HRESULT SetD9Viewport(const D3DVIEWPORT9* lpViewport);
-	HRESULT GetD9Material(D3DMATERIAL9* lpMaterial);
 	HRESULT SetD9Material(const D3DMATERIAL9* lpMaterial);
-	HRESULT GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* lpMatrix);
 	HRESULT SetD9Transform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* lpMatrix);
 	HRESULT D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* pMatrix);
 
@@ -507,6 +503,11 @@ public:
 		}
 		return false;
 	}
+
+	HRESULT GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD lpValue);
+	HRESULT GetD9Viewport(D3DVIEWPORT9* lpViewport);
+	HRESULT GetD9Material(D3DMATERIAL9* lpMaterial);
+	HRESULT GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* lpMatrix);
 
 	// Viewport vector functions
 	HRESULT SetViewportData(VIEWPORTINFO& Viewport);

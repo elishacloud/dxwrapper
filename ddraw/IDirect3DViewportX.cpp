@@ -290,22 +290,16 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 			return D3D_OK;
 		}
 
-		if (!lpData || !lpData->lpIn || !lpData->lpOut)
+		if (!lpData)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check dwSize parameters
-		if (lpData->dwSize != sizeof(D3DTRANSFORMDATA) ||
-			lpData->dwOutSize != sizeof(D3DTLVERTEX))
+		if (!IsViewportDataSet)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: dwSize doesn't match: " <<
-				sizeof(D3DTRANSFORMDATA) << " -> " << lpData->dwSize <<
-				" dwOutSize: " << sizeof(D3DTLVERTEX) << " -> " << lpData->dwOutSize);
-			return DDERR_INVALIDPARAMS;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: viewport data not set!");
+			return D3DERR_VIEWPORTDATANOTSET;
 		}
-
-		// D3DTRANSFORM_UNCLIPPED: flag can be safily ignored
 
 		if (AttachedD3DDevices.empty())
 		{
@@ -317,7 +311,7 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 		if (!pDirect3DDeviceX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3DDeviceX interface!");
-			return DDERR_GENERIC;
+			return D3DERR_VIEWPORTHASNODEVICE;
 		}
 
 		if (AttachedD3DDevices.size() > 1)
@@ -329,30 +323,19 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		D3DTLVERTEX* pOut = reinterpret_cast<D3DTLVERTEX*>(lpData->lpOut);
-		D3DHVERTEX* pHOut = reinterpret_cast<D3DHVERTEX*>(lpData->lpHOut);
-
 		HRESULT hr;
 		if (lpData->dwInSize == sizeof(XYZ))
 		{
-			XYZ* pIn = reinterpret_cast<XYZ*>(lpData->lpIn);
-			hr = m_IDirect3DVertexBufferX::TransformVertexUP(pDirect3DDeviceX, pIn, pOut, pHOut, dwVertexCount, dwFlags, Viewport, lpData->drExtent);
+			hr = m_IDirect3DVertexBufferX::TransformVertexUP<XYZ>(pDirect3DDeviceX, dwVertexCount, lpData, dwFlags, Viewport, lpOffscreen);
 		}
-		else if (lpData->dwInSize == sizeof(D3DLVERTEX))
+		else if (lpData->dwInSize >= sizeof(D3DLVERTEX))
 		{
-			D3DLVERTEX* pIn = reinterpret_cast<D3DLVERTEX*>(lpData->lpIn);
-			hr = m_IDirect3DVertexBufferX::TransformVertexUP(pDirect3DDeviceX, pIn, pOut, pHOut, dwVertexCount, dwFlags, Viewport, lpData->drExtent);
+			hr = m_IDirect3DVertexBufferX::TransformVertexUP<D3DLVERTEX>(pDirect3DDeviceX, dwVertexCount, lpData, dwFlags, Viewport, lpOffscreen);
 		}
 		else
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: dwSize doesn't match: " << " dwInSize: " << sizeof(D3DLVERTEX) << " -> " << lpData->dwInSize);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid dwInSize: " << " D3DLVERTEX: " << sizeof(D3DLVERTEX) << " -> " << lpData->dwInSize);
 			hr = DDERR_INVALIDPARAMS;
-		}
-
-		//Address of a variable that is set to a nonzero value if the resulting vertices are all off-screen.
-		if (lpOffscreen)
-		{
-			*lpOffscreen = 0;
 		}
 
 #ifdef ENABLE_PROFILING

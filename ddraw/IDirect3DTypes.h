@@ -352,6 +352,10 @@ struct XYZ
     float x, y, z;
 };
 
+struct D3DVERTEX4 {
+    float sx, sy, sz, rhw;
+};
+
 struct CTUV
 {
     D3DCOLOR diffuse, specular;

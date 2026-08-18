@@ -51,7 +51,7 @@ private:
 
 		D3DMATRIX ViewMatrix;
 
-		D3DMATERIAL7 Material;
+		D3DMATERIAL9 Material;
 	};
 
 	// Direct3D9 interface functions
@@ -160,6 +160,6 @@ public:
 	static HRESULT InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, const DWORD dwVertexStart, const DWORD dwNumVertices, const DWORD dwVertexTypeDesc);
 	static HRESULT ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVertexTypeDesc, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags);
 	template <typename T>
-	static HRESULT TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, T* srcVertex, D3DTLVERTEX* destVertex, D3DHVERTEX* pHOut, const DWORD dwCount, DWORD dwFlags, const VIEWPORTINFO& Viewport, D3DRECT& drExtent);
+	static HRESULT TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, DWORD dwFlags, const VIEWPORTINFO& Viewport, LPDWORD lpOffscreen);
 	static void ComputeLighting(const D3DVECTOR& Position, const D3DVECTOR& Normal, const std::vector<DXLIGHT7>& lights, const LightingState* s, D3DCOLOR& inoutColor, D3DCOLOR& inoutSpecular);
 };
