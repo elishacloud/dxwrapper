@@ -1000,6 +1000,176 @@ HRESULT m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, 
 	return D3D_OK;
 }
 
+template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<XYZ>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, DWORD, const VIEWPORTINFO&, LPDWORD);
+template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<D3DLVERTEX>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, DWORD, const VIEWPORTINFO&, LPDWORD);
+template <typename T>
+HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, DWORD dwFlags, const VIEWPORTINFO& Viewport, LPDWORD lpOffscreen)
+{
+	if (!lpData || !pDirect3DDeviceX)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	// Check dwSize parameters
+	if (lpData->dwSize != sizeof(D3DTRANSFORMDATA))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: dwSize doesn't match: " << sizeof(D3DTRANSFORMDATA) << " -> " << lpData->dwSize);
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (!lpData->lpIn || !lpData->lpOut)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (lpData->dwInSize < sizeof(T))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: dwInSize is too small: " << sizeof(T) << " -> " << lpData->dwInSize);
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (lpData->dwOutSize < sizeof(D3DTLVERTEX))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: dwOutSize is too small: " << sizeof(D3DTLVERTEX) << " -> " << lpData->dwOutSize);
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if ((dwFlags & (D3DTRANSFORM_CLIPPED | D3DTRANSFORM_UNCLIPPED)) == 0)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid dwFlags: " << Logging::hex(dwFlags));
+		return DDERR_INVALIDPARAMS;
+	}
+
+	const bool IsClipped = (dwFlags & D3DTRANSFORM_CLIPPED) && !(dwFlags & D3DTRANSFORM_UNCLIPPED);
+
+	if (IsClipped && !lpData->lpHOut)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: lpHOut is null when clipping!");
+		return DDERR_INVALIDPARAMS;
+	}
+
+	D3DMATRIX matWorld, matView, matProj;
+	if (FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_WORLD, &matWorld)) ||
+		FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_VIEW, &matView)) ||
+		FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_PROJECTION, &matProj)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get transform matrices");
+		return DDERR_GENERIC;
+	}
+
+	matProj = UpdateProjectionMatrix(matProj, Viewport.Scale, Viewport.Clip, IsClipped);
+
+	D3DMATRIX matWorldView = {}, matWorldViewProj = {};
+	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
+	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
+
+	// Get viewport
+	const D3DVIEWPORT9& vp = Viewport.Data9;
+	const D3DVECTOR& legacyClip = Viewport.Clip;
+	const D3DVECTOR& legacyScale = Viewport.Scale;
+
+	// Precalculate a few static viewport factors, to save on per-vertex cycles
+	const float viewportHalfWidth = static_cast<float>(vp.Width) * 0.5f;
+	const float viewportHalfHeight = static_cast<float>(vp.Height) * 0.5f;
+	const float viewportZDelta = vp.MaxZ - vp.MinZ;
+
+	bool allOffscreen = true;
+	DWORD clipIntersection = UINT_MAX;
+	DWORD clipUnion = 0;
+
+	D3DHVERTEX* pHOut = reinterpret_cast<D3DHVERTEX*>(lpData->lpHOut);
+
+	for (DWORD i = 0; i < dwCount; ++i)
+	{
+		// Source position (can have arbitrary stride set by application and defined via dwInSize)
+		T& src = *(reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(lpData->lpIn) + lpData->dwInSize * i));
+
+		// Projection-space position
+		D3DXVECTOR4 h = TransformVector4(src.x, src.y, src.z, 1.0f, matWorldViewProj);
+
+		// Output vertex (can have arbitrary stride set by application and defined via dwOutSize)
+		D3DTLVERTEX& dst = *(reinterpret_cast<D3DTLVERTEX*>(reinterpret_cast<uint8_t*>(lpData->lpOut) + lpData->dwOutSize * i));
+
+		if (IsClipped)
+		{
+			DWORD clipFlags =
+				(h.x > h.w) * D3DCLIP_RIGHT |
+				(h.x < -h.w) * D3DCLIP_LEFT |
+				(h.y > h.w) * D3DCLIP_TOP |
+				(h.y < -h.w) * D3DCLIP_BOTTOM |
+				(h.z < 0.0f) * D3DCLIP_FRONT |
+				(h.z > h.w) * D3DCLIP_BACK;
+
+			allOffscreen &= (clipFlags != 0);
+			clipIntersection &= clipFlags;
+			clipUnion |= clipFlags;
+
+			if (clipFlags)
+			{
+				// Fill homogeneous out if the vertex is clipped
+				D3DHVERTEX& hdst = pHOut[i];
+
+				// Store pre-divide homogeneous coords (applying legacyClip/legacyScale here seems to be what native Windows does)
+				hdst.hx = (h.x - legacyClip.x * h.w) / legacyScale.x;
+				hdst.hy = (h.y - legacyClip.y * h.w) / legacyScale.y;
+				hdst.hz = (h.z - legacyClip.z * h.w) / legacyScale.z;
+				hdst.dwFlags = clipFlags;
+
+				// Native windows seems to do this
+				dst.sx = h.x;
+				dst.sy = h.y;
+				dst.sz = h.z;
+				dst.rhw = h.w;
+				continue;
+			}
+		}
+
+		// Preserve INF/NAN behavior
+		dst.rhw = 1.0f / h.w;
+
+		// Convert to screen-space TL coords
+		dst.sx = vp.X + (h.x * dst.rhw + 1.0f) * viewportHalfWidth;
+		dst.sy = vp.Y + (1.0f - h.y * dst.rhw) * viewportHalfHeight;
+		dst.sz = vp.MinZ + (h.z * dst.rhw) * viewportZDelta;
+
+		// Set extent contains for visible vertices (disable this for now unless it is needed by some game)
+		//lpData->drExtent.x1 = min(lpData->drExtent.x1, static_cast<LONG>(floorf(dst.sx)));
+		//lpData->drExtent.y1 = min(lpData->drExtent.y1, static_cast<LONG>(floorf(dst.sy)));
+		//lpData->drExtent.x2 = max(lpData->drExtent.x2, static_cast<LONG>(ceilf(dst.sx)));
+		//lpData->drExtent.y2 = max(lpData->drExtent.y2, static_cast<LONG>(ceilf(dst.sy)));
+
+		// Default values: set for XYZ or copy for detailed vertex
+		if constexpr (std::is_same_v<T, XYZ>)
+		{
+			dst.color = 0xFFFFFFFF;	// Default color to white
+			dst.specular = 0;
+			dst.tu = 0.0f;
+			dst.tv = 0.0f;
+		}
+		else if constexpr (std::is_same_v<T, D3DLVERTEX>)
+		{
+			dst.color = src.color;
+			dst.specular = src.specular;
+			dst.tu = src.tu;
+			dst.tv = src.tv;
+		}
+		else
+		{
+			static_assert(false);
+		}
+	}
+
+	// Address of a variable that is set to a nonzero value if the resulting vertices are all off-screen.
+	if (lpOffscreen)
+	{
+		*lpOffscreen = IsClipped && allOffscreen ? clipIntersection | D3DSTATUS_ZNOTVISIBLE : FALSE;
+	}
+	lpData->dwClipIntersection = IsClipped ? clipIntersection << 12 : 0;
+	lpData->dwClipUnion = IsClipped ? clipUnion : 0;
+
+	return D3D_OK;
+}
+
 HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVertexTypeDesc, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, m_IDirect3DDeviceX* pDirect3DDeviceX, DWORD dwFlags)
 {
 	if (!lpDestBuffer || !lpSrcBuffer || !pDirect3DDeviceX)
@@ -1297,176 +1467,6 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 		pSrcVertex += SrcStride;
 		pDestVertex += DestStride;
 	}
-
-	return D3D_OK;
-}
-
-template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<XYZ>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, DWORD, const VIEWPORTINFO&, LPDWORD);
-template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<D3DLVERTEX>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, DWORD, const VIEWPORTINFO&, LPDWORD);
-template <typename T>
-HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, DWORD dwFlags, const VIEWPORTINFO& Viewport, LPDWORD lpOffscreen)
-{
-	if (!lpData || !pDirect3DDeviceX)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
-	// Check dwSize parameters
-	if (lpData->dwSize != sizeof(D3DTRANSFORMDATA))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: dwSize doesn't match: " << sizeof(D3DTRANSFORMDATA) << " -> " << lpData->dwSize);
-		return DDERR_INVALIDPARAMS;
-	}
-
-	if (!lpData->lpIn || !lpData->lpOut)
-	{
-		return DDERR_INVALIDPARAMS;
-	}
-
-	if (lpData->dwInSize < sizeof(T))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: dwInSize is too small: " << sizeof(T) << " -> " << lpData->dwInSize);
-		return DDERR_INVALIDPARAMS;
-	}
-
-	if (lpData->dwOutSize < sizeof(D3DTLVERTEX))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: dwOutSize is too small: " << sizeof(D3DTLVERTEX) << " -> " << lpData->dwOutSize);
-		return DDERR_INVALIDPARAMS;
-	}
-
-	if ((dwFlags & (D3DTRANSFORM_CLIPPED | D3DTRANSFORM_UNCLIPPED)) == 0)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid dwFlags: " << Logging::hex(dwFlags));
-		return DDERR_INVALIDPARAMS;
-	}
-
-	const bool IsClipped = (dwFlags & D3DTRANSFORM_CLIPPED) && !(dwFlags & D3DTRANSFORM_UNCLIPPED);
-
-	if (IsClipped && !lpData->lpHOut)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: lpHOut is null when clipping!");
-		return DDERR_INVALIDPARAMS;
-	}
-
-	D3DMATRIX matWorld, matView, matProj;
-	if (FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_WORLD, &matWorld)) ||
-		FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_VIEW, &matView)) ||
-		FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_PROJECTION, &matProj)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get transform matrices");
-		return DDERR_GENERIC;
-	}
-
-	matProj = UpdateProjectionMatrix(matProj, Viewport.Scale, Viewport.Clip, IsClipped);
-
-	D3DMATRIX matWorldView = {}, matWorldViewProj = {};
-	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
-	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
-
-	// Get viewport
-	const D3DVIEWPORT9& vp = Viewport.Data9;
-	const D3DVECTOR& legacyClip = Viewport.Clip;
-	const D3DVECTOR& legacyScale = Viewport.Scale;
-
-	// Precalculate a few static viewport factors, to save on per-vertex cycles
-	const float viewportHalfWidth = static_cast<float>(vp.Width) * 0.5f;
-	const float viewportHalfHeight = static_cast<float>(vp.Height) * 0.5f;
-	const float viewportZDelta = vp.MaxZ - vp.MinZ;
-
-	bool allOffscreen = true;
-	DWORD clipIntersection = UINT_MAX;
-	DWORD clipUnion = 0;
-
-	D3DHVERTEX* pHOut = reinterpret_cast<D3DHVERTEX*>(lpData->lpHOut);
-
-	for (DWORD i = 0; i < dwCount; ++i)
-	{
-		// Source position (can have arbitrary stride set by application and defined via dwInSize)
-		T& src = *(reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(lpData->lpIn) + lpData->dwInSize * i));
-
-		// Projection-space position
-		D3DXVECTOR4 h = TransformVector4(src.x, src.y, src.z, 1.0f, matWorldViewProj);
-
-		// Output vertex (can have arbitrary stride set by application and defined via dwOutSize)
-		D3DTLVERTEX& dst = *(reinterpret_cast<D3DTLVERTEX*>(reinterpret_cast<uint8_t*>(lpData->lpOut) + lpData->dwOutSize * i));
-
-		if (IsClipped)
-		{
-			DWORD clipFlags =
-				(h.x > h.w) * D3DCLIP_RIGHT |
-				(h.x < -h.w) * D3DCLIP_LEFT |
-				(h.y > h.w) * D3DCLIP_TOP |
-				(h.y < -h.w) * D3DCLIP_BOTTOM |
-				(h.z < 0.0f) * D3DCLIP_FRONT |
-				(h.z > h.w) * D3DCLIP_BACK;
-
-			allOffscreen &= (clipFlags != 0);
-			clipIntersection &= clipFlags;
-			clipUnion |= clipFlags;
-
-			if (clipFlags)
-			{
-				// Fill homogeneous out if the vertex is clipped
-				D3DHVERTEX& hdst = pHOut[i];
-
-				// Store pre-divide homogeneous coords (applying legacyClip/legacyScale here seems to be what native Windows does)
-				hdst.hx = (h.x - legacyClip.x * h.w) / legacyScale.x;
-				hdst.hy = (h.y - legacyClip.y * h.w) / legacyScale.y;
-				hdst.hz = (h.z - legacyClip.z * h.w) / legacyScale.z;
-				hdst.dwFlags = clipFlags;
-
-				// Native windows seems to do this
-				dst.sx = h.x;
-				dst.sy = h.y;
-				dst.sz = h.z;
-				dst.rhw = h.w;
-				continue;
-			}
-		}
-
-		// Preserve INF/NAN behavior
-		dst.rhw = 1.0f / h.w;
-
-		// Convert to screen-space TL coords
-		dst.sx = vp.X + (h.x * dst.rhw + 1.0f) * viewportHalfWidth;
-		dst.sy = vp.Y + (1.0f - h.y * dst.rhw) * viewportHalfHeight;
-		dst.sz = vp.MinZ + (h.z * dst.rhw) * viewportZDelta;
-
-		// Set extent contains for visible vertices (disable this for now unless it is needed by some game)
-		//lpData->drExtent.x1 = min(lpData->drExtent.x1, static_cast<LONG>(floorf(dst.sx)));
-		//lpData->drExtent.y1 = min(lpData->drExtent.y1, static_cast<LONG>(floorf(dst.sy)));
-		//lpData->drExtent.x2 = max(lpData->drExtent.x2, static_cast<LONG>(ceilf(dst.sx)));
-		//lpData->drExtent.y2 = max(lpData->drExtent.y2, static_cast<LONG>(ceilf(dst.sy)));
-
-		// Default values: set for XYZ or copy for detailed vertex
-		if constexpr (std::is_same_v<T, XYZ>)
-		{
-			dst.color = 0xFFFFFFFF;	// Default color to white
-			dst.specular = 0;
-			dst.tu = 0.0f;
-			dst.tv = 0.0f;
-		}
-		else if constexpr (std::is_same_v<T, D3DLVERTEX>)
-		{
-			dst.color = src.color;
-			dst.specular = src.specular;
-			dst.tu = src.tu;
-			dst.tv = src.tv;
-		}
-		else
-		{
-			static_assert(false);
-		}
-	}
-
-	// Address of a variable that is set to a nonzero value if the resulting vertices are all off-screen.
-	if (lpOffscreen)
-	{
-		*lpOffscreen = IsClipped && allOffscreen ? clipIntersection | D3DSTATUS_ZNOTVISIBLE : FALSE;
-	}
-	lpData->dwClipIntersection = IsClipped ? clipIntersection << 12 : 0;
-	lpData->dwClipUnion = IsClipped ? clipUnion : 0;
 
 	return D3D_OK;
 }
