@@ -386,7 +386,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		}
 		dwCount = min(dwCount, SrcNumVertices - dwSrcIndex);
 
-		const BOOL doLighting = (dwVertexOp & D3DVOP_LIGHT) && (dwSrcVertexTypeDesc & D3DFVF_NORMAL) && pDirect3DDeviceX->IsMaterialSet() ? TRUE : FALSE;
+		const BOOL doLighting = (dwVertexOp & D3DVOP_LIGHT) && (dwSrcVertexTypeDesc & D3DFVF_NORMAL) && pDirect3DDeviceX->IsMaterialEnabled() ? TRUE : FALSE;
 		if (!doLighting)
 		{
 			dwVertexOp &= ~D3DVOP_LIGHT;
@@ -1202,7 +1202,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 	}
 
 	// If the rendering device does not have a material assigned to it, the Direct3D lighting engine is disabled.
-	bool bLighting = (dwVertexOp & D3DVOP_LIGHT) && (SrcFVF & D3DFVF_NORMAL) && pDirect3DDeviceX->IsMaterialSet();
+	bool bLighting = (dwVertexOp & D3DVOP_LIGHT) && (SrcFVF & D3DFVF_NORMAL) && pDirect3DDeviceX->IsMaterialEnabled();
 	bool DoNotCopyData = (dwFlags & D3DPV_DONOTCOPYDATA) != 0;
 
 	// Check lighting state

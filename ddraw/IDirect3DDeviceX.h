@@ -50,6 +50,7 @@ private:
 	};
 	struct MATERIALSTRUCT {
 		bool Set = false;
+		bool Enabled = false;
 		D3DMATERIAL9 Material = {};
 	};
 	struct DEVICESTATE {
@@ -526,7 +527,7 @@ public:
 	void ClearMaterialHandle(D3DMATERIALHANDLE mHandle);
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial);
 	bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == DeviceStates.LightState[D3DLIGHTSTATE_MATERIAL]); }
-	inline bool IsMaterialSet() const { return DeviceStates.Material.Set; };
+	inline bool IsMaterialEnabled() const { return DeviceStates.Material.Enabled; };
 	inline m_IDirect3DMaterialX* GetMaterialFromHandle(D3DMATERIALHANDLE MaterialHandle) { return GetMaterial(MaterialHandle); }
 
 	// Matrix functions
