@@ -525,6 +525,7 @@ public:
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial);
 	bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == DeviceStates.LightState[D3DLIGHTSTATE_MATERIAL]); }
 	inline bool IsMaterialSet() const { return DeviceStates.Material.Set; };
+	inline m_IDirect3DMaterialX* GetMaterialFromHandle(D3DMATERIALHANDLE MaterialHandle) { return GetMaterial(MaterialHandle); }
 
 	// Matrix functions
 	D3DMATRIX GetUpdatedProjectionMatrix(const D3DMATRIX& DeviceMatrix, bool SetClipping) const;

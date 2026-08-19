@@ -448,6 +448,39 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 			return D3DERR_VIEWPORTHASNODEVICE;
 		}
 
+		// Get clear color
+		DWORD Color = 0x00000000;
+		if (dwFlags & D3DCLEAR_TARGET)
+		{
+			if (!MaterialBackground.IsSet || !MaterialBackground.hMat)
+			{
+				Logging::Log() << __FUNCTION__ << " Warning: No background material set!";
+			}
+			else
+			{
+				D3DMATERIAL Material = {};
+				Material.dwSize = sizeof(D3DMATERIAL);
+
+				m_IDirect3DMaterialX* pMaterialX = nullptr;
+				for (auto& entry : AttachedD3DDevices)
+				{
+					pMaterialX = entry->GetMaterialFromHandle(MaterialBackground.hMat);
+					if (pMaterialX)
+					{
+						break;
+					}
+				}
+				if (pMaterialX && SUCCEEDED(pMaterialX->GetMaterial(&Material)))
+				{
+					Color = D3DRGBA(Material.diffuse.r, Material.diffuse.g, Material.diffuse.b, Material.diffuse.a);
+				}
+				else
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to get material!");
+				}
+			}
+		}
+
 		for (auto& entry : AttachedD3DDevices)
 		{
 			// Get device viewport
@@ -460,7 +493,7 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 			GetAttachedBufferDetails(entry, HasAttachedZBuffer, HasAttachedStencil);
 
 			// Unlike Clear2(), Clear() isn't supposed to error out on zbuffer or stencil clears when no zbuffer or stencil is attached
-			DWORD Flags = (dwFlags & ~(D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL))
+			const DWORD Flags = (dwFlags & ~(D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL))
 				| (HasAttachedZBuffer ? (dwFlags & D3DCLEAR_ZBUFFER) : 0)
 				| (HasAttachedStencil ? (dwFlags & D3DCLEAR_STENCIL) : 0);
 
@@ -471,7 +504,7 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 			}
 
 			// Clear device
-			entry->Clear(Viewport9, dwCount, lpRects, Flags, 0x00000000, 1.0f, 0);
+			entry->Clear(Viewport9, dwCount, lpRects, Flags, Color, 1.0f, 0);
 		}
 
 		return D3D_OK;
