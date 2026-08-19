@@ -365,11 +365,11 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		}
 
 		// Get FVF
-		DWORD dwSrcVertexTypeDesc = pSrcVertexBufferX->VB.Desc.dwFVF;
-		DWORD dwDestVertexTypeDesc = VB.Desc.dwFVF;
+		const DWORD dwSrcVertexTypeDesc = pSrcVertexBufferX->VB.Desc.dwFVF;
+		const DWORD dwDestVertexTypeDesc = VB.Desc.dwFVF;
 
 		// Validate destination range
-		DWORD DestNumVertices = VB.Desc.dwNumVertices;
+		const DWORD DestNumVertices = VB.Desc.dwNumVertices;
 		if (dwDestIndex >= DestNumVertices)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: destination vertex index is too large: " << DestNumVertices << " -> " << dwDestIndex);
@@ -378,7 +378,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		dwCount = min(dwCount, DestNumVertices - dwDestIndex);
 
 		// Check the dwSrcIndex and dwCount to make sure they won't cause an overload
-		DWORD SrcNumVertices = pSrcVertexBufferX->VB.Desc.dwNumVertices;
+		const DWORD SrcNumVertices = pSrcVertexBufferX->VB.Desc.dwNumVertices;
 		if (dwSrcIndex > SrcNumVertices)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: source vertex index is too large: " << SrcNumVertices << " -> " << dwSrcIndex);
@@ -565,10 +565,10 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 #endif
 
 		// Get FVF
-		DWORD dwDestVertexTypeDesc = VB.Desc.dwFVF;
+		const DWORD dwDestVertexTypeDesc = VB.Desc.dwFVF;
 
 		// Validate destination range
-		DWORD DestNumVertices = VB.Desc.dwNumVertices;
+		const DWORD DestNumVertices = VB.Desc.dwNumVertices;
 		if (dwDestIndex >= DestNumVertices)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: destination vertex index is too large: " << DestNumVertices << " -> " << dwDestIndex);
@@ -577,7 +577,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 		dwCount = min(dwCount, DestNumVertices - dwDestIndex);
 
 		// Get source vars
-		DWORD dwSrcVertexTypeDesc = GetStridedVertexTypeDesc(lpVertexArray);
+		const DWORD dwSrcVertexTypeDesc = GetStridedVertexTypeDesc(lpVertexArray);
 		std::vector<BYTE, aligned_allocator<BYTE, 4>> SrcVertexCache;
 
 		if (D3DFVF_TEXCOUNT(dwSrcVertexTypeDesc) != D3DFVF_TEXCOUNT(dwDestVertexTypeDesc))
@@ -1234,9 +1234,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 		D3DXVECTOR3& src = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex);
 
 		// Projection-space position
-		D3DXVECTOR4 h;
-		D3DXVECTOR4 pos4(src.x, src.y, src.z, 1.0f);
-		D3DXVec4Transform(&h, &pos4, &matWorldViewProj);
+		D3DXVECTOR4 h = TransformVector4(src.x, src.y, src.z, 1.0f, matWorldViewProj);
 
 		// Output vertex
 		D3DVERTEX4& dst = *reinterpret_cast<D3DVERTEX4*>(pDestVertex);
@@ -1268,8 +1266,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 		if (bLighting)
 		{
 			// View-space position
-			D3DXVECTOR4 viewPos4;
-			D3DXVec4Transform(&viewPos4, &pos4, &matWorldView);
+			D3DXVECTOR4 viewPos4 = TransformVector4(src.x, src.y, src.z, 1.0f, matWorldView);
 
 			D3DXVECTOR3 transformedPos =
 			{
@@ -1346,6 +1343,12 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 
 	const bool IsClipped = (dwFlags & D3DTRANSFORM_CLIPPED) && !(dwFlags & D3DTRANSFORM_UNCLIPPED);
 
+	if (IsClipped && !lpData->lpHOut)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: lpHOut is null when clipping!");
+		return DDERR_INVALIDPARAMS;
+	}
+
 	D3DMATRIX matWorld, matView, matProj;
 	if (FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_WORLD, &matWorld)) ||
 		FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_VIEW, &matView)) ||
@@ -1383,34 +1386,20 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 		T& src = *(reinterpret_cast<T*>(reinterpret_cast<uint8_t*>(lpData->lpIn) + lpData->dwInSize * i));
 
 		// Projection-space position
-		D3DXVECTOR4 h;
-		D3DXVECTOR4 pos4(src.x, src.y, src.z, 1.0f);
-		D3DXVec4Transform(&h, &pos4, &matWorldViewProj);
+		D3DXVECTOR4 h = TransformVector4(src.x, src.y, src.z, 1.0f, matWorldViewProj);
 
 		// Output vertex (can have arbitrary stride set by application and defined via dwOutSize)
 		D3DTLVERTEX& dst = *(reinterpret_cast<D3DTLVERTEX*>(reinterpret_cast<uint8_t*>(lpData->lpOut) + lpData->dwOutSize * i));
 
 		if (IsClipped)
 		{
-			DWORD clipFlags = 0;
-
-			if (h.x > h.w)
-				clipFlags |= D3DCLIP_RIGHT;
-
-			if (h.x < -h.w)
-				clipFlags |= D3DCLIP_LEFT;
-
-			if (h.y > h.w)
-				clipFlags |= D3DCLIP_TOP;
-
-			if (h.y < -h.w)
-				clipFlags |= D3DCLIP_BOTTOM;
-
-			if (h.z < 0.0f)
-				clipFlags |= D3DCLIP_FRONT;
-
-			if (h.z > h.w)
-				clipFlags |= D3DCLIP_BACK;
+			DWORD clipFlags =
+				(h.x > h.w) * D3DCLIP_RIGHT |
+				(h.x < -h.w) * D3DCLIP_LEFT |
+				(h.y > h.w) * D3DCLIP_TOP |
+				(h.y < -h.w) * D3DCLIP_BOTTOM |
+				(h.z < 0.0f) * D3DCLIP_FRONT |
+				(h.z > h.w) * D3DCLIP_BACK;
 
 			allOffscreen &= (clipFlags != 0);
 			clipIntersection &= clipFlags;
@@ -1419,16 +1408,13 @@ HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3
 			if (clipFlags)
 			{
 				// Fill homogeneous out if the vertex is clipped
-				if (pHOut)
-				{
-					D3DHVERTEX& hdst = pHOut[i];
+				D3DHVERTEX& hdst = pHOut[i];
 
-					// Store pre-divide homogeneous coords (applying legacyClip/legacyScale here seems to be what native Windows does)
-					hdst.hx = (h.x - legacyClip.x * h.w) / legacyScale.x;
-					hdst.hy = (h.y - legacyClip.y * h.w) / legacyScale.y;
-					hdst.hz = (h.z - legacyClip.z * h.w) / legacyScale.z;
-					hdst.dwFlags = clipFlags;
-				}
+				// Store pre-divide homogeneous coords (applying legacyClip/legacyScale here seems to be what native Windows does)
+				hdst.hx = (h.x - legacyClip.x * h.w) / legacyScale.x;
+				hdst.hy = (h.y - legacyClip.y * h.w) / legacyScale.y;
+				hdst.hz = (h.z - legacyClip.z * h.w) / legacyScale.z;
+				hdst.dwFlags = clipFlags;
 
 				// Native windows seems to do this
 				dst.sx = h.x;

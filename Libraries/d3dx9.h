@@ -442,6 +442,22 @@ inline FLOAT D3DXVec3LengthSq(const D3DXVECTOR3* v)
 		v->y * v->y +
 		v->z * v->z;
 }
+inline D3DXVECTOR4 TransformVector4(float x, float y, float z, float w, const D3DMATRIX& m)
+{
+	return D3DXVECTOR4(
+		x * m._11 + y * m._21 + z * m._31 + w * m._41,
+		x * m._12 + y * m._22 + z * m._32 + w * m._42,
+		x * m._13 + y * m._23 + z * m._33 + w * m._43,
+		x * m._14 + y * m._24 + z * m._34 + w * m._44);
+}
+inline D3DXVECTOR4 TransformVector4(const D3DXVECTOR4& v, const D3DMATRIX& m)
+{
+	return D3DXVECTOR4(
+		v.x * m._11 + v.y * m._21 + v.z * m._31 + v.w * m._41,
+		v.x * m._12 + v.y * m._22 + v.z * m._32 + v.w * m._42,
+		v.x * m._13 + v.y * m._23 + v.z * m._33 + v.w * m._43,
+		v.x * m._14 + v.y * m._24 + v.z * m._34 + v.w * m._44);
+}
 
 // Defined functions
 HRESULT WINAPI D3DXLoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSurface, const PALETTEENTRY* pDestPalette, const RECT* pDestRect, LPCVOID pSrcMemory, D3DFORMAT SrcFormat, UINT SrcPitch, const PALETTEENTRY* pSrcPalette, const RECT* pSrcRect, DWORD Filter, D3DCOLOR ColorKey);
