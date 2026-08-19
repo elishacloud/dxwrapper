@@ -157,6 +157,7 @@ public:
 	DWORD GetFVF9() const { return d3d9VBDesc.FVF; };
 
 	// Static functions
+	static DWORD GetStridedVertexTypeDesc(const D3DDRAWPRIMITIVESTRIDEDDATA* sd);
 	static HRESULT InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, const DWORD dwVertexStart, const DWORD dwNumVertices, const DWORD dwVertexTypeDesc);
 	static HRESULT ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVertexTypeDesc, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, m_IDirect3DDeviceX* pDirect3DDeviceX, DWORD dwFlags);
 	template <typename T>

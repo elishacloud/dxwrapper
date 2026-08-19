@@ -323,10 +323,10 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// DX7 says D3DVOP_CLIP cannot be used with a VB that has D3DVBCAPS_DONOTCLIP set
+		// Docs state that D3DVOP_CLIP cannot be used with a vertex buffer created with the D3DVBCAPS_DONOTCLIP flag
 		if ((dwVertexOp & D3DVOP_CLIP) && !(VB.Desc.dwCaps & D3DVBCAPS_DONOTCLIP))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DVOP_CLIP specified when source vertex buffer was created with D3DVBCAPS_DONOTCLIP!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DVOP_CLIP specified when vertex buffer was created with D3DVBCAPS_DONOTCLIP!");
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -358,9 +358,11 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 			return DDERR_GENERIC;
 		}
 
-#ifdef ENABLE_PROFILING
-		auto startTime = std::chrono::high_resolution_clock::now();
-#endif
+		// Check source vertex buffer for device interface
+		if (FAILED(pSrcVertexBufferX->CheckInterface(__FUNCTION__, true, true)))
+		{
+			return DDERR_GENERIC;
+		}
 
 		// Get FVF
 		DWORD dwSrcVertexTypeDesc = pSrcVertexBufferX->VB.Desc.dwFVF;
@@ -384,31 +386,28 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		}
 		dwCount = min(dwCount, SrcNumVertices - dwSrcIndex);
 
-		// Try using d3d9 device for vertex processing
+		const BOOL doLighting = (dwVertexOp & D3DVOP_LIGHT) && (dwSrcVertexTypeDesc & D3DFVF_NORMAL) && pDirect3DDeviceX->IsMaterialSet() ? TRUE : FALSE;
+		if (!doLighting)
 		{
-			if (FAILED(pSrcVertexBufferX->CheckInterface(__FUNCTION__, true, true)))
-			{
-				return DDERR_GENERIC;
-			}
-
-			const BOOL doLighting = (dwVertexOp & D3DVOP_LIGHT) && (dwSrcVertexTypeDesc & D3DFVF_NORMAL) && pDirect3DDeviceX->IsMaterialSet() ? TRUE : FALSE;
-			if (!doLighting)
-			{
-				dwVertexOp &= ~D3DVOP_LIGHT;
-			}
-
-			const BOOL doClipping = (dwVertexOp & D3DVOP_CLIP) ? TRUE : FALSE;
-
-			IDirect3DVertexBuffer9* pSrcBuffer = pSrcVertexBufferX->GetCurrentD9VertexBuffer();
-			IDirect3DVertexBuffer9* pDestBuffer = GetCurrentD9VertexBuffer();
-
-			HRESULT hr = pDirect3DDeviceX->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, pSrcBuffer, pDestBuffer, dwSrcVertexTypeDesc, doLighting, doClipping, (dwFlags & D3DPV_DONOTCOPYDATA));
-
-			if (SUCCEEDED(hr))
-			{
-				return D3D_OK;
-			}
+			dwVertexOp &= ~D3DVOP_LIGHT;
 		}
+
+		const BOOL doClipping = (dwVertexOp & D3DVOP_CLIP) ? TRUE : FALSE;
+
+		IDirect3DVertexBuffer9* pSrcBuffer = pSrcVertexBufferX->GetCurrentD9VertexBuffer();
+		IDirect3DVertexBuffer9* pDestBuffer = GetCurrentD9VertexBuffer();
+
+		// Try using d3d9 device for vertex processing
+		HRESULT hr = pDirect3DDeviceX->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, pSrcBuffer, pDestBuffer, dwSrcVertexTypeDesc, doLighting, doClipping, (dwFlags & D3DPV_DONOTCOPYDATA));
+
+		if (SUCCEEDED(hr))
+		{
+			return D3D_OK;
+		}
+
+#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
 
 		// Lock the source vertex buffer
 		void* pSrcVertices = nullptr;
@@ -427,7 +426,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 			return DDERR_GENERIC;
 		}
 
-		HRESULT hr = ProcessVerticesUP(dwVertexOp, pDestVertices, dwDestVertexTypeDesc, dwDestIndex, dwCount, pSrcVertices, dwSrcVertexTypeDesc, dwSrcIndex, pDirect3DDeviceX, dwFlags);
+		hr = ProcessVerticesUP(dwVertexOp, pDestVertices, dwDestVertexTypeDesc, dwDestIndex, dwCount, pSrcVertices, dwSrcVertexTypeDesc, dwSrcIndex, pDirect3DDeviceX, dwFlags);
 
 		// Unlock destination vertex buffer
 		Unlock();
@@ -540,6 +539,13 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Docs state that D3DVOP_CLIP cannot be used with a vertex buffer created with the D3DVBCAPS_DONOTCLIP flag
+		if ((dwVertexOp & D3DVOP_CLIP) && !(VB.Desc.dwCaps & D3DVBCAPS_DONOTCLIP))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DVOP_CLIP specified when vertex buffer was created with D3DVBCAPS_DONOTCLIP!");
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
@@ -570,12 +576,17 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 		}
 		dwCount = min(dwCount, DestNumVertices - dwDestIndex);
 
-		// Setup vars
-		DWORD dwVertexTypeDesc = VB.Desc.dwFVF;
-		std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexCache;
+		// Get source vars
+		DWORD dwSrcVertexTypeDesc = GetStridedVertexTypeDesc(lpVertexArray);
+		std::vector<BYTE, aligned_allocator<BYTE, 4>> SrcVertexCache;
+
+		if (D3DFVF_TEXCOUNT(dwSrcVertexTypeDesc) != D3DFVF_TEXCOUNT(dwDestVertexTypeDesc))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: source and destination FVF texture counts don't match: " << D3DFVF_TEXCOUNT(dwSrcVertexTypeDesc) << " -> " << D3DFVF_TEXCOUNT(dwDestVertexTypeDesc));
+		}
 
 		// Process strided data
-		if (FAILED(InterleaveStridedVertexData(VertexCache, lpVertexArray, dwSrcIndex, dwCount, dwVertexTypeDesc)))
+		if (FAILED(InterleaveStridedVertexData(SrcVertexCache, lpVertexArray, dwSrcIndex, dwCount, dwSrcVertexTypeDesc)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
 			return DDERR_INVALIDPARAMS;
@@ -589,7 +600,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 			return DDERR_GENERIC;
 		}
 
-		HRESULT hr = ProcessVerticesUP(dwVertexOp, pDestVertices, dwDestVertexTypeDesc, dwDestIndex, dwCount, VertexCache.data(), dwVertexTypeDesc, dwSrcIndex, pDirect3DDeviceX, dwFlags);
+		HRESULT hr = ProcessVerticesUP(dwVertexOp, pDestVertices, dwDestVertexTypeDesc, dwDestIndex, dwCount, SrcVertexCache.data(), dwSrcVertexTypeDesc, dwSrcIndex, pDirect3DDeviceX, dwFlags);
 
 		// Unlock destination vertex buffer
 		Unlock();
@@ -793,6 +804,73 @@ void m_IDirect3DVertexBufferX::ReleaseD9Buffer(bool BackupData, bool ResetBuffer
 	}
 }
 
+DWORD m_IDirect3DVertexBufferX::GetStridedVertexTypeDesc(const D3DDRAWPRIMITIVESTRIDEDDATA* sd)
+{
+	DWORD TypeData = 0;
+
+	// Position
+	if (sd->position.lpvData)
+	{
+		TypeData |= D3DFVF_XYZ;
+	}
+
+	// Normal
+	if (sd->normal.lpvData)
+	{
+		TypeData |= D3DFVF_NORMAL;
+	}
+
+	// Diffuse
+	if (sd->diffuse.lpvData)
+	{
+		TypeData |= D3DFVF_DIFFUSE;
+	}
+
+	// Specular
+	if (sd->specular.lpvData)
+	{
+		TypeData |= D3DFVF_SPECULAR;
+	}
+
+	// Texture coordinate size
+	DWORD texCount = 0;
+	for (DWORD t = 0; t < D3DDP_MAXTEXCOORD; ++t)
+	{
+		if (sd->textureCoords[t].lpvData)
+		{
+			texCount++;
+			switch (sd->textureCoords[t].dwStride)
+			{
+				case sizeof(float) :
+					TypeData |= D3DFVF_TEXCOORDSIZE1(t);
+					break;
+
+				default:
+				case sizeof(float) * 2:
+					TypeData |= D3DFVF_TEXCOORDSIZE2(t);
+					break;
+
+				case sizeof(float) * 3:
+					TypeData |= D3DFVF_TEXCOORDSIZE3(t);
+					break;
+
+				case sizeof(float) * 4:
+					TypeData |= D3DFVF_TEXCOORDSIZE4(t);
+					break;
+			}
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	// Texture count
+	TypeData |= texCount << D3DFVF_TEXCOUNT_SHIFT;
+
+	return TypeData;
+}
+
 HRESULT m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, const DWORD dwVertexStart, const DWORD dwNumVertices, const DWORD dwVertexTypeDesc)
 {
 	if (!sd)
@@ -801,14 +879,14 @@ HRESULT m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, 
 		return DDERR_INVALIDPARAMS;
 	}
 
-	DWORD Stride = GetVertexStride(dwVertexTypeDesc);
+	const DWORD Stride = GetVertexStride(dwVertexTypeDesc);
 
-	bool hasPosition = (dwVertexTypeDesc & D3DFVF_POSITION_MASK);
-	bool hasReserved = (dwVertexTypeDesc & D3DFVF_RESERVED1);
-	bool hasNormal = (dwVertexTypeDesc & D3DFVF_NORMAL);
-	bool hasDiffuse = (dwVertexTypeDesc & D3DFVF_DIFFUSE);
-	bool hasSpecular = (dwVertexTypeDesc & D3DFVF_SPECULAR);
-	DWORD texCount = D3DFVF_TEXCOUNT(dwVertexTypeDesc);
+	const bool hasPosition = (dwVertexTypeDesc & D3DFVF_POSITION_MASK);
+	const bool hasReserved = (dwVertexTypeDesc & D3DFVF_RESERVED1);
+	const bool hasNormal = (dwVertexTypeDesc & D3DFVF_NORMAL);
+	const bool hasDiffuse = (dwVertexTypeDesc & D3DFVF_DIFFUSE);
+	const bool hasSpecular = (dwVertexTypeDesc & D3DFVF_SPECULAR);
+	const DWORD texCount = min(D3DFVF_TEXCOUNT(dwVertexTypeDesc), D3DDP_MAXTEXCOORD);
 
 	if (texCount > D3DDP_MAXTEXCOORD)
 	{
@@ -827,10 +905,6 @@ HRESULT m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, 
 			LOG_LIMIT(100, __FUNCTION__ << " Error: position data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
 			return DDERR_INVALIDPARAMS;
 		}
-		if (sd->position.dwStride && sd->position.dwStride < posStride)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: position stride does not match: " << posStride << " -> " << sd->position.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
-		}
 	}
 	if (hasNormal)
 	{
@@ -838,10 +912,6 @@ HRESULT m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, 
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: normal data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
 			return DDERR_INVALIDPARAMS;
-		}
-		if (sd->normal.dwStride && sd->normal.dwStride < sizeof(D3DXVECTOR3))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: normal stride does not match: " << sizeof(D3DXVECTOR3) << " -> " << sd->normal.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
 		}
 	}
 	if (hasDiffuse)
@@ -851,10 +921,6 @@ HRESULT m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, 
 			LOG_LIMIT(100, __FUNCTION__ << " Error: diffuse data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
 			return DDERR_INVALIDPARAMS;
 		}
-		if (sd->diffuse.dwStride && sd->diffuse.dwStride < sizeof(D3DCOLOR))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: diffuse stride does not match: " << sizeof(D3DCOLOR) << " -> " << sd->diffuse.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
-		}
 	}
 	if (hasSpecular)
 	{
@@ -862,10 +928,6 @@ HRESULT m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, 
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: specular data missing! FVF: " << Logging::hex(dwVertexTypeDesc));
 			return DDERR_INVALIDPARAMS;
-		}
-		if (sd->specular.dwStride && sd->specular.dwStride < sizeof(D3DCOLOR))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: specular stride does not match: " << sizeof(D3DCOLOR) << " -> " << sd->specular.dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
 		}
 	}
 	for (DWORD t = 0; t < texCount; ++t)
@@ -876,23 +938,19 @@ HRESULT m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, 
 			return DDERR_INVALIDPARAMS;
 		}
 		texStride[t] = GetTexStride(dwVertexTypeDesc, t);
-		if (sd->textureCoords[t].dwStride && sd->textureCoords[t].dwStride < texStride[t])
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: texture stride does not match: " << texStride[t] << " -> " << sd->textureCoords[t].dwStride << " FVF: " << Logging::hex(dwVertexTypeDesc));
-		}
 	}
 
 	outputBuffer.resize((dwVertexStart + dwNumVertices) * Stride);
 
 	BYTE* cursor = outputBuffer.data() + dwVertexStart * Stride;
-	BYTE* posCursor = reinterpret_cast<BYTE*>(sd->position.lpvData) + dwVertexStart * (sd->position.dwStride ? sd->position.dwStride : posStride);
-	BYTE* normalCursor = reinterpret_cast<BYTE*>(sd->normal.lpvData) + dwVertexStart * (sd->normal.dwStride ? sd->normal.dwStride : sizeof(D3DXVECTOR3));
-	BYTE* diffCursor = reinterpret_cast<BYTE*>(sd->diffuse.lpvData) + dwVertexStart * (sd->diffuse.dwStride ? sd->diffuse.dwStride : sizeof(D3DCOLOR));
-	BYTE* specCursor = reinterpret_cast<BYTE*>(sd->specular.lpvData) + dwVertexStart * (sd->specular.dwStride ? sd->specular.dwStride : sizeof(D3DCOLOR));
+	BYTE* posCursor = reinterpret_cast<BYTE*>(sd->position.lpvData) + dwVertexStart * sd->position.dwStride;
+	BYTE* normalCursor = reinterpret_cast<BYTE*>(sd->normal.lpvData) + dwVertexStart * sd->normal.dwStride;
+	BYTE* diffCursor = reinterpret_cast<BYTE*>(sd->diffuse.lpvData) + dwVertexStart * sd->diffuse.dwStride;
+	BYTE* specCursor = reinterpret_cast<BYTE*>(sd->specular.lpvData) + dwVertexStart * sd->specular.dwStride;
 	BYTE* texCursor[D3DDP_MAXTEXCOORD] = {};
 	for (DWORD t = 0; t < texCount; ++t)
 	{
-		texCursor[t] = reinterpret_cast<BYTE*>(sd->textureCoords[t].lpvData) + dwVertexStart * (sd->textureCoords[t].dwStride ? sd->textureCoords[t].dwStride : texStride[t]);
+		texCursor[t] = reinterpret_cast<BYTE*>(sd->textureCoords[t].lpvData) + dwVertexStart * sd->textureCoords[t].dwStride;
 	}
 
 	for (DWORD i = 0; i < dwNumVertices; ++i)
@@ -901,7 +959,7 @@ HRESULT m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, 
 		{
 			memcpy(cursor, posCursor, posStride);
 			cursor += posStride;
-			posCursor += sd->position.dwStride ? sd->position.dwStride : posStride;
+			posCursor += sd->position.dwStride;
 		}
 
 		if (hasReserved)
@@ -914,28 +972,28 @@ HRESULT m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, 
 		{
 			memcpy(cursor, normalCursor, sizeof(D3DXVECTOR3));
 			cursor += sizeof(D3DXVECTOR3);
-			normalCursor += sd->normal.dwStride ? sd->normal.dwStride : sizeof(D3DXVECTOR3);
+			normalCursor += sd->normal.dwStride;
 		}
 
 		if (hasDiffuse)
 		{
 			memcpy(cursor, diffCursor, sizeof(D3DCOLOR));
 			cursor += sizeof(D3DCOLOR);
-			diffCursor += sd->diffuse.dwStride ? sd->diffuse.dwStride : sizeof(D3DCOLOR);
+			diffCursor += sd->diffuse.dwStride;
 		}
 
 		if (hasSpecular)
 		{
 			memcpy(cursor, specCursor, sizeof(D3DCOLOR));
 			cursor += sizeof(D3DCOLOR);
-			specCursor += sd->specular.dwStride ? sd->specular.dwStride : sizeof(D3DCOLOR);
+			specCursor += sd->specular.dwStride;
 		}
 
 		for (DWORD t = 0; t < texCount; ++t)
 		{
 			memcpy(cursor, texCursor[t], texStride[t]);
 			cursor += texStride[t];
-			texCursor[t] += sd->textureCoords[t].dwStride ? sd->textureCoords[t].dwStride : texStride[t];
+			texCursor[t] += sd->textureCoords[t].dwStride;
 		}
 	}
 
