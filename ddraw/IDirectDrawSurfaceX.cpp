@@ -2852,7 +2852,11 @@ HRESULT m_IDirectDrawSurfaceX::Restore()
 	{
 		if (ComplexChild)
 		{
-			return DDERR_IMPLICITLYCREATED;
+			if (IsSurfaceMarkedAsLost())
+			{
+				return DDERR_IMPLICITLYCREATED;
+			}
+			return DD_OK;
 		}
 
 		// Check for device interface
