@@ -323,16 +323,29 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// DX7 says D3DVOP_CLIP cannot be used with a VB that has D3DVBCAPS_DONOTCLIP set
+		if ((dwVertexOp & D3DVOP_CLIP) && !(VB.Desc.dwCaps & D3DVBCAPS_DONOTCLIP))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: D3DVOP_CLIP specified when source vertex buffer was created with D3DVBCAPS_DONOTCLIP!");
+			return DDERR_INVALIDPARAMS;
+		}
+
 		// Check for device interface
 		if (FAILED(CheckInterface(__FUNCTION__, true, true)))
 		{
 			return DDERR_GENERIC;
 		}
 
-		m_IDirect3DVertexBufferX* pSrcVertexBufferX = nullptr;
-		lpSrcBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pSrcVertexBufferX);
+		// Get our wrapper device
+		m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
+		if (FAILED(lpD3DDevice->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3DDeviceX interface!");
+			return DDERR_GENERIC;
+		}
 
-		if (!pSrcVertexBufferX)
+		m_IDirect3DVertexBufferX* pSrcVertexBufferX = nullptr;
+		if (FAILED(lpSrcBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pSrcVertexBufferX)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get source vertex buffer wrapper!");
 			return DDERR_GENERIC;
@@ -371,9 +384,34 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		}
 		dwCount = min(dwCount, SrcNumVertices - dwSrcIndex);
 
-		void* pSrcVertices = nullptr;
+		// Try using d3d9 device for vertex processing
+		{
+			if (FAILED(pSrcVertexBufferX->CheckInterface(__FUNCTION__, true, true)))
+			{
+				return DDERR_GENERIC;
+			}
+
+			const BOOL doLighting = (dwVertexOp & D3DVOP_LIGHT) && (dwSrcVertexTypeDesc & D3DFVF_NORMAL) && pDirect3DDeviceX->IsMaterialSet() ? TRUE : FALSE;
+			if (!doLighting)
+			{
+				dwVertexOp &= ~D3DVOP_LIGHT;
+			}
+
+			const BOOL doClipping = (dwVertexOp & D3DVOP_CLIP) ? TRUE : FALSE;
+
+			IDirect3DVertexBuffer9* pSrcBuffer = pSrcVertexBufferX->GetCurrentD9VertexBuffer();
+			IDirect3DVertexBuffer9* pDestBuffer = GetCurrentD9VertexBuffer();
+
+			HRESULT hr = pDirect3DDeviceX->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, pSrcBuffer, pDestBuffer, dwSrcVertexTypeDesc, doLighting, doClipping, (dwFlags & D3DPV_DONOTCOPYDATA));
+
+			if (SUCCEEDED(hr))
+			{
+				return D3D_OK;
+			}
+		}
 
 		// Lock the source vertex buffer
+		void* pSrcVertices = nullptr;
 		if (FAILED(pSrcVertexBufferX->Lock(D3DLOCK_READONLY, &pSrcVertices, 0)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock source vertex");
@@ -389,7 +427,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 			return DDERR_GENERIC;
 		}
 
-		HRESULT hr = ProcessVerticesUP(dwVertexOp, pDestVertices, dwDestVertexTypeDesc, dwDestIndex, dwCount, pSrcVertices, dwSrcVertexTypeDesc, dwSrcIndex, lpD3DDevice, dwFlags);
+		HRESULT hr = ProcessVerticesUP(dwVertexOp, pDestVertices, dwDestVertexTypeDesc, dwDestIndex, dwCount, pSrcVertices, dwSrcVertexTypeDesc, dwSrcIndex, pDirect3DDeviceX, dwFlags);
 
 		// Unlock destination vertex buffer
 		Unlock();
@@ -508,6 +546,14 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 			return DDERR_GENERIC;
 		}
 
+		// Get our wrapper device
+		m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
+		if (FAILED(lpD3DDevice->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3DDeviceX interface!");
+			return DDERR_GENERIC;
+		}
+
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
@@ -543,7 +589,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 			return DDERR_GENERIC;
 		}
 
-		HRESULT hr = ProcessVerticesUP(dwVertexOp, pDestVertices, dwDestVertexTypeDesc, dwDestIndex, dwCount, VertexCache.data(), dwVertexTypeDesc, dwSrcIndex, lpD3DDevice, dwFlags);
+		HRESULT hr = ProcessVerticesUP(dwVertexOp, pDestVertices, dwDestVertexTypeDesc, dwDestIndex, dwCount, VertexCache.data(), dwVertexTypeDesc, dwSrcIndex, pDirect3DDeviceX, dwFlags);
 
 		// Unlock destination vertex buffer
 		Unlock();
@@ -896,37 +942,23 @@ HRESULT m_IDirect3DVertexBufferX::InterleaveStridedVertexData(std::vector<BYTE, 
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVertexTypeDesc, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags)
+HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVertexTypeDesc, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, m_IDirect3DDeviceX* pDirect3DDeviceX, DWORD dwFlags)
 {
-	if (dwCount == 0)
-	{
-		return D3D_OK;	// No vertices to process
-	}
-
-	if (!lpDestBuffer || !lpSrcBuffer || !lpD3DDevice)
+	if (!lpDestBuffer || !lpSrcBuffer || !pDirect3DDeviceX)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
 
-	// Get our wrapper device
-	m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
-	lpD3DDevice->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pDirect3DDeviceX);
-	if (!pDirect3DDeviceX)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3DDeviceX interface!");
-		return DDERR_GENERIC;
-	}
-
 	// Get and verify FVF
-	DWORD SrcFVF = dwSrcVertexTypeDesc;
-	DWORD DestFVF = dwDestVertexTypeDesc;
-	UINT SrcStride = GetVertexStride(SrcFVF);
-	UINT DestStride = GetVertexStride(DestFVF);
-	DWORD SrcPosFVF = SrcFVF & D3DFVF_POSITION_MASK;
-	DWORD DestPosFVF = DestFVF & D3DFVF_POSITION_MASK;
+	const DWORD SrcFVF = dwSrcVertexTypeDesc;
+	const DWORD DestFVF = dwDestVertexTypeDesc;
+	const UINT SrcStride = GetVertexStride(SrcFVF);
+	const UINT DestStride = GetVertexStride(DestFVF);
+	const DWORD SrcPosFVF = SrcFVF & D3DFVF_POSITION_MASK;
+	const DWORD DestPosFVF = DestFVF & D3DFVF_POSITION_MASK;
 
 	// Cannot transform RHW vertices or convert to non-RHW TL format
-	if (SrcPosFVF == D3DFVF_XYZRHW || DestPosFVF != D3DFVF_XYZRHW)
+	if ((SrcPosFVF & D3DFVF_XYZRHW) || !(DestPosFVF & D3DFVF_XYZRHW))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid FVF conversion: Cannot transform from D3DFVF_XYZRHW or to non-D3DFVF_XYZRHW format: " << Logging::hex(SrcFVF) << " -> " << Logging::hex(DestFVF));
 		return D3DERR_INVALIDVERTEXTYPE;
@@ -942,7 +974,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpD
 	}
 
 	// If the rendering device does not have a material assigned to it, the Direct3D lighting engine is disabled.
-	bool bLighting = (dwVertexOp & D3DVOP_LIGHT) && pDirect3DDeviceX->IsMaterialSet();
+	bool bLighting = (dwVertexOp & D3DVOP_LIGHT) && (SrcFVF & D3DFVF_NORMAL) && pDirect3DDeviceX->IsMaterialSet();
 	bool DoNotCopyData = (dwFlags & D3DPV_DONOTCOPYDATA) != 0;
 
 	// Check lighting state
@@ -1219,7 +1251,7 @@ template HRESULT m_IDirect3DVertexBufferX::TransformVertexUP<D3DLVERTEX>(m_IDire
 template <typename T>
 HRESULT m_IDirect3DVertexBufferX::TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, DWORD dwFlags, const VIEWPORTINFO& Viewport, LPDWORD lpOffscreen)
 {
-	if (!lpData)
+	if (!lpData || !pDirect3DDeviceX)
 	{
 		return DDERR_INVALIDPARAMS;
 	}

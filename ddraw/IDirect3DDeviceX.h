@@ -534,6 +534,9 @@ public:
 	void GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLightList);
 	void ClearLight(m_IDirect3DLight* lpLight);
 
+	// Vertices functions
+	HRESULT ProcessVertices(UINT SrcStartIndex, UINT DestIndex, UINT VertexCount, IDirect3DVertexBuffer9* pSrcBuffer, IDirect3DVertexBuffer9* pDestBuffer, DWORD SrcFVF, BOOL doLighting, BOOL doClipping, DWORD dwFlags);
+
 	// Functions handling the Direct3D parent interface
 	void SetD3D(m_IDirect3DX* lpD3D);
 	void ClearD3D(m_IDirect3DX* lpD3D);

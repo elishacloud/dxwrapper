@@ -766,10 +766,11 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					case D3DPROCESSVERTICES_TRANSFORM:
 					case D3DPROCESSVERTICES_TRANSFORMLIGHT:
 					{
-						const bool IsLight = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT && !(Flags & D3DPROCESSVERTICES_NOCOLOR) && IsMaterialSet());
+						const bool IsLight = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT);
 
 						// Flags
-						DWORD VertexOp = D3DVOP_TRANSFORM | (IsClipped ? D3DVOP_CLIP : 0) | (IsLight ? D3DVOP_LIGHT : 0) | (UpdateExtents ? D3DVOP_EXTENTS : 0);
+						DWORD VertexOp = D3DVOP_TRANSFORM | (IsClipped ? D3DVOP_CLIP : 0) | (IsLight ? D3DVOP_LIGHT : 0);
+						DWORD VertexFlags = (Flags & D3DPROCESSVERTICES_NOCOLOR) ? D3DPV_DONOTCOPYDATA : 0;
 
 						// FVF
 						DWORD SrcVertexTypeDesc = IsLight ? D3DFVF_VERTEX : D3DFVF_LVERTEX;
@@ -780,7 +781,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						D3DTLVERTEX* destVertices = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
 
 						// Process verticies
-						hr = m_IDirect3DVertexBufferX::ProcessVerticesUP(VertexOp, destVertices, DestVertexTypeDesc, 0, Count, srcVertices, SrcVertexTypeDesc, 0, (LPDIRECT3DDEVICE7)GetWrapperInterfaceX(1), 0);
+						hr = m_IDirect3DVertexBufferX::ProcessVerticesUP(VertexOp, destVertices, DestVertexTypeDesc, 0, Count, srcVertices, SrcVertexTypeDesc, 0, this, VertexFlags);
 
 						// Handle status and extents
 						if (SUCCEEDED(hr))
@@ -3986,7 +3987,7 @@ HRESULT m_IDirect3DDeviceX::ValidateDevice(LPDWORD lpdwPasses)
 		(*d3d9Device)->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 
 		// Clear shaders since FVF + shaders conflict
-		(*d3d9Device)->SetVertexShader(nullptr);
+		//(*d3d9Device)->SetVertexShader(nullptr);
 		(*d3d9Device)->SetPixelShader(nullptr);
 
 		// Set fixed function format
@@ -6915,6 +6916,78 @@ void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLigh
 	{
 		lpCurrentViewportX->GetEnabledLightList(AttachedLightList, this);
 	}
+}
+
+HRESULT m_IDirect3DDeviceX::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, UINT VertexCount, IDirect3DVertexBuffer9* pSrcBuffer, IDirect3DVertexBuffer9* pDestBuffer, DWORD SrcFVF, BOOL doLighting, BOOL doClipping, DWORD dwFlags)
+{
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, true)))
+	{
+		return DDERR_INVALIDOBJECT;
+	}
+
+#ifdef ENABLE_PROFILING
+	auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+	PrepDevice();
+
+	// Set fixed function vertex type
+	if (FAILED((*d3d9Device)->SetFVF(SrcFVF)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: invalid FVF type: " << Logging::hex(SrcFVF));
+		return DDERR_INVALIDPARAMS;
+	}
+
+	// Set stream source
+	(*d3d9Device)->SetStreamSource(0, pSrcBuffer, 0, GetVertexStride(SrcFVF));
+
+	// Handle lighting
+	GetD9RenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
+	(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, doLighting);
+
+	// Handle clipping
+	GetD9RenderState(D3DRS_CLIPPING, &DrawStates.rsClipping);
+	(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, doClipping);
+
+	// Viewport scaling on projection matrix
+	if (DeviceStates.Viewport.UseViewportScale)
+	{
+		GetD9Transform(D3DTS_PROJECTION, &DrawStates.ProjectionMatrix);
+		D3DMATRIX Matrix = UpdateProjectionMatrix(DrawStates.ProjectionMatrix, DeviceStates.Viewport.Scale, DeviceStates.Viewport.Clip, !(dwFlags & D3DDP_DONOTCLIP));
+		(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &Matrix);
+	}
+
+	// Set viewport
+	(*d3d9Device)->SetViewport(&DeviceStates.Viewport.FixedView);
+
+	// Process vertices
+	HRESULT hr = (*d3d9Device)->ProcessVertices(SrcStartIndex, DestIndex, VertexCount, pDestBuffer, nullptr, dwFlags);
+
+	// Reset lighting
+	(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
+
+	// Reset clipping
+	(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, DrawStates.rsClipping);
+
+	// Reset projection matrix
+	if (DeviceStates.Viewport.UseViewportScale)
+	{
+		(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &DrawStates.ProjectionMatrix);
+	}
+
+	if (FAILED(hr))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'ProcessVertices' call failed: " << (D3DERR)hr);
+	}
+
+#ifdef ENABLE_PROFILING
+	Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInUS(startTime);
+#endif
+
+	return hr;
 }
 
 void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwNumVertices)
