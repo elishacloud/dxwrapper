@@ -229,11 +229,7 @@ private:
 	std::unordered_map<D3DMATERIALHANDLE, m_IDirect3DMaterialX*> MaterialHandleMap;
 
 	// Matrix map
-	struct D3DMATRIXSTRUCT {
-		bool IsValidMatrix = false;
-		D3DMATRIX m = {};
-	};
-	std::unordered_map<D3DMATRIXHANDLE, D3DMATRIXSTRUCT> MatrixMap;
+	std::unordered_map<D3DMATRIXHANDLE, D3DMATRIX> MatrixMap;
 
 	// Light index map
 	std::unordered_map<DWORD, m_IDirect3DLight*> LightIndexMap;
@@ -290,32 +286,38 @@ private:
 
 	D3DMATRIX* GetMatrix(D3DMATRIXHANDLE MatrixHandle)
 	{
-		if (!MatrixMap[MatrixHandle].IsValidMatrix)
+		auto it = MatrixMap.find(MatrixHandle);
+
+		if (it != MatrixMap.end())
 		{
-			MatrixMap.erase(MatrixHandle);
-			return nullptr;
+			return &it->second;
 		}
-		return &MatrixMap[MatrixHandle].m;
+
+		return nullptr;
 	}
 
 	m_IDirect3DTextureX* GetTexture(D3DTEXTUREHANDLE TextureHandle)
 	{
-		m_IDirect3DTextureX* pTextureX = TextureHandleMap[TextureHandle];
-		if (!pTextureX)
+		auto it = TextureHandleMap.find(TextureHandle);
+
+		if (it != TextureHandleMap.end())
 		{
-			TextureHandleMap.erase(TextureHandle);
+			return it->second;
 		}
-		return pTextureX;
+
+		return nullptr;
 	}
 
 	m_IDirect3DMaterialX* GetMaterial(D3DMATERIALHANDLE MaterialHandle)
 	{
-		m_IDirect3DMaterialX* pMaterialX = MaterialHandleMap[MaterialHandle];
-		if (!pMaterialX)
+		auto it = MaterialHandleMap.find(MaterialHandle);
+
+		if (it != MaterialHandleMap.end())
 		{
-			MaterialHandleMap.erase(MaterialHandle);
+			return it->second;
 		}
-		return pMaterialX;
+
+		return nullptr;
 	}
 
 	// Wrapper interface functions

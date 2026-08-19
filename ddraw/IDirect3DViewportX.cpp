@@ -307,7 +307,7 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 			return D3DERR_VIEWPORTHASNODEVICE;
 		}
 
-		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.front();
+		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
 		if (!pDirect3DDeviceX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3DDeviceX interface!");
@@ -316,7 +316,7 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 
 		if (AttachedD3DDevices.size() > 1)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: More than one attached Direct3DDeviceX interface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: more than one D3Ddevice attached: " << AttachedD3DDevices.size());
 		}
 
 #ifdef ENABLE_PROFILING
@@ -445,7 +445,20 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 	{
 		if (AttachedD3DDevices.empty())
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3Ddevice attached!");
 			return D3DERR_VIEWPORTHASNODEVICE;
+		}
+
+		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
+		if (!pDirect3DDeviceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3DDeviceX interface!");
+			return D3DERR_VIEWPORTHASNODEVICE;
+		}
+
+		if (AttachedD3DDevices.size() > 1)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: more than one D3Ddevice attached: " << AttachedD3DDevices.size());
 		}
 
 		// Get clear color
@@ -458,19 +471,8 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 			}
 			else
 			{
-				D3DMATERIAL Material = {};
-				Material.dwSize = sizeof(D3DMATERIAL);
-
-				m_IDirect3DMaterialX* pMaterialX = nullptr;
-				for (auto& entry : AttachedD3DDevices)
-				{
-					pMaterialX = entry->GetMaterialFromHandle(MaterialBackground.hMat);
-					if (pMaterialX)
-					{
-						break;
-					}
-				}
-				if (pMaterialX && SUCCEEDED(pMaterialX->GetMaterial(&Material)))
+				m_IDirect3DMaterialX* pMaterialX = pDirect3DDeviceX->GetMaterialFromHandle(MaterialBackground.hMat);
+				if (D3DMATERIAL Material = { sizeof(D3DMATERIAL), 0 }; pMaterialX && SUCCEEDED(pMaterialX->GetMaterial(&Material)))
 				{
 					Color = D3DRGBA(Material.diffuse.r, Material.diffuse.g, Material.diffuse.b, Material.diffuse.a);
 				}
@@ -481,31 +483,28 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 			}
 		}
 
-		for (auto& entry : AttachedD3DDevices)
+		// Get device viewport
+		D3DVIEWPORT9 Viewport9 = {};
+		GetCurrentViewport(pDirect3DDeviceX, Viewport9);
+		Viewport9 = FixViewport(Viewport9);
+
+		// Check for zbuffer and stencil surface
+		bool HasAttachedZBuffer = false, HasAttachedStencil = false;
+		GetAttachedBufferDetails(pDirect3DDeviceX, HasAttachedZBuffer, HasAttachedStencil);
+
+		// Unlike Clear2(), Clear() isn't supposed to error out on zbuffer or stencil clears when no zbuffer or stencil is attached
+		const DWORD Flags = (dwFlags & ~(D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL))
+			| (HasAttachedZBuffer ? (dwFlags & D3DCLEAR_ZBUFFER) : 0)
+			| (HasAttachedStencil ? (dwFlags & D3DCLEAR_STENCIL) : 0);
+
+		// Nothing to clear on this device.
+		if (Flags == 0)
 		{
-			// Get device viewport
-			D3DVIEWPORT9 Viewport9 = {};
-			GetCurrentViewport(entry, Viewport9);
-			Viewport9 = FixViewport(Viewport9);
-
-			// Check for zbuffer and stencil surface
-			bool HasAttachedZBuffer = false, HasAttachedStencil = false;
-			GetAttachedBufferDetails(entry, HasAttachedZBuffer, HasAttachedStencil);
-
-			// Unlike Clear2(), Clear() isn't supposed to error out on zbuffer or stencil clears when no zbuffer or stencil is attached
-			const DWORD Flags = (dwFlags & ~(D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL))
-				| (HasAttachedZBuffer ? (dwFlags & D3DCLEAR_ZBUFFER) : 0)
-				| (HasAttachedStencil ? (dwFlags & D3DCLEAR_STENCIL) : 0);
-
-			// Nothing to clear on this device.
-			if (Flags == 0)
-			{
-				continue;
-			}
-
-			// Clear device
-			entry->Clear(Viewport9, dwCount, lpRects, Flags, Color, 1.0f, 0);
+			return D3D_OK;
 		}
+
+		// Clear device
+		pDirect3DDeviceX->Clear(Viewport9, dwCount, lpRects, Flags, Color, 1.0f, 0);
 
 		return D3D_OK;
 	}
@@ -887,7 +886,20 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 	{
 		if (AttachedD3DDevices.empty())
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3Ddevice attached!");
 			return D3DERR_VIEWPORTHASNODEVICE;
+		}
+
+		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
+		if (!pDirect3DDeviceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3DDeviceX interface!");
+			return D3DERR_VIEWPORTHASNODEVICE;
+		}
+
+		if (AttachedD3DDevices.size() > 1)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: more than one D3Ddevice attached: " << AttachedD3DDevices.size());
 		}
 
 		// For now just hard code this to 1.0f rather than copying the depth stencil buffer
@@ -896,40 +908,29 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 			dvZ = 1.0f;
 		}
 
-		HRESULT hr = D3DERR_VIEWPORTHASNODEVICE;
+		// Get device viewport
+		D3DVIEWPORT9 Viewport9 = {};
+		GetCurrentViewport(pDirect3DDeviceX, Viewport9);
+		Viewport9 = FixViewport(Viewport9);
 
-		for (auto& entry : AttachedD3DDevices)
+		// Check for zbuffer and stencil surface
+		bool HasAttachedZBuffer = false, HasAttachedStencil = false;
+		GetAttachedBufferDetails(pDirect3DDeviceX, HasAttachedZBuffer, HasAttachedStencil);
+
+		// This method fails if you specify the D3DCLEAR_ZBUFFER or D3DCLEAR_STENCIL flags when the render target does not have an attached depth-buffer.
+		// This behavior differs from the IDirect3DViewport3::Clear method, which will succeed if under these circumstances.
+		HRESULT hr = pDirect3DDeviceX->Clear(Viewport9, dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
+
+		// Set return value
+		if (FAILED(hr) && hr != DDERR_SURFACELOST)
 		{
-			// Get device viewport
-			D3DVIEWPORT9 Viewport9 = {};
-			GetCurrentViewport(entry, Viewport9);
-			Viewport9 = FixViewport(Viewport9);
-
-			// Check for zbuffer and stencil surface
-			bool HasAttachedZBuffer = false, HasAttachedStencil = false;
-			GetAttachedBufferDetails(entry, HasAttachedZBuffer, HasAttachedStencil);
-
-			// This method fails if you specify the D3DCLEAR_ZBUFFER or D3DCLEAR_STENCIL flags when the render target does not have an attached depth-buffer.
-			// This behavior differs from the IDirect3DViewport3::Clear method, which will succeed if under these circumstances.
-			HRESULT ret = entry->Clear(Viewport9, dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
-
-			// Set return value
-			if (FAILED(ret) && ret != DDERR_SURFACELOST)
+			if ((dwFlags & D3DCLEAR_ZBUFFER) && !HasAttachedZBuffer)
 			{
-				if ((dwFlags & D3DCLEAR_ZBUFFER) && !HasAttachedZBuffer)
-				{
-					ret = D3DERR_ZBUFFER_NOTPRESENT;
-				}
-				else if ((dwFlags & D3DCLEAR_STENCIL) && !HasAttachedStencil)
-				{
-					ret = D3DERR_STENCILBUFFER_NOTPRESENT;
-				}
+				hr = D3DERR_ZBUFFER_NOTPRESENT;
 			}
-
-			// Prioritized succeed over failure
-			if (SUCCEEDED(ret) || (FAILED(hr) && FAILED(ret)))
+			else if ((dwFlags & D3DCLEAR_STENCIL) && !HasAttachedStencil)
 			{
-				hr = ret;
+				hr = D3DERR_STENCILBUFFER_NOTPRESENT;
 			}
 		}
 
@@ -1227,6 +1228,11 @@ void m_IDirect3DViewportX::AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 	}
 
 	AttachedD3DDevices.push_back(lpD3DDevice);
+
+	if (AttachedD3DDevices.size() > 1)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: more than one D3Ddevice attached: " << AttachedD3DDevices.size());
+	}
 }
 
 void m_IDirect3DViewportX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)

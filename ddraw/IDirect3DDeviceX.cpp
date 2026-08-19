@@ -1272,7 +1272,7 @@ HRESULT m_IDirect3DDeviceX::CreateMatrix(LPD3DMATRIXHANDLE lpD3DMatHandle)
 			D3DMatHandle += 4;
 		}
 
-		MatrixMap[D3DMatHandle] = { true, Matrix };
+		MatrixMap[D3DMatHandle] = Matrix;
 
 		*lpD3DMatHandle = D3DMatHandle;
 
@@ -1293,7 +1293,7 @@ HRESULT m_IDirect3DDeviceX::SetMatrix(D3DMATRIXHANDLE D3DMatHandle, const LPD3DM
 			return DDERR_INVALIDPARAMS;
 		}
 
-		MatrixMap[D3DMatHandle] = { true, *lpD3DMatrix };
+		MatrixMap[D3DMatHandle] = *lpD3DMatrix;
 
 		return D3D_OK;
 	}
@@ -1307,12 +1307,19 @@ HRESULT m_IDirect3DDeviceX::GetMatrix(D3DMATRIXHANDLE D3DMatHandle, LPD3DMATRIX 
 
 	if (Config.Dd7to9)
 	{
-		if (!lpD3DMatrix || !GetMatrix(D3DMatHandle))
+		if (!lpD3DMatrix)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		*lpD3DMatrix = MatrixMap[D3DMatHandle].m;
+		D3DMATRIX* pMatrix = GetMatrix(D3DMatHandle);
+
+		if (!pMatrix)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		*lpD3DMatrix = *pMatrix;
 
 		return D3D_OK;
 	}
