@@ -352,7 +352,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		}
 
 		// Get FVF
-		const DWORD SrcFVF = pSrcVertexBufferX->VB.Desc.dwFVF;
+		const DWORD SrcFVF = pSrcVertexBufferX->d3d9VBDesc.FVF;
 
 		// Validate destination range
 		const DWORD DestNumVertices = VB.Desc.dwNumVertices;
@@ -502,7 +502,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 		}
 
 		// Get FVF
-		const DWORD DestFVF = VB.Desc.dwFVF;
+		const DWORD DestFVF = d3d9VBDesc.FVF;
 
 		// Validate destination range
 		const DWORD DestNumVertices = VB.Desc.dwNumVertices;
