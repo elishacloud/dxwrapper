@@ -1494,10 +1494,10 @@ HRESULT InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>
 	return D3D_OK;
 }
 
-template HRESULT TransformVertexUP<XYZ>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, DWORD, const VIEWPORTINFO&, LPDWORD);
-template HRESULT TransformVertexUP<D3DLVERTEX>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, DWORD, const VIEWPORTINFO&, LPDWORD);
+template HRESULT TransformVertexSW<XYZ>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, DWORD, const VIEWPORTINFO&, LPDWORD);
+template HRESULT TransformVertexSW<D3DLVERTEX>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, DWORD, const VIEWPORTINFO&, LPDWORD);
 template <typename T>
-HRESULT TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, DWORD dwFlags, const VIEWPORTINFO& Viewport, LPDWORD lpOffscreen)
+HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, DWORD dwFlags, const VIEWPORTINFO& Viewport, LPDWORD lpOffscreen)
 {
 	if (!lpData || !pDirect3DDeviceX)
 	{
@@ -1660,6 +1660,557 @@ HRESULT TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCo
 	}
 	lpData->dwClipIntersection = IsClipped ? clipIntersection << 12 : 0;
 	lpData->dwClipUnion = IsClipped ? clipUnion : 0;
+
+	return D3D_OK;
+}
+
+inline void ComputeLighting(const D3DVECTOR& Position, const D3DVECTOR& Normal, const std::vector<DXLIGHT7>& lights, const LightingState* s, D3DCOLOR& inoutColor, D3DCOLOR& inoutSpecular)
+{
+	// Should never happen
+	if (!s)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: missing LightingState structure!");
+		return;
+	}
+
+	// Helpers
+	auto ToColor = [](D3DCOLOR c)
+	{
+		D3DCOLORVALUE v;
+		v.r = ((c >> 16) & 0xFF) / 255.0f;
+		v.g = ((c >> 8) & 0xFF) / 255.0f;
+		v.b = ((c >> 0) & 0xFF) / 255.0f;
+		v.a = ((c >> 24) & 0xFF) / 255.0f;
+		return v;
+	};
+
+	auto Src = [&](DWORD src, const D3DCOLORVALUE& mat, const D3DCOLORVALUE& diffuse, const D3DCOLORVALUE& specular)
+	{
+		switch (src)
+		{
+		case D3DMCS_COLOR1:
+			return diffuse;
+
+		case D3DMCS_COLOR2:
+			return specular;
+
+		case D3DMCS_MATERIAL:
+		default:
+			return mat;
+		}
+	};
+
+	// Position
+	D3DXVECTOR3 VWPosition(Position.x, Position.y, Position.z);
+
+	// Normal
+	D3DXVECTOR3 normals(Normal.x, Normal.y, Normal.z);
+
+	if (s->NormalizeNormals &&
+		D3DXVec3LengthSq(&normals) > 1e-12f)
+	{
+		D3DXVec3Normalize(&normals, &normals);
+	}
+
+	// Viewer vector
+	D3DXVECTOR3 NVWPosition = VWPosition;
+
+	if (D3DXVec3LengthSq(&NVWPosition) > 1e-12f)
+	{
+		D3DXVec3Normalize(&NVWPosition, &NVWPosition);
+	}
+
+	// Vertex colors
+	D3DCOLORVALUE inDiffuse = ToColor(inoutColor);
+	D3DCOLORVALUE inSpecular = ToColor(inoutSpecular);
+
+	// Initial accumulators
+	D3DCOLORVALUE diffuse = { 0, 0, 0, 1 };
+	D3DCOLORVALUE specular = { 0, 0, 0, 1 };
+
+	D3DCOLORVALUE ambient = ToColor(s->AmbientRenderState);
+
+	const float materialPower = s->UseSpecular ? s->Material.Power : 0.0f;
+
+	// Light loop
+	for (const auto& light : lights)
+	{
+		D3DXVECTOR3 hitDirection;
+		float attenuation = 1.0f;
+
+		switch ((DWORD)light.dltType)
+		{
+		case D3DLIGHT_DIRECTIONAL:
+		{
+			D3DXVECTOR3 dir(-light.dvDirection.x, -light.dvDirection.y, -light.dvDirection.z);
+
+			D3DXVec3TransformNormal(&hitDirection, &dir, &s->ViewMatrix);
+
+			D3DXVec3Normalize(&hitDirection, &hitDirection);
+
+			attenuation = 1.0f;
+
+			break;
+		}
+
+		case D3DLIGHT_POINT:
+		case D3DLIGHT_SPOT:
+		{
+			D3DXVECTOR3 worldPos(light.dvPosition.x, light.dvPosition.y, light.dvPosition.z);
+			D3DXVECTOR3 lightPos;
+
+			D3DXVec3TransformCoord(&lightPos, &worldPos, &s->ViewMatrix);
+
+			hitDirection = lightPos - VWPosition;
+
+			float distSq = D3DXVec3LengthSq(&hitDirection);
+			float dist = sqrtf(distSq);
+
+			if (dist <= 1e-12f)
+			{
+				continue;
+			}
+
+			D3DXVec3Normalize(&hitDirection, &hitDirection);
+
+			if (light.dwLightVersion != 7)
+			{
+				// legacy attenuation
+				float d = (light.dvRange - dist) / light.dvRange;
+
+				if (d <= 0.0f)
+				{
+					continue;
+				}
+
+				distSq = d * d;
+				dist = d;
+			}
+
+			attenuation = (light.dvAttenuation0) + (light.dvAttenuation1 * dist) + (light.dvAttenuation2 * distSq);
+
+			if (light.dwLightVersion == 7)
+			{
+				if (attenuation != 0.0f)
+				{
+					attenuation = 1.0f / attenuation;
+				}
+			}
+
+			// Spot
+			if (light.dltType == D3DLIGHT_SPOT)
+			{
+				D3DXVECTOR3 dir(light.dvDirection.x, light.dvDirection.y, light.dvDirection.z);
+				D3DXVECTOR3 lightDir;
+
+				D3DXVec3TransformNormal(&lightDir, &dir, &s->ViewMatrix);
+
+				D3DXVec3Normalize(&lightDir, &lightDir);
+
+				D3DXVECTOR3 nhitDirection = -hitDirection;
+				float rho = D3DXVec3Dot(&nhitDirection, &lightDir);
+
+				float cosHalfPhi = cosf(light.dvPhi * 0.5f);
+				float cosHalfTheta = cosf(light.dvTheta * 0.5f);
+
+				if (rho <= cosHalfPhi)
+				{
+					attenuation = 0.0f;
+				}
+				else if (rho <= cosHalfTheta)
+				{
+					attenuation *= powf((rho - cosHalfPhi) / (cosHalfTheta - cosHalfPhi), light.dvFalloff);
+				}
+			}
+
+			break;
+		}
+
+		case D3DLIGHT_PARALLELPOINT:
+		default:
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Unsupported light type: " << light.dltType);
+			continue;
+		}
+
+		// Ambient accumulation
+		ambient.r += light.dcvAmbient.r * attenuation;
+		ambient.g += light.dcvAmbient.g * attenuation;
+		ambient.b += light.dcvAmbient.b * attenuation;
+
+		// Diffuse
+		float NdotL = D3DXVec3Dot(&normals, &hitDirection);
+		float NdotLClamped = CLAMP(NdotL, 0.0f, 1.0f);
+
+		if (NdotLClamped > 0.0f)
+		{
+			diffuse.r += light.dcvDiffuse.r * NdotLClamped * attenuation;
+			diffuse.g += light.dcvDiffuse.g * NdotLClamped * attenuation;
+			diffuse.b += light.dcvDiffuse.b * NdotLClamped * attenuation;
+
+			// Specular
+			if (materialPower > 0.0f && !(light.dwFlags & D3DLIGHT_NO_SPECULAR))
+			{
+				D3DXVECTOR3 H;
+
+				if (s->LocalViewer)
+				{
+					H = hitDirection - NVWPosition;
+				}
+				else
+				{
+					H = hitDirection;
+					H.z -= 1.0f;
+				}
+
+				if (D3DXVec3LengthSq(&H) > 1e-12f)
+				{
+					D3DXVec3Normalize(&H, &H);
+
+					const float NdotH = max(0.0f, D3DXVec3Dot(&normals, &H));
+
+					if (NdotH > 0.0f)
+					{
+						const float spec = powf(NdotH, materialPower) * attenuation;
+
+						specular.r += light.dcvSpecular.r * spec;
+						specular.g += light.dcvSpecular.g * spec;
+						specular.b += light.dcvSpecular.b * spec;
+					}
+				}
+			}
+		}
+	}
+
+	// Material sourcing
+	D3DCOLORVALUE materialDiffuse = Src(s->DiffuseMaterialSource, s->Material.Diffuse, inDiffuse, inSpecular);
+	D3DCOLORVALUE materialSpecular = Src(s->SpecularMaterialSource, s->Material.Specular, inDiffuse, inSpecular);
+	D3DCOLORVALUE materialAmbient = Src(s->AmbientMaterialSource, s->Material.Ambient, inDiffuse, inSpecular);
+	D3DCOLORVALUE materialEmissive = Src(s->EmissiveMaterialSource, s->Material.Emissive, inDiffuse, inSpecular);
+
+	// Final combine
+	diffuse.r = (ambient.r * materialAmbient.r) + (diffuse.r * materialDiffuse.r) + materialEmissive.r;
+	diffuse.g = (ambient.g * materialAmbient.g) + (diffuse.g * materialDiffuse.g) + materialEmissive.g;
+	diffuse.b = (ambient.b * materialAmbient.b) + (diffuse.b * materialDiffuse.b) + materialEmissive.b;
+	diffuse.a = s->Material.Diffuse.a;
+
+	specular.r *= materialSpecular.r;
+	specular.g *= materialSpecular.g;
+	specular.b *= materialSpecular.b;
+	specular.a = materialSpecular.a;
+
+	// Output
+	inoutColor = D3DCOLOR_COLORVALUE(
+		CLAMP(diffuse.r, 0.0f, 1.0f),
+		CLAMP(diffuse.g, 0.0f, 1.0f),
+		CLAMP(diffuse.b, 0.0f, 1.0f),
+		CLAMP(diffuse.a, 0.0f, 1.0f));
+
+	inoutSpecular = s->UseSpecular
+		? D3DCOLOR_COLORVALUE(
+			CLAMP(specular.r, 0.0f, 1.0f),
+			CLAMP(specular.g, 0.0f, 1.0f),
+			CLAMP(specular.b, 0.0f, 1.0f),
+			CLAMP(specular.a, 0.0f, 1.0f))
+		: 0;
+}
+
+HRESULT ProcessVerticesSW(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVertexTypeDesc, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, m_IDirect3DDeviceX* pDirect3DDeviceX, DWORD dwFlags)
+{
+	if (!lpDestBuffer || !lpSrcBuffer || !pDirect3DDeviceX)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	// Get and verify FVF
+	const DWORD SrcFVF = dwSrcVertexTypeDesc;
+	const DWORD DestFVF = dwDestVertexTypeDesc;
+	const UINT SrcStride = GetVertexStride(SrcFVF);
+	const UINT DestStride = GetVertexStride(DestFVF);
+	const DWORD SrcPosFVF = SrcFVF & D3DFVF_POSITION_MASK;
+	const DWORD DestPosFVF = DestFVF & D3DFVF_POSITION_MASK;
+
+	// Cannot transform RHW vertices or convert to non-RHW TL format
+	if ((SrcPosFVF & D3DFVF_XYZRHW) || !(DestPosFVF & D3DFVF_XYZRHW))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid FVF conversion: Cannot transform from D3DFVF_XYZRHW or to non-D3DFVF_XYZRHW format: " << Logging::hex(SrcFVF) << " -> " << Logging::hex(DestFVF));
+		return D3DERR_INVALIDVERTEXTYPE;
+	}
+
+	// Just ignore D3DVOP_CLIP ans D3DVOP_EXTENTS in dwVertexOp
+
+	// D3DVOP_TRANSFORM is inherently handled by ProcessVertices() as it performs vertex transformations based on the current world, view, and projection matrices.
+	if (!(dwVertexOp & D3DVOP_TRANSFORM))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DVOP_TRANSFORM not set, forcing transform");
+		dwVertexOp |= D3DVOP_TRANSFORM;
+	}
+
+	// If the rendering device does not have a material assigned to it, the Direct3D lighting engine is disabled.
+	bool bLighting = (dwVertexOp & D3DVOP_LIGHT) && (SrcFVF & D3DFVF_NORMAL) && pDirect3DDeviceX->IsMaterialEnabled();
+	bool DoNotCopyData = (dwFlags & D3DPV_DONOTCOPYDATA) != 0;
+
+	// Check lighting state
+	if (bLighting)
+	{
+		DWORD rsLighting = FALSE;
+		if (FAILED(pDirect3DDeviceX->GetD9RenderState(D3DRS_LIGHTING, &rsLighting)) || rsLighting == FALSE)
+		{
+			bLighting = false;
+		}
+	}
+
+	// Get lights
+	std::vector<DXLIGHT7> cachedLights;
+	if (bLighting)
+	{
+		pDirect3DDeviceX->GetEnabledLightList(cachedLights);
+		if (cachedLights.empty())
+		{
+			bLighting = false;
+		}
+	}
+
+	DWORD PosSizeSrc = GetVertexPositionStride(SrcFVF);
+	DWORD PosSizeDest = GetVertexPositionStride(DestFVF);
+
+	DWORD NormalSrcOffset = 0;
+	DWORD DiffuseSrcOffset = 0;
+	DWORD SpecularSrcOffset = 0;
+	DWORD DiffuseDestOffset = 0;
+	DWORD SpecularDestOffset = 0;
+
+	// Only compute offsets if lighting is enabled
+	if (bLighting)
+	{
+		// Get dest offsets
+		DWORD offset = PosSizeDest;
+		if (DestFVF & D3DFVF_NORMAL)
+		{
+			offset += sizeof(float) * 3;
+		}
+		if (DestFVF & D3DFVF_RESERVED1)
+		{
+			offset += sizeof(DWORD);
+		}
+		if (DestFVF & D3DFVF_DIFFUSE)
+		{
+			DiffuseDestOffset = offset;
+			offset += sizeof(DWORD);
+		}
+		if (DestFVF & D3DFVF_SPECULAR)
+		{
+			SpecularDestOffset = offset;
+			offset += sizeof(DWORD);
+		}
+
+		// Get src offsets
+		offset = PosSizeSrc;
+		if (SrcFVF & D3DFVF_NORMAL)
+		{
+			NormalSrcOffset = offset;
+			offset += sizeof(float) * 3;
+		}
+		if (SrcFVF & D3DFVF_RESERVED1)
+		{
+			offset += sizeof(DWORD);
+		}
+		if (SrcFVF & D3DFVF_DIFFUSE)
+		{
+			DiffuseSrcOffset = offset;
+			offset += sizeof(DWORD);
+		}
+		if (SrcFVF & D3DFVF_SPECULAR)
+		{
+			SpecularSrcOffset = offset;
+			offset += sizeof(DWORD);
+		}
+	}
+
+	// Check for lighiting, must have source normals and dest diffuse or specular
+	if (bLighting && (!NormalSrcOffset || (!(DestFVF & D3DFVF_DIFFUSE) && !(DestFVF & D3DFVF_SPECULAR))))
+	{
+		bLighting = false;
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'D3DVOP_LIGHT' is specified but verticies don't support it: " << Logging::hex(SrcFVF) << " -> " << Logging::hex(DestFVF));
+	}
+
+	// Get transformation matrices
+	D3DMATRIX matWorld, matView, matProj;
+	if (FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_WORLD, &matWorld)) ||
+		FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_VIEW, &matView)) ||
+		FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_PROJECTION, &matProj)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get transform matrices");
+		return DDERR_GENERIC;
+	}
+
+	matProj = pDirect3DDeviceX->GetUpdatedProjectionMatrix(matProj, true);
+
+	D3DMATRIX matWorldView = {}, matWorldViewProj = {};
+	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
+	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
+
+	// Get viewport
+	D3DVIEWPORT9 vp = {};
+	if (FAILED(pDirect3DDeviceX->GetD9Viewport(&vp)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get viewport");
+		return DDERR_GENERIC;
+	}
+
+	// Cache specular, ambient, material and lights if needed
+	LightingState lsState = {};
+	D3DMATRIX matNormal = {};
+
+	if (DWORD rsColorVertex = 0;
+		(DiffuseSrcOffset || SpecularSrcOffset) &&
+		SUCCEEDED(pDirect3DDeviceX->GetD9RenderState(D3DRS_COLORVERTEX, &rsColorVertex)))
+	{
+		lsState.ColorVertex = rsColorVertex != FALSE;
+	}
+
+	// Get lighting data
+	if (bLighting)
+	{
+		lsState.DiffuseMaterialSource = D3DMCS_COLOR1;
+		lsState.SpecularMaterialSource = D3DMCS_COLOR2;
+		lsState.AmbientMaterialSource = D3DMCS_MATERIAL;
+		lsState.EmissiveMaterialSource = D3DMCS_MATERIAL;
+
+		lsState.ViewMatrix = matView;
+
+		if (DWORD rsSpecular = 0;
+			SUCCEEDED(pDirect3DDeviceX->GetD9RenderState(D3DRS_SPECULARENABLE, &rsSpecular)))
+		{
+			lsState.UseSpecular = rsSpecular != FALSE;
+		}
+
+		if (DWORD rsLocalViewer = 0;
+			SUCCEEDED(pDirect3DDeviceX->GetD9RenderState(D3DRS_LOCALVIEWER, &rsLocalViewer)))
+		{
+			lsState.LocalViewer = rsLocalViewer != FALSE;
+		}
+
+		if (DWORD rsNormalizeNormals = 0;
+			SUCCEEDED(pDirect3DDeviceX->GetD9RenderState(D3DRS_NORMALIZENORMALS, &rsNormalizeNormals)))
+		{
+			lsState.NormalizeNormals = rsNormalizeNormals != FALSE;
+		}
+
+		pDirect3DDeviceX->GetD9RenderState(D3DRS_AMBIENT, &lsState.AmbientRenderState);
+
+		pDirect3DDeviceX->GetD9RenderState(D3DRS_DIFFUSEMATERIALSOURCE, &lsState.DiffuseMaterialSource);
+		pDirect3DDeviceX->GetD9RenderState(D3DRS_SPECULARMATERIALSOURCE, &lsState.SpecularMaterialSource);
+		pDirect3DDeviceX->GetD9RenderState(D3DRS_AMBIENTMATERIALSOURCE, &lsState.AmbientMaterialSource);
+		pDirect3DDeviceX->GetD9RenderState(D3DRS_EMISSIVEMATERIALSOURCE, &lsState.EmissiveMaterialSource);
+
+		pDirect3DDeviceX->GetD9Material(&lsState.Material);
+
+		D3DXMatrixInverse(&matNormal, nullptr, &matWorld);
+		D3DXMatrixTranspose(&matNormal, &matNormal);
+	}
+
+	// Precalculate a few static viewport factors, to save on per-vertex cycles
+	const float viewportHalfWidth = static_cast<float>(vp.Width) * 0.5f;
+	const float viewportHalfHeight = static_cast<float>(vp.Height) * 0.5f;
+	const float viewportZDelta = vp.MaxZ - vp.MinZ;
+
+	BYTE* pSrcVertex = (BYTE*)lpSrcBuffer + (dwSrcIndex * SrcStride);
+	BYTE* pDestVertex = (BYTE*)lpDestBuffer + (dwDestIndex * DestStride);
+
+	const bool SimpleCopy = (SrcFVF & ~D3DFVF_POSITION_MASK) == (DestFVF & ~D3DFVF_POSITION_MASK) && (SrcStride - PosSizeSrc) == (DestStride - PosSizeDest);
+
+	// Copy vertex data
+	if (!DoNotCopyData)
+	{
+		if (SrcFVF == DestFVF || ((SrcFVF & ~(D3DFVF_XYZ | D3DFVF_RESERVED1)) == (DestFVF & ~D3DFVF_XYZRHW) && SrcStride == DestStride))
+		{
+			DoNotCopyData = true;
+			memcpy(pDestVertex, pSrcVertex, dwCount * DestStride);
+		}
+	}
+
+	for (UINT i = 0; i < dwCount; ++i)
+	{
+		// Copy or convert vertex data
+		if (!DoNotCopyData)
+		{
+			if (SimpleCopy)
+			{
+				memcpy(pDestVertex + PosSizeDest, pSrcVertex + PosSizeSrc, SrcStride - PosSizeSrc);
+			}
+			else
+			{
+				ConvertVertex(pDestVertex, DestFVF, pSrcVertex, SrcFVF);
+			}
+		}
+
+		// Source position
+		D3DXVECTOR3& src = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex);
+
+		// Projection-space position
+		D3DXVECTOR4 h = TransformVector4(src.x, src.y, src.z, 1.0f, matWorldViewProj);
+
+		// Output vertex
+		D3DVERTEX4& dst = *reinterpret_cast<D3DVERTEX4*>(pDestVertex);
+
+		// Preserve INF/NAN behavior
+		dst.rhw = 1.0f / h.w;
+
+		// Convert to screen-space TL coords
+		dst.sx = vp.X + (h.x * dst.rhw + 1.0f) * viewportHalfWidth;
+		dst.sy = vp.Y + (1.0f - h.y * dst.rhw) * viewportHalfHeight;
+		dst.sz = vp.MinZ + (h.z * dst.rhw) * viewportZDelta;
+
+		D3DCOLOR Diffuse = 0xFFFFFFFF, Specular = 0;	// Default diffuse to white
+
+		// Get source diffuse and specular
+		if (lsState.ColorVertex)
+		{
+			if (DiffuseSrcOffset)
+			{
+				Diffuse = *reinterpret_cast<D3DCOLOR*>(pSrcVertex + DiffuseSrcOffset);
+			}
+			if (SpecularSrcOffset)
+			{
+				Specular = *reinterpret_cast<D3DCOLOR*>(pSrcVertex + SpecularSrcOffset);
+			}
+		}
+
+		// Lighting
+		if (bLighting)
+		{
+			// View-space position
+			D3DXVECTOR4 viewPos4 = TransformVector4(src.x, src.y, src.z, 1.0f, matWorldView);
+
+			D3DXVECTOR3 transformedPos =
+			{
+				viewPos4.x / viewPos4.w,
+				viewPos4.y / viewPos4.w,
+				viewPos4.z / viewPos4.w
+			};
+
+			// Transform normal
+			D3DXVECTOR3 normal = *reinterpret_cast<D3DXVECTOR3*>(pSrcVertex + NormalSrcOffset);
+			D3DXVECTOR3 transformedNormal;
+			D3DXVec3TransformNormal(&transformedNormal, &normal, &matNormal);
+
+			ComputeLighting(transformedPos, transformedNormal, cachedLights, &lsState, Diffuse, Specular);
+		}
+
+		// Set diffuse and specular
+		if (DiffuseDestOffset)
+		{
+			*reinterpret_cast<D3DCOLOR*>(pDestVertex + DiffuseDestOffset) = Diffuse;
+		}
+		if (SpecularDestOffset)
+		{
+			*reinterpret_cast<D3DCOLOR*>(pDestVertex + SpecularDestOffset) = Specular;
+		}
+
+		// Move to the next vertex
+		pSrcVertex += SrcStride;
+		pDestVertex += DestStride;
+	}
 
 	return D3D_OK;
 }

@@ -780,6 +780,10 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 						hr = ProcessVerticesExecute(Count, SrcVertices, DestVertices, SrcFVF, IsLight, IsClipped, VertexFlags);
 
+						// Use software vertex processing
+						//DWORD VertexOp = D3DVOP_TRANSFORM | (IsClipped ? D3DVOP_CLIP : 0) | (IsLight ? D3DVOP_LIGHT : 0);
+						//hr = ProcessVerticesSW(VertexOp, DestVertices, D3DFVF_TLVERTEX, 0, Count, SrcVertices, SrcFVF, 0, this, VertexFlags);
+
 						if (SUCCEEDED(hr))
 						{
 							// Restore tu and tv

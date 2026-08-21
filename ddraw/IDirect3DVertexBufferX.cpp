@@ -375,6 +375,40 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 			hr = CopyBufferToEmulatedMem();
 		}
 
+		// Use software vertex processing
+/*#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
+		// Lock the source vertex buffer
+		void* pSrcVertices = nullptr;
+		if (FAILED(pSrcVertexBufferX->Lock(D3DLOCK_READONLY, &pSrcVertices, 0)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock source vertex");
+			return DDERR_GENERIC;
+		}
+
+		// Lock destination buffer
+		void* pDestVertices = nullptr;
+		if (FAILED(Lock(0, &pDestVertices, 0)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock destination vertex");
+			pSrcVertexBufferX->Unlock();
+			return DDERR_GENERIC;
+		}
+
+		hr = ProcessVerticesSW(dwVertexOp, pDestVertices, VB.Desc.dwFVF, dwDestIndex, dwCount, pSrcVertices, pSrcVertexBufferX->VB.Desc.dwFVF, dwSrcIndex, pDirect3DDeviceX, dwFlags);
+
+		// Unlock destination vertex buffer
+		Unlock();
+
+		// Unlock the source vertex buffer
+		pSrcVertexBufferX->Unlock();
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInUS(startTime);
+#endif*/
+
 		return hr;
 	}
 
@@ -540,6 +574,27 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 		{
 			hr = CopyBufferToEmulatedMem();
 		}
+
+		// Use software vertex processing
+/*#ifdef ENABLE_PROFILING
+		auto startTime = std::chrono::high_resolution_clock::now();
+#endif
+
+		// Lock destination buffer
+		void* pDestVertices = nullptr;
+		if (FAILED(Lock(0, &pDestVertices, 0)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock destination vertex");
+			return DDERR_GENERIC;
+		}
+		hr = ProcessVerticesSW(dwVertexOp, pDestVertices, VB.Desc.dwFVF, dwDestIndex, dwCount, SrcVertexCache.data(), SrcFVF, dwSrcIndex, pDirect3DDeviceX, dwFlags);
+
+		// Unlock destination vertex buffer
+		Unlock();
+
+#ifdef ENABLE_PROFILING
+		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInUS(startTime);
+#endif*/
 
 		return hr;
 	}

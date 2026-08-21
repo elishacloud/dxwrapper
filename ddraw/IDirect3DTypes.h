@@ -321,6 +321,26 @@ typedef struct _D3DDEVINFO_TEXTURING {
     DWORD   dwNumGetDCs;            // Number of times a device context for a texture surface has been retrieved by calling the IDirectDrawSurface7::GetDC method.
 } D3DDEVINFO_TEXTURING, * LPD3DDEVINFO_TEXTURING;
 
+// Lighting data
+struct LightingState
+{
+    bool UseSpecular;
+    bool LocalViewer;
+    bool NormalizeNormals;
+    bool ColorVertex;
+
+    DWORD DiffuseMaterialSource;
+    DWORD AmbientMaterialSource;
+    DWORD SpecularMaterialSource;
+    DWORD EmissiveMaterialSource;
+
+    D3DCOLOR AmbientRenderState;
+
+    D3DMATRIX ViewMatrix;
+
+    D3DMATERIAL9 Material;
+};
+
 #define LVERTEX_SIZE 32
 
 #undef D3DFVF_RESERVED2
@@ -472,4 +492,5 @@ UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCoun
 DWORD GetStridedVertexTypeDesc(const D3DDRAWPRIMITIVESTRIDEDDATA& sd);
 HRESULT InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA& sd, const DWORD dwVertexStart, const DWORD dwNumVertices, DWORD& dwVertexTypeDesc);
 template <typename T>
-HRESULT TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, DWORD dwFlags, const VIEWPORTINFO& Viewport, LPDWORD lpOffscreen);
+HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, DWORD dwFlags, const VIEWPORTINFO& Viewport, LPDWORD lpOffscreen);
+HRESULT ProcessVerticesSW(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVertexTypeDesc, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, m_IDirect3DDeviceX* pDirect3DDeviceX, DWORD dwFlags);
