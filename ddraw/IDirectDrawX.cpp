@@ -75,6 +75,10 @@ namespace {
 #ifdef ENABLE_PROFILING
 	std::chrono::steady_clock::time_point presentTime;
 #endif
+	struct DX_VERTEX_BUFFER {
+		DWORD Size = 0;
+		LPDIRECT3DVERTEXBUFFER9 Buffer = nullptr;
+	};
 
 	struct DX_INDEX_BUFFER {
 		const DWORD MaxCount;
@@ -126,10 +130,11 @@ namespace {
 	LPDIRECT3DPIXELSHADER9 colorkeyPixelShader = nullptr;
 	LPDIRECT3DPIXELSHADER9 gammaPixelShader = nullptr;
 	LPDIRECT3DVERTEXSHADER9 fixupVertexShader = nullptr;
+	std::unordered_map<DWORD, DX_VERTEX_BUFFER> VertexBuffer;
 	constexpr UINT IndexBufferRotationSize = 2;
 	constexpr DWORD IndexBufferMinChunkSize = 512;
 	struct {
-		std::vector<DX_INDEX_BUFFER>IndexBuffer = {
+		std::vector<DX_INDEX_BUFFER> IndexBuffer = {
 			//DX_INDEX_BUFFER(64),
 			//DX_INDEX_BUFFER(128),
 			//DX_INDEX_BUFFER(256),
@@ -3163,6 +3168,58 @@ LPDIRECT3DVERTEXSHADER9* m_IDirectDrawX::GetFixupVertexShader()
 	return &fixupVertexShader;
 }
 
+LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetVertexBuffer(DWORD FVF, UINT Length, void* lpData)
+{
+	LPDIRECT3DVERTEXBUFFER9& Buffer = VertexBuffer[FVF].Buffer;
+	DWORD& Size = VertexBuffer[FVF].Size;
+
+	// Check if current buffer is too small
+	if (Buffer && Size < Length)
+	{
+		ReleaseD3D9VertexBuffer(Buffer, Size);
+	}
+
+	// Create new buffer
+	if (!Buffer)
+	{
+		HRESULT hr = d3d9Device->CreateVertexBuffer(Length, D3DUSAGE_DYNAMIC, FVF, D3DPOOL_DEFAULT, &Buffer, nullptr);
+
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create vertex buffer: " << (D3DERR)hr << " FVF: " << Logging::hex(FVF));
+			return nullptr;
+		}
+
+		Size = Length;
+	}
+
+	// Store data in buffer
+	if (lpData)
+	{
+		DWORD Flags = D3DLOCK_DISCARD | (Config.DdrawNoDrawBufferSysLock ? D3DLOCK_NOSYSLOCK : 0);
+
+		void* pData = nullptr;
+		HRESULT hr = Buffer->Lock(0, Length, &pData, Flags);
+
+		if (FAILED(hr) && (Flags & D3DLOCK_NOSYSLOCK))
+		{
+			hr = Buffer->Lock(0, Length, &pData, Flags & ~D3DLOCK_NOSYSLOCK);
+		}
+
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock vertex buffer: " << (D3DERR)hr);
+			return nullptr;
+		}
+
+		memcpy(pData, lpData, Length);
+
+		Buffer->Unlock();
+	}
+
+	return Buffer;
+}
+
 LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount)
 {
 	static UINT x = 0;
@@ -3216,7 +3273,7 @@ inline LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBufferX(LPWORD lpwIndices,
 		IndexBufferSize = IndexCreationSize;
 	}
 
-	DWORD Flags = D3DLOCK_DISCARD | (Config.DdrawNoDrawBufferSysLock ? D3DLOCK_NOSYSLOCK : NULL);
+	DWORD Flags = D3DLOCK_DISCARD | (Config.DdrawNoDrawBufferSysLock ? D3DLOCK_NOSYSLOCK : 0);
 
 	void* pData = nullptr;
 	hr = d3d9IndexBuffer->Lock(0, IndexSize, &pData, Flags);
@@ -4344,6 +4401,21 @@ void m_IDirectDrawX::ResetAllSurfaceDisplay()
 	}
 }
 
+void m_IDirectDrawX::ReleaseD3D9VertexBuffer(LPDIRECT3DVERTEXBUFFER9& d3d9VertexBuffer, DWORD& VertexBufferSize)
+{
+	// Release vertex buffer
+	if (d3d9VertexBuffer)
+	{
+		ULONG ref = d3d9VertexBuffer->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " (" << this << ")" << " Error: there is still a reference to 'd3d9IndexBuffer' " << ref;
+		}
+		d3d9VertexBuffer = nullptr;
+		VertexBufferSize = 0;
+	}
+}
+
 void m_IDirectDrawX::ReleaseD3D9IndexBuffer(LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer, DWORD& IndexBufferSize)
 {
 	// Release index buffer
@@ -4425,6 +4497,12 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'ScreenCopyTexture' " << ref;
 		}
 		ScreenCopyTexture = nullptr;
+	}
+
+	// Release Vertex buffers
+	for (auto& entry : VertexBuffer)
+	{
+		ReleaseD3D9VertexBuffer(entry.second.Buffer, entry.second.Size);
 	}
 
 	// Release index buffer

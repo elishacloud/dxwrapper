@@ -248,8 +248,8 @@ private:
 	std::vector<LPDIRECT3DVIEWPORT3> AttachedViewports;
 
 	// Helper functions
-	HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice);
-	HRESULT GetReturnResult(HRESULT hr);
+	inline HRESULT CheckInterface(char* FunctionName, bool CheckD3DDevice);
+	inline HRESULT GetReturnResult(HRESULT hr);
 
 	// Execute buffer function
 	void CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& DestVertexCount, BYTE* SrcVertex, DWORD SrcIndex, DWORD VertexTypeDesc);
@@ -539,7 +539,9 @@ public:
 	void ClearLight(m_IDirect3DLight* lpLight);
 
 	// Vertices functions
-	HRESULT ProcessVertices(UINT SrcStartIndex, UINT DestIndex, UINT VertexCount, IDirect3DVertexBuffer9* pSrcBuffer, IDirect3DVertexBuffer9* pDestBuffer, DWORD SrcFVF, BOOL doLighting, BOOL doClipping, DWORD dwFlags);
+	HRESULT ProcessVerticesExecute(UINT VertexCount, void* SrcVertices, void* DestVertices, DWORD SrcFVF, BOOL doLighting, BOOL doClipping, DWORD dwFlags);
+	HRESULT ProcessVerticesStrided(UINT DestIndex, UINT VertexCount, void* SrcVertices, UINT SrcVertexSize, IDirect3DVertexBuffer9* pDestBuffer, DWORD SrcFVF, BOOL doLighting, BOOL doClipping, DWORD dwFlags);
+	HRESULT ProcessVertices(UINT SrcStartIndex, UINT DestIndex, UINT VertexCount, IDirect3DVertexBuffer9* pSrcBuffer, IDirect3DVertexBuffer9* pDestBuffer, DWORD SrcFVF, BOOL doLighting, BOOL doClipping, DWORD dwFlags, ScopedCriticalSection* ScopedThread);
 
 	// Functions handling the Direct3D parent interface
 	void SetD3D(m_IDirect3DX* lpD3D);

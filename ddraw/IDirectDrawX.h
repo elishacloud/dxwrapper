@@ -84,6 +84,7 @@ private:
 	void RestoreD3DDeviceState();
 	void Clear3DSurfaceFlag();
 	void ResetAllSurfaceDisplay();
+	void ReleaseD3D9VertexBuffer(LPDIRECT3DVERTEXBUFFER9& d3d9VertexBuffer, DWORD& VertexBufferSize);
 	void ReleaseD3D9IndexBuffer(LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer, DWORD& IndexBufferSize);
 	void ReleaseAllD9Resources(bool BackupData, bool ResetInterface);
 	void ReleaseD9Device();
@@ -231,6 +232,7 @@ public:
 	bool CreatePalettePixelShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyPixelShader();
 	LPDIRECT3DVERTEXSHADER9* GetFixupVertexShader();
+	LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer(DWORD FVF, UINT Length, void* lpData);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBufferX(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& IndexBufferSize, LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer);
 	void GetMultiSampleTypeQuality(D3DMULTISAMPLE_TYPE& MaxSampleType, DWORD& QualityLevels) const;

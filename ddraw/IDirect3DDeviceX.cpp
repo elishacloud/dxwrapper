@@ -756,7 +756,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					case D3DPROCESSVERTICES_COPY:
 					{
 						// Copy vertices always uses D3DFVF_TLVERTEX
-						memcpy(outputVerts + processVertices[i].wDest, inputVerts + processVertices[i].wStart, sizeof(D3DTLVERTEX)* Count);
+						memcpy(outputVerts + processVertices[i].wDest, inputVerts + processVertices[i].wStart, sizeof(D3DTLVERTEX) * Count);
 
 						// Handle status and extents
 						SetStatus(lpStatus);
@@ -766,26 +766,33 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					case D3DPROCESSVERTICES_TRANSFORM:
 					case D3DPROCESSVERTICES_TRANSFORMLIGHT:
 					{
-						const bool IsLight = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT);
+						const bool IsLight = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT) && IsMaterialEnabled();
 
 						// Flags
-						DWORD VertexOp = D3DVOP_TRANSFORM | (IsClipped ? D3DVOP_CLIP : 0) | (IsLight ? D3DVOP_LIGHT : 0);
 						DWORD VertexFlags = (Flags & D3DPROCESSVERTICES_NOCOLOR) ? D3DPV_DONOTCOPYDATA : 0;
 
 						// FVF
-						DWORD SrcVertexTypeDesc = IsLight ? D3DFVF_VERTEX : D3DFVF_LVERTEX;
-						DWORD DestVertexTypeDesc = D3DFVF_TLVERTEX;
+						DWORD SrcFVF = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT) ? D3DFVF_VERTEX : D3DFVF_LVERTEX;
 
 						// Assume process vertices always uses D3DFVF_VERTEX
-						D3DVERTEX* srcVertices = reinterpret_cast<D3DVERTEX*>(inputVerts) + processVertices[i].wStart;
-						D3DTLVERTEX* destVertices = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
+						D3DLVERTEX* SrcVertices = reinterpret_cast<D3DLVERTEX*>(inputVerts) + processVertices[i].wStart;
+						D3DTLVERTEX* DestVertices = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
 
-						// Process verticies
-						hr = m_IDirect3DVertexBufferX::ProcessVerticesUP(VertexOp, destVertices, DestVertexTypeDesc, 0, Count, srcVertices, SrcVertexTypeDesc, 0, this, VertexFlags);
+						hr = ProcessVerticesExecute(Count, SrcVertices, DestVertices, SrcFVF, IsLight, IsClipped, VertexFlags);
 
-						// Handle status and extents
 						if (SUCCEEDED(hr))
 						{
+							// Restore tu and tv
+							if (Flags & D3DPROCESSVERTICES_NOCOLOR)
+							{
+								for (UINT x = 0; x < Count; x++)
+								{
+									DestVertices[x].dvTU = SrcVertices[x].dvTU;
+									DestVertices[x].dvTV = SrcVertices[x].dvTV;
+								}
+							}
+
+							// Handle status and extents
 							SetStatus(lpStatus);
 						}
 						break;
@@ -3270,7 +3277,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 		dwVertexTypeDesc = dwVertexTypeDesc == D3DFVF_LVERTEX ? D3DFVF_LVERTEX9 : dwVertexTypeDesc;
 
 		// Update vertices for Direct3D9 (needs to be first)
-		if (FAILED(m_IDirect3DVertexBufferX::InterleaveStridedVertexData(VertexCache, lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc)))
+		if (FAILED(InterleaveStridedVertexData(VertexCache, *lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
 			return DDERR_INVALIDPARAMS;
@@ -3368,7 +3375,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 		}
 
 		// Update vertices for Direct3D9 (needs to be first)
-		if (FAILED(m_IDirect3DVertexBufferX::InterleaveStridedVertexData(VertexCache, lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc)))
+		if (FAILED(InterleaveStridedVertexData(VertexCache, *lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
 			return DDERR_INVALIDPARAMS;
@@ -6912,8 +6919,86 @@ void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLigh
 	}
 }
 
-HRESULT m_IDirect3DDeviceX::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, UINT VertexCount, IDirect3DVertexBuffer9* pSrcBuffer, IDirect3DVertexBuffer9* pDestBuffer, DWORD SrcFVF, BOOL doLighting, BOOL doClipping, DWORD dwFlags)
+HRESULT m_IDirect3DDeviceX::ProcessVerticesExecute(UINT VertexCount, void* SrcVertices, void* DestVertices, DWORD SrcFVF, BOOL doLighting, BOOL doClipping, DWORD dwFlags)
 {
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+	// Update vertices for Direct3D9 (needs to be first)
+	UpdateVertices(SrcFVF, SrcVertices, 0, VertexCount);
+
+	// FVF
+	DWORD DestFVF = D3DFVF_TLVERTEX;
+
+	// Size
+	UINT SrcVertexSize = (SrcFVF == D3DFVF_LVERTEX9 ? sizeof(DXLVERTEX9) : sizeof(D3DVERTEX)) * VertexCount;
+	UINT DestVertexSize = sizeof(D3DTLVERTEX) * VertexCount;
+
+	LPDIRECT3DVERTEXBUFFER9 pSrcBuffer = ddrawParent->GetVertexBuffer(SrcFVF, SrcVertexSize, SrcVertices);
+	if (!pSrcBuffer)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not create source vertex buffer from FVF: " << SrcFVF);
+		return DDERR_GENERIC;
+	}
+
+	LPDIRECT3DVERTEXBUFFER9 pDestBuffer = ddrawParent->GetVertexBuffer(DestFVF, DestVertexSize, nullptr);
+	if (!pDestBuffer)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not create destination vertex buffer from FVF: " << DestFVF);
+		return DDERR_GENERIC;
+	}
+
+	HRESULT hr = ProcessVertices(0, 0, VertexCount, pSrcBuffer, pDestBuffer, SrcFVF, doLighting, doClipping, dwFlags, &ThreadLockDD);
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	DWORD Flags = D3DLOCK_READONLY | (Config.DdrawNoDrawBufferSysLock ? D3DLOCK_NOSYSLOCK : 0);
+
+	void* pData = nullptr;
+	hr = pDestBuffer->Lock(0, DestVertexSize, &pData, Flags);
+
+	if (FAILED(hr) && (Flags & D3DLOCK_NOSYSLOCK))
+	{
+		hr = pDestBuffer->Lock(0, DestVertexSize, &pData, Flags & ~D3DLOCK_NOSYSLOCK);
+	}
+
+	if (FAILED(hr))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock destination vertex buffer: " << (D3DERR)hr);
+		return hr;
+	}
+
+	// Copy pressessed vertex data back to memory
+	memcpy(DestVertices, pData, DestVertexSize);
+
+	pDestBuffer->Unlock();
+
+	return hr;
+}
+
+HRESULT m_IDirect3DDeviceX::ProcessVerticesStrided(UINT DestIndex, UINT VertexCount, void* SrcVertices, UINT SrcVertexSize, IDirect3DVertexBuffer9* pDestBuffer, DWORD SrcFVF, BOOL doLighting, BOOL doClipping, DWORD dwFlags)
+{
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+	LPDIRECT3DVERTEXBUFFER9 pSrcBuffer = ddrawParent->GetVertexBuffer(SrcFVF, SrcVertexSize, SrcVertices);
+	if (!pSrcBuffer)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not create source vertex buffer from FVF: " << SrcFVF);
+		return DDERR_GENERIC;
+	}
+
+	return ProcessVertices(0, DestIndex, VertexCount, pSrcBuffer, pDestBuffer, SrcFVF, doLighting, doClipping, dwFlags, &ThreadLockDD);
+}
+
+HRESULT m_IDirect3DDeviceX::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, UINT VertexCount, IDirect3DVertexBuffer9* pSrcBuffer, IDirect3DVertexBuffer9* pDestBuffer, DWORD SrcFVF, BOOL doLighting, BOOL doClipping, DWORD dwFlags, ScopedCriticalSection* ScopedThread)
+{
+	if (!pSrcBuffer || !pDestBuffer)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: missing source or destination buffer: " << pSrcBuffer << " -> " << pDestBuffer);
+		return DDERR_INVALIDPARAMS;
+	}
+
 	// Check for device interface
 	if (FAILED(CheckInterface(__FUNCTION__, true)))
 	{
@@ -6924,7 +7009,7 @@ HRESULT m_IDirect3DDeviceX::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, 
 	auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection(), ScopedThread == nullptr);
 
 	PrepDevice();
 
@@ -6950,7 +7035,7 @@ HRESULT m_IDirect3DDeviceX::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, 
 	if (DeviceStates.Viewport.UseViewportScale)
 	{
 		GetD9Transform(D3DTS_PROJECTION, &DrawStates.ProjectionMatrix);
-		D3DMATRIX Matrix = UpdateProjectionMatrix(DrawStates.ProjectionMatrix, DeviceStates.Viewport.Scale, DeviceStates.Viewport.Clip, !(dwFlags & D3DDP_DONOTCLIP));
+		D3DMATRIX Matrix = UpdateProjectionMatrix(DrawStates.ProjectionMatrix, DeviceStates.Viewport.Scale, DeviceStates.Viewport.Clip, true);
 		(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &Matrix);
 	}
 
@@ -6981,7 +7066,7 @@ HRESULT m_IDirect3DDeviceX::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, 
 	Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInUS(startTime);
 #endif
 
-	return hr;
+	return GetReturnResult(hr);
 }
 
 void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwNumVertices)

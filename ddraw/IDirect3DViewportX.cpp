@@ -326,11 +326,11 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 		HRESULT hr;
 		if (lpData->dwInSize == sizeof(XYZ))
 		{
-			hr = m_IDirect3DVertexBufferX::TransformVertexUP<XYZ>(pDirect3DDeviceX, dwVertexCount, lpData, dwFlags, Viewport, lpOffscreen);
+			hr = TransformVertexUP<XYZ>(pDirect3DDeviceX, dwVertexCount, lpData, dwFlags, Viewport, lpOffscreen);
 		}
 		else if (lpData->dwInSize >= sizeof(D3DLVERTEX))
 		{
-			hr = m_IDirect3DVertexBufferX::TransformVertexUP<D3DLVERTEX>(pDirect3DDeviceX, dwVertexCount, lpData, dwFlags, Viewport, lpOffscreen);
+			hr = TransformVertexUP<D3DLVERTEX>(pDirect3DDeviceX, dwVertexCount, lpData, dwFlags, Viewport, lpOffscreen);
 		}
 		else
 		{

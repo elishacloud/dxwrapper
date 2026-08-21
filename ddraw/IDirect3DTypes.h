@@ -469,3 +469,7 @@ UINT GetTexStride(DWORD dwVertexTypeDesc, DWORD t);
 UINT GetVertexTextureStride(DWORD dwVertexTypeDesc);
 UINT GetVertexStride(DWORD dwVertexTypeDesc);
 UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);
+DWORD GetStridedVertexTypeDesc(const D3DDRAWPRIMITIVESTRIDEDDATA& sd);
+HRESULT InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA& sd, const DWORD dwVertexStart, const DWORD dwNumVertices, DWORD& dwVertexTypeDesc);
+template <typename T>
+HRESULT TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, DWORD dwFlags, const VIEWPORTINFO& Viewport, LPDWORD lpOffscreen);
