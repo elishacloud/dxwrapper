@@ -21,9 +21,17 @@ private:
 	// Vertex buffer desc
 	struct {
 		D3DVERTEXBUFFERDESC Desc = {};
+		DWORD Stride = 0;
 		DWORD Size = 0;
 	} VB;
-	D3DVERTEXBUFFER_DESC d3d9VBDesc = {};
+	struct {
+		D3DFORMAT Format = D3DFMT_UNKNOWN;
+		DWORD Usage = 0;
+		D3DPOOL Pool = D3DPOOL_DEFAULT;
+		DWORD FVF = 0;
+		DWORD Stride = 0;
+		UINT Size = 0;
+	} VB9;
 
 	// Vector buffer data
 	std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexData;
@@ -33,6 +41,10 @@ private:
 		void* Addr = nullptr;
 		DWORD Flags = 0;
 	} LastLock;
+
+	// Emulation functions
+	void CopyBufferFromEmulatedMem(BYTE* pVertexData);
+	HRESULT CopyBufferToEmulatedMem();
 
 	// Direct3D9 interface functions
 	HRESULT CreateD3D9VertexBuffer();
@@ -82,7 +94,6 @@ public:
 			VB.Desc.dwFVF = lpVBDesc->dwFVF;
 			VB.Desc.dwNumVertices = lpVBDesc->dwNumVertices;
 		}
-		d3d9VBDesc.Type = D3DRTYPE_VERTEXBUFFER;
 
 		InitInterface(DirectXVersion);
 	}
@@ -134,5 +145,5 @@ public:
 	void ClearD3D() { D3DInterface = nullptr; }
 	void ReleaseD9Buffer(bool BackupData, bool ResetBuffer);
 
-	DWORD GetFVF9() const { return d3d9VBDesc.FVF; };
+	DWORD GetFVF9() const { return VB9.FVF; };
 };
