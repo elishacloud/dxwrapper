@@ -7045,6 +7045,13 @@ HRESULT m_IDirect3DDeviceX::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, 
 	// Process vertices
 	HRESULT hr = (*d3d9Device)->ProcessVertices(SrcStartIndex, DestIndex, VertexCount, pDestBuffer, nullptr, dwFlags);
 
+	// Reset D3D9 vertex processing state.
+	// ProcessVertices() appears to leave the hardware vertex-processing
+	// state in a condition that causes rendering problems in some games.
+	// Toggling software vertex processing forces D3D9/driver to reset it.
+	(*d3d9Device)->SetSoftwareVertexProcessing(TRUE);
+	(*d3d9Device)->SetSoftwareVertexProcessing(FALSE);
+
 	// Reset lighting
 	(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
 
@@ -7056,6 +7063,9 @@ HRESULT m_IDirect3DDeviceX::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, 
 	{
 		(*d3d9Device)->SetTransform(D3DTS_PROJECTION, &DrawStates.ProjectionMatrix);
 	}
+
+	// Reset stream source
+	(*d3d9Device)->SetStreamSource(0, nullptr, 0, 0);
 
 	if (FAILED(hr))
 	{

@@ -113,8 +113,6 @@ ULONG m_IDirect3DDevice9Ex::Release()
 	{
 		ScopedCriticalSection ThreadLock(&d9cs, Config.AntiAliasing || RequirePresentHandling());
 
-		ref = ProxyInterface->Release();
-
 		ULONG UsedRef = GetResourceRefCount();
 
 		LONG EmuRef = InterlockedDecrementIfPositive(&RefCount);
@@ -124,10 +122,26 @@ ULONG m_IDirect3DDevice9Ex::Release()
 		UsedRef += (UsingDOverlay ? 1 : 0);
 #endif
 
+		// Check for last ref count when not using any refs
+		if (!FailedReset && UsedRef == 0)
+		{
+			ProxyInterface->AddRef();
+			if (ProxyInterface->Release() == 1)
+			{
+				// Reset D3D9 vertex processing state.
+				// Toggling software vertex processing seems to force D3D9/driver to reset and resolves some issues.
+				ProxyInterface->SetSoftwareVertexProcessing(FALSE);
+				ProxyInterface->SetSoftwareVertexProcessing(TRUE);
+			}
+		}
+
+		ref = ProxyInterface->Release();
+
 		// Check for refcount mismatch
-		if (UsedRef &&
-			((EmuRef == 0 && ref != UsedRef) ||
-			(EmuRef != 0 && ref == UsedRef)))
+		if (UsedRef && (
+			(EmuRef == 0 && ref != UsedRef) ||
+			(EmuRef != 0 && ref == UsedRef)
+			))
 		{
 			Logging::Log() << __FUNCTION__ << " Warning: Refcounts don't match! Emulated ref: " << EmuRef << " Device ref: " << ref << " Used ref: " << UsedRef;
 		}
@@ -149,6 +163,14 @@ ULONG m_IDirect3DDevice9Ex::Release()
 #endif
 
 				UsedRef = 0;
+
+				if (!FailedReset)
+				{
+					// Reset D3D9 vertex processing state.
+					// Toggling software vertex processing seems to force D3D9/driver to reset and resolves some issues.
+					ProxyInterface->SetSoftwareVertexProcessing(FALSE);
+					ProxyInterface->SetSoftwareVertexProcessing(TRUE);
+				}
 
 				ref = ProxyInterface->Release();
 
@@ -3258,7 +3280,7 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 
 	if (BlankTexture)
 	{
-		if (isBlankTextureUsed)
+		if (isBlankTextureUsed && !FailedReset)
 		{
 			isBlankTextureUsed = false;
 			ProxyInterface->SetTexture(0, nullptr);
@@ -3596,7 +3618,7 @@ void m_IDirect3DDevice9Ex::ReleaseShadowBackbuffer()
 	if (UsingShadowBackBuffer())
 	{
 		ComPtr<IDirect3DSurface9> pBackbuffer;
-		if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackbuffer.GetAddressOf())))
+		if (!FailedReset && SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackbuffer.GetAddressOf())))
 		{
 			ProxyInterface->SetRenderTarget(0, pBackbuffer.Get());
 		}
@@ -3634,6 +3656,22 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 
 	// Ignore failures. Some WineD3D games require an EndScene before Reset.
 	ProxyInterface->EndScene();
+
+	if (!FailedReset)
+	{
+		// Reset D3D9 vertex processing state.
+		// Toggling software vertex processing seems to force D3D9/driver to reset and resolves some issues.
+		if (GetSoftwareVertexProcessing())
+		{
+			ProxyInterface->SetSoftwareVertexProcessing(FALSE);
+			ProxyInterface->SetSoftwareVertexProcessing(TRUE);
+		}
+		else
+		{
+			ProxyInterface->SetSoftwareVertexProcessing(TRUE);
+			ProxyInterface->SetSoftwareVertexProcessing(FALSE);
+		}
+	}
 
 	HRESULT hr = D3DERR_INVALIDCALL;
 
@@ -3717,6 +3755,8 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 			DeviceDetails.SetATOC = false;
 		}
 	}
+
+	FailedReset = FAILED(hr);
 
 	ClearVars();
 
