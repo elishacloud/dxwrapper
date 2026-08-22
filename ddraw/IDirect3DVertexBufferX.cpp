@@ -210,28 +210,11 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		LastLock.Flags = Flags;
 
 		// Handle emulated vertex
-		if (IsVBEmulated)
+		*lplpData = IsVBEmulated ? VertexData.data() : pData;
+
+		if (lpdwSize)
 		{
-			*lplpData = VertexData.data();
-
-			if (lpdwSize)
-			{
-				*lpdwSize = VB.Size;
-			}
-
-			//if (dwFlags & DDLOCK_DISCARDCONTENTS)
-			//{
-			//	ZeroMemory(VertexData.data(), VB.Size);
-			//}
-		}
-		else
-		{
-			*lplpData = pData;
-
-			if (lpdwSize)
-			{
-				*lpdwSize = VB.Size;
-			}
+			*lpdwSize = VB.Size;
 		}
 
 #ifdef ENABLE_PROFILING
@@ -372,7 +355,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 
 		if (SUCCEEDED(hr))
 		{
-			hr = CopyBufferToEmulatedMem();
+			hr = CopyBufferToEmulatedMem(dwDestIndex, dwCount);
 		}
 
 		// Use software vertex processing
@@ -572,7 +555,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 
 		if (SUCCEEDED(hr))
 		{
-			hr = CopyBufferToEmulatedMem();
+			hr = CopyBufferToEmulatedMem(dwDestIndex, dwCount);
 		}
 
 		// Use software vertex processing
@@ -827,7 +810,7 @@ void m_IDirect3DVertexBufferX::CopyBufferFromEmulatedMem(BYTE* pVertexData)
 	}
 }
 
-HRESULT m_IDirect3DVertexBufferX::CopyBufferToEmulatedMem()
+HRESULT m_IDirect3DVertexBufferX::CopyBufferToEmulatedMem(DWORD dwDestIndex, DWORD dwCount)
 {
 	const bool ShouldClampZ = (Config.DdrawClampVertexZDepth && (VB9.FVF & D3DFVF_XYZRHW));
 
@@ -836,8 +819,18 @@ HRESULT m_IDirect3DVertexBufferX::CopyBufferToEmulatedMem()
 		return D3D_OK;
 	}
 
+	const DWORD Offset9 = dwDestIndex * VB9.Stride;
+	const DWORD Size = dwCount * VB9.Stride;
+
+	const DWORD Flags = (!ShouldClampZ ? D3DLOCK_READONLY : 0) | (Config.DdrawNoDrawBufferSysLock ? D3DLOCK_NOSYSLOCK : 0);
+
 	BYTE* pVertexData = nullptr;
-	HRESULT hr = d3d9VertexBuffer->Lock(0, 0, (void**)&pVertexData, D3DLOCK_READONLY);
+	HRESULT hr = d3d9VertexBuffer->Lock(Offset9, Size, (void**)&pVertexData, Flags);
+
+	if (FAILED(hr) && (Flags & D3DLOCK_NOSYSLOCK))
+	{
+		hr = d3d9VertexBuffer->Lock(Offset9, Size, (void**)&pVertexData, Flags & ~D3DLOCK_NOSYSLOCK);
+	}
 
 	if (FAILED(hr))
 	{
@@ -847,21 +840,23 @@ HRESULT m_IDirect3DVertexBufferX::CopyBufferToEmulatedMem()
 
 	if (IsVBEmulated)
 	{
+		BYTE* pEmulatedData = VertexData.data() + dwDestIndex * VB.Stride;
+
 		if (VB.Desc.dwFVF == D3DFVF_LVERTEX)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: converting vertex buffer, may cause slowdowns!");
 
-			ConvertLVertex((DXLVERTEX7*)VertexData.data(), (DXLVERTEX9*)pVertexData, VB.Desc.dwNumVertices);
+			ConvertLVertex((DXLVERTEX7*)pEmulatedData, (DXLVERTEX9*)pVertexData, dwCount);
 		}
 		else
 		{
-			memcpy(VertexData.data(), pVertexData, VB.Size);
+			memcpy(pEmulatedData, pVertexData, Size);
 		}
 	}
 
 	if (ShouldClampZ)
 	{
-		ClampVertices(pVertexData, VB9.Stride, VB.Desc.dwNumVertices);
+		ClampVertices(pVertexData, VB9.Stride, dwCount);
 	}
 
 	d3d9VertexBuffer->Unlock();

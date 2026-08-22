@@ -274,29 +274,7 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpExecuteData)
 			return D3DERR_EXECUTE_LOCKED;
 		}
 
-		// Ensure that the instruction range is within the bounds of the execute buffer
-		if (lpExecuteData->dwInstructionOffset + lpExecuteData->dwInstructionLength > Desc.dwBufferSize)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid instruction range!");
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// Ensure the vertex data lies within the buffer and does not overlap with instructions
-		if (lpExecuteData->dwVertexOffset + lpExecuteData->dwVertexCount * sizeof(D3DVERTEX) > Desc.dwBufferSize)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid vertex range!");
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// Ensure the data segments (vertices and instructions) do not overlap unintentionally
-		if (lpExecuteData->dwVertexOffset < lpExecuteData->dwInstructionOffset + lpExecuteData->dwInstructionLength &&
-			lpExecuteData->dwVertexOffset + lpExecuteData->dwVertexCount * sizeof(D3DVERTEX) > lpExecuteData->dwInstructionOffset)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Overlapping data regions!");
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// Store execute data
+		// Store execute data (not validated by native ddraw)
 		ExecuteData = *lpExecuteData;
 
 		// Mark data as unvalidated

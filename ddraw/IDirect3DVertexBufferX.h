@@ -44,7 +44,7 @@ private:
 
 	// Emulation functions
 	void CopyBufferFromEmulatedMem(BYTE* pVertexData);
-	HRESULT CopyBufferToEmulatedMem();
+	HRESULT CopyBufferToEmulatedMem(DWORD dwDestIndex, DWORD dwCount);
 
 	// Direct3D9 interface functions
 	HRESULT CreateD3D9VertexBuffer();
