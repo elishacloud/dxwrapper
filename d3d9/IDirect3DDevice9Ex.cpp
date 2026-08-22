@@ -129,7 +129,9 @@ ULONG m_IDirect3DDevice9Ex::Release()
 			if (ProxyInterface->Release() == 1)
 			{
 				// Reset D3D9 vertex processing state.
-				// Toggling software vertex processing seems to force D3D9/driver to reset and resolves some issues.
+				// Certian functions can leave the hardware vertex-processing state
+				// in a condition that causes rendering problems in some games.
+				// Toggling software vertex processing forces D3D9/driver to reset it.
 				ProxyInterface->SetSoftwareVertexProcessing(FALSE);
 				ProxyInterface->SetSoftwareVertexProcessing(TRUE);
 			}
@@ -167,7 +169,9 @@ ULONG m_IDirect3DDevice9Ex::Release()
 				if (!FailedReset)
 				{
 					// Reset D3D9 vertex processing state.
-					// Toggling software vertex processing seems to force D3D9/driver to reset and resolves some issues.
+					// Certian functions can leave the hardware vertex-processing state
+					// in a condition that causes rendering problems in some games.
+					// Toggling software vertex processing forces D3D9/driver to reset it.
 					ProxyInterface->SetSoftwareVertexProcessing(FALSE);
 					ProxyInterface->SetSoftwareVertexProcessing(TRUE);
 				}
@@ -3654,13 +3658,16 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 	}
 #endif
 
-	// Ignore failures. Some WineD3D games require an EndScene before Reset.
-	ProxyInterface->EndScene();
-
+	// Handle some compatibility cases
 	if (!FailedReset)
 	{
+		// Ignore failures. Some WineD3D games require an EndScene before Reset.
+		ProxyInterface->EndScene();
+
 		// Reset D3D9 vertex processing state.
-		// Toggling software vertex processing seems to force D3D9/driver to reset and resolves some issues.
+		// Certian functions can leave the hardware vertex-processing state
+		// in a condition that causes rendering problems in some games.
+		// Toggling software vertex processing forces D3D9/driver to reset it.
 		if (GetSoftwareVertexProcessing())
 		{
 			ProxyInterface->SetSoftwareVertexProcessing(FALSE);

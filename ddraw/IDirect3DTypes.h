@@ -480,7 +480,6 @@ void ConvertLVertex(DXLVERTEX7* lFVF7, const DXLVERTEX9* lFVF9, DWORD NumVertice
 void ConvertLVertex(DXLVERTEX9* lFVF9, const DXLVERTEX7* lFVF7, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
 void ClampVertices(BYTE* pVertexData, DWORD Stride, DWORD dwNumVertices);
-void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF);
 DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType);
 bool IsValidFVF(DWORD dwVertexTypeDesc);
 UINT GetBlendCount(DWORD dwVertexTypeDesc);

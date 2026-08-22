@@ -947,144 +947,6 @@ void ClampVertices(BYTE* pVertexData, DWORD Stride, DWORD dwNumVertices)
 	}
 }
 
-void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF)
-{
-	DWORD SrcOffset = 0;
-	DWORD DestOffset = 0;
-
-	DWORD SrcPosFVF = (SrcFVF & D3DFVF_POSITION_MASK);
-	DWORD DestPosFVF = (DestFVF & D3DFVF_POSITION_MASK);
-
-	// Get number of blending weights
-	DWORD SrcNumBlending = GetBlendCount(SrcPosFVF);
-	DWORD DestNumBlending = GetBlendCount(DestPosFVF);
-
-	// Zero dest memory
-	ZeroMemory(pDestVertex, GetVertexStride(DestFVF));
-
-	// Copy Position XYZ
-	if (SrcPosFVF && DestPosFVF)
-	{
-		*(D3DXVECTOR3*)pDestVertex = *(D3DXVECTOR3*)pSrcVertex;
-	}
-
-	// Copy Position RHW
-	if (DestPosFVF == D3DFVF_XYZRHW && DestPosFVF == SrcPosFVF)
-	{
-		*(float*)(pDestVertex + sizeof(D3DXVECTOR3)) = *(float*)(pSrcVertex + sizeof(D3DXVECTOR3));
-	}
-
-	// Copy matching blending weights
-	if (SrcNumBlending && DestNumBlending)
-	{
-		memcpy(pDestVertex + sizeof(D3DXVECTOR3), pSrcVertex + sizeof(D3DXVECTOR3), min(SrcNumBlending, DestNumBlending) * sizeof(float));
-	}
-
-	// Update source offset for Position
-	SrcOffset += GetVertexPositionStride(SrcPosFVF);
-
-	// Update destination offset for Position
-	DestOffset += GetVertexPositionStride(DestPosFVF);
-
-	// Reserved
-	if (DestFVF & D3DFVF_RESERVED1)
-	{
-		if (SrcFVF & D3DFVF_RESERVED1)
-		{
-			SrcOffset += sizeof(DWORD);
-		}
-		DestOffset += sizeof(DWORD);
-	}
-	else if (SrcFVF & D3DFVF_RESERVED1)
-	{
-		SrcOffset += sizeof(DWORD);
-	}
-
-	// Normal
-	if (DestFVF & D3DFVF_NORMAL)
-	{
-		if (SrcFVF & D3DFVF_NORMAL)
-		{
-			*(D3DXVECTOR3*)(pDestVertex + DestOffset) = *(D3DXVECTOR3*)(pSrcVertex + SrcOffset);
-			SrcOffset += sizeof(D3DXVECTOR3);
-		}
-		DestOffset += sizeof(D3DXVECTOR3);
-	}
-	else if (SrcFVF & D3DFVF_NORMAL)
-	{
-		SrcOffset += sizeof(D3DXVECTOR3);
-	}
-
-	// Diffuse color
-	if (DestFVF & D3DFVF_DIFFUSE)
-	{
-		if (SrcFVF & D3DFVF_DIFFUSE)
-		{
-			*(D3DCOLOR*)(pDestVertex + DestOffset) = *(D3DCOLOR*)(pSrcVertex + SrcOffset);
-			SrcOffset += sizeof(D3DCOLOR);
-		}
-		else
-		{
-			*(D3DCOLOR*)(pDestVertex + DestOffset) = 0xFFFFFFFF;	// Default to white
-		}
-		DestOffset += sizeof(D3DCOLOR);
-	}
-	else if (SrcFVF & D3DFVF_DIFFUSE)
-	{
-		SrcOffset += sizeof(D3DCOLOR);
-	}
-
-	// Specular color
-	if (DestFVF & D3DFVF_SPECULAR)
-	{
-		if (SrcFVF & D3DFVF_SPECULAR)
-		{
-			*(D3DCOLOR*)(pDestVertex + DestOffset) = *(D3DCOLOR*)(pSrcVertex + SrcOffset);
-			SrcOffset += sizeof(D3DCOLOR);
-		}
-		DestOffset += sizeof(D3DCOLOR);
-	}
-	else if (SrcFVF & D3DFVF_SPECULAR)
-	{
-		SrcOffset += sizeof(D3DCOLOR);
-	}
-
-	// Texture coordinates
-	int SrcNumTexCoords = D3DFVF_TEXCOUNT(SrcFVF);
-	int DestNumTexCoords = D3DFVF_TEXCOUNT(DestFVF);
-
-	if (SrcNumTexCoords > D3DDP_MAXTEXCOORD || DestNumTexCoords > D3DDP_MAXTEXCOORD)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: texCount " << SrcNumTexCoords << " -> " << DestNumTexCoords << " exceeds D3DDP_MAXTEXCOORD!");
-		return;
-	}
-
-	int y = 0;
-	for (int x = 0; x < DestNumTexCoords; x++)
-	{
-		int DestTexStride = GetTexStride(DestFVF, x);
-
-		// Find matching source texture coordinates
-		while (y < SrcNumTexCoords)
-		{
-			int SrcTexStride = GetTexStride(SrcFVF, y);
-
-			// Copy matching texture coordinates
-			if (DestTexStride && DestTexStride == SrcTexStride)
-			{
-				memcpy(pDestVertex + DestOffset, pSrcVertex + SrcOffset, DestTexStride);
-				SrcOffset += SrcTexStride;
-				y++;
-				break;
-			}
-			SrcOffset += SrcTexStride;
-			y++;
-		}
-		// Increase destination offset
-		DestOffset += DestTexStride;
-	}
-}
-
 DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType)
 {
 	switch (d3dVertexType)
@@ -1664,7 +1526,145 @@ HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCo
 	return D3D_OK;
 }
 
-inline void ComputeLighting(const D3DVECTOR& Position, const D3DVECTOR& Normal, const std::vector<DXLIGHT7>& lights, const LightingState* s, D3DCOLOR& inoutColor, D3DCOLOR& inoutSpecular)
+inline static void ConvertVertexSW(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF)
+{
+	DWORD SrcOffset = 0;
+	DWORD DestOffset = 0;
+
+	DWORD SrcPosFVF = (SrcFVF & D3DFVF_POSITION_MASK);
+	DWORD DestPosFVF = (DestFVF & D3DFVF_POSITION_MASK);
+
+	// Get number of blending weights
+	DWORD SrcNumBlending = GetBlendCount(SrcPosFVF);
+	DWORD DestNumBlending = GetBlendCount(DestPosFVF);
+
+	// Zero dest memory
+	ZeroMemory(pDestVertex, GetVertexStride(DestFVF));
+
+	// Copy Position XYZ
+	if (SrcPosFVF && DestPosFVF)
+	{
+		*(D3DXVECTOR3*)pDestVertex = *(D3DXVECTOR3*)pSrcVertex;
+	}
+
+	// Copy Position RHW
+	if (DestPosFVF == D3DFVF_XYZRHW && DestPosFVF == SrcPosFVF)
+	{
+		*(float*)(pDestVertex + sizeof(D3DXVECTOR3)) = *(float*)(pSrcVertex + sizeof(D3DXVECTOR3));
+	}
+
+	// Copy matching blending weights
+	if (SrcNumBlending && DestNumBlending)
+	{
+		memcpy(pDestVertex + sizeof(D3DXVECTOR3), pSrcVertex + sizeof(D3DXVECTOR3), min(SrcNumBlending, DestNumBlending) * sizeof(float));
+	}
+
+	// Update source offset for Position
+	SrcOffset += GetVertexPositionStride(SrcPosFVF);
+
+	// Update destination offset for Position
+	DestOffset += GetVertexPositionStride(DestPosFVF);
+
+	// Reserved
+	if (DestFVF & D3DFVF_RESERVED1)
+	{
+		if (SrcFVF & D3DFVF_RESERVED1)
+		{
+			SrcOffset += sizeof(DWORD);
+		}
+		DestOffset += sizeof(DWORD);
+	}
+	else if (SrcFVF & D3DFVF_RESERVED1)
+	{
+		SrcOffset += sizeof(DWORD);
+	}
+
+	// Normal
+	if (DestFVF & D3DFVF_NORMAL)
+	{
+		if (SrcFVF & D3DFVF_NORMAL)
+		{
+			*(D3DXVECTOR3*)(pDestVertex + DestOffset) = *(D3DXVECTOR3*)(pSrcVertex + SrcOffset);
+			SrcOffset += sizeof(D3DXVECTOR3);
+		}
+		DestOffset += sizeof(D3DXVECTOR3);
+	}
+	else if (SrcFVF & D3DFVF_NORMAL)
+	{
+		SrcOffset += sizeof(D3DXVECTOR3);
+	}
+
+	// Diffuse color
+	if (DestFVF & D3DFVF_DIFFUSE)
+	{
+		if (SrcFVF & D3DFVF_DIFFUSE)
+		{
+			*(D3DCOLOR*)(pDestVertex + DestOffset) = *(D3DCOLOR*)(pSrcVertex + SrcOffset);
+			SrcOffset += sizeof(D3DCOLOR);
+		}
+		else
+		{
+			*(D3DCOLOR*)(pDestVertex + DestOffset) = 0xFFFFFFFF;	// Default to white
+		}
+		DestOffset += sizeof(D3DCOLOR);
+	}
+	else if (SrcFVF & D3DFVF_DIFFUSE)
+	{
+		SrcOffset += sizeof(D3DCOLOR);
+	}
+
+	// Specular color
+	if (DestFVF & D3DFVF_SPECULAR)
+	{
+		if (SrcFVF & D3DFVF_SPECULAR)
+		{
+			*(D3DCOLOR*)(pDestVertex + DestOffset) = *(D3DCOLOR*)(pSrcVertex + SrcOffset);
+			SrcOffset += sizeof(D3DCOLOR);
+		}
+		DestOffset += sizeof(D3DCOLOR);
+	}
+	else if (SrcFVF & D3DFVF_SPECULAR)
+	{
+		SrcOffset += sizeof(D3DCOLOR);
+	}
+
+	// Texture coordinates
+	int SrcNumTexCoords = D3DFVF_TEXCOUNT(SrcFVF);
+	int DestNumTexCoords = D3DFVF_TEXCOUNT(DestFVF);
+
+	if (SrcNumTexCoords > D3DDP_MAXTEXCOORD || DestNumTexCoords > D3DDP_MAXTEXCOORD)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: texCount " << SrcNumTexCoords << " -> " << DestNumTexCoords << " exceeds D3DDP_MAXTEXCOORD!");
+		return;
+	}
+
+	int y = 0;
+	for (int x = 0; x < DestNumTexCoords; x++)
+	{
+		int DestTexStride = GetTexStride(DestFVF, x);
+
+		// Find matching source texture coordinates
+		while (y < SrcNumTexCoords)
+		{
+			int SrcTexStride = GetTexStride(SrcFVF, y);
+
+			// Copy matching texture coordinates
+			if (DestTexStride && DestTexStride == SrcTexStride)
+			{
+				memcpy(pDestVertex + DestOffset, pSrcVertex + SrcOffset, DestTexStride);
+				SrcOffset += SrcTexStride;
+				y++;
+				break;
+			}
+			SrcOffset += SrcTexStride;
+			y++;
+		}
+		// Increase destination offset
+		DestOffset += DestTexStride;
+	}
+}
+
+inline static void ComputeLightingSW(const D3DVECTOR& Position, const D3DVECTOR& Normal, const std::vector<DXLIGHT7>& lights, const LightingState* s, D3DCOLOR& inoutColor, D3DCOLOR& inoutSpecular)
 {
 	// Should never happen
 	if (!s)
@@ -2140,7 +2140,7 @@ HRESULT ProcessVerticesSW(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVer
 			}
 			else
 			{
-				ConvertVertex(pDestVertex, DestFVF, pSrcVertex, SrcFVF);
+				ConvertVertexSW(pDestVertex, DestFVF, pSrcVertex, SrcFVF);
 			}
 		}
 
@@ -2194,7 +2194,7 @@ HRESULT ProcessVerticesSW(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVer
 			D3DXVECTOR3 transformedNormal;
 			D3DXVec3TransformNormal(&transformedNormal, &normal, &matNormal);
 
-			ComputeLighting(transformedPos, transformedNormal, cachedLights, &lsState, Diffuse, Specular);
+			ComputeLightingSW(transformedPos, transformedNormal, cachedLights, &lsState, Diffuse, Specular);
 		}
 
 		// Set diffuse and specular
