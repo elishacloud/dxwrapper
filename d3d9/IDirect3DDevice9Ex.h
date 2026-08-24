@@ -21,7 +21,6 @@ struct DEVICEDETAILS
 
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;
-	bool SetMultiSampleState = false;
 	bool UseAppMultiSampleState = false;
 	bool SetSSAA = false;
 	bool SetATOC = false;
@@ -117,6 +116,9 @@ private:
 
 	// Anisotropic Filtering
 	DWORD MaxAnisotropy = 0;
+
+	// Mip Filtering
+	bool LinearMip = false;
 
 	// Antialiasing
 	struct {

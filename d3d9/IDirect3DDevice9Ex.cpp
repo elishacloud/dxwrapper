@@ -1180,36 +1180,6 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 	if (SUCCEEDED(hr))
 	{
 		AfterBeginScene();
-
-		// Set Max Anisotropy
-		if (MaxAnisotropy && (AnisotropyMin || AnisotropyMag))
-		{
-			for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
-			{
-				ProxyInterface->SetSamplerState(x, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
-			}
-		}
-
-		// Set for Multisample
-		if (DeviceDetails.DeviceMultiSampleFlag)
-		{
-			if (DeviceDetails.SetMultiSampleState && !DeviceDetails.UseAppMultiSampleState)
-			{
-				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-			}
-			if (DeviceDetails.SetSSAA)
-			{
-				ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('S', 'S', 'A', 'A'));
-			}
-			if (DeviceDetails.SetATOC)
-			{
-				ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('A', 'T', 'O', 'C'));
-				if (Config.EnableMultisamplingATOC == 2)
-				{
-					ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
-				}
-			}
-		}
 	}
 
 	return hr;
@@ -1636,15 +1606,19 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 		{
 			if (Value == D3DTEXF_NONE || Value == D3DTEXF_POINT)
 			{
-				DeviceDetails.SetMultiSampleState = false;
 				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, FALSE);
 			}
 			else
 			{
-				DeviceDetails.SetMultiSampleState = true;
 				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
 			}
 		}
+	}
+
+	// Force MipMap usage
+	if (Config.ForceMipMapUsage && Type == D3DSAMP_MIPFILTER)
+	{
+		return D3D_OK;
 	}
 
 	// Enable Anisotropic Filtering
@@ -1652,16 +1626,32 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	{
 		if (Type == D3DSAMP_MAXANISOTROPY)
 		{
-			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy)))
+			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, MaxAnisotropy)))
 			{
 				return D3D_OK;
 			}
 		}
-		else if (((Type == D3DSAMP_MINFILTER && AnisotropyMin) || (Type == D3DSAMP_MAGFILTER && AnisotropyMag)) && Value != D3DTEXF_NONE && Value != D3DTEXF_POINT)
+		else if (AnisotropyMin && Type == D3DSAMP_MINFILTER && Value != D3DTEXF_NONE)
 		{
 			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC)))
 			{
 				LOG_ONCE("Setting Anisotropic Filtering at " << MaxAnisotropy << "x");
+				return D3D_OK;
+			}
+		}
+		// Anisotropic filtering is principally useful for minification, keeping MAGFILTER set to POINT
+		else if (AnisotropyMag && Type == D3DSAMP_MAGFILTER && Value != D3DTEXF_NONE && Value != D3DTEXF_POINT)
+		{
+			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC)))
+			{
+				LOG_ONCE("Setting Anisotropic Filtering at " << MaxAnisotropy << "x");
+				return D3D_OK;
+			}
+		}
+		else if (LinearMip && Type == D3DSAMP_MIPFILTER && Value != D3DTEXF_NONE)
+		{
+			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_LINEAR)))
+			{
 				return D3D_OK;
 			}
 		}
@@ -3514,12 +3504,58 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 		Logging::Log() << __FUNCTION__ << " Error: Falied to get DeviceCaps (" << this << ")";
 	}
 
+	// Set Max Anisotropy and Anisotropic Filtering
 	if (Config.AnisotropicFiltering)
 	{
 		MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
 		AnisotropyMin = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC);
 		AnisotropyMag = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC);
-		LOG_ONCE("Anisotropic Filtering DeviceCaps. Min: " << AnisotropyMin << " Mag: " << AnisotropyMag);
+		LinearMip = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MIPFLINEAR);
+		LOG_ONCE("Anisotropic Filtering DeviceCaps. Min: " << AnisotropyMin << " Mag: " << AnisotropyMag << " LinearMap: " << LinearMip);
+
+		if (MaxAnisotropy && (AnisotropyMin || AnisotropyMag))
+		{
+			for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
+			{
+				ProxyInterface->SetSamplerState(x, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
+
+				// Anisotropic filtering is principally useful for minification, keeping MAGFILTER set to POINT
+				if (AnisotropyMin)
+				{
+					ProxyInterface->SetSamplerState(x, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
+				}
+			}
+		}
+	}
+
+	// Force MipMap usage
+	if (Config.ForceMipMapUsage)
+	{
+		for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
+		{
+			ProxyInterface->SetSamplerState(x, D3DSAMP_MIPFILTER, LinearMip ? D3DTEXF_LINEAR : D3DTEXF_POINT);
+		}
+	}
+
+	// Set for Multisample
+	if (DeviceDetails.DeviceMultiSampleFlag)
+	{
+		if (!DeviceDetails.UseAppMultiSampleState)
+		{
+			ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+		}
+		if (DeviceDetails.SetSSAA)
+		{
+			ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('S', 'S', 'A', 'A'));
+		}
+		if (DeviceDetails.SetATOC)
+		{
+			ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('A', 'T', 'O', 'C'));
+			if (Config.EnableMultisamplingATOC == 2)
+			{
+				ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
+			}
+		}
 	}
 
 	ShadowBackbuffer->ReleaseAll();
