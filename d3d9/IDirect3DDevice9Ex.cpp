@@ -1606,12 +1606,10 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 		{
 			if (Value == D3DTEXF_NONE || Value == D3DTEXF_POINT)
 			{
-				DeviceDetails.SetMultiSampleState = false;
 				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, FALSE);
 			}
 			else
 			{
-				DeviceDetails.SetMultiSampleState = true;
 				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
 			}
 		}
@@ -1620,10 +1618,7 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	// Force MipMap usage
 	if (Config.ForceMipMapUsage && Type == D3DSAMP_MIPFILTER)
 	{
-		if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, LinearMip ? D3DTEXF_LINEAR : D3DTEXF_POINT)))
-		{
-			return D3D_OK;
-		}
+		return D3D_OK;
 	}
 
 	// Enable Anisotropic Filtering
@@ -3536,8 +3531,6 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 	// Force MipMap usage
 	if (Config.ForceMipMapUsage)
 	{
-		LinearMip = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MIPFLINEAR);
-
 		for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 		{
 			ProxyInterface->SetSamplerState(x, D3DSAMP_MIPFILTER, LinearMip ? D3DTEXF_LINEAR : D3DTEXF_POINT);
@@ -3547,7 +3540,7 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 	// Set for Multisample
 	if (DeviceDetails.DeviceMultiSampleFlag)
 	{
-		if (DeviceDetails.SetMultiSampleState && !DeviceDetails.UseAppMultiSampleState)
+		if (!DeviceDetails.UseAppMultiSampleState)
 		{
 			ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
 		}

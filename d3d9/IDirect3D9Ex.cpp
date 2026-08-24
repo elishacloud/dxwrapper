@@ -638,7 +638,6 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 			if (MultiSampleFlag || (pPresentationParameters->MultiSampleType && DeviceDetails.IsDirectDrawDevice))
 			{
 				DeviceDetails.DeviceMultiSampleFlag = true;
-				DeviceDetails.SetMultiSampleState = true;
 				DeviceDetails.DeviceMultiSampleType = d3dpp.MultiSampleType;
 				DeviceDetails.DeviceMultiSampleQuality = d3dpp.MultiSampleQuality;
 			}
