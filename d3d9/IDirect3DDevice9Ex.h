@@ -118,6 +118,9 @@ private:
 	// Anisotropic Filtering
 	DWORD MaxAnisotropy = 0;
 
+	// Linear Filtering
+	bool LinearMip = false;
+
 	// Antialiasing
 	struct {
 		bool MultiSampleMismatch = false;
