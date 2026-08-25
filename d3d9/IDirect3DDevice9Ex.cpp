@@ -1626,21 +1626,9 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	{
 		if (Type == D3DSAMP_MAXANISOTROPY)
 		{
-			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, MaxAnisotropy)))
-			{
-				return D3D_OK;
-			}
+			return D3D_OK;
 		}
-		else if (AnisotropyMin && Type == D3DSAMP_MINFILTER && Value != D3DTEXF_NONE)
-		{
-			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC)))
-			{
-				LOG_ONCE("Setting Anisotropic Filtering at " << MaxAnisotropy << "x");
-				return D3D_OK;
-			}
-		}
-		// Anisotropic filtering is principally useful for minification, keeping MAGFILTER set to POINT
-		else if (AnisotropyMag && Type == D3DSAMP_MAGFILTER && Value != D3DTEXF_NONE && Value != D3DTEXF_POINT)
+		else if (((AnisotropyMin && Type == D3DSAMP_MINFILTER) || (AnisotropyMag && Type == D3DSAMP_MAGFILTER)) && Value != D3DTEXF_NONE && Value != D3DTEXF_POINT)
 		{
 			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC)))
 			{
@@ -3518,12 +3506,6 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 			for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 			{
 				ProxyInterface->SetSamplerState(x, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
-
-				// Anisotropic filtering is principally useful for minification, keeping MAGFILTER set to POINT
-				if (AnisotropyMin)
-				{
-					ProxyInterface->SetSamplerState(x, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
-				}
 			}
 		}
 	}
