@@ -42,7 +42,7 @@ private:
 	std::unique_ptr<ShadowSurfaceStorage> ShadowBackbuffer = std::make_unique<ShadowSurfaceStorage>();
 	std::vector<IDirect3DSurface9*> BackBufferList;
 
-	LONG RefCount = 1;
+	ULONG RefCount = 1;
 
 	AddressLookupTableD3d9 ProxyAddressLookupTable9;
 

@@ -4,7 +4,7 @@ class m_IDirect3DLight final : public IDirect3DLight, public AddressLookupTableD
 {
 private:
 	IDirect3DLight *ProxyInterface = nullptr;
-	LONG RefCount = 1;
+	ULONG RefCount = 1;
 	const IID WrapperID = IID_IDirect3DLight;
 	bool IsInterfaceDeleted = false;
 

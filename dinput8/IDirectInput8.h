@@ -22,7 +22,7 @@ private:
 	proxy_type* ProxyInterface;
 	IDirectInput8A* ProxyInterfaceA; // Non-owning alias
 
-	LONG RefCount = 1;
+	ULONG RefCount = 1;
 
 	const std::chrono::seconds cacheDuration = std::chrono::seconds(Config.DeviceLookupCacheTime); // Cache duration in seconds
 

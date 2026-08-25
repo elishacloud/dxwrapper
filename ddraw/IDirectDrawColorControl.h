@@ -4,7 +4,7 @@ class m_IDirectDrawColorControl final : public IDirectDrawColorControl, public A
 {
 private:
 	IDirectDrawColorControl *ProxyInterface = nullptr;
-	LONG RefCount = 1;
+	ULONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawColorControl;
 	bool IsInterfaceDeleted = false;
 

@@ -76,7 +76,7 @@ ULONG m_IDirectDrawPalette::AddRef()
 
 	if (Config.Dd7to9)
 	{
-		return _InterlockedIncrement(&RefCount);
+		return InterlockedIncrement(&RefCount);
 	}
 
 	return ProxyInterface->AddRef();
@@ -93,7 +93,7 @@ ULONG m_IDirectDrawPalette::Release()
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref = InterlockedDecrementIfPositive(&RefCount);
+		ULONG ref = InterlockedDecrementIfNotNull(&RefCount);
 
 		if (ref == 0)
 		{

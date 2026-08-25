@@ -79,7 +79,7 @@ ULONG m_IDirect3DExecuteBuffer::AddRef()
 
 	if (Config.Dd7to9)
 	{
-		return _InterlockedIncrement(&RefCount);
+		return InterlockedIncrement(&RefCount);
 	}
 
 	return ProxyInterface->AddRef();
@@ -96,7 +96,7 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref = InterlockedDecrementIfPositive(&RefCount);
+		ULONG ref = InterlockedDecrementIfNotNull(&RefCount);
 
 		if (ref == 0)
 		{

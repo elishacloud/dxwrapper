@@ -4,7 +4,7 @@ class m_IDirectDrawClipper final : public IDirectDrawClipper, public AddressLook
 {
 private:
 	IDirectDrawClipper *ProxyInterface = nullptr;
-	LONG RefCount = 1;
+	ULONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawClipper;
 	bool IsInterfaceDeleted = false;
 

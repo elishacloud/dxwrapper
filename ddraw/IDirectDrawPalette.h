@@ -4,7 +4,7 @@ class m_IDirectDrawPalette final : public IDirectDrawPalette, public AddressLook
 {
 private:
 	IDirectDrawPalette *ProxyInterface = nullptr;
-	LONG RefCount = 1;
+	ULONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawPalette;
 	bool IsInterfaceDeleted = false;
 

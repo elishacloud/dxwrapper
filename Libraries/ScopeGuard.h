@@ -2,23 +2,28 @@
 
 #include <atomic>
 
-inline LONG AtomicRead(LONG& ref)
+inline ULONG AtomicRead(ULONG& ref)
 {
     return InterlockedCompareExchange(&ref, 0, 0);
 }
 
-inline LONG InterlockedDecrementIfPositive(LONG* value)
+inline ULONG InterlockedDecrementIfNotNull(ULONG* value)
 {
+    if (!value)
+    {
+        return 0;
+    }
+
     while (true)
     {
-        LONG current = *value;
+        ULONG current = *value;
 
         if (current <= 0)
         {
             return 0;
         }
 
-        if (_InterlockedCompareExchange(value, current - 1, current) == current)
+        if (InterlockedCompareExchange(value, current - 1, current) == current)
         {
             return current - 1;
         }

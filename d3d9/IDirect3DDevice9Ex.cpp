@@ -96,7 +96,7 @@ ULONG m_IDirect3DDevice9Ex::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	_InterlockedIncrement(&RefCount);
+	InterlockedIncrement(&RefCount);
 
 	return ProxyInterface->AddRef();
 }
@@ -115,7 +115,7 @@ ULONG m_IDirect3DDevice9Ex::Release()
 
 		ULONG UsedRef = GetResourceRefCount();
 
-		LONG EmuRef = InterlockedDecrementIfPositive(&RefCount);
+		LONG EmuRef = InterlockedDecrementIfNotNull(&RefCount);
 
 #ifdef ENABLE_DEBUGOVERLAY
 		bool UsingDOverlay = (Config.EnableImgui && DOverlay.IsSetup() && DOverlay.Getd3d9Device() == ProxyInterface);

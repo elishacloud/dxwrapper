@@ -5,7 +5,7 @@ class m_IDirect3DExecuteBuffer final : public IDirect3DExecuteBuffer, public Add
 private:
 	IDirect3DExecuteBuffer *ProxyInterface = nullptr;
 	const IID WrapperID = IID_IDirect3DExecuteBuffer;
-	LONG RefCount = 1;
+	ULONG RefCount = 1;
 	bool IsInterfaceDeleted = false;
 
 	// Convert Buffer

@@ -60,7 +60,7 @@ ULONG m_IDirectInputDevice8::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return _InterlockedIncrement(&RefCount);
+	return InterlockedIncrement(&RefCount);
 }
 
 ULONG m_IDirectInputDevice8::Release()

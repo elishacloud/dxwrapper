@@ -42,7 +42,7 @@ ULONG m_IDirectInputEffect8::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return _InterlockedIncrement(&RefCount);
+	return InterlockedIncrement(&RefCount);
 }
 
 ULONG m_IDirectInputEffect8::Release()

@@ -71,9 +71,9 @@ ULONG m_IDirect3DVertexBufferX::AddRef(DWORD DirectXVersion)
 		switch (DirectXVersion)
 		{
 		case 1:
-			return _InterlockedIncrement(&RefCount1);
+			return InterlockedIncrement(&RefCount1);
 		case 7:
-			return _InterlockedIncrement(&RefCount7);
+			return InterlockedIncrement(&RefCount7);
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 			return 0;
@@ -94,10 +94,10 @@ ULONG m_IDirect3DVertexBufferX::Release(DWORD DirectXVersion)
 		switch (DirectXVersion)
 		{
 		case 1:
-			ref = InterlockedDecrementIfPositive(&RefCount1);
+			ref = InterlockedDecrementIfNotNull(&RefCount1);
 			break;
 		case 7:
-			ref = InterlockedDecrementIfPositive(&RefCount7);
+			ref = InterlockedDecrementIfNotNull(&RefCount7);
 			break;
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
