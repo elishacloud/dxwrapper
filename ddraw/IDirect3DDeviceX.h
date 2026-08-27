@@ -76,28 +76,97 @@ private:
 	DEVICESTATE DeviceStates;
 
 	struct {
-		std::unordered_map<D3DRENDERSTATETYPE, DWORD> RenderState;
-		std::unordered_map<D3DTEXTURESTAGESTATETYPE, DWORD> TextureStageState[D3DHAL_TSS_MAXSTAGES];
-		std::unordered_map<D3DSAMPLERSTATETYPE, DWORD> SamplerState[D3DHAL_TSS_MAXSTAGES];
-		std::unordered_map<DWORD, D3DLIGHT9> Light;
-		std::unordered_map<DWORD, BOOL> LightEnable;
-		std::unordered_map<DWORD, FLOAT4> ClipPlane;
+		struct {
+			struct CachedRenderState
+			{
+				D3DRENDERSTATETYPE State;
+				DWORD Value;
+
+				CachedRenderState(D3DRENDERSTATETYPE state, DWORD value) : State(state), Value(value) {}
+			};
+			std::vector<CachedRenderState> States;
+			size_t Index = 0;
+		} Render;
+		struct {
+			struct CachedTextureState
+			{
+				DWORD Stage;
+				D3DTEXTURESTAGESTATETYPE Type;
+				DWORD Value;
+
+				CachedTextureState(DWORD stage, D3DTEXTURESTAGESTATETYPE type, DWORD value) : Stage(stage), Type(type), Value(value) {}
+			};
+			std::vector<CachedTextureState> States;
+			size_t Index = 0;
+		} Texture;
+		struct {
+			struct CachedSamplerState
+			{
+				DWORD Sampler;
+				D3DSAMPLERSTATETYPE Type;
+				DWORD Value;
+
+				CachedSamplerState(DWORD sampler, D3DSAMPLERSTATETYPE type, DWORD value) : Sampler(sampler), Type(type), Value(value) {}
+			};
+			std::vector<CachedSamplerState> States;
+			size_t Index = 0;
+		} Sampler;
+		struct {
+			struct CachedLight
+			{
+				DWORD Index;
+				D3DLIGHT9 Light;
+
+				CachedLight(DWORD index, D3DLIGHT9 light) : Index(index), Light(light) {}
+			};
+			std::vector<CachedLight> States;
+			size_t Index = 0;
+		} Light;
+		struct {
+			struct CachedLightEnable
+			{
+				DWORD Index;
+				BOOL Enable;
+
+				CachedLightEnable(DWORD index, BOOL enable) : Index(index), Enable(enable) {}
+			};
+			std::vector<CachedLightEnable> States;
+			size_t Index = 0;
+		} LightEnable;
+		struct {
+			struct CachedClipPlane
+			{
+				DWORD Index;
+				FLOAT4 Plane;
+
+				CachedClipPlane(DWORD index, FLOAT4 plane) : Index(index), Plane(plane) {}
+			};
+			std::vector<CachedClipPlane> States;
+			size_t Index = 0;
+		} ClipPlane;
 		struct { bool Set = false; } Material;
-		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
+		struct {
+			struct CachedMatrix
+			{
+				D3DTRANSFORMSTATETYPE State;
+				D3DMATRIX Matrix;
+
+				CachedMatrix(D3DTRANSFORMSTATETYPE state, D3DMATRIX matrix) : State(state), Matrix(matrix) {}
+			};
+			std::vector<CachedMatrix> States;
+			size_t Index = 0;
+		} Matrix;
 
 		void clear()
 		{
-			RenderState.clear();
-			for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
-			{
-				TextureStageState[x].clear();
-				SamplerState[x].clear();
-			}
-			Light.clear();
-			LightEnable.clear();
-			ClipPlane.clear();
+			Render.Index = 0;
+			Texture.Index = 0;
+			Sampler.Index = 0;
+			Light.Index = 0;
+			LightEnable.Index = 0;
+			ClipPlane.Index = 0;
 			Material.Set = false;
-			Matrix.clear();
+			Matrix.Index = 0;
 		}
 	} BatchStates;
 

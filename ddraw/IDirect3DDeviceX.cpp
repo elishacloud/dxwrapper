@@ -5247,18 +5247,6 @@ void m_IDirect3DDeviceX::ClearLight(m_IDirect3DLight* lpLight)
 
 			// Disable light
 			D9LightEnable(Index, FALSE);
-
-			// Clear light
-			DeviceStates.Light.erase(Index);
-
-			// Clear light enable
-			DeviceStates.LightEnable.erase(Index);
-
-			// Clear batch state light
-			BatchStates.Light.erase(Index);
-
-			// Clear batch state light enable
-			BatchStates.LightEnable.erase(Index);
 		}
 		else
 		{
@@ -5910,7 +5898,16 @@ HRESULT m_IDirect3DDeviceX::SetD9RenderState(D3DRENDERSTATETYPE State, DWORD Val
 		return D3D_OK;
 	}
 
-	BatchStates.RenderState[State] = Value;
+	if (BatchStates.Render.Index < BatchStates.Render.States.size())
+	{
+		BatchStates.Render.States[BatchStates.Render.Index] = { State, Value };
+		++BatchStates.Render.Index;
+	}
+	else
+	{
+		BatchStates.Render.States.emplace_back(State, Value);
+		BatchStates.Render.Index = BatchStates.Render.States.size();
+	}
 
 	DeviceStates.RenderState[State].Set = (DefaultRenderState[State] != Value);
 	DeviceStates.RenderState[State].State = Value;
@@ -5965,7 +5962,16 @@ HRESULT m_IDirect3DDeviceX::SetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 		return D3D_OK;
 	}
 
-	BatchStates.TextureStageState[Stage][Type] = Value;
+	if (BatchStates.Texture.Index < BatchStates.Texture.States.size())
+	{
+		BatchStates.Texture.States[BatchStates.Texture.Index] = { Stage, Type, Value };
+		++BatchStates.Texture.Index;
+	}
+	else
+	{
+		BatchStates.Texture.States.emplace_back(Stage, Type, Value);
+		BatchStates.Texture.Index = BatchStates.Texture.States.size();
+	}
 
 	DeviceStates.TextureStageState[Stage][Type].Set = (DefaultTextureStageState[Stage][Type] != Value);
 	DeviceStates.TextureStageState[Stage][Type].State = Value;
@@ -6020,7 +6026,16 @@ HRESULT m_IDirect3DDeviceX::SetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 		return D3D_OK;
 	}
 
-	BatchStates.SamplerState[Sampler][Type] = FixSamplerState(Type, Value);
+	if (BatchStates.Sampler.Index < BatchStates.Sampler.States.size())
+	{
+		BatchStates.Sampler.States[BatchStates.Sampler.Index] = { Sampler, Type, FixSamplerState(Type, Value) };
+		++BatchStates.Sampler.Index;
+	}
+	else
+	{
+		BatchStates.Sampler.States.emplace_back(Sampler, Type, FixSamplerState(Type, Value));
+		BatchStates.Sampler.Index = BatchStates.Sampler.States.size();
+	}
 
 	DeviceStates.SamplerState[Sampler][Type].Set = (DefaultSamplerState[Sampler][Type] != Value);
 	DeviceStates.SamplerState[Sampler][Type].State = Value;
@@ -6068,7 +6083,16 @@ HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT9* lpLight)
 		return D3D_OK;
 	}
 
-	BatchStates.Light[Index] = FixLight(*lpLight);
+	if (BatchStates.Light.Index < BatchStates.Light.States.size())
+	{
+		BatchStates.Light.States[BatchStates.Light.Index] = { Index, FixLight(*lpLight) };
+		++BatchStates.Light.Index;
+	}
+	else
+	{
+		BatchStates.Light.States.emplace_back(Index, FixLight(*lpLight));
+		BatchStates.Light.Index = BatchStates.Light.States.size();
+	}
 
 	DeviceStates.Light[Index] = *lpLight;
 
@@ -6113,7 +6137,16 @@ HRESULT m_IDirect3DDeviceX::D9LightEnable(DWORD Index, BOOL Enable)
 		return D3D_OK;
 	}
 
-	BatchStates.LightEnable[Index] = Enable;
+	if (BatchStates.LightEnable.Index < BatchStates.LightEnable.States.size())
+	{
+		BatchStates.LightEnable.States[BatchStates.LightEnable.Index] = { Index, Enable };
+		++BatchStates.LightEnable.Index;
+	}
+	else
+	{
+		BatchStates.LightEnable.States.emplace_back(Index, Enable);
+		BatchStates.LightEnable.Index = BatchStates.LightEnable.States.size();
+	}
 
 	DeviceStates.LightEnable[Index] = Enable;
 
@@ -6167,7 +6200,16 @@ HRESULT m_IDirect3DDeviceX::SetD9ClipPlane(DWORD Index, const float* lpPlane)
 		return D3D_OK;
 	}
 
-	BatchStates.ClipPlane[Index] = *(FLOAT4*)lpPlane;
+	if (BatchStates.ClipPlane.Index == BatchStates.ClipPlane.States.size())
+	{
+		BatchStates.ClipPlane.States[BatchStates.ClipPlane.Index] = { Index, *(FLOAT4*)lpPlane };
+		++BatchStates.ClipPlane.Index;
+	}
+	else
+	{
+		BatchStates.ClipPlane.States.emplace_back(Index, *(FLOAT4*)lpPlane);
+		BatchStates.ClipPlane.Index = BatchStates.ClipPlane.States.size();
+	}
 
 	DeviceStates.ClipPlane[Index].Set = true;
 	DeviceStates.ClipPlane[Index].Plane = *(FLOAT4*)lpPlane;
@@ -6322,7 +6364,16 @@ HRESULT m_IDirect3DDeviceX::SetD9Transform(D3DTRANSFORMSTATETYPE State, const D3
 		return D3D_OK;
 	}
 
-	BatchStates.Matrix[State] = *lpMatrix;
+	if (BatchStates.Matrix.Index < BatchStates.Matrix.States.size())
+	{
+		BatchStates.Matrix.States[BatchStates.Matrix.Index] = { State, *lpMatrix };
+		++BatchStates.Matrix.Index;
+	}
+	else
+	{
+		BatchStates.Matrix.States.emplace_back(State, *lpMatrix);
+		BatchStates.Matrix.Index = BatchStates.Matrix.States.size();
+	}
 
 	DeviceStates.Matrix[State] = *lpMatrix;
 
@@ -6350,9 +6401,7 @@ HRESULT m_IDirect3DDeviceX::D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, con
 			return D3D_OK;
 		}
 
-		BatchStates.Matrix[State] = result;
-
-		DeviceStates.Matrix[State] = result;
+		SetD9Transform(State, lpMatrix);
 	}
 
 	return hr;
@@ -6369,49 +6418,46 @@ void m_IDirect3DDeviceX::PrepDevice()
 		}
 
 		// Set batched states
-		for (const auto& entry : BatchStates.RenderState)
+		for (UINT x = 0; x < BatchStates.Render.Index; x++)
 		{
-			(*d3d9Device)->SetRenderState(entry.first, entry.second);
+			(*d3d9Device)->SetRenderState(BatchStates.Render.States[x].State, BatchStates.Render.States[x].Value);
 		}
-		BatchStates.RenderState.clear();
-		for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
+		BatchStates.Render.Index = 0;
+		for (UINT x = 0; x < BatchStates.Texture.Index; x++)
 		{
-			for (const auto& entry : BatchStates.TextureStageState[x])
-			{
-				(*d3d9Device)->SetTextureStageState(x, entry.first, entry.second);
-			}
-			BatchStates.TextureStageState[x].clear();
-			for (const auto& entry : BatchStates.SamplerState[x])
-			{
-				(*d3d9Device)->SetSamplerState(x, entry.first, entry.second);
-			}
-			BatchStates.SamplerState[x].clear();
+			(*d3d9Device)->SetTextureStageState(BatchStates.Texture.States[x].Stage, BatchStates.Texture.States[x].Type, BatchStates.Texture.States[x].Value);
 		}
-		for (const auto& entry : BatchStates.Light)
+		BatchStates.Texture.Index = 0;
+		for (UINT x = 0; x < BatchStates.Sampler.Index; x++)
 		{
-			(*d3d9Device)->SetLight(entry.first, &entry.second);
+			(*d3d9Device)->SetSamplerState(BatchStates.Sampler.States[x].Sampler, BatchStates.Sampler.States[x].Type, BatchStates.Sampler.States[x].Value);
 		}
-		BatchStates.Light.clear();
-		for (const auto& entry : BatchStates.LightEnable)
+		BatchStates.Sampler.Index = 0;
+		for (UINT x = 0; x < BatchStates.Light.Index; x++)
 		{
-			(*d3d9Device)->LightEnable(entry.first, entry.second);
+			(*d3d9Device)->SetLight(BatchStates.Light.States[x].Index, &BatchStates.Light.States[x].Light);
 		}
-		BatchStates.LightEnable.clear();
-		for (const auto& entry : BatchStates.ClipPlane)
+		BatchStates.Light.Index = 0;
+		for (UINT x = 0; x < BatchStates.LightEnable.Index; x++)
 		{
-			(*d3d9Device)->SetClipPlane(entry.first, reinterpret_cast<const float*>(&entry.second));
+			(*d3d9Device)->LightEnable(BatchStates.LightEnable.States[x].Index, BatchStates.LightEnable.States[x].Enable);
 		}
-		BatchStates.ClipPlane.clear();
+		BatchStates.LightEnable.Index = 0;
+		for (UINT x = 0; x < BatchStates.ClipPlane.Index; x++)
+		{
+			(*d3d9Device)->SetClipPlane(BatchStates.ClipPlane.States[x].Index, reinterpret_cast<const float*>(&BatchStates.ClipPlane.States[x].Plane));
+		}
+		BatchStates.ClipPlane.Index = 0;
 		if (BatchStates.Material.Set)
 		{
 			(*d3d9Device)->SetMaterial(&DeviceStates.Material.Material);
 			BatchStates.Material.Set = false;
 		}
-		for (const auto& entry : BatchStates.Matrix)
+		for (UINT x = 0; x < BatchStates.Matrix.Index; x++)
 		{
-			(*d3d9Device)->SetTransform(entry.first, &entry.second);
+			(*d3d9Device)->SetTransform(BatchStates.Matrix.States[x].State, &BatchStates.Matrix.States[x].Matrix);
 		}
-		BatchStates.Matrix.clear();
+		BatchStates.Matrix.Index = 0;
 	}
 }
 
