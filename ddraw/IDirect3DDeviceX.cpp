@@ -3371,17 +3371,17 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 		// Update vertex desc type (FVF) before interleaving
 		dwVertexTypeDesc = dwVertexTypeDesc == D3DFVF_LVERTEX ? D3DFVF_LVERTEX9 : dwVertexTypeDesc;
 
-		// Set fixed function vertex type
-		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
-			return DDERR_INVALIDPARAMS;
-		}
-
 		// Update vertices for Direct3D9 (needs to be first)
 		if (FAILED(InterleaveStridedVertexData(VertexCache, *lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid StridedVertexData!");
+			return DDERR_INVALIDPARAMS;
+		}
+
+		// Set fixed function vertex type
+		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -7034,6 +7034,11 @@ HRESULT m_IDirect3DDeviceX::ProcessVerticesExecute(UINT VertexCount, void* SrcVe
 
 	pDestBuffer->Unlock();
 
+	if (Config.DdrawClampVertexZDepth)
+	{
+		ClampVertices(reinterpret_cast<BYTE*>(DestVertices), sizeof(D3DTLVERTEX), VertexCount);
+	}
+
 	return hr;
 }
 
@@ -7155,13 +7160,13 @@ void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVerti
 	{
 		if (Config.DdrawClampVertexZDepth)
 		{
-			DWORD stride = GetVertexStride(dwVertexTypeDesc);
-			VertexCache.resize((dwVertexStart + dwNumVertices) * stride);
-			memcpy(reinterpret_cast<void*>(VertexCache.data() + (dwVertexStart * stride)),
-				reinterpret_cast<void*>((DWORD)lpVertices + (dwVertexStart * stride)),
-				dwNumVertices * stride);
+			DWORD Stride = GetVertexStride(dwVertexTypeDesc);
+			VertexCache.resize((dwVertexStart + dwNumVertices) * Stride);
+			memcpy(reinterpret_cast<void*>(VertexCache.data() + (dwVertexStart * Stride)),
+				reinterpret_cast<void*>((DWORD)lpVertices + (dwVertexStart * Stride)),
+				dwNumVertices * Stride);
 
-			ClampVertices(VertexCache.data(), stride, dwNumVertices);
+			ClampVertices(VertexCache.data(), Stride, dwNumVertices);
 
 			lpVertices = VertexCache.data();
 		}

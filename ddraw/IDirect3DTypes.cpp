@@ -1361,6 +1361,11 @@ HRESULT InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>
 		}
 	}
 
+	if (Config.DdrawClampVertexZDepth && (dwVertexTypeDesc & D3DFVF_XYZRHW))
+	{
+		ClampVertices(outputBuffer.data(), Stride, dwNumVertices);
+	}
+
 	return D3D_OK;
 }
 
