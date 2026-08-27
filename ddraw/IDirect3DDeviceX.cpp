@@ -5059,6 +5059,14 @@ void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 
 		SetD9RenderState(D3DRS_ZENABLE, ZENABLE);
 
+		BatchStates.Render.States.reserve(64);
+		BatchStates.Texture.States.reserve(64);
+		BatchStates.Sampler.States.reserve(64);
+		BatchStates.Light.States.reserve(8);
+		BatchStates.LightEnable.States.reserve(8);
+		BatchStates.ClipPlane.States.reserve(8);
+		BatchStates.Matrix.States.reserve(8);
+
 		AddRef(DirectXVersion);
 	}
 }
