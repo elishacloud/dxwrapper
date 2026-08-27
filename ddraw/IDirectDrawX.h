@@ -276,7 +276,7 @@ public:
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
 	m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
-	m_IDirectDrawSurfaceX *GetRenderTargetSurface() { return RenderTargetSurface; }
+	inline m_IDirectDrawSurfaceX *GetRenderTargetSurface() { return RenderTargetSurface; }
 	void ClearRenderTarget();
 	void SetCurrentRenderTarget();
 	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface);

@@ -423,6 +423,30 @@ typedef HRESULT(WINAPI* LPD3DXFILL3D)(D3DXVECTOR4* pOut, const D3DXVECTOR2* pTex
 #define D3DXASM_FLAGS D3DXASM_DEBUG
 #endif // NDEBUG
 
+struct D3DMATRIX_DX
+{
+	D3DMATRIX m;
+
+	constexpr D3DMATRIX_DX(
+		float a11, float a12, float a13, float a14,
+		float a21, float a22, float a23, float a24,
+		float a31, float a32, float a33, float a34,
+		float a41, float a42, float a43, float a44)
+		: m{ {
+			a11, a12, a13, a14,
+			a21, a22, a23, a24,
+			a31, a32, a33, a34,
+			a41, a42, a43, a44
+		} }
+	{
+	}
+
+	operator D3DMATRIX() const
+	{
+		return m;
+	}
+};
+
 // Inline functions
 inline FLOAT D3DXVec3Dot(const D3DXVECTOR3* pV1, const D3DXVECTOR3* pV2)
 {
@@ -457,6 +481,30 @@ inline D3DXVECTOR4 TransformVector4(const D3DXVECTOR4& v, const D3DMATRIX& m)
 		v.x * m._12 + v.y * m._22 + v.z * m._32 + v.w * m._42,
 		v.x * m._13 + v.y * m._23 + v.z * m._33 + v.w * m._43,
 		v.x * m._14 + v.y * m._24 + v.z * m._34 + v.w * m._44);
+}
+
+inline D3DMATRIX MatrixMultiply(const D3DMATRIX& A, const D3DMATRIX& B)
+{
+	return D3DMATRIX_DX(
+		A._11 * B._11 + A._12 * B._21 + A._13 * B._31 + A._14 * B._41,
+		A._11 * B._12 + A._12 * B._22 + A._13 * B._32 + A._14 * B._42,
+		A._11 * B._13 + A._12 * B._23 + A._13 * B._33 + A._14 * B._43,
+		A._11 * B._14 + A._12 * B._24 + A._13 * B._34 + A._14 * B._44,
+
+		A._21 * B._11 + A._22 * B._21 + A._23 * B._31 + A._24 * B._41,
+		A._21 * B._12 + A._22 * B._22 + A._23 * B._32 + A._24 * B._42,
+		A._21 * B._13 + A._22 * B._23 + A._23 * B._33 + A._24 * B._43,
+		A._21 * B._14 + A._22 * B._24 + A._23 * B._34 + A._24 * B._44,
+
+		A._31 * B._11 + A._32 * B._21 + A._33 * B._31 + A._34 * B._41,
+		A._31 * B._12 + A._32 * B._22 + A._33 * B._32 + A._34 * B._42,
+		A._31 * B._13 + A._32 * B._23 + A._33 * B._33 + A._34 * B._43,
+		A._31 * B._14 + A._32 * B._24 + A._33 * B._34 + A._34 * B._44,
+
+		A._41 * B._11 + A._42 * B._21 + A._43 * B._31 + A._44 * B._41,
+		A._41 * B._12 + A._42 * B._22 + A._43 * B._32 + A._44 * B._42,
+		A._41 * B._13 + A._42 * B._23 + A._43 * B._33 + A._44 * B._43,
+		A._41 * B._14 + A._42 * B._24 + A._43 * B._34 + A._44 * B._44);
 }
 
 // Defined functions

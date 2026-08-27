@@ -5889,14 +5889,7 @@ HRESULT m_IDirect3DDeviceX::GetD9RenderState(D3DRENDERSTATETYPE State, LPDWORD l
 		}
 	}
 
-	if (DeviceStates.RenderState[State].Set)
-	{
-		*lpValue = DeviceStates.RenderState[State].State;
-	}
-	else
-	{
-		*lpValue = DefaultRenderState[State];
-	}
+	*lpValue = DeviceStates.RenderState[State].Set ? DeviceStates.RenderState[State].State : DefaultRenderState[State];
 
 	return D3D_OK;
 }
@@ -5953,14 +5946,7 @@ HRESULT m_IDirect3DDeviceX::GetD9TextureStageState(DWORD Stage, D3DTEXTURESTAGES
 		}
 	}
 
-	if (DeviceStates.TextureStageState[Stage][Type].Set)
-	{
-		*lpValue = DeviceStates.TextureStageState[Stage][Type].State;
-	}
-	else
-	{
-		*lpValue = DefaultTextureStageState[Stage][Type];
-	}
+	*lpValue = DeviceStates.TextureStageState[Stage][Type].Set ? DeviceStates.TextureStageState[Stage][Type].State : DefaultTextureStageState[Stage][Type];
 
 	return D3D_OK;
 }
@@ -6017,14 +6003,7 @@ HRESULT m_IDirect3DDeviceX::GetD9SamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE
 		}
 	}
 
-	if (DeviceStates.SamplerState[Sampler][Type].Set)
-	{
-		*lpValue = DeviceStates.SamplerState[Sampler][Type].State;
-	}
-	else
-	{
-		*lpValue = DefaultSamplerState[Sampler][Type];
-	}
+	*lpValue = DeviceStates.SamplerState[Sampler][Type].Set ? DeviceStates.SamplerState[Sampler][Type].State : DefaultSamplerState[Sampler][Type];
 
 	return D3D_OK;
 }
@@ -6187,14 +6166,7 @@ HRESULT m_IDirect3DDeviceX::GetD9ClipPlane(DWORD Index, float* lpPlane)
 		}
 	}
 
-	if (DeviceStates.ClipPlane[Index].Set)
-	{
-		*(FLOAT4*)lpPlane = DeviceStates.ClipPlane[Index].Plane;
-	}
-	else
-	{
-		*(FLOAT4*)lpPlane = *(FLOAT4*)&DefaultClipPlane;
-	}
+	*(FLOAT4*)lpPlane = DeviceStates.ClipPlane[Index].Set ? DeviceStates.ClipPlane[Index].Plane : *(FLOAT4*)&DefaultClipPlane;
 
 	return D3D_OK;
 }
@@ -6246,14 +6218,7 @@ HRESULT m_IDirect3DDeviceX::GetD9Viewport(D3DVIEWPORT9* lpViewport)
 		}
 	}
 
-	if (DeviceStates.Viewport.Set)
-	{
-		*lpViewport = DeviceStates.Viewport.View;
-	}
-	else
-	{
-		*lpViewport = DefaultViewport;
-	}
+	*lpViewport = DeviceStates.Viewport.Set ? DeviceStates.Viewport.View : DefaultViewport;
 
 	return D3D_OK;
 }
@@ -6295,14 +6260,7 @@ HRESULT m_IDirect3DDeviceX::GetD9Material(D3DMATERIAL9* lpMaterial)
 		}
 	}
 
-	if (DeviceStates.Material.Set)
-	{
-		*lpMaterial = DeviceStates.Material.Material;
-	}
-	else
-	{
-		*lpMaterial = DefaultMaterial;
-	}
+	*lpMaterial = DeviceStates.Material.Set ? DeviceStates.Material.Material : DefaultMaterial;
 
 	return D3D_OK;
 }
@@ -6845,7 +6803,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 	}
 
 	// Color key shader
-	if ((dwFlags & D3DDP_DXW_COLORKEYENABLE) && ddrawParent)
+	/*if ((dwFlags & D3DDP_DXW_COLORKEYENABLE) && ddrawParent)
 	{
 		if (!colorkeyPixelShader || !*colorkeyPixelShader)
 		{
@@ -6857,7 +6815,7 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			(*d3d9Device)->SetPixelShaderConstantF(0, DrawStates.lowColorKey, 1);
 			(*d3d9Device)->SetPixelShaderConstantF(1, DrawStates.highColorKey, 1);
 		}
-	}
+	}*/
 
 	// Vertex fixup shader (ToDo)
 	/*if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && d3d9Device && *d3d9Device && ddrawParent)
@@ -6929,10 +6887,10 @@ void m_IDirect3DDeviceX::RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD Dire
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
 	}
-	if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
+	/*if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
 	{
 		(*d3d9Device)->SetPixelShader(nullptr);
-	}
+	}*/
 	/*if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && d3d9Device && *d3d9Device)
 	{
 		(*d3d9Device)->SetVertexShader(nullptr);

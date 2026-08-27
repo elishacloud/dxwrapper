@@ -564,15 +564,15 @@ public:
 	bool IsSurface3D() const;
 	bool IsRenderTarget() const { return surface.CanBeRenderTarget; }
 	bool IsDepthStencil() const { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
-	bool IsSurfaceTexture() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
+	inline bool IsSurfaceTexture() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
 	bool IsSurfaceManaged() const { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	bool IsSurfaceCreated() const { return (surface.Texture || surface.Surface); }
 	bool HasAlphaChannel(bool UsingColorKey) const;
-	bool IsColorKeyTexture() const { return (IsSurfaceTexture() && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)); }
+	inline bool IsColorKeyTexture() const { return (IsSurfaceTexture() && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)); }
 	bool IsPalette() const { return (surface.Format == D3DFMT_P8); }
 	D3DFORMAT GetSurfaceFormat() const { return surface.Format; }
 	DWORD GetAttachedDepthStencilZBits();
-	D3DMULTISAMPLE_TYPE GetMultiSampleType() const { return surface.MultiSampleType; }
+	inline D3DMULTISAMPLE_TYPE GetMultiSampleType() const { return surface.MultiSampleType; }
 	bool IsSurfaceBusy(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS) { return (IsSurfaceBlitting() || IsSurfaceLocked(MipMapLevel) || IsSurfaceInDC(MipMapLevel)); }
 	bool CanSurfaceBeDeleted() const { return !ComplexChild; }
 	bool CanSurfaceUseEmulation() const
@@ -581,7 +581,7 @@ public:
 	bool IsEmulationDCReady() const { return (IsUsingEmulation() && !surface.emu->UsingGameDC); }
 	bool IsSurfaceDirty() const { return surface.IsDirtyFlag; }
 	bool IsMipMapAutogen() const { return (surface.Usage & D3DUSAGE_AUTOGENMIPMAP); }
-	bool IsMipMapGenerated() const { return IsMipMapReadyToUse || IsMipMapAutogen() || MipMaps.empty(); }
+	inline bool IsMipMapGenerated() const { return IsMipMapReadyToUse || IsMipMapAutogen() || MipMaps.empty(); }
 	void FixTextureFlags(LPDDSURFACEDESC2 lpDDSurfaceDesc2);
 	void PrepareRenderTarget();
 	void ClearDirtyFlags();
@@ -592,7 +592,7 @@ public:
 	HRESULT RestoreD9Surface();
 	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	bool GetColorKeyForPrimaryShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
-	bool GetWasBitAlignLocked() const { return WasBitAlignLocked; }
+	inline bool GetWasBitAlignLocked() const { return WasBitAlignLocked; }
 	bool GetSurfaceDimensions(DWORD& Width, DWORD& Height)
 	{
 		if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) != (DDSD_WIDTH | DDSD_HEIGHT) && ddrawParent)
