@@ -319,6 +319,14 @@ bool IsValidTransformState(D3DTRANSFORMSTATETYPE State)
 
 D3DMATRIX UpdateProjectionMatrix(const D3DMATRIX& Matrix, D3DVECTOR Scale, D3DVECTOR Clip, bool SetClipping)
 {
+	// Check if the matrix would be Identity
+	if (Scale.x == 1.0f && Scale.y == 1.0f && Scale.z == 1.0f &&
+		(!SetClipping || (Clip.x == 0.0f && Clip.y == 0.0f && Clip.z == 0.0f)))
+	{
+		return Matrix;
+	}
+
+	// Compute new legacy Projection matrix
 	D3DMATRIX ScaleMatrix = {};
 
 	ScaleMatrix._11 = Scale.x;
@@ -1413,7 +1421,10 @@ HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCo
 		return DDERR_GENERIC;
 	}
 
-	matProj = UpdateProjectionMatrix(matProj, Viewport.Scale, Viewport.Clip, true);
+	if (Viewport.UseViewportScale)
+	{
+		matProj = UpdateProjectionMatrix(matProj, Viewport.Scale, Viewport.Clip, true);
+	}
 
 	D3DMATRIX matWorldView = {}, matWorldViewProj = {};
 	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);

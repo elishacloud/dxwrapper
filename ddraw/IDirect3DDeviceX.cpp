@@ -5178,7 +5178,7 @@ HRESULT m_IDirect3DDeviceX::SetViewportData(VIEWPORTINFO& Viewport)
 
 	if (SUCCEEDED(hr))
 	{
-		DeviceStates.Viewport.UseViewportScale = true;
+		DeviceStates.Viewport.UseViewportScale = Viewport.UseViewportScale;
 		DeviceStates.Viewport.Scale = Viewport.Scale;
 		DeviceStates.Viewport.Clip = Viewport.Clip;
 	}
@@ -6360,14 +6360,15 @@ HRESULT m_IDirect3DDeviceX::D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, con
 
 void m_IDirect3DDeviceX::PrepDevice()
 {
-	if (ddrawParent && (RequiresStateRestore || ddrawParent->GetLastDrawDevice() != (DWORD)this))
-	{
-		RestoreStates();
-	}
-
-	// Set batched states
 	if (Config.Dd7to9)
 	{
+		// Retore device state
+		if (ddrawParent && (RequiresStateRestore || ddrawParent->GetLastDrawDevice() != (DWORD)this))
+		{
+			RestoreStates();
+		}
+
+		// Set batched states
 		for (const auto& entry : BatchStates.RenderState)
 		{
 			(*d3d9Device)->SetRenderState(entry.first, entry.second);
@@ -6410,6 +6411,7 @@ void m_IDirect3DDeviceX::PrepDevice()
 		{
 			(*d3d9Device)->SetTransform(entry.first, &entry.second);
 		}
+		BatchStates.Matrix.clear();
 	}
 }
 

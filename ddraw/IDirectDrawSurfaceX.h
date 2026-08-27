@@ -593,10 +593,13 @@ public:
 	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	bool GetColorKeyForPrimaryShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	bool GetWasBitAlignLocked() const { return WasBitAlignLocked; }
-	bool GetSurfaceSetSize(DWORD& Width, DWORD& Height) const
+	bool GetSurfaceDimensions(DWORD& Width, DWORD& Height)
 	{
+		if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) != (DDSD_WIDTH | DDSD_HEIGHT) && ddrawParent)
+		{
+			UpdateSurfaceDesc();
+		}
 		if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&
-			(ResetDisplayFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == 0 &&
 			surfaceDesc2.dwWidth && surfaceDesc2.dwHeight)
 		{
 			Width = surfaceDesc2.dwWidth;

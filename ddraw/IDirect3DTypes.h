@@ -426,10 +426,9 @@ struct INDEXSTREAMINFO {
 
 struct VIEWPORTINFO {
     D3DVIEWPORT9 Data9 = {};
-    float MinZ = 0;
-    float MaxZ = 0;
     D3DVECTOR Scale = {};
     D3DVECTOR Clip = {};
+    bool UseViewportScale = false;
 };
 
 typedef enum _D3DSURFACETYPE {
