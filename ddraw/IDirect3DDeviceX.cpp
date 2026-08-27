@@ -4637,7 +4637,10 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 				const auto& VertexState = StateBlock.Data[dwBlockHandle].VertexState.value();
 
 				// Light enable
-				DeviceStates.LightEnable = VertexState.LightEnable;
+				for (const auto& entry : VertexState.LightEnable)
+				{
+					DeviceStates.Light[entry.first].Enabled = entry.second;
+				}
 
 				// Transformation matrices
 				DeviceStates.Matrix = VertexState.Matrix;
@@ -4723,7 +4726,10 @@ HRESULT m_IDirect3DDeviceX::CaptureStateBlock(DWORD dwBlockHandle)
 		{
 			StateBlock.Data[dwBlockHandle].VertexState.emplace();
 			auto& VertexState = StateBlock.Data[dwBlockHandle].VertexState.value();
-			VertexState.LightEnable = DeviceStates.LightEnable;
+			for (const auto& entry : DeviceStates.Light)
+			{
+				VertexState.LightEnable[entry.first] = entry.second.Enabled;
+			}
 			VertexState.Matrix = DeviceStates.Matrix;
 			memcpy(VertexState.ClipPlane, DeviceStates.ClipPlane, sizeof(VertexState.ClipPlane));
 			for (const auto& State : StateBlockVertexRenderStates)
@@ -5255,6 +5261,9 @@ void m_IDirect3DDeviceX::ClearLight(m_IDirect3DLight* lpLight)
 
 			// Disable light
 			D9LightEnable(Index, FALSE);
+
+			// Remove from device state
+			DeviceStates.Light.erase(Index);
 		}
 		else
 		{
@@ -5297,7 +5306,6 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 		{
 			if (LightIndexMap.find(x) != LightIndexMap.end()) continue;
 			if (DeviceStates.Light.find(x) != DeviceStates.Light.end()) continue;
-			if (DeviceStates.LightEnable.find(x) != DeviceStates.LightEnable.end()) continue;
 
 			dwLightIndex = x;
 			break;
@@ -6071,7 +6079,7 @@ HRESULT m_IDirect3DDeviceX::GetD9Light(DWORD Index, D3DLIGHT9* lpLight)
 	auto it = DeviceStates.Light.find(Index);
 	if (it != DeviceStates.Light.end())
 	{
-		*lpLight = it->second;
+		*lpLight = it->second.Light;
 		return D3D_OK;
 	}
 
@@ -6102,7 +6110,7 @@ HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT9* lpLight)
 		BatchStates.Light.Index = BatchStates.Light.States.size();
 	}
 
-	DeviceStates.Light[Index] = *lpLight;
+	DeviceStates.Light[Index].Light = *lpLight;
 
 	return D3D_OK;
 }
@@ -6124,17 +6132,13 @@ HRESULT m_IDirect3DDeviceX::GetD9LightEnable(DWORD Index, LPBOOL lpEnable)
 		}
 	}
 
-	auto it = DeviceStates.LightEnable.find(Index);
-	if (it != DeviceStates.LightEnable.end())
+	auto it = DeviceStates.Light.find(Index);
+	if (it != DeviceStates.Light.end())
 	{
-		*lpEnable = it->second;
-	}
-	else
-	{
-		*lpEnable = FALSE;
+		*lpEnable = it->second.Enabled;
 	}
 
-	return D3D_OK;
+	return DDERR_INVALIDPARAMS;
 }
 
 HRESULT m_IDirect3DDeviceX::D9LightEnable(DWORD Index, BOOL Enable)
@@ -6156,7 +6160,7 @@ HRESULT m_IDirect3DDeviceX::D9LightEnable(DWORD Index, BOOL Enable)
 		BatchStates.LightEnable.Index = BatchStates.LightEnable.States.size();
 	}
 
-	DeviceStates.LightEnable[Index] = Enable;
+	DeviceStates.Light[Index].Enabled = Enable;
 
 	return D3D_OK;
 }
@@ -6518,16 +6522,16 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	// Restore lights
 	for (const auto& entry : DeviceStates.Light)
 	{
-		D3DLIGHT9 Light = FixLight(entry.second);
+		D3DLIGHT9 Light = FixLight(entry.second.Light);
 		(*d3d9Device)->SetLight(entry.first, &Light);
 	}
 
 	// Restore light enable
-	for (const auto& entry : DeviceStates.LightEnable)
+	for (const auto& entry : DeviceStates.Light)
 	{
-		if (entry.second)
+		if (entry.second.Enabled)
 		{
-			(*d3d9Device)->LightEnable(entry.first, entry.second);
+			(*d3d9Device)->LightEnable(entry.first, entry.second.Enabled);
 		}
 	}
 
@@ -6963,11 +6967,10 @@ void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLigh
 	{
 		for (const auto& entry : DeviceStates.Light)
 		{
-			auto it = DeviceStates.LightEnable.find(entry.first);
-			if (it != DeviceStates.LightEnable.end() && it->second)
+			if (entry.second.Enabled)
 			{
 				DXLIGHT7 DxLight7 = {};
-				GetDXLight(DxLight7, entry.second);
+				GetDXLight(DxLight7, entry.second.Light);
 
 				AttachedLightList.push_back(DxLight7);
 			}

@@ -53,6 +53,10 @@ private:
 		bool Enabled = false;
 		D3DMATERIAL9 Material = {};
 	};
+	struct LIGHTSTRUCT {
+		BOOL Enabled = FALSE;
+		D3DLIGHT9 Light = {};
+	};
 	struct DEVICESTATE {
 		STATESTRUCT RenderState[D3D_MAXRENDERSTATES];
 		DWORD LightState[MaxLightStates] = {};
@@ -61,8 +65,7 @@ private:
 		CLIPPLANESTRUCT ClipPlane[MaxClipPlaneIndex];
 		VIEWPORTSTRUCT Viewport;
 		MATERIALSTRUCT Material = {};
-		std::unordered_map<DWORD, D3DLIGHT9> Light;
-		std::unordered_map<DWORD, BOOL> LightEnable;
+		std::unordered_map<DWORD, LIGHTSTRUCT> Light;
 		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
 		DWORD rsMap128 = 0;	// D3DRS_WRAP0
 		DWORD rsMap139 = 0;	// D3DRS_AMBIENT
