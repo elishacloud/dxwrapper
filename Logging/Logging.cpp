@@ -914,6 +914,53 @@ std::ostream& operator<<(std::ostream& os, const D3DMATRIX& data)
 		<< *(FLOAT4*)&data.m[3];
 }
 
+std::ostream& operator<<(std::ostream& os, const D3DVERTEX& data)
+{
+	return Logging::LogStruct(os)
+		<< data.x
+		<< data.y
+		<< data.z
+		<< data.nx
+		<< data.ny
+		<< data.nz
+		<< data.tu
+		<< data.tv;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DLVERTEX& data)
+{
+	return Logging::LogStruct(os)
+		<< data.x
+		<< data.y
+		<< data.z
+		<< data.color
+		<< data.specular
+		<< data.tu
+		<< data.tv;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DTLVERTEX& data)
+{
+	return Logging::LogStruct(os)
+		<< data.sx
+		<< data.sy
+		<< data.sz
+		<< data.rhw
+		<< data.color
+		<< data.specular
+		<< data.tu
+		<< data.tv;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DHVERTEX& data)
+{
+	return Logging::LogStruct(os)
+		<< Logging::hex(data.dwFlags)
+		<< data.hx
+		<< data.hy
+		<< data.hz;
+}
+
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp)
 {
 	return Logging::LogStruct(os)
