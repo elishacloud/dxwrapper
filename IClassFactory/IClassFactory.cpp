@@ -36,6 +36,8 @@
 #include "dsound\dsound.h"
 #endif
 #include "ScopeGuard.h"
+#include "Settings\Settings.h"
+#include "Logging\Logging.h"
 
 INITIALIZE_OUT_WRAPPED_PROC(CoGetClassObject, unused);
 INITIALIZE_OUT_WRAPPED_PROC(CoCreateInstance, unused);
