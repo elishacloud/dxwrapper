@@ -914,6 +914,14 @@ std::ostream& operator<<(std::ostream& os, const D3DMATRIX& data)
 		<< *(FLOAT4*)&data.m[3];
 }
 
+std::ostream& operator<<(std::ostream& os, const D3DVECTOR& data)
+{
+	return Logging::LogStruct(os)
+		<< data.x
+		<< data.y
+		<< data.z;
+}
+
 std::ostream& operator<<(std::ostream& os, const D3DVERTEX& data)
 {
 	return Logging::LogStruct(os)
