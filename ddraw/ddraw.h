@@ -66,6 +66,15 @@ class m_IDirectDrawGammaControl;
 #include "External\dinputto8\ModuleObjectCount.h"
 #include "IClassFactory\IClassFactory.h"
 #include "Settings\Settings.h"
+
+#include "ComPtr.h"
+#include "ScopeGuard.h"
+
+// Direct3D Helpers
+#include "IDirect3DTypes.h"
+// DirectDraw Helpers
+#include "IDirectDrawTypes.h"
+
 #include "Logging\Logging.h"
 
 // ddraw proc typedefs
@@ -114,13 +123,6 @@ enum DirectDrawEnumerateTypes
 	DDET_ENUMCALLBACKW,
 };
 
-#include "ComPtr.h"
-#include "ScopeGuard.h"
-
-// Direct3D Helpers
-#include "IDirect3DTypes.h"
-// DirectDraw Helpers
-#include "IDirectDrawTypes.h"
 // Direct3D Version Wrappers
 #include "Versions\IDirect3D.h"
 #include "Versions\IDirect3D2.h"

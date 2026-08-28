@@ -969,6 +969,51 @@ std::ostream& operator<<(std::ostream& os, const D3DHVERTEX& data)
 		<< data.hz;
 }
 
+std::ostream& operator<<(std::ostream& os, const D3DLVERTEX9& data)
+{
+	return Logging::LogStruct(os)
+		<< data.x
+		<< data.y
+		<< data.z
+		<< data.diffuse
+		<< data.specular
+		<< data.tu
+		<< data.tv;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DXCOLOR& data)
+{
+	return Logging::LogStruct(os)
+		<< data.r
+		<< data.g
+		<< data.b
+		<< data.a;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DXVECTOR2& data)
+{
+	return Logging::LogStruct(os)
+		<< data.x
+		<< data.y;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DXVECTOR3& data)
+{
+	return Logging::LogStruct(os)
+		<< data.x
+		<< data.y
+		<< data.z;
+}
+
+std::ostream& operator<<(std::ostream& os, const D3DXVECTOR4& data)
+{
+	return Logging::LogStruct(os)
+		<< data.x
+		<< data.y
+		<< data.z
+		<< data.w;
+}
+
 std::ostream& operator<<(std::ostream& os, const D3DPRESENT_PARAMETERS& pp)
 {
 	return Logging::LogStruct(os)
