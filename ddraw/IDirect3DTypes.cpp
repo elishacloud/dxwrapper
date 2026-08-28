@@ -337,7 +337,7 @@ D3DMATRIX UpdateProjectionMatrix(const D3DMATRIX& Matrix, D3DVECTOR Scale, D3DVE
 	ScaleMatrix._43 = SetClipping ? Clip.z : 0.0f;
 	ScaleMatrix._44 = 1.0f;
 
-	return MatrixMultiply(Matrix, ScaleMatrix);
+	return MatrixMultiply(ScaleMatrix, Matrix);
 }
 
 void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7)
