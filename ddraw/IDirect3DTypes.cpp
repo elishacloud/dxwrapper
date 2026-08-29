@@ -1366,20 +1366,13 @@ HRESULT InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>
 	return D3D_OK;
 }
 
-template HRESULT TransformVertexSW<XYZ>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, DWORD, const VIEWPORTINFO&, LPDWORD);
-template HRESULT TransformVertexSW<D3DLVERTEX>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, DWORD, const VIEWPORTINFO&, LPDWORD);
+template HRESULT TransformVertexSW<XYZ>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, bool, const VIEWPORTINFO&, DWORD&);
+template HRESULT TransformVertexSW<D3DLVERTEX>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, bool, const VIEWPORTINFO&, DWORD&);
 template <typename T>
-HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, DWORD dwFlags, const VIEWPORTINFO& Viewport, LPDWORD lpOffscreen)
+HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, bool IsClipped, const VIEWPORTINFO& Viewport, DWORD& dwOffscreen)
 {
 	if (!lpData || !pDirect3DDeviceX)
 	{
-		return DDERR_INVALIDPARAMS;
-	}
-
-	// Check dwSize parameters
-	if (lpData->dwSize != sizeof(D3DTRANSFORMDATA))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: dwSize doesn't match: " << sizeof(D3DTRANSFORMDATA) << " -> " << lpData->dwSize);
 		return DDERR_INVALIDPARAMS;
 	}
 
@@ -1400,14 +1393,6 @@ HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCo
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if ((dwFlags & (D3DTRANSFORM_CLIPPED | D3DTRANSFORM_UNCLIPPED)) == 0)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid dwFlags: " << Logging::hex(dwFlags));
-		return DDERR_INVALIDPARAMS;
-	}
-
-	const bool IsClipped = (dwFlags & D3DTRANSFORM_CLIPPED) && !(dwFlags & D3DTRANSFORM_UNCLIPPED);
-
 	if (IsClipped && !lpData->lpHOut)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: lpHOut is null when clipping!");
@@ -1423,19 +1408,19 @@ HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCo
 		return DDERR_GENERIC;
 	}
 
+	// Get viewport
+	const D3DVIEWPORT9& vp = Viewport.Data9;
+	const D3DVECTOR& legacyClip = Viewport.Clip;
+	const D3DVECTOR& legacyScale = Viewport.Scale;
+
 	if (Viewport.UseViewportScale)
 	{
-		matProj = UpdateProjectionMatrix(matProj, Viewport.Scale, Viewport.Clip, true);
+		matProj = UpdateProjectionMatrix(matProj, legacyScale, legacyClip, true);
 	}
 
 	D3DMATRIX matWorldView = {}, matWorldViewProj = {};
 	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
 	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
-
-	// Get viewport
-	const D3DVIEWPORT9& vp = Viewport.Data9;
-	const D3DVECTOR& legacyClip = Viewport.Clip;
-	const D3DVECTOR& legacyScale = Viewport.Scale;
 
 	// Precalculate a few static viewport factors, to save on per-vertex cycles
 	const float viewportHalfWidth = static_cast<float>(vp.Width) * 0.5f;
@@ -1529,10 +1514,7 @@ HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCo
 	}
 
 	// Address of a variable that is set to a nonzero value if the resulting vertices are all off-screen.
-	if (lpOffscreen)
-	{
-		*lpOffscreen = IsClipped && allOffscreen ? clipIntersection | D3DSTATUS_ZNOTVISIBLE : FALSE;
-	}
+	dwOffscreen = IsClipped && allOffscreen ? clipIntersection | D3DSTATUS_ZNOTVISIBLE : FALSE;
 	lpData->dwClipIntersection = IsClipped ? clipIntersection << 12 : 0;
 	lpData->dwClipUnion = IsClipped ? clipUnion : 0;
 

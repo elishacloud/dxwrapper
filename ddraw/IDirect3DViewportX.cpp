@@ -297,14 +297,28 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 
 	if (Config.Dd7to9)
 	{
-		if (dwVertexCount == 0)
-		{
-			return D3D_OK;
-		}
-
-		if (!lpData)
+		if (!lpData || !lpOffscreen)
 		{
 			return DDERR_INVALIDPARAMS;
+		}
+
+		if (lpData->dwSize != sizeof(D3DTRANSFORMDATA))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if ((dwFlags & (D3DTRANSFORM_CLIPPED | D3DTRANSFORM_UNCLIPPED)) == 0)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		const bool IsClipped = (dwFlags & D3DTRANSFORM_UNCLIPPED) ? false : true;
+
+		if (dwVertexCount == 0)
+		{
+			*lpOffscreen = IsClipped ? ((D3DSTATUS_ZNOTVISIBLE - 1) | D3DSTATUS_ZNOTVISIBLE) : 0;
+
+			return D3D_OK;
 		}
 
 		if (!IsViewportDataSet)
@@ -327,11 +341,11 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 		HRESULT hr;
 		if (lpData->dwInSize == sizeof(XYZ))
 		{
-			hr = TransformVertexSW<XYZ>(pDirect3DDeviceX, dwVertexCount, lpData, dwFlags, Viewport, lpOffscreen);
+			hr = TransformVertexSW<XYZ>(pDirect3DDeviceX, dwVertexCount, lpData, IsClipped, Viewport, *lpOffscreen);
 		}
 		else if (lpData->dwInSize >= sizeof(D3DLVERTEX))
 		{
-			hr = TransformVertexSW<D3DLVERTEX>(pDirect3DDeviceX, dwVertexCount, lpData, dwFlags, Viewport, lpOffscreen);
+			hr = TransformVertexSW<D3DLVERTEX>(pDirect3DDeviceX, dwVertexCount, lpData, IsClipped, Viewport, *lpOffscreen);
 		}
 		else
 		{
