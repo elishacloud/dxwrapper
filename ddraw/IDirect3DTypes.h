@@ -444,6 +444,81 @@ struct SURFACE_PARENT {
     DWORD DxVersion = 0;
 };
 
+inline bool IsIdentityMatrix(const D3DMATRIX& Matrix)
+{
+    return
+        Matrix._11 == 1.0f &&
+        Matrix._22 == 1.0f &&
+        Matrix._33 == 1.0f &&
+        Matrix._44 == 1.0f &&
+        Matrix._12 == 0.0f &&
+        Matrix._13 == 0.0f &&
+        Matrix._14 == 0.0f &&
+        Matrix._21 == 0.0f &&
+        Matrix._23 == 0.0f &&
+        Matrix._24 == 0.0f &&
+        Matrix._31 == 0.0f &&
+        Matrix._32 == 0.0f &&
+        Matrix._34 == 0.0f &&
+        Matrix._41 == 0.0f &&
+        Matrix._42 == 0.0f &&
+        Matrix._43 == 0.0f;
+}
+
+constexpr UINT InvalidTransformIndex = UINT_MAX;
+constexpr D3DTRANSFORMSTATETYPE GetTransformType[MaxTransformStates] = {
+    D3DTS_VIEW,
+    D3DTS_PROJECTION,
+    D3DTS_WORLD,
+    D3DTS_WORLD1,
+    D3DTS_WORLD2,
+    D3DTS_WORLD3,
+    D3DTS_TEXTURE0,
+    D3DTS_TEXTURE1,
+    D3DTS_TEXTURE2,
+    D3DTS_TEXTURE3,
+    D3DTS_TEXTURE4,
+    D3DTS_TEXTURE5,
+    D3DTS_TEXTURE6,
+    D3DTS_TEXTURE7,
+};
+inline UINT GetTransformStateIndex(D3DTRANSFORMSTATETYPE State)
+{
+    switch ((DWORD)State)
+    {
+    case D3DTS_VIEW:
+        return 0;
+    case D3DTS_PROJECTION:
+        return 1;
+    case D3DTS_WORLD:
+        return 2;
+    case D3DTS_WORLD1:
+        return 3;
+    case D3DTS_WORLD2:
+        return 4;
+    case D3DTS_WORLD3:
+        return 5;
+    case D3DTS_TEXTURE0:
+        return 6;
+    case D3DTS_TEXTURE1:
+        return 7;
+    case D3DTS_TEXTURE2:
+        return 8;
+    case D3DTS_TEXTURE3:
+        return 9;
+    case D3DTS_TEXTURE4:
+        return 10;
+    case D3DTS_TEXTURE5:
+        return 11;
+    case D3DTS_TEXTURE6:
+        return 12;
+    case D3DTS_TEXTURE7:
+        return 13;
+    default:
+        return InvalidTransformIndex;
+    }
+}
+
 #define CLAMP(val,zmin,zmax) (max((zmin),min((zmax),(val))))
 
 // Clamp rhw values
@@ -470,7 +545,6 @@ bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersi
 bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
 DWORD GetDepthBias(DWORD ZBias, DWORD DepthBitCount);
 DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value);
-bool IsValidTransformState(D3DTRANSFORMSTATETYPE State);
 D3DMATRIX UpdateProjectionMatrix(const D3DMATRIX& Matrix, D3DVECTOR Scale, D3DVECTOR Clip, bool SetClipping);
 void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7);
 void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, DWORD dwDeviceZBufferBitDepth, const CLSID* guid, DWORD DirectXVersion);

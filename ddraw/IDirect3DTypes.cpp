@@ -290,33 +290,6 @@ DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value)
 	return Value;
 }
 
-bool IsValidTransformState(D3DTRANSFORMSTATETYPE State)
-{
-	switch ((DWORD)State)
-	{
-	case D3DTS_VIEW:
-	case D3DTS_PROJECTION:
-	case D3DTS_WORLD:
-	case D3DTS_WORLD1:
-	case D3DTS_WORLD2:
-	case D3DTS_WORLD3:
-		return true;
-
-	case D3DTS_TEXTURE0:
-	case D3DTS_TEXTURE1:
-	case D3DTS_TEXTURE2:
-	case D3DTS_TEXTURE3:
-	case D3DTS_TEXTURE4:
-	case D3DTS_TEXTURE5:
-	case D3DTS_TEXTURE6:
-	case D3DTS_TEXTURE7:
-		return true;
-
-	default:
-		return false;
-	}
-}
-
 D3DMATRIX UpdateProjectionMatrix(const D3DMATRIX& Matrix, D3DVECTOR Scale, D3DVECTOR Clip, bool SetClipping)
 {
 	// Check if the matrix would be Identity

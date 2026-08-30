@@ -4646,7 +4646,7 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 				DeviceStates.Matrix = VertexState.Matrix;
 
 				// Clipping planes
-				memcpy(DeviceStates.ClipPlane, VertexState.ClipPlane, sizeof(DeviceStates.ClipPlane));
+				DeviceStates.ClipPlane = VertexState.ClipPlane;
 
 				// Render states
 				for (const auto& entry : VertexState.RenderState)
@@ -4731,7 +4731,7 @@ HRESULT m_IDirect3DDeviceX::CaptureStateBlock(DWORD dwBlockHandle)
 				VertexState.LightEnable[entry.first] = entry.second.Enabled;
 			}
 			VertexState.Matrix = DeviceStates.Matrix;
-			memcpy(VertexState.ClipPlane, DeviceStates.ClipPlane, sizeof(VertexState.ClipPlane));
+			VertexState.ClipPlane = DeviceStates.ClipPlane;
 			for (const auto& State : StateBlockVertexRenderStates)
 			{
 				VertexState.RenderState[State] = DeviceStates.RenderState[State];
@@ -6292,7 +6292,9 @@ HRESULT m_IDirect3DDeviceX::GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRI
 	{
 		return DDERR_INVALIDPARAMS;
 	}
-	if (!IsValidTransformState(State))
+
+	const UINT Index = GetTransformStateIndex(State);
+	if (Index >= MaxTransformStates)
 	{
 		*lpMatrix = {};
 		return DDERR_INVALIDPARAMS;
@@ -6308,22 +6310,20 @@ HRESULT m_IDirect3DDeviceX::GetD9Transform(D3DTRANSFORMSTATETYPE State, D3DMATRI
 		}
 	}
 
-	auto it = DeviceStates.Matrix.find(State);
-	if (it != DeviceStates.Matrix.end())
-	{
-		*lpMatrix = it->second;
-	}
-	else
-	{
-		*lpMatrix = DefaultIdentityMatrix;
-	}
+	*lpMatrix = DeviceStates.Matrix[Index].Set ? DeviceStates.Matrix[Index].Matrix : DefaultIdentityMatrix;
 
 	return D3D_OK;
 }
 
 HRESULT m_IDirect3DDeviceX::SetD9Transform(D3DTRANSFORMSTATETYPE State, const D3DMATRIX* lpMatrix)
 {
-	if (!lpMatrix || !IsValidTransformState(State))
+	if (!lpMatrix)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	const UINT Index = GetTransformStateIndex(State);
+	if (Index >= MaxTransformStates)
 	{
 		return DDERR_INVALIDPARAMS;
 	}
@@ -6345,7 +6345,8 @@ HRESULT m_IDirect3DDeviceX::SetD9Transform(D3DTRANSFORMSTATETYPE State, const D3
 		BatchStates.Matrix.Index = BatchStates.Matrix.States.size();
 	}
 
-	DeviceStates.Matrix[State] = *lpMatrix;
+	DeviceStates.Matrix[Index].Set = !IsIdentityMatrix(*lpMatrix);
+	DeviceStates.Matrix[Index].Matrix = *lpMatrix;
 
 	return D3D_OK;
 }
@@ -6365,13 +6366,7 @@ HRESULT m_IDirect3DDeviceX::D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, con
 		D3DMATRIX result = {};
 		D3DXMatrixMultiply(&result, lpMatrix, &Matrix);
 
-		if (StateBlock.IsRecording)
-		{
-			StateBlock.Data[StateBlock.RecordingToken].RecordState.value().Matrix[State] = result;
-			return D3D_OK;
-		}
-
-		SetD9Transform(State, lpMatrix);
+		SetD9Transform(State, &result);
 	}
 
 	return hr;
@@ -6515,9 +6510,12 @@ HRESULT m_IDirect3DDeviceX::RestoreStates()
 	}
 
 	// Restore transform
-	for (const auto& entry : DeviceStates.Matrix)
+	for (UINT Index = 0; Index < MaxTransformStates; Index++)
 	{
-		(*d3d9Device)->SetTransform(entry.first, &entry.second);
+		if (DeviceStates.Matrix[Index].Set)
+		{
+			(*d3d9Device)->SetTransform(GetTransformType[Index], &DeviceStates.Matrix[Index].Matrix);
+		}
 	}
 
 	return D3D_OK;

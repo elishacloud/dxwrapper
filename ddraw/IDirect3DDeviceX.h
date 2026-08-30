@@ -57,16 +57,20 @@ private:
 		BOOL Enabled = FALSE;
 		D3DLIGHT9 Light = {};
 	};
+	struct MATRIXSTRUCT {
+		bool Set = false;
+		D3DMATRIX Matrix = DefaultIdentityMatrix;
+	};
 	struct DEVICESTATE {
 		STATESTRUCT RenderState[D3D_MAXRENDERSTATES];
 		DWORD LightState[MaxLightStates] = {};
 		STATESTRUCT TextureStageState[D3DHAL_TSS_MAXSTAGES][MaxTextureStageStates];
 		STATESTRUCT SamplerState[D3DHAL_TSS_MAXSTAGES][D3DHAL_TEXTURESTATEBUF_SIZE];
-		CLIPPLANESTRUCT ClipPlane[MaxClipPlaneIndex];
+		std::array<CLIPPLANESTRUCT, MaxClipPlaneIndex> ClipPlane;
 		VIEWPORTSTRUCT Viewport;
 		MATERIALSTRUCT Material = {};
 		std::unordered_map<DWORD, LIGHTSTRUCT> Light;
-		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
+		std::array<MATRIXSTRUCT, MaxTransformStates> Matrix;
 		DWORD rsMap128 = 0;	// D3DRS_WRAP0
 		DWORD rsMap139 = 0;	// D3DRS_AMBIENT
 		DWORD rsMap140 = 0;	// D3DRS_FOGVERTEXMODE
@@ -193,11 +197,11 @@ private:
 	};
 
 	struct VERTEXSTATE {
-		CLIPPLANESTRUCT ClipPlane[MaxClipPlaneIndex];
+		std::array<CLIPPLANESTRUCT, MaxClipPlaneIndex> ClipPlane;
 		std::unordered_map<D3DRENDERSTATETYPE, STATESTRUCT> RenderState;
 		std::unordered_map<D3DTEXTURESTAGESTATETYPE, STATESTRUCT> TextureStageState[D3DHAL_TSS_MAXSTAGES];
 		std::unordered_map<DWORD, BOOL> LightEnable;
-		std::unordered_map<D3DTRANSFORMSTATETYPE, D3DMATRIX> Matrix;
+		std::array<MATRIXSTRUCT, MaxTransformStates> Matrix;
 	};
 
 	struct {

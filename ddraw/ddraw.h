@@ -11,6 +11,7 @@
 #include <d3d.h>
 #include <d3dhal.h>
 #include <memory>
+#include <array>
 #include <map>
 #include <unordered_map>
 #include <optional>
