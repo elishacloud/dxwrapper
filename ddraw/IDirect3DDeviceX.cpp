@@ -578,7 +578,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					D3DMATRIX* pDestMatrix = GetMatrix(matrixMultiply[i].hDestMatrix);
 					if (pSrcMatrix1 && pSrcMatrix2 && pDestMatrix)
 					{
-						D3DXMatrixMultiply(pDestMatrix, pSrcMatrix1, pSrcMatrix2);
+						*pDestMatrix = MatrixMultiply(*pSrcMatrix1, *pSrcMatrix2);
 					}
 					else
 					{
@@ -6363,9 +6363,7 @@ HRESULT m_IDirect3DDeviceX::D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, con
 
 	if (SUCCEEDED(hr))
 	{
-		D3DMATRIX result = {};
-		D3DXMatrixMultiply(&result, lpMatrix, &Matrix);
-
+		D3DMATRIX result = MatrixMultiply(*lpMatrix, Matrix);
 		SetD9Transform(State, &result);
 	}
 

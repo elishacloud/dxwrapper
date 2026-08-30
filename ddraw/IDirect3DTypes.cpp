@@ -1391,9 +1391,8 @@ HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCo
 		matProj = UpdateProjectionMatrix(matProj, legacyScale, legacyClip, true);
 	}
 
-	D3DMATRIX matWorldView = {}, matWorldViewProj = {};
-	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
-	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
+	D3DMATRIX matWorldView = MatrixMultiply(matWorld, matView);
+	D3DMATRIX matWorldViewProj = MatrixMultiply(matWorldView, matProj);
 
 	// Precalculate a few static viewport factors, to save on per-vertex cycles
 	const float viewportHalfWidth = static_cast<float>(vp.Width) * 0.5f;
@@ -2013,9 +2012,8 @@ HRESULT ProcessVerticesSW(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVer
 
 	matProj = pDirect3DDeviceX->GetUpdatedProjectionMatrix(matProj, true);
 
-	D3DMATRIX matWorldView = {}, matWorldViewProj = {};
-	D3DXMatrixMultiply(&matWorldView, &matWorld, &matView);
-	D3DXMatrixMultiply(&matWorldViewProj, &matWorldView, &matProj);
+	D3DMATRIX matWorldView = MatrixMultiply(matWorld, matView);
+	D3DMATRIX matWorldViewProj = MatrixMultiply(matWorldView, matProj);
 
 	// Get viewport
 	D3DVIEWPORT9 vp = {};
