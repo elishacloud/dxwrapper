@@ -96,7 +96,7 @@ ULONG m_IDirectDrawClipper::Release()
 
 		if (ref == 0)
 		{
-			SaveInterfaceAddress(this);
+			ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 		}
 
 		return ref;
@@ -106,7 +106,7 @@ ULONG m_IDirectDrawClipper::Release()
 
 	if (ref == 0)
 	{
-		SaveInterfaceAddress(this);
+		ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 	}
 
 	return ref;
@@ -539,7 +539,7 @@ HRESULT m_IDirectDrawClipper::GetClipRegion(HRGN hOutRgn)
 
 m_IDirectDrawClipper* m_IDirectDrawClipper::CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags)
 {
-	m_IDirectDrawClipper* Interface = InterfaceAddressCache<m_IDirectDrawClipper>(nullptr);
+	m_IDirectDrawClipper* Interface = ProxyAddressLookupTableDdraw.InterfaceAddressCache<m_IDirectDrawClipper>(nullptr);
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewParent, dwFlags, true);

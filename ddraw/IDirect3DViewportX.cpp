@@ -983,9 +983,9 @@ void m_IDirect3DViewportX::ReleaseInterface()
 	}
 
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface);
-	SaveInterfaceAddress(WrapperInterface2);
-	SaveInterfaceAddress(WrapperInterface3);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface2);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface3);
 
 	if (D3DInterface)
 	{
@@ -1023,11 +1023,11 @@ void* m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, (LPDIRECT3DVIEWPORT)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface, (LPDIRECT3DVIEWPORT)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, (LPDIRECT3DVIEWPORT2)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface2, (LPDIRECT3DVIEWPORT2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, (LPDIRECT3DVIEWPORT3)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface3, (LPDIRECT3DVIEWPORT3)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;

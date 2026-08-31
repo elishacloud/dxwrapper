@@ -96,7 +96,7 @@ ULONG m_IDirectDrawGammaControl::Release()
 
 		if (ref == 0)
 		{
-			SaveInterfaceAddress(this);
+			ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 		}
 
 		return ref;
@@ -106,7 +106,7 @@ ULONG m_IDirectDrawGammaControl::Release()
 
 	if (ref == 0)
 	{
-		SaveInterfaceAddress(this);
+		ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 	}
 
 	return ref;
@@ -197,7 +197,7 @@ void m_IDirectDrawGammaControl::ReleaseInterface()
 
 m_IDirectDrawGammaControl* m_IDirectDrawGammaControl::CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent)
 {
-	m_IDirectDrawGammaControl* Interface = InterfaceAddressCache<m_IDirectDrawGammaControl>(nullptr);
+	m_IDirectDrawGammaControl* Interface = ProxyAddressLookupTableDdraw.InterfaceAddressCache<m_IDirectDrawGammaControl>(nullptr);
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewParent);

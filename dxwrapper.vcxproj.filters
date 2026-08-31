@@ -856,9 +856,6 @@
     <ClCompile Include="d3d9\IDirect3DDXVADevice9.cpp">
       <Filter>d3d9</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\AddressLookupTable.cpp">
-      <Filter>ddraw</Filter>
-    </ClCompile>
     <ClCompile Include="Utils\ForceKeyboardLayout.cpp">
       <Filter>Utils</Filter>
     </ClCompile>

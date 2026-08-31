@@ -4022,11 +4022,11 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 	}
 
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface, IsPrimaryOrBackBuffer());
-	SaveInterfaceAddress(WrapperInterface2, IsPrimaryOrBackBuffer());
-	SaveInterfaceAddress(WrapperInterface3, IsPrimaryOrBackBuffer());
-	SaveInterfaceAddress(WrapperInterface4, IsPrimaryOrBackBuffer());
-	SaveInterfaceAddress(WrapperInterface7, IsPrimaryOrBackBuffer());
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface, IsPrimaryOrBackBuffer());
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface2, IsPrimaryOrBackBuffer());
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface3, IsPrimaryOrBackBuffer());
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface4, IsPrimaryOrBackBuffer());
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface7, IsPrimaryOrBackBuffer());
 
 	ReleaseDirectDrawResources();
 
@@ -4308,15 +4308,15 @@ void* m_IDirectDrawSurfaceX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, (LPDIRECTDRAWSURFACE)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface, (LPDIRECTDRAWSURFACE)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, (LPDIRECTDRAWSURFACE2)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface2, (LPDIRECTDRAWSURFACE2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, (LPDIRECTDRAWSURFACE3)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface3, (LPDIRECTDRAWSURFACE3)ProxyInterface, this);
 	case 4:
-		return GetInterfaceAddress(WrapperInterface4, (LPDIRECTDRAWSURFACE4)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface4, (LPDIRECTDRAWSURFACE4)ProxyInterface, this);
 	case 7:
-		return GetInterfaceAddress(WrapperInterface7, (LPDIRECTDRAWSURFACE7)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface7, (LPDIRECTDRAWSURFACE7)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;

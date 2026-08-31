@@ -5085,10 +5085,10 @@ void m_IDirect3DDeviceX::ReleaseInterface()
 	}
 
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface);
-	SaveInterfaceAddress(WrapperInterface2);
-	SaveInterfaceAddress(WrapperInterface3);
-	SaveInterfaceAddress(WrapperInterface7);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface2);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface3);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface7);
 
 	if (AttachedSurface && lpAttachedSurfaceX)
 	{
@@ -5174,13 +5174,13 @@ void* m_IDirect3DDeviceX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, (LPDIRECT3DDEVICE)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface, (LPDIRECT3DDEVICE)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, (LPDIRECT3DDEVICE2)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface2, (LPDIRECT3DDEVICE2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, (LPDIRECT3DDEVICE3)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface3, (LPDIRECT3DDEVICE3)ProxyInterface, this);
 	case 7:
-		return GetInterfaceAddress(WrapperInterface7, (LPDIRECT3DDEVICE7)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface7, (LPDIRECT3DDEVICE7)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;

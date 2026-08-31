@@ -96,7 +96,7 @@ ULONG m_IDirect3DLight::Release()
 
 		if (ref == 0)
 		{
-			SaveInterfaceAddress(this);
+			ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 		}
 
 		return ref;
@@ -106,7 +106,7 @@ ULONG m_IDirect3DLight::Release()
 
 	if (ref == 0)
 	{
-		SaveInterfaceAddress(this);
+		ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 	}
 
 	return ref;
@@ -313,7 +313,7 @@ void m_IDirect3DLight::ReleaseInterface()
 
 m_IDirect3DLight* m_IDirect3DLight::CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface)
 {
-	m_IDirect3DLight* Interface = InterfaceAddressCache<m_IDirect3DLight>(nullptr);
+	m_IDirect3DLight* Interface = ProxyAddressLookupTableDdraw.InterfaceAddressCache<m_IDirect3DLight>(nullptr);
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewD3DInterface);

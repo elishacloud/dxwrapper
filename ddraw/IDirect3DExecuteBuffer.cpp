@@ -100,7 +100,7 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 
 		if (ref == 0)
 		{
-			SaveInterfaceAddress(this);
+			ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 		}
 
 		return ref;
@@ -110,7 +110,7 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 
 	if (ref == 0)
 	{
-		SaveInterfaceAddress(this);
+		ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 	}
 
 	return ref;
@@ -641,7 +641,7 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExe
 
 m_IDirect3DExecuteBuffer* m_IDirect3DExecuteBuffer::CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc)
 {
-	m_IDirect3DExecuteBuffer* Interface = InterfaceAddressCache<m_IDirect3DExecuteBuffer>(nullptr);
+	m_IDirect3DExecuteBuffer* Interface = ProxyAddressLookupTableDdraw.InterfaceAddressCache<m_IDirect3DExecuteBuffer>(nullptr);
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewD3DDInterface, lpDesc);

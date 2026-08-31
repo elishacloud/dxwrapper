@@ -357,8 +357,8 @@ void m_IDirect3DTextureX::ReleaseInterface()
 	}
 
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface);
-	SaveInterfaceAddress(WrapperInterface2);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface2);
 
 	if (tHandle && parent3DSurface.Interface)
 	{
@@ -379,9 +379,9 @@ void* m_IDirect3DTextureX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, (LPDIRECT3DTEXTURE)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface, (LPDIRECT3DTEXTURE)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, (LPDIRECT3DTEXTURE2)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface2, (LPDIRECT3DTEXTURE2)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;
