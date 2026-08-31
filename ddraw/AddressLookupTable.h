@@ -10,6 +10,7 @@ class AddressLookupTableDdraw
 private:
 	static constexpr size_t MaxCacheIndex = 43;
 
+	bool DeletingAll = false;
 	bool ConstructorFlag = false;
 	std::unordered_map<void*, class AddressLookupTableDdrawObject*> g_map[MaxCacheIndex];
 	std::unordered_map<class AddressLookupTableDdrawObject*, void*> reverse_map[MaxCacheIndex];  // Reverse mapping
@@ -151,17 +152,32 @@ private:
 
 	void DeleteAll()
 	{
+		if (DeletingAll)
+		{
+			return;
+		}
+		ScopedFlagSet FlagSet(DeletingAll);
+
 		// Iterate in reverse to remove the X interfaces before the version interfaces
 		for (size_t i = MaxCacheIndex; i-- > 0; )
 		{
-			const auto& map = g_map[i];
-
-			// Don't delete m_IDirectDrawClipper it may be globally created
-			if (!ConstructorFlag && i != AddressCacheIndex<m_IDirectDrawClipper>::CacheIndex)
+			// Don't delete m_IDirectDrawClipper during normal cache cleanup;
+			// it may be globally created. Delete it during final destruction.
+			if (ConstructorFlag || i != AddressCacheIndex<m_IDirectDrawClipper>::CacheIndex)
 			{
-				for (const auto& entry : map)
+				while (!g_map[i].empty())
 				{
-					delete entry.second;
+					auto it = g_map[i].begin();
+					auto InterfaceCache = it->second;
+
+					// Remove it before calling DeleteMe()
+					g_map[i].erase(it);
+					reverse_map[i].erase(InterfaceCache);
+
+					if (InterfaceCache)
+					{
+						InterfaceCache->DeleteMe();
+					}
 				}
 			}
 		}
@@ -262,7 +278,7 @@ private:
 		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
 		auto it = g_map[CacheIndex].find(Proxy);
-		if (it != std::end(g_map[CacheIndex]))
+		if (it != g_map[CacheIndex].end())
 		{
 			return static_cast<T *>(it->second);
 		}
@@ -271,19 +287,20 @@ private:
 	}
 
 	template <typename T>
-	inline void RemoveAddress(const size_t CacheIndex, T* Wrapper)
+	void RemoveAddress(const size_t CacheIndex, T* Wrapper)
 	{
 		// Remove from g_map
-		for (auto it = g_map[CacheIndex].begin(); it != g_map[CacheIndex].end();)
+		while (true)
 		{
-			if (it->second == Wrapper)
+			auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
+				[=](auto& Map) -> bool { return Map.second == Wrapper; });
+
+			if (it == g_map[CacheIndex].end())
 			{
-				it = g_map[CacheIndex].erase(it);
+				break;
 			}
-			else
-			{
-				++it;
-			}
+
+			g_map[CacheIndex].erase(it);
 		}
 
 		// Remove from reverse_map
@@ -432,7 +449,7 @@ public:
 		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
 		auto it = g_map[CacheIndex].find(Proxy);
-		if (it != std::end(g_map[CacheIndex]))
+		if (it != g_map[CacheIndex].end())
 		{
 			return true;
 		}
@@ -441,21 +458,40 @@ public:
 	}
 
 	template <typename T>
-	void SaveAddress(T *Wrapper, void *Proxy)
+	void SaveAddress(T* Wrapper, void* Proxy)
 	{
 		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
-		if (Wrapper && Proxy)
+
+		if (!Wrapper || !Proxy)
 		{
-			RemoveAddress(CacheIndex, Wrapper);	// Make sure to remove old entry first, if it exists
-			g_map[CacheIndex][Proxy] = Wrapper;
-			reverse_map[CacheIndex][Wrapper] = Proxy;  // Update reverse map
+			return;
 		}
+
+		// Remove any existing mapping for this wrapper.
+		RemoveAddress(CacheIndex, Wrapper);
+
+		// Remove any existing mapping for this proxy.
+		auto MapIt = g_map[CacheIndex].find(Proxy);
+		if (MapIt != g_map[CacheIndex].end())
+		{
+			auto* ExistingWrapper = MapIt->second;
+
+			g_map[CacheIndex].erase(MapIt);
+
+			if (ExistingWrapper != Wrapper)
+			{
+				reverse_map[CacheIndex].erase(ExistingWrapper);
+			}
+		}
+
+		g_map[CacheIndex][Proxy] = Wrapper;
+		reverse_map[CacheIndex][Wrapper] = Proxy;
 	}
 
 	template <typename T>
 	void DeleteAddress(T *Wrapper)
 	{
-		if (!Wrapper || ConstructorFlag)
+		if (!Wrapper)
 		{
 			return;
 		}
@@ -468,7 +504,8 @@ public:
 		// If this is the last DirectDraw than delete all interfaces and clear cache
 		if constexpr (CacheIndex == AddressCacheIndex<m_IDirectDrawX>::CacheIndex)
 		{
-			if (g_map[CacheIndex].size() == 0)
+			if (Config.DdrawKeepAllInterfaceCache != 1 &&
+				!DeletingAll && g_map[CacheIndex].empty())
 			{
 				DeleteAll();
 			}
@@ -478,29 +515,39 @@ public:
 	template <typename T>
 	T* InterfaceAddressCache(T* Interface)
 	{
-		auto& InterfaceList = AddressCacheIndex<T>::InterfaceList;
+		if (Config.DdrawKeepAllInterfaceCache == 2)
+		{
+			if (Interface)
+			{
+				Interface->DeleteMe();
+			}
+			return nullptr;
+		}
 		if (Interface)
 		{
 			if (!Config.DdrawKeepAllInterfaceCache)
 			{
-				for (auto it = InterfaceList.begin(); it != InterfaceList.end();)
+				while (true)
 				{
-					if (!(*it)->KeepMe())
+					// Safe for InterfaceList changes during loop
+					auto& InterfaceList = AddressCacheIndex<T>::InterfaceList;
+					if (InterfaceList.empty())
 					{
-						(*it)->DeleteMe();
-						it = InterfaceList.erase(it);
+						break;
 					}
-					else
-					{
-						++it;
-					}
+					T* InterfaceCache = InterfaceList.back();
+					InterfaceList.pop_back();	// Remove item before calling DeleteMe()
+					InterfaceCache->DeleteMe();
 				}
 			}
+			// Safe for InterfaceList changes during loop
+			auto& InterfaceList = AddressCacheIndex<T>::InterfaceList;
 			InterfaceList.push_back(Interface);
 			return nullptr;
 		}
 		else
 		{
+			auto& InterfaceList = AddressCacheIndex<T>::InterfaceList;
 			T* InterfaceCache = nullptr;
 			if (!InterfaceList.empty())
 			{
@@ -550,6 +597,21 @@ public:
 	{
 		T* NewInterface = const_cast<T*>(Interface);
 		SaveInterfaceAddress(NewInterface);
+	}
+
+	template <typename T>
+	void DeleteInterfaceAddress(const T* Interface)
+	{
+		if (!Interface)
+		{
+			return;
+		}
+
+		auto& InterfaceList = AddressCacheIndex<T>::InterfaceList;
+
+		InterfaceList.erase(
+			std::remove(InterfaceList.begin(), InterfaceList.end(), const_cast<T*>(Interface)),
+			InterfaceList.end());
 	}
 
 	template <typename T, typename S, typename X>

@@ -282,7 +282,7 @@ struct CONFIG
 	bool DdrawRemoveScanlines = false;			// Experimental feature to removing interlaced black lines in a single frame
 	bool DdrawRemoveInterlacing = false;		// Experimental feature to removing interlacing between frames
 	bool DdrawFillSurfaceColor = false;			// After creating surface fill with random color for testing black screen or objects
-	bool DdrawKeepAllInterfaceCache = false;	// Preserve the interface cache all ddraw interfaces, which may casue higher memory usage
+	DWORD DdrawKeepAllInterfaceCache = 0;		// Preserve the interface cache for ddraw interfaces: 0 = auto, 1 = keep all interface cache, 2 = disable cache. Note: option 1 may casue higher memory usage
 	bool DdrawEmulateSurface = false;			// Emulates the ddraw surface using device context for Dd7to9
 	bool DdrawEmulateLock = false;				// Emulates the lock to prevent crashes when an application tries to read data outside Lock/Unlock pair
 	bool DdrawReadFromGDI = false;				// Read from GDI bfore passing surface to program
