@@ -12,7 +12,7 @@ struct AddressInterfaceList {
 template <typename T>
 T* InterfaceAddressCache(T* Interface)
 {
-	std::vector<T*>& InterfaceList = AddressInterfaceList<T>::InterfaceList;
+	auto& InterfaceList = AddressInterfaceList<T>::InterfaceList;
 	if (Interface)
 	{
 		if (!Config.DdrawKeepAllInterfaceCache)
@@ -222,37 +222,38 @@ private:
 		using Type7 = m_IDirectDrawSurface7;
 	};
 	template <>
-	struct AddressCacheIndex<m_IDirect3DExecuteBuffer> { static constexpr size_t CacheIndex = 29; };
+	struct AddressCacheIndex<m_IDirect3DX> { static constexpr size_t CacheIndex = 29; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DLight> { static constexpr size_t CacheIndex = 30; };
+	struct AddressCacheIndex<m_IDirectDrawX> { static constexpr size_t CacheIndex = 30; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawClipper> { static constexpr size_t CacheIndex = 31; };
+	struct AddressCacheIndex<m_IDirect3DDeviceX> { static constexpr size_t CacheIndex = 31; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawColorControl> { static constexpr size_t CacheIndex = 32; };
+	struct AddressCacheIndex<m_IDirect3DTextureX> { static constexpr size_t CacheIndex = 32; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawGammaControl> { static constexpr size_t CacheIndex = 33; };
+	struct AddressCacheIndex<m_IDirectDrawSurfaceX> { static constexpr size_t CacheIndex = 33; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawPalette> { static constexpr size_t CacheIndex = 34; };
+	struct AddressCacheIndex<m_IDirect3DExecuteBuffer> { static constexpr size_t CacheIndex = 34; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DX> { static constexpr size_t CacheIndex = 35; };
+	struct AddressCacheIndex<m_IDirect3DLight> { static constexpr size_t CacheIndex = 35; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DDeviceX> { static constexpr size_t CacheIndex = 36; };
+	struct AddressCacheIndex<m_IDirectDrawClipper> { static constexpr size_t CacheIndex = 36; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DMaterialX> { static constexpr size_t CacheIndex = 37; };
+	struct AddressCacheIndex<m_IDirectDrawColorControl> { static constexpr size_t CacheIndex = 37; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DTextureX> { static constexpr size_t CacheIndex = 38; };
+	struct AddressCacheIndex<m_IDirectDrawGammaControl> { static constexpr size_t CacheIndex = 38; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DVertexBufferX> { static constexpr size_t CacheIndex = 39; };
+	struct AddressCacheIndex<m_IDirectDrawPalette> { static constexpr size_t CacheIndex = 39; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DViewportX> { static constexpr size_t CacheIndex = 40; };
+	struct AddressCacheIndex<m_IDirect3DMaterialX> { static constexpr size_t CacheIndex = 40; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawX> { static constexpr size_t CacheIndex = 41; };
+	struct AddressCacheIndex<m_IDirect3DVertexBufferX> { static constexpr size_t CacheIndex = 41; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawSurfaceX> { static constexpr size_t CacheIndex = 42; };
+	struct AddressCacheIndex<m_IDirect3DViewportX> { static constexpr size_t CacheIndex = 42; };
 
 	void DeleteAll()
 	{
-		for (size_t i = 0; i < MaxCacheIndex; ++i)
+		// Iterate in reverse to remove the X interfaces before the version interfaces
+		for (size_t i = MaxCacheIndex; i-- > 0; )
 		{
 			const auto& map = g_map[i];
 
@@ -368,6 +369,26 @@ private:
 		}
 
 		return nullptr;
+	}
+
+	template <typename T>
+	inline void RemoveAddress(const size_t CacheIndex, T* Wrapper)
+	{
+		// Remove from g_map
+		for (auto it = g_map[CacheIndex].begin(); it != g_map[CacheIndex].end();)
+		{
+			if (it->second == Wrapper)
+			{
+				it = g_map[CacheIndex].erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+
+		// Remove from reverse_map
+		reverse_map[CacheIndex].erase(Wrapper);
 	}
 
 public:
@@ -526,6 +547,7 @@ public:
 		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 		if (Wrapper && Proxy)
 		{
+			RemoveAddress(CacheIndex, Wrapper);	// Make sure to remove old entry first, if it exists
 			g_map[CacheIndex][Proxy] = Wrapper;
 			reverse_map[CacheIndex][Wrapper] = Proxy;  // Update reverse map
 		}
@@ -541,16 +563,8 @@ public:
 
 		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
-		// Remove from g_map
-		auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
-			[=](auto& Map) -> bool { return Map.second == Wrapper; });
-		if (it != std::end(g_map[CacheIndex]))
-		{
-			g_map[CacheIndex].erase(it);
-		}
-
-		// Remove from reverse_map
-		reverse_map[CacheIndex].erase(Wrapper);
+		// Remove from g_map and reverse_map
+		RemoveAddress(CacheIndex, Wrapper);
 
 		// If this is the last DirectDraw than delete all interfaces and clear cache
 		if constexpr (CacheIndex == AddressCacheIndex<m_IDirectDrawX>::CacheIndex)

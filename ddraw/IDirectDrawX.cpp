@@ -2723,7 +2723,7 @@ void m_IDirectDrawX::ReleaseInterface()
 	if (GammaControlInterface)
 	{
 		GammaControlInterface->ClearDdraw();
-		ColorControlInterface = nullptr;
+		GammaControlInterface = nullptr;
 	}
 
 	// Release clippers
