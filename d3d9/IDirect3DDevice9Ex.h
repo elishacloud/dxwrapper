@@ -65,7 +65,7 @@ private:
 	std::unordered_set<m_IDirect3DSurface9*> EmulatedSurfaceList;
 
 	StateBlockCache StateBlockTable;
-	StateBlockCache DeletedStateBlocks;
+	StateBlockCache DeletedStateBlocks{ true };
 
 	// FPS display
 	LPD3DXFONT pFont = nullptr;

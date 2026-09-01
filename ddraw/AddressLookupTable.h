@@ -491,7 +491,7 @@ public:
 	template <typename T>
 	void DeleteAddress(T *Wrapper)
 	{
-		if (!Wrapper)
+		if (!Wrapper || DeletingAll)
 		{
 			return;
 		}
@@ -504,8 +504,7 @@ public:
 		// If this is the last DirectDraw than delete all interfaces and clear cache
 		if constexpr (CacheIndex == AddressCacheIndex<m_IDirectDrawX>::CacheIndex)
 		{
-			if (Config.DdrawKeepAllInterfaceCache != 1 &&
-				!DeletingAll && g_map[CacheIndex].empty())
+			if (Config.DdrawKeepAllInterfaceCache != 1 && g_map[CacheIndex].empty())
 			{
 				DeleteAll();
 			}

@@ -153,29 +153,12 @@ public:
 	template <typename T>
 	void SaveAddress(T* Wrapper, IUnknown* Proxy)
 	{
-		if (!Wrapper || !Proxy)
+		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
+		if (Wrapper && Proxy)
 		{
-			return;
+			IUnknown* identity = GetIndentityInterface<T>(Proxy);
+			g_map[CacheIndex][identity] = Wrapper;
 		}
-
-		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-
-		IUnknown* identity = GetIndentityInterface<T>(Proxy);
-
-		// Check if the entry already exists in the map
-		auto it = g_map[CacheIndex].find(identity);
-		if (it != g_map[CacheIndex].end())
-		{
-			// If the entry exists, delete the existing object
-			if (it->second)
-			{
-				delete it->second;
-				DeleteAddress((T*)it->second);
-			}
-		}
-
-		// Now save the new entry in the map
-		g_map[CacheIndex][identity] = Wrapper;
 	}
 
 	template <typename T>
@@ -220,13 +203,16 @@ public:
 class StateBlockCache
 {
 private:
-	std::vector<m_IDirect3DStateBlock9*> stateBlocks;
+	const bool IsDeletedList = false;
+	std::deque<m_IDirect3DStateBlock9*> stateBlocks;
 
 public:
+	StateBlockCache(bool deletedList = false) : IsDeletedList(deletedList) {}
 	~StateBlockCache();
 
-	size_t size() { return stateBlocks.size(); }
-	m_IDirect3DStateBlock9* back() { return stateBlocks.back(); }
+	inline size_t size() { return stateBlocks.size(); }
+	inline bool empty() { return stateBlocks.empty(); }
+	inline m_IDirect3DStateBlock9* back() { return stateBlocks.back(); }
 	void AddStateBlock(m_IDirect3DStateBlock9* stateBlock);
 	void RemoveStateBlock(m_IDirect3DStateBlock9* stateBlock);
 };

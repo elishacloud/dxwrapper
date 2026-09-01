@@ -109,7 +109,7 @@ m_IDirect3DDXVADevice9* AddressLookupTableD3d9::CreateInterface<m_IDirect3DDXVAD
 
 StateBlockCache::~StateBlockCache()
 {
-	while (stateBlocks.size())
+	while (!stateBlocks.empty())
 	{
 		m_IDirect3DStateBlock9* StateBlockX = stateBlocks.back();
 		RemoveStateBlock(StateBlockX);
@@ -121,18 +121,15 @@ void StateBlockCache::AddStateBlock(m_IDirect3DStateBlock9* stateBlock)
 {
 	if (stateBlock == nullptr) return;
 
-	// Check if the state block already exists
-	auto it = std::find(stateBlocks.begin(), stateBlocks.end(), stateBlock);
-	if (it == stateBlocks.end())
-	{
-		stateBlocks.push_back(stateBlock);
+	stateBlocks.push_back(stateBlock);
 
-		// If we exceed the max allowed state blocks, remove the oldest ones
-		if (Config.LimitStateBlocks && stateBlocks.size() > MAX_STATE_BLOCKS)
-		{
-			m_IDirect3DStateBlock9* StateBlockX = stateBlocks.front();
-			StateBlockX->Release();
-		}
+	// If we exceed the max allowed state blocks, remove the oldest ones
+	if (Config.LimitStateBlocks && !IsDeletedList && stateBlocks.size() > MAX_STATE_BLOCKS)
+	{
+		// Release() will remove the state block from StateBlockTable
+		// when the underlying D3D9 object reaches zero.
+		m_IDirect3DStateBlock9* StateBlockX = stateBlocks.front();
+		StateBlockX->Release();
 	}
 }
 

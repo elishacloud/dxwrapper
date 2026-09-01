@@ -24,6 +24,16 @@ public:
 		m_pDeviceEx->ClearDeletedStateBlock(this);
 	}
 
+	void SetProxyAddress(LPDIRECT3DSTATEBLOCK9 Interface)
+	{
+		ProxyInterface = Interface;
+
+		if (ProxyInterface)
+		{
+			m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
+		}
+	}
+
 	/*** IUnknown methods ***/
 	IFACEMETHOD(QueryInterface)(THIS_ REFIID riid, void** ppvObj) override;
 	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
@@ -37,8 +47,4 @@ public:
 	// Helper functions
 	LPDIRECT3DSTATEBLOCK9 GetProxyInterface() const { return ProxyInterface; }
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
-	void SetProxyAddress(LPDIRECT3DSTATEBLOCK9 Interface) {
-		ProxyInterface = Interface;
-		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
-	}
 };

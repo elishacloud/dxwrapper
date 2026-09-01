@@ -3932,13 +3932,13 @@ m_IDirect3DStateBlock9* m_IDirect3DDevice9Ex::GetCreateStateBlock(IDirect3DState
 {
 	m_IDirect3DStateBlock9* StateBlockX = nullptr;
 
-	if (DeletedStateBlocks.size())
+	if (!DeletedStateBlocks.empty())
 	{
 		StateBlockX = DeletedStateBlocks.back();
 		DeletedStateBlocks.RemoveStateBlock(StateBlockX);
 
-		StateBlockX->SetProxyAddress(pSB);
 		StateBlockX->InitInterface(this, IID_IDirect3DStateBlock9, nullptr);
+		StateBlockX->SetProxyAddress(pSB);
 	}
 	else
 	{
