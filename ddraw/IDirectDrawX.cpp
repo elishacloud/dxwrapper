@@ -1500,12 +1500,15 @@ HRESULT m_IDirectDrawX::GetGDISurface(LPDIRECTDRAWSURFACE7 FAR * lplpGDIDDSSurfa
 			return DDERR_INVALIDPARAMS;
 		}
 
-		*lplpGDIDDSSurface = (LPDIRECTDRAWSURFACE7)GetPrimarySurface();
+		m_IDirectDrawSurfaceX* pSurfaceX = GetPrimarySurface();
 
-		if (!*lplpGDIDDSSurface)
+		if (!pSurfaceX)
 		{
 			return DDERR_NOTFOUND;
 		}
+
+		*lplpGDIDDSSurface = (LPDIRECTDRAWSURFACE7)pSurfaceX->GetWrapperInterfaceX(DirectXVersion);
+		(*lplpGDIDDSSurface)->AddRef();
 
 		return DD_OK;
 	}
