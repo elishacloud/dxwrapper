@@ -625,6 +625,9 @@ public:
 	// For texture loading
 	HRESULT Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDestPoint, LPDIRECTDRAWSURFACE7 lpSrcTex, LPRECT lprcSrcRect, DWORD dwFlags);
 
+	// For DuplicateSurface
+	HRESULT DuplicateSurfaceContent(LPDIRECTDRAWSURFACE7 lpDDSrcSurface);
+
 	// For Presenting
 	void CopyGDIToPrimaryAndBackbuffer();
 

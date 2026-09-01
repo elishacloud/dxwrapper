@@ -7249,6 +7249,11 @@ HRESULT m_IDirectDrawSurfaceX::Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDe
 	return hr;
 }
 
+HRESULT m_IDirectDrawSurfaceX::DuplicateSurfaceContent(LPDIRECTDRAWSURFACE7 lpDDSrcSurface)
+{
+	return Blt(nullptr, lpDDSrcSurface, nullptr, 0, nullptr, 0);
+}
+
 HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, D3DCOLOR ColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel)
 {
 	// Check parameters

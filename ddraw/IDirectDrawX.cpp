@@ -815,6 +815,11 @@ HRESULT m_IDirectDrawX::DuplicateSurface(LPDIRECTDRAWSURFACE7 lpDDSurface, LPDIR
 
 		*lplpDupDDSurface = (LPDIRECTDRAWSURFACE7)Interface->GetWrapperInterfaceX(DirectXVersion);
 
+		if (FAILED(Interface->DuplicateSurfaceContent(lpDDSurface)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to copy surface content!");
+		}
+
 		return DD_OK;
 	}
 
