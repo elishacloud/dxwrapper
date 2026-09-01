@@ -461,7 +461,7 @@ public:
 	void SaveAddress(T* Wrapper, void* Proxy)
 	{
 		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
-		if (!Wrapper || !Proxy)
+		if (Wrapper && Proxy)
 		{
 			g_map[CacheIndex][Proxy] = Wrapper;
 			reverse_map[CacheIndex][Wrapper] = Proxy;
