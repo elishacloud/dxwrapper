@@ -461,31 +461,11 @@ public:
 	void SaveAddress(T* Wrapper, void* Proxy)
 	{
 		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
-
 		if (!Wrapper || !Proxy)
 		{
-			return;
+			g_map[CacheIndex][Proxy] = Wrapper;
+			reverse_map[CacheIndex][Wrapper] = Proxy;
 		}
-
-		// Remove any existing mapping for this wrapper.
-		RemoveAddress(CacheIndex, Wrapper);
-
-		// Remove any existing mapping for this proxy.
-		auto MapIt = g_map[CacheIndex].find(Proxy);
-		if (MapIt != g_map[CacheIndex].end())
-		{
-			auto* ExistingWrapper = MapIt->second;
-
-			g_map[CacheIndex].erase(MapIt);
-
-			if (ExistingWrapper != Wrapper)
-			{
-				reverse_map[CacheIndex].erase(ExistingWrapper);
-			}
-		}
-
-		g_map[CacheIndex][Proxy] = Wrapper;
-		reverse_map[CacheIndex][Wrapper] = Proxy;
 	}
 
 	template <typename T>

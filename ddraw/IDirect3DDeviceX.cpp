@@ -756,7 +756,10 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					case D3DPROCESSVERTICES_COPY:
 					{
 						// Copy vertices always uses D3DFVF_TLVERTEX
-						memcpy(outputVerts + processVertices[i].wDest, inputVerts + processVertices[i].wStart, sizeof(D3DTLVERTEX) * Count);
+						D3DTLVERTEX* Src = reinterpret_cast<D3DTLVERTEX*>(inputVerts) + processVertices[i].wStart;
+						D3DTLVERTEX* Dest = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
+
+						memcpy(Dest, Src, sizeof(D3DTLVERTEX) * Count);
 
 						// Handle status and extents
 						SetStatus(lpStatus);
@@ -822,25 +825,10 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_SETSTATUS instruction size mismatch!");
 				}
 
-				// Direct3D normally expects only 1 status per instruction
-				if (instruction->wCount > 1)
+				for (DWORD i = 0; i < instruction->wCount; i++)
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_SETSTATUS instruction has wCount > 1, only the first will be used.");
+					*lpStatus = status[i];
 				}
-
-				// Update only the fields indicated by dwFlags
-				if (status->dwFlags & D3DSETSTATUS_STATUS)
-				{
-					lpStatus->dwStatus = status->dwStatus;
-				}
-
-				if (status->dwFlags & D3DSETSTATUS_EXTENTS)
-				{
-					lpStatus->drExtent = status->drExtent;
-				}
-
-				// Always update the flags field to reflect what was set
-				lpStatus->dwFlags = status->dwFlags;
 
 				break;
 			}
@@ -880,7 +868,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						else
 						{
 							// Move the instruction pointer forward by the offset
-							instructionData += branch->dwOffset;
+							instructionData += branch[i].dwOffset;
 						}
 						Branched = true;
 						break; // only branch once
@@ -4524,7 +4512,7 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 	{
 		if (dwBlockHandle == 0)
 		{
-			return DDERR_INVALIDPARAMS;
+			return D3DERR_INVALIDSTATEBLOCK;
 		}
 
 		if (StateBlock.IsRecording)
@@ -4535,7 +4523,7 @@ HRESULT m_IDirect3DDeviceX::ApplyStateBlock(DWORD dwBlockHandle)
 		auto it = std::find(StateBlock.Tokens.begin(), StateBlock.Tokens.end(), dwBlockHandle);
 		if (it == StateBlock.Tokens.end())
 		{
-			return D3D_OK;
+			return D3DERR_INVALIDSTATEBLOCK;
 		}
 
 		D3DSTATEBLOCKTYPE Type = StateBlock.Data[dwBlockHandle].Type;
@@ -4684,7 +4672,7 @@ HRESULT m_IDirect3DDeviceX::CaptureStateBlock(DWORD dwBlockHandle)
 	{
 		if (dwBlockHandle == 0)
 		{
-			return DDERR_INVALIDPARAMS;
+			return D3DERR_INVALIDSTATEBLOCK;
 		}
 
 		if (StateBlock.IsRecording)
@@ -4695,7 +4683,7 @@ HRESULT m_IDirect3DDeviceX::CaptureStateBlock(DWORD dwBlockHandle)
 		auto it = std::find(StateBlock.Tokens.begin(), StateBlock.Tokens.end(), dwBlockHandle);
 		if (it == StateBlock.Tokens.end())
 		{
-			return D3D_OK;
+			return D3DERR_INVALIDSTATEBLOCK;
 		}
 
 		StateBlock.Data[dwBlockHandle].RecordState.reset();
@@ -4805,9 +4793,17 @@ HRESULT m_IDirect3DDeviceX::CreateStateBlock(D3DSTATEBLOCKTYPE d3dsbtype, LPDWOR
 
 		*lpdwBlockHandle = StateBlock.CreateToken(d3dsbtype);
 
-		CaptureStateBlock(*lpdwBlockHandle);
+		HRESULT hr = CaptureStateBlock(*lpdwBlockHandle);
 
-		return D3D_OK;
+		if (FAILED(hr))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to capture StateBlock!");
+
+			StateBlock.DeleteToken(*lpdwBlockHandle);
+			*lpdwBlockHandle = NULL;
+		}
+
+		return hr;
 	}
 
 	return GetProxyInterfaceV7()->CreateStateBlock(d3dsbtype, lpdwBlockHandle);
@@ -5197,7 +5193,7 @@ HRESULT m_IDirect3DDeviceX::SetViewportData(VIEWPORTINFO& Viewport)
 		DeviceStates.Viewport.Clip = Viewport.Clip;
 	}
 
-	return D3D_OK;
+	return hr;
 }
 
 bool m_IDirect3DDeviceX::DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
@@ -6056,13 +6052,13 @@ HRESULT m_IDirect3DDeviceX::GetD9Light(DWORD Index, D3DLIGHT9* lpLight)
 	}
 
 	auto it = DeviceStates.Light.find(Index);
-	if (it != DeviceStates.Light.end())
+	if (it == DeviceStates.Light.end())
 	{
-		*lpLight = it->second.Light;
-		return D3D_OK;
+		return DDERR_INVALIDPARAMS;
 	}
 
-	return DDERR_INVALIDPARAMS;
+	*lpLight = it->second.Light;
+	return D3D_OK;
 }
 
 HRESULT m_IDirect3DDeviceX::SetD9Light(DWORD Index, const D3DLIGHT9* lpLight)
@@ -6112,12 +6108,13 @@ HRESULT m_IDirect3DDeviceX::GetD9LightEnable(DWORD Index, LPBOOL lpEnable)
 	}
 
 	auto it = DeviceStates.Light.find(Index);
-	if (it != DeviceStates.Light.end())
+	if (it == DeviceStates.Light.end())
 	{
-		*lpEnable = it->second.Enabled;
+		return DDERR_INVALIDPARAMS;
 	}
 
-	return DDERR_INVALIDPARAMS;
+	*lpEnable = it->second.Enabled;
+	return D3D_OK;
 }
 
 HRESULT m_IDirect3DDeviceX::D9LightEnable(DWORD Index, BOOL Enable)
@@ -6361,13 +6358,14 @@ HRESULT m_IDirect3DDeviceX::D9MultiplyTransform(D3DTRANSFORMSTATETYPE State, con
 	D3DMATRIX Matrix;
 	HRESULT hr = GetD9Transform(State, &Matrix);
 
-	if (SUCCEEDED(hr))
+	if (FAILED(hr))
 	{
-		D3DMATRIX result = MatrixMultiply(*lpMatrix, Matrix);
-		SetD9Transform(State, &result);
+		return hr;
 	}
 
-	return hr;
+	D3DMATRIX result = MatrixMultiply(*lpMatrix, Matrix);
+
+	return SetD9Transform(State, &result);
 }
 
 void m_IDirect3DDeviceX::PrepDevice()
