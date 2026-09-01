@@ -817,7 +817,7 @@ HRESULT m_IDirectDrawSurfaceX::BltBatch(LPDDBLTBATCH lpDDBltBatch, DWORD dwCount
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (dwCount)
+	if (dwCount == 0)
 	{
 		return DD_OK;
 	}
@@ -1006,7 +1006,7 @@ HRESULT m_IDirectDrawSurfaceX::DeleteAttachedSurface(DWORD dwFlags, LPDIRECTDRAW
 
 		lpDDSAttachedSurface->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpAttachedSurfaceX);
 
-		if (!DoesAttachedSurfaceExist(lpAttachedSurfaceX))
+		if (!lpAttachedSurfaceX || !DoesAttachedSurfaceExist(lpAttachedSurfaceX))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not find attached surface");
 			return DDERR_SURFACENOTATTACHED;
@@ -1473,7 +1473,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTD
 
 	if (Config.Dd7to9)
 	{
-		if (!lplpDDAttachedSurface)
+		if (!lplpDDAttachedSurface || !lpDDSCaps)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -1481,7 +1481,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface(LPDDSCAPS lpDDSCaps, LPDIRECTD
 		DDSCAPS2 Caps2;
 		ConvertCaps(Caps2, *lpDDSCaps);
 
-		return GetAttachedSurface2((lpDDSCaps ? &Caps2 : nullptr), lplpDDAttachedSurface, MipMapLevel, DirectXVersion);
+		return GetAttachedSurface2(&Caps2, lplpDDAttachedSurface, MipMapLevel, DirectXVersion);
 	}
 
 	HRESULT hr = GetProxyInterfaceV3()->GetAttachedSurface(lpDDSCaps, (LPDIRECTDRAWSURFACE3*)lplpDDAttachedSurface);
@@ -6873,6 +6873,7 @@ bool m_IDirectDrawSurfaceX::DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSur
 	{
 		if (it.second.pSurface && (it.second.pSurface->GetSurfaceCaps().dwCaps & DDSCAPS_FLIP))
 		{
+			dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
 			lpTargetSurface = it.second.pSurface;
 
 			break;
