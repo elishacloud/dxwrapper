@@ -104,6 +104,49 @@ public:
     };
 };
 
+struct ScopedAtomicFlagSet
+{
+private:
+    bool enable;
+    std::atomic<bool>& flag;
+
+public:
+    ScopedAtomicFlagSet(std::atomic<bool>& setflag, bool setenable = true)
+        : flag(setflag), enable(setenable)
+    {
+        if (enable)
+        {
+            bool expected = false;
+
+            while (!flag.compare_exchange_weak(
+                expected,
+                true,
+                std::memory_order_acquire,
+                std::memory_order_relaxed))
+            {
+                expected = false;
+
+#ifdef YieldProcessor
+                YieldProcessor();
+#else
+                _mm_pause();
+#endif
+            }
+        }
+    }
+
+    ~ScopedAtomicFlagSet()
+    {
+        if (enable)
+        {
+            flag.store(false, std::memory_order_release);
+        }
+    }
+
+    ScopedAtomicFlagSet(const ScopedAtomicFlagSet&) = delete;
+    ScopedAtomicFlagSet& operator=(const ScopedAtomicFlagSet&) = delete;
+};
+
 class ScopedAtomicLock
 {
 private:

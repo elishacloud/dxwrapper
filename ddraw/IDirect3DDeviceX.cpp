@@ -413,7 +413,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 		LPD3DSTATUS lpStatus;
 
 		// Set Executing flag
-		ScopedFlagSet SetLockFlag(pExecuteBuffer->GetExecuteFlag());
+		ScopedAtomicFlagSet SetLockFlag(pExecuteBuffer->GetExecuteFlag());
 
 		// Check execute lock
 		if (pExecuteBuffer->IsBufferLocked())
@@ -784,8 +784,30 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						hr = ProcessVerticesExecute(Count, SrcVertices, DestVertices, SrcFVF, IsLight, IsClipped, VertexFlags);
 
 						// Use software vertex processing
-						//DWORD VertexOp = D3DVOP_TRANSFORM | (IsClipped ? D3DVOP_CLIP : 0) | (IsLight ? D3DVOP_LIGHT : 0);
-						//hr = ProcessVerticesSW(VertexOp, DestVertices, D3DFVF_TLVERTEX, 0, Count, SrcVertices, SrcFVF, 0, this, VertexFlags);
+						/*if (SrcFVF == D3DFVF_LVERTEX && !(VertexFlags & D3DPV_DONOTCOPYDATA))
+						{
+							DWORD dwOffscreen = 0;
+
+							VIEWPORTINFO Viewport;
+							Viewport.Data9 = DeviceStates.Viewport.View;
+							Viewport.UseViewportScale = DeviceStates.Viewport.UseViewportScale;
+							Viewport.Scale = DeviceStates.Viewport.Scale;
+							Viewport.Clip = DeviceStates.Viewport.Clip;
+
+							D3DTRANSFORMDATA TransformData = {};
+							TransformData.dwSize = sizeof(D3DTRANSFORMDATA);
+							TransformData.lpIn = SrcVertices;
+							TransformData.dwInSize = sizeof(D3DLVERTEX);
+							TransformData.lpOut = DestVertices;
+							TransformData.dwOutSize = sizeof(D3DTLVERTEX);
+
+							hr = TransformVertexSW<D3DLVERTEX>(this, Count, &TransformData, false, Viewport, dwOffscreen);
+						}
+						else
+						{
+							DWORD VertexOp = D3DVOP_TRANSFORM | (IsClipped ? D3DVOP_CLIP : 0) | (IsLight ? D3DVOP_LIGHT : 0);
+							hr = ProcessVerticesSW(VertexOp, DestVertices, D3DFVF_TLVERTEX, 0, Count, SrcVertices, SrcFVF, 0, this, VertexFlags);
+						}*/
 
 						if (SUCCEEDED(hr))
 						{
