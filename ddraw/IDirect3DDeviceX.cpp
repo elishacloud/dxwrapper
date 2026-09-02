@@ -2689,7 +2689,7 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 			// Fog end is 0 until it is assigned
 			if (DeviceStates.LightState[dwLightStateType])
 			{
-				return GetD9RenderState(D3DRS_FOGSTART, lpdwLightState);
+				return GetD9RenderState(D3DRS_FOGEND, lpdwLightState);
 			}
 			*lpdwLightState = DeviceStates.LightState[dwLightStateType];
 			return D3D_OK;
@@ -3861,6 +3861,8 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		if (!CheckTextureStageStateType(dwState))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Texture Stage state type not implemented: " << dwState);
+			*lpdwValue = (DWORD)-1;
+			return D3D_OK;
 		}
 
 		return GetD9TextureStageState(dwStage, dwState, lpdwValue);
