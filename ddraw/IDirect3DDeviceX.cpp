@@ -5284,6 +5284,8 @@ void m_IDirect3DDeviceX::ClearLight(m_IDirect3DLight* lpLight)
 
 			// Remove from device state
 			DeviceStates.Light.erase(Index);
+
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: clearing current Light index: " << Index);
 		}
 		else
 		{
@@ -5389,12 +5391,15 @@ void m_IDirect3DDeviceX::ClearMaterialHandle(D3DMATERIALHANDLE mHandle)
 {
 	if (mHandle)
 	{
-		TextureHandleMap.erase(mHandle);
+		MaterialHandleMap.erase(mHandle);
 
 		// If material handle is set then clear it
 		if (mHandle == DeviceStates.LightState[D3DLIGHTSTATE_MATERIAL])
 		{
 			SetMaterialHandle(NULL);
+			SetD9Material(&DefaultMaterial);
+			DeviceStates.Material.Set = false;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: clearing current material!");
 		}
 	}
 }
@@ -5755,6 +5760,9 @@ void m_IDirect3DDeviceX::ClearViewport(m_IDirect3DViewportX* lpViewportX)
 	{
 		lpCurrentViewport = nullptr;
 		lpCurrentViewportX = nullptr;
+		SetD9Viewport(&DefaultViewport);
+		DeviceStates.Viewport.Set = false;
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: clearing current viewport!");
 	}
 }
 

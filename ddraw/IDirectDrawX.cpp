@@ -4772,7 +4772,7 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 	return found;
 }
 
-// Remove light for all D3D devices
+// Remove texture handle for all D3D devices
 void m_IDirectDrawX::ClearTextureHandle(D3DTEXTUREHANDLE tHandle)
 {
 	if (tHandle && D3DInterface)

@@ -562,7 +562,12 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 		} CallbackContext;
 		CallbackContext.lpD3DFDS = lpD3DFDS;
 
-		EnumDevices7(nullptr, EnumFindDevice::ConvertCallback, &CallbackContext, true, DirectXVersion);
+		HRESULT hr = EnumDevices7(nullptr, EnumFindDevice::ConvertCallback, &CallbackContext, true, DirectXVersion);
+
+		if (FAILED(hr))
+		{
+			return hr;
+		}
 
 		if (!CallbackContext.Found)
 		{
@@ -587,7 +592,7 @@ HRESULT m_IDirect3DX::FindDevice(LPD3DFINDDEVICESEARCH lpD3DFDS, LPD3DFINDDEVICE
 		memcpy(lpddSwDesc, &CallbackContext.ddSwDesc, Size);
 		lpddSwDesc->dwSize = Size;
 
-		return D3D_OK;
+		return hr;
 	}
 
 	switch (ProxyDirectXVersion)
@@ -680,8 +685,10 @@ HRESULT m_IDirect3DX::CreateDevice(REFCLSID rclsid, LPDIRECTDRAWSURFACE7 lpDDS, 
 		return D3D_OK;
 	}
 
-	REFCLSID riid = (rclsid == IID_IDirect3DRampDevice) ? IID_IDirect3DRGBDevice : (ProxyDirectXVersion != 7) ? rclsid :
-		(rclsid == IID_IDirect3DTnLHalDevice || rclsid == IID_IDirect3DHALDevice || rclsid == IID_IDirect3DMMXDevice || rclsid == IID_IDirect3DRGBDevice) ? rclsid : IID_IDirect3DRGBDevice;
+	REFCLSID riid =
+		(rclsid == IID_IDirect3DRampDevice) ? IID_IDirect3DRGBDevice :
+		(rclsid == IID_IDirect3DTnLHalDevice && ProxyDirectXVersion != 7) ? IID_IDirect3DHALDevice :
+		(rclsid == IID_IDirect3DTnLHalDevice || rclsid == IID_IDirect3DHALDevice || rclsid == IID_IDirect3DRGBDevice || rclsid == IID_IDirect3DRampDevice) ? rclsid : IID_IDirect3DRGBDevice;
 
 	HRESULT hr = DDERR_GENERIC;
 
@@ -1324,10 +1331,10 @@ void m_IDirect3DX::ResolutionHack()
 
 void m_IDirect3DX::ClearDdraw()
 {
-	ddrawParent = nullptr;
-
 	for (auto& entry : D3DDeviceList)
 	{
 		entry.Interface->ClearDdraw();
 	}
+
+	ddrawParent = nullptr;
 }
