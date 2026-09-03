@@ -7,6 +7,7 @@ private:
 	DWORD ProxyDirectXVersion;
 	ULONG RefCount1 = 0;
 	ULONG RefCount7 = 0;
+	std::atomic<bool> RefCountLock = false;
 
 	// Store version wrappers
 	m_IDirect3DVertexBuffer* WrapperInterface = nullptr;

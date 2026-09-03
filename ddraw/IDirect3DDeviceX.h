@@ -10,6 +10,7 @@ private:
 	ULONG RefCount2 = 0;
 	ULONG RefCount3 = 0;
 	ULONG RefCount7 = 0;
+	std::atomic<bool> RefCountLock = false;
 	const CLSID ClassID = IID_IUnknown;
 
 	// Store version wrappers

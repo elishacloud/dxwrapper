@@ -68,14 +68,16 @@ ULONG m_IDirect3DMaterialX::AddRef(DWORD DirectXVersion)
 
 	if (Config.Dd7to9)
 	{
+		ScopedAtomicFlagSet ScopeGuard(RefCountLock);
+
 		switch (DirectXVersion)
 		{
 		case 1:
-			return InterlockedIncrement(&RefCount1);
+			return ++RefCount1;
 		case 2:
-			return InterlockedIncrement(&RefCount2);
+			return ++RefCount2;
 		case 3:
-			return InterlockedIncrement(&RefCount3);
+			return ++RefCount3;
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 			return 0;
@@ -91,26 +93,34 @@ ULONG m_IDirect3DMaterialX::Release(DWORD DirectXVersion)
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref;
+		ULONG ref, TotalRefCount;
 
-		switch (DirectXVersion)
 		{
-		case 1:
-			ref = InterlockedDecrementIfNotNull(&RefCount1);
-			break;
-		case 2:
-			ref = InterlockedDecrementIfNotNull(&RefCount2);
-			break;
-		case 3:
-			ref = InterlockedDecrementIfNotNull(&RefCount3);
-			break;
-		default:
-			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-			ref = 0;
+			ScopedAtomicFlagSet ScopeGuard(RefCountLock);
+
+			switch (DirectXVersion)
+			{
+			case 1:
+				ref = RefCount1 ? --RefCount1 : 0;
+				break;
+			case 2:
+				ref = RefCount2 ? --RefCount2 : 0;
+				break;
+			case 3:
+				ref = RefCount3 ? --RefCount3 : 0;
+				break;
+			default:
+				LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+				ref = 0;
+			}
+
+			TotalRefCount =
+				AtomicRead(RefCount1) +
+				AtomicRead(RefCount2) +
+				AtomicRead(RefCount3);
 		}
 
-		if (AtomicRead(RefCount1) + AtomicRead(RefCount2) +
-			AtomicRead(RefCount3) == 0)
+		if (TotalRefCount == 0)
 		{
 			delete this;
 		}

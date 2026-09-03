@@ -78,9 +78,11 @@ public:
         LeaveCriticalSection(&Cs);
     }
 
-    // Prevent copying
+    // Prevent copying and moving
     CriticalSectionInit(const CriticalSectionInit&) = delete;
     CriticalSectionInit& operator=(const CriticalSectionInit&) = delete;
+    CriticalSectionInit(CriticalSectionInit&&) = delete;
+    CriticalSectionInit& operator=(CriticalSectionInit&&) = delete;
 
     class Lock
     {
@@ -98,9 +100,11 @@ public:
             LockObj.Leave();
         }
 
-        // Prevent copying
+        // Prevent copying and moving
         Lock(const Lock&) = delete;
         Lock& operator=(const Lock&) = delete;
+        Lock(Lock&&) = delete;
+        Lock& operator=(Lock&&) = delete;
     };
 };
 
@@ -143,8 +147,11 @@ public:
         }
     }
 
+    // Prevent copying and moving
     ScopedAtomicFlagSet(const ScopedAtomicFlagSet&) = delete;
     ScopedAtomicFlagSet& operator=(const ScopedAtomicFlagSet&) = delete;
+    ScopedAtomicFlagSet(ScopedAtomicFlagSet&&) = delete;
+    ScopedAtomicFlagSet& operator=(ScopedAtomicFlagSet&&) = delete;
 };
 
 class ScopedAtomicLock
@@ -176,9 +183,11 @@ public:
         }
     }
 
-    // Prevent copying
+    // Prevent copying and moving
     ScopedAtomicLock(const ScopedAtomicLock&) = delete;
     ScopedAtomicLock& operator=(const ScopedAtomicLock&) = delete;
+    ScopedAtomicLock(ScopedAtomicLock&&) = delete;
+    ScopedAtomicLock& operator=(ScopedAtomicLock&&) = delete;
 };
 
 template<typename T>
@@ -205,9 +214,11 @@ public:
         }
     }
 
-    // Prevent copying
+    // Prevent copying and moving
     ScopedFlagSet(const ScopedFlagSet&) = delete;
     ScopedFlagSet& operator=(const ScopedFlagSet&) = delete;
+    ScopedFlagSet(ScopedFlagSet&&) = delete;
+    ScopedFlagSet& operator=(ScopedFlagSet&&) = delete;
 };
 
 template<typename T>
@@ -235,9 +246,64 @@ public:
         }
     }
 
-    // Prevent copying
+    // Prevent copying and moving
     ScopedIncrement(const ScopedIncrement&) = delete;
     ScopedIncrement& operator=(const ScopedIncrement&) = delete;
+    ScopedIncrement(ScopedIncrement&&) = delete;
+    ScopedIncrement& operator=(ScopedIncrement&&) = delete;
+};
+
+struct ScopedCriticalSection
+{
+private:
+    bool enable;
+    CRITICAL_SECTION* cs;
+public:
+    // Constructor enters critical section
+    ScopedCriticalSection(CRITICAL_SECTION* cs, bool activate = true) : cs(cs), enable(activate)
+    {
+        if (enable && cs)
+        {
+            EnterCriticalSection(cs);
+        }
+    }
+    // Destructor leaves critical section
+    ~ScopedCriticalSection()
+    {
+        if (enable && cs)
+        {
+            LeaveCriticalSection(cs);
+        }
+    }
+
+    // Prevent copying and moving
+    ScopedCriticalSection(const ScopedCriticalSection&) = delete;
+    ScopedCriticalSection& operator=(const ScopedCriticalSection&) = delete;
+    ScopedCriticalSection(ScopedCriticalSection&&) = delete;
+    ScopedCriticalSection& operator=(ScopedCriticalSection&&) = delete;
+};
+
+struct ScopedLeaveCriticalSection
+{
+private:
+    bool enable;
+    CRITICAL_SECTION* cs;
+public:
+    ScopedLeaveCriticalSection(CRITICAL_SECTION* cs, bool activate = true) : cs(cs), enable(activate) {}
+    // Destructor leaves critical section
+    ~ScopedLeaveCriticalSection()
+    {
+        if (enable && cs)
+        {
+            LeaveCriticalSection(cs);
+        }
+    }
+
+    // Prevent copying and moving
+    ScopedLeaveCriticalSection(const ScopedLeaveCriticalSection&) = delete;
+    ScopedLeaveCriticalSection& operator=(const ScopedLeaveCriticalSection&) = delete;
+    ScopedLeaveCriticalSection(ScopedLeaveCriticalSection&&) = delete;
+    ScopedLeaveCriticalSection& operator=(ScopedLeaveCriticalSection&&) = delete;
 };
 
 #define CreateScopedHeapBuffer(type, name, size) \
@@ -278,55 +344,6 @@ struct __HeapBuffer
         }
         return *this;
     }
-};
-
-struct ScopedCriticalSection
-{
-private:
-    bool enable;
-    CRITICAL_SECTION* cs;
-public:
-    // Constructor enters critical section
-    ScopedCriticalSection(CRITICAL_SECTION* cs, bool activate = true) : cs(cs), enable(activate)
-    {
-        if (enable && cs)
-        {
-            EnterCriticalSection(cs);
-        }
-    }
-    // Destructor leaves critical section
-    ~ScopedCriticalSection()
-    {
-        if (enable && cs)
-        {
-            LeaveCriticalSection(cs);
-        }
-    }
-
-    // Prevent copying
-    ScopedCriticalSection(const ScopedCriticalSection&) = delete;
-    ScopedCriticalSection& operator=(const ScopedCriticalSection&) = delete;
-};
-
-struct ScopedLeaveCriticalSection
-{
-private:
-    bool enable;
-    CRITICAL_SECTION* cs;
-public:
-    ScopedLeaveCriticalSection(CRITICAL_SECTION* cs, bool activate = true) : cs(cs), enable(activate) {}
-    // Destructor leaves critical section
-    ~ScopedLeaveCriticalSection()
-    {
-        if (enable && cs)
-        {
-            LeaveCriticalSection(cs);
-        }
-    }
-
-    // Prevent copying
-    ScopedLeaveCriticalSection(const ScopedLeaveCriticalSection&) = delete;
-    ScopedLeaveCriticalSection& operator=(const ScopedLeaveCriticalSection&) = delete;
 };
 
 template <typename T, std::size_t Alignment>

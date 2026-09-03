@@ -11,6 +11,7 @@ private:
 	ULONG RefCount3 = 0;
 	ULONG RefCount4 = 0;
 	ULONG RefCount7 = 0;
+	std::atomic<bool> RefCountLock = false;
 
 	// Store version wrappers
 	m_IDirectDraw* WrapperInterface = nullptr;

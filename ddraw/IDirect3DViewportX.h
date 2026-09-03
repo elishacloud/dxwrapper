@@ -8,6 +8,7 @@ private:
 	ULONG RefCount1 = 0;
 	ULONG RefCount2 = 0;
 	ULONG RefCount3 = 0;
+	std::atomic<bool> RefCountLock = false;
 
 	// Store version wrappers
 	m_IDirect3DViewport* WrapperInterface = nullptr;

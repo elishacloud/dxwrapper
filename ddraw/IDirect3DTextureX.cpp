@@ -87,12 +87,14 @@ ULONG m_IDirect3DTextureX::AddRef(DWORD DirectXVersion)
 			return parent3DSurface.Interface->AddRef(parent3DSurface.DxVersion);
 		}
 
+		ScopedAtomicFlagSet ScopeGuard(RefCountLock);
+
 		switch (DirectXVersion)
 		{
 		case 1:
-			return InterlockedIncrement(&RefCount1);
+			return ++RefCount1;
 		case 2:
-			return InterlockedIncrement(&RefCount2);
+			return ++RefCount2;
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 			return 0;
@@ -114,22 +116,30 @@ ULONG m_IDirect3DTextureX::Release(DWORD DirectXVersion)
 			return parent3DSurface.Interface->Release(parent3DSurface.DxVersion);
 		}
 
-		ULONG ref;
+		ULONG ref, TotalRefCount;
 
-		switch (DirectXVersion)
 		{
-		case 1:
-			ref = InterlockedDecrementIfNotNull(&RefCount1);
-			break;
-		case 2:
-			ref = InterlockedDecrementIfNotNull(&RefCount2);
-			break;
-		default:
-			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-			ref = 0;
+			ScopedAtomicFlagSet ScopeGuard(RefCountLock);
+
+			switch (DirectXVersion)
+			{
+			case 1:
+				ref = RefCount1 ? --RefCount1 : 0;
+				break;
+			case 2:
+				ref = RefCount2 ? --RefCount2 : 0;
+				break;
+			default:
+				LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+				ref = 0;
+			}
+
+			TotalRefCount =
+				AtomicRead(RefCount1) +
+				AtomicRead(RefCount2);
 		}
 
-		if (AtomicRead(RefCount1) + AtomicRead(RefCount2) == 0)
+		if (TotalRefCount == 0)
 		{
 			delete this;
 		}
