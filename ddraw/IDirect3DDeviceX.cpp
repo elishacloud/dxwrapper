@@ -349,12 +349,6 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Validate lpData
-		if ((lpDesc->dwFlags & D3DDEB_LPDATA) && lpDesc->lpData)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: lpData is non-null, using application data.");
-		}
-
 		m_IDirect3DExecuteBuffer* pExecuteBuffer = m_IDirect3DExecuteBuffer::CreateDirect3DExecuteBuffer(nullptr, this, lpDesc);
 
 		*lplpDirect3DExecuteBuffer = pExecuteBuffer;
@@ -417,24 +411,30 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 		// D3DEXECUTE_CLIPPED - Clip any primitives in the buffer that are outside or partially outside the viewport. 
 		// D3DEXECUTE_UNCLIPPED - All primitives in the buffer are contained within the viewport.
 
-		m_IDirect3DExecuteBuffer* pExecuteBuffer = (m_IDirect3DExecuteBuffer*)lpDirect3DExecuteBuffer;
-
-		LPVOID lpData;
-		D3DEXECUTEDATA ExecuteData;
-		LPD3DSTATUS lpStatus;
+		m_IDirect3DExecuteBuffer* pExecuteBufferX = nullptr;
+		lpDirect3DExecuteBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pExecuteBufferX);
+		if (!pExecuteBufferX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get Execute Buffer interfaceX");
+			return DDERR_INVALIDPARAMS;
+		}
 
 		// Set Executing flag
-		ScopedAtomicFlagSet SetLockFlag(pExecuteBuffer->GetExecuteFlag());
+		ScopedAtomicFlagSet SetLockFlag(pExecuteBufferX->GetExecuteFlag());
 
 		// Check execute lock
-		if (pExecuteBuffer->IsBufferLocked())
+		if (pExecuteBufferX->IsBufferLocked())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: execute buffer still locked!");
 			return D3DERR_EXECUTE_LOCKED;
 		}
 
+		LPVOID lpData = nullptr;
+		D3DEXECUTEDATA ExecuteData = {};
+		D3DSTATUS& dsStatus = ExecuteData.dsStatus;
+
 		// Get execute data and desc
-		if (FAILED(pExecuteBuffer->GetBuffer(&lpData, ExecuteData, &lpStatus)))
+		if (FAILED(pExecuteBufferX->GetBufferInternal(lpData, ExecuteData)) || !lpData)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: get execute data failed!");
 			return DDERR_INVALIDPARAMS;
@@ -447,12 +447,12 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 		}
 
 		// Check the Extents
-		if (lpStatus->dwFlags & D3DSETSTATUS_EXTENTS)
+		if (dsStatus.dwFlags & D3DSETSTATUS_EXTENTS)
 		{
-			if (lpStatus->drExtent.x1 == 0 && lpStatus->drExtent.y1 == 0 && lpStatus->drExtent.x2 == 0 && lpStatus->drExtent.y2 == 0)
+			if (dsStatus.drExtent.x1 == 0 && dsStatus.drExtent.y1 == 0 && dsStatus.drExtent.x2 == 0 && dsStatus.drExtent.y2 == 0)
 			{
 				// Remove the Extents flag
-				lpStatus->dwFlags &= ~D3DSETSTATUS_EXTENTS;
+				dsStatus.dwFlags &= ~D3DSETSTATUS_EXTENTS;
 			}
 		}
 
@@ -462,8 +462,9 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 		DWORD opcode = NULL;
 
-		// ToDo: documentation says the following can be used: D3DFVF_VERTEX, D3DFVF_LVERTEX or D3DFVF_TLVERTEX
-		// For lack of better knowledge, assume process vertices always uses D3DFVF_VERTEX and copy and draw operations always use D3DFVF_TLVERTEX
+		// Documentation says the following can be used: D3DFVF_VERTEX, D3DFVF_LVERTEX or D3DFVF_TLVERTEX
+		// Assume process vertex source uses D3DFVF_VERTEX or D3DFVF_LVERTEX dependant on lighting and
+		// process vertex destination, copy and draw operations always use D3DFVF_TLVERTEX
 		DWORD VertexTypeDesc = D3DFVF_TLVERTEX;
 
 		// Primitive structures and related defines. Vertex offsets are to types D3DVERTEX, D3DLVERTEX, or D3DTLVERTEX.
@@ -721,12 +722,8 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						continue;
 					}
 
-					// Compute maximum safe count based on buffer size
-					DWORD maxSrc = vertexCount - processVertices[i].wStart;
-					DWORD maxDest = vertexCount - processVertices[i].wDest;
-					DWORD Count = min(processVertices[i].dwCount, min(maxSrc, maxDest));
+					DWORD Count = processVertices[i].dwCount;
 
-					// Check Count
 					if (Count == 0)
 					{
 						LOG_LIMIT(100, __FUNCTION__ << " Error: D3DOP_PROCESSVERTICES zero vertices to process. Skip processing!");
@@ -736,25 +733,25 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					const bool IsClipped = (dwFlags & D3DEXECUTE_CLIPPED) && !(dwFlags & D3DEXECUTE_UNCLIPPED);
 					const bool UpdateExtents = (Flags & D3DPROCESSVERTICES_UPDATEEXTENTS);
 
-					auto SetStatus = [&](LPD3DSTATUS lpStatus)
+					auto SetStatus = [&](D3DSTATUS& Status)
 					{
 						if (IsClipped)
 						{
 							// Update flags
-							lpStatus->dwFlags |= D3DSETSTATUS_STATUS;
-							lpStatus->dwStatus = 0; // Just set no clip flags and no ZNOTVISIBLE
+							Status.dwFlags |= D3DSETSTATUS_STATUS;
+							Status.dwStatus = 0; // Just set no clip flags and no ZNOTVISIBLE
 
 							// Update extents
 							if (UpdateExtents)
 							{
 								if (D3DVIEWPORT9 vp = {}; SUCCEEDED(GetD9Viewport(&vp)))
 								{
-									lpStatus->dwFlags |= D3DSETSTATUS_EXTENTS;
+									Status.dwFlags |= D3DSETSTATUS_EXTENTS;
 
-									lpStatus->drExtent.x1 = vp.X;
-									lpStatus->drExtent.y1 = vp.Y;
-									lpStatus->drExtent.x2 = vp.X + vp.Width;
-									lpStatus->drExtent.y2 = vp.Y + vp.Height;
+									Status.drExtent.x1 = vp.X;
+									Status.drExtent.y1 = vp.Y;
+									Status.drExtent.x2 = vp.X + vp.Width;
+									Status.drExtent.y2 = vp.Y + vp.Height;
 								}
 							}
 						}
@@ -773,7 +770,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						memcpy(Dest, Src, sizeof(D3DTLVERTEX) * Count);
 
 						// Handle status and extents
-						SetStatus(lpStatus);
+						SetStatus(dsStatus);
 
 						break;
 					}
@@ -833,7 +830,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 							}
 
 							// Handle status and extents
-							SetStatus(lpStatus);
+							SetStatus(dsStatus);
 						}
 						break;
 					}
@@ -860,7 +857,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				for (DWORD i = 0; i < instruction->wCount; i++)
 				{
-					*lpStatus = status[i];
+					dsStatus = status[i];
 				}
 
 				break;
@@ -879,7 +876,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 				for (DWORD i = 0; i < instruction->wCount; i++)
 				{
 					// Apply the mask to the current status
-					DWORD maskedStatus = lpStatus->dwStatus & branch[i].dwMask;
+					DWORD maskedStatus = dsStatus.dwStatus & branch[i].dwMask;
 
 					// Compare the masked status with the value
 					bool condition = (maskedStatus == branch[i].dwValue);
@@ -1289,14 +1286,7 @@ HRESULT m_IDirect3DDeviceX::CreateMatrix(LPD3DMATRIXHANDLE lpD3DMatHandle)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		D3DMATRIX Matrix = {
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		};
-
-		D3DMATRIXHANDLE D3DMatHandle = Utils::ComputeRND((DWORD)&Matrix, (DWORD)lpD3DMatHandle);
+		D3DMATRIXHANDLE D3DMatHandle = Utils::ComputeRND((DWORD)lpD3DMatHandle, (DWORD)*lpD3DMatHandle);
 
 		// Make sure the material handle is unique
 		while (D3DMatHandle == NULL || GetMatrix(D3DMatHandle))
@@ -1304,7 +1294,7 @@ HRESULT m_IDirect3DDeviceX::CreateMatrix(LPD3DMATRIXHANDLE lpD3DMatHandle)
 			D3DMatHandle += 4;
 		}
 
-		MatrixMap[D3DMatHandle] = Matrix;
+		MatrixMap[D3DMatHandle] = DefaultIdentityMatrix;
 
 		*lpD3DMatHandle = D3DMatHandle;
 
