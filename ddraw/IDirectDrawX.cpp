@@ -665,10 +665,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Updates for surface description
 		Desc2.dwFlags |= DDSD_CAPS;
 		Desc2.ddsCaps.dwCaps4 = DDSCAPS4_CREATESURFACE;		// Indicates surface was created using CreateSurface()
-		if (Desc2.ddsCaps.dwCaps & DDSCAPS_FLIP)
-		{
-			Desc2.ddsCaps.dwCaps |= DDSCAPS_FRONTBUFFER;
-		}
 		Desc2.dwReserved = 0;
 
 		// Check BackBufferCount flag
@@ -688,6 +684,12 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		else
 		{
 			Desc2.dwBackBufferCount = 0;
+		}
+
+		// Check for complex flip surface
+		if ((Desc2.ddsCaps.dwCaps & DDSCAPS_FLIP) && (Desc2.dwFlags & DDSD_BACKBUFFERCOUNT))
+		{
+			Desc2.ddsCaps.dwCaps |= DDSCAPS_FRONTBUFFER;
 		}
 
 		// Remove unused or conflicting flags
@@ -1214,7 +1216,7 @@ HRESULT m_IDirectDrawX::FlipToGDISurface()
 	return ProxyInterface->FlipToGDISurface();
 }
 
-HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
+HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps, DWORD DirectXVersion)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -1232,6 +1234,11 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 				lpDDDriverCaps->dwSize == sizeof(DDCAPS_DX5) ? sizeof(DDCAPS_DX5) :
 				lpDDDriverCaps->dwSize == sizeof(DDCAPS_DX6) ? sizeof(DDCAPS_DX6) :
 				lpDDDriverCaps->dwSize == sizeof(DDCAPS_DX7) ? sizeof(DDCAPS_DX7) :
+				DirectXVersion == 1 ? sizeof(DDCAPS_DX3) :
+				DirectXVersion == 2 ? sizeof(DDCAPS_DX3) :
+				DirectXVersion == 3 ? sizeof(DDCAPS_DX5) :
+				DirectXVersion == 4 ? sizeof(DDCAPS_DX6) :
+				DirectXVersion == 5 ? sizeof(DDCAPS_DX7) :
 				sizeof(DDCAPS_DX1);
 		}
 		if (lpDDHELCaps)
@@ -1241,6 +1248,11 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 				lpDDHELCaps->dwSize == sizeof(DDCAPS_DX5) ? sizeof(DDCAPS_DX5) :
 				lpDDHELCaps->dwSize == sizeof(DDCAPS_DX6) ? sizeof(DDCAPS_DX6) :
 				lpDDHELCaps->dwSize == sizeof(DDCAPS_DX7) ? sizeof(DDCAPS_DX7) :
+				DirectXVersion == 1 ? sizeof(DDCAPS_DX3) :
+				DirectXVersion == 2 ? sizeof(DDCAPS_DX3) :
+				DirectXVersion == 3 ? sizeof(DDCAPS_DX5) :
+				DirectXVersion == 4 ? sizeof(DDCAPS_DX6) :
+				DirectXVersion == 5 ? sizeof(DDCAPS_DX7) :
 				sizeof(DDCAPS_DX1);
 		}
 
@@ -1509,8 +1521,6 @@ HRESULT m_IDirectDrawX::GetGDISurface(LPDIRECTDRAWSURFACE7 FAR * lplpGDIDDSSurfa
 
 	if (Config.Dd7to9)
 	{
-		// ToDo: Do proper implementation here
-
 		if (!lplpGDIDDSSurface)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -2108,48 +2118,73 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 
 		HRESULT hr = DD_OK;
 
-		// Check flags
+		// hEvent is currently unused by DirectDraw for these flags
+		(void)hEvent;
+
 		switch (dwFlags)
 		{
 		case DDWAITVB_BLOCKBEGIN:
+		{
 			// Use D3DKMTWaitForVerticalBlankEvent for vertical blank begin
 			if (OpenD3DDDI(GetDC()) && D3DDDIWaitForVsync())
 			{
-				// Success using D3DKMTWaitForVerticalBlankEvent
+				// Successfully waited for the beginning of vertical blank
 				break;
 			}
 
-			// Fallback: Wait for vertical blank begin using raster status
-			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank)
+			// Fallback: wait for vertical blank begin using raster status
+			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) &&
+				!RasterStatus.InVBlank)
 			{
 				Utils::BusyWaitYield(0);
 			}
+
 			break;
+		}
 
 		case DDWAITVB_BLOCKEND:
-			// First, wait for the vertical blank to begin
+		{
+			bool WaitedForVBlankBegin = false;
+
+			// Prefer D3DKMT because it provides a much better synchronization
+			// point than polling GetRasterStatus()
 			if (OpenD3DDDI(GetDC()) && D3DDDIWaitForVsync())
 			{
-				// Success using D3DKMTWaitForVerticalBlankEvent
+				WaitedForVBlankBegin = true;
 			}
-			// Fallback: Wait for vertical blank to end using raster status
 			else
 			{
-				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && !RasterStatus.InVBlank)
+				// Fallback: wait for the beginning of the next vertical blank
+				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) &&
+					!RasterStatus.InVBlank)
+				{
+					Utils::BusyWaitYield(0);
+				}
+
+				WaitedForVBlankBegin = true;
+			}
+
+			// We have now crossed the beginning of a vertical blank
+			//
+			// If we're still inside the blank interval, wait for it to end.
+			// If the thread was delayed enough that the blank has already
+			// ended, return immediately rather than waiting for another frame.
+			if (WaitedForVBlankBegin &&
+				SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) &&
+				RasterStatus.InVBlank)
+			{
+				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) &&
+					RasterStatus.InVBlank)
 				{
 					Utils::BusyWaitYield(0);
 				}
 			}
 
-			// Then, wait for the vertical blank to end
-			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) && RasterStatus.InVBlank)
-			{
-				Utils::BusyWaitYield(0);
-			}
 			break;
+		}
 
 		case DDWAITVB_BLOCKBEGINEVENT:
-			// This value is unsupported
+			// This value is unsupported by DirectDraw as well
 			Logging::Log() << __FUNCTION__ << " Error: DDWAITVB_BLOCKBEGINEVENT is not supported!";
 			hr = DDERR_UNSUPPORTED;
 			break;
@@ -4747,7 +4782,7 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 			pDDraw->SurfaceList.erase(it);	// Erase from list before releasing
 			for (UINT x = 0; x < RefCount; x++)
 			{
-				Release(DxVersion);
+				pDDraw->Release(DxVersion);
 			}
 		}
 
