@@ -205,6 +205,7 @@ private:
 		DWORD LastShadowUSN = 0;
 		DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
 		const PALETTEENTRY* PaletteEntryArray = nullptr;	// Used to store palette data address
+		const RGBQUAD* RGBPaletteArray = nullptr;			// Used to store palette data address
 		EMUSURFACE* emu = nullptr;							// Emulated surface using device context
 		LPDIRECT3DSURFACE9 Surface = nullptr;				// Surface used for Direct3D
 		LPDIRECT3DSURFACE9 Shadow = nullptr;				// Shadow surface for render target

@@ -219,7 +219,7 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 
 		// Set start and end entries
 		DWORD Start = max(0, dwStartingEntry);
-		DWORD End = min(entryCount, dwStartingEntry + dwCount);
+		DWORD End = dwStartingEntry + dwCount;
 
 		// Handle DDPCAPS_ALLOW256
 		if (!(paletteCaps & DDPCAPS_ALLOW256))
@@ -248,7 +248,6 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 			for (UINT i = Start; i < End; i++, x++)
 			{
 				DXPALETTEENTRY SingleEntry = lpEntries[x];
-				SingleEntry.peFlags = UsingAlpha ? SingleEntry.peFlags : 0xFF;
 
 				FoundNewRecords = FoundNewRecords || rawPalette[i] != SingleEntry;
 
@@ -256,6 +255,7 @@ HRESULT m_IDirectDrawPalette::SetEntries(DWORD dwFlags, DWORD dwStartingEntry, D
 				rawPalette[i] = SingleEntry;
 				// RGB palette
 				rgbPalette[i] = SingleEntry;
+				rgbPalette[i].rgbReserved = UsingAlpha ? SingleEntry.peFlags : 0xFF;
 			}
 
 			// Note that there is new palette data
@@ -302,7 +302,7 @@ void m_IDirectDrawPalette::InitInterface(DWORD dwFlags, LPPALETTEENTRY lpDDColor
 		paletteCaps = (dwFlags & ~DDPCAPS_INITIALIZE);
 
 		// Compute new USN number
-		PaletteUSN = Utils::ComputeRND(PaletteUSN, (DWORD)this);
+		PaletteUSN = Utils::ComputeRND((DWORD)&paletteCaps, (DWORD)this);
 
 		// Create palette of requested bit size
 		if ((paletteCaps & DDPCAPS_8BIT) || (paletteCaps & DDPCAPS_ALLOW256))
@@ -329,20 +329,10 @@ void m_IDirectDrawPalette::InitInterface(DWORD dwFlags, LPPALETTEENTRY lpDDColor
 		}
 
 		// The palette entries are 1 byte each if the DDPCAPS_8BITENTRIES flag is set, and 4 bytes otherwise.
-		if (paletteCaps & DDPCAPS_ALPHA)
-		{
-			Logging::Log() << __FUNCTION__ << " Warning: alpha palette entries are not implemented.";
-		}
-
-		// The palette entries are 1 byte each if the DDPCAPS_8BITENTRIES flag is set, and 4 bytes otherwise.
 		// This flag is valid only when used with the DDPCAPS_1BIT, DDPCAPS_2BIT, or DDPCAPS_4BIT flag, and when the target surface is 8 bpp.
 		if ((paletteCaps & DDPCAPS_8BITENTRIES) && (paletteCaps & (DDPCAPS_1BIT | DDPCAPS_2BIT | DDPCAPS_4BIT)))
 		{
 			Logging::Log() << __FUNCTION__ << " Warning: DDPCAPS_8BITENTRIES is not implemented.";
-		}
-		else
-		{
-			paletteCaps &= ~DDPCAPS_8BITENTRIES;
 		}
 
 		ZeroMemory(rawPalette, sizeof(rawPalette));

@@ -8256,8 +8256,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect)
 			UpdatePaletteData();
 			if (surface.PaletteEntryArray)
 			{
-				PALETTEENTRY PaletteEntry = surface.PaletteEntryArray[surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue & 0xFF];
-				ColorKey = D3DCOLOR_ARGB(PaletteEntry.peFlags, PaletteEntry.peRed, PaletteEntry.peGreen, PaletteEntry.peBlue);
+				RGBQUAD PaletteEntry = surface.RGBPaletteArray[surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue & 0xFF];
+				ColorKey = D3DCOLOR_ARGB(PaletteEntry.rgbReserved, PaletteEntry.rgbRed, PaletteEntry.rgbGreen, PaletteEntry.rgbBlue);
 			}
 		}
 		else if (surfaceDesc2.ddpfPixelFormat.dwRGBBitCount)
@@ -9043,9 +9043,9 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 		}
 	}
 
-	bool IsPrimaryPaletteUpdated = (primary.PaletteTexture && NewPaletteEntry && primary.LastPaletteUSN != NewPaletteUSN);
-	bool IsEmulatedPaletteUpdated = (IsUsingEmulation() && NewRGBPalette && surface.emu->LastPaletteUSN != NewPaletteUSN);
-	bool IsPaletteDataUpdated = (NewPaletteEntry && surface.LastPaletteUSN != NewPaletteUSN);
+	const bool IsPrimaryPaletteUpdated = (primary.PaletteTexture && NewPaletteEntry && NewRGBPalette && primary.LastPaletteUSN != NewPaletteUSN);
+	const bool IsEmulatedPaletteUpdated = (IsUsingEmulation() && NewRGBPalette && surface.emu->LastPaletteUSN != NewPaletteUSN);
+	const bool IsPaletteDataUpdated = (NewPaletteEntry && NewRGBPalette && surface.LastPaletteUSN != NewPaletteUSN);
 
 	ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection(), IsPrimaryPaletteUpdated || IsEmulatedPaletteUpdated || IsPaletteDataUpdated);
 
@@ -9080,6 +9080,7 @@ void m_IDirectDrawSurfaceX::UpdatePaletteData()
 		surface.IsPaletteDirty = true;
 		surface.LastPaletteUSN = NewPaletteUSN;
 		surface.PaletteEntryArray = NewPaletteEntry;
+		surface.RGBPaletteArray = NewRGBPalette;
 	}
 }
 
