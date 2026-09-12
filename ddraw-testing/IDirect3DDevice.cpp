@@ -665,8 +665,9 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
 }
 
 template void TestCreate3DDevice<IDirectDraw, IDirect3D>(IDirectDraw*, IDirect3D*);
+template void TestCreate3DDevice<IDirectDrawDDF, IDirect3D>(IDirectDrawDDF*, IDirect3D*);
 template void TestCreate3DDevice<IDirectDraw2, IDirect3D2>(IDirectDraw2*, IDirect3D2*);
-template void TestCreate3DDevice<IDirectDraw3, IDirect3D3>(IDirectDraw3*, IDirect3D3*);
+template void TestCreate3DDevice<IDirectDraw3, IDirect3D2>(IDirectDraw3*, IDirect3D2*);
 template void TestCreate3DDevice<IDirectDraw4, IDirect3D3>(IDirectDraw4*, IDirect3D3*);
 template void TestCreate3DDevice<IDirectDraw7, IDirect3D7>(IDirectDraw7*, IDirect3D7*);
 template void TestCreate3DDevice<IDirectDraw7Ex, IDirect3D7>(IDirectDraw7Ex*, IDirect3D7*);
@@ -685,11 +686,11 @@ void TestCreate3DDevice(DDType* pDDraw, D3DType* pDirect3D)
     {
         TestCreate3DDeviceT<DDType, IDirectDrawSurface, DDSURFACEDESC, D3DType, IDirect3DDevice2>(pDDraw, pDirect3D);
     }
-    else if constexpr (std::is_same_v<D3DType, IDirect3D3> && std::is_same_v<DDType, IDirectDraw4>)
+    else if constexpr (std::is_same_v<D3DType, IDirect3D3>)
     {
         TestCreate3DDeviceT<DDType, IDirectDrawSurface4, DDSURFACEDESC2, D3DType, IDirect3DDevice3>(pDDraw, pDirect3D);
     }
-    else if constexpr (std::is_same_v<D3DType, IDirect3D7>)
+    else
     {
         TestCreate3DDeviceT<DDType, IDirectDrawSurface7, DDSURFACEDESC2, D3DType, IDirect3DDevice7>(pDDraw, pDirect3D);
     }

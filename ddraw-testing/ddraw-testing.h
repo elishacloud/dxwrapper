@@ -38,6 +38,11 @@ typedef HRESULT(WINAPI* RegisterSpecialCaseProc)(DWORD, DWORD, DWORD, DWORD);
 typedef HRESULT(WINAPI* ReleaseDDThreadLockProc)();
 typedef HRESULT(WINAPI* SetAppCompatDataProc)(DWORD Type, DWORD Value);
 
+class IDirectDrawCoC : public IDirectDraw {};
+class IDirectDrawClass : public IDirectDraw {};
+class IDirectDrawDDF : public IDirectDraw {};
+class IDirectDraw7CoC : public IDirectDraw7 {};
+class IDirectDraw7Class : public IDirectDraw7 {};
 class IDirectDraw7Ex : public IDirectDraw7 {};
 
 extern HWND DDhWnd;
@@ -52,22 +57,9 @@ extern DirectDrawEnumerateWProc pDirectDrawEnumerateW;
 template <typename T>
 static UINT GetRefCount(T IUnknownAddr)
 {
-    UINT ref = IUnknownAddr->AddRef() - 1;
-    IUnknownAddr->Release(); // Undo AddRef
-    return ref;
+    IUnknownAddr->AddRef();
+    return IUnknownAddr->Release();
 }
-
-struct TestEntry
-{
-	REFCLSID clsid;
-	const char* name;
-	REFIID iid;
-};
-
-extern TestEntry tests[10];
-
-const char* GetTestIIDName(REFIID riid);
-void CoCreateInstance();
 
 void TestEnumDisplaySettings();
 

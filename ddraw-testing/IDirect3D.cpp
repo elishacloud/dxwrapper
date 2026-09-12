@@ -145,9 +145,9 @@ void TestCreateDirect3DT(DDType* pDDraw)
 {
     // Get version interface
     REFIID riid =
-        std::is_same_v<DDType, IDirectDraw> ? IID_IDirect3D :
-        std::is_same_v<DDType, IDirectDraw2> ? IID_IDirect3D2 :
-        std::is_same_v<DDType, IDirectDraw3> || std::is_same_v<DDType, IDirectDraw4> ? IID_IDirect3D3 : IID_IDirect3D7;
+        std::is_same_v<D3DType, IDirect3D> ? IID_IDirect3D :
+        std::is_same_v<D3DType, IDirect3D2> ? IID_IDirect3D2 :
+        std::is_same_v<D3DType, IDirect3D3> ? IID_IDirect3D3 : IID_IDirect3D7;
 
     D3DType* pDirect3D = nullptr;
     HRESULT hr = pDDraw->QueryInterface(riid, reinterpret_cast<LPVOID*>(&pDirect3D));
@@ -311,6 +311,7 @@ void TestCreateDirect3DT(DDType* pDDraw)
 }
 
 template void TestCreateDirect3D<IDirectDraw>(IDirectDraw*);
+template void TestCreateDirect3D<IDirectDrawDDF>(IDirectDrawDDF*);
 template void TestCreateDirect3D<IDirectDraw2>(IDirectDraw2*);
 template void TestCreateDirect3D<IDirectDraw3>(IDirectDraw3*);
 template void TestCreateDirect3D<IDirectDraw4>(IDirectDraw4*);
@@ -320,19 +321,19 @@ template <typename DDType>
 void TestCreateDirect3D(DDType* pDDraw)
 {
     // Test creating a surface
-    if constexpr (std::is_same_v<DDType, IDirectDraw>)
+    if constexpr (std::is_same_v<DDType, IDirectDraw> || std::is_same_v<DDType, IDirectDrawDDF>)
     {
         TestCreateDirect3DT<DDType, IDirect3D>(pDDraw);
     }
-    else if constexpr (std::is_same_v<DDType, IDirectDraw2>)
+    else if constexpr (std::is_same_v<DDType, IDirectDraw2> || std::is_same_v<DDType, IDirectDraw3>)
     {
         TestCreateDirect3DT<DDType, IDirect3D2>(pDDraw);
     }
-    else if constexpr (std::is_same_v<DDType, IDirectDraw3> || std::is_same_v<DDType, IDirectDraw4>)
+    else if constexpr (std::is_same_v<DDType, IDirectDraw4>)
     {
         TestCreateDirect3DT<DDType, IDirect3D3>(pDDraw);
     }
-    else if constexpr (std::is_same_v<DDType, IDirectDraw7> || std::is_same_v<DDType, IDirectDraw7Ex>)
+    else
     {
         TestCreateDirect3DT<DDType, IDirect3D7>(pDDraw);
     }

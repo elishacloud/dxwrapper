@@ -13,10 +13,15 @@ DirectDrawEnumerateExWProc pDirectDrawEnumerateExW = nullptr;
 DirectDrawEnumerateWProc pDirectDrawEnumerateW = nullptr;
 
 template void TestQueryInterfaces<IDirectDraw>(IDirectDraw*, IUnknown*, const char*, DWORD);
+template void TestQueryInterfaces<IDirectDrawDDF>(IDirectDrawDDF*, IUnknown*, const char*, DWORD);
+template void TestQueryInterfaces<IDirectDrawCoC>(IDirectDrawCoC*, IUnknown*, const char*, DWORD);
+template void TestQueryInterfaces<IDirectDrawClass>(IDirectDrawClass*, IUnknown*, const char*, DWORD);
 template void TestQueryInterfaces<IDirectDraw2>(IDirectDraw2*, IUnknown*, const char*, DWORD);
 template void TestQueryInterfaces<IDirectDraw3>(IDirectDraw3*, IUnknown*, const char*, DWORD);
 template void TestQueryInterfaces<IDirectDraw4>(IDirectDraw4*, IUnknown*, const char*, DWORD);
 template void TestQueryInterfaces<IDirectDraw7>(IDirectDraw7*, IUnknown*, const char*, DWORD);
+template void TestQueryInterfaces<IDirectDraw7CoC>(IDirectDraw7CoC*, IUnknown*, const char*, DWORD);
+template void TestQueryInterfaces<IDirectDraw7Class>(IDirectDraw7Class*, IUnknown*, const char*, DWORD);
 template void TestQueryInterfaces<IDirectDraw7Ex>(IDirectDraw7Ex*, IUnknown*, const char*, DWORD);
 template <typename DDType>
 void TestQueryInterfaces(DDType* pDDraw, IUnknown* pInterface, const char* ParentName, DWORD TestIDBase)
@@ -128,14 +133,17 @@ static void RunAllTests()
         return;
     }
 
-    CoCreateInstance();
-
     TestEnumDisplaySettings();
     TestDirectDrawCreate<IDirectDraw>();
+    TestDirectDrawCreate<IDirectDrawDDF>();
+    TestDirectDrawCreate<IDirectDrawCoC>();
+    TestDirectDrawCreate<IDirectDrawClass>();
     TestDirectDrawCreate<IDirectDraw2>();
     TestDirectDrawCreate<IDirectDraw3>();
     TestDirectDrawCreate<IDirectDraw4>();
     TestDirectDrawCreate<IDirectDraw7>();
+    TestDirectDrawCreate<IDirectDraw7CoC>();
+    TestDirectDrawCreate<IDirectDraw7Class>();
     TestDirectDrawCreate<IDirectDraw7Ex>();
 }
 

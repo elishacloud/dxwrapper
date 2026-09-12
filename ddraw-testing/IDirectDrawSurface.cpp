@@ -118,6 +118,8 @@ void TestCreateTexture(DDType* pDDraw, DSType* pSurface)
         LOG_TEST_RESULT(TestID, "DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
         pTexture->Release();
 
+        // ****  309  ****
+        TestID = 309;
         IDirect3DTexture2* pTexture2 = nullptr;
         hr = pSurface->QueryInterface(IID_IDirect3DTexture2, reinterpret_cast<LPVOID*>(&pTexture2));
         if (SUCCEEDED(hr))
@@ -288,7 +290,7 @@ void TestCreateSurfaceT(DDType* pDDraw)
         }
         else
         {
-            LOG_TEST_RESULT(TestID, "Failed to query for surface " << riid << ". Error: ", (DDERR)hr, TEST_FAILED);
+            LOG_TEST_RESULT(TestID, "Failed to query for surface " << riid << ". Error: ", (DDERR)hr, GetResults<DDType>(TestID));
         }
     }
 
@@ -351,24 +353,31 @@ void TestCreateSurfaceT(DDType* pDDraw)
         TestID = 207;
         LOG_TEST_RESULT(TestID, "DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
 
-        DSType* pSurfaceDup = nullptr;
-        hr = pDDraw->DuplicateSurface(pSurface, &pSurfaceDup);
-
-        // ****  208  ****
-        TestID = 208;
-        if (SUCCEEDED(hr))
+        if constexpr (std::is_same_v<DDType, IDirectDrawDDF>)
         {
-            LOG_TEST_RESULT(TestID, "Duplcate offscreen surface created. Ref count: ", GetRefCount(pSurfaceDup), GetResults<DDType>(TestID));
-
-            // ****  209  ****
-            TestID = 209;
-            LOG_TEST_RESULT(TestID, "DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
-
-            pSurfaceDup->Release();
+            hr = DDERR_GENERIC;
         }
         else
         {
-            LOG_TEST_RESULT(TestID, "Failed to create offscreen surface. Error: ", (DDERR)hr, TEST_FAILED);
+            DSType* pSurfaceDup = nullptr;
+            hr = pDDraw->DuplicateSurface(pSurface, &pSurfaceDup);
+
+            // ****  208  ****
+            TestID = 208;
+            if (SUCCEEDED(hr))
+            {
+                LOG_TEST_RESULT(TestID, "Duplcate offscreen surface created. Ref count: ", GetRefCount(pSurfaceDup), GetResults<DDType>(TestID));
+
+                // ****  209  ****
+                TestID = 209;
+                LOG_TEST_RESULT(TestID, "DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+                pSurfaceDup->Release();
+            }
+            else
+            {
+                LOG_TEST_RESULT(TestID, "Failed to duplicate offscreen surface. Error: ", (DDERR)hr, TEST_FAILED);
+            }
         }
 
         pSurface->Release();
@@ -391,7 +400,7 @@ void TestCreateSurfaceT(DDType* pDDraw)
     }
     else
     {
-        LOG_TEST_RESULT(TestID, "Failed to create offscreen surface. Error: ", (DDERR)hr, GetResults<DDType>(TestID));
+        LOG_TEST_RESULT(TestID, "Failed to duplicate primary surface. Error: ", (DDERR)hr, GetResults<DDType>(TestID));
     }
 
     ddsd = {};
@@ -490,6 +499,7 @@ void TestCreateSurfaceT(DDType* pDDraw)
 }
 
 template void TestCreateSurface<IDirectDraw>(IDirectDraw*);
+template void TestCreateSurface<IDirectDrawDDF>(IDirectDrawDDF*);
 template void TestCreateSurface<IDirectDraw2>(IDirectDraw2*);
 template void TestCreateSurface<IDirectDraw3>(IDirectDraw3*);
 template void TestCreateSurface<IDirectDraw4>(IDirectDraw4*);
@@ -499,16 +509,16 @@ template <typename DDType>
 void TestCreateSurface(DDType* pDDraw)
 {
     // Test creating a surface
-    if constexpr (std::is_same_v<DDType, IDirectDraw> || std::is_same_v<DDType, IDirectDraw2> || std::is_same_v<DDType, IDirectDraw3>)
+    if constexpr (std::is_same_v<DDType, IDirectDraw> || std::is_same_v<DDType, IDirectDrawDDF> || std::is_same_v<DDType, IDirectDraw2> || std::is_same_v<DDType, IDirectDraw3>)
     {
-        TestCreateSurfaceT<IDirectDraw, IDirectDrawSurface, DDSURFACEDESC>(reinterpret_cast<IDirectDraw*>(pDDraw));
+        TestCreateSurfaceT<DDType, IDirectDrawSurface, DDSURFACEDESC>(pDDraw);
     }
     else if constexpr (std::is_same_v<DDType, IDirectDraw4>)
     {
-        TestCreateSurfaceT<DDType, IDirectDrawSurface4, DDSURFACEDESC2>(reinterpret_cast<DDType*>(pDDraw));
+        TestCreateSurfaceT<DDType, IDirectDrawSurface4, DDSURFACEDESC2>(pDDraw);
     }
-    else if constexpr (std::is_same_v<DDType, IDirectDraw7> || std::is_same_v<DDType, IDirectDraw7Ex>)
+    else
     {
-        TestCreateSurfaceT<DDType, IDirectDrawSurface7, DDSURFACEDESC2>(reinterpret_cast<DDType*>(pDDraw));
+        TestCreateSurfaceT<DDType, IDirectDrawSurface7, DDSURFACEDESC2>(pDDraw);
     }
 }
