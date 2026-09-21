@@ -230,7 +230,7 @@ public:
 	bool CheckD9Device(char* FunctionName);
 	LPDIRECT3D9 GetDirectD9Object();
 	LPDIRECT3DDEVICE9 *GetDirectD9Device();
-	LPDIRECT3DVERTEXDECLARATION9 GetVertexDeclaration();
+	LPDIRECT3DVERTEXDECLARATION9 GetVertexDeclaration(DWORD FVF);
 	bool CreatePalettePixelShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyPixelShader();
 	LPDIRECT3DVERTEXSHADER9* GetFixupVertexShader();

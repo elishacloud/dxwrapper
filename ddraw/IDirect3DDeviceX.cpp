@@ -2998,12 +2998,10 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
-		// Update vertices for Direct3D9 (needs to be first)
-		UpdateVertices(dwVertexTypeDesc, lpVertices, 0, dwVertexCount);
-
 		// Set vertex type
-		if (FAILED(SetVertexType(dwVertexTypeDesc)))
+		if (FAILED(SetVertexType(dwVertexTypeDesc, dwFlags)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Could not set vertex FVF: " << dwVertexTypeDesc);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -3090,12 +3088,10 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
-		// Update vertices for Direct3D9 (needs to be first)
-		UpdateVertices(dwVertexTypeDesc, lpVertices, 0, dwVertexCount);
-
 		// Set vertex type
-		if (FAILED(SetVertexType(dwVertexTypeDesc)))
+		if (FAILED(SetVertexType(dwVertexTypeDesc, dwFlags)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Could not set vertex FVF: " << dwVertexTypeDesc);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -3294,8 +3290,9 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 		}
 
 		// Set vertex type
-		if (FAILED(SetVertexType(dwVertexTypeDesc)))
+		if (FAILED(SetVertexType(dwVertexTypeDesc, dwFlags)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Could not set vertex FVF: " << dwVertexTypeDesc);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -3381,8 +3378,9 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 		}
 
 		// Set vertex type
-		if (FAILED(SetVertexType(dwVertexTypeDesc)))
+		if (FAILED(SetVertexType(dwVertexTypeDesc, dwFlags)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Could not set vertex FVF: " << dwVertexTypeDesc);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -3474,8 +3472,9 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		DWORD dwVertexTypeDesc = pVertexBufferX->GetFVF();
 
 		// Set vertex type
-		if (FAILED(SetVertexType(dwVertexTypeDesc)))
+		if (FAILED(SetVertexType(dwVertexTypeDesc, dwFlags)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Could not set vertex FVF: " << dwVertexTypeDesc);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -3580,8 +3579,9 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		DWORD dwVertexTypeDesc = pVertexBufferX->GetFVF();
 
 		// Set vertex type
-		if (FAILED(SetVertexType(dwVertexTypeDesc)))
+		if (FAILED(SetVertexType(dwVertexTypeDesc, dwFlags)))
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Could not set vertex FVF: " << dwVertexTypeDesc);
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -6831,29 +6831,6 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			(*d3d9Device)->SetPixelShaderConstantF(1, DrawStates.highColorKey, 1);
 		}
 	}*/
-
-	// Vertex fixup shader (ToDo)
-	/*if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && d3d9Device && *d3d9Device && ddrawParent)
-	{
-		if (!fixupVertexShader || !*fixupVertexShader)
-		{
-			fixupVertexShader = ddrawParent->GetFixupVertexShader();
-		}
-		if (fixupVertexShader && *fixupVertexShader)
-		{
-			// Set pixel center offset (-0.5 if AlternatePixelCenter is enabled)
-			float pixelOffset[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-			if (Config.DdrawAlternatePixelCenter)
-			{
-				pixelOffset[0] = -0.5f;
-				pixelOffset[1] = -0.5f;
-			}
-			(*d3d9Device)->SetVertexShaderConstantF(1, pixelOffset, 1);
-
-			// Set vertex shader
-			(*d3d9Device)->SetVertexShader(*fixupVertexShader);
-		}
-	}*/
 }
 
 void m_IDirect3DDeviceX::RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD DirectXVersion)
@@ -6902,13 +6879,15 @@ void m_IDirect3DDeviceX::RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD Dire
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
 	}
+	if (dwFlags & D3DDP_DXW_VERTEXFIXUPSHADER)
+	{
+		(*d3d9Device)->SetVertexDeclaration(nullptr);
+		(*d3d9Device)->SetVertexShader(nullptr);
+	}
+
 	/*if (dwFlags & D3DDP_DXW_COLORKEYENABLE)
 	{
 		(*d3d9Device)->SetPixelShader(nullptr);
-	}*/
-	/*if ((dwVertexTypeDesc & D3DFVF_XYZRHW) && d3d9Device && *d3d9Device)
-	{
-		(*d3d9Device)->SetVertexShader(nullptr);
 	}*/
 
 	if (SUCCEEDED(hr))
@@ -7017,11 +6996,6 @@ HRESULT m_IDirect3DDeviceX::ProcessVerticesExecute(UINT VertexCount, void* SrcVe
 
 	pDestBuffer->Unlock();
 
-	if (Config.DdrawClampVertexZDepth)
-	{
-		ClampVertices(reinterpret_cast<BYTE*>(DestVertices), sizeof(D3DTLVERTEX), VertexCount);
-	}
-
 	return hr;
 }
 
@@ -7062,8 +7036,10 @@ HRESULT m_IDirect3DDeviceX::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, 
 	PrepDevice();
 
 	// Set vertex type
-	if (FAILED(SetVertexType(SrcFVF)))
+	DWORD UsingShader = 0;
+	if (FAILED(SetVertexType(SrcFVF, UsingShader)))
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Could not set vertex FVF: " << SrcFVF);
 		return DDERR_INVALIDPARAMS;
 	}
 
@@ -7114,6 +7090,13 @@ HRESULT m_IDirect3DDeviceX::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, 
 	// Reset stream source
 	(*d3d9Device)->SetStreamSource(0, nullptr, 0, 0);
 
+	// Reset shader
+	if (UsingShader)
+	{
+		(*d3d9Device)->SetVertexDeclaration(nullptr);
+		(*d3d9Device)->SetVertexShader(nullptr);
+	}
+
 	if (FAILED(hr))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: 'ProcessVertices' call failed: " << (D3DERR)hr);
@@ -7126,50 +7109,78 @@ HRESULT m_IDirect3DDeviceX::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, 
 	return GetReturnResult(hr);
 }
 
-inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc)
+inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& dwFlags)
 {
-	if (dwVertexTypeDesc == D3DFVF_LVERTEX)
-	{		
-		IDirect3DVertexDeclaration9* decl = ddrawParent->GetVertexDeclaration();
+	// Handle D3DFVF_LVERTEX and other types with D3DFVF_RESERVED1 in it
+	if ((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZ &&
+		(dwVertexTypeDesc & D3DFVF_RESERVED1) &&
+		IsValidFVF(dwVertexTypeDesc))
+	{
+		IDirect3DVertexDeclaration9* decl = ddrawParent->GetVertexDeclaration(dwVertexTypeDesc);
+
 		if (!decl)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Could not get vertex declaration!");
 			return DDERR_INVALIDPARAMS;
 		}
-		if (FAILED((*d3d9Device)->SetVertexDeclaration(decl)))
+
+		dwFlags |= D3DDP_DXW_VERTEXFIXUPSHADER;
+
+		return (*d3d9Device)->SetVertexDeclaration(decl);
+	}
+
+	// Try to use the XYZRHW fixup shader
+	if ((dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW &&
+		IsValidFVF(dwVertexTypeDesc))
+	{
+		IDirect3DVertexShader9* pShader = *ddrawParent->GetFixupVertexShader();
+		IDirect3DVertexDeclaration9* decl = ddrawParent->GetVertexDeclaration(dwVertexTypeDesc);
+
+		if (pShader && decl)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Could not set vertex declaration!");
-			return DDERR_INVALIDPARAMS;
+			const float apc = Config.DdrawAlternatePixelCenter ? 0.0f : -0.5f;		// Alternate pixel-center adjustment (should be 0.0f or -0.5f)
+
+			const float sx = 1.0f;		// X scale used for coordinate conversion
+			const float sy = 1.0f;		// Y scale used for coordinate conversion
+
+			const float w = static_cast<float>(DeviceStates.Viewport.FixedView.Width);
+			const float h = static_cast<float>(DeviceStates.Viewport.FixedView.Height);
+
+			const float MinZ = DeviceStates.Viewport.FixedView.MinZ;
+			const float MaxZ = DeviceStates.Viewport.FixedView.MaxZ;
+
+			if (w > 0.0f && h > 0.0f && MaxZ != MinZ)
+			{
+				const float offset[4] =
+				{
+					0.5f + apc - 0.5f / sx - w / 2.0f,
+					0.5f + apc - 0.5f / sy - h / 2.0f,
+					-MinZ,
+					0.0f
+				};
+
+				const float multiplier[4] =
+				{
+					2.0f / w,
+					-2.0f / h,
+					1.0f / (MaxZ - MinZ),
+					1.0f
+				};
+
+				dwFlags |= D3DDP_DXW_VERTEXFIXUPSHADER;
+
+				(*d3d9Device)->SetVertexShaderConstantF(0, offset, 1);
+				(*d3d9Device)->SetVertexShaderConstantF(1, multiplier, 1);
+
+				(*d3d9Device)->SetVertexShader(pShader);
+
+				return (*d3d9Device)->SetVertexDeclaration(decl);
+			}
 		}
-	}
-	else if (dwVertexTypeDesc & D3DFVF_RESERVED1)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: unsupported FVF type using D3DFVF_RESERVED1: " << Logging::hex(dwVertexTypeDesc));
-		return DDERR_INVALIDPARAMS;
-	}
-	else if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
-		return DDERR_INVALIDPARAMS;
-	}
-	return D3D_OK;
-}
 
-void m_IDirect3DDeviceX::UpdateVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwNumVertices)
-{
-	if (dwVertexTypeDesc & D3DFVF_XYZRHW)
-	{
-		if (Config.DdrawClampVertexZDepth)
-		{
-			DWORD Stride = GetVertexStride(dwVertexTypeDesc);
-			VertexCache.resize((dwVertexStart + dwNumVertices) * Stride);
-			memcpy(reinterpret_cast<void*>(VertexCache.data() + (dwVertexStart * Stride)),
-				reinterpret_cast<void*>((DWORD)lpVertices + (dwVertexStart * Stride)),
-				dwNumVertices * Stride);
-
-			ClampVertices(VertexCache.data(), Stride, dwNumVertices);
-
-			lpVertices = VertexCache.data();
-		}
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: falling back to SetFVF for XYZRHW vertex type!");
 	}
+
+	// Normal fixed-function vertex processing and fallback
+	return (*d3d9Device)->SetFVF(dwVertexTypeDesc);
 }

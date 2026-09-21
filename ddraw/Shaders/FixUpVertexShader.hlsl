@@ -1,42 +1,32 @@
+float4 offset     : register(c0);
+float4 multiplier : register(c1);
+
 struct VS
 {
-    float4 pos      : POSITION;   // XYZRHW
-    float4 diffuse  : COLOR0;     // Diffuse
-    float4 specular : COLOR1;     // Specular
-    float2 tex0     : TEXCOORD0;  // First texture
+    float4 pos      : POSITION;
+    float fog       : FOG;
+    float4 color[2] : COLOR;
+    float4 tex[8]   : TEXCOORD;
 };
 
-VS main(VS v)
+VS main(const VS i)
 {
     const float max_rhw = 1U << 31;
     const float min_rhw = 1.0f / max_rhw;
-    
-    VS o;
 
-    // Fix RHW and Z
-    float rhw = v.pos.w;
-    float z   = v.pos.z;
+    const float rhw = clamp(i.pos.w, min_rhw, max_rhw);
+    const float w = 1.0f / rhw;
 
-    if (!isfinite(rhw) || rhw == 0.0f)
-    {
-        rhw = 1.0f;
-    }
-    else
-    {
-        float tw = 1.0f / rhw;
-        float tz = z * tw;
+    VS o = i;
 
-        tw = clamp(tw, min_rhw, max_rhw);
+    o.pos = (i.pos + offset) * multiplier;
 
-        z   = tz / tw;
-        rhw = 1.0f / tw;
-    }
+    o.pos.z = saturate(o.pos.z);
 
-    // Output
-    o.pos      = float4(v.pos.x, v.pos.y, z, rhw);
-    o.diffuse  = v.diffuse;
-    o.specular = v.specular;
-    o.tex0     = v.tex0;
+    o.pos.xyz *= w;
+    o.pos.w = w;
+
+    o.fog = i.color[1].a;
 
     return o;
 }

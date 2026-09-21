@@ -360,8 +360,7 @@ private:
 	void SetDefaults();
 	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
 	void RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD DirectXVersion);
-	inline HRESULT SetVertexType(DWORD dwVertexTypeDesc);
-	void UpdateVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwNumVertices);
+	inline HRESULT SetVertexType(DWORD dwVertexTypeDesc, DWORD& dwFlags);
 
 	D3DMATRIX* GetMatrix(D3DMATRIXHANDLE MatrixHandle)
 	{

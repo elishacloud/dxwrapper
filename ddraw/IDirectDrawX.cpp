@@ -126,7 +126,7 @@ namespace {
 	LPDIRECT3DSTATEBLOCK9 DefaultStateBlock = nullptr;
 	LPDIRECT3DTEXTURE9 GammaLUTTexture = nullptr;
 	LPDIRECT3DTEXTURE9 ScreenCopyTexture = nullptr;
-	LPDIRECT3DVERTEXDECLARATION9 vertexDeclaration = nullptr;
+	std::unordered_map<DWORD, LPDIRECT3DVERTEXDECLARATION9> vertexDeclaration;
 	LPDIRECT3DPIXELSHADER9 palettePixelShader = nullptr;
 	LPDIRECT3DPIXELSHADER9 colorkeyPixelShader = nullptr;
 	LPDIRECT3DPIXELSHADER9 gammaPixelShader = nullptr;
@@ -3176,14 +3176,16 @@ LPDIRECT3DDEVICE9* m_IDirectDrawX::GetDirectD9Device()
 	return &d3d9Device;
 }
 
-LPDIRECT3DVERTEXDECLARATION9 m_IDirectDrawX::GetVertexDeclaration()
+LPDIRECT3DVERTEXDECLARATION9 m_IDirectDrawX::GetVertexDeclaration(DWORD FVF)
 {
+	LPDIRECT3DVERTEXDECLARATION9& Declaration = vertexDeclaration[FVF];
+
 	// Create pixel shader
-	if (d3d9Device && !vertexDeclaration)
+	if (d3d9Device && !Declaration)
 	{
-		d3d9Device->CreateVertexDeclaration(LVertexDecl, &vertexDeclaration);
+		d3d9Device->CreateVertexDeclaration(CreateVertexDeclarationFromFVF(FVF).data(), &Declaration);
 	}
-	return vertexDeclaration;
+	return Declaration;
 }
 
 bool m_IDirectDrawX::CreatePalettePixelShader()
@@ -4579,22 +4581,6 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 		}
 	}
 
-	// Release vertex declaration
-	if (vertexDeclaration)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette pixel shader";
-		if (d3d9Device && ResetInterface)
-		{
-			d3d9Device->SetVertexDeclaration(nullptr);
-		}
-		ULONG ref = vertexDeclaration->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'vertexDeclaration' " << ref;
-		}
-		vertexDeclaration = nullptr;
-	}
-
 	// Release palette pixel shader
 	if (palettePixelShader)
 	{
@@ -4631,12 +4617,31 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 	if (gammaPixelShader)
 	{
 		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 gamma pixel shader";
+		if (d3d9Device && ResetInterface)
+		{
+			d3d9Device->SetPixelShader(nullptr);
+		}
 		ULONG ref = gammaPixelShader->Release();
 		if (ref)
 		{
 			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'gammaPixelShader' " << ref;
 		}
 		gammaPixelShader = nullptr;
+	}
+
+	// Release vertex declaration
+	for (auto& entry : vertexDeclaration)
+	{
+		if (entry.second)
+		{
+			Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette pixel shader";
+			ULONG ref = entry.second->Release();
+			if (ref)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'vertexDeclaration' " << ref;
+			}
+			entry.second = nullptr;
+		}
 	}
 
 	// Release fixup vertex shader

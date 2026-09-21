@@ -6,6 +6,8 @@
 
 #include "IDirect3DTypesDefault.h"
 
+#define CLAMP(val,zmin,zmax) (max((zmin),min((zmax),(val))))
+
 #define D3DSTATE D3DSTATE7
 
 #define D3DRENDERSTATE_NONE (D3DRENDERSTATETYPE)0
@@ -14,6 +16,7 @@
 #define D3DDP_DXW_SCALEMATRIX           0x00000020l
 #define D3DDP_DXW_COLORKEYENABLE        0x00000040l
 #define D3DDP_DXW_ALPHACOLORKEY         0x00000080l
+#define D3DDP_DXW_VERTEXFIXUPSHADER     0x00000100l
 
 #define D3DDEVICEDESC1_SIZE 172
 #define D3DDEVICEDESC5_SIZE 204
@@ -367,23 +370,6 @@ struct LightingState
     D3DFVF_TEXCOUNT_MASK | \
     D3DFVF_TEXCOORDSIZE_ALL)
 
-constexpr D3DVERTEXELEMENT9 LVertexDecl[] =
-{
-    { 0,  0, D3DDECLTYPE_FLOAT3,  D3DDECLMETHOD_DEFAULT,
-         D3DDECLUSAGE_POSITION, 0 },
-
-    { 0, 16, D3DDECLTYPE_D3DCOLOR, D3DDECLMETHOD_DEFAULT,
-         D3DDECLUSAGE_COLOR, 0 },
-
-    { 0, 20, D3DDECLTYPE_D3DCOLOR, D3DDECLMETHOD_DEFAULT,
-         D3DDECLUSAGE_COLOR, 1 },
-
-    { 0, 24, D3DDECLTYPE_FLOAT2, D3DDECLMETHOD_DEFAULT,
-         D3DDECLUSAGE_TEXCOORD, 0 },
-
-    D3DDECL_END()
-};
-
 struct XYZ
 {
     float x, y, z;
@@ -536,12 +522,6 @@ inline UINT GetTransformStateIndex(D3DTRANSFORMSTATETYPE State)
     }
 }
 
-#define CLAMP(val,zmin,zmax) (max((zmin),min((zmax),(val))))
-
-// Clamp rhw values
-const float max_rhw = static_cast<float>(1u << 31);
-const float min_rhw = 1.0f / max_rhw;
-
 inline bool IsRectZero(const D3DRECT& r)
 {
     return r.x1 == 0 && r.y1 == 0 && r.x2 == 0 && r.y2 == 0;
@@ -569,7 +549,7 @@ bool IsValid3DDeviceGUID(REFCLSID rclsid);
 void ConvertLVertex(DXLVERTEX7* lFVF7, const DXLVERTEX9* lFVF9, DWORD NumVertices);
 void ConvertLVertex(DXLVERTEX9* lFVF9, const DXLVERTEX7* lFVF7, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
-void ClampVertices(BYTE* pVertexData, DWORD Stride, DWORD dwNumVertices);
+std::vector<D3DVERTEXELEMENT9> CreateVertexDeclarationFromFVF(DWORD fvf);
 DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType);
 bool IsValidFVF(DWORD dwVertexTypeDesc);
 UINT GetBlendCount(DWORD dwVertexTypeDesc);

@@ -720,7 +720,7 @@ HRESULT m_IDirect3DVertexBufferX::CreateD3D9VertexBuffer()
 		return DDERR_GENERIC;
 	}
 
-	IsVBEmulated = (Config.DdrawClampVertexZDepth && (VB.Desc.dwFVF & D3DFVF_XYZRHW));
+	IsVBEmulated = false;	// Just set to false for now
 
 	VB.Stride = GetVertexStride(VB.Desc.dwFVF);
 	VB.Size = VB.Stride * VB.Desc.dwNumVertices;
@@ -791,9 +791,7 @@ void m_IDirect3DVertexBufferX::CopyBufferFromEmulatedMem(BYTE* pVertexData)
 		return;
 	}
 
-	const bool ShouldClampZ = (Config.DdrawClampVertexZDepth && (VB.Desc.dwFVF & D3DFVF_XYZRHW));
-
-	if (!IsVBEmulated && !ShouldClampZ)
+	if (!IsVBEmulated)
 	{
 		return;
 	}
@@ -802,18 +800,11 @@ void m_IDirect3DVertexBufferX::CopyBufferFromEmulatedMem(BYTE* pVertexData)
 	{
 		memcpy(pVertexData, VertexData.data(), VB.Size);
 	}
-
-	if (ShouldClampZ)
-	{
-		ClampVertices(pVertexData, VB.Stride, VB.Desc.dwNumVertices);
-	}
 }
 
 HRESULT m_IDirect3DVertexBufferX::CopyBufferToEmulatedMem(DWORD dwDestIndex, DWORD dwCount)
 {
-	const bool ShouldClampZ = (Config.DdrawClampVertexZDepth && (VB.Desc.dwFVF & D3DFVF_XYZRHW));
-
-	if (!IsVBEmulated && !ShouldClampZ)
+	if (!IsVBEmulated)
 	{
 		return D3D_OK;
 	}
@@ -821,7 +812,7 @@ HRESULT m_IDirect3DVertexBufferX::CopyBufferToEmulatedMem(DWORD dwDestIndex, DWO
 	const DWORD Offset9 = dwDestIndex * VB.Stride;
 	const DWORD Size = dwCount * VB.Stride;
 
-	const DWORD Flags = (!ShouldClampZ ? D3DLOCK_READONLY : 0) | (Config.DdrawNoDrawBufferSysLock ? D3DLOCK_NOSYSLOCK : 0);
+	const DWORD Flags = D3DLOCK_READONLY | (Config.DdrawNoDrawBufferSysLock ? D3DLOCK_NOSYSLOCK : 0);
 
 	BYTE* pVertexData = nullptr;
 	HRESULT hr = d3d9VertexBuffer->Lock(Offset9, Size, (void**)&pVertexData, Flags);
@@ -842,11 +833,6 @@ HRESULT m_IDirect3DVertexBufferX::CopyBufferToEmulatedMem(DWORD dwDestIndex, DWO
 		BYTE* pEmulatedData = VertexData.data() + dwDestIndex * VB.Stride;
 
 		memcpy(pEmulatedData, pVertexData, Size);
-	}
-
-	if (ShouldClampZ)
-	{
-		ClampVertices(pVertexData, VB.Stride, dwCount);
 	}
 
 	d3d9VertexBuffer->Unlock();

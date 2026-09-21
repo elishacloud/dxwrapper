@@ -43,7 +43,6 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DdrawAllowMultiSampling) \
 	visit(DdrawAlternatePixelCenter) \
 	visit(DdrawAutoFrameSkip) \
-	visit(DdrawClampVertexZDepth) \
 	visit(DdrawClippedWidth) \
 	visit(DdrawClippedHeight) \
 	visit(DdrawCustomWidth) \
@@ -273,7 +272,6 @@ struct CONFIG
 	bool DDrawCompatNoProcAffinity = false;		// Disables DDrawCompat single processor affinity
 	bool DdrawAllowMultiSampling = false;		// Allows the game to use anti-aliasing if it enables it via the render state
 	bool DdrawAlternatePixelCenter = false;		// Enables alternate pixel center -0.5f vs 0.0
-	DWORD DdrawClampVertexZDepth = 0;			// 1) Clamps z depth to a max of 1.0f, 2) Clamps the z depth between 0.0f and 1.0f and recomputes w/rhw
 	bool DdrawAutoFrameSkip = false;			// Automatically skips frames to reduce input lag
 	DWORD DdrawFixByteAlignment = false;		// Fixes lock with surfaces that have unaligned byte sizes, 1) just byte align, 2) byte align + D3DTEXF_NONE, 3) byte align + D3DTEXF_LINEAR
 	bool DdrawEnableByteAlignment = false;		// Disables 32bit / 64bit byte alignment

@@ -797,132 +797,109 @@ bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState)
 	}
 }
 
-const int o0_0f = 0x00000000; // float(0.0f) as int
-const int o1_0f = 0x3F800000; // float(1.0f) as int
-
-struct XYZ_16 { float x; float y; union { float z; int z_i; }; union { float rhw; int rhw_i; }; };
-
-#define DEFINE_XYZ_STRUCT(size) \
-	struct XYZ_##size { float x; float y; union { float z; int z_i; }; union { float rhw; int rhw_i; }; float a[((size - 16) / 4)]; };
-
-DEFINE_XYZ_STRUCT(20)
-DEFINE_XYZ_STRUCT(24)
-DEFINE_XYZ_STRUCT(28)
-DEFINE_XYZ_STRUCT(32)
-DEFINE_XYZ_STRUCT(36)
-DEFINE_XYZ_STRUCT(40)
-DEFINE_XYZ_STRUCT(44)
-DEFINE_XYZ_STRUCT(48)
-DEFINE_XYZ_STRUCT(52)
-DEFINE_XYZ_STRUCT(56)
-DEFINE_XYZ_STRUCT(60)
-DEFINE_XYZ_STRUCT(64)
-DEFINE_XYZ_STRUCT(68)
-DEFINE_XYZ_STRUCT(72)
-DEFINE_XYZ_STRUCT(76)
-DEFINE_XYZ_STRUCT(80)
-DEFINE_XYZ_STRUCT(84)
-DEFINE_XYZ_STRUCT(88)
-DEFINE_XYZ_STRUCT(92)
-DEFINE_XYZ_STRUCT(96)
-DEFINE_XYZ_STRUCT(100)
-DEFINE_XYZ_STRUCT(104)
-DEFINE_XYZ_STRUCT(108)
-DEFINE_XYZ_STRUCT(112)
-DEFINE_XYZ_STRUCT(116)
-DEFINE_XYZ_STRUCT(120)
-DEFINE_XYZ_STRUCT(124)
-DEFINE_XYZ_STRUCT(128)
-DEFINE_XYZ_STRUCT(132)
-DEFINE_XYZ_STRUCT(136)
-DEFINE_XYZ_STRUCT(140)
-DEFINE_XYZ_STRUCT(144)
-DEFINE_XYZ_STRUCT(148)
-DEFINE_XYZ_STRUCT(152)
-
-template <typename T>
-void ClampVerticesX(T* pVertex, DWORD dwNumVertices)
+std::vector<D3DVERTEXELEMENT9> CreateVertexDeclarationFromFVF(DWORD fvf)
 {
-	switch (Config.DdrawClampVertexZDepth)
+	std::vector<D3DVERTEXELEMENT9> elements;
+
+	WORD offset = 0;
+
+	auto Add = [&](BYTE type, BYTE usage, BYTE usageIndex)
 	{
-	default:
-	case 1:
-		for (DWORD x = 0; x < dwNumVertices; x++)
+		D3DVERTEXELEMENT9 element = {};
+		element.Stream = 0;
+		element.Offset = offset;
+		element.Type = type;
+		element.Method = D3DDECLMETHOD_DEFAULT;
+		element.Usage = usage;
+		element.UsageIndex = usageIndex;
+
+		elements.push_back(element);
+
+		switch (type)
 		{
-			pVertex[x].z_i = min(pVertex[x].z_i, o1_0f);
+		case D3DDECLTYPE_FLOAT1:   offset += 4;  break;
+		case D3DDECLTYPE_FLOAT2:   offset += 8;  break;
+		case D3DDECLTYPE_FLOAT3:   offset += 12; break;
+		case D3DDECLTYPE_FLOAT4:   offset += 16; break;
+		case D3DDECLTYPE_D3DCOLOR: offset += 4;  break;
 		}
-		break;
-	case 2:
-		for (DWORD x = 0; x < dwNumVertices; x++)
-		{
-			if (!std::isfinite(pVertex[x].rhw) || pVertex[x].rhw == 0.0f)
-			{
-				pVertex[x].rhw = 1.0f;                 // fix invalid rhw
-			}
-			else if (pVertex[x].rhw)
-			{
-				float tw = 1.0f / pVertex[x].rhw;      // recover tw
-				float tz = pVertex[x].z * tw;          // recover tz
+	};
 
-				tw = CLAMP(tw, min_rhw, max_rhw);      // clamp tw
+	// Position
+	const DWORD positionType = fvf & D3DFVF_POSITION_MASK;
 
-				pVertex[x].z = tz / tw;                // redo z
-				pVertex[x].rhw = 1.0f / tw;            // redo rhw
-			}
-
-			pVertex[x].z_i = CLAMP(pVertex[x].z_i, o0_0f, o1_0f);
-		}
-		break;
-	case 0:
-		break;
+	if (positionType == D3DFVF_XYZRHW)
+	{
+		Add(D3DDECLTYPE_FLOAT4, D3DDECLUSAGE_POSITION, 0);
 	}
-}
-
-void ClampVertices(BYTE* pVertexData, DWORD Stride, DWORD dwNumVertices)
-{
-#ifdef ENABLE_PROFILING
-	Logging::Log() << __FUNCTION__ << " Warning: clamping vertices may cause slowdowns!";
-#endif
-
-	if (Stride == 16) ClampVerticesX(reinterpret_cast<XYZ_16*>(pVertexData), dwNumVertices);
-	else if (Stride == 20) ClampVerticesX(reinterpret_cast<XYZ_20*>(pVertexData), dwNumVertices);
-	else if (Stride == 24) ClampVerticesX(reinterpret_cast<XYZ_24*>(pVertexData), dwNumVertices);
-	else if (Stride == 28) ClampVerticesX(reinterpret_cast<XYZ_28*>(pVertexData), dwNumVertices);
-	else if (Stride == 32) ClampVerticesX(reinterpret_cast<XYZ_32*>(pVertexData), dwNumVertices);
-	else if (Stride == 36) ClampVerticesX(reinterpret_cast<XYZ_36*>(pVertexData), dwNumVertices);
-	else if (Stride == 40) ClampVerticesX(reinterpret_cast<XYZ_40*>(pVertexData), dwNumVertices);
-	else if (Stride == 44) ClampVerticesX(reinterpret_cast<XYZ_44*>(pVertexData), dwNumVertices);
-	else if (Stride == 48) ClampVerticesX(reinterpret_cast<XYZ_48*>(pVertexData), dwNumVertices);
-	else if (Stride == 52) ClampVerticesX(reinterpret_cast<XYZ_52*>(pVertexData), dwNumVertices);
-	else if (Stride == 56) ClampVerticesX(reinterpret_cast<XYZ_56*>(pVertexData), dwNumVertices);
-	else if (Stride == 60) ClampVerticesX(reinterpret_cast<XYZ_60*>(pVertexData), dwNumVertices);
-	else if (Stride == 64) ClampVerticesX(reinterpret_cast<XYZ_64*>(pVertexData), dwNumVertices);
-	else if (Stride == 68) ClampVerticesX(reinterpret_cast<XYZ_68*>(pVertexData), dwNumVertices);
-	else if (Stride == 72) ClampVerticesX(reinterpret_cast<XYZ_72*>(pVertexData), dwNumVertices);
-	else if (Stride == 76) ClampVerticesX(reinterpret_cast<XYZ_76*>(pVertexData), dwNumVertices);
-	else if (Stride == 80) ClampVerticesX(reinterpret_cast<XYZ_80*>(pVertexData), dwNumVertices);
-	else if (Stride == 84) ClampVerticesX(reinterpret_cast<XYZ_84*>(pVertexData), dwNumVertices);
-	else if (Stride == 88) ClampVerticesX(reinterpret_cast<XYZ_88*>(pVertexData), dwNumVertices);
-	else if (Stride == 92) ClampVerticesX(reinterpret_cast<XYZ_92*>(pVertexData), dwNumVertices);
-	else if (Stride == 96) ClampVerticesX(reinterpret_cast<XYZ_96*>(pVertexData), dwNumVertices);
-	else if (Stride == 100) ClampVerticesX(reinterpret_cast<XYZ_100*>(pVertexData), dwNumVertices);
-	else if (Stride == 104) ClampVerticesX(reinterpret_cast<XYZ_104*>(pVertexData), dwNumVertices);
-	else if (Stride == 108) ClampVerticesX(reinterpret_cast<XYZ_108*>(pVertexData), dwNumVertices);
-	else if (Stride == 112) ClampVerticesX(reinterpret_cast<XYZ_112*>(pVertexData), dwNumVertices);
-	else if (Stride == 116) ClampVerticesX(reinterpret_cast<XYZ_116*>(pVertexData), dwNumVertices);
-	else if (Stride == 120) ClampVerticesX(reinterpret_cast<XYZ_120*>(pVertexData), dwNumVertices);
-	else if (Stride == 124) ClampVerticesX(reinterpret_cast<XYZ_124*>(pVertexData), dwNumVertices);
-	else if (Stride == 128) ClampVerticesX(reinterpret_cast<XYZ_128*>(pVertexData), dwNumVertices);
-	else if (Stride == 132) ClampVerticesX(reinterpret_cast<XYZ_132*>(pVertexData), dwNumVertices);
-	else if (Stride == 136) ClampVerticesX(reinterpret_cast<XYZ_136*>(pVertexData), dwNumVertices);
-	else if (Stride == 140) ClampVerticesX(reinterpret_cast<XYZ_140*>(pVertexData), dwNumVertices);
-	else if (Stride == 144) ClampVerticesX(reinterpret_cast<XYZ_144*>(pVertexData), dwNumVertices);
-	else if (Stride == 148) ClampVerticesX(reinterpret_cast<XYZ_148*>(pVertexData), dwNumVertices);
-	else if (Stride == 152) ClampVerticesX(reinterpret_cast<XYZ_152*>(pVertexData), dwNumVertices);
+	else if (positionType == D3DFVF_XYZ)
+	{
+		Add(D3DDECLTYPE_FLOAT3, D3DDECLUSAGE_POSITION, 0);
+	}
 	else
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Vertex buffer stride not supported: " << Stride);
+		return {};
 	}
+
+	// Normal
+	if (fvf & D3DFVF_NORMAL)
+	{
+		Add(D3DDECLTYPE_FLOAT3, D3DDECLUSAGE_NORMAL, 0);
+	}
+
+	// D3DFVF_RESERVED1 represents a 4-byte legacy vertex field
+	if (fvf & D3DFVF_RESERVED1)
+	{
+		offset += sizeof(DWORD);
+	}
+
+	// Diffuse
+	if (fvf & D3DFVF_DIFFUSE)
+	{
+		Add(D3DDECLTYPE_D3DCOLOR, D3DDECLUSAGE_COLOR, 0);
+	}
+
+	// Specular
+	if (fvf & D3DFVF_SPECULAR)
+	{
+		Add(D3DDECLTYPE_D3DCOLOR, D3DDECLUSAGE_COLOR, 1);
+	}
+
+	// Texture coordinates
+	const DWORD texCount = (fvf & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+
+	for (DWORD i = 0; i < texCount; ++i)
+	{
+		DWORD texSize = 2;
+
+		const DWORD corSize = fvf & D3DFVF_TEXCOORDSIZE4(i);
+
+		if (corSize == D3DFVF_TEXCOORDSIZE1(i))
+		{
+			texSize = 1;
+		}
+		else if (corSize == D3DFVF_TEXCOORDSIZE2(i))
+		{
+			texSize = 2;
+		}
+		else if (corSize == D3DFVF_TEXCOORDSIZE3(i))
+		{
+			texSize = 3;
+		}
+		else if (corSize == D3DFVF_TEXCOORDSIZE4(i))
+		{
+			texSize = 4;
+		}
+
+		Add(
+			static_cast<BYTE>(D3DDECLTYPE_FLOAT1 + texSize - 1),
+			D3DDECLUSAGE_TEXCOORD,
+			static_cast<BYTE>(i));
+	}
+
+	elements.push_back(D3DDECL_END());
+
+	return elements;
 }
 
 DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType)
@@ -1329,11 +1306,6 @@ HRESULT InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>
 			cursor += texStride[t];
 			texCursor[t] += sd.textureCoords[t].dwStride;
 		}
-	}
-
-	if (Config.DdrawClampVertexZDepth && (dwVertexTypeDesc & D3DFVF_XYZRHW))
-	{
-		ClampVertices(outputBuffer.data(), Stride, dwNumVertices);
 	}
 
 	return D3D_OK;
