@@ -21,18 +21,13 @@ private:
 
 	// Vertex buffer desc
 	struct {
+		D3DFORMAT Format = D3DFMT_UNKNOWN;
+		DWORD Usage = 0;
+		D3DPOOL Pool = D3DPOOL_DEFAULT;
 		D3DVERTEXBUFFERDESC Desc = {};
 		DWORD Stride = 0;
 		DWORD Size = 0;
 	} VB;
-	struct {
-		D3DFORMAT Format = D3DFMT_UNKNOWN;
-		DWORD Usage = 0;
-		D3DPOOL Pool = D3DPOOL_DEFAULT;
-		DWORD FVF = 0;
-		DWORD Stride = 0;
-		UINT Size = 0;
-	} VB9;
 
 	// Vector buffer data
 	std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexData;
@@ -146,5 +141,5 @@ public:
 	void ClearD3D() { D3DInterface = nullptr; }
 	void ReleaseD9Buffer(bool BackupData, bool ResetBuffer);
 
-	DWORD GetFVF9() const { return VB9.FVF; };
+	DWORD GetFVF() const { return VB.Desc.dwFVF; };
 };

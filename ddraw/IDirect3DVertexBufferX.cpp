@@ -169,7 +169,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 		// DDLOCK_WAIT and DDLOCK_WRITEONLY can be ignored safely
 
 		// If using write only and discard than discard is ignored
-		dwFlags = (dwFlags & DDLOCK_WRITEONLY) || (VB9.Usage & D3DUSAGE_WRITEONLY) ? (dwFlags & ~DDLOCK_DISCARDCONTENTS) : dwFlags;
+		dwFlags = (dwFlags & DDLOCK_WRITEONLY) || (VB.Usage & D3DUSAGE_WRITEONLY) ? (dwFlags & ~DDLOCK_DISCARDCONTENTS) : dwFlags;
 
 		// If using read only and not write only
 		dwFlags = (dwFlags & DDLOCK_READONLY) && !(dwFlags & DDLOCK_WRITEONLY) ? dwFlags : (dwFlags & ~(DDLOCK_READONLY | DDLOCK_WRITEONLY));
@@ -178,7 +178,7 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 			((dwFlags & (DDLOCK_READONLY | DDLOCK_DISCARDCONTENTS | DDLOCK_NOSYSLOCK)) |
 				(IsVBEmulated || (Config.DdrawVertexLockDiscard && !(dwFlags & DDLOCK_READONLY)) ? D3DLOCK_DISCARD : NULL) |
 				(Config.DdrawNoDrawBufferSysLock ? D3DLOCK_NOSYSLOCK : NULL)) &
-			~(VB9.Pool == D3DPOOL_MANAGED ? DDLOCK_DISCARDCONTENTS : 0);
+			~(VB.Pool == D3DPOOL_MANAGED ? DDLOCK_DISCARDCONTENTS : 0);
 
 		// Handle emulated readonly
 		if (IsVBEmulated && (Flags & D3DLOCK_READONLY))
@@ -328,7 +328,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		}
 
 		// Get FVF
-		const DWORD SrcFVF = pSrcVertexBufferX->VB9.FVF;
+		const DWORD SrcFVF = pSrcVertexBufferX->VB.Desc.dwFVF;
 
 		// Validate destination range
 		const DWORD DestNumVertices = VB.Desc.dwNumVertices;
@@ -519,7 +519,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 		}
 
 		// Get FVF
-		const DWORD DestFVF = VB9.FVF;
+		const DWORD DestFVF = VB.Desc.dwFVF;
 
 		// Validate destination range
 		const DWORD DestNumVertices = VB.Desc.dwNumVertices;
@@ -720,28 +720,26 @@ HRESULT m_IDirect3DVertexBufferX::CreateD3D9VertexBuffer()
 		return DDERR_GENERIC;
 	}
 
-	IsVBEmulated = (VB.Desc.dwFVF == D3DFVF_LVERTEX) || (Config.DdrawClampVertexZDepth && (VB.Desc.dwFVF && D3DFVF_XYZRHW));
-
-	VB9.FVF = (VB.Desc.dwFVF == D3DFVF_LVERTEX) ? D3DFVF_LVERTEX9 : VB.Desc.dwFVF;
-	VB9.Stride = GetVertexStride(VB9.FVF);
-	VB9.Size = VB9.Stride * VB.Desc.dwNumVertices;
-	VB9.Pool = (VB.Desc.dwCaps & D3DVBCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
-	VB9.Usage =
-		(VB9.Pool != D3DPOOL_MANAGED ? D3DUSAGE_DYNAMIC : 0) |
-		((VB.Desc.dwCaps & D3DVBCAPS_WRITEONLY) || IsVBEmulated ? D3DUSAGE_WRITEONLY : 0) |
-		((VB.Desc.dwCaps & D3DVBCAPS_DONOTCLIP) ? D3DUSAGE_DONOTCLIP : 0);
-
-	HRESULT hr = (*d3d9Device)->CreateVertexBuffer(VB9.Size, VB9.Usage, VB9.FVF, VB9.Pool, &d3d9VertexBuffer, nullptr);
-	if (FAILED(hr))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create vertex buffer: " << (D3DERR)hr <<
-			" Size: " << VB9.Size << " Usage: " << Logging::hex(VB9.Usage) << " FVF: " << Logging::hex(VB9.FVF) <<
-			" Pool: " << Logging::hex(VB9.Pool) << VB.Desc);
-		return DDERR_GENERIC;
-	}
+	IsVBEmulated = (Config.DdrawClampVertexZDepth && (VB.Desc.dwFVF & D3DFVF_XYZRHW));
 
 	VB.Stride = GetVertexStride(VB.Desc.dwFVF);
 	VB.Size = VB.Stride * VB.Desc.dwNumVertices;
+	VB.Pool = (VB.Desc.dwCaps & D3DVBCAPS_SYSTEMMEMORY) ? D3DPOOL_SYSTEMMEM : D3DPOOL_MANAGED;
+	VB.Usage =
+		(VB.Pool != D3DPOOL_MANAGED ? D3DUSAGE_DYNAMIC : 0) |
+		((VB.Desc.dwCaps & D3DVBCAPS_WRITEONLY) || IsVBEmulated ? D3DUSAGE_WRITEONLY : 0) |
+		((VB.Desc.dwCaps & D3DVBCAPS_DONOTCLIP) ? D3DUSAGE_DONOTCLIP : 0);
+
+	const DWORD FVF = (VB.Desc.dwFVF & D3DFVF_RESERVED1) ? 0 : VB.Desc.dwFVF;
+
+	HRESULT hr = (*d3d9Device)->CreateVertexBuffer(VB.Size, VB.Usage, FVF, VB.Pool, &d3d9VertexBuffer, nullptr);
+	if (FAILED(hr))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create vertex buffer: " << (D3DERR)hr <<
+			" Size: " << VB.Size << " Usage: " << Logging::hex(VB.Usage) << " FVF: " << Logging::hex(FVF) <<
+			" Pool: " << Logging::hex(VB.Pool) << VB.Desc);
+		return DDERR_GENERIC;
+	}
 
 	if (IsVBEmulated)
 	{
@@ -775,12 +773,12 @@ void m_IDirect3DVertexBufferX::ReleaseD3D9VertexBuffer()
 
 void m_IDirect3DVertexBufferX::ReleaseD9Buffer(bool BackupData, bool ResetBuffer)
 {
-	if (BackupData && VB.Desc.dwFVF != D3DFVF_LVERTEX)
+	if (BackupData)
 	{
 		// ToDo: backup vertex buffer data
 	}
 
-	if (!ResetBuffer || VB9.Pool == D3DPOOL_DEFAULT)
+	if (!ResetBuffer || VB.Pool == D3DPOOL_DEFAULT)
 	{
 		ReleaseD3D9VertexBuffer();
 	}
@@ -793,7 +791,7 @@ void m_IDirect3DVertexBufferX::CopyBufferFromEmulatedMem(BYTE* pVertexData)
 		return;
 	}
 
-	const bool ShouldClampZ = (Config.DdrawClampVertexZDepth && (VB9.FVF & D3DFVF_XYZRHW));
+	const bool ShouldClampZ = (Config.DdrawClampVertexZDepth && (VB.Desc.dwFVF & D3DFVF_XYZRHW));
 
 	if (!IsVBEmulated && !ShouldClampZ)
 	{
@@ -802,35 +800,26 @@ void m_IDirect3DVertexBufferX::CopyBufferFromEmulatedMem(BYTE* pVertexData)
 
 	if (IsVBEmulated)
 	{
-		if (VB.Desc.dwFVF == D3DFVF_LVERTEX)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: converting vertex buffer, may cause slowdowns!");
-
-			ConvertLVertex((DXLVERTEX9*)pVertexData, (DXLVERTEX7*)VertexData.data(), VB.Desc.dwNumVertices);
-		}
-		else
-		{
-			memcpy(pVertexData, VertexData.data(), VB.Size);
-		}
+		memcpy(pVertexData, VertexData.data(), VB.Size);
 	}
 
 	if (ShouldClampZ)
 	{
-		ClampVertices(pVertexData, VB9.Stride, VB.Desc.dwNumVertices);
+		ClampVertices(pVertexData, VB.Stride, VB.Desc.dwNumVertices);
 	}
 }
 
 HRESULT m_IDirect3DVertexBufferX::CopyBufferToEmulatedMem(DWORD dwDestIndex, DWORD dwCount)
 {
-	const bool ShouldClampZ = (Config.DdrawClampVertexZDepth && (VB9.FVF & D3DFVF_XYZRHW));
+	const bool ShouldClampZ = (Config.DdrawClampVertexZDepth && (VB.Desc.dwFVF & D3DFVF_XYZRHW));
 
 	if (!IsVBEmulated && !ShouldClampZ)
 	{
 		return D3D_OK;
 	}
 
-	const DWORD Offset9 = dwDestIndex * VB9.Stride;
-	const DWORD Size = dwCount * VB9.Stride;
+	const DWORD Offset9 = dwDestIndex * VB.Stride;
+	const DWORD Size = dwCount * VB.Stride;
 
 	const DWORD Flags = (!ShouldClampZ ? D3DLOCK_READONLY : 0) | (Config.DdrawNoDrawBufferSysLock ? D3DLOCK_NOSYSLOCK : 0);
 
@@ -852,21 +841,12 @@ HRESULT m_IDirect3DVertexBufferX::CopyBufferToEmulatedMem(DWORD dwDestIndex, DWO
 	{
 		BYTE* pEmulatedData = VertexData.data() + dwDestIndex * VB.Stride;
 
-		if (VB.Desc.dwFVF == D3DFVF_LVERTEX)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: converting vertex buffer, may cause slowdowns!");
-
-			ConvertLVertex((DXLVERTEX7*)pEmulatedData, (DXLVERTEX9*)pVertexData, dwCount);
-		}
-		else
-		{
-			memcpy(pEmulatedData, pVertexData, Size);
-		}
+		memcpy(pEmulatedData, pVertexData, Size);
 	}
 
 	if (ShouldClampZ)
 	{
-		ClampVertices(pVertexData, VB9.Stride, dwCount);
+		ClampVertices(pVertexData, VB.Stride, dwCount);
 	}
 
 	d3d9VertexBuffer->Unlock();

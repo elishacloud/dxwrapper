@@ -3001,10 +3001,9 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		// Update vertices for Direct3D9 (needs to be first)
 		UpdateVertices(dwVertexTypeDesc, lpVertices, 0, dwVertexCount);
 
-		// Set fixed function vertex type
-		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
+		// Set vertex type
+		if (FAILED(SetVertexType(dwVertexTypeDesc)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -3094,10 +3093,9 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		// Update vertices for Direct3D9 (needs to be first)
 		UpdateVertices(dwVertexTypeDesc, lpVertices, 0, dwVertexCount);
 
-		// Set fixed function vertex type
-		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
+		// Set vertex type
+		if (FAILED(SetVertexType(dwVertexTypeDesc)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -3288,9 +3286,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
-		// Update vertex desc type (FVF) before interleaving
-		dwVertexTypeDesc = dwVertexTypeDesc == D3DFVF_LVERTEX ? D3DFVF_LVERTEX9 : dwVertexTypeDesc;
-
 		// Update vertices for Direct3D9 (needs to be first)
 		if (FAILED(InterleaveStridedVertexData(VertexCache, *lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc)))
 		{
@@ -3298,10 +3293,9 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Set fixed function vertex type
-		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
+		// Set vertex type
+		if (FAILED(SetVertexType(dwVertexTypeDesc)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -3379,9 +3373,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
-		// Update vertex desc type (FVF) before interleaving
-		dwVertexTypeDesc = dwVertexTypeDesc == D3DFVF_LVERTEX ? D3DFVF_LVERTEX9 : dwVertexTypeDesc;
-
 		// Update vertices for Direct3D9 (needs to be first)
 		if (FAILED(InterleaveStridedVertexData(VertexCache, *lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc)))
 		{
@@ -3389,10 +3380,9 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Set fixed function vertex type
-		if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
+		// Set vertex type
+		if (FAILED(SetVertexType(dwVertexTypeDesc)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -3481,20 +3471,19 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 			return DDERR_GENERIC;
 		}
 
-		DWORD FVF = pVertexBufferX->GetFVF9();
+		DWORD dwVertexTypeDesc = pVertexBufferX->GetFVF();
 
-		// Set fixed function vertex type
-		if (FAILED((*d3d9Device)->SetFVF(FVF)))
+		// Set vertex type
+		if (FAILED(SetVertexType(dwVertexTypeDesc)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(FVF));
 			return DDERR_INVALIDPARAMS;
 		}
 
 		// Set stream source
-		(*d3d9Device)->SetStreamSource(0, d3d9VertexBuffer, 0, GetVertexStride(FVF));
+		(*d3d9Device)->SetStreamSource(0, d3d9VertexBuffer, 0, GetVertexStride(dwVertexTypeDesc));
 
 		// Handle dwFlags
-		SetDrawStates(FVF, dwFlags, DirectXVersion);
+		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		// Draw primitive
 		HRESULT hr = (*d3d9Device)->DrawPrimitive(dptPrimitiveType, dwStartVertex, GetNumberOfPrimitives(dptPrimitiveType, dwNumVertices));
@@ -3588,12 +3577,11 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 			return DDERR_GENERIC;
 		}
 
-		DWORD FVF = pVertexBufferX->GetFVF9();
+		DWORD dwVertexTypeDesc = pVertexBufferX->GetFVF();
 
-		// Set fixed function vertex type
-		if (FAILED((*d3d9Device)->SetFVF(FVF)))
+		// Set vertex type
+		if (FAILED(SetVertexType(dwVertexTypeDesc)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(FVF));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -3605,13 +3593,13 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		}
 
 		// Set stream source
-		(*d3d9Device)->SetStreamSource(0, d3d9VertexBuffer, 0, GetVertexStride(FVF));
+		(*d3d9Device)->SetStreamSource(0, d3d9VertexBuffer, 0, GetVertexStride(dwVertexTypeDesc));
 
 		// Set index data
 		(*d3d9Device)->SetIndices(d3d9IndexBuffer);
 
 		// Handle dwFlags
-		SetDrawStates(FVF, dwFlags, DirectXVersion);
+		SetDrawStates(dwVertexTypeDesc, dwFlags, DirectXVersion);
 
 		// Draw primitive
 		HRESULT hr = (*d3d9Device)->DrawIndexedPrimitive(dptPrimitiveType, dwStartVertex, 0, dwNumVertices, 0, GetNumberOfPrimitives(dptPrimitiveType, dwIndexCount));
@@ -6971,15 +6959,22 @@ HRESULT m_IDirect3DDeviceX::ProcessVerticesExecute(UINT VertexCount, void* SrcVe
 {
 	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
-	// Update vertices for Direct3D9 (needs to be first)
-	UpdateVertices(SrcFVF, SrcVertices, 0, VertexCount);
-
 	// FVF
 	DWORD DestFVF = D3DFVF_TLVERTEX;
 
 	// Size
-	UINT SrcVertexSize = (SrcFVF == D3DFVF_LVERTEX9 ? sizeof(DXLVERTEX9) : sizeof(D3DVERTEX)) * VertexCount;
+	UINT SrcVertexSize = sizeof(D3DVERTEX) * VertexCount;
 	UINT DestVertexSize = sizeof(D3DTLVERTEX) * VertexCount;
+
+	// Update vertices for Direct3D9
+	if (SrcFVF == D3DFVF_LVERTEX)
+	{
+		SrcVertexSize = sizeof(D3DLVERTEX9) * VertexCount;
+		VertexCache.resize(SrcVertexSize);
+		ConvertLVertex(reinterpret_cast<DXLVERTEX9*>(VertexCache.data()), reinterpret_cast<DXLVERTEX7*>(SrcVertices), VertexCount);
+		SrcVertices = VertexCache.data();
+		SrcFVF = D3DFVF_LVERTEX9;
+	}
 
 	LPDIRECT3DVERTEXBUFFER9 pSrcBuffer = ddrawParent->GetVertexBuffer(SrcFVF, SrcVertexSize, SrcVertices);
 	if (!pSrcBuffer)
@@ -7066,10 +7061,9 @@ HRESULT m_IDirect3DDeviceX::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, 
 
 	PrepDevice();
 
-	// Set fixed function vertex type
-	if (FAILED((*d3d9Device)->SetFVF(SrcFVF)))
+	// Set vertex type
+	if (FAILED(SetVertexType(SrcFVF)))
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: invalid FVF type: " << Logging::hex(SrcFVF));
 		return DDERR_INVALIDPARAMS;
 	}
 
@@ -7132,19 +7126,38 @@ HRESULT m_IDirect3DDeviceX::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, 
 	return GetReturnResult(hr);
 }
 
-void m_IDirect3DDeviceX::UpdateVertices(DWORD& dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwNumVertices)
+inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc)
 {
 	if (dwVertexTypeDesc == D3DFVF_LVERTEX)
-	{
-		VertexCache.resize((dwVertexStart + dwNumVertices) * sizeof(DXLVERTEX9));
-		ConvertLVertex(reinterpret_cast<DXLVERTEX9*>(VertexCache.data() + (dwVertexStart * sizeof(DXLVERTEX9))),
-			reinterpret_cast<DXLVERTEX7*>((DWORD)lpVertices + (dwVertexStart * sizeof(DXLVERTEX7))),
-			dwNumVertices);
-
-		dwVertexTypeDesc = D3DFVF_LVERTEX9;
-		lpVertices = VertexCache.data();
+	{		
+		IDirect3DVertexDeclaration9* decl = ddrawParent->GetVertexDeclaration();
+		if (!decl)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Could not get vertex declaration!");
+			return DDERR_INVALIDPARAMS;
+		}
+		if (FAILED((*d3d9Device)->SetVertexDeclaration(decl)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Could not set vertex declaration!");
+			return DDERR_INVALIDPARAMS;
+		}
 	}
-	else if (dwVertexTypeDesc & D3DFVF_XYZRHW)
+	else if (dwVertexTypeDesc & D3DFVF_RESERVED1)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: unsupported FVF type using D3DFVF_RESERVED1: " << Logging::hex(dwVertexTypeDesc));
+		return DDERR_INVALIDPARAMS;
+	}
+	else if (FAILED((*d3d9Device)->SetFVF(dwVertexTypeDesc)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid FVF type: " << Logging::hex(dwVertexTypeDesc));
+		return DDERR_INVALIDPARAMS;
+	}
+	return D3D_OK;
+}
+
+void m_IDirect3DDeviceX::UpdateVertices(DWORD dwVertexTypeDesc, LPVOID& lpVertices, DWORD dwVertexStart, DWORD dwNumVertices)
+{
+	if (dwVertexTypeDesc & D3DFVF_XYZRHW)
 	{
 		if (Config.DdrawClampVertexZDepth)
 		{

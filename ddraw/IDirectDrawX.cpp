@@ -126,6 +126,7 @@ namespace {
 	LPDIRECT3DSTATEBLOCK9 DefaultStateBlock = nullptr;
 	LPDIRECT3DTEXTURE9 GammaLUTTexture = nullptr;
 	LPDIRECT3DTEXTURE9 ScreenCopyTexture = nullptr;
+	LPDIRECT3DVERTEXDECLARATION9 vertexDeclaration = nullptr;
 	LPDIRECT3DPIXELSHADER9 palettePixelShader = nullptr;
 	LPDIRECT3DPIXELSHADER9 colorkeyPixelShader = nullptr;
 	LPDIRECT3DPIXELSHADER9 gammaPixelShader = nullptr;
@@ -3175,6 +3176,16 @@ LPDIRECT3DDEVICE9* m_IDirectDrawX::GetDirectD9Device()
 	return &d3d9Device;
 }
 
+LPDIRECT3DVERTEXDECLARATION9 m_IDirectDrawX::GetVertexDeclaration()
+{
+	// Create pixel shader
+	if (d3d9Device && !vertexDeclaration)
+	{
+		d3d9Device->CreateVertexDeclaration(LVertexDecl, &vertexDeclaration);
+	}
+	return vertexDeclaration;
+}
+
 bool m_IDirectDrawX::CreatePalettePixelShader()
 {
 	// Create pixel shaders
@@ -4566,6 +4577,22 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 		{
 			ReleaseD3D9IndexBuffer(entry.Buffer, entry.Size);
 		}
+	}
+
+	// Release vertex declaration
+	if (vertexDeclaration)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 palette pixel shader";
+		if (d3d9Device && ResetInterface)
+		{
+			d3d9Device->SetVertexDeclaration(nullptr);
+		}
+		ULONG ref = vertexDeclaration->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'vertexDeclaration' " << ref;
+		}
+		vertexDeclaration = nullptr;
 	}
 
 	// Release palette pixel shader
