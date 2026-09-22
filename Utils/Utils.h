@@ -74,7 +74,6 @@ namespace Utils
 	void UnloadAllDlls();
 	HMEMORYMODULE LoadMemoryToDLL(LPVOID pMemory, DWORD Size);
 	HMEMORYMODULE LoadResourceToMemory(DWORD ResID);
-	bool IsVulkanModuleLoaded();
 	DWORD ReverseBits(DWORD v);
 	DWORD ComputeRND(DWORD Seed, DWORD Num);
 	void DDrawResolutionHack(HMODULE hD3DIm);

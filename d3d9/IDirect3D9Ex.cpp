@@ -945,15 +945,12 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd, bool IsDirectDrawDevice, bool 
 	bool frameStyleChanged = false;
 
 	// Add border if Vulkan is being used
-	if (IsDirectDrawDevice && (newStyle & WS_POPUP) && !(newStyle & WS_BORDER))
+	if (IsDirectDrawDevice && (newStyle & WS_POPUP) && (newStyle & WS_BORDER) && !(newStyle & (WS_CAPTION | WS_SYSMENU)))
 	{
-		if (Utils::IsVulkanModuleLoaded())
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Vulkan detected adding WS_BORDER");
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: removing WS_BORDER");
 
-			newStyle |= WS_BORDER;
-			frameStyleChanged = true;
-		}
+		newStyle &= ~WS_BORDER;
+		frameStyleChanged = true;
 	}
 
 	// Remove clip children if SetSwapEffectShim is disabled

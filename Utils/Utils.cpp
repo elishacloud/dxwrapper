@@ -1223,29 +1223,6 @@ HMEMORYMODULE Utils::LoadResourceToMemory(DWORD ResID)
 	return nullptr;
 }
 
-bool Utils::IsVulkanModuleLoaded()
-{
-	HMODULE hMods[1024];
-	DWORD cbNeeded;
-	HANDLE hProcess = GetCurrentProcess();
-
-	if (EnumProcessModules(hProcess, hMods, sizeof(hMods), &cbNeeded))
-	{
-		for (DWORD i = 0; i < (cbNeeded / sizeof(HMODULE)); ++i)
-		{
-			char szModName[MAX_PATH] = {};
-			if (GetModuleFileNameExA(hProcess, hMods[i], szModName, sizeof(szModName)))
-			{
-				if (stristr(szModName, "vulkan", MAX_PATH))
-				{
-					return true;
-				}
-			}
-		}
-	}
-	return false;
-}
-
 // Searches the memory
 void *Utils::memmem(const void *l, size_t l_len, const void *s, size_t s_len)
 {
