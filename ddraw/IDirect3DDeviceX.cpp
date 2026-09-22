@@ -7138,7 +7138,7 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 
 		if (pShader && decl)
 		{
-			const float apc = Config.DdrawAlternatePixelCenter ? 0.0f : -0.5f;		// Alternate pixel-center adjustment (should be 0.0f or -0.5f)
+			const float apc = Config.DdrawAlternatePixelCenter ? -0.5f : 0.0f;		// Alternate pixel-center adjustment (should be 0.0f or -0.5f)
 
 			const float sx = 1.0f;		// X scale used for coordinate conversion
 			const float sy = 1.0f;		// Y scale used for coordinate conversion

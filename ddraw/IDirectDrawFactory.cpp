@@ -103,6 +103,8 @@ HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dw
 
 	if (Config.Dd7to9)
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: using DirectDrawFactory for creating DirectDraw! There could be reference count issues.");
+
 		HRESULT hr = dd_DirectDrawCreate(pGUID, ppDirectDraw, pUnkOuter);
 
 		if (SUCCEEDED(hr) && ppDirectDraw)
