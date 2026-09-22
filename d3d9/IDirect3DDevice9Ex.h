@@ -65,7 +65,7 @@ private:
 	std::unordered_set<m_IDirect3DSurface9*> EmulatedSurfaceList;
 
 	StateBlockCache StateBlockTable;
-	StateBlockCache DeletedStateBlocks{ true };
+	StateBlockCache DeletedStateBlocks;
 
 	// FPS display
 	LPD3DXFONT pFont = nullptr;
@@ -362,7 +362,6 @@ public:
 	AddressLookupTableD3d9* GetLookupTable() { return &ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() { return &StateBlockTable; }
 	StateBlockCache* GetDeletedStateBlock() { return &DeletedStateBlocks; }
-	void ClearDeletedStateBlock(m_IDirect3DStateBlock9* StateBlockX);
 	bool GetDeviceMultiSampleFlag() const { return DeviceDetails.DeviceMultiSampleFlag; }
 	D3DMULTISAMPLE_TYPE GetDeviceMultiSampleType() const { return DeviceDetails.DeviceMultiSampleType; }
 	DWORD GetDeviceMultiSampleQuality() const { return DeviceDetails.DeviceMultiSampleQuality; }

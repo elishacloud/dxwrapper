@@ -215,11 +215,6 @@ ULONG m_IDirect3DDevice9Ex::Release()
 				Logging::Log() << __FUNCTION__ << " Warning: StateBlockTable still contains entries: " << StateBlockTable.size();
 			}
 
-			if (DeletedStateBlocks.size())
-			{
-				Logging::Log() << __FUNCTION__ << " Warning: DeletedStateBlocks still contains entries: " << DeletedStateBlocks.size();
-			}
-
 			ShouldDeleteMe = true;
 		}
 	}
@@ -1419,11 +1414,6 @@ HRESULT m_IDirect3DDevice9Ex::CreateStateBlock(THIS_ D3DSTATEBLOCKTYPE Type, IDi
 	{
 		m_IDirect3DStateBlock9* StateBlockX = GetCreateStateBlock(*ppSB);
 
-		if (Config.LimitStateBlocks)
-		{
-			StateBlockTable.AddStateBlock(StateBlockX);
-		}
-
 		*ppSB = StateBlockX;
 
 		return D3D_OK;
@@ -1450,11 +1440,6 @@ HRESULT m_IDirect3DDevice9Ex::EndStateBlock(THIS_ IDirect3DStateBlock9** ppSB)
 	if (SUCCEEDED(hr) && ppSB)
 	{
 		m_IDirect3DStateBlock9* StateBlockX = GetCreateStateBlock(*ppSB);
-
-		if (Config.LimitStateBlocks)
-		{
-			StateBlockTable.AddStateBlock(StateBlockX);
-		}
 
 		*ppSB = StateBlockX;
 	}
@@ -3945,23 +3930,31 @@ m_IDirect3DStateBlock9* m_IDirect3DDevice9Ex::GetCreateStateBlock(IDirect3DState
 	if (!DeletedStateBlocks.empty())
 	{
 		StateBlockX = DeletedStateBlocks.back();
-		DeletedStateBlocks.RemoveStateBlock(StateBlockX);
-
-		StateBlockX->InitInterface(this, IID_IDirect3DStateBlock9, nullptr);
-		StateBlockX->SetProxyAddress(pSB);
+		if (StateBlockX)
+		{
+			DeletedStateBlocks.RemoveStateBlock(StateBlockX);
+			StateBlockX->SetProxyInterface(pSB);
+		}
 	}
-	else
+
+	if (!StateBlockX)
 	{
 		StateBlockX = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(pSB, this, IID_IDirect3DStateBlock9, nullptr);
 	}
 
-	return StateBlockX;
-}
+	// If we exceed the max allowed state blocks, remove the oldest ones
+	if (Config.LimitStateBlocks && StateBlockTable.size() > MAX_STATE_BLOCKS)
+	{
+		m_IDirect3DStateBlock9* oldStateBlock = StateBlockTable.front();
+		if (oldStateBlock)
+		{
+			oldStateBlock->Release();
+		}
+	}
 
-void m_IDirect3DDevice9Ex::ClearDeletedStateBlock(m_IDirect3DStateBlock9* StateBlockX)
-{
-	StateBlockTable.RemoveStateBlock(StateBlockX);
-	DeletedStateBlocks.RemoveStateBlock(StateBlockX);
+	StateBlockTable.AddStateBlock(StateBlockX);
+
+	return StateBlockX;
 }
 
 void m_IDirect3DDevice9Ex::ModeExToMode(D3DDISPLAYMODEEX& ModeEx, D3DDISPLAYMODE& Mode)

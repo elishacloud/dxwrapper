@@ -874,19 +874,19 @@ std::vector<D3DVERTEXELEMENT9> CreateVertexDeclarationFromFVF(DWORD fvf)
 
 		const DWORD corSize = fvf & D3DFVF_TEXCOORDSIZE4(i);
 
-		if (corSize == D3DFVF_TEXCOORDSIZE1(i))
+		if (corSize == (DWORD)D3DFVF_TEXCOORDSIZE1(i))
 		{
 			texSize = 1;
 		}
-		else if (corSize == D3DFVF_TEXCOORDSIZE2(i))
+		else if (corSize == (DWORD)D3DFVF_TEXCOORDSIZE2(i))
 		{
 			texSize = 2;
 		}
-		else if (corSize == D3DFVF_TEXCOORDSIZE3(i))
+		else if (corSize == (DWORD)D3DFVF_TEXCOORDSIZE3(i))
 		{
 			texSize = 3;
 		}
-		else if (corSize == D3DFVF_TEXCOORDSIZE4(i))
+		else if (corSize == (DWORD)D3DFVF_TEXCOORDSIZE4(i))
 		{
 			texSize = 4;
 		}

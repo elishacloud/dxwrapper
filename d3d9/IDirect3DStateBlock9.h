@@ -19,19 +19,6 @@ public:
 	~m_IDirect3DStateBlock9()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
-
-		// Remove from device before deleting device
-		m_pDeviceEx->ClearDeletedStateBlock(this);
-	}
-
-	void SetProxyAddress(LPDIRECT3DSTATEBLOCK9 Interface)
-	{
-		ProxyInterface = Interface;
-
-		if (ProxyInterface)
-		{
-			m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
-		}
 	}
 
 	/*** IUnknown methods ***/
@@ -46,5 +33,6 @@ public:
 
 	// Helper functions
 	LPDIRECT3DSTATEBLOCK9 GetProxyInterface() const { return ProxyInterface; }
+	void SetProxyInterface(LPDIRECT3DSTATEBLOCK9 Interface) { ProxyInterface = Interface; }
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };
