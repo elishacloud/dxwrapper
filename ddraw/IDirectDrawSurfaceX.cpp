@@ -4679,10 +4679,11 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD9DrawTexture()
 	}
 
 	// Create texture
-	if (surface.Texture)
+	if (surface.Texture || surface.Surface)
 	{
-		DWORD Level = IsMipMapAutogen() ? 0 : MaxMipMapLevel + 1;
-		if (FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, Level, surface.Usage, D3DFMT_A8R8G8B8, surface.Pool, &surface.DrawTexture, nullptr)))
+		const DWORD Level = IsMipMapAutogen() ? 0 : MaxMipMapLevel + 1;
+		const D3DPOOL Pool = surface.Pool == D3DPOOL_DEFAULT || surface.Pool == D3DPOOL_MANAGED ? surface.Pool : D3DPOOL_DEFAULT;
+		if (FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, Level, surface.Usage, D3DFMT_A8R8G8B8, Pool, &surface.DrawTexture, nullptr)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create alpha color key texture. Size: " << surface.Width << "x" << surface.Height <<
 				" Format: " << surface.Format << " dwCaps: " << surfaceDesc2.ddsCaps);
@@ -7921,6 +7922,25 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 		}
 
 		// -------------------------------------------------------------------------
+		//  Use DrawPrimitiveUP for copying to a Render Target.
+		// -------------------------------------------------------------------------
+
+		// DrawSurfaceToRenderTarget.
+		if (!IsUsingEmulation() &&
+			CanUseRenderTargetSurface() &&
+			((surface.Usage & D3DUSAGE_RENDERTARGET) || surface.Type == D3DTYPE_RENDERTARGET) &&
+			(pSourceSurface->surface.Type == D3DTYPE_TEXTURE || pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE) &&
+			!(pSourceSurface->surface.Usage & (D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL)))
+		{
+			hr = DrawSurfaceToRenderTarget(pSourceSurface, SrcRect, DestRect, Filter, SrcMipMapLevel, ColorKey, IsColorKey, IsMirrorLeftRight, IsMirrorUpDown);
+
+			if (SUCCEEDED(hr))
+			{
+				break;
+			}
+		}
+
+		// -------------------------------------------------------------------------
 		//  Prepare Render Target shadow surface for copy.
 		// -------------------------------------------------------------------------
 
@@ -8304,6 +8324,262 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	return hr;
 }
 
+inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSurfaceX* pSourceSurface, const RECT& SrcRect, const RECT& DestRect, D3DTEXTUREFILTERTYPE Filter, DWORD SrcMipMapLevel, D3DCOLOR ColorKey, bool IsColorKey, bool IsMirrorLeftRight, bool IsMirrorUpDown)
+{
+	if (!pSourceSurface ||
+		(!(surface.Usage & D3DUSAGE_RENDERTARGET) && surface.Type != D3DTYPE_RENDERTARGET))
+	{
+		return DDERR_UNSUPPORTED;
+	}
+
+	// Get the source texture/surface.
+	IDirect3DSurface9* pDestSurface = Get3DSurface();
+
+	if (!pDestSurface)
+	{
+		return DDERR_GENERIC;
+	}
+
+	// Get render target dimensions.
+	D3DSURFACE_DESC DestDesc = {};
+	if (FAILED(pDestSurface->GetDesc(&DestDesc)))
+	{
+		return DDERR_GENERIC;
+	}
+
+	// The source surface color key must match.
+	if (IsColorKey)
+	{
+		if (!(pSourceSurface->surfaceDesc2.dwFlags & DDSD_CKSRCBLT) || ColorKey != pSourceSurface->surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue)
+		{
+			return DDERR_UNSUPPORTED;
+		}
+	}
+
+	// The source must be usable as a texture.
+	IDirect3DTexture9* pTexture = !IsColorKey && pSourceSurface->surface.Texture ? pSourceSurface->surface.Texture : pSourceSurface->GetD9DrawTexture();
+	if (!pTexture)
+	{
+		return DDERR_UNSUPPORTED;
+	}
+
+	D3DSURFACE_DESC SrcDesc = {};
+	if (FAILED(pTexture->GetLevelDesc(SrcMipMapLevel, &SrcDesc)))
+	{
+		return DDERR_GENERIC;
+	}
+
+	const float SrcWidth = static_cast<float>(SrcDesc.Width);
+	const float SrcHeight = static_cast<float>(SrcDesc.Height);
+
+	// Convert source RECT to texture coordinates.
+	float u0 = SrcRect.left / SrcWidth;
+	float v0 = SrcRect.top / SrcHeight;
+	float u1 = SrcRect.right / SrcWidth;
+	float v1 = SrcRect.bottom / SrcHeight;
+
+	if (IsMirrorLeftRight)
+	{
+		std::swap(u0, u1);
+	}
+
+	if (IsMirrorUpDown)
+	{
+		std::swap(v0, v1);
+	}
+
+	// D3D9 screen-space coordinates.
+	const float x0 = static_cast<float>(DestRect.left) - 0.5f;
+	const float y0 = static_cast<float>(DestRect.top) - 0.5f;
+	const float x1 = static_cast<float>(DestRect.right) - 0.5f;
+	const float y1 = static_cast<float>(DestRect.bottom) - 0.5f;
+
+	struct Vertex
+	{
+		float x, y, z, rhw;
+		DWORD color;
+		float u, v;
+	};
+
+	Vertex Vertices[4] =
+	{
+		{ x0, y0, 0.0f, 1.0f, 0xFFFFFFFF, u0, v0 },
+		{ x1, y0, 0.0f, 1.0f, 0xFFFFFFFF, u1, v0 },
+		{ x0, y1, 0.0f, 1.0f, 0xFFFFFFFF, u0, v1 },
+		{ x1, y1, 0.0f, 1.0f, 0xFFFFFFFF, u1, v1 }
+	};
+
+	// Save the current render target.
+	ComPtr<IDirect3DSurface9> OldRenderTarget;
+	if (FAILED((*d3d9Device)->GetRenderTarget(0, OldRenderTarget.GetAddressOf())))
+	{
+		return DDERR_GENERIC;
+	}
+
+	if (FAILED((*d3d9Device)->SetRenderTarget(0, pDestSurface)))
+	{
+		return DDERR_GENERIC;
+	}
+
+	// Save the current depth stencil.
+	ComPtr<IDirect3DSurface9> OldDepthStencil;
+	HRESULT hr = (*d3d9Device)->GetDepthStencilSurface(OldDepthStencil.GetAddressOf());
+	if (FAILED(hr) && hr != D3DERR_NOTFOUND)
+	{
+		(*d3d9Device)->SetRenderTarget(0, OldRenderTarget.Get());
+		return DDERR_GENERIC;
+	}
+
+	// Disable depth stencil.
+	if (FAILED((*d3d9Device)->SetDepthStencilSurface(nullptr)))
+	{
+		(*d3d9Device)->SetRenderTarget(0, OldRenderTarget.Get());
+		return DDERR_GENERIC;
+	}
+
+	D3DVIEWPORT9 Viewport =
+	{
+		0,
+		0,
+		DestDesc.Width,
+		DestDesc.Height,
+		0.0f,
+		1.0f
+	};
+
+	if (FAILED((*d3d9Device)->SetViewport(&Viewport)))
+	{
+		(*d3d9Device)->SetRenderTarget(0, OldRenderTarget.Get());
+		(*d3d9Device)->SetDepthStencilSurface(OldDepthStencil.Get());
+		return DDERR_GENERIC;
+	}
+
+	// Save the texture stage states that we change.
+	DWORD OldColorOp = 0;
+	DWORD OldColorArg1 = 0;
+	DWORD OldAlphaOp = 0;
+	DWORD OldAlphaArg1 = 0;
+
+	(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLOROP, &OldColorOp);
+	(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLORARG1, &OldColorArg1);
+	(*d3d9Device)->GetTextureStageState(0, D3DTSS_ALPHAOP, &OldAlphaOp);
+	(*d3d9Device)->GetTextureStageState(0, D3DTSS_ALPHAARG1, &OldAlphaArg1);
+
+	// Save the sampler states that we change.
+	DWORD OldMinFilter = 0;
+	DWORD OldMagFilter = 0;
+	DWORD OldMipFilter = 0;
+	DWORD OldAddressU = 0;
+	DWORD OldAddressV = 0;
+
+	(*d3d9Device)->GetSamplerState(0, D3DSAMP_MINFILTER, &OldMinFilter);
+	(*d3d9Device)->GetSamplerState(0, D3DSAMP_MAGFILTER, &OldMagFilter);
+	(*d3d9Device)->GetSamplerState(0, D3DSAMP_MIPFILTER, &OldMipFilter);
+	(*d3d9Device)->GetSamplerState(0, D3DSAMP_ADDRESSU, &OldAddressU);
+	(*d3d9Device)->GetSamplerState(0, D3DSAMP_ADDRESSV, &OldAddressV);
+
+	// Save the render states that we change.
+	DWORD OldLighting = 0;
+	DWORD OldFogEnable = 0;
+	DWORD OldZEnable = 0;
+	DWORD OldZWriteEnable = 0;
+	DWORD OldAlphaBlendEnable = 0;
+	DWORD OldCullMode = 0;
+	DWORD OldAlphaTestEnable = 0;
+	DWORD OldAlphaFunc = 0;
+	DWORD OldAlphaRef = 0;
+
+	(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &OldLighting);
+	(*d3d9Device)->GetRenderState(D3DRS_FOGENABLE, &OldFogEnable);
+	(*d3d9Device)->GetRenderState(D3DRS_ZENABLE, &OldZEnable);
+	(*d3d9Device)->GetRenderState(D3DRS_ZWRITEENABLE, &OldZWriteEnable);
+	(*d3d9Device)->GetRenderState(D3DRS_ALPHABLENDENABLE, &OldAlphaBlendEnable);
+	(*d3d9Device)->GetRenderState(D3DRS_CULLMODE, &OldCullMode);
+	(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &OldAlphaTestEnable);
+	(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &OldAlphaFunc);
+	(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &OldAlphaRef);
+
+	// Set up a simple textured XYZRHW draw.
+	(*d3d9Device)->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE | D3DFVF_TEX1);
+	(*d3d9Device)->SetTexture(0, pTexture);
+
+	(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+	(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+	(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
+	(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, Filter);
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, Filter);
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
+
+	// No lighting, fog, blending, or depth testing for a surface copy.
+	(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE);
+	(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, FALSE);
+	(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, FALSE);
+	(*d3d9Device)->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
+	(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+	(*d3d9Device)->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+	if (IsColorKey)
+	{
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0x01);
+	}
+	else
+	{
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+	}
+
+	PrepareRenderTarget();
+
+	const bool IsInScene = ddrawParent->IsInScene();
+
+	HRESULT hr_s = D3DERR_INVALIDCALL;
+	if (!IsInScene)
+	{
+		hr_s = (*d3d9Device)->BeginScene();
+	}
+
+	hr = (*d3d9Device)->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, Vertices, sizeof(Vertex));
+
+	if (!IsInScene || SUCCEEDED(hr_s))
+	{
+		(*d3d9Device)->EndScene();
+	}
+
+	// Restore texture stage states.
+	(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLOROP, OldColorOp);
+	(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, OldColorArg1);
+	(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, OldAlphaOp);
+	(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, OldAlphaArg1);
+
+	// Restore sampler states.
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, OldMinFilter);
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, OldMagFilter);
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, OldMipFilter);
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_ADDRESSU, OldAddressU);
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_ADDRESSV, OldAddressV);
+
+	// Restore render states.
+	(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, OldLighting);
+	(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, OldFogEnable);
+	(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, OldZEnable);
+	(*d3d9Device)->SetRenderState(D3DRS_ZWRITEENABLE, OldZWriteEnable);
+	(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, OldAlphaBlendEnable);
+	(*d3d9Device)->SetRenderState(D3DRS_CULLMODE, OldCullMode);
+	(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, OldAlphaTestEnable);
+	(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, OldAlphaFunc);
+	(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, OldAlphaRef);
+
+	(*d3d9Device)->SetTexture(0, nullptr);
+	(*d3d9Device)->SetRenderTarget(0, OldRenderTarget.Get());
+	(*d3d9Device)->SetDepthStencilSurface(OldDepthStencil.Get());
+
+	return SUCCEEDED(hr) ? DD_OK : DDERR_GENERIC;
+}
+
 HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, bool DepthFill, DWORD DepthColor)
 {
 	// Check parameters
@@ -8627,7 +8903,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 
 HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect)
 {
-	if (!surface.DrawTexture || !surface.Texture)
+	if (!surface.DrawTexture || (!surface.Texture && !surface.Surface))
 	{
 		return DDERR_GENERIC;
 	}

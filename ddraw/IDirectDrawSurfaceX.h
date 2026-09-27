@@ -373,6 +373,7 @@ private:
 	// Copying surface textures
 	void SetRenderTargetShadow();
 	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, D3DCOLOR ColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel);
+	HRESULT DrawSurfaceToRenderTarget(m_IDirectDrawSurfaceX* pSourceSurface, const RECT& SrcRect, const RECT& DestRect, D3DTEXTUREFILTERTYPE Filter, DWORD SrcMipMapLevel, D3DCOLOR ColorKey, bool IsColorKey, bool IsMirrorLeftRight, bool IsMirrorUpDown);
 	HRESULT CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, bool DepthFill, DWORD DepthColor);
 	HRESULT CopyToDrawTexture(LPRECT lpDestRect);
 	HRESULT LoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSurface, const RECT& Rect, LPCVOID pSrcMemory, D3DFORMAT SrcFormat, UINT SrcPitch);
@@ -622,7 +623,7 @@ public:
 	m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
 	void ClearUsing3DFlag();
 	HRESULT GetPresentWindowRect(LPRECT pRect, RECT& DestRect);
-	CRITICAL_SECTION* GetCriticalSection() { return IsPrimaryOrBackBuffer() || IsRenderTarget() ? DdrawWrapper::GetDDCriticalSection() : &ddscs; }
+	CRITICAL_SECTION* GetCriticalSection() { return IsPrimaryOrBackBuffer() || IsRenderTarget() || IsDepthStencil() ? DdrawWrapper::GetDDCriticalSection() : &ddscs; }
 
 	// For texture loading
 	HRESULT Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDestPoint, LPDIRECTDRAWSURFACE7 lpSrcTex, LPRECT lprcSrcRect, DWORD dwFlags);
