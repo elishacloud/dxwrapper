@@ -7143,6 +7143,9 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 			const float sx = 1.0f;		// X scale used for coordinate conversion
 			const float sy = 1.0f;		// Y scale used for coordinate conversion
 
+			const float x = static_cast<float>(DeviceStates.Viewport.FixedView.X);
+			const float y = static_cast<float>(DeviceStates.Viewport.FixedView.Y);
+
 			const float w = static_cast<float>(DeviceStates.Viewport.FixedView.Width);
 			const float h = static_cast<float>(DeviceStates.Viewport.FixedView.Height);
 
@@ -7153,8 +7156,8 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 			{
 				const float offset[4] =
 				{
-					0.5f + apc - 0.5f / sx - w / 2.0f,
-					0.5f + apc - 0.5f / sy - h / 2.0f,
+					0.5f + apc - 0.5f / sx - w / 2.0f - x,
+					0.5f + apc - 0.5f / sy - h / 2.0f - y,
 					-MinZ,
 					0.0f
 				};
