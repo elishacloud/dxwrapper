@@ -833,25 +833,30 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 				// Determine the color key.
 				// -------------------------------------------------------------
 
-				DDCOLORKEY ColorKey = {};
+				DWORD ColorKey = 0;
+				D3DCOLOR RGBColorKey = 0;
 
 				if (dwFlags & DDBLT_KEYDESTOVERRIDE)
 				{
-					ColorKey = lpDDBltFx->ddckDestColorkey;
+					ColorKey = lpDDBltFx->ddckDestColorkey.dwColorSpaceLowValue;	// ToDo: Does this need to be converted to source format?
+					RGBColorKey = GetARGBColorKey(ColorKey, surfaceDesc2.ddpfPixelFormat);
 				}
 				else if (dwFlags & DDBLT_KEYSRCOVERRIDE)
 				{
-					ColorKey = lpDDBltFx->ddckSrcColorkey;
+					ColorKey = lpDDBltFx->ddckSrcColorkey.dwColorSpaceLowValue;
+					RGBColorKey = GetARGBColorKey(ColorKey, lpDDSrcSurfaceX->surfaceDesc2.ddpfPixelFormat);
 				}
 				else if ((dwFlags & DDBLT_KEYDEST) &&
 					(surfaceDesc2.dwFlags & DDSD_CKDESTBLT))
 				{
-					ColorKey = surfaceDesc2.ddckCKDestBlt;
+					ColorKey = surfaceDesc2.ddckCKDestBlt.dwColorSpaceLowValue;		// ToDo: Does this need to be converted to source format?
+					RGBColorKey = GetARGBColorKey(ColorKey, surfaceDesc2.ddpfPixelFormat);
 				}
 				else if ((dwFlags & DDBLT_KEYSRC) &&
 					(lpDDSrcSurfaceX->surfaceDesc2.dwFlags & DDSD_CKSRCBLT))
 				{
-					ColorKey = lpDDSrcSurfaceX->surfaceDesc2.ddckCKSrcBlt;
+					ColorKey = lpDDSrcSurfaceX->surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue;
+					RGBColorKey = GetARGBColorKey(ColorKey, lpDDSrcSurfaceX->surfaceDesc2.ddpfPixelFormat);
 				}
 				else if (dwFlags & (DDBLT_KEYDEST | DDBLT_KEYSRC))
 				{
@@ -867,7 +872,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 					? D3DTEXF_LINEAR
 					: D3DTEXF_NONE;
 
-				hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, Filter, ColorKey.dwColorSpaceLowValue, CopyFlags, SrcMipMapLevel, MipMapLevel);
+				hr = CopySurface(lpDDSrcSurfaceX, lpSrcRect, lpDestRect, Filter, ColorKey, RGBColorKey, CopyFlags, SrcMipMapLevel, MipMapLevel);
 
 #ifdef ENABLE_PROFILING
 				CopySurfaceFlag = true;
@@ -4666,12 +4671,12 @@ void m_IDirectDrawSurfaceX::Release3DMipMapSurface(LPDIRECT3DSURFACE9 pSurfaceD9
 	}
 }
 
-LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD9DrawTexture()
+LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD9DrawTexture(D3DCOLOR RGBColorKey)
 {
 	// Check if texture already exists
 	if (surface.DrawTexture)
 	{
-		if (surface.IsDrawTextureDirty && FAILED(CopyToDrawTexture(nullptr)))
+		if (surface.IsDrawTextureDirty && FAILED(CopyToDrawTexture(nullptr, RGBColorKey)))
 		{
 			return nullptr;
 		}
@@ -4693,7 +4698,7 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD9DrawTexture()
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: alpha color key texture using MipMaps. MipMap level: " << Level);
 		}
-		if (FAILED(CopyToDrawTexture(nullptr)))
+		if (FAILED(CopyToDrawTexture(nullptr, RGBColorKey)))
 		{
 			return nullptr;
 		}
@@ -7549,7 +7554,7 @@ HRESULT m_IDirectDrawSurfaceX::DuplicateSurfaceContent(LPDIRECTDRAWSURFACE7 lpDD
 	return Blt(nullptr, lpDDSrcSurface, nullptr, 0, nullptr, 0);
 }
 
-HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, D3DCOLOR ColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel)
+inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DWORD ColorKey, D3DCOLOR RGBColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel)
 {
 	// Check parameters
 	if (!pSourceSurface)
@@ -7932,7 +7937,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 			(pSourceSurface->surface.Type == D3DTYPE_TEXTURE || pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE) &&
 			!(pSourceSurface->surface.Usage & (D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL)))
 		{
-			hr = DrawSurfaceToRenderTarget(pSourceSurface, SrcRect, DestRect, Filter, SrcMipMapLevel, ColorKey, IsColorKey, IsMirrorLeftRight, IsMirrorUpDown);
+			hr = DrawSurfaceToRenderTarget(pSourceSurface, SrcRect, DestRect, Filter, SrcMipMapLevel, RGBColorKey, IsColorKey, IsMirrorLeftRight, IsMirrorUpDown);
 
 			if (SUCCEEDED(hr))
 			{
@@ -8324,7 +8329,7 @@ HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSourceSurface
 	return hr;
 }
 
-inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSurfaceX* pSourceSurface, const RECT& SrcRect, const RECT& DestRect, D3DTEXTUREFILTERTYPE Filter, DWORD SrcMipMapLevel, D3DCOLOR ColorKey, bool IsColorKey, bool IsMirrorLeftRight, bool IsMirrorUpDown)
+inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSurfaceX* pSourceSurface, const RECT& SrcRect, const RECT& DestRect, D3DTEXTUREFILTERTYPE Filter, DWORD SrcMipMapLevel, D3DCOLOR RGBColorKey, bool IsColorKey, bool IsMirrorLeftRight, bool IsMirrorUpDown)
 {
 	if (!pSourceSurface ||
 		(!(surface.Usage & D3DUSAGE_RENDERTARGET) && surface.Type != D3DTYPE_RENDERTARGET))
@@ -8347,17 +8352,8 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 		return DDERR_GENERIC;
 	}
 
-	// The source surface color key must match.
-	if (IsColorKey)
-	{
-		if (!(pSourceSurface->surfaceDesc2.dwFlags & DDSD_CKSRCBLT) || ColorKey != pSourceSurface->surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue)
-		{
-			return DDERR_UNSUPPORTED;
-		}
-	}
-
 	// The source must be usable as a texture.
-	IDirect3DTexture9* pTexture = !IsColorKey && pSourceSurface->surface.Texture ? pSourceSurface->surface.Texture : pSourceSurface->GetD9DrawTexture();
+	IDirect3DTexture9* pTexture = !IsColorKey && pSourceSurface->surface.Texture ? pSourceSurface->surface.Texture : pSourceSurface->GetD9DrawTexture(RGBColorKey);
 	if (!pTexture)
 	{
 		return DDERR_UNSUPPORTED;
@@ -8901,7 +8897,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 	return hr;
 }
 
-HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect)
+HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect, D3DCOLOR RGBColorKey)
 {
 	if (!surface.DrawTexture || (!surface.Texture && !surface.Surface))
 	{
@@ -8917,7 +8913,6 @@ HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect)
 	}
 
 	// Get color key
-	DWORD ColorKey = 0;
 	if (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)
 	{
 		if (IsPalette())
@@ -8926,19 +8921,18 @@ HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect)
 			if (surface.PaletteEntryArray)
 			{
 				RGBQUAD PaletteEntry = surface.RGBPaletteArray[surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue & 0xFF];
-				ColorKey = D3DCOLOR_ARGB(PaletteEntry.rgbReserved, PaletteEntry.rgbRed, PaletteEntry.rgbGreen, PaletteEntry.rgbBlue);
+				RGBColorKey = D3DCOLOR_ARGB(PaletteEntry.rgbReserved, PaletteEntry.rgbRed, PaletteEntry.rgbGreen, PaletteEntry.rgbBlue);
 			}
 		}
 		else if (surfaceDesc2.ddpfPixelFormat.dwRGBBitCount)
 		{
-			ColorKey = GetARGBColorKey(surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue, surfaceDesc2.ddpfPixelFormat);
+			RGBColorKey = GetARGBColorKey(surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue, surfaceDesc2.ddpfPixelFormat);
 		}
 	}
 
-	if (FAILED(D3DXLoadSurfaceFromSurface(DestSurface.Get(), nullptr, lpDestRect, SrcSurface, surface.PaletteEntryArray, lpDestRect, D3DX_FILTER_NONE, ColorKey)))
+	if (FAILED(D3DXLoadSurfaceFromSurface(DestSurface.Get(), nullptr, lpDestRect, SrcSurface, surface.PaletteEntryArray, lpDestRect, D3DX_FILTER_NONE, RGBColorKey)))
 	{
-		Logging::Log() << __FUNCTION__ " Error: failed to copy data from surface: " << surface.Format << " " << (void*)ColorKey << " " << lpDestRect;
-
+		Logging::Log() << __FUNCTION__ " Error: failed to copy data from surface: " << surface.Format << " " << (void*)RGBColorKey << " " << lpDestRect;
 		return DDERR_GENERIC;
 	}
 

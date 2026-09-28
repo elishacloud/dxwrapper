@@ -372,10 +372,10 @@ private:
 
 	// Copying surface textures
 	void SetRenderTargetShadow();
-	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, D3DCOLOR ColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel);
-	HRESULT DrawSurfaceToRenderTarget(m_IDirectDrawSurfaceX* pSourceSurface, const RECT& SrcRect, const RECT& DestRect, D3DTEXTUREFILTERTYPE Filter, DWORD SrcMipMapLevel, D3DCOLOR ColorKey, bool IsColorKey, bool IsMirrorLeftRight, bool IsMirrorUpDown);
+	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DWORD ColorKey, D3DCOLOR RGBColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel);
+	HRESULT DrawSurfaceToRenderTarget(m_IDirectDrawSurfaceX* pSourceSurface, const RECT& SrcRect, const RECT& DestRect, D3DTEXTUREFILTERTYPE Filter, DWORD SrcMipMapLevel, D3DCOLOR RGBColorKey, bool IsColorKey, bool IsMirrorLeftRight, bool IsMirrorUpDown);
 	HRESULT CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, bool DepthFill, DWORD DepthColor);
-	HRESULT CopyToDrawTexture(LPRECT lpDestRect);
+	HRESULT CopyToDrawTexture(LPRECT lpDestRect, D3DCOLOR RGBColorKey);
 	HRESULT LoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSurface, const RECT& Rect, LPCVOID pSrcMemory, D3DFORMAT SrcFormat, UINT SrcPitch);
 	HRESULT CopyFromEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyToEmulatedSurface(LPRECT lpDestRect);
@@ -613,7 +613,7 @@ public:
 	}
 	m_IDirectDrawSurfaceX* GetAttachedDepthStencil();
 	LPDIRECT3DSURFACE9 GetD9Surface();
-	LPDIRECT3DTEXTURE9 GetD9DrawTexture();
+	LPDIRECT3DTEXTURE9 GetD9DrawTexture(D3DCOLOR RGBColorKey = 0);
 	LPDIRECT3DTEXTURE9 GetD9Texture(bool InterfaceCheck = true);
 	HRESULT GenerateMipMapLevels();
 	DWORD GetD9Width() const { return surface.Width; }
