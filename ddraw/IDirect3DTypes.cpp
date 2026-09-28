@@ -870,25 +870,22 @@ std::vector<D3DVERTEXELEMENT9> CreateVertexDeclarationFromFVF(DWORD fvf)
 
 	for (DWORD i = 0; i < texCount; ++i)
 	{
-		DWORD texSize = 2;
+		// Two bits describe the size:
+		//
+		// 00 = 0x0 = 2 floats
+		// 01 = 0x1 = 3 floats
+		// 10 = 0x2 = 4 floats
+		// 11 = 0x3 = 1 float
+		const DWORD sizeBits = (fvf >> (16 + i * 2)) & 0x3;
 
-		const DWORD corSize = fvf & D3DFVF_TEXCOORDSIZE4(i);
+		DWORD texSize = 0;
 
-		if (corSize == (DWORD)D3DFVF_TEXCOORDSIZE1(i))
+		switch (sizeBits)
 		{
-			texSize = 1;
-		}
-		else if (corSize == (DWORD)D3DFVF_TEXCOORDSIZE2(i))
-		{
-			texSize = 2;
-		}
-		else if (corSize == (DWORD)D3DFVF_TEXCOORDSIZE3(i))
-		{
-			texSize = 3;
-		}
-		else if (corSize == (DWORD)D3DFVF_TEXCOORDSIZE4(i))
-		{
-			texSize = 4;
+		case 0: texSize = 2; break;
+		case 1: texSize = 3; break;
+		case 2: texSize = 4; break;
+		case 3: texSize = 1; break;
 		}
 
 		Add(
