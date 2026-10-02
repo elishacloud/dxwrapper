@@ -52,6 +52,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DdrawEmulateLock) \
 	visit(DdrawFillSurfaceColor) \
 	visit(DdrawFilterActivateApp) \
+	visit(DdrawFixedFunctionVertex) \
 	visit(DdrawForceMipMapAutoGen) \
 	visit(DdrawFlipFillColor) \
 	visit(DdrawKeepAllInterfaceCache) \
@@ -294,6 +295,7 @@ struct CONFIG
 	bool DdrawLinearTextureFilter = false;		// Uses D3DTEXF_LINEAR filtering when stretching non-paletted images
 	bool DdrawUseNativeResolution = false;		// Uses the current screen resolution for Dd7to9
 	bool DdrawVertexLockDiscard = false;		// Sets the discard flag for vertex Lock
+	bool DdrawFixedFunctionVertex = false;		// Disables vertex shaders
 	DWORD DdrawClippedWidth = 0;				// Used to scaled Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawClippedHeight = 0;				// Used to scaled Direct3d9 to use this height when using Dd7to9
 	DWORD DdrawCustomWidth = 0;					// Custom resolution width for Dd7to9 when using DdrawLimitDisplayModeCount, resolution must be supported by video card and monitor
