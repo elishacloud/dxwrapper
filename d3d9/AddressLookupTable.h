@@ -158,20 +158,29 @@ public:
 			return;
 		}
 
-		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
-
 		IUnknown* identity = GetIndentityInterface<T>(Proxy);
 
-		// Check if the entry already exists in the map
-		auto it = g_map[CacheIndex].find(identity);
-		if (it != g_map[CacheIndex].end())
+		// Check if the ProxyInterface already exists in the map
+		// Direct3D9 sometimes reuses the same address
+		for (UINT i = 0; i < MaxCacheIndex; ++i)
 		{
-			// Save the existing wrapper to a different location
-			if (it->second && it->second != Wrapper)
+			auto it = g_map[i].find(identity);
+			if (it != g_map[i].end())
 			{
-				g_map[CacheIndex][identity + 1] = it->second;
+				// If the wrapper exists then delete the existing wrapper
+				// since the old ProxyInterface is no longer vaid for this wrapper
+				if (it->second != Wrapper)
+				{
+					if (it->second)
+					{
+						delete it->second;
+					}
+					g_map[i].erase(it);
+				}
 			}
 		}
+
+		constexpr UINT CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
 		// Now save the new entry in the map
 		g_map[CacheIndex][identity] = Wrapper;
