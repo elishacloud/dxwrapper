@@ -111,8 +111,6 @@ ULONG m_IDirect3DDevice9Ex::Release()
 
 	// Handle device release
 	{
-		ScopedCriticalSection ThreadLock(&d9cs, Config.AntiAliasing || RequirePresentHandling());
-
 		ULONG UsedRef = GetResourceRefCount();
 
 		LONG EmuRef = InterlockedDecrementIfNotNull(&RefCount);
@@ -917,8 +915,6 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTargetData(THIS_ IDirect3DSurface9* pRend
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ScopedCriticalSection ThreadLock(&d9cs, RequirePresentHandling());
-
 	if (pRenderTarget)
 	{
 		pRenderTarget = static_cast<m_IDirect3DSurface9*>(pRenderTarget)->GetNonMultiSampledSurface(D3DLOCK_READONLY);
@@ -1032,8 +1028,6 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ScopedCriticalSection ThreadLock(&d9cs, RequirePresentHandling());
-
 	m_IDirect3DSurface9* pSurface = static_cast<m_IDirect3DSurface9*>(pRenderTarget);
 
 	if (pRenderTarget)
@@ -1070,8 +1064,6 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDirect3DSurface9** ppRenderTarget)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	ScopedCriticalSection ThreadLock(&d9cs, RequirePresentHandling());
 
 	HRESULT hr = ProxyInterface->GetRenderTarget(RenderTargetIndex, ppRenderTarget);
 
@@ -2579,8 +2571,6 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 
 	if (RequirePresentHandling())
 	{
-		ScopedCriticalSection ThreadLock(&d9cs);
-
 		// Create state block
 		if (pStateBlock || SUCCEEDED(ProxyInterface->CreateStateBlock(D3DSBT_ALL, &pStateBlock)))
 		{
@@ -3670,8 +3660,6 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 	static_assert(std::is_same_v<T, fReset> || std::is_same_v<T, fResetEx>, "ResetT<T>: T must be 'fReset' or 'fResetEx'");
 
 	constexpr bool IsEx = std::is_same_v<T, fResetEx>;
-
-	ScopedCriticalSection ThreadLock(&d9cs, Config.AntiAliasing || RequirePresentHandling());
 
 	// Release extra resources used
 	ReleaseResources(true);

@@ -48,8 +48,6 @@ private:
 
 	DEVICEDETAILS DeviceDetails;
 
-	CRITICAL_SECTION d9cs = {};
-
 	DEVICE_REFCOUNT_CHECKER dref;
 
 	D3DCAPS9 Caps = {};
@@ -201,19 +199,11 @@ public:
 			}
 		}
 
-		if (!InitializeCriticalSectionAndSpinCount(&d9cs, 4000))
-		{
-			Logging::Log() << __FUNCTION__ << " Warning: failed to initialize CriticalSectionAndSpinCount for d9cs.  Failing over to CriticalSection!";
-			InitializeCriticalSection(&d9cs);
-		}
-
 		ReInitInterface();
 	}
 	~m_IDirect3DDevice9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
-
-		DeleteCriticalSection(&d9cs);
 	}
 
 	/*** IUnknown methods ***/
