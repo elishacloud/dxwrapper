@@ -2580,7 +2580,10 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 {
 	bool CalledBeginScene = false;
 
-	if (RequirePresentHandling())
+	const bool DrawSurface = (UsingShadowBackBuffer() || ShouldEnableGammaShader());
+	const bool RequiresDraw = (Config.ShowFPSCounter || DrawSurface);
+
+	if (RequiresDraw)
 	{
 		// Create state block
 		if (pStateBlock || SUCCEEDED(ProxyInterface->CreateStateBlock(D3DSBT_ALL, &pStateBlock)))
@@ -2613,7 +2616,7 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 				}
 
 				// Draw surface to back buffer
-				if (UsingShadowBackBuffer() || ShouldEnableGammaShader())
+				if (DrawSurface)
 				{
 					DrawSurfaceToBackbuffer();
 				}
@@ -2654,9 +2657,6 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 		ProxyInterface->EndScene();
 	}
 	BeginSceneCalled = false;
-
-	// Check FPU state before presenting
-	Utils::ResetInvalidFPUState();
 }
 
 void m_IDirect3DDevice9Ex::ApplyPostPresentFixes()
@@ -2737,11 +2737,6 @@ void m_IDirect3DDevice9Ex::BeforeEndScene()
 		DOverlay.EndScene();
 	}
 #endif
-}
-
-bool m_IDirect3DDevice9Ex::RequirePresentHandling() const
-{
-	return (UsingShadowBackBuffer() || ShouldEnableGammaShader() || Config.ShowFPSCounter);
 }
 
 bool m_IDirect3DDevice9Ex::ShouldEnableGammaShader() const

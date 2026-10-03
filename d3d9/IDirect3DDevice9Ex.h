@@ -137,7 +137,6 @@ private:
 	void AfterBeginScene();
 	void BeforeEndScene();
 
-	inline bool RequirePresentHandling() const;
 	inline bool ShouldEnableGammaShader() const;
 	inline bool UsingShadowBackBuffer(DWORD iSwapChain = 0) const;
 
