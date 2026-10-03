@@ -82,6 +82,7 @@ ULONG m_IDirect3DStateBlock9::Release(THIS)
 	{
 		ProxyInterface = nullptr;
 
+		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
 		m_pDeviceEx->GetStateBlockTable()->RemoveStateBlock(this);
 		m_pDeviceEx->GetDeletedStateBlock()->AddStateBlock(this);
 	}

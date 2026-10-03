@@ -35,7 +35,6 @@ public:
 	LPDIRECT3DSTATEBLOCK9 GetProxyInterface() const { return ProxyInterface; }
 	void SetProxyInterface(LPDIRECT3DSTATEBLOCK9 Interface) {
 		ProxyInterface = Interface;
-		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
 		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
 	}
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }

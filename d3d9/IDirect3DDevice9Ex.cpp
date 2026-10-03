@@ -202,6 +202,14 @@ ULONG m_IDirect3DDevice9Ex::Release()
 			// Clear all cache before deleting device
 			ProxyAddressLookupTable9.DeleteAll();
 
+			// Delete all state blocks
+			while (!DeletedStateBlocks.empty())
+			{
+				m_IDirect3DStateBlock9* pStateBlockX = DeletedStateBlocks.back();
+				DeletedStateBlocks.RemoveStateBlock(pStateBlockX);
+				delete pStateBlockX;
+			}
+
 			// Check for entries left in lists
 			if (EmulatedSurfaceList.size())
 			{
@@ -482,8 +490,11 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT* pSourceRect, CONST RECT* pDest
 			return D3D_OK;
 		}
 	}
-
-	ApplyPrePresentFixes();
+	// ApplyPrePresentFixes() is already called in PresentEx()
+	else
+	{
+		ApplyPrePresentFixes();
+	}
 
 	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 

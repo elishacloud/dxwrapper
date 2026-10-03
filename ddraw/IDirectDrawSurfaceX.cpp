@@ -17,6 +17,7 @@
 #include "winmm.h"
 #include "ddraw.h"
 #include <deque>
+#include <unordered_set>
 #include <fstream>
 #include "Utils\Utils.h"
 #include "GDI\WndProc.h"
@@ -1590,10 +1591,10 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 		std::deque<ScopedCriticalSection> ThreadLocks;
 		{
 			// Collect each unique critical section
-			std::vector<CRITICAL_SECTION*> CriticalSectionList;
+			std::unordered_set<CRITICAL_SECTION*> CriticalSectionList;
 			for (const auto& pSurfaceX : FlipList)
 			{
-				CriticalSectionList.push_back(pSurfaceX->GetCriticalSection());
+				CriticalSectionList.insert(pSurfaceX->GetCriticalSection());
 			}
 
 			// Construct each unique critical section
