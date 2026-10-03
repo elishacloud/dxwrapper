@@ -14,7 +14,6 @@ public:
 	}
 	~m_IDirect3D()
 	{
-		ProxyAddressLookupTableDdraw.DeleteInterfaceAddress(this);
 		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 

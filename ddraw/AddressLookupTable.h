@@ -286,27 +286,6 @@ private:
 		return nullptr;
 	}
 
-	template <typename T>
-	void RemoveAddress(const size_t CacheIndex, T* Wrapper)
-	{
-		// Remove from g_map
-		while (true)
-		{
-			auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
-				[=](auto& Map) -> bool { return Map.second == Wrapper; });
-
-			if (it == g_map[CacheIndex].end())
-			{
-				break;
-			}
-
-			g_map[CacheIndex].erase(it);
-		}
-
-		// Remove from reverse_map
-		reverse_map[CacheIndex].erase(Wrapper);
-	}
-
 public:
 	explicit AddressLookupTableDdraw() {}
 	~AddressLookupTableDdraw()
@@ -478,8 +457,48 @@ public:
 
 		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
-		// Remove from g_map and reverse_map
-		RemoveAddress(CacheIndex, Wrapper);
+		// Remove from g_map
+		while (true)
+		{
+			auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
+				[=](auto& Map) -> bool { return Map.second == Wrapper; });
+
+			if (it == g_map[CacheIndex].end())
+			{
+				break;
+			}
+
+			g_map[CacheIndex].erase(it);
+		}
+
+		// Remove from reverse_map
+		reverse_map[CacheIndex].erase(Wrapper);
+
+		// Remove from InterfaceList
+		if constexpr (
+			!std::is_same_v<T, m_IDirectDrawX> &&
+			!std::is_same_v<T, m_IDirectDrawSurfaceX> &&
+			!std::is_same_v<T, m_IDirect3DX> &&
+			!std::is_same_v<T, m_IDirect3DDeviceX> &&
+			!std::is_same_v<T, m_IDirect3DTextureX> &&
+			!std::is_same_v<T, m_IDirect3DMaterialX> &&
+			!std::is_same_v<T, m_IDirect3DVertexBufferX> &&
+			!std::is_same_v<T, m_IDirect3DViewportX>)
+		{
+			while (true)
+			{
+				auto& InterfaceList = AddressCacheIndex<T>::InterfaceList;
+
+				auto it = std::find(InterfaceList.begin(), InterfaceList.end(), Wrapper);
+
+				if (it == InterfaceList.end())
+				{
+					break;
+				}
+
+				InterfaceList.erase(it);
+			}
+		}
 
 		// If this is the last DirectDraw than delete all interfaces and clear cache
 		if constexpr (CacheIndex == AddressCacheIndex<m_IDirectDrawX>::CacheIndex)
@@ -506,18 +525,26 @@ public:
 		{
 			if (!Config.DdrawKeepAllInterfaceCache)
 			{
-				while (true)
+				bool KeepLooping;
+				do
 				{
-					// Safe for InterfaceList changes during loop
+					KeepLooping = false;
+
 					auto& InterfaceList = AddressCacheIndex<T>::InterfaceList;
-					if (InterfaceList.empty())
+					for (auto it = InterfaceList.begin(); it != InterfaceList.end();)
 					{
-						break;
+						T* InterfaceCache = *it;
+						if (!InterfaceCache->KeepMe())
+						{
+							it = InterfaceList.erase(it);	// Remove item before calling DeleteMe()
+							InterfaceCache->DeleteMe();
+							KeepLooping = true;
+							break;	// Safe for InterfaceList changes during loop
+						}
+
+						++it;
 					}
-					T* InterfaceCache = InterfaceList.back();
-					InterfaceList.pop_back();	// Remove item before calling DeleteMe()
-					InterfaceCache->DeleteMe();
-				}
+				} while (KeepLooping);
 			}
 			// Safe for InterfaceList changes during loop
 			auto& InterfaceList = AddressCacheIndex<T>::InterfaceList;
@@ -576,21 +603,6 @@ public:
 	{
 		T* NewInterface = const_cast<T*>(Interface);
 		SaveInterfaceAddress(NewInterface);
-	}
-
-	template <typename T>
-	void DeleteInterfaceAddress(const T* Interface)
-	{
-		if (!Interface)
-		{
-			return;
-		}
-
-		auto& InterfaceList = AddressCacheIndex<T>::InterfaceList;
-
-		InterfaceList.erase(
-			std::remove(InterfaceList.begin(), InterfaceList.end(), const_cast<T*>(Interface)),
-			InterfaceList.end());
 	}
 
 	template <typename T, typename S, typename X>

@@ -44,7 +44,6 @@ public:
 
 		ReleaseInterface();
 
-		ProxyAddressLookupTableDdraw.DeleteInterfaceAddress(this);
 		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 

@@ -14,7 +14,6 @@ public:
 	}
 	~m_IDirect3DVertexBuffer()
 	{
-		ProxyAddressLookupTableDdraw.DeleteInterfaceAddress(this);
 		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
