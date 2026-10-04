@@ -22,6 +22,15 @@ const DWORD ReserveCount = 64;
 
 using namespace DdrawWrapper;
 
+#define CheckDeviceInterface(name, device) \
+{ \
+	HRESULT c_hr = CheckInterface(name, device); \
+	if (FAILED(c_hr)) \
+	{ \
+		return c_hr; \
+	} \
+}
+
 // ******************************
 // IUnknown functions
 // ******************************
@@ -402,10 +411,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		// Flags
 		// D3DEXECUTE_CLIPPED - Clip any primitives in the buffer that are outside or partially outside the viewport. 
@@ -1375,10 +1381,7 @@ HRESULT m_IDirect3DDeviceX::BeginScene()
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
@@ -1424,10 +1427,7 @@ HRESULT m_IDirect3DDeviceX::EndScene()
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		// The IDirect3DDevice7::EndScene method ends a scene that was begun by calling the IDirect3DDevice7::BeginScene method.
 		// When this method succeeds, the scene has been rendered, and the device surface holds the rendered scene.
@@ -1493,10 +1493,7 @@ HRESULT m_IDirect3DDeviceX::GetDirect3D(LPDIRECT3D7* lplpD3D, DWORD DirectXVersi
 		*lplpD3D = nullptr;
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, false)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, false);
 
 		m_IDirect3DX** lplpD3DX = ddrawParent->GetCurrentD3D();
 
@@ -1672,10 +1669,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderTarget(LPDIRECTDRAWSURFACE7 lpNewRenderTarg
 		// Unlike this method's implementation in previous interfaces, IDirect3DDevice7::SetRenderTarget does not invalidate the current material or viewport for the device.
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
 		lpNewRenderTarget->QueryInterface(IID_GetInterfaceX, (LPVOID*)&lpDDSrcSurfaceX);
@@ -2066,13 +2060,10 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lpdwRenderState = 0;
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			*lpdwRenderState = 0;
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		if (!IsValidRenderState(dwRenderStateType, ClientDirectXVersion))
 		{
@@ -2251,10 +2242,7 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		if (!IsValidRenderState(dwRenderStateType, ClientDirectXVersion))
 		{
@@ -2649,13 +2637,10 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Light state called with nullptr: " << dwLightStateType);
 			return DDERR_INVALIDPARAMS;
 		}
+		*lpdwLightState = 0;
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			*lpdwLightState = 0;
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		if (dwLightStateType == 0
 			|| (ClientDirectXVersion == 2 && dwLightStateType > 7)
@@ -2732,10 +2717,7 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		if (dwLightStateType == 0
 			|| (ClientDirectXVersion == 2 && dwLightStateType > 7)
@@ -2806,10 +2788,7 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		switch ((DWORD)dtstTransformStateType)
 		{
@@ -2866,13 +2845,10 @@ HRESULT m_IDirect3DDeviceX::GetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lpD3DMatrix = {};
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			*lpD3DMatrix = {};
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		switch ((DWORD)dtstTransformStateType)
 		{
@@ -2914,10 +2890,7 @@ HRESULT m_IDirect3DDeviceX::MultiplyTransform(D3DTRANSFORMSTATETYPE dtstTransfor
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		switch ((DWORD)dtstTransformStateType)
 		{
@@ -2985,10 +2958,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
@@ -3075,10 +3045,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
@@ -3269,10 +3236,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
@@ -3357,10 +3321,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
@@ -3441,10 +3402,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
@@ -3548,10 +3506,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
@@ -3788,13 +3743,10 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lpdwValue = 0;
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			*lpdwValue = 0;
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		if (dwStage >= D3DHAL_TSS_MAXSTAGES || dwState == 0
 			|| (ClientDirectXVersion == 3 && dwState > 23)
@@ -3882,10 +3834,7 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		if (dwStage >= D3DHAL_TSS_MAXSTAGES || dwState == 0
 			|| (ClientDirectXVersion == 3 && dwState > 23)
@@ -3959,10 +3908,7 @@ HRESULT m_IDirect3DDeviceX::ValidateDevice(LPDWORD lpdwPasses)
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
@@ -4109,10 +4055,7 @@ HRESULT m_IDirect3DDeviceX::GetCaps(LPD3DDEVICEDESC7 lpD3DDevDesc, DWORD DirectX
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		ConvertDeviceDesc(*lpD3DDevDesc, Caps9, ddrawParent->GetD9ZBufferBitDepth(), &ClassID, DirectXVersion);
 
@@ -4134,10 +4077,7 @@ HRESULT m_IDirect3DDeviceX::EnumTextureFormats(LPD3DENUMPIXELFORMATSCALLBACK lpd
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, false)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, false);
 
 		const bool IsDirectDraw8bit = (ddrawParent->GetDisplayBPP(ddrawParent->GetHMonitor()) == 8);
 
@@ -4202,10 +4142,7 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		HRESULT hr = SetD9Viewport(reinterpret_cast<const D3DVIEWPORT9*>(lpViewport));
 
@@ -4231,13 +4168,10 @@ HRESULT m_IDirect3DDeviceX::GetViewport(LPD3DVIEWPORT7 lpViewport)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+		*lpViewport = {};
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			*lpViewport = {};
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		return GetD9Viewport((D3DVIEWPORT9*)lpViewport);
 	}
@@ -4257,10 +4191,7 @@ HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL7 lpMaterial)
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		return SetD9Material((D3DMATERIAL9*)lpMaterial);
 	}
@@ -4280,10 +4211,7 @@ HRESULT m_IDirect3DDeviceX::GetMaterial(LPD3DMATERIAL7 lpMaterial)
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		return GetD9Material((D3DMATERIAL9*)lpMaterial);
 	}
@@ -4310,10 +4238,7 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		HRESULT hr = SetD9Light(dwLightIndex, reinterpret_cast<D3DLIGHT9*>(lpLight));
 
@@ -4345,10 +4270,7 @@ HRESULT m_IDirect3DDeviceX::GetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		return GetD9Light(dwLightIndex, reinterpret_cast<D3DLIGHT9*>(lpLight));
 	}
@@ -4474,10 +4396,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		m_IDirectDrawSurfaceX* lpDDSrcSurfaceX = nullptr;
 
@@ -4863,10 +4782,7 @@ HRESULT m_IDirect3DDeviceX::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		HRESULT hr = D9LightEnable(dwLightIndex, bEnable);
 
@@ -4898,10 +4814,7 @@ HRESULT m_IDirect3DDeviceX::GetLightEnable(DWORD dwLightIndex, BOOL* pbEnable)
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		return GetD9LightEnable(dwLightIndex, pbEnable);
 	}
@@ -4916,10 +4829,7 @@ HRESULT m_IDirect3DDeviceX::SetClipPlane(DWORD dwIndex, D3DVALUE* pPlaneEquation
 	if (Config.Dd7to9)
 	{
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		return SetD9ClipPlane(dwIndex, pPlaneEquation);
 	}
@@ -4939,10 +4849,7 @@ HRESULT m_IDirect3DDeviceX::GetClipPlane(DWORD dwIndex, D3DVALUE* pPlaneEquation
 		}
 
 		// Check for device interface
-		if (FAILED(CheckInterface(__FUNCTION__, true)))
-		{
-			return DDERR_INVALIDOBJECT;
-		}
+		CheckDeviceInterface(__FUNCTION__, true);
 
 		return GetD9ClipPlane(dwIndex, pPlaneEquation);
 	}
@@ -5139,6 +5046,11 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 	// Check ddrawParent device
 	if (!ddrawParent)
 	{
+		HWND hWnd = ddrawParent->GetHwnd();
+		if (IsWindow(hWnd) && IsIconic(hWnd))
+		{
+			return DDERR_SURFACELOST;
+		}
 		LOG_LIMIT(100, FunctionName << " Error: no ddraw parent!");
 		return DDERR_INVALIDOBJECT;
 	}
@@ -5718,10 +5630,7 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD tria
 HRESULT m_IDirect3DDeviceX::Clear(const D3DVIEWPORT9& Viewport, DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags, D3DCOLOR dwColor, D3DVALUE dvZ, DWORD dwStencil)
 {
 	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true)))
-	{
-		return DDERR_INVALIDOBJECT;
-	}
+	CheckDeviceInterface(__FUNCTION__, true);
 
 	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
@@ -7022,10 +6931,7 @@ HRESULT m_IDirect3DDeviceX::ProcessVertices(UINT SrcStartIndex, UINT DestIndex, 
 	}
 
 	// Check for device interface
-	if (FAILED(CheckInterface(__FUNCTION__, true)))
-	{
-		return DDERR_INVALIDOBJECT;
-	}
+	CheckDeviceInterface(__FUNCTION__, true);
 
 #ifdef ENABLE_PROFILING
 	auto startTime = std::chrono::high_resolution_clock::now();

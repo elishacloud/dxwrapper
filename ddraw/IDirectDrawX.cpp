@@ -1974,6 +1974,11 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			return DDERR_UNSUPPORTED;
 		}
 
+		if (!d3d9Device && IsWindow(DisplayMode.hWnd) && IsIconic(DisplayMode.hWnd))
+		{
+			return DDERR_SURFACELOST;
+		}
+
 		bool WasDeviceCreated = false;
 		DWORD LastWidth = Device.Width;
 		DWORD LastHeight = Device.Height;
@@ -3477,6 +3482,11 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	if (!IsWindow(hWnd))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " " << FunctionName << " Warning: device window isn't valid: " << hWnd);
+		return DDERR_SURFACELOST;
+	}
+	else if (IsIconic(hWnd))
+	{
+		return DDERR_SURFACELOST;
 	}
 
 	// Set DirectX version
@@ -4315,6 +4325,10 @@ HRESULT m_IDirectDrawX::TestD3D9CooperativeLevel()
 {
 	if (!d3d9Device)
 	{
+		if (IsWindow(DisplayMode.hWnd) && IsIconic(DisplayMode.hWnd))
+		{
+			return DDERR_SURFACELOST;
+		}
 		return DD_OK;
 	}
 

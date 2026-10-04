@@ -4436,6 +4436,11 @@ HRESULT m_IDirectDrawSurfaceX::CheckInterface(char* FunctionName, bool CheckD3DD
 	{
 		if (!ddrawParent->CheckD9Device(FunctionName) || !d3d9Device || !*d3d9Device)
 		{
+			HWND hWnd = ddrawParent->GetHwnd();
+			if (IsWindow(hWnd) && IsIconic(hWnd))
+			{
+				return DDERR_SURFACELOST;
+			}
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_INVALIDOBJECT;
 		}
