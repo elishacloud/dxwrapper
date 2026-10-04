@@ -99,21 +99,15 @@ struct DRAWSTATEBACKUP
 	DWORD ss1addressV = 0;
 	DWORD tsColorOP = 0;
 	DWORD tsColorArg1 = 0;
-	DWORD tsColorArg2 = 0;
 	DWORD tsAlphaOP = 0;
-	DWORD rsLighting = 0;
+	DWORD tsColorOp1 = 0;
 	DWORD rsAlphaBlendEnable = 0;
 	DWORD rsAlphaTestEnable = 0;
 	DWORD rsFogEnable = 0;
 	DWORD rsZEnable = 0;
-	DWORD rsZWriteEnable = 0;
 	DWORD rsStencilEnable = 0;
 	DWORD rsCullMode = 0;
 	DWORD rsClipping = 0;
-	D3DVIEWPORT9 ViewPort = {};
-	D3DMATRIX WorldMatrix = {};
-	D3DMATRIX ViewMatrix = {};
-	D3DMATRIX ProjectionMatrix = {};
 };
 
 struct DISPLAYSETTINGS

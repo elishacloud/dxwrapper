@@ -3074,12 +3074,10 @@ void m_IDirect3DDevice9Ex::DrawSurfaceToBackbuffer()
 	}
 
 	// Set render states
-	ProxyInterface->SetRenderState(D3DRS_LIGHTING, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_FOGENABLE, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_ZENABLE, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 	ProxyInterface->SetRenderState(D3DRS_CLIPPING, FALSE);
@@ -3088,8 +3086,8 @@ void m_IDirect3DDevice9Ex::DrawSurfaceToBackbuffer()
 	// Set texture states
 	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
 	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
 	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+	ProxyInterface->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
 
 	// Set sampler states
 	for (UINT x = 0; x < 2; x++)

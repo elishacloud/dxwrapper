@@ -5205,35 +5205,30 @@ void m_IDirectDrawX::BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Widt
 	// Texture states
 	d3d9Device->GetTextureStageState(0, D3DTSS_COLOROP, &DrawStates.tsColorOP);
 	d3d9Device->GetTextureStageState(0, D3DTSS_COLORARG1, &DrawStates.tsColorArg1);
-	d3d9Device->GetTextureStageState(0, D3DTSS_COLORARG2, &DrawStates.tsColorArg2);
 	d3d9Device->GetTextureStageState(0, D3DTSS_ALPHAOP, &DrawStates.tsAlphaOP);
+	d3d9Device->GetTextureStageState(1, D3DTSS_COLOROP, &DrawStates.tsColorOp1);
 	d3d9Device->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
 	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
 	d3d9Device->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+	d3d9Device->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
 
 	// Render states
-	d3d9Device->GetRenderState(D3DRS_LIGHTING, &DrawStates.rsLighting);
 	d3d9Device->GetRenderState(D3DRS_ALPHATESTENABLE, &DrawStates.rsAlphaTestEnable);
 	d3d9Device->GetRenderState(D3DRS_ALPHABLENDENABLE, &DrawStates.rsAlphaBlendEnable);
 	d3d9Device->GetRenderState(D3DRS_FOGENABLE, &DrawStates.rsFogEnable);
 	d3d9Device->GetRenderState(D3DRS_ZENABLE, &DrawStates.rsZEnable);
-	d3d9Device->GetRenderState(D3DRS_ZWRITEENABLE, &DrawStates.rsZWriteEnable);
 	d3d9Device->GetRenderState(D3DRS_STENCILENABLE, &DrawStates.rsStencilEnable);
 	d3d9Device->GetRenderState(D3DRS_CULLMODE, &DrawStates.rsCullMode);
 	d3d9Device->GetRenderState(D3DRS_CLIPPING, &DrawStates.rsClipping);
-	d3d9Device->SetRenderState(D3DRS_LIGHTING, FALSE);
 	d3d9Device->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
 	d3d9Device->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 	d3d9Device->SetRenderState(D3DRS_FOGENABLE, FALSE);
 	d3d9Device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
-	d3d9Device->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
 	d3d9Device->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 	d3d9Device->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 	d3d9Device->SetRenderState(D3DRS_CLIPPING, FALSE);
 
 	// Viewport
-	d3d9Device->GetViewport(&DrawStates.ViewPort);
 	D3DVIEWPORT9 ViewPort = { 0, 0, presParams.BackBufferWidth, presParams.BackBufferHeight, 0.0f, 1.0f };
 
 	// Calculate width and height with original aspect ratio
@@ -5276,20 +5271,6 @@ void m_IDirectDrawX::BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Widt
 
 	// Set the viewport with the calculated values
 	d3d9Device->SetViewport(&ViewPort);
-
-	// Trasform
-	d3d9Device->GetTransform(D3DTS_WORLD, &DrawStates.WorldMatrix);
-	d3d9Device->GetTransform(D3DTS_VIEW, &DrawStates.ViewMatrix);
-	d3d9Device->GetTransform(D3DTS_PROJECTION, &DrawStates.ProjectionMatrix);
-	D3DMATRIX identityMatrix = {
-		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
-	};
-	d3d9Device->SetTransform(D3DTS_WORLD, &identityMatrix);
-	d3d9Device->SetTransform(D3DTS_VIEW, &identityMatrix);
-	d3d9Device->SetTransform(D3DTS_PROJECTION, &identityMatrix);
 }
 
 void m_IDirectDrawX::RestoreState(DRAWSTATEBACKUP& DrawStates)
@@ -5302,27 +5283,17 @@ void m_IDirectDrawX::RestoreState(DRAWSTATEBACKUP& DrawStates)
 	// Restore texture states
 	d3d9Device->SetTextureStageState(0, D3DTSS_COLOROP, DrawStates.tsColorOP);
 	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG1, DrawStates.tsColorArg1);
-	d3d9Device->SetTextureStageState(0, D3DTSS_COLORARG2, DrawStates.tsColorArg2);
 	d3d9Device->SetTextureStageState(0, D3DTSS_ALPHAOP, DrawStates.tsAlphaOP);
+	d3d9Device->SetTextureStageState(1, D3DTSS_COLOROP, DrawStates.tsColorOp1);
 
 	// Restore render states
-	d3d9Device->SetRenderState(D3DRS_LIGHTING, DrawStates.rsLighting);
 	d3d9Device->SetRenderState(D3DRS_ALPHATESTENABLE, DrawStates.rsAlphaTestEnable);
 	d3d9Device->SetRenderState(D3DRS_ALPHABLENDENABLE, DrawStates.rsAlphaBlendEnable);
 	d3d9Device->SetRenderState(D3DRS_FOGENABLE, DrawStates.rsFogEnable);
 	d3d9Device->SetRenderState(D3DRS_ZENABLE, DrawStates.rsZEnable);
-	d3d9Device->SetRenderState(D3DRS_ZWRITEENABLE, DrawStates.rsZWriteEnable);
 	d3d9Device->SetRenderState(D3DRS_STENCILENABLE, DrawStates.rsStencilEnable);
 	d3d9Device->SetRenderState(D3DRS_CULLMODE, DrawStates.rsCullMode);
 	d3d9Device->SetRenderState(D3DRS_CLIPPING, DrawStates.rsClipping);
-
-	// Reset viewport
-	d3d9Device->SetViewport(&DrawStates.ViewPort);
-
-	// Reset trasform
-	d3d9Device->SetTransform(D3DTS_WORLD, &DrawStates.WorldMatrix);
-	d3d9Device->SetTransform(D3DTS_VIEW, &DrawStates.ViewMatrix);
-	d3d9Device->SetTransform(D3DTS_PROJECTION, &DrawStates.ProjectionMatrix);
 }
 
 HRESULT m_IDirectDrawX::DrawPrimarySurface(m_IDirectDrawSurfaceX* pPrimarySurface, LPDIRECT3DTEXTURE9 pDisplayTexture)

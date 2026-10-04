@@ -7223,10 +7223,6 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 			D3DSURFACE_DESC Desc = {};
 			Dest.GetSurface()->GetDesc(&Desc);
 
-			// Save the current viewport.
-			D3DVIEWPORT9 Viewport = {};
-			(*d3d9Device)->GetViewport(&Viewport);
-
 			// Clear() operates in render-target coordinates, so use a
 			// viewport matching the destination surface.
 			{
@@ -7253,9 +7249,6 @@ HRESULT m_IDirectDrawSurfaceX::ColorFill(RECT* pRect, D3DCOLOR dwFillColor, DWOR
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to fill render target: " << (DDERR)hr);
 			}
-
-			// Restore the original viewport.
-			(*d3d9Device)->SetViewport(&Viewport);
 
 			// Restore the original render target and depth buffer.
 			if (!IsUsingCurrentRenderTarget)
@@ -8338,7 +8331,9 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 		return DDERR_UNSUPPORTED;
 	}
 
-	// Get the source texture/surface.
+	PrepareRenderTarget();
+
+	// Get the destination surface.
 	IDirect3DSurface9* pDestSurface = Get3DSurface();
 
 	if (!pDestSurface)
@@ -8353,8 +8348,18 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 		return DDERR_GENERIC;
 	}
 
+	// Generate MipMaps.
+	if (SrcMipMapLevel != 0 && !pSourceSurface->IsMipMapGenerated())
+	{
+		pSourceSurface->GenerateMipMapLevels();
+	}
+
 	// The source must be usable as a texture.
-	IDirect3DTexture9* pTexture = !IsColorKey && pSourceSurface->surface.Texture ? pSourceSurface->surface.Texture : pSourceSurface->GetD9DrawTexture(RGBColorKey);
+	IDirect3DTexture9* pTexture =
+		!IsColorKey && pSourceSurface->surface.Texture
+		? pSourceSurface->surface.Texture
+		: pSourceSurface->GetD9DrawTexture(RGBColorKey);
+
 	if (!pTexture)
 	{
 		return DDERR_UNSUPPORTED;
@@ -8406,34 +8411,8 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 		{ x1, y1, 0.0f, 1.0f, 0xFFFFFFFF, u1, v1 }
 	};
 
-	// Save the current render target.
-	ComPtr<IDirect3DSurface9> OldRenderTarget;
-	if (FAILED((*d3d9Device)->GetRenderTarget(0, OldRenderTarget.GetAddressOf())))
-	{
-		return DDERR_GENERIC;
-	}
-
-	if (FAILED((*d3d9Device)->SetRenderTarget(0, pDestSurface)))
-	{
-		return DDERR_GENERIC;
-	}
-
-	// Save the current depth stencil.
-	ComPtr<IDirect3DSurface9> OldDepthStencil;
-	HRESULT hr = (*d3d9Device)->GetDepthStencilSurface(OldDepthStencil.GetAddressOf());
-	if (FAILED(hr) && hr != D3DERR_NOTFOUND)
-	{
-		(*d3d9Device)->SetRenderTarget(0, OldRenderTarget.Get());
-		return DDERR_GENERIC;
-	}
-
-	// Disable depth stencil.
-	if (FAILED((*d3d9Device)->SetDepthStencilSurface(nullptr)))
-	{
-		(*d3d9Device)->SetRenderTarget(0, OldRenderTarget.Get());
-		return DDERR_GENERIC;
-	}
-
+	// Set the viewport to the destination render target.
+	// The viewport is intentionally not restored.
 	D3DVIEWPORT9 Viewport =
 	{
 		0,
@@ -8446,7 +8425,36 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 
 	if (FAILED((*d3d9Device)->SetViewport(&Viewport)))
 	{
-		(*d3d9Device)->SetRenderTarget(0, OldRenderTarget.Get());
+		return DDERR_GENERIC;
+	}
+
+	// Save the current depth stencil.
+	ComPtr<IDirect3DSurface9> OldDepthStencil;
+	HRESULT hr = (*d3d9Device)->GetDepthStencilSurface(OldDepthStencil.GetAddressOf());
+	if (FAILED(hr) && hr != D3DERR_NOTFOUND)
+	{
+		return DDERR_GENERIC;
+	}
+	hr = DD_OK;
+
+	// Disable depth stencil.
+	if (FAILED((*d3d9Device)->SetDepthStencilSurface(nullptr)))
+	{
+		return DDERR_GENERIC;
+	}
+
+	// Save the current render target.
+	ComPtr<IDirect3DSurface9> OldRenderTarget;
+
+	if (FAILED((*d3d9Device)->GetRenderTarget(0, OldRenderTarget.GetAddressOf())))
+	{
+		(*d3d9Device)->SetDepthStencilSurface(OldDepthStencil.Get());
+		return DDERR_GENERIC;
+	}
+
+	// Set the destination render target.
+	if (FAILED((*d3d9Device)->SetRenderTarget(0, pDestSurface)))
+	{
 		(*d3d9Device)->SetDepthStencilSurface(OldDepthStencil.Get());
 		return DDERR_GENERIC;
 	}
@@ -8456,11 +8464,13 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 	DWORD OldColorArg1 = 0;
 	DWORD OldAlphaOp = 0;
 	DWORD OldAlphaArg1 = 0;
+	DWORD OldColorOp1 = 0;
 
 	(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLOROP, &OldColorOp);
 	(*d3d9Device)->GetTextureStageState(0, D3DTSS_COLORARG1, &OldColorArg1);
 	(*d3d9Device)->GetTextureStageState(0, D3DTSS_ALPHAOP, &OldAlphaOp);
 	(*d3d9Device)->GetTextureStageState(0, D3DTSS_ALPHAARG1, &OldAlphaArg1);
+	(*d3d9Device)->GetTextureStageState(1, D3DTSS_COLOROP, &OldColorOp1);
 
 	// Save the sampler states that we change.
 	DWORD OldMinFilter = 0;
@@ -8476,22 +8486,22 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 	(*d3d9Device)->GetSamplerState(0, D3DSAMP_ADDRESSV, &OldAddressV);
 
 	// Save the render states that we change.
-	DWORD OldLighting = 0;
+	DWORD OldAlphaBlendEnable = 0;
 	DWORD OldFogEnable = 0;
 	DWORD OldZEnable = 0;
-	DWORD OldZWriteEnable = 0;
-	DWORD OldAlphaBlendEnable = 0;
+	DWORD OldStencilEnable = 0;
 	DWORD OldCullMode = 0;
+	DWORD OldClipping = 0;
 	DWORD OldAlphaTestEnable = 0;
 	DWORD OldAlphaFunc = 0;
 	DWORD OldAlphaRef = 0;
 
-	(*d3d9Device)->GetRenderState(D3DRS_LIGHTING, &OldLighting);
+	(*d3d9Device)->GetRenderState(D3DRS_ALPHABLENDENABLE, &OldAlphaBlendEnable);
 	(*d3d9Device)->GetRenderState(D3DRS_FOGENABLE, &OldFogEnable);
 	(*d3d9Device)->GetRenderState(D3DRS_ZENABLE, &OldZEnable);
-	(*d3d9Device)->GetRenderState(D3DRS_ZWRITEENABLE, &OldZWriteEnable);
-	(*d3d9Device)->GetRenderState(D3DRS_ALPHABLENDENABLE, &OldAlphaBlendEnable);
+	(*d3d9Device)->GetRenderState(D3DRS_STENCILENABLE, &OldStencilEnable);
 	(*d3d9Device)->GetRenderState(D3DRS_CULLMODE, &OldCullMode);
+	(*d3d9Device)->GetRenderState(D3DRS_CLIPPING, &OldClipping);
 	(*d3d9Device)->GetRenderState(D3DRS_ALPHATESTENABLE, &OldAlphaTestEnable);
 	(*d3d9Device)->GetRenderState(D3DRS_ALPHAFUNC, &OldAlphaFunc);
 	(*d3d9Device)->GetRenderState(D3DRS_ALPHAREF, &OldAlphaRef);
@@ -8504,20 +8514,21 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 	(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
 	(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
 	(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-
-	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, Filter);
-	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, Filter);
-	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_NONE);
+	(*d3d9Device)->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, Filter == D3DTEXF_NONE ? D3DTEXF_POINT : Filter);
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, Filter == D3DTEXF_NONE ? D3DTEXF_POINT : Filter);
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, SrcMipMapLevel == 0 ? D3DTEXF_NONE : D3DTEXF_POINT);
 	(*d3d9Device)->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
 	(*d3d9Device)->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
 	// No lighting, fog, blending, or depth testing for a surface copy.
-	(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, FALSE);
-	(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, FALSE);
-	(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, FALSE);
-	(*d3d9Device)->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
 	(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+	(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, FALSE);
+	(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
+	(*d3d9Device)->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 	(*d3d9Device)->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
+	(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, FALSE);
+
 	if (IsColorKey)
 	{
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
@@ -8529,19 +8540,24 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
 	}
 
-	PrepareRenderTarget();
-
 	const bool IsInScene = ddrawParent->IsInScene();
+	bool BeganScene = false;
 
-	HRESULT hr_s = D3DERR_INVALIDCALL;
 	if (!IsInScene)
 	{
-		hr_s = (*d3d9Device)->BeginScene();
+		hr = (*d3d9Device)->BeginScene();
+		if (SUCCEEDED(hr))
+		{
+			BeganScene = true;
+		}
 	}
 
-	hr = (*d3d9Device)->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, Vertices, sizeof(Vertex));
+	if (SUCCEEDED(hr))
+	{
+		hr = (*d3d9Device)->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, Vertices, sizeof(Vertex));
+	}
 
-	if (!IsInScene || SUCCEEDED(hr_s))
+	if (BeganScene)
 	{
 		(*d3d9Device)->EndScene();
 	}
@@ -8551,6 +8567,7 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 	(*d3d9Device)->SetTextureStageState(0, D3DTSS_COLORARG1, OldColorArg1);
 	(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, OldAlphaOp);
 	(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, OldAlphaArg1);
+	(*d3d9Device)->SetTextureStageState(1, D3DTSS_COLOROP, OldColorOp1);
 
 	// Restore sampler states.
 	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, OldMinFilter);
@@ -8560,16 +8577,17 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 	(*d3d9Device)->SetSamplerState(0, D3DSAMP_ADDRESSV, OldAddressV);
 
 	// Restore render states.
-	(*d3d9Device)->SetRenderState(D3DRS_LIGHTING, OldLighting);
+	(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, OldAlphaBlendEnable);
 	(*d3d9Device)->SetRenderState(D3DRS_FOGENABLE, OldFogEnable);
 	(*d3d9Device)->SetRenderState(D3DRS_ZENABLE, OldZEnable);
-	(*d3d9Device)->SetRenderState(D3DRS_ZWRITEENABLE, OldZWriteEnable);
-	(*d3d9Device)->SetRenderState(D3DRS_ALPHABLENDENABLE, OldAlphaBlendEnable);
+	(*d3d9Device)->SetRenderState(D3DRS_STENCILENABLE, OldStencilEnable);
 	(*d3d9Device)->SetRenderState(D3DRS_CULLMODE, OldCullMode);
+	(*d3d9Device)->SetRenderState(D3DRS_CLIPPING, OldClipping);
 	(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, OldAlphaTestEnable);
 	(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, OldAlphaFunc);
 	(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, OldAlphaRef);
 
+	// Restore render target and depth stencil.
 	(*d3d9Device)->SetTexture(0, nullptr);
 	(*d3d9Device)->SetRenderTarget(0, OldRenderTarget.Get());
 	(*d3d9Device)->SetDepthStencilSurface(OldDepthStencil.Get());
