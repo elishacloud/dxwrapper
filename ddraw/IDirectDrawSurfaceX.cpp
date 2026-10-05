@@ -5661,8 +5661,11 @@ void m_IDirectDrawSurfaceX::UpdateAttachedDepthStencil(m_IDirectDrawSurfaceX* lp
 
 void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 {
+	const DWORD LastWidth = surfaceDesc2.dwWidth;
+	const DWORD LastHeight = surfaceDesc2.dwHeight;
+
 	// Get surface flags
-	bool IsChanged = false;
+	bool IsResolutionChanged = false;
 	{
 		DWORD Flags = surfaceDesc2.dwFlags;
 		if (ShouldResetDisplayFlags)
@@ -5689,7 +5692,6 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 				surfaceDesc2.dwWidth = Width;
 				surfaceDesc2.dwHeight = Height;
 				surfaceDesc2.lPitch = 0;
-				IsChanged = true;
 			}
 			// Set Refresh Rate
 			if (RefreshRate && ((Flags & DDSD_REFRESHRATE) || IsPrimaryOrBackBuffer()))
@@ -5706,17 +5708,18 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 				surfaceDesc2.dwFlags |= DDSD_PIXELFORMAT;
 				ddrawParent->GetDisplayPixelFormat(surfaceDesc2.ddpfPixelFormat, BPP);
 				surfaceDesc2.lPitch = 0;
-				IsChanged = true;
 			}
-			// Reset MipMap level pitch
-			if (IsChanged && MipMaps.size())
+		}
+		IsResolutionChanged = (LastWidth != surfaceDesc2.dwWidth || LastHeight != surfaceDesc2.dwHeight) && (surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT);
+
+		// Reset MipMap level pitch
+		if (IsResolutionChanged && MipMaps.size())
+		{
+			for (auto& entry : MipMaps)
 			{
-				for (auto& entry : MipMaps)
-				{
-					entry.dwWidth = 0;
-					entry.dwHeight = 0;
-					entry.lPitch = 0;
-				}
+				entry.dwWidth = 0;
+				entry.dwHeight = 0;
+				entry.lPitch = 0;
 			}
 		}
 
@@ -5756,7 +5759,7 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	}
 	// Set attached stencil surface size
-	if (IsChanged && (surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT))
+	if (IsResolutionChanged)
 	{
 		m_IDirectDrawSurfaceX* lpAttachedSurfaceX = GetAttachedDepthStencil();
 		if (lpAttachedSurfaceX && (surfaceDesc2.dwWidth != lpAttachedSurfaceX->surfaceDesc2.dwWidth ||
@@ -7932,9 +7935,13 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 		// DrawSurfaceToRenderTarget.
 		if (!IsUsingEmulation() &&
 			CanUseRenderTargetSurface() &&
+			!IsPalette() &&
 			((surface.Usage & D3DUSAGE_RENDERTARGET) || surface.Type == D3DTYPE_RENDERTARGET) &&
 			(pSourceSurface->surface.Type == D3DTYPE_TEXTURE || pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE) &&
-			!(pSourceSurface->surface.Usage & (D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL)))
+			!(pSourceSurface->surface.Usage & (D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL)) &&
+			!pSourceSurface->IsPrimaryOrBackBuffer() &&
+			!pSourceSurface->IsPalette() &&
+			!pSourceSurface->ResetDisplayFlags)
 		{
 			hr = DrawSurfaceToRenderTarget(pSourceSurface, SrcRect, DestRect, Filter, SrcMipMapLevel, RGBColorKey, IsColorKey, IsMirrorLeftRight, IsMirrorUpDown);
 
@@ -8336,8 +8343,6 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 		return DDERR_UNSUPPORTED;
 	}
 
-	PrepareRenderTarget();
-
 	// Get the destination surface.
 	IDirect3DSurface9* pDestSurface = Get3DSurface();
 
@@ -8559,6 +8564,8 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 
 	if (SUCCEEDED(hr))
 	{
+		PrepareRenderTarget();
+
 		hr = (*d3d9Device)->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, Vertices, sizeof(Vertex));
 	}
 
