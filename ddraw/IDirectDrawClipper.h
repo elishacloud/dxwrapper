@@ -89,9 +89,9 @@ public:
 	IFACEMETHOD(SetHWnd)(THIS_ DWORD, HWND) override;
 
 	// Functions handling the ddraw parent interface
-	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
-	void ClearDdraw() { ddrawParent = nullptr; }
-	bool HasClipList() const { return IsClipListSet; }
+	inline void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
+	inline void ClearDdraw() { ddrawParent = nullptr; }
+	inline bool HasClipList() const { return IsClipListSet; }
 	bool GetClipBoundsFromData(RECT& bounds);
 	HRESULT GetClipRegion(HRGN hOutRgn);
 	static m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags);

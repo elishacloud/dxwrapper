@@ -133,13 +133,13 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
-	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
-	void ClearDdraw() { ddrawParent = nullptr; d3d9Device = nullptr; }
+	inline void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
+	inline void ClearDdraw() { ddrawParent = nullptr; d3d9Device = nullptr; }
 
 	// Direct3D9 interfaces
-	const LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() const { return d3d9VertexBuffer; };
-	void ClearD3D() { D3DInterface = nullptr; }
-	void ReleaseD9Buffer(bool BackupData, bool ResetBuffer);
+	inline const LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() const { return d3d9VertexBuffer; };
+	inline void ClearD3D() { D3DInterface = nullptr; }
+	inline void ReleaseD9Buffer(bool BackupData, bool ResetBuffer);
 
-	DWORD GetFVF() const { return VB.Desc.dwFVF; };
+	inline DWORD GetFVF() const { return VB.Desc.dwFVF; };
 };

@@ -80,6 +80,6 @@ public:
 	IFACEMETHOD(GetLight)(THIS_ LPD3DLIGHT) override;
 
 	// Helper function
-	void ClearD3D() { D3DInterface = nullptr; }
+	inline void ClearD3D() { D3DInterface = nullptr; }
 	static m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface);
 };

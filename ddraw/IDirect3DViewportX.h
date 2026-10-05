@@ -67,7 +67,7 @@ private:
 	void ReleaseInterface();
 
 	// Helper functions
-	bool IsViewportSet() const { return (Viewport.Data9.Width && Viewport.Data9.Height); }
+	inline bool IsViewportSet() const { return (Viewport.Data9.Width && Viewport.Data9.Height); }
 	HRESULT m_IDirect3DViewportX::GetCurrentViewport(m_IDirect3DDeviceX* pDirect3DDeviceX, D3DVIEWPORT9& Viewport9);
 
 public:
@@ -164,7 +164,7 @@ public:
 	void AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
-	void ClearD3D() { D3DInterface = nullptr; }
+	inline void ClearD3D() { D3DInterface = nullptr; }
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 

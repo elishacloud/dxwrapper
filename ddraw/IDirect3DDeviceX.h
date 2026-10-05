@@ -565,9 +565,9 @@ public:
 
 	// Viewport functions
 	HRESULT Clear(const D3DVIEWPORT9& Viewport, DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags, D3DCOLOR dwColor, D3DVALUE dvZ, DWORD dwStencil);
-	void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
-	m_IDirect3DViewportX* GetCurrentViewport() { return lpCurrentViewportX; }
-	bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
+	inline void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
+	inline m_IDirect3DViewportX* GetCurrentViewport() { return lpCurrentViewportX; }
+	inline bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
 	void ClearViewport(m_IDirect3DViewportX* lpViewportX);
 
 	bool IsViewportAttached(LPDIRECT3DVIEWPORT3 ViewportX)
@@ -594,7 +594,7 @@ public:
 	bool DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX);
 
 	// Render target functions
-	m_IDirectDrawSurfaceX* GetRenderTargetX() { return lpCurrentRenderTargetX; };
+	inline m_IDirectDrawSurfaceX* GetRenderTargetX() { return lpCurrentRenderTargetX; };
 
 	// Texture handle functions
 	void ClearTextureHandle(D3DTEXTUREHANDLE tHandle);
@@ -603,7 +603,7 @@ public:
 	// Material handle functions
 	void ClearMaterialHandle(D3DMATERIALHANDLE mHandle);
 	HRESULT SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial);
-	bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == DeviceStates.LightState[D3DLIGHTSTATE_MATERIAL]); }
+	inline bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == DeviceStates.LightState[D3DLIGHTSTATE_MATERIAL]); }
 	inline bool IsMaterialEnabled() const { return DeviceStates.Material.Enabled; };
 	inline m_IDirect3DMaterialX* GetMaterialFromHandle(D3DMATERIALHANDLE MaterialHandle) { return GetMaterial(MaterialHandle); }
 
@@ -626,7 +626,7 @@ public:
 
 	// Functions handling the ddraw parent interface
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
-	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
+	inline void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
 	void ClearDdraw();
 	void AfterResetDevice();
 	void ClearDeviceState();

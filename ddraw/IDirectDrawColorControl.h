@@ -78,7 +78,7 @@ public:
 	IFACEMETHOD(SetColorControls)(THIS_ LPDDCOLORCONTROL) override;
 
 	// Functions handling the ddraw parent interface
-	void ClearDdraw() { ddrawParent = nullptr; }
+	inline void ClearDdraw() { ddrawParent = nullptr; }
 	static m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent);
 
 };

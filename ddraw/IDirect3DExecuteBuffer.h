@@ -94,9 +94,9 @@ public:
 	IFACEMETHOD(Optimize)(THIS_ DWORD) override;
 
 	// Helper functions
-	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
+	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
 	HRESULT GetBufferInternal(LPVOID& lpData, D3DEXECUTEDATA& CurrentExecuteData);
 	inline bool IsBufferLocked() const { return (IsLocking || LockedCount != 0); }
-	std::atomic<bool>& GetExecuteFlag() { return IsExecuting; }
+	inline std::atomic<bool>& GetExecuteFlag() { return IsExecuting; }
 	static m_IDirect3DExecuteBuffer* CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc);
 };

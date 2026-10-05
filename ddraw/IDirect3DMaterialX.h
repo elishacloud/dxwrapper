@@ -100,7 +100,7 @@ public:
 	// Helper function
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
-	void ClearD3D() { D3DInterface = nullptr; }
+	inline void ClearD3D() { D3DInterface = nullptr; }
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 };

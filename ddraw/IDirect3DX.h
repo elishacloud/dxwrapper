@@ -144,7 +144,7 @@ public:
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void* GetWrapperInterfaceX(DWORD DirectXVersion);
-	m_IDirect3DDeviceX* GetNextD3DDevice(DWORD Index) { return D3DDeviceList.size() > Index ? D3DDeviceList[Index].Interface : nullptr; }
+	inline m_IDirect3DDeviceX* GetNextD3DDevice(DWORD Index) { return D3DDeviceList.size() > Index ? D3DDeviceList[Index].Interface : nullptr; }
 	void AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void AddLight(m_IDirect3DLight* lpLight);
@@ -161,6 +161,6 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
-	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; GetCap9Cache(); }
+	inline void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; GetCap9Cache(); }
 	void ClearDdraw();
 };

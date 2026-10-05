@@ -214,15 +214,15 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
-	void SetAsCreatedByDDFactory() { CreatedByDDFactory = true; }
+	inline void SetAsCreatedByDDFactory() { CreatedByDDFactory = true; }
 
 	// Direct3D interfaces
-	m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
+	inline m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
 	void ClearD3DDevice();
-	bool IsCreatedEx() const { return IsUsingEx; }
-	void Enable3D() { Using3D = true; }
-	bool IsUsing3D() const { return Using3D; }
-	bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
+	inline bool IsCreatedEx() const { return IsUsingEx; }
+	inline void Enable3D() { Using3D = true; }
+	inline bool IsUsing3D() const { return Using3D; }
+	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
 	bool IsInScene();
 
 	// Direct3D9 interfaces
@@ -278,12 +278,12 @@ public:
 	void AddSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
-	m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
+	inline m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
 	inline m_IDirectDrawSurfaceX *GetRenderTargetSurface() { return RenderTargetSurface; }
 	void ClearRenderTarget();
 	void SetCurrentRenderTarget();
 	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface);
-	m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
+	inline m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
 	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface);
 
 	// Texture functions
@@ -309,11 +309,11 @@ public:
 	void ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer);
 
 	// Color and gamma control
-	m_IDirectDrawColorControl* GetColorControlInterface() { return ColorControlInterface; }
+	inline m_IDirectDrawColorControl* GetColorControlInterface() { return ColorControlInterface; }
 	HRESULT CreateColorControl(m_IDirectDrawColorControl** lplpColorControl);
 	void SetColorControl(m_IDirectDrawColorControl* lpColorControl);
 	void ClearColorControl(m_IDirectDrawColorControl* lpColorControl);
-	m_IDirectDrawGammaControl* GetGammaControlInterface() { return GammaControlInterface; }
+	inline m_IDirectDrawGammaControl* GetGammaControlInterface() { return GammaControlInterface; }
 	HRESULT CreateGammaControl(m_IDirectDrawGammaControl** lplpGammaControl);
 	void SetGammaControl(m_IDirectDrawGammaControl* lpGammaControl);
 	void ClearGammaControl(m_IDirectDrawGammaControl* lpGammaControl);

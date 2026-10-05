@@ -77,7 +77,7 @@ public:
 	IFACEMETHOD(SetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP) override;
 
 	// Functions handling the ddraw parent interface
-	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	void ClearDdraw() { ddrawParent = nullptr; }
+	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
+	inline void ClearDdraw() { ddrawParent = nullptr; }
 	static m_IDirectDrawGammaControl* CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent);
 };
