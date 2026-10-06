@@ -4684,12 +4684,12 @@ void m_IDirectDrawSurfaceX::Release3DMipMapSurface(LPDIRECT3DSURFACE9 pSurfaceD9
 	}
 }
 
-LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD9DrawTexture(D3DCOLOR RGBColorKey)
+LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD9DrawTexture(D3DCOLOR RGBColorKey, bool OverRideColorKey)
 {
 	// Check if texture already exists
 	if (surface.DrawTexture)
 	{
-		if (surface.IsDrawTextureDirty && FAILED(CopyToDrawTexture(nullptr, RGBColorKey)))
+		if (surface.IsDrawTextureDirty && FAILED(CopyToDrawTexture(nullptr, RGBColorKey, OverRideColorKey)))
 		{
 			return nullptr;
 		}
@@ -4712,7 +4712,7 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD9DrawTexture(D3DCOLOR RGBColorKey)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: alpha color key texture using MipMaps. MipMap level: " << Level);
 		}
-		if (FAILED(CopyToDrawTexture(nullptr, RGBColorKey)))
+		if (FAILED(CopyToDrawTexture(nullptr, RGBColorKey, OverRideColorKey)))
 		{
 			return nullptr;
 		}
@@ -8412,11 +8412,17 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 		pSourceSurface->GenerateMipMapLevels();
 	}
 
+	// Check if color key changed
+	if (pSourceSurface->surface.LastDrawTextureColorKey != RGBColorKey)
+	{
+		pSourceSurface->surface.IsDrawTextureDirty = true;
+	}
+
 	// The source must be usable as a texture.
 	IDirect3DTexture9* pTexture =
 		!IsColorKey && pSourceSurface->surface.Texture
 		? pSourceSurface->surface.Texture
-		: pSourceSurface->GetD9DrawTexture(RGBColorKey);
+		: pSourceSurface->GetD9DrawTexture(RGBColorKey, IsColorKey);
 
 	if (!pTexture)
 	{
@@ -8591,7 +8597,7 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 	{
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
-		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, 0x01);
+		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, (DWORD)0x01);
 	}
 	else
 	{
@@ -8974,7 +8980,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface
 	return hr;
 }
 
-HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect, D3DCOLOR RGBColorKey)
+HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect, D3DCOLOR RGBColorKey, bool OverRideColorKey)
 {
 	if (!surface.DrawTexture || (!surface.Texture && !surface.Surface))
 	{
@@ -8990,7 +8996,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect, D3DCOLOR RGB
 	}
 
 	// Get color key
-	if (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)
+	if (!OverRideColorKey && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT))
 	{
 		if (IsPalette())
 		{
@@ -9014,6 +9020,7 @@ HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect, D3DCOLOR RGB
 	}
 
 	surface.IsDrawTextureDirty = false;
+	surface.LastDrawTextureColorKey = RGBColorKey;
 
 	return DD_OK;
 }

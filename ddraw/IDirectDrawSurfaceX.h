@@ -189,6 +189,7 @@ private:
 		bool IsLockable = false;
 		bool IsDirtyFlag = false;
 		bool IsDrawTextureDirty = false;
+		DWORD LastDrawTextureColorKey = 0;
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
 		DWORD BitCount = 0;									// Bit count for this surface
 		D3DFORMAT Format = D3DFMT_UNKNOWN;					// Format for this surface
@@ -376,7 +377,7 @@ private:
 	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DWORD ColorKey, D3DCOLOR RGBColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel);
 	HRESULT DrawSurfaceToRenderTarget(m_IDirectDrawSurfaceX* pSourceSurface, const RECT& SrcRect, const RECT& DestRect, D3DTEXTUREFILTERTYPE Filter, DWORD SrcMipMapLevel, D3DCOLOR RGBColorKey, bool IsColorKey, bool IsMirrorLeftRight, bool IsMirrorUpDown);
 	HRESULT CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, bool DepthFill, DWORD DepthColor);
-	HRESULT CopyToDrawTexture(LPRECT lpDestRect, D3DCOLOR RGBColorKey);
+	HRESULT CopyToDrawTexture(LPRECT lpDestRect, D3DCOLOR RGBColorKey, bool OverRideColorKey);
 	HRESULT LoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSurface, const RECT& Rect, LPCVOID pSrcMemory, D3DFORMAT SrcFormat, UINT SrcPitch);
 	HRESULT CopyFromEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyToEmulatedSurface(LPRECT lpDestRect);
@@ -614,7 +615,7 @@ public:
 	}
 	m_IDirectDrawSurfaceX* GetAttachedDepthStencil();
 	LPDIRECT3DSURFACE9 GetD9Surface();
-	LPDIRECT3DTEXTURE9 GetD9DrawTexture(D3DCOLOR RGBColorKey = 0);
+	LPDIRECT3DTEXTURE9 GetD9DrawTexture(D3DCOLOR RGBColorKey = 0, bool OverRideColorKey = false);
 	LPDIRECT3DTEXTURE9 GetD9Texture(bool InterfaceCheck = true);
 	HRESULT GenerateMipMapLevels();
 	inline DWORD GetD9Width() const { return surface.Width; }
