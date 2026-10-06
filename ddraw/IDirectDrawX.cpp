@@ -3476,48 +3476,46 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	}
 
 	// Get hwnd
-	const HWND hWnd = GetHwnd();
+	HWND hWnd = GetHwnd();
+
+	// Declare data struct
+	std::shared_ptr<WndProc::DATASTRUCT> WndDataStruct;
 
 	// Check device window
 	if (!IsWindow(hWnd))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " " << FunctionName << " Warning: device window isn't valid: " << hWnd);
-		return DDERR_SURFACELOST;
+		hWnd = nullptr;
 	}
 	else if (IsIconic(hWnd))
 	{
 		return DDERR_SURFACELOST;
 	}
-
-	// Set DirectX version
-	m_IDirect3D9Ex* D3DX = nullptr;
-	if (SUCCEEDED(d3d9Object->QueryInterface(IID_GetInterfaceX, reinterpret_cast<LPVOID*>(&D3DX))))
+	else
 	{
-		D3DX->SetDirectXVersion(ClientDirectXVersion);
-	}
+		// Hook WndProc before creating device
+		WndDataStruct = WndProc::AddWndProc(hWnd);
+		if (WndDataStruct)
+		{
+			WndDataStruct->IsDirectDraw = true;
+			Device.NoWindowChanges = Device.NoWindowChanges || WndDataStruct->NoWindowChanges;
+			WndDataStruct->NoWindowChanges = Device.NoWindowChanges;
+			WndDataStruct->IsExclusiveMode = IsExclusiveMode();
+			WndDataStruct->DirectXVersion = ClientDirectXVersion;
+		}
 
-	// Hook WndProc before creating device
-	auto WndDataStruct = WndProc::AddWndProc(hWnd);
-	if (WndDataStruct)
-	{
-		WndDataStruct->IsDirectDraw = true;
-		Device.NoWindowChanges = Device.NoWindowChanges || WndDataStruct->NoWindowChanges;
-		WndDataStruct->NoWindowChanges = Device.NoWindowChanges;
-		WndDataStruct->IsExclusiveMode = IsExclusiveMode();
-		WndDataStruct->DirectXVersion = ClientDirectXVersion;
-	}
+		// Check if creating from another thread
+		FocusWindowThreadID = GetWindowThreadProcessId(hWnd, nullptr);
+		if (WndDataStruct && FocusWindowThreadID != GetCurrentThreadId())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " " << FunctionName << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
 
-	// Check if creating from another thread
-	FocusWindowThreadID = GetWindowThreadProcessId(hWnd, nullptr);
-	if (WndDataStruct && FocusWindowThreadID != GetCurrentThreadId())
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " " << FunctionName << " Warning: trying to create Direct3D9 device from a different thread than the hwnd was created from!");
+			SendMessage(hWnd, WM_APP_CREATE_D3D9_DEVICE, (WPARAM)this, WM_MAKE_KEY(hWnd, this));
 
-		SendMessage(hWnd, WM_APP_CREATE_D3D9_DEVICE, (WPARAM)this, WM_MAKE_KEY(hWnd, this));
+			Sleep(0);
 
-		Sleep(0);
-
-		return d3d9Device ? DD_OK : DDERR_GENERIC;
+			return d3d9Device ? DD_OK : DDERR_GENERIC;
+		}
 	}
 
 	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
@@ -3554,7 +3552,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	// Get width and height
 	DWORD BackBufferWidth = 0;
 	DWORD BackBufferHeight = 0;
-	if (Device.Width && Device.Height)
+	if (hWnd && Device.Width && Device.Height)
 	{
 		BackBufferWidth = Device.Width;
 		BackBufferHeight = Device.Height;
@@ -3603,7 +3601,7 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	presParams.hDeviceWindow = hWnd;
 
 	// Set parameters for the current display mode
-	if (Device.IsWindowed)
+	if (Device.IsWindowed || hWnd == nullptr)
 	{
 		// Window mode
 		presParams.Windowed = TRUE;
@@ -3762,6 +3760,13 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 	// Create d3d9 Device
 	if (!d3d9Device)
 	{
+		// Set DirectX version before creating device
+		m_IDirect3D9Ex* D3DX = nullptr;
+		if (SUCCEEDED(d3d9Object->QueryInterface(IID_GetInterfaceX, reinterpret_cast<LPVOID*>(&D3DX))))
+		{
+			D3DX->SetDirectXVersion(ClientDirectXVersion);
+		}
+
 		// Attempt to create a device
 		hr = d3d9Object->CreateDevice(d3d9AdapterIndex, D3DDEVTYPE_HAL, hWnd, BehaviorFlags, &presParams, &d3d9Device);
 		// If using unsupported refresh rate
