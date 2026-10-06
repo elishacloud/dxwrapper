@@ -7632,11 +7632,16 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 	const bool IsMirrorLeftRight = (dwFlags & BLT_MIRRORLEFTRIGHT) != 0;
 	const bool IsMirrorUpDown = (dwFlags & BLT_MIRRORUPDOWN) != 0;
 
+	Filter = !IsStretchRect ? D3DTEXF_NONE :
+		IsPalette() ? D3DTEXF_POINT :
+		Filter == D3DTEXF_LINEAR ? Filter :
+		D3DTEXF_POINT;
+
 	const DWORD D3DXFilter =
-		(IsStretchRect && IsPalette()) || (Filter & D3DTEXF_POINT) ? D3DX_FILTER_POINT :
-		(Filter & D3DTEXF_LINEAR) ? D3DX_FILTER_LINEAR :
-		IsStretchRect ? D3DX_FILTER_POINT :
-		D3DX_FILTER_NONE;
+		!IsStretchRect ? D3DX_FILTER_NONE :
+		Filter == D3DTEXF_POINT || IsPalette() ? D3DX_FILTER_POINT :
+		Filter == D3DTEXF_LINEAR ? D3DX_FILTER_LINEAR :
+		D3DX_FILTER_POINT;
 
 	const DWORD ColorKeyMask = GetUsedPixelBitsMask(SrcFormat, pSourceSurface->surface.BitCount);
 	ColorKey &= ColorKeyMask;
@@ -7712,8 +7717,6 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 
 	if (!IsStretchRect)
 	{
-		Filter = D3DTEXF_NONE;
-
 		SrcRectWidth = min(SrcRectWidth, DestRectWidth);
 		SrcRectHeight = min(SrcRectHeight, DestRectHeight);
 		DestRectWidth = SrcRectWidth;
@@ -8093,7 +8096,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 				// SetBrushOrgEx to set the brush origin. Otherwise brush misalignment occurs.
 				POINT org;
 				GetBrushOrgEx(surface.emu->DC, &org);
-				SetStretchBltMode(surface.emu->DC, (Filter & D3DTEXF_LINEAR) ? HALFTONE : COLORONCOLOR);
+				SetStretchBltMode(surface.emu->DC, Filter == D3DTEXF_LINEAR ? HALFTONE : COLORONCOLOR);
 				SetBrushOrgEx(surface.emu->DC, org.x, org.y, nullptr);
 			}
 
