@@ -141,7 +141,7 @@ HRESULT m_IDirectDraw7::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetCaps(lpDDDriverCaps, lpDDHELCaps);
+	return ProxyInterface->GetCaps(lpDDDriverCaps, lpDDHELCaps, DirectXVersion);
 }
 
 HRESULT m_IDirectDraw7::GetDisplayMode(LPDDSURFACEDESC2 a)
