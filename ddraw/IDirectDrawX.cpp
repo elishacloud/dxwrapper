@@ -1219,7 +1219,7 @@ HRESULT m_IDirectDrawX::FlipToGDISurface()
 	return ProxyInterface->FlipToGDISurface();
 }
 
-HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps, DWORD DirectXVersion)
+HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
@@ -1237,11 +1237,6 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps, D
 				lpDDDriverCaps->dwSize == sizeof(DDCAPS_DX5) ? sizeof(DDCAPS_DX5) :
 				lpDDDriverCaps->dwSize == sizeof(DDCAPS_DX6) ? sizeof(DDCAPS_DX6) :
 				lpDDDriverCaps->dwSize == sizeof(DDCAPS_DX7) ? sizeof(DDCAPS_DX7) :
-				DirectXVersion == 1 ? sizeof(DDCAPS_DX3) :
-				DirectXVersion == 2 ? sizeof(DDCAPS_DX3) :
-				DirectXVersion == 3 ? sizeof(DDCAPS_DX5) :
-				DirectXVersion == 4 ? sizeof(DDCAPS_DX6) :
-				DirectXVersion == 5 ? sizeof(DDCAPS_DX7) :
 				sizeof(DDCAPS_DX1);
 		}
 		if (lpDDHELCaps)
@@ -1251,11 +1246,6 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps, D
 				lpDDHELCaps->dwSize == sizeof(DDCAPS_DX5) ? sizeof(DDCAPS_DX5) :
 				lpDDHELCaps->dwSize == sizeof(DDCAPS_DX6) ? sizeof(DDCAPS_DX6) :
 				lpDDHELCaps->dwSize == sizeof(DDCAPS_DX7) ? sizeof(DDCAPS_DX7) :
-				DirectXVersion == 1 ? sizeof(DDCAPS_DX3) :
-				DirectXVersion == 2 ? sizeof(DDCAPS_DX3) :
-				DirectXVersion == 3 ? sizeof(DDCAPS_DX5) :
-				DirectXVersion == 4 ? sizeof(DDCAPS_DX6) :
-				DirectXVersion == 5 ? sizeof(DDCAPS_DX7) :
 				sizeof(DDCAPS_DX1);
 		}
 

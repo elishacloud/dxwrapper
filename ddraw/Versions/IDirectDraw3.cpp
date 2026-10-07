@@ -141,7 +141,7 @@ HRESULT m_IDirectDraw3::GetCaps(LPDDCAPS a, LPDDCAPS b)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
-	return ProxyInterface->GetCaps(a, b, DirectXVersion);
+	return ProxyInterface->GetCaps(a, b);
 }
 
 HRESULT m_IDirectDraw3::GetDisplayMode(LPDDSURFACEDESC a)
