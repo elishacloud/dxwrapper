@@ -1310,6 +1310,7 @@ HRESULT InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>
 
 template HRESULT TransformVertexSW<XYZ>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, bool, const VIEWPORTINFO&, DWORD&);
 template HRESULT TransformVertexSW<D3DLVERTEX>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, bool, const VIEWPORTINFO&, DWORD&);
+template HRESULT TransformVertexSW<D3DLVERTEX_NOCOLOR_TAG>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, bool, const VIEWPORTINFO&, DWORD&);
 template <typename T>
 HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, bool IsClipped, const VIEWPORTINFO& Viewport, DWORD& dwOffscreen)
 {
@@ -1445,6 +1446,11 @@ HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCo
 		{
 			dst.color = src.color;
 			dst.specular = src.specular;
+			dst.tu = src.tu;
+			dst.tv = src.tv;
+		}
+		else if constexpr (std::is_same_v<T, D3DLVERTEX_NOCOLOR_TAG>)
+		{
 			dst.tu = src.tu;
 			dst.tv = src.tv;
 		}

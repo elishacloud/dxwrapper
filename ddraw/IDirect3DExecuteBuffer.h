@@ -13,11 +13,8 @@ private:
 	D3DEXECUTEBUFFERDESC Desc = {};
 	std::vector<BYTE> MemoryData;
 	D3DEXECUTEDATA ExecuteData = {};
-	DWORD LockedCount = 0;
-	DWORD LockedThread = 0;
-	std::atomic<bool> IsLocking = false;
+	std::atomic<bool> IsLocked = false;
 	std::atomic<bool> IsExecuting = false;
-	bool IsDataValidated = false;
 	bool UsingAppMemory = false;
 
 	// Instruction data 
@@ -95,8 +92,8 @@ public:
 
 	// Helper functions
 	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
-	HRESULT GetBufferInternal(LPVOID& lpData, D3DEXECUTEDATA& CurrentExecuteData);
-	inline bool IsBufferLocked() const { return (IsLocking || LockedCount != 0); }
+	HRESULT GetBufferInternal(std::vector<BYTE>& BufferData, D3DEXECUTEDATA& CurrentExecuteData) const;
+	inline bool IsBufferLocked() const { return (IsLocked); }
 	inline std::atomic<bool>& GetExecuteFlag() { return IsExecuting; }
 	static m_IDirect3DExecuteBuffer* CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc);
 };

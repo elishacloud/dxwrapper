@@ -159,49 +159,27 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC) && lpDesc->dwSize != 76)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpDesc->dwSize);
-			return DDERR_INVALIDPARAMS;
-		}
+		// Not checked by native ddraw
+		//if (lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC) && lpDesc->dwSize != 76)
+		//{
+		//	LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpDesc->dwSize);
+		//	return DDERR_INVALIDPARAMS;
+		//}
 		lpDesc->dwCaps = NULL;
 		lpDesc->dwFlags = NULL;
 		lpDesc->lpData = nullptr;
 
-		// Set Locking flag
-		ScopedAtomicFlagSet SetLockFlag(IsLocking);
-
 		// Check if the buffer is already locked
-		DWORD ThreadID = GetCurrentThreadId();
-		if (LockedCount != 0 && ThreadID != LockedThread)
+		if (IsLocked)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is already locked! Thread: " << ThreadID << "->" << LockedThread);
 			return D3DERR_EXECUTE_LOCKED;
-		}
-
-		// Check if the buffer is being executed
-		if (IsExecuting)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is still in use!");
-			return D3DERR_WASSTILLDRAWING;
-		}
-
-		// Check buffer size
-		if (!UsingAppMemory && MemoryData.size() < Desc.dwBufferSize)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: incorrect buffer size: " << Desc.dwBufferSize << " -> " << MemoryData.size());
-			return DDERR_GENERIC;
 		}
 
 		// Provide access to the execute buffer memory
 		*lpDesc = Desc;
 
 		// Mark the buffer as locked
-		LockedCount++;
-		LockedThread = ThreadID;
-
-		// Mark data as unvalidated
-		IsDataValidated = false;
+		IsLocked = true;
 
 		return D3D_OK;
 	}
@@ -221,14 +199,13 @@ HRESULT m_IDirect3DExecuteBuffer::Unlock()
 	if (Config.Dd7to9)
 	{
 		// Check if the buffer is not locked
-		if (LockedCount == 0)
+		if (!IsLocked)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is not locked!");
 			return D3DERR_EXECUTE_NOT_LOCKED;
 		}
 
 		// Mark the buffer as unlocked
-		LockedCount--;
+		IsLocked = false;
 
 		// No specific action required, just return success
 		return D3D_OK;
@@ -259,34 +236,20 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpExecuteData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check if the buffer is locked
-		if (LockedCount != 0)
+		const size_t instructionSize = lpExecuteData->dwInstructionOffset + lpExecuteData->dwInstructionLength;
+		const size_t vertexSize = lpExecuteData->dwVertexOffset + lpExecuteData->dwVertexCount * sizeof(D3DVERTEX);
+		const size_t hVertexSize = lpExecuteData->dwHVertexOffset + lpExecuteData->dwVertexCount * sizeof(D3DTLVERTEX);
+		const size_t bufferSize = Desc.dwBufferSize;
+
+		// Not validated by native, thus the call will succeed even if the buffer size is insufficient.
+		// Incoming sends a lot of such junk calls, but apparently doesn't blow up because of it.
+		if (instructionSize > bufferSize || vertexSize > bufferSize || hVertexSize > bufferSize)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is locked!");
-			return D3DERR_EXECUTE_LOCKED;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Buffer size is insufficient for specified data");
 		}
 
 		// Store execute data (not validated by native ddraw)
 		ExecuteData = *lpExecuteData;
-
-		// Check vertex count
-		if (ExecuteData.dwVertexCount == 0 && ExecuteData.dwInstructionOffset != ExecuteData.dwVertexOffset)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: vertex count is 0, computing 'safe' count!");
-
-			// Get 'safe' vertex count
-			if (ExecuteData.dwInstructionOffset < ExecuteData.dwVertexOffset)
-			{
-				ExecuteData.dwVertexCount = (Desc.dwBufferSize - min(ExecuteData.dwVertexOffset, Desc.dwBufferSize)) / sizeof(D3DTLVERTEX);
-			}
-			else
-			{
-				ExecuteData.dwVertexCount = (ExecuteData.dwInstructionOffset - ExecuteData.dwVertexOffset) / sizeof(D3DTLVERTEX);
-			}
-		}
-
-		// Mark data as unvalidated
-		IsDataValidated = false;
 
 		return D3D_OK;
 	}
@@ -310,18 +273,12 @@ HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpExecuteData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (lpExecuteData->dwSize != sizeof(D3DEXECUTEDATA))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpExecuteData->dwSize);
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// Check if the buffer is locked
-		if (LockedCount != 0)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is locked!");
-			return D3DERR_EXECUTE_LOCKED;
-		}
+		// Not checked by native ddraw
+		//if (lpExecuteData->dwSize != sizeof(D3DEXECUTEDATA))
+		//{
+		//	LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpExecuteData->dwSize);
+		//	return DDERR_INVALIDPARAMS;
+		//}
 
 		// Return stored execute data
 		*lpExecuteData = ExecuteData;
@@ -343,14 +300,7 @@ HRESULT m_IDirect3DExecuteBuffer::Validate(LPDWORD lpdwOffset, LPD3DVALIDATECALL
 
 	if (Config.Dd7to9)
 	{
-		if (!lpdwOffset && !lpFunc)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
-		ValidateInstructionData(&ExecuteData, lpdwOffset, lpFunc, lpUserArg);
-
-		return D3D_OK;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->Validate(lpdwOffset, lpFunc, lpUserArg, dwReserved);
@@ -368,7 +318,7 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 	if (Config.Dd7to9)
 	{
 		// The method is not currently supported.
-		return D3D_OK;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->Optimize(dwDummy);
@@ -385,13 +335,13 @@ void m_IDirect3DExecuteBuffer::InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc)
 		D3DDeviceInterface->AddExecuteBuffer(this);
 	}
 
-	LockedCount = 0;
-	IsDataValidated = false;
+	IsLocked = false;
 	UsingAppMemory = false;
 	ExecuteData = {};
 	ExecuteData.dwSize = sizeof(D3DEXECUTEDATA);
 	Desc = {};
 	Desc.dwSize = sizeof(D3DEXECUTEBUFFERDESC);
+	MemoryData.clear();
 
 	if (lpDesc)
 	{
@@ -430,18 +380,19 @@ void m_IDirect3DExecuteBuffer::ReleaseInterface()
 	}
 }
 
-HRESULT m_IDirect3DExecuteBuffer::GetBufferInternal(LPVOID& lpData, D3DEXECUTEDATA& CurrentExecuteData)
+HRESULT m_IDirect3DExecuteBuffer::GetBufferInternal(std::vector<BYTE>& BufferData, D3DEXECUTEDATA& CurrentExecuteData) const
 {
-	if (!IsDataValidated)
+	// It's important to make a copy of the buffer when executing it
+	if (UsingAppMemory)
 	{
-		if (FAILED(ValidateInstructionData(&ExecuteData, nullptr, nullptr, nullptr)) || !IsDataValidated)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: buffer failed validation!");
-			return DDERR_INVALIDPARAMS;
-		}
+		BufferData.assign(
+			static_cast<const BYTE*>(Desc.lpData),
+			static_cast<const BYTE*>(Desc.lpData) + Desc.dwBufferSize);
 	}
-
-	lpData = Desc.lpData;
+	else
+	{
+		BufferData = MemoryData;
+	}
 	CurrentExecuteData = ExecuteData;
 
 	return D3D_OK;
@@ -571,10 +522,6 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExe
 		// Check for termination
 		if (instruction->bOpcode == D3DOP_EXIT)
 		{
-			if (!FoundError)
-			{
-				IsDataValidated = true;
-			}
 			return D3D_OK;
 		}
 
@@ -646,10 +593,6 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExe
 				// Exit the execute buffer if offset is null
 				if (branch->dwOffset == 0)
 				{
-					if (!FoundError)
-					{
-						IsDataValidated = true;
-					}
 					return D3D_OK;
 				}
 				// Move the instruction pointer forward by the offset

@@ -331,11 +331,12 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: 'pUnkOuter' is not null: " << pUnkOuter);
 		}
 
-		if (lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpDesc->dwSize);
-			return DDERR_INVALIDPARAMS;
-		}
+		// Not checked by native ddraw
+		//if (lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC))
+		//{
+		//	LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpDesc->dwSize);
+		//	return DDERR_INVALIDPARAMS;
+		//}
 
 		// Validate dwFlags
 		if (!(lpDesc->dwFlags & D3DDEB_BUFSIZE))
@@ -344,23 +345,7 @@ HRESULT m_IDirect3DDeviceX::CreateExecuteBuffer(LPD3DEXECUTEBUFFERDESC lpDesc, L
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Validate dwBufferSize
-		if (lpDesc->dwBufferSize == 0 || lpDesc->dwBufferSize > MAX_EXECUTE_BUFFER_SIZE)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid dwBufferSize: " << lpDesc->dwBufferSize);
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// Validate dwCaps
-		if ((lpDesc->dwFlags & D3DDEB_CAPS) && (lpDesc->dwCaps & D3DDEBCAPS_SYSTEMMEMORY) && (lpDesc->dwCaps & D3DDEBCAPS_VIDEOMEMORY))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Unsupported dwCaps: " << Logging::hex(lpDesc->dwCaps));
-			return DDERR_INVALIDPARAMS;
-		}
-
-		m_IDirect3DExecuteBuffer* pExecuteBuffer = m_IDirect3DExecuteBuffer::CreateDirect3DExecuteBuffer(nullptr, this, lpDesc);
-
-		*lplpDirect3DExecuteBuffer = pExecuteBuffer;
+		*lplpDirect3DExecuteBuffer = m_IDirect3DExecuteBuffer::CreateDirect3DExecuteBuffer(nullptr, this, lpDesc);
 
 		return D3D_OK;
 	}
@@ -428,19 +413,10 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 		// Set Executing flag
 		ScopedAtomicFlagSet SetLockFlag(pExecuteBufferX->GetExecuteFlag());
 
-		// Check execute lock
-		if (pExecuteBufferX->IsBufferLocked())
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: execute buffer still locked!");
-			return D3DERR_EXECUTE_LOCKED;
-		}
-
-		LPVOID lpData = nullptr;
-		D3DEXECUTEDATA ExecuteData = {};
-		D3DSTATUS& dsStatus = ExecuteData.dsStatus;
-
 		// Get execute data and desc
-		if (FAILED(pExecuteBufferX->GetBufferInternal(lpData, ExecuteData)) || !lpData)
+		std::vector<BYTE> BufferData;
+		D3DEXECUTEDATA ExecuteData = {};
+		if (FAILED(pExecuteBufferX->GetBufferInternal(BufferData, ExecuteData)) || BufferData.empty())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: get execute data failed!");
 			return DDERR_INVALIDPARAMS;
@@ -453,6 +429,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 		}
 
 		// Check the Extents
+		D3DSTATUS& dsStatus = ExecuteData.dsStatus;
 		if (dsStatus.dwFlags & D3DSETSTATUS_EXTENTS)
 		{
 			if (dsStatus.drExtent.x1 == 0 && dsStatus.drExtent.y1 == 0 && dsStatus.drExtent.x2 == 0 && dsStatus.drExtent.y2 == 0)
@@ -463,6 +440,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 		}
 
 		// Pointer to the start of the instruction data
+		BYTE* lpData = BufferData.data();
 		BYTE* instructionData = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwInstructionOffset;
 		BYTE* instructionEnd = instructionData + ExecuteData.dwInstructionLength;
 
@@ -720,7 +698,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				for (DWORD i = 0; i < instruction->wCount; i++)
 				{
-					DWORD Flags = processVertices[i].dwFlags;
+					const DWORD Flags = processVertices[i].dwFlags;
 
 					if (processVertices[i].wStart >= vertexCount || processVertices[i].wDest >= vertexCount)
 					{
@@ -728,7 +706,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						continue;
 					}
 
-					DWORD Count = processVertices[i].dwCount;
+					const DWORD Count = processVertices[i].dwCount;
 
 					if (Count == 0)
 					{
@@ -783,30 +761,23 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					case D3DPROCESSVERTICES_TRANSFORM:
 					case D3DPROCESSVERTICES_TRANSFORMLIGHT:
 					{
-						const bool IsLight = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT) && IsMaterialEnabled();
-
-						// Flags
-						DWORD VertexFlags = (Flags & D3DPROCESSVERTICES_NOCOLOR) ? D3DPV_DONOTCOPYDATA : 0;
-
 						// FVF
-						DWORD SrcFVF = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT) ? D3DFVF_VERTEX : D3DFVF_LVERTEX;
+						const DWORD SrcFVF = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT) ? D3DFVF_VERTEX : D3DFVF_LVERTEX;
 
-						// Assume process vertices always uses D3DFVF_VERTEX
+						// Assume process vertices always uses LVERTEX (both D3DFVF_VERTEX and D3DFVF_LVERTEX are the same size in DX3)
 						D3DLVERTEX* SrcVertices = reinterpret_cast<D3DLVERTEX*>(inputVerts) + processVertices[i].wStart;
 						D3DTLVERTEX* DestVertices = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
 
-						hr = ProcessVerticesExecute(Count, SrcVertices, DestVertices, SrcFVF, IsLight, IsClipped, VertexFlags);
-
-						// Use software vertex processing
-						/*if (SrcFVF == D3DFVF_LVERTEX && !(VertexFlags & D3DPV_DONOTCOPYDATA))
+						// Use TransformVertexSW for LVERTEX
+						if (SrcFVF == D3DFVF_LVERTEX)
 						{
 							DWORD dwOffscreen = 0;
 
 							VIEWPORTINFO Viewport;
 							Viewport.Data9 = DeviceStates.Viewport.View;
-							Viewport.UseViewportScale = DeviceStates.Viewport.UseViewportScale;
 							Viewport.Scale = DeviceStates.Viewport.Scale;
 							Viewport.Clip = DeviceStates.Viewport.Clip;
+							Viewport.UseViewportScale = DeviceStates.Viewport.UseViewportScale;
 
 							D3DTRANSFORMDATA TransformData = {};
 							TransformData.dwSize = sizeof(D3DTRANSFORMDATA);
@@ -815,18 +786,32 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 							TransformData.lpOut = DestVertices;
 							TransformData.dwOutSize = sizeof(D3DTLVERTEX);
 
-							hr = TransformVertexSW<D3DLVERTEX>(this, Count, &TransformData, false, Viewport, dwOffscreen);
+							if (Flags & D3DPROCESSVERTICES_NOCOLOR)
+							{
+								hr = TransformVertexSW<D3DLVERTEX_NOCOLOR_TAG>(this, Count, &TransformData, false, Viewport, dwOffscreen);
+							}
+							else
+							{
+								hr = TransformVertexSW<D3DLVERTEX>(this, Count, &TransformData, false, Viewport, dwOffscreen);
+							}
 						}
+						// Use Process Vertices for D3DFVF_VERTEX
 						else
 						{
-							DWORD VertexOp = D3DVOP_TRANSFORM | (IsClipped ? D3DVOP_CLIP : 0) | (IsLight ? D3DVOP_LIGHT : 0);
-							hr = ProcessVerticesSW(VertexOp, DestVertices, D3DFVF_TLVERTEX, 0, Count, SrcVertices, SrcFVF, 0, this, VertexFlags);
-						}*/
+							const bool IsLight = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT) && IsMaterialEnabled();
 
-						if (SUCCEEDED(hr))
-						{
+							// Flags
+							const DWORD VertexFlags = (Flags & D3DPROCESSVERTICES_NOCOLOR) ? D3DPV_DONOTCOPYDATA : 0;
+
+							// Use hardware vertex processing
+							hr = ProcessVerticesExecute(Count, SrcVertices, DestVertices, SrcFVF, IsLight, IsClipped, VertexFlags);
+
+							// Use software vertex processing
+							//const DWORD VertexOp = D3DVOP_TRANSFORM | (IsClipped ? D3DVOP_CLIP : 0) | (IsLight ? D3DVOP_LIGHT : 0);
+							//hr = ProcessVerticesSW(VertexOp, DestVertices, D3DFVF_TLVERTEX, 0, Count, SrcVertices, SrcFVF, 0, this, VertexFlags);
+
 							// Restore tu and tv
-							if (Flags & D3DPROCESSVERTICES_NOCOLOR)
+							if (SUCCEEDED(hr) && (Flags & D3DPROCESSVERTICES_NOCOLOR))
 							{
 								for (UINT x = 0; x < Count; x++)
 								{
@@ -834,7 +819,10 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 									DestVertices[x].dvTV = SrcVertices[x].dvTV;
 								}
 							}
+						}
 
+						if (SUCCEEDED(hr))
+						{
 							// Handle status and extents
 							SetStatus(dsStatus);
 						}
@@ -881,14 +869,13 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				for (DWORD i = 0; i < instruction->wCount; i++)
 				{
-					// Apply the mask to the current status
-					DWORD maskedStatus = dsStatus.dwStatus & branch[i].dwMask;
+					const D3DBRANCH& b = branch[i];
 
 					// Compare the masked status with the value
-					bool condition = (maskedStatus == branch[i].dwValue);
+					bool condition = (dsStatus.dwStatus & b.dwMask) == b.dwValue;
 
 					// Negate the condition if bNegate is TRUE
-					if (branch[i].bNegate)
+					if (b.bNegate)
 					{
 						condition = !condition;
 					}
@@ -896,7 +883,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					// If the condition is true, branch forward
 					if (condition)
 					{
-						if (branch[i].dwOffset == 0)
+						if (b.dwOffset == 0)
 						{
 							// Exit the execute buffer if offset is 0
 							opcode = D3DOP_EXIT;
@@ -904,8 +891,9 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						else
 						{
 							// Move the instruction pointer forward by the offset
-							instructionData += branch[i].dwOffset;
+							instructionData += b.dwOffset;
 						}
+
 						Branched = true;
 						break; // only branch once
 					}
@@ -916,6 +904,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 			case D3DOP_EXIT:
 				// Signals that the end of the list has been reached.
 				break;
+
 			default:
 				// Handle unknown or unsupported opcodes
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: Unknown opcode: " << Logging::hex(opcode));

@@ -410,6 +410,9 @@ struct TLVERTEX
     float u, v;
 };
 
+// Indicating that this vertex should not copy the color
+struct D3DLVERTEX_NOCOLOR_TAG : D3DLVERTEX {};
+
 struct VERTEXSTREAMINFO {
     bool IsInBegin = false;
     D3DPRIMITIVETYPE d3dpt = {};
