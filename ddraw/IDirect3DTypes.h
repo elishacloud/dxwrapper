@@ -386,17 +386,6 @@ struct CTUV
 };
 
 typedef struct {
-    XYZ xyz;
-    DWORD dwReserved;
-    CTUV ctuv;
-} DXLVERTEX7, * LPDXLVERTEX7;
-
-typedef struct {
-    XYZ xyz;
-    CTUV ctuv;
-} DXLVERTEX9, * LPDXLVERTEX9;
-
-typedef struct {
 	FLOAT    x, y, z;
 	D3DCOLOR diffuse, specular;
 	FLOAT    tu, tv;
@@ -410,8 +399,17 @@ struct TLVERTEX
     float u, v;
 };
 
-// Indicating that this vertex should not copy the color
-struct D3DLVERTEX_NOCOLOR_TAG : D3DLVERTEX {};
+enum class ColorMode
+{
+    Copy,
+    NoCopy
+};
+
+enum class ClipMode
+{
+    Clipped,
+    Unclipped
+};
 
 struct VERTEXSTREAMINFO {
     bool IsInBegin = false;
@@ -549,8 +547,6 @@ D3DMATRIX UpdateProjectionMatrix(const D3DMATRIX& Matrix, D3DVECTOR Scale, D3DVE
 void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7);
 void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, DWORD dwDeviceZBufferBitDepth, const CLSID* guid, DWORD DirectXVersion);
 bool IsValid3DDeviceGUID(REFCLSID rclsid);
-void ConvertLVertex(DXLVERTEX7* lFVF7, const DXLVERTEX9* lFVF9, DWORD NumVertices);
-void ConvertLVertex(DXLVERTEX9* lFVF9, const DXLVERTEX7* lFVF7, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
 std::vector<D3DVERTEXELEMENT9> CreateVertexDeclarationFromFVF(DWORD fvf);
 DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType);
@@ -563,6 +559,8 @@ UINT GetVertexStride(DWORD dwVertexTypeDesc);
 UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);
 DWORD GetStridedVertexTypeDesc(const D3DDRAWPRIMITIVESTRIDEDDATA& sd);
 HRESULT InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA& sd, const DWORD dwVertexStart, const DWORD dwNumVertices, DWORD& dwVertexTypeDesc);
-template <typename T>
-HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, bool IsClipped, const VIEWPORTINFO& Viewport, DWORD& dwOffscreen);
+template <typename T, ColorMode Color>
+HRESULT TransformVertexExecuteSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, T* lpIn, D3DTLVERTEX* lpOut, const VIEWPORTINFO& Viewport);
+template <typename T, ClipMode Clip>
+HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, const VIEWPORTINFO& Viewport, DWORD& dwOffscreen);
 HRESULT ProcessVerticesSW(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVertexTypeDesc, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, m_IDirect3DDeviceX* pDirect3DDeviceX, DWORD dwFlags);

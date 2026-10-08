@@ -136,7 +136,6 @@ D3DVIEWPORT9 FixViewport(const D3DVIEWPORT9& Viewport)
 	{
 		result.MinZ = 0.0f;
 		result.MaxZ = 1.0f;
-		return result;
 	}
 
 	return result;
@@ -743,32 +742,6 @@ bool IsValid3DDeviceGUID(REFCLSID rclsid)
 		rclsid == IID_IDirect3DRefDevice;
 }
 
-void ConvertLVertex(DXLVERTEX7* lFVF7, const DXLVERTEX9* lFVF9, DWORD NumVertices)
-{
-#ifdef ENABLE_PROFILING
-	Logging::Log() << __FUNCTION__ << " Warning: converting LVertex may cause slowdowns!";
-#endif
-
-	for (UINT x = 0; x < NumVertices; x++)
-	{
-		lFVF7[x].xyz = lFVF9[x].xyz;
-		lFVF7[x].ctuv = lFVF9[x].ctuv;
-	}
-}
-
-void ConvertLVertex(DXLVERTEX9* lFVF9, const DXLVERTEX7* lFVF7, DWORD NumVertices)
-{
-#ifdef ENABLE_PROFILING
-	Logging::Log() << __FUNCTION__ << " Warning: converting LVertex may cause slowdowns!";
-#endif
-
-	for (UINT x = 0; x < NumVertices; x++)
-	{
-		lFVF9[x].xyz = lFVF7[x].xyz;
-		lFVF9[x].ctuv = lFVF7[x].ctuv;
-	}
-}
-
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState)
 {
 	switch (dwState)
@@ -1308,11 +1281,103 @@ HRESULT InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>
 	return D3D_OK;
 }
 
-template HRESULT TransformVertexSW<XYZ>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, bool, const VIEWPORTINFO&, DWORD&);
-template HRESULT TransformVertexSW<D3DLVERTEX>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, bool, const VIEWPORTINFO&, DWORD&);
-template HRESULT TransformVertexSW<D3DLVERTEX_NOCOLOR_TAG>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, bool, const VIEWPORTINFO&, DWORD&);
-template <typename T>
-HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, bool IsClipped, const VIEWPORTINFO& Viewport, DWORD& dwOffscreen)
+template HRESULT TransformVertexExecuteSW<D3DVERTEX, ColorMode::NoCopy>(m_IDirect3DDeviceX*, const DWORD, D3DVERTEX*, D3DTLVERTEX*, const VIEWPORTINFO&);
+template HRESULT TransformVertexExecuteSW<D3DLVERTEX, ColorMode::Copy>(m_IDirect3DDeviceX*, const DWORD, D3DLVERTEX*, D3DTLVERTEX*, const VIEWPORTINFO&);
+template HRESULT TransformVertexExecuteSW<D3DLVERTEX, ColorMode::NoCopy>(m_IDirect3DDeviceX*, const DWORD, D3DLVERTEX*, D3DTLVERTEX*, const VIEWPORTINFO&);
+template <typename T, ColorMode Color>
+HRESULT TransformVertexExecuteSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, T* lpIn, D3DTLVERTEX* lpOut, const VIEWPORTINFO& Viewport)
+{
+	if (!pDirect3DDeviceX)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	if (!lpIn || !lpOut)
+	{
+		return DDERR_INVALIDPARAMS;
+	}
+
+	D3DMATRIX matWorld, matView, matProj;
+	if (FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_WORLD, &matWorld)) ||
+		FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_VIEW, &matView)) ||
+		FAILED(pDirect3DDeviceX->GetD9Transform(D3DTS_PROJECTION, &matProj)))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get transform matrices");
+		return DDERR_GENERIC;
+	}
+
+	// Get viewport
+	const D3DVIEWPORT9& vp = Viewport.Data9;
+	const D3DVECTOR& legacyClip = Viewport.Clip;
+	const D3DVECTOR& legacyScale = Viewport.Scale;
+
+	if (Viewport.UseViewportScale)
+	{
+		matProj = UpdateProjectionMatrix(matProj, legacyScale, legacyClip, true);
+	}
+
+	D3DMATRIX matWorldView = MatrixMultiply(matWorld, matView);
+	D3DMATRIX matWorldViewProj = MatrixMultiply(matWorldView, matProj);
+
+	// Precalculate a few static viewport factors, to save on per-vertex cycles
+	const float viewportHalfWidth = static_cast<float>(vp.Width) * 0.5f;
+	const float viewportHalfHeight = static_cast<float>(vp.Height) * 0.5f;
+	const float viewportZDelta = vp.MaxZ - vp.MinZ;
+
+	for (DWORD i = 0; i < dwCount; ++i)
+	{
+		// Source position (can have arbitrary stride set by application and defined via dwInSize)
+		T& src = lpIn[i];
+
+		// Projection-space position
+		D3DXVECTOR4 h = TransformVector4(src.x, src.y, src.z, 1.0f, matWorldViewProj);
+
+		// Output vertex (can have arbitrary stride set by application and defined via dwOutSize)
+		D3DTLVERTEX& dst = lpOut[i];
+
+		// Preserve INF/NAN behavior
+		dst.rhw = 1.0f / h.w;
+
+		// Convert to screen-space TL coords
+		dst.sx = vp.X + (h.x * dst.rhw + 1.0f) * viewportHalfWidth;
+		dst.sy = vp.Y + (1.0f - h.y * dst.rhw) * viewportHalfHeight;
+		dst.sz = vp.MinZ + (h.z * dst.rhw) * viewportZDelta;
+
+		// Copy vertex data
+		if constexpr (std::is_same_v<T, D3DVERTEX>)
+		{
+			dst.color = 0xFFFFFFFF;	// Default color to white
+			dst.specular = 0;
+			dst.tu = src.tu;
+			dst.tv = src.tv;
+		}
+		else if constexpr (std::is_same_v<T, D3DLVERTEX>)
+		{
+			// Copy vertex color
+			if constexpr (Color == ColorMode::Copy)
+			{
+				dst.color = src.color;
+				dst.specular = src.specular;
+			}
+			else
+			{
+				dst.color = 0xFFFFFFFF;	// Default color to white
+				dst.specular = 0;
+			}
+			dst.tu = src.tu;
+			dst.tv = src.tv;
+		}
+	}
+
+	return D3D_OK;
+}
+
+template HRESULT TransformVertexSW<XYZ, ClipMode::Clipped>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, const VIEWPORTINFO&, DWORD&);
+template HRESULT TransformVertexSW<XYZ, ClipMode::Unclipped>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, const VIEWPORTINFO&, DWORD&);
+template HRESULT TransformVertexSW<D3DLVERTEX, ClipMode::Clipped>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, const VIEWPORTINFO&, DWORD&);
+template HRESULT TransformVertexSW<D3DLVERTEX, ClipMode::Unclipped>(m_IDirect3DDeviceX*, const DWORD, LPD3DTRANSFORMDATA, const VIEWPORTINFO&, DWORD&);
+template <typename T, ClipMode Clip>
+HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, const VIEWPORTINFO& Viewport, DWORD& dwOffscreen)
 {
 	if (!lpData || !pDirect3DDeviceX)
 	{
@@ -1336,10 +1401,13 @@ HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCo
 		return DDERR_INVALIDPARAMS;
 	}
 
-	if (IsClipped && !lpData->lpHOut)
+	if constexpr (Clip == ClipMode::Clipped)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: lpHOut is null when clipping!");
-		return DDERR_INVALIDPARAMS;
+		if (!lpData->lpHOut)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: lpHOut is null when clipping!");
+			return DDERR_INVALIDPARAMS;
+		}
 	}
 
 	D3DMATRIX matWorld, matView, matProj;
@@ -1373,8 +1441,6 @@ HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCo
 	DWORD clipIntersection = UINT_MAX;
 	DWORD clipUnion = 0;
 
-	D3DHVERTEX* pHOut = reinterpret_cast<D3DHVERTEX*>(lpData->lpHOut);
-
 	for (DWORD i = 0; i < dwCount; ++i)
 	{
 		// Source position (can have arbitrary stride set by application and defined via dwInSize)
@@ -1386,7 +1452,7 @@ HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCo
 		// Output vertex (can have arbitrary stride set by application and defined via dwOutSize)
 		D3DTLVERTEX& dst = *(reinterpret_cast<D3DTLVERTEX*>(reinterpret_cast<uint8_t*>(lpData->lpOut) + lpData->dwOutSize * i));
 
-		if (IsClipped)
+		if constexpr (Clip == ClipMode::Clipped)
 		{
 			DWORD clipFlags =
 				(h.x > h.w) * D3DCLIP_RIGHT |
@@ -1401,7 +1467,7 @@ HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCo
 			clipUnion |= clipFlags;
 
 			// Fill homogeneous out
-			D3DHVERTEX& hdst = pHOut[i];
+			D3DHVERTEX& hdst = *(reinterpret_cast<D3DHVERTEX*>(reinterpret_cast<uint8_t*>(lpData->lpHOut) + sizeof(D3DHVERTEX) * i));
 
 			// Store pre-divide homogeneous coords (applying legacyClip/legacyScale here seems to be what native Windows does)
 			hdst.hx = (h.x - legacyClip.x * h.w) / legacyScale.x;
@@ -1449,21 +1515,26 @@ HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCo
 			dst.tu = src.tu;
 			dst.tv = src.tv;
 		}
-		else if constexpr (std::is_same_v<T, D3DLVERTEX_NOCOLOR_TAG>)
-		{
-			dst.tu = src.tu;
-			dst.tv = src.tv;
-		}
-		else
-		{
-			static_assert(false);
-		}
 	}
 
 	// Address of a variable that is set to a nonzero value if the resulting vertices are all off-screen.
-	dwOffscreen = IsClipped && allOffscreen ? clipIntersection | D3DSTATUS_ZNOTVISIBLE : FALSE;
-	lpData->dwClipIntersection = IsClipped ? clipIntersection << 12 : 0;
-	lpData->dwClipUnion = IsClipped ? clipUnion : 0;
+	if constexpr (Clip == ClipMode::Clipped)
+	{
+		dwOffscreen = allOffscreen ? clipIntersection | D3DSTATUS_ZNOTVISIBLE : 0;
+		lpData->dwClipIntersection = clipIntersection << 12;
+		lpData->dwClipUnion = clipUnion;
+	}
+	else
+	{
+		// Not used with Unclipped
+		UNREFERENCED_PARAMETER(allOffscreen);
+		UNREFERENCED_PARAMETER(clipIntersection);
+		UNREFERENCED_PARAMETER(clipUnion);
+
+		dwOffscreen = FALSE;
+		lpData->dwClipIntersection = 0;
+		lpData->dwClipUnion = 0;
+	}
 
 	return D3D_OK;
 }
@@ -1878,7 +1949,7 @@ HRESULT ProcessVerticesSW(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVer
 		return D3DERR_INVALIDVERTEXTYPE;
 	}
 
-	// Just ignore D3DVOP_CLIP ans D3DVOP_EXTENTS in dwVertexOp
+	// Just ignore D3DVOP_CLIP and D3DVOP_EXTENTS in dwVertexOp
 
 	// D3DVOP_TRANSFORM is inherently handled by ProcessVertices() as it performs vertex transformations based on the current world, view, and projection matrices.
 	if (!(dwVertexOp & D3DVOP_TRANSFORM))
@@ -1997,6 +2068,7 @@ HRESULT ProcessVerticesSW(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVer
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get viewport");
 		return DDERR_GENERIC;
 	}
+	vp = FixViewport(vp);
 
 	// Cache specular, ambient, material and lights if needed
 	LightingState lsState = {};

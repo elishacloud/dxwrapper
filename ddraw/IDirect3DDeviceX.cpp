@@ -698,11 +698,9 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 				for (DWORD i = 0; i < instruction->wCount; i++)
 				{
-					const DWORD Flags = processVertices[i].dwFlags;
-
 					if (processVertices[i].wStart >= vertexCount || processVertices[i].wDest >= vertexCount)
 					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: D3DOP_PROCESSVERTICES index exceeds vertices count.  Skip processing!");
+						LOG_LIMIT(100, __FUNCTION__ << " Error: D3DOP_PROCESSVERTICES index exceeds vertices count. Skip processing!");
 						continue;
 					}
 
@@ -714,32 +712,13 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						continue;
 					}
 
-					const bool IsClipped = (dwFlags & D3DEXECUTE_CLIPPED) && !(dwFlags & D3DEXECUTE_UNCLIPPED);
-					const bool UpdateExtents = (Flags & D3DPROCESSVERTICES_UPDATEEXTENTS);
+					const DWORD Flags = processVertices[i].dwFlags;
 
-					auto SetStatus = [&](D3DSTATUS& Status)
-					{
-						if (IsClipped)
-						{
-							// Update flags
-							Status.dwFlags |= D3DSETSTATUS_STATUS;
-							Status.dwStatus = 0; // Just set no clip flags and no ZNOTVISIBLE
-
-							// Update extents
-							if (UpdateExtents)
-							{
-								if (D3DVIEWPORT9 vp = {}; SUCCEEDED(GetD9Viewport(&vp)))
-								{
-									Status.dwFlags |= D3DSETSTATUS_EXTENTS;
-
-									Status.drExtent.x1 = vp.X;
-									Status.drExtent.y1 = vp.Y;
-									Status.drExtent.x2 = vp.X + vp.Width;
-									Status.drExtent.y2 = vp.Y + vp.Height;
-								}
-							}
-						}
-					};
+					VIEWPORTINFO Viewport;
+					Viewport.Data9 = DeviceStates.Viewport.FixedView;
+					Viewport.Scale = DeviceStates.Viewport.Scale;
+					Viewport.Clip = DeviceStates.Viewport.Clip;
+					Viewport.UseViewportScale = DeviceStates.Viewport.UseViewportScale;
 
 					const DWORD op = Flags & D3DPROCESSVERTICES_OPMASK;
 
@@ -753,83 +732,80 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 						memcpy(Dest, Src, sizeof(D3DTLVERTEX) * Count);
 
-						// Handle status and extents
-						SetStatus(dsStatus);
+						hr = D3D_OK;
 
 						break;
 					}
 					case D3DPROCESSVERTICES_TRANSFORM:
-					case D3DPROCESSVERTICES_TRANSFORMLIGHT:
 					{
-						// FVF
-						const DWORD SrcFVF = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT) ? D3DFVF_VERTEX : D3DFVF_LVERTEX;
-
-						// Assume process vertices always uses LVERTEX (both D3DFVF_VERTEX and D3DFVF_LVERTEX are the same size in DX3)
 						D3DLVERTEX* SrcVertices = reinterpret_cast<D3DLVERTEX*>(inputVerts) + processVertices[i].wStart;
 						D3DTLVERTEX* DestVertices = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
 
-						// Use TransformVertexSW for LVERTEX
-						if (SrcFVF == D3DFVF_LVERTEX)
+						if (Flags & D3DPROCESSVERTICES_NOCOLOR)
 						{
-							DWORD dwOffscreen = 0;
-
-							VIEWPORTINFO Viewport;
-							Viewport.Data9 = DeviceStates.Viewport.View;
-							Viewport.Scale = DeviceStates.Viewport.Scale;
-							Viewport.Clip = DeviceStates.Viewport.Clip;
-							Viewport.UseViewportScale = DeviceStates.Viewport.UseViewportScale;
-
-							D3DTRANSFORMDATA TransformData = {};
-							TransformData.dwSize = sizeof(D3DTRANSFORMDATA);
-							TransformData.lpIn = SrcVertices;
-							TransformData.dwInSize = sizeof(D3DLVERTEX);
-							TransformData.lpOut = DestVertices;
-							TransformData.dwOutSize = sizeof(D3DTLVERTEX);
-
-							if (Flags & D3DPROCESSVERTICES_NOCOLOR)
-							{
-								hr = TransformVertexSW<D3DLVERTEX_NOCOLOR_TAG>(this, Count, &TransformData, false, Viewport, dwOffscreen);
-							}
-							else
-							{
-								hr = TransformVertexSW<D3DLVERTEX>(this, Count, &TransformData, false, Viewport, dwOffscreen);
-							}
+							hr = TransformVertexExecuteSW<D3DLVERTEX, ColorMode::NoCopy>(this, Count, SrcVertices, DestVertices, Viewport);
 						}
-						// Use Process Vertices for D3DFVF_VERTEX
 						else
 						{
-							const bool IsLight = (op == D3DPROCESSVERTICES_TRANSFORMLIGHT) && IsMaterialEnabled();
+							hr = TransformVertexExecuteSW<D3DLVERTEX, ColorMode::Copy>(this, Count, SrcVertices, DestVertices, Viewport);
+						}
+						break;
+					}
+					case D3DPROCESSVERTICES_TRANSFORMLIGHT:
+					{
+						// TRANSFORMLIGHT only uses lighting if a Material is set and enabled
+						const bool IsLight = IsMaterialEnabled();
 
-							// Flags
-							const DWORD VertexFlags = (Flags & D3DPROCESSVERTICES_NOCOLOR) ? D3DPV_DONOTCOPYDATA : 0;
+						D3DVERTEX* SrcVertices = reinterpret_cast<D3DVERTEX*>(inputVerts) + processVertices[i].wStart;
+						D3DTLVERTEX* DestVertices = reinterpret_cast<D3DTLVERTEX*>(outputVerts) + processVertices[i].wDest;
 
-							// Use hardware vertex processing
-							hr = ProcessVerticesExecute(Count, SrcVertices, DestVertices, SrcFVF, IsLight, IsClipped, VertexFlags);
-
+						// Use ProcessVertices for Lighting
+						if (IsLight)
+						{
 							// Use software vertex processing
-							//const DWORD VertexOp = D3DVOP_TRANSFORM | (IsClipped ? D3DVOP_CLIP : 0) | (IsLight ? D3DVOP_LIGHT : 0);
+							//const DWORD VertexOp = D3DVOP_TRANSFORM | (IsLight ? D3DVOP_LIGHT : 0);
 							//hr = ProcessVerticesSW(VertexOp, DestVertices, D3DFVF_TLVERTEX, 0, Count, SrcVertices, SrcFVF, 0, this, VertexFlags);
 
-							// Restore tu and tv
-							if (SUCCEEDED(hr) && (Flags & D3DPROCESSVERTICES_NOCOLOR))
-							{
-								for (UINT x = 0; x < Count; x++)
-								{
-									DestVertices[x].dvTU = SrcVertices[x].dvTU;
-									DestVertices[x].dvTV = SrcVertices[x].dvTV;
-								}
-							}
+							// Use hardware vertex processing
+							hr = ProcessVerticesExecute(Count, SrcVertices, DestVertices, D3DFVF_VERTEX, IsLight, false, 0);
 						}
-
-						if (SUCCEEDED(hr))
+						// Use TransformVertexSW for transforms without lighting
+						else
 						{
-							// Handle status and extents
-							SetStatus(dsStatus);
+							hr = TransformVertexExecuteSW<D3DVERTEX, ColorMode::NoCopy>(this, Count, SrcVertices, DestVertices, Viewport);
 						}
 						break;
 					}
 					default:
 						LOG_LIMIT(100, __FUNCTION__ << " Error: D3DOP_PROCESSVERTICES includes both TRANSFORM and COPY are set!");
+						break;
+					}
+
+					// Handle status and extents
+					if (SUCCEEDED(hr))
+					{
+						const bool IsClipped = (dwFlags & D3DEXECUTE_CLIPPED) && !(dwFlags & D3DEXECUTE_UNCLIPPED);
+
+						if (IsClipped && (dsStatus.dwFlags & D3DSETSTATUS_STATUS))
+						{
+							// Update flags
+							dsStatus.dwFlags &= ~D3DSETSTATUS_STATUS;
+							dsStatus.dwStatus = 0; // Just set no clip flags and no ZNOTVISIBLE
+						}
+
+						// Update extents
+						if (Flags & D3DPROCESSVERTICES_UPDATEEXTENTS)
+						{
+							if (D3DVIEWPORT9 vp = {}; SUCCEEDED(GetD9Viewport(&vp)))
+							{
+								dsStatus.dwFlags |= D3DSETSTATUS_EXTENTS;
+
+								dsStatus.drExtent.x1 = vp.X;
+								dsStatus.drExtent.y1 = vp.Y;
+								dsStatus.drExtent.x2 = vp.X + vp.Width;
+								dsStatus.drExtent.y2 = vp.Y + vp.Height;
+							}
+						}
 					}
 				}
 
@@ -908,6 +884,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 			default:
 				// Handle unknown or unsupported opcodes
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: Unknown opcode: " << Logging::hex(opcode));
+				opcode = D3DOP_EXIT;
 				break;
 			}
 
@@ -6444,6 +6421,7 @@ void m_IDirect3DDeviceX::AfterResetDevice()
 	// If viewport isn't set then set to default
 	if (!DeviceStates.Viewport.Set)
 	{
+		DeviceStates.Viewport.View = DefaultViewport;
 		DeviceStates.Viewport.FixedView = DefaultViewport;
 	}
 }
@@ -6542,6 +6520,7 @@ void m_IDirect3DDeviceX::SetDefaults()
 	ddrawParent->GetDefaultViewport(DefaultViewport);
 
 	// Set defaults
+	DeviceStates.Viewport.View = DefaultViewport;
 	DeviceStates.Viewport.FixedView = DefaultViewport;
 }
 
@@ -6842,16 +6821,6 @@ HRESULT m_IDirect3DDeviceX::ProcessVerticesExecute(UINT VertexCount, void* SrcVe
 	// Size
 	UINT SrcVertexSize = sizeof(D3DVERTEX) * VertexCount;
 	UINT DestVertexSize = sizeof(D3DTLVERTEX) * VertexCount;
-
-	// Update vertices for Direct3D9
-	if (SrcFVF == D3DFVF_LVERTEX)
-	{
-		SrcVertexSize = sizeof(D3DLVERTEX9) * VertexCount;
-		VertexCache.resize(SrcVertexSize);
-		ConvertLVertex(reinterpret_cast<DXLVERTEX9*>(VertexCache.data()), reinterpret_cast<DXLVERTEX7*>(SrcVertices), VertexCount);
-		SrcVertices = VertexCache.data();
-		SrcFVF = D3DFVF_LVERTEX9;
-	}
 
 	LPDIRECT3DVERTEXBUFFER9 pSrcBuffer = ddrawParent->GetVertexBuffer(SrcFVF, SrcVertexSize, SrcVertices);
 	if (!pSrcBuffer)

@@ -3268,7 +3268,9 @@ LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetVertexBuffer(DWORD FVF, UINT Length, 
 	// Create new buffer
 	if (!Buffer)
 	{
-		HRESULT hr = d3d9Device->CreateVertexBuffer(Length, D3DUSAGE_DYNAMIC, FVF, D3DPOOL_DEFAULT, &Buffer, nullptr);
+		const DWORD NewFVF = (FVF & D3DFVF_RESERVED1) ? 0 : FVF;
+
+		HRESULT hr = d3d9Device->CreateVertexBuffer(Length, D3DUSAGE_DYNAMIC, NewFVF, D3DPOOL_DEFAULT, &Buffer, nullptr);
 
 		if (FAILED(hr))
 		{

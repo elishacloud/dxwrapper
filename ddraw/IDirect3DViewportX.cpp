@@ -327,7 +327,6 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 		if (dwVertexCount == 0)
 		{
 			*lpOffscreen = IsClipped ? ((D3DSTATUS_ZNOTVISIBLE - 1) | D3DSTATUS_ZNOTVISIBLE) : 0;
-
 			return D3D_OK;
 		}
 
@@ -348,14 +347,31 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
+		VIEWPORTINFO FixedViewport = Viewport;
+		FixedViewport.Data9 = FixViewport(FixedViewport.Data9);
+
 		HRESULT hr;
 		if (lpData->dwInSize == sizeof(XYZ))
 		{
-			hr = TransformVertexSW<XYZ>(pDirect3DDeviceX, dwVertexCount, lpData, IsClipped, Viewport, *lpOffscreen);
+			if (IsClipped)
+			{
+				hr = TransformVertexSW<XYZ, ClipMode::Clipped>(pDirect3DDeviceX, dwVertexCount, lpData, FixedViewport, *lpOffscreen);
+			}
+			else
+			{
+				hr = TransformVertexSW<XYZ, ClipMode::Unclipped>(pDirect3DDeviceX, dwVertexCount, lpData, FixedViewport, *lpOffscreen);
+			}
 		}
 		else if (lpData->dwInSize >= sizeof(D3DLVERTEX))
 		{
-			hr = TransformVertexSW<D3DLVERTEX>(pDirect3DDeviceX, dwVertexCount, lpData, IsClipped, Viewport, *lpOffscreen);
+			if (IsClipped)
+			{
+				hr = TransformVertexSW<D3DLVERTEX, ClipMode::Clipped>(pDirect3DDeviceX, dwVertexCount, lpData, FixedViewport, *lpOffscreen);
+			}
+			else
+			{
+				hr = TransformVertexSW<D3DLVERTEX, ClipMode::Unclipped>(pDirect3DDeviceX, dwVertexCount, lpData, FixedViewport, *lpOffscreen);
+			}
 		}
 		else
 		{
