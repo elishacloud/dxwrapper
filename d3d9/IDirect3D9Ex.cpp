@@ -744,6 +744,7 @@ DWORD m_IDirect3D9Ex::UpdateBehaviorFlags(DWORD BehaviorFlags)
 		BehaviorFlags &= ~(D3DCREATE_PUREDEVICE | D3DCREATE_MIXED_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
 		BehaviorFlags |= D3DCREATE_HARDWARE_VERTEXPROCESSING;
 	}
+	BehaviorFlags |= !Config.DdrawNoMultiThreaded && ClientDirectXVersion < 9 ? D3DCREATE_MULTITHREADED : 0;
 	return BehaviorFlags;
 }
 
