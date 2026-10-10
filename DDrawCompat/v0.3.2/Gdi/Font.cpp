@@ -4,6 +4,9 @@
 #include <DDrawCompat/v0.3.2/Common/Hook.h>
 #include <DDrawCompat/DDrawLog.h>
 #include <DDrawCompat/v0.3.2/Gdi/Font.h>
+//********** Begin Edit *************
+#include "DDrawCompat/DDrawCompatExternal.h"
+//********** End Edit *************
 
 namespace
 {
@@ -15,16 +18,27 @@ namespace
 		LOG_FUNC(origFuncName, Compat32::hex(uiAction), uiParam, pvParam, fWinIni);
 		switch (uiAction)
 		{
+			//********** Begin Edit *************
+		case SPI_SETNONCLIENTMETRICS:
+			// Pretend the operation succeeded, but do not change
+			// the system-wide menu metrics or broadcast a change.
+			return TRUE;
+			//********** End Edit *************
+
 		case SPI_GETFONTSMOOTHING:
-			if (pvParam)
+			if (DDrawCompat::IsEnabled() && pvParam)
 			{
 				*static_cast<BOOL*>(pvParam) = g_isFontSmoothingEnabled;
 				return TRUE;
 			}
 			break;
 		case SPI_SETFONTSMOOTHING:
-			g_isFontSmoothingEnabled = 0 != uiParam;
-			return TRUE;
+			if (DDrawCompat::IsEnabled())
+			{
+				g_isFontSmoothingEnabled = 0 != uiParam;
+				return TRUE;
+			}
+			break;
 		}
 		return LOG_RESULT(origSystemParametersInfo(uiAction, uiParam, pvParam, fWinIni));
 	}
@@ -84,18 +98,21 @@ namespace Gdi
 
 		void installHooks()
 		{
-			SystemParametersInfo(SPI_GETFONTSMOOTHING, 0, &g_isFontSmoothingEnabled, 0);
-
-			char fontSmoothing[2] = {};
-			DWORD fontSmoothingSize = sizeof(fontSmoothing);
-			RegGetValue(HKEY_CURRENT_USER, "Control Panel\\Desktop", "FontSmoothing", RRF_RT_REG_SZ, nullptr,
-				&fontSmoothing, &fontSmoothingSize);
-
-			BOOL isFontSmoothingEnabledInRegistry = 0 == strcmp(fontSmoothing, "2");
-			if (isFontSmoothingEnabledInRegistry != g_isFontSmoothingEnabled)
+			if (DDrawCompat::IsEnabled())
 			{
-				SystemParametersInfo(SPI_SETFONTSMOOTHING, isFontSmoothingEnabledInRegistry, nullptr,
-					SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+				SystemParametersInfo(SPI_GETFONTSMOOTHING, 0, &g_isFontSmoothingEnabled, 0);
+
+				char fontSmoothing[2] = {};
+				DWORD fontSmoothingSize = sizeof(fontSmoothing);
+				RegGetValue(HKEY_CURRENT_USER, "Control Panel\\Desktop", "FontSmoothing", RRF_RT_REG_SZ, nullptr,
+					&fontSmoothing, &fontSmoothingSize);
+
+				BOOL isFontSmoothingEnabledInRegistry = 0 == strcmp(fontSmoothing, "2");
+				if (isFontSmoothingEnabledInRegistry != g_isFontSmoothingEnabled)
+				{
+					SystemParametersInfo(SPI_SETFONTSMOOTHING, isFontSmoothingEnabledInRegistry, nullptr,
+						SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+				}
 			}
 
 			HOOK_FUNCTION(user32, SystemParametersInfoA, systemParametersInfoA);

@@ -82,6 +82,7 @@ namespace Utils
 	bool IsWindowsVistaOrNewer();
 	bool IsWindows7OrNewer();
 	bool IsWindows8OrNewer();
+	void GetGammaSettings();
 	void GetScreenSettings();
 	void ResetScreenSettings();
 	void ResetGamma();
@@ -174,7 +175,6 @@ namespace Fullscreen
 	void StartThread();
 	bool IsThreadRunning();
 	void StopThread();
-	void ResetScreen();
 }
 
 namespace KeyboardLayout

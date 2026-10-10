@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -16,6 +16,10 @@
 
 #include "d3d9.h"
 #include "External\Hooking\Hook.h"
+
+#define INIT_DEVICE_ITEMS \
+	Utils::GetGammaSettings(); \
+	SetupIDirect3D9();
 
 namespace D3d9Wrapper
 {
@@ -294,7 +298,7 @@ IDirect3D9* WINAPI d9_Direct3DCreate9(UINT SDKVersion)
 		return nullptr;
 	}
 
-	SetupIDirect3D9();
+	INIT_DEVICE_ITEMS;
 
 	if (Config.D3d9on12 && Config.D3d9to9Ex)
 	{
@@ -379,7 +383,7 @@ HRESULT WINAPI d9_Direct3DCreate9Ex(UINT SDKVersion, IDirect3D9Ex** ppD3D)
 		return D3DERR_INVALIDCALL;
 	}
 
-	SetupIDirect3D9();
+	INIT_DEVICE_ITEMS;
 
 	if (Config.D3d9on12)
 	{
@@ -427,7 +431,7 @@ IDirect3D9* WINAPI d9_Direct3DCreate9On12(UINT SDKVersion, D3D9ON12_ARGS* pOverr
 		return d9_Direct3DCreate9(SDKVersion);
 	}
 
-	SetupIDirect3D9();
+	INIT_DEVICE_ITEMS;
 
 	if (Config.D3d9on12 && pOverrideList)
 	{
@@ -478,7 +482,7 @@ HRESULT WINAPI d9_Direct3DCreate9On12Ex(UINT SDKVersion, D3D9ON12_ARGS* pOverrid
 		return d9_Direct3DCreate9Ex(SDKVersion, ppOutputInterface);
 	}
 
-	SetupIDirect3D9();
+	INIT_DEVICE_ITEMS;
 
 	if (Config.D3d9on12 && pOverrideList)
 	{

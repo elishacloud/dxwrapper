@@ -38,6 +38,7 @@
 #include <DDrawCompat/v0.3.2/Win32/Registry.h>
 #include <DDrawCompat/v0.3.2/Win32/WaitFunctions.h>
 //********** Begin Edit *************
+#include <DDrawCompat/v0.3.2/Gdi/Font.h>
 #define DllMain Compat32::DllMain_DDrawCompat
 
 typedef HRESULT(WINAPI* SetProcessDpiAwarenessProc)(PROCESS_DPI_AWARENESS value);
@@ -231,7 +232,9 @@ void Compat32::InstallDd7to9Hooks(HMODULE hModule)
 		Win32::DisplayMode::installHooks();
 		Compat32::Log() << "Installing registry hooks";
 		Win32::Registry::installHooks();
-		Compat32::Log() << "Installing Win32 hooks";
+		Compat32::Log() << "Installing font hooks";
+		Gdi::Font::installHooks();
+		Compat32::Log() << "Installing wait function hooks";
 		Win32::WaitFunctions::installHooks();
 		DisableProcessWindowsGhosting();
 	}

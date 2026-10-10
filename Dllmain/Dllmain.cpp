@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -398,10 +398,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Set application compatibility options
-		if (Config.ResetScreenRes)
-		{
-			Utils::GetScreenSettings();
-		}
+		Utils::GetScreenSettings();
 		if (Config.MemoryInfo.size() != 0)
 		{
 			WriteMemory::WriteMemory();
@@ -804,10 +801,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Logging::Log() << "Process not exiting, attempting to terminate process...";
 
 				// Reset screen back to original Windows settings to fix some display errors on exit
-				if (Config.ResetScreenRes)
-				{
-					Utils::ResetScreenSettings();
-				}
+				Utils::ResetScreenSettings();
 
 				// Terminate the current process
 				Logging::Log() << __FUNCTION__ << " Terminating process!";
@@ -857,10 +851,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		}
 
 		// Reset screen back to original Windows settings to fix some display errors on exit
-		if (Config.ResetScreenRes)
-		{
-			Utils::ResetScreenSettings();
-		}
+		Utils::ResetScreenSettings();
 
 		// Release Mutex
 		if (hMutex)

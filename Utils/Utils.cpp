@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -37,6 +37,9 @@
 #include "External\Hooking\Hook.h"
 #include "External\Hooking\Disasm.h"
 #include "Libraries\ScopeGuard.h"
+#ifdef DDRAWCOMPAT
+#include "DDrawCompat\DDrawCompatExternal.h"
+#endif // DDRAWCOMPAT
 #include "Logging\Logging.h"
 
 #undef LoadLibrary
@@ -104,7 +107,7 @@ namespace Utils
 	};
 
 	// FontSmoothing
-	struct SystemSettings
+	struct FontSystemSettings
 	{
 		bool isSet = false;
 		BOOL enabled = FALSE;
@@ -113,7 +116,14 @@ namespace Utils
 		UINT orientation = 0;
 	} fontSystemSettings;
 
-	// Screen settings
+	// MouseVanish
+	struct MouseSystemSettings
+	{
+		bool isSet = false;
+		BOOL enabled = FALSE;
+	} mouseSystemSettings;
+
+	// Gamma settings
 	HDC hDC = nullptr;
 	WORD lpRamp[3 * 256] = {};
 
@@ -1380,12 +1390,79 @@ bool Utils::IsWindows8OrNewer()
 	return false; // Older than Windows 8
 }
 
+void Utils::GetGammaSettings()
+{
+	static std::atomic<bool> RunOnce = Config.ResetScreenRes;
+
+	// Store gamma settings
+	if (RunOnce)
+	{
+		// Handle concurrency issues
+		static std::atomic<bool> flag = false;
+		ScopedAtomicFlagSet ScopeGuard(flag);
+
+		if (RunOnce)
+		{
+			RunOnce = false;
+
+			HDC tmpDC = GetDC(nullptr);
+			if (tmpDC)
+			{
+				struct GammaRampData
+				{
+					HDC hDC;
+					WORD ramp[3][256];
+					BOOL success;
+				};
+
+				static GammaRampData data = {};
+				data.hDC = tmpDC;
+
+				HANDLE hThread = CreateThread(nullptr, 0, [](LPVOID param) -> DWORD
+				{
+					GammaRampData* pData = static_cast<GammaRampData*>(param);
+					pData->success = GetDeviceGammaRamp(pData->hDC, pData->ramp);
+					return 0;
+				}, &data, 0, nullptr);
+
+				if (hThread)
+				{
+					DWORD waitResult = WaitForSingleObject(hThread, 2000);
+
+					if (waitResult == WAIT_OBJECT_0)
+					{
+						if (data.success)
+						{
+							CopyMemory(lpRamp, data.ramp, sizeof(data.ramp));
+							hDC = tmpDC;
+						}
+						else
+						{
+							Logging::Log() << "Failed to get device gamma ramp";
+							ReleaseDC(nullptr, tmpDC);
+						}
+					}
+					else
+					{
+						// Do not release the DC while a timed-out thread may still use it.
+						// A timed-out thread can remain blocked indefinitely, so retain the DC.
+						Logging::Log() << "GetDeviceGammaRamp timed out";
+					}
+
+					CloseHandle(hThread);
+				}
+				else
+				{
+					Logging::Log() << "Failed to create gamma ramp thread";
+					ReleaseDC(nullptr, tmpDC);
+				}
+			}
+		}
+	}
+}
+
 void Utils::GetScreenSettings()
 {
-	// Store screen settings
-	//hDC = GetDC(nullptr);
-	//GetDeviceGammaRamp(hDC, lpRamp);  // <-- Hangs on this line starting in Windows 10 update 1903
-
 #if (_WIN32_WINNT >= 0x0502)
 	// Read values from the registry if they exist
 	DWORD Size = sizeof(int);
@@ -1410,44 +1487,112 @@ void Utils::GetScreenSettings()
 		RegSetKeyValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Contrast", REG_DWORD, (PVOID)&fontSystemSettings.contrast, Size);
 		RegSetKeyValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Orientation", REG_DWORD, (PVOID)&fontSystemSettings.orientation, Size);
 	}
+
+	// Read values from the registry if they exist
+	if (RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Mouse_Vanish", RRF_RT_REG_DWORD, nullptr, (PVOID)&mouseSystemSettings.enabled, &Size) == ERROR_SUCCESS)
+	{
+		mouseSystemSettings.isSet = true;
+	}
+
+	// Store mouse vanish settings
+	if (!mouseSystemSettings.isSet &&
+		SystemParametersInfo(SPI_GETMOUSEVANISH, 0, &mouseSystemSettings.enabled, 0))
+	{
+		mouseSystemSettings.isSet = true;
+		RegSetKeyValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Mouse_Vanish", REG_DWORD, (PVOID)&mouseSystemSettings.enabled, Size);
+	}
 #endif // _WIN32_WINNT >= 0x0502
 }
 
 void Utils::ResetScreenSettings()
 {
-	Logging::Log() << "Reseting screen resolution";
+	bool ReDrawDesktop = false;
 
-	// Reset Gamma Ramp
-	if (hDC)
+	// Reset display settings
+	if (Config.ResetScreenRes)
 	{
-		SetDeviceGammaRamp(hDC, lpRamp);  // <-- Hangs on this line starting in Windows 10 update 1903
-		ReleaseDC(nullptr, hDC);
-	}
+		Logging::Log() << "Resetting screen settings";
 
-	// Reset screen settings
-	ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
+		ReDrawDesktop = true;
+		ChangeDisplaySettingsEx(nullptr, nullptr, nullptr, CDS_RESET, nullptr);
+	}
 
 #if (_WIN32_WINNT >= 0x0502)
 	// Reset font settings
 	if (fontSystemSettings.isSet)
 	{
-		Logging::Log() << "Reseting font smoothing";
-		if (SystemParametersInfo(SPI_SETFONTSMOOTHING, fontSystemSettings.enabled, nullptr, SPIF_SENDCHANGE) &&
-			SystemParametersInfo(SPI_SETFONTSMOOTHINGTYPE, 0, (LPVOID)fontSystemSettings.type, SPIF_SENDCHANGE) &&
-			SystemParametersInfo(SPI_SETFONTSMOOTHINGCONTRAST, 0, (LPVOID)fontSystemSettings.contrast, SPIF_SENDCHANGE) &&
-			SystemParametersInfo(SPI_SETFONTSMOOTHINGORIENTATION, 0, (LPVOID)fontSystemSettings.orientation, SPIF_SENDCHANGE))
+		FontSystemSettings Font;
+		SystemParametersInfo(SPI_GETFONTSMOOTHING, 0, &Font.enabled, 0);
+		SystemParametersInfo(SPI_GETFONTSMOOTHINGTYPE, 0, &Font.type, 0);
+		SystemParametersInfo(SPI_GETFONTSMOOTHINGCONTRAST, 0, &Font.contrast, 0);
+		SystemParametersInfo(SPI_GETFONTSMOOTHINGORIENTATION, 0, &Font.orientation, 0);
+
+		// Update if font settings has changed
+		BOOL success = TRUE;
+		if (Font.enabled != fontSystemSettings.enabled ||
+			Font.type != fontSystemSettings.type ||
+			Font.contrast != fontSystemSettings.contrast ||
+			Font.orientation != fontSystemSettings.orientation)
 		{
-			// Delete registry keys
+			Logging::Log() << "Resetting font smoothing";
+
+			ReDrawDesktop = true;
+			success &= SystemParametersInfo(SPI_SETFONTSMOOTHING, fontSystemSettings.enabled, nullptr, SPIF_SENDCHANGE);
+			success &= SystemParametersInfo(SPI_SETFONTSMOOTHINGTYPE, 0, reinterpret_cast<LPVOID>(fontSystemSettings.type), SPIF_SENDCHANGE);
+			success &= SystemParametersInfo(SPI_SETFONTSMOOTHINGCONTRAST, 0, reinterpret_cast<LPVOID>(fontSystemSettings.contrast), SPIF_SENDCHANGE);
+			success &= SystemParametersInfo(SPI_SETFONTSMOOTHINGORIENTATION, 0, reinterpret_cast<LPVOID>(fontSystemSettings.orientation), SPIF_SENDCHANGE);
+		}
+
+		// Delete registry keys
+		if (success)
+		{
 			RegDeleteKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Enabled");
 			RegDeleteKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Type");
 			RegDeleteKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Contrast");
 			RegDeleteKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Orientation");
 		}
 	}
+
+	// Restore Mouse Vanish
+	if (mouseSystemSettings.isSet)
+	{
+		MouseSystemSettings Mouse;
+		SystemParametersInfo(SPI_GETFONTSMOOTHING, 0, &Mouse.enabled, 0);
+
+		// Update if mouse settings has changed
+		BOOL success = TRUE;
+		if (Mouse.enabled != mouseSystemSettings.enabled)
+		{
+			Logging::Log() << "Resetting mouse vanish settings";
+
+			ReDrawDesktop = true;
+			success &= SystemParametersInfo(SPI_SETMOUSEVANISH, 0, &mouseSystemSettings.enabled, 0);
+		}
+
+		// Delete registry keys
+		if (success)
+		{
+			RegDeleteKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Mouse_Vanish");
+		}
+	}
 #endif // _WIN32_WINNT >= 0x0502
 
+	// Reset Gamma Ramp
+	if (hDC)
+	{
+		Logging::Log() << "Resetting gamma ramp";
+
+		ReDrawDesktop = true;
+		SetDeviceGammaRamp(hDC, lpRamp);
+		ReleaseDC(nullptr, hDC);
+		hDC = nullptr;
+	}
+
 	// Redraw desktop window
-	RedrawWindow(nullptr, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+	if (ReDrawDesktop)
+	{
+		RedrawWindow(nullptr, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+	}
 }
 
 void Utils::ResetGamma()
