@@ -7894,6 +7894,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			(!pSourceSurface->IsUsingEmulation() || pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM))
 		{
 			PrepareRenderTarget();
+			pSourceSurface->SetRenderTargetShadow();
 
 			ScopedGetMipMapContext Src(pSourceSurface, SrcMipMapLevel);
 			ScopedGetMipMapContext Dest(this, MipMapLevel);
@@ -7927,7 +7928,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			surface.Pool == D3DPOOL_DEFAULT &&
 			surface.Format == pSourceSurface->surface.Format &&
 			surface.Shadow &&
-			(surface.BitCount == 8 || surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32) &&
+			(surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32) &&
 			(pSourceSurface->surface.Pool != D3DPOOL_DEFAULT || pSourceSurface->CanUseShadowSurface() || pSourceSurface->IsUsingEmulation()))
 		{
 			PrepareRenderTarget();
