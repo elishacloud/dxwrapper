@@ -374,7 +374,7 @@ private:
 
 	// Copying surface textures
 	void SetRenderTargetShadow();
-	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DWORD ColorKey, D3DCOLOR RGBColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel);
+	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DWORD ColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel);
 	HRESULT DrawSurfaceToRenderTarget(m_IDirectDrawSurfaceX* pSourceSurface, const RECT& SrcRect, const RECT& DestRect, D3DTEXTUREFILTERTYPE Filter, DWORD SrcMipMapLevel, D3DCOLOR RGBColorKey, bool IsColorKey, bool IsMirrorLeftRight, bool IsMirrorUpDown);
 	HRESULT CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, bool DepthFill, DWORD DepthColor);
 	HRESULT CopyToDrawTexture(LPRECT lpDestRect, D3DCOLOR RGBColorKey, bool OverRideColorKey);
