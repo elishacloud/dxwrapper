@@ -4699,18 +4699,14 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD9DrawTexture(D3DCOLOR RGBColorKey,
 	// Create texture
 	if (surface.Texture || surface.Surface)
 	{
-		const DWORD Level = IsMipMapAutogen() ? 0 : MaxMipMapLevel + 1;
-		const DWORD Usage = (surface.Usage & ~D3DUSAGE_AUTOGENMIPMAP) | (MaxMipMapLevel > 1 ? D3DUSAGE_AUTOGENMIPMAP : 0);
-		const D3DPOOL Pool = surface.Pool == D3DPOOL_DEFAULT || surface.Pool == D3DPOOL_MANAGED ? surface.Pool : D3DPOOL_DEFAULT;
-		if (FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, Level, Usage, D3DFMT_A8R8G8B8, Pool, &surface.DrawTexture, nullptr)))
+		const DWORD Level = IsMipMapAutogen() || MaxMipMapLevel ? 0 : 1;
+		const DWORD Usage = (MaxMipMapLevel != 1 ? D3DUSAGE_AUTOGENMIPMAP : 0);
+		if (FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, Level, Usage, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &surface.DrawTexture, nullptr)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create alpha color key texture. Size: " << surface.Width << "x" << surface.Height <<
+				" Level: " << Level << " Usage: " << Logging::hex(Usage) <<
 				" Format: " << surface.Format << " dwCaps: " << surfaceDesc2.ddsCaps);
 			return nullptr;
-		}
-		if (Level != 1)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: alpha color key texture using MipMaps. MipMap level: " << Level);
 		}
 		if (FAILED(CopyToDrawTexture(nullptr, RGBColorKey, OverRideColorKey)))
 		{

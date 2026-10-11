@@ -100,6 +100,62 @@ void LoadD3dx9()
 	}
 }
 
+static void MarkSurfaceAsDirty(LPDIRECT3DSURFACE9 pDestSurface, const RECT* pDestRect)
+{
+	if (!pDestSurface)
+	{
+		return;
+	}
+
+	// Add dirty rect if surface is a 2D texture
+	{
+		ComPtr<IDirect3DTexture9> pDestTexture;
+		if (SUCCEEDED(pDestSurface->GetContainer(IID_IDirect3DTexture9, (void**)pDestTexture.GetAddressOf())))
+		{
+			pDestTexture->AddDirtyRect(pDestRect);
+			return;
+		}
+	}
+
+	// Add dirty rect if surface is a cube texture
+	{
+		ComPtr<IDirect3DCubeTexture9> pDestTexture;
+		if (FAILED(pDestSurface->GetContainer(IID_IDirect3DCubeTexture9, (void**)pDestTexture.GetAddressOf())))
+		{
+			return;
+		}
+
+		// Get the canonical IUnknown for the destination surface.
+		ComPtr<IUnknown> pDestUnknown;
+		if (FAILED(pDestSurface->QueryInterface(IID_IUnknown, (void**)pDestUnknown.GetAddressOf())))
+		{
+			return;
+		}
+
+		// Find the cube face containing the surface (level 0 only).
+		for (UINT Face = 0; Face < 6; Face++)
+		{
+			ComPtr<IDirect3DSurface9> pFaceSurface;
+			if (FAILED(pDestTexture->GetCubeMapSurface((D3DCUBEMAP_FACES)Face, 0, pFaceSurface.GetAddressOf())))
+			{
+				continue;
+			}
+
+			ComPtr<IUnknown> pFaceUnknown;
+			if (FAILED(pFaceSurface->QueryInterface(IID_IUnknown, (void**)pFaceUnknown.GetAddressOf())))
+			{
+				continue;
+			}
+
+			if (pDestUnknown.Get() == pFaceUnknown.Get())
+			{
+				pDestTexture->AddDirtyRect((D3DCUBEMAP_FACES)Face, pDestRect);
+				return;
+			}
+		}
+	}
+}
+
 HRESULT WINAPI D3DXLoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSurface, const PALETTEENTRY* pDestPalette, const RECT* pDestRect, LPCVOID pSrcMemory, D3DFORMAT SrcFormat, UINT SrcPitch, const PALETTEENTRY* pSrcPalette, const RECT* pSrcRect, DWORD Filter, D3DCOLOR ColorKey)
 {
 	Logging::LogDebug() << __FUNCTION__;
@@ -119,12 +175,7 @@ HRESULT WINAPI D3DXLoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSurface, const 
 		return hr;
 	}
 
-	// Add dirty rect if surface is a texture
-	ComPtr<IDirect3DTexture9> pDestTexture;
-	if (SUCCEEDED(pDestSurface->GetContainer(IID_IDirect3DTexture9, (void**)pDestTexture.GetAddressOf())))
-	{
-		pDestTexture->AddDirtyRect(pDestRect);
-	}
+	MarkSurfaceAsDirty(pDestSurface, pDestRect);
 
 	return D3D_OK;
 }
@@ -154,12 +205,7 @@ HRESULT WINAPI D3DXLoadSurfaceFromSurface(LPDIRECT3DSURFACE9 pDestSurface, const
 		return hr;
 	}
 
-	// Add dirty rect if surface is a texture
-	ComPtr<IDirect3DTexture9> pDestTexture;
-	if (SUCCEEDED(pDestSurface->GetContainer(IID_IDirect3DTexture9, (void**)pDestTexture.GetAddressOf())))
-	{
-		pDestTexture->AddDirtyRect(pDestRect);
-	}
+	MarkSurfaceAsDirty(pDestSurface, pDestRect);
 
 	return D3D_OK;
 }
