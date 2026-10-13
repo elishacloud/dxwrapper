@@ -95,6 +95,13 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 
 	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
 	{
+		if (Config.Dd7to9 && riid == IID_IDirectDrawSurface7 && IsCreatedByDDFactory())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << GetWrapperType(DirectXVersion));
+
+			return E_NOINTERFACE;
+		}
+
 		*ppvObj = GetWrapperInterfaceX(DxVersion);
 
 		AddRef(DxVersion);
@@ -180,6 +187,13 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		}*/
 		if (riid == IID_IDirectDrawGammaControl)
 		{
+			if (IsCreatedByDDFactory())
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << GetWrapperType(DirectXVersion));
+
+				return E_NOINTERFACE;
+			}
+
 			m_IDirectDrawGammaControl* lpGammaControl = ddrawParent->GetGammaControlInterface();
 
 			if (lpGammaControl)
@@ -202,7 +216,7 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 		}
 		if (riid == IID_IDirect3DTexture || riid == IID_IDirect3DTexture2)
 		{
-			if (ddrawParent->IsCreatedEx())
+			if (ddrawParent->IsCreatedEx() || (IsCreatedByDDFactory() && riid == IID_IDirect3DTexture2))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << GetWrapperType(DirectXVersion));
 
@@ -263,6 +277,8 @@ ULONG m_IDirectDrawSurfaceX::AddRef(DWORD DirectXVersion)
 	{
 		ScopedAtomicFlagSet ScopeGuard(RefCountLock);
 
+		DirectXVersion = IsCreatedByDDFactory() ? 1 : DirectXVersion;
+
 		switch (DirectXVersion)
 		{
 		case 1:
@@ -290,10 +306,16 @@ ULONG m_IDirectDrawSurfaceX::Release(DWORD DirectXVersion)
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref, TotalRefCount;
+		if (RefCount1 + RefCount2 + RefCount3 + RefCount4 + RefCount7 == 0)
+		{
+			return 0;
+		}
 
+		ULONG ref, TotalRefCount;
 		{
 			ScopedAtomicFlagSet ScopeGuard(RefCountLock);
+
+			DirectXVersion = IsCreatedByDDFactory() ? 1 : DirectXVersion;
 
 			switch (DirectXVersion)
 			{
@@ -4225,6 +4247,8 @@ void m_IDirectDrawSurfaceX::InitInterface(DWORD DirectXVersion)
 		if (ddrawParent)
 		{
 			d3d9Device = ddrawParent->GetDirectD9Device();
+
+			CreatedByDDFactory = ddrawParent->IsCreatedByDDFactory();
 		}
 
 		// Set Uniqueness Value

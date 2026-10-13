@@ -634,11 +634,23 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
         TestID = 837;
         LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
 
-        pZBuffer->Release();
+        ULONG D3DDevice1Ref = pD3DDevice1->Release();
+
+        ULONG ZBufferRef = pZBuffer->Release();
 
         pSurface1->Release();
 
-        pD3DDevice1->Release();
+        // ****  850  ****
+        TestID = 850;
+        LOG_TEST_RESULT(TestID, "After 3D Device1 release. Device1 Ref count ", D3DDevice1Ref, GetResults<DDType>(TestID));
+
+        // ****  851  ****
+        TestID = 851;
+        LOG_TEST_RESULT(TestID, "After 3D Device1 release. ZBuffer Ref count ", ZBufferRef, GetResults<DDType>(TestID));
+
+        // ****  852  ****
+        TestID = 852;
+        LOG_TEST_RESULT(TestID, "After 3D Device1 release. Surface1 Ref count ", GetRefCount(pSurface1), GetResults<DDType>(TestID));
 
         // ****  826  ****
         TestID = 826;
@@ -646,14 +658,58 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
 
         // ****  827  ****
         TestID = 827;
-        LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+        LOG_TEST_RESULT(TestID, "After 3D Device1 release. DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+        if (D3DDevice1Ref)
+        {
+            pSurface1->AddRef();
+
+            D3DDevice1Ref = pD3DDevice1->Release();
+
+            // ****  853  ****
+            TestID = 853;
+            LOG_TEST_RESULT(TestID, "After second 3D Device1 release. ZBuffer Ref count ", ZBufferRef, GetResults<DDType>(TestID));
+
+            // ****  854  ****
+            TestID = 854;
+            LOG_TEST_RESULT(TestID, "After second 3D Device1 release. Surface1 Ref count ", GetRefCount(pSurface1), GetResults<DDType>(TestID));
+
+            // ****  855  ****
+            TestID = 855;
+            LOG_TEST_RESULT(TestID, "After second 3D Device1 release. Direct3D Ref count ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+
+            // ****  856  ****
+            TestID = 856;
+            LOG_TEST_RESULT(TestID, "After second 3D Device1 release. DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+        }
+
+        if (ZBufferRef)
+        {
+            while (pZBuffer->Release()) {};
+
+            // ****  857  ****
+            TestID = 857;
+            LOG_TEST_RESULT(TestID, "After ZBuffer release. Surface1 Ref count ", GetRefCount(pSurface1), GetResults<DDType>(TestID));
+
+            // ****  858  ****
+            TestID = 858;
+            LOG_TEST_RESULT(TestID, "After ZBuffer release. Direct3D Ref count ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+
+            // ****  859  ****
+            TestID = 859;
+            LOG_TEST_RESULT(TestID, "After ZBuffer release. DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+        }
     }
     else
     {
         LOG_TEST_RESULT(TestID, "Failed to create 3D Device1. Error: ", (DDERR)hr, TEST_FAILED);
     }
 
-    pSurface1->Release();
+    ULONG Surface1Ref = pSurface1->Release();
+
+    // ****  860  ****
+    TestID = 860;
+    LOG_TEST_RESULT(TestID, "After 3D Surface1 release. Surface1 Ref count ", Surface1Ref, GetResults<DDType>(TestID));
 
     // ****  828  ****
     TestID = 828;

@@ -214,7 +214,9 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
+	inline ULONG GetRef() const { return RefCount1; }
 	inline void SetAsCreatedByDDFactory() { CreatedByDDFactory = true; }
+	inline bool IsCreatedByDDFactory() const { return CreatedByDDFactory; }
 
 	// Direct3D interfaces
 	inline m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }

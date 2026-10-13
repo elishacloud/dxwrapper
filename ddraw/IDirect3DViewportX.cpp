@@ -93,8 +93,12 @@ ULONG m_IDirect3DViewportX::Release(DWORD DirectXVersion)
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref, TotalRefCount;
+		if (RefCount1 + RefCount2 + RefCount3 == 0)
+		{
+			return 0;
+		}
 
+		ULONG ref, TotalRefCount;
 		{
 			ScopedAtomicFlagSet ScopeGuard(RefCountLock);
 

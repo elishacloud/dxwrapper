@@ -91,8 +91,12 @@ ULONG m_IDirect3DVertexBufferX::Release(DWORD DirectXVersion)
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref, TotalRefCount;
+		if (RefCount1 + RefCount7 == 0)
+		{
+			return 0;
+		}
 
+		ULONG ref, TotalRefCount;
 		{
 			ScopedAtomicFlagSet ScopeGuard(RefCountLock);
 

@@ -91,7 +91,7 @@ DDType* TestDirectDrawCreateT()
         HRESULT hr = CoCreateInstance(CLSID_DirectDraw, nullptr, CLSCTX_INPROC_SERVER, IID_IDirectDraw, reinterpret_cast<void**>(&pDDraw));
         if (FAILED(hr))
         {
-            LOG_TEST_RESULT(TestID, "CoCreateInstance for DirectDraw function failed! ", 0, TEST_FAILED);
+            LOG_TEST_RESULT(TestID, "CoCreateInstance for DirectDraw function failed! ", hr, TEST_FAILED);
             return nullptr;
         }
 
@@ -102,7 +102,7 @@ DDType* TestDirectDrawCreateT()
         HRESULT hr = CoCreateInstance(CLSID_DirectDraw7, nullptr, CLSCTX_INPROC_SERVER, IID_IDirectDraw7, reinterpret_cast<void**>(&pDDraw));
         if (FAILED(hr))
         {
-            LOG_TEST_RESULT(TestID, "CoCreateInstance for DirectDraw7 function failed! ", 0, TEST_FAILED);
+            LOG_TEST_RESULT(TestID, "CoCreateInstance for DirectDraw7 function failed! ", hr, TEST_FAILED);
             return nullptr;
         }
 
@@ -115,14 +115,14 @@ DDType* TestDirectDrawCreateT()
         HRESULT hr = CoGetClassObject(CLSID_DirectDraw, CLSCTX_INPROC_SERVER, nullptr, IID_IClassFactory, reinterpret_cast<void**>(&pFactory));
         if (FAILED(hr))
         {
-            LOG_TEST_RESULT(TestID, "CoGetClassObject for DirectDraw function failed! ", 0, TEST_FAILED);
+            LOG_TEST_RESULT(TestID, "CoGetClassObject for DirectDraw function failed! ", hr, TEST_FAILED);
             return nullptr;
         }
 
         hr = pFactory->CreateInstance(nullptr, IID_IDirectDraw, reinterpret_cast<void**>(&pDDraw));
         if (FAILED(hr))
         {
-            LOG_TEST_RESULT(TestID, "CreateInstance for CoGetClassObject for DirectDraw function failed! ", 0, TEST_FAILED);
+            LOG_TEST_RESULT(TestID, "CreateInstance for CoGetClassObject for DirectDraw function failed! ", hr, TEST_FAILED);
             return nullptr;
         }
 
@@ -137,14 +137,14 @@ DDType* TestDirectDrawCreateT()
         HRESULT hr = CoGetClassObject(CLSID_DirectDraw7, CLSCTX_INPROC_SERVER, nullptr, IID_IClassFactory, reinterpret_cast<void**>(&pFactory));
         if (FAILED(hr))
         {
-            LOG_TEST_RESULT(TestID, "CoGetClassObject for DirectDraw7 function failed! ", 0, TEST_FAILED);
+            LOG_TEST_RESULT(TestID, "CoGetClassObject for DirectDraw7 function failed! ", hr, TEST_FAILED);
             return nullptr;
         }
 
         hr = pFactory->CreateInstance(nullptr, IID_IDirectDraw7, reinterpret_cast<void**>(&pDDraw));
         if (FAILED(hr))
         {
-            LOG_TEST_RESULT(TestID, "CreateInstance for CoGetClassObject for DirectDraw7 function failed! ", 0, TEST_FAILED);
+            LOG_TEST_RESULT(TestID, "CreateInstance for CoGetClassObject for DirectDraw7 function failed! ", hr, TEST_FAILED);
             return nullptr;
         }
 
@@ -159,14 +159,14 @@ DDType* TestDirectDrawCreateT()
         HRESULT hr = CoCreateInstance(CLSID_DirectDrawFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IDirectDrawFactory, reinterpret_cast<void**>(&pFactory));
         if (FAILED(hr))
         {
-            LOG_TEST_RESULT(TestID, "CoCreateInstance for DirectDrawFactory function failed! ", 0, TEST_FAILED);
+            LOG_TEST_RESULT(TestID, "CoCreateInstance for DirectDrawFactory function failed! ", hr, TEST_FAILED);
             return nullptr;
         }
 
         hr = pFactory->CreateDirectDraw(nullptr, DDhWnd, DDSCL_NORMAL, 0, nullptr, reinterpret_cast<IDirectDraw**>(&pDDraw));
         if (FAILED(hr))
         {
-            LOG_TEST_RESULT(TestID, "CreateInstance for CoGetClassObject for DirectDrawFactory function failed! ", 0, TEST_FAILED);
+            LOG_TEST_RESULT(TestID, "CreateInstance for CoGetClassObject for DirectDrawFactory function failed! ", hr, TEST_FAILED);
             return nullptr;
         }
 

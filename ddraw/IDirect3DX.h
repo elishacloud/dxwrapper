@@ -20,6 +20,7 @@ private:
 	// Convert to Direct3D9
 	m_IDirectDrawX* ddrawParent = nullptr;
 	DWORD DDrawVersion = 0;
+	bool CreatedByDDFactory = false;
 
 	// D3D Device array
 	struct D3DDEVICELIST {
@@ -159,6 +160,7 @@ public:
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
+	inline bool IsCreatedByDDFactory() const { return CreatedByDDFactory; }
 
 	// Functions handling the ddraw parent interface
 	inline void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; GetCap9Cache(); }

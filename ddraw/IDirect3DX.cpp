@@ -71,7 +71,7 @@ HRESULT m_IDirect3DX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD Dir
 
 	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
 	{
-		if (riid != IID_IUnknown && ddrawParent && ((ddrawParent->IsCreatedEx() && riid != IID_IDirect3D7) || (!ddrawParent->IsCreatedEx() && riid == IID_IDirect3D7)))
+		if (Config.Dd7to9 && riid != IID_IUnknown && ddrawParent && ((ddrawParent->IsCreatedEx() && riid != IID_IDirect3D7) || (!ddrawParent->IsCreatedEx() && riid == IID_IDirect3D7)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << GetWrapperType(DirectXVersion));
 
@@ -100,12 +100,17 @@ ULONG m_IDirect3DX::AddRef(DWORD DirectXVersion)
 	if (Config.Dd7to9)
 	{
 		// Direct3D shares reference count with DirectDraw
-		if (ddrawParent)
+		if (ddrawParent && !IsCreatedByDDFactory())
 		{
 			return ddrawParent->AddRef(DDrawVersion);
 		}
 
 		ScopedAtomicFlagSet ScopeGuard(RefCountLock);
+
+		if (ddrawParent && IsCreatedByDDFactory())
+		{
+			return ++RefCount1 + ddrawParent->GetRef();
+		}
 
 		switch (DirectXVersion)
 		{
@@ -133,15 +138,24 @@ ULONG m_IDirect3DX::Release(DWORD DirectXVersion)
 	if (Config.Dd7to9)
 	{
 		// Direct3D shares reference count with DirectDraw
-		if (ddrawParent)
+		if (ddrawParent && !IsCreatedByDDFactory())
 		{
 			return ddrawParent->Release(DDrawVersion);
 		}
 
-		ULONG ref, TotalRefCount;
+		if (RefCount1 + RefCount2 + RefCount3 + RefCount7 == 0)
+		{
+			return 0;
+		}
 
+		ULONG ref, TotalRefCount;
 		{
 			ScopedAtomicFlagSet ScopeGuard(RefCountLock);
+
+			if (ddrawParent && IsCreatedByDDFactory())
+			{
+				return (RefCount1 ? --RefCount1 : 0) + ddrawParent->GetRef();
+			}
 
 			switch (DirectXVersion)
 			{
@@ -1062,6 +1076,11 @@ void m_IDirect3DX::InitInterface(DWORD DirectXVersion)
 		ResolutionHack();
 
 		return;
+	}
+
+	if (ddrawParent)
+	{
+		CreatedByDDFactory = ddrawParent->IsCreatedByDDFactory();
 	}
 
 	AddRef(DirectXVersion);

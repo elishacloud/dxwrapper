@@ -55,7 +55,7 @@ extern DirectDrawEnumerateExWProc pDirectDrawEnumerateExW;
 extern DirectDrawEnumerateWProc pDirectDrawEnumerateW;
 
 template <typename T>
-static UINT GetRefCount(T IUnknownAddr)
+static ULONG GetRefCount(T IUnknownAddr)
 {
     IUnknownAddr->AddRef();
     return IUnknownAddr->Release();

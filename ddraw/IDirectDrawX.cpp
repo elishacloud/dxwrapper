@@ -194,7 +194,14 @@ HRESULT m_IDirectDrawX::QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD D
 
 	if (riid == GetWrapperType(DxVersion) || riid == IID_IUnknown)
 	{
-		if (!CreatedByDDFactory && DirectXVersion != 3 && riid == IID_IDirectDraw3)
+		if (Config.Dd7to9 && DirectXVersion != 3 && riid == IID_IDirectDraw3 && !IsCreatedByDDFactory())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << GetWrapperType(DirectXVersion));
+
+			return E_NOINTERFACE;
+		}
+
+		if (Config.Dd7to9 && riid == IID_IDirectDraw7 && IsCreatedByDDFactory())
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Query Not Implemented for " << riid << " from " << GetWrapperType(DirectXVersion));
 
@@ -265,6 +272,8 @@ ULONG m_IDirectDrawX::AddRef(DWORD DirectXVersion)
 	{
 		ScopedAtomicFlagSet ScopeGuard(RefCountLock);
 
+		DirectXVersion = IsCreatedByDDFactory() ? 1 : DirectXVersion;
+
 		switch (DirectXVersion)
 		{
 		case 1:
@@ -292,10 +301,16 @@ ULONG m_IDirectDrawX::Release(DWORD DirectXVersion)
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref, TotalRefCount;
+		if (RefCount1 + RefCount2 + RefCount3 + RefCount4 + RefCount7 == 0)
+		{
+			return 0;
+		}
 
+		ULONG ref, TotalRefCount;
 		{
 			ScopedAtomicFlagSet ScopeGuard(RefCountLock);
+
+			DirectXVersion = IsCreatedByDDFactory() ? 1 : DirectXVersion;
 
 			switch (DirectXVersion)
 			{
@@ -429,7 +444,7 @@ HRESULT m_IDirectDrawX::CreatePalette(DWORD dwFlags, LPPALETTEENTRY lpDDColorArr
 
 		m_IDirectDrawPalette* Interface = m_IDirectDrawPalette::CreateDirectDrawPalette(nullptr, this, dwFlags, lpDDColorArray);
 
-		if (DirectXVersion > 3)
+		if (DirectXVersion > 3 || IsCreatedByDDFactory())
 		{
 			for (auto& entry : PaletteList)
 			{
@@ -569,19 +584,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			((lpDDSurfaceDesc2->ddsCaps.dwCaps & DDSCAPS_MIPMAP) || (lpDDSurfaceDesc2->ddsCaps.dwCaps2 & (DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE))))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: missing texture flag. ddsCaps: " << lpDDSurfaceDesc2->ddsCaps);
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// Check MipMap count
-		if ((lpDDSurfaceDesc2->ddsCaps.dwCaps & (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE)) == (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE) &&
-			(((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) && (lpDDSurfaceDesc2->dwMipMapCount != 1) &&
-				((lpDDSurfaceDesc2->dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) && lpDDSurfaceDesc2->dwWidth && lpDDSurfaceDesc2->dwHeight) &&
-				GetMaxMipMapLevel(lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight) < lpDDSurfaceDesc2->dwMipMapCount) ||
-				((!(lpDDSurfaceDesc2->dwFlags & DDSD_WIDTH) || !(lpDDSurfaceDesc2->dwFlags & DDSD_HEIGHT) || !lpDDSurfaceDesc2->dwWidth || !lpDDSurfaceDesc2->dwHeight) &&
-					(!(lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) || ((lpDDSurfaceDesc2->dwFlags & DDSD_MIPMAPCOUNT) && (lpDDSurfaceDesc2->dwMipMapCount == 0))))))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid MipMap count. Count: " << lpDDSurfaceDesc2->dwMipMapCount <<
-				" " << lpDDSurfaceDesc2->dwWidth << "x" << lpDDSurfaceDesc2->dwHeight << " Max: " << GetMaxMipMapLevel(lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight));
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -727,13 +729,21 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			Desc2.ddsCaps.dwCaps2 &= ~(DDSCAPS2_HINTDYNAMIC | DDSCAPS2_HINTSTATIC | DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE);
 		}
 
-		// Update MipMap count
+		// Update MipMap flags and verify count
 		if ((Desc2.ddsCaps.dwCaps & (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE)) == (DDSCAPS_MIPMAP | DDSCAPS_COMPLEX | DDSCAPS_TEXTURE) &&
-			!(Desc2.dwFlags & (DDSD_REFRESHRATE | DDSD_SRCVBHANDLE)) &&
-			(!(Desc2.dwFlags & DDSD_MIPMAPCOUNT) || Desc2.dwMipMapCount == 0))
+			(Desc2.dwFlags & DDSD_MIPMAPCOUNT) && Desc2.dwMipMapCount != 1)
 		{
-			Desc2.dwFlags |= DDSD_MIPMAPCOUNT;
-			Desc2.dwMipMapCount = GetMaxMipMapLevel(Desc2.dwWidth, Desc2.dwHeight);
+			if (Desc2.dwMipMapCount == 0 || Desc2.dwMipMapCount > GetMaxMipMapLevel(Desc2.dwWidth, Desc2.dwHeight))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: incorrect MipMap count!");
+				return DDERR_INVALIDPARAMS;
+			}
+			Desc2.dwFlags &= ~(DDSD_REFRESHRATE | DDSD_SRCVBHANDLE);
+		}
+		else
+		{
+			Desc2.dwFlags &= ~DDSD_MIPMAPCOUNT;
+			Desc2.ddsCaps.dwCaps &= ~(DDSCAPS_MIPMAP | ((Desc2.dwFlags & DDSCAPS_MIPMAP) ? DDSCAPS_COMPLEX : 0));
 		}
 
 		// Check for depth stencil surface
@@ -774,14 +784,15 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			PrimarySurface = Interface;
 		}
 
-		if (DirectXVersion > 3)
+		if (DirectXVersion > 3 || IsCreatedByDDFactory())
 		{
 			for (auto& entry : SurfaceList)
 			{
 				if (entry.Interface == Interface)
 				{
 					entry.DxVersion = DirectXVersion;
-					entry.RefCount = IsCreatedEx() && (Desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) ? 2 : 1;
+					entry.RefCount = (IsCreatedEx() && (Desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE)) || (IsCreatedByDDFactory() && (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)) ? 2 :
+						(IsCreatedByDDFactory() && (Desc2.ddsCaps.dwCaps & DDSCAPS_MIPMAP) && (Desc2.dwFlags & DDSD_MIPMAPCOUNT)) ? Desc2.dwMipMapCount : 1;
 
 					for (UINT x = 0; x < entry.RefCount; x++)
 					{

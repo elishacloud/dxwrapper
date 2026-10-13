@@ -267,7 +267,7 @@ void TestCreateSurfaceT(DDType* pDDraw)
             x == 2 ? IID_IDirectDrawSurface3 :
             x == 3 ? IID_IDirectDrawSurface4 : IID_IDirectDrawSurface7;
 
-        // ****  210 + X  ****
+        // ****  210 + x  ****
         TestID = 210 + x;
         IUnknown* pInterface = nullptr;
         hr = pPrimarySurface->QueryInterface(riid, reinterpret_cast<LPVOID*>(&pInterface));

@@ -255,6 +255,7 @@ private:
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 
+	bool CreatedByDDFactory = false;
 	bool Using3D = false;								// Direct3D is being used on top of DirectDraw
 	bool DCRequiresEmulation = false;
 	bool SurfaceRequiresEmulation = false;
@@ -535,6 +536,7 @@ public:
 	ULONG AddRefRoot(LPDIRECTDRAWSURFACE7 WrapperAddress);
 	ULONG ReleaseRoot(LPDIRECTDRAWSURFACE7 WrapperAddress);
 	LPDIRECTDRAWSURFACE7 GetWrapperInterfaceRootX(LPDIRECTDRAWSURFACE7 WrapperAddress);
+	inline bool IsCreatedByDDFactory() const { return CreatedByDDFactory; }
 
 	// Fix byte alignment issue
 	void LockEmuLock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc);

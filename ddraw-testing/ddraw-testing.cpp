@@ -134,6 +134,11 @@ static void RunAllTests()
     }
 
     TestEnumDisplaySettings();
+    HRESULT hrCo = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+    if (FAILED(hrCo))
+    {
+        Logging::Log() << "Testing: 0 FAILED! CoInitializeEx failed! "  << hrCo << " -> " << 0;
+    }
     TestDirectDrawCreate<IDirectDraw>();
     TestDirectDrawCreate<IDirectDrawDDF>();
     TestDirectDrawCreate<IDirectDrawCoC>();
