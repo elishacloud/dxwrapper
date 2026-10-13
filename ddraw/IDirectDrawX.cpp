@@ -750,6 +750,15 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Log primary surface
 		if (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
 		{
+			// Check and update resolution of primary surface (ensures primary surface size isn't off by 1 or 2 pixels when using static size)
+			if (IsExclusiveMode() && (Desc2.dwFlags & DDSD_WIDTH) && (Desc2.dwFlags & DDSD_HEIGHT))
+			{
+				DWORD FoundWidth = Desc2.dwWidth;
+				DWORD FoundHeight = Desc2.dwHeight;
+
+				CheckFixResolution(Desc2.dwWidth, Desc2.dwHeight, FoundWidth, FoundHeight);
+			}
+
 			Logging::Log() << __FUNCTION__ << " Primary surface " << (Desc2.dwFlags & DDSD_PIXELFORMAT ? GetDisplayFormat(Desc2.ddpfPixelFormat) : D3DFMT_UNKNOWN) <<
 				" " << Desc2.dwWidth << "x" << Desc2.dwHeight <<
 				" dwFlags: " << Logging::hex(Desc2.dwFlags) <<
@@ -1994,57 +2003,11 @@ HRESULT m_IDirectDrawX::SetDisplayMode(DWORD dwWidth, DWORD dwHeight, DWORD dwBP
 			DWORD FoundWidth = dwWidth;
 			DWORD FoundHeight = dwHeight;
 
-			// Check if it is a supported resolution
-			if ((IsExclusiveMode() && !Config.EnableWindowMode) || Config.FullscreenWindowMode || Config.ForceExclusiveFullscreen)
+			// Check resolution
+			HRESULT hr = CheckFixResolution(dwWidth, dwHeight, FoundWidth, FoundHeight);
+			if (FAILED(hr))
 			{
-				// Check for device interface
-				if (FAILED(CheckInterface(__FUNCTION__, false)))
-				{
-					return DDERR_GENERIC;
-				}
-
-				// Enumerate modes for format XRGB
-				UINT modeCount = d3d9Object->GetAdapterModeCount(d3d9AdapterIndex, D9DisplayFormat);
-
-				D3DDISPLAYMODE d3ddispmode;
-				bool modeFound = false;
-
-				// Loop through all modes looking for our requested resolution
-				for (UINT i = 0; i < modeCount; i++)
-				{
-					// Get display modes here
-					d3ddispmode = {};
-					if (FAILED(d3d9Object->EnumAdapterModes(d3d9AdapterIndex, D9DisplayFormat, i, &d3ddispmode)))
-					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: EnumAdapterModes failed");
-						break;
-					}
-					// Check exact height and width match
-					if (d3ddispmode.Width == dwWidth && d3ddispmode.Height == dwHeight)
-					{
-						modeFound = true;
-						FoundWidth = d3ddispmode.Width;
-						FoundHeight = d3ddispmode.Height;
-						break;
-					}
-					// Check partial height and width match
-					if (((d3ddispmode.Width == 320 || d3ddispmode.Width == 640) && d3ddispmode.Width == dwWidth && d3ddispmode.Height == dwHeight + (dwHeight / 5)) ||
-						(d3ddispmode.Width == 640 && d3ddispmode.Height == 480 && (dwWidth == 320 && (dwHeight == 200 || dwHeight == 240))) ||
-						(d3ddispmode.Width == 800 && d3ddispmode.Height == 600 && dwWidth == 400 && dwHeight == 300) ||
-						(d3ddispmode.Width == 1024 && d3ddispmode.Height == 768 && dwWidth == 512 && dwHeight == 384))
-					{
-						modeFound = true;
-						FoundWidth = d3ddispmode.Width;
-						FoundHeight = d3ddispmode.Height;
-					}
-				}
-
-				// Mode not found
-				if (!modeFound)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: Mode not found: " << dwWidth << "x" << dwHeight);
-					return DDERR_UNSUPPORTED;
-				}
+				return hr;
 			}
 
 			DisplayMode.Width = dwWidth;
@@ -3467,6 +3430,85 @@ void m_IDirectDrawX::Clear3DDeviceState(bool SetDefaultStateBlock)
 			D3DDeviceX->ClearDeviceState();
 		}
 	}
+}
+
+// Check if it is a supported resolution
+HRESULT m_IDirectDrawX::CheckFixResolution(DWORD& dwWidth, DWORD& dwHeight, DWORD& FoundWidth, DWORD& FoundHeight)
+{
+	// Check for device interface
+	if (FAILED(CheckInterface(__FUNCTION__, false)))
+	{
+		return DDERR_GENERIC;
+	}
+
+	// Check and fix width and height that is off by 1 or 2 pixels
+	{
+		std::vector<LONG> WidthList = { 320, 400, 512, 640 };
+		for (auto& entry : WidthList)
+		{
+			if (std::abs(entry - (LONG)dwWidth) <= 2)
+			{
+				dwWidth = entry;
+			}
+		}
+
+		std::vector<LONG> HeightList = { 160, 200, 240, 300, 384, 400, 480 };
+		for (auto& entry : HeightList)
+		{
+			if (std::abs(entry - (LONG)dwHeight) <= 2)
+			{
+				dwHeight = entry;
+			}
+		}
+	}
+
+	// Enumerate modes for format XRGB
+	UINT modeCount = d3d9Object->GetAdapterModeCount(d3d9AdapterIndex, D9DisplayFormat);
+
+	D3DDISPLAYMODE d3ddispmode;
+	bool modeFound = false;
+
+	// Loop through all modes looking for our requested resolution
+	for (UINT i = 0; i < modeCount; i++)
+	{
+		// Get display modes here
+		d3ddispmode = {};
+		if (FAILED(d3d9Object->EnumAdapterModes(d3d9AdapterIndex, D9DisplayFormat, i, &d3ddispmode)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: EnumAdapterModes failed");
+			break;
+		}
+		// Check for height and width match
+		if (std::abs((LONG)d3ddispmode.Width - (LONG)dwWidth) <= 2 &&
+			std::abs((LONG)d3ddispmode.Height - (LONG)dwHeight) <= 2)
+		{
+			modeFound = true;
+			dwWidth = d3ddispmode.Width;
+			dwHeight = d3ddispmode.Height;
+			FoundWidth = d3ddispmode.Width;
+			FoundHeight = d3ddispmode.Height;
+			break;
+		}
+		// Check partial height and width match
+		if (((d3ddispmode.Width == 320 || d3ddispmode.Width == 640) && d3ddispmode.Width == dwWidth && d3ddispmode.Height == dwHeight + (dwHeight / 5)) ||
+			(d3ddispmode.Width == 640 && d3ddispmode.Height == 480 && (dwWidth == 320 && (dwHeight == 200 || dwHeight == 240))) ||
+			(d3ddispmode.Width == 800 && d3ddispmode.Height == 600 && dwWidth == 400 && dwHeight == 300) ||
+			(d3ddispmode.Width == 1024 && d3ddispmode.Height == 768 && dwWidth == 512 && dwHeight == 384))
+		{
+			modeFound = true;
+			FoundWidth = d3ddispmode.Width;
+			FoundHeight = d3ddispmode.Height;
+		}
+	}
+
+	// Mode not found
+	if (!modeFound)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Mode not found: " << dwWidth << "x" << dwHeight);
+		return DDERR_UNSUPPORTED;
+	}
+
+	return DD_OK;
 }
 
 HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)

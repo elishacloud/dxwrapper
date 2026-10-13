@@ -4877,6 +4877,15 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	// Update surface description
 	UpdateSurfaceDesc();
 
+	// Check and update resolution of primary surface (ensures primary surface size isn't off by 1 or 2 pixels when using static size)
+	if (IsPrimaryOrBackBuffer() && ddrawParent->IsExclusiveMode() && !(ResetDisplayFlags & (DDSD_WIDTH | DDSD_HEIGHT)))
+	{
+		DWORD FoundWidth = surfaceDesc2.dwWidth;
+		DWORD FoundHeight = surfaceDesc2.dwHeight;
+
+		ddrawParent->CheckFixResolution(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight, FoundWidth, FoundHeight);
+	}
+
 	// Get texture format
 	const bool IsMipMapEnabled = (surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && surfaceDesc2.dwMipMapCount != 1 && IsSurfaceTexture();
 	surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);

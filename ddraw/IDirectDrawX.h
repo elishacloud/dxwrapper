@@ -241,6 +241,7 @@ public:
 	void GetMultiSampleTypeQuality(D3DMULTISAMPLE_TYPE& MaxSampleType, DWORD& QualityLevels) const;
 	void AfterDeviceCreation();
 	void Clear3DDeviceState(bool SetDefaultStateBlock);
+	HRESULT CheckFixResolution(DWORD& dwWidth, DWORD& dwHeight, DWORD& FoundWidth, DWORD& FoundHeight);
 	HRESULT CreateD9Device(char* FunctionName);
 	HRESULT ResetD9Device();
 	void UpdateVertices(DWORD Width, DWORD Height);
