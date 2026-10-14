@@ -176,6 +176,8 @@ void TestCreateTexture(DDType* pDDraw, DSType* pSurface)
 template <typename DDType, typename DSType, typename DSDesc>
 void TestCreateSurfaceT(DDType* pDDraw)
 {
+    const ULONG DDrawInitRef = GetRefCount(pDDraw);
+
     // Create primary surface
     DSDesc primaryDesc = {};
     primaryDesc.dwSize = sizeof(primaryDesc);
@@ -282,6 +284,10 @@ void TestCreateSurfaceT(DDType* pDDraw)
             // ****  210 + 10 + x  ****
             TestID = 210 + 10 + x;
             LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+            // ****  225 + 15 + x  ****
+            TestID = 225 + 15 + x;
+            LOG_TEST_RESULT(TestID, "DirectDrawSurface addr matches ", (pPrimarySurface == pInterface), GetResults<DDType>(TestID));
 
             // Test GammaControl
             TestCreateGammaControl<DDType, DSType>(pDDraw, reinterpret_cast<DSType*>(pInterface), "QueryInterface Surface", 410 + (x * 5));
@@ -496,6 +502,10 @@ void TestCreateSurfaceT(DDType* pDDraw)
     // ****  205  ****
     TestID = 205;
     LOG_TEST_RESULT(TestID, "After primary surface release. DirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+    // ****  235  ****
+    TestID = 235;
+    LOG_TEST_RESULT(TestID, "Before exit. DDraw Ref count matches ", (DDrawInitRef - GetRefCount(pDDraw)), GetResults<DDType>(TestID));
 }
 
 template void TestCreateSurface<IDirectDraw>(IDirectDraw*);

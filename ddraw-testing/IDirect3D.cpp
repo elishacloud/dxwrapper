@@ -143,6 +143,8 @@ void TestCreateLight(DDType* pDDraw, D3DType* pDirect3D)
 template <typename DDType, typename D3DType>
 void TestCreateDirect3DT(DDType* pDDraw)
 {
+    const ULONG DDrawInitRef = GetRefCount(pDDraw);
+
     // Get version interface
     REFIID riid =
         std::is_same_v<D3DType, IDirect3D> ? IID_IDirect3D :
@@ -308,6 +310,10 @@ void TestCreateDirect3DT(DDType* pDDraw)
     {
         LOG_TEST_RESULT(TestID, "Failed to created " << riid << ". Error: ", (DDERR)hr, GetResults<DDType>(TestID));
     }
+
+    // ****  546  ****
+    TestID = 546;
+    LOG_TEST_RESULT(TestID, "Before exit. DDraw Ref count matches ", (DDrawInitRef - GetRefCount(pDDraw)), GetResults<DDType>(TestID));
 }
 
 template void TestCreateDirect3D<IDirectDraw>(IDirectDraw*);

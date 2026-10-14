@@ -259,6 +259,9 @@ void TestLightState(D3DDType* pDevice, BOOL NewValue, DWORD MaxLightState)
 template <typename DDType, typename DSType, typename DSDesc, typename D3DType, typename D3DDType>
 void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
 {
+    const ULONG DDrawInitRef = GetRefCount(pDDraw);
+    const ULONG Direct3DInitRef = GetRefCount(pDirect3D);
+
     // Create primary surface with backbuffer
     DSDesc ddsd = {};
     ddsd.dwSize = sizeof(ddsd);
@@ -718,6 +721,14 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
     // ****  829  ****
     TestID = 829;
     LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+    // ****  861  ****
+    TestID = 861;
+    LOG_TEST_RESULT(TestID, "Before exit. DDraw Ref count matches ", (DDrawInitRef - GetRefCount(pDDraw)), GetResults<DDType>(TestID));
+
+    // ****  862  ****
+    TestID = 862;
+    LOG_TEST_RESULT(TestID, "Before exit. Direct3D Ref count matches ", (Direct3DInitRef - GetRefCount(pDirect3D)), GetResults<DDType>(TestID));
 }
 
 template void TestCreate3DDevice<IDirectDraw, IDirect3D>(IDirectDraw*, IDirect3D*);

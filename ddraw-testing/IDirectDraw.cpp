@@ -229,6 +229,10 @@ DDType* TestDirectDrawCreateT()
         TestID = 102;
         LOG_TEST_RESULT(TestID, "IDirectDraw Ref count: ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
 
+        // ****  108  ****
+        TestID = 108;
+        LOG_TEST_RESULT(TestID, "IDirectDraw addr matches: ", (pDDraw == pDDraw2), GetResults<DDType>(TestID));
+
         // ****  103  ****
         TestID = 103;
         UINT ref = pDDraw->Release();
@@ -303,7 +307,11 @@ void TestDirectDrawCreateContT(DDType* pDDraw)
     pDDraw->SetCooperativeLevel(DDhWnd, DDSCL_NORMAL);
 
     // Cleanup
-    pDDraw->Release();
+    ULONG DDrawRef = pDDraw->Release();
+
+    // ****  107  ****
+    TestID = 107;
+    LOG_TEST_RESULT(TestID, "Before exit. DDraw Ref count is null ", DDrawRef, GetResults<DDType>(TestID));
 }
 
 template void TestDirectDrawCreate<IDirectDraw>();

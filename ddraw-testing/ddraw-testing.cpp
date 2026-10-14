@@ -140,11 +140,11 @@ static void RunAllTests()
         Logging::Log() << "Testing: 0 FAILED! CoInitializeEx failed! "  << hrCo << " -> " << 0;
     }
     TestDirectDrawCreate<IDirectDraw>();
-    TestDirectDrawCreate<IDirectDrawDDF>();
     TestDirectDrawCreate<IDirectDrawCoC>();
     TestDirectDrawCreate<IDirectDrawClass>();
     TestDirectDrawCreate<IDirectDraw2>();
     TestDirectDrawCreate<IDirectDraw3>();
+    TestDirectDrawCreate<IDirectDrawDDF>();
     TestDirectDrawCreate<IDirectDraw4>();
     TestDirectDrawCreate<IDirectDraw7>();
     TestDirectDrawCreate<IDirectDraw7CoC>();
