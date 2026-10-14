@@ -804,9 +804,13 @@ HRESULT m_IDirect3DX::CreateVertexBuffer(LPD3DVERTEXBUFFERDESC lpVBDesc, LPDIREC
 				if (entry.Interface == Interface)
 				{
 					entry.DxVersion = DirectXVersion;
-					entry.RefCount = 1;
 
-					AddRef(entry.DxVersion);
+					if (entry.RefCount == 0)
+					{
+						entry.RefCount = 1;
+
+						AddRef(entry.DxVersion);
+					}
 
 					break;
 				}
@@ -1172,7 +1176,7 @@ void m_IDirect3DX::AddLight(m_IDirect3DLight* lpLight)
 		return;
 	}
 
-	LightList.push_back(lpLight);
+	LightList.insert(lpLight);
 }
 
 void m_IDirect3DX::ClearLight(m_IDirect3DLight* lpLight)
@@ -1202,7 +1206,7 @@ void m_IDirect3DX::AddMaterial(m_IDirect3DMaterialX* lpMaterialX)
 		return;
 	}
 
-	MaterialList.push_back(lpMaterialX);
+	MaterialList.insert(lpMaterialX);
 }
 
 void m_IDirect3DX::ClearMaterial(m_IDirect3DMaterialX* lpMaterialX, D3DMATERIALHANDLE mHandle)
@@ -1230,7 +1234,7 @@ void m_IDirect3DX::AddViewport(m_IDirect3DViewportX* lpViewportX)
 		return;
 	}
 
-	ViewportList.push_back(lpViewportX);
+	ViewportList.insert(lpViewportX);
 }
 
 void m_IDirect3DX::ClearViewport(m_IDirect3DViewportX* lpViewportX)
@@ -1281,7 +1285,11 @@ void m_IDirect3DX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 		{
 			for (UINT x = 0; x < RefCount; x++)
 			{
-				Release(DxVersion);
+				ULONG ref = Release(DxVersion);
+				if (ref == 0)
+				{
+					break;
+				}
 			}
 		}
 	}
@@ -1290,6 +1298,16 @@ void m_IDirect3DX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 void m_IDirect3DX::AddVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX)
 {
 	if (!lpVertexBufferX)
+	{
+		return;
+	}
+
+	// Check if buffer is already in the list
+	auto it = std::find_if(VertexBufferList.begin(), VertexBufferList.end(),
+		[lpVertexBufferX](auto entry) {
+		return entry.Interface == lpVertexBufferX;
+	});
+	if (it != VertexBufferList.end())
 	{
 		return;
 	}

@@ -1927,7 +1927,7 @@ HRESULT m_IDirectDrawX::SetCooperativeLevel(HWND hWnd, DWORD dwFlags, DWORD Dire
 
 					HWND hWnd = (HWND)wParam;
 					auto it = g_hookmap.find(hWnd);
-					if (it != std::end(g_hookmap))
+					if (it != g_hookmap.end())
 					{
 						m_IDirectDrawX *lpDDraw = it->second;
 						if (lpDDraw && (ProxyAddressLookupTableDdraw.IsValidWrapperAddress(lpDDraw) ||
@@ -4907,14 +4907,18 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 			[lpSurfaceX](auto entry) {
 				return entry.Interface == lpSurfaceX;
 			});
-		if (it != std::end(pDDraw->SurfaceList))
+		if (it != pDDraw->SurfaceList.end())
 		{
 			DWORD RefCount = it->RefCount;
 			DWORD DxVersion = it->DxVersion;
 			pDDraw->SurfaceList.erase(it);	// Erase from list before releasing
 			for (UINT x = 0; x < RefCount; x++)
 			{
-				pDDraw->Release(DxVersion);
+				ULONG ref = pDDraw->Release(DxVersion);
+				if (ref == 0)
+				{
+					break;
+				}
 			}
 		}
 
@@ -4945,7 +4949,7 @@ bool m_IDirectDrawX::DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX)
 	const bool found = std::find_if(SurfaceList.begin(), SurfaceList.end(),
 		[lpSurfaceX](auto entry) {
 			return entry.Interface == lpSurfaceX;
-		}) != std::end(SurfaceList);
+		}) != SurfaceList.end();
 
 	return found;
 }
@@ -4989,7 +4993,7 @@ bool m_IDirectDrawX::DoesBaseClipperExist(m_IDirectDrawClipper* lpClipper)
 		return false;
 	}
 
-	const bool found = (std::find(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper) != std::end(BaseClipperVector));
+	const bool found = (std::find(BaseClipperVector.begin(), BaseClipperVector.end(), lpClipper) != BaseClipperVector.end());
 
 	return found;
 }
@@ -5039,7 +5043,7 @@ bool m_IDirectDrawX::DoesClipperExist(m_IDirectDrawClipper* lpClipper)
 	const bool found = std::find_if(ClipperList.begin(), ClipperList.end(),
 		[lpClipper](auto entry) {
 			return entry.Interface == lpClipper;
-		}) != std::end(ClipperList);
+		}) != ClipperList.end();
 
 	return found;
 }
@@ -5105,7 +5109,7 @@ bool m_IDirectDrawX::DoesPaletteExist(m_IDirectDrawPalette* lpPalette)
 	const bool found = std::find_if(PaletteList.begin(), PaletteList.end(),
 		[lpPalette](auto entry) {
 			return entry.Interface == lpPalette;
-		}) != std::end(PaletteList);
+		}) != PaletteList.end();
 
 	return found;
 }
@@ -5128,7 +5132,7 @@ void m_IDirectDrawX::ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer)
 		auto it = std::find(pDDraw->VertexBufferList.begin(), pDDraw->VertexBufferList.end(), lpVertexBuffer);
 
 		// Remove vertex buffer
-		if (it != std::end(pDDraw->VertexBufferList))
+		if (it != pDDraw->VertexBufferList.end())
 		{
 			lpVertexBuffer->ClearDdraw();
 			pDDraw->VertexBufferList.erase(it);

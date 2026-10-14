@@ -12,8 +12,8 @@
 #include <d3dhal.h>
 #include <memory>
 #include <array>
-#include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <optional>
 
 // Enable for testing

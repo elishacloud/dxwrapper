@@ -44,10 +44,10 @@ private:
 	D9CAPS_CACHE D9Cache;
 
 	// Light array
-	std::vector<m_IDirect3DLight*> LightList;
+	std::unordered_set<m_IDirect3DLight*> LightList;
 
 	// Material array
-	std::vector<m_IDirect3DMaterialX*> MaterialList;
+	std::unordered_set<m_IDirect3DMaterialX*> MaterialList;
 
 	// VertexBuffer array
 	struct VERTEXBUFFERLIST {
@@ -55,10 +55,10 @@ private:
 		DWORD DxVersion = 0;
 		DWORD RefCount = 0;
 	};
-	std::vector<VERTEXBUFFERLIST> VertexBufferList;
+	std::list<VERTEXBUFFERLIST> VertexBufferList;
 
 	// Viewport array
-	std::vector<m_IDirect3DViewportX*> ViewportList;
+	std::unordered_set<m_IDirect3DViewportX*> ViewportList;
 
 	// Helper functions
 	void GetCap9Cache();

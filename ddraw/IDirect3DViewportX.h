@@ -30,14 +30,14 @@ private:
 	std::vector<LPDIRECT3DLIGHT> AttachedLights;
 
 	// D3D Device array
-	std::vector<m_IDirect3DDeviceX*> AttachedD3DDevices;
+	std::list<m_IDirect3DDeviceX*> AttachedD3DDevices;
 
 	bool IsLightAttached(LPDIRECT3DLIGHT LightX)
 	{
 		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
 			[=](auto pLight) -> bool { return pLight == LightX; });
 
-		if (it != std::end(AttachedLights))
+		if (it != AttachedLights.end())
 		{
 			return true;
 		}
@@ -49,7 +49,7 @@ private:
 		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
 			[=](auto pLight) -> bool { return pLight == LightX; });
 
-		if (it != std::end(AttachedLights))
+		if (it != AttachedLights.end())
 		{
 			AttachedLights.erase(it);
 			return true;

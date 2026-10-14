@@ -1391,12 +1391,12 @@ HRESULT m_IDirectDrawSurfaceX::EnumAttachedSurfaces2(LPVOID lpContext, LPDDENUMS
 			// In a flipping chain of three or more surfaces, only one surface is enumerated because each surface is attached only to the next surface in the flipping chain.
 			// In such a configuration, you can call EnumAttachedSurfaces on each successive surface to walk the entire flipping chain.
 			// The front buffer should not be returned as attached.
-			if (!(it.second.pSurface->surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER))
+			if (!(it.pSurface->surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FRONTBUFFER))
 			{
 				DDSURFACEDESC2 Desc2 = {};
 				Desc2.dwSize = sizeof(DDSURFACEDESC2);
-				it.second.pSurface->GetSurfaceDesc2(&Desc2, 0, DirectXVersion);
-				LPDIRECTDRAWSURFACE7 lpSurface = (LPDIRECTDRAWSURFACE7)it.second.pSurface->GetWrapperInterfaceX(DirectXVersion);
+				it.pSurface->GetSurfaceDesc2(&Desc2, 0, DirectXVersion);
+				LPDIRECTDRAWSURFACE7 lpSurface = (LPDIRECTDRAWSURFACE7)it.pSurface->GetWrapperInterfaceX(DirectXVersion);
 				if (EnumSurface::ConvertCallback(lpSurface, &Desc2, &CallbackContext) == DDENUMRET_CANCEL)
 				{
 					return DD_OK;
@@ -1761,7 +1761,7 @@ HRESULT m_IDirectDrawSurfaceX::GetAttachedSurface2(LPDDSCAPS2 lpDDSCaps2, LPDIRE
 		// Check if attached surface exists
 		for (const auto& it : AttachedSurfaceMap)
 		{
-			m_IDirectDrawSurfaceX *lpSurface = it.second.pSurface;
+			m_IDirectDrawSurfaceX *lpSurface = it.pSurface;
 
 			if ((lpSurface->GetSurfaceCaps().dwCaps & lpDDSCaps2->dwCaps) == lpDDSCaps2->dwCaps)
 			{
@@ -2211,10 +2211,10 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipStatus(DWORD dwFlags, bool CheckOnly)
 				m_IDirectDrawSurfaceX* lpLastTargetSurface = lpTargetSurface;
 				for (const auto& it : lpTargetSurface->AttachedSurfaceMap)
 				{
-					dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
+					dwCaps = it.pSurface->GetSurfaceCaps().dwCaps;
 					if (dwCaps & DDSCAPS_FLIP)
 					{
-						lpTargetSurface = it.second.pSurface;
+						lpTargetSurface = it.pSurface;
 						break;
 					}
 				}
@@ -3401,7 +3401,7 @@ HRESULT m_IDirectDrawSurfaceX::Unlock(LPRECT lpRect, DWORD MipMapLevel)
 			auto it = std::find_if(LastLock.LockRectList.begin(), LastLock.LockRectList.end(),
 				[=](auto Rect) -> bool { return (Rect.left == lpRect->left && Rect.top == lpRect->top && Rect.right == lpRect->right && Rect.bottom == lpRect->bottom); });
 
-			if (it != std::end(LastLock.LockRectList))
+			if (it != LastLock.LockRectList.end())
 			{
 				LastLock.LockRectList.erase(it);
 
@@ -4362,9 +4362,9 @@ LPDIRECTDRAWSURFACE7 m_IDirectDrawSurfaceX::GetWrapperInterfaceRootX(LPDIRECTDRA
 		m_IDirectDrawSurfaceX* lpLastTargetSurface = lpTargetSurface;
 		for (const auto& it : lpTargetSurface->AttachedSurfaceMap)
 		{
-			if (it.second.pSurface->ComplexChild || it.second.pSurface->ComplexRoot)
+			if (it.pSurface->ComplexChild || it.pSurface->ComplexRoot)
 			{
-				lpTargetSurface = it.second.pSurface;
+				lpTargetSurface = it.pSurface;
 				break;
 			}
 		}
@@ -4637,9 +4637,9 @@ void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 	while (!AttachedSurfaceMap.empty())
 	{
 		auto it = AttachedSurfaceMap.begin();
-		DWORD RefCount = it->second.RefCount;
-		DWORD DxVersion = it->second.DxVersion;
-		m_IDirectDrawSurfaceX* lpSurfaceX = it->second.pSurface;
+		DWORD RefCount = it->RefCount;
+		DWORD DxVersion = it->DxVersion;
+		m_IDirectDrawSurfaceX* lpSurfaceX = it->pSurface;
 
 		AttachedSurfaceMap.erase(it);	// Erase from list before releasing
 
@@ -5825,9 +5825,9 @@ void m_IDirectDrawSurfaceX::SetAsRenderTarget()
 		{
 			for (const auto& entry : AttachedSurfaceMap)
 			{
-				if (entry.second.pSurface->IsPrimaryOrBackBuffer() && entry.second.pSurface->IsSurface3D() && !entry.second.pSurface->IsRenderTarget())
+				if (entry.pSurface->IsPrimaryOrBackBuffer() && entry.pSurface->IsSurface3D() && !entry.pSurface->IsRenderTarget())
 				{
-					entry.second.pSurface->SetAsRenderTarget();
+					entry.pSurface->SetAsRenderTarget();
 				}
 			}
 		}
@@ -5866,9 +5866,9 @@ void m_IDirectDrawSurfaceX::ClearUsing3DFlag()
 		{
 			for (const auto& entry : AttachedSurfaceMap)
 			{
-				if (entry.second.pSurface->IsPrimaryOrBackBuffer() && entry.second.pSurface->IsRenderTarget())
+				if (entry.pSurface->IsPrimaryOrBackBuffer() && entry.pSurface->IsRenderTarget())
 				{
-					entry.second.pSurface->ClearUsing3DFlag();
+					entry.pSurface->ClearUsing3DFlag();
 				}
 			}
 		}
@@ -6769,10 +6769,10 @@ void m_IDirectDrawSurfaceX::ClearSurfaceLostFlag()
 			m_IDirectDrawSurfaceX* lpLastTargetSurface = lpTargetSurface;
 			for (const auto& it : lpTargetSurface->AttachedSurfaceMap)
 			{
-				if (it.second.pSurface->ComplexChild)
+				if (it.pSurface->ComplexChild)
 				{
-					it.second.pSurface->IsSurfaceLost = false;
-					lpTargetSurface = it.second.pSurface;
+					it.pSurface->IsSurfaceLost = false;
+					lpTargetSurface = it.pSurface;
 					break;
 				}
 			}
@@ -7066,12 +7066,21 @@ void m_IDirectDrawSurfaceX::AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSur
 		return;
 	}
 
-	// Store surface
-	AttachedSurfaceMap[++MapKey].pSurface = lpSurfaceX;
-	AttachedSurfaceMap[MapKey].isAttachedSurfaceAdded = MarkAttached;
+	if (DoesAttachedSurfaceExist(lpSurfaceX))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: Surface is already attached: " << lpSurfaceX);
+		return;
+	}
 
-	AttachedSurfaceMap[MapKey].DxVersion = DxVersion;
-	AttachedSurfaceMap[MapKey].RefCount = RefCount;
+	// Store surface
+	ATTACHEDMAP AttachedSurface;
+	AttachedSurface.pSurface = lpSurfaceX;
+	AttachedSurface.isAttachedSurfaceAdded = MarkAttached;
+
+	AttachedSurface.DxVersion = DxVersion;
+	AttachedSurface.RefCount = RefCount;
+
+	AttachedSurfaceMap.push_back(AttachedSurface);
 
 	if (RefCount == 1)
 	{
@@ -7082,12 +7091,12 @@ void m_IDirectDrawSurfaceX::AddAttachedSurfaceToMap(m_IDirectDrawSurfaceX* lpSur
 void m_IDirectDrawSurfaceX::RemoveAttachedSurfaceFromMap(m_IDirectDrawSurfaceX* lpSurfaceX)
 {
 	auto it = std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
-		[=](auto Map) -> bool { return Map.second.pSurface == lpSurfaceX; });
+		[=](auto Map) -> bool { return Map.pSurface == lpSurfaceX; });
 
-	if (it != std::end(AttachedSurfaceMap))
+	if (it != AttachedSurfaceMap.end())
 	{
-		DWORD RefCount = it->second.RefCount;
-		DWORD DxVersion = it->second.DxVersion;
+		DWORD RefCount = it->RefCount;
+		DWORD DxVersion = it->DxVersion;
 		AttachedSurfaceMap.erase(it);	// Erase from list before releasing
 		if (RefCount == 1)
 		{
@@ -7104,7 +7113,7 @@ bool m_IDirectDrawSurfaceX::DoesAttachedSurfaceExist(m_IDirectDrawSurfaceX* lpSu
 	}
 
 	return (std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
-		[=](auto Map) -> bool { return Map.second.pSurface == lpSurfaceX; }) != std::end(AttachedSurfaceMap));
+		[=](auto Map) -> bool { return Map.pSurface == lpSurfaceX; }) != AttachedSurfaceMap.end());
 }
 
 bool m_IDirectDrawSurfaceX::WasAttachedSurfaceAdded(m_IDirectDrawSurfaceX* lpSurfaceX)
@@ -7115,7 +7124,7 @@ bool m_IDirectDrawSurfaceX::WasAttachedSurfaceAdded(m_IDirectDrawSurfaceX* lpSur
 	}
 
 	return (std::find_if(AttachedSurfaceMap.begin(), AttachedSurfaceMap.end(),
-		[=](auto Map) -> bool { return (Map.second.pSurface == lpSurfaceX) && Map.second.isAttachedSurfaceAdded; }) != std::end(AttachedSurfaceMap));
+		[=](auto Map) -> bool { return (Map.pSurface == lpSurfaceX) && Map.isAttachedSurfaceAdded; }) != AttachedSurfaceMap.end());
 }
 
 bool m_IDirectDrawSurfaceX::DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSurfaceX)
@@ -7131,10 +7140,10 @@ bool m_IDirectDrawSurfaceX::DoesFlipBackBufferExist(m_IDirectDrawSurfaceX* lpSur
 	// Loop through each surface
 	for (const auto& it : AttachedSurfaceMap)
 	{
-		if (it.second.pSurface && (it.second.pSurface->GetSurfaceCaps().dwCaps & DDSCAPS_FLIP))
+		if (it.pSurface && (it.pSurface->GetSurfaceCaps().dwCaps & DDSCAPS_FLIP))
 		{
-			dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
-			lpTargetSurface = it.second.pSurface;
+			dwCaps = it.pSurface->GetSurfaceCaps().dwCaps;
+			lpTargetSurface = it.pSurface;
 
 			break;
 		}
@@ -9435,10 +9444,10 @@ HRESULT m_IDirectDrawSurfaceX::GetFlipList(std::vector<m_IDirectDrawSurfaceX*>& 
 			m_IDirectDrawSurfaceX* lpLastTargetSurface = lpTargetSurface;
 			for (const auto& it : lpTargetSurface->AttachedSurfaceMap)
 			{
-				dwCaps = it.second.pSurface->GetSurfaceCaps().dwCaps;
+				dwCaps = it.pSurface->GetSurfaceCaps().dwCaps;
 				if (dwCaps & DDSCAPS_FLIP)
 				{
-					lpTargetSurface = it.second.pSurface;
+					lpTargetSurface = it.pSurface;
 					break;
 				}
 			}
@@ -9867,9 +9876,9 @@ m_IDirectDrawSurfaceX* m_IDirectDrawSurfaceX::GetAttachedDepthStencil()
 {
 	for (const auto& it : AttachedSurfaceMap)
 	{
-		if (it.second.pSurface->IsDepthStencil())
+		if (it.pSurface->IsDepthStencil())
 		{
-			return it.second.pSurface;
+			return it.pSurface;
 		}
 	}
 	return nullptr;

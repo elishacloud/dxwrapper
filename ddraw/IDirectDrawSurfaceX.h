@@ -24,7 +24,7 @@ private:
 	{
 		bool IsLocked = false;
 		DWORD LockedWithID = 0;								// Thread ID of the current lock
-		std::vector<RECT> LockRectList;						// Rects used to lock the surface
+		std::list<RECT> LockRectList;						// Rects used to lock the surface
 		bool ReadOnly = false;
 		bool IsSkipScene = false;
 		RECT Rect = {};
@@ -285,8 +285,7 @@ private:
 
 	// Store a list of attached surfaces
 	std::unique_ptr<m_IDirectDrawSurfaceX> BackBufferInterface;
-	std::map<DWORD, ATTACHEDMAP> AttachedSurfaceMap;
-	DWORD MapKey = 0;
+	std::list<ATTACHEDMAP> AttachedSurfaceMap;
 
 	// Helper functions
 	LPDIRECT3DSURFACE9 Get3DSurface();

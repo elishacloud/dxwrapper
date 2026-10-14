@@ -5096,7 +5096,7 @@ bool m_IDirect3DDeviceX::DeleteAttachedViewport(LPDIRECT3DVIEWPORT3 ViewportX)
 	auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
 		[=](auto pViewport) -> bool { return pViewport == ViewportX; });
 
-	if (it != std::end(AttachedViewports))
+	if (it != AttachedViewports.end())
 	{
 		AttachedViewports.erase(it);
 		return true;
