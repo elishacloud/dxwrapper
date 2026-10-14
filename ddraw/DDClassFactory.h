@@ -1,6 +1,7 @@
 #pragma once
 
 #include <new>
+#include "IClassFactory\IClassFactory.h"
 #include "External\dinputto8\ClassFactory.h"
 
 #define m_ddrawFactory m_dinput8Factory
@@ -93,6 +94,14 @@ public:
 				return proxyHr;
 			}
 
+			// Check if interface is already wrapped
+			if (void* p = nullptr; SUCCEEDED(proxyObject->QueryInterface(IID_GetInterfaceX, &p)))
+			{
+				HRESULT hr = proxyObject->QueryInterface(riid, ppvObject);
+				proxyObject->Release();
+				return hr;
+			}
+
 			const DWORD DXVersion = ClassID == CLSID_DirectDraw ? 1 : 7;
 
 			m_IDirectDrawX* wrapper = new (std::nothrow) m_IDirectDrawX(proxyObject, DXVersion);
@@ -115,6 +124,14 @@ public:
 				return proxyHr;
 			}
 
+			// Check if interface is already wrapped
+			if (void* p = nullptr; SUCCEEDED(proxyObject->QueryInterface(IID_GetInterfaceX, &p)))
+			{
+				HRESULT hr = proxyObject->QueryInterface(riid, ppvObject);
+				proxyObject->Release();
+				return hr;
+			}
+
 			m_IDirectDrawClipper* wrapper = new (std::nothrow) m_IDirectDrawClipper(proxyObject);
 			if (!wrapper)
 			{
@@ -133,6 +150,14 @@ public:
 			if (FAILED(proxyHr))
 			{
 				return proxyHr;
+			}
+
+			// Check if interface is already wrapped
+			if (void* p = nullptr; SUCCEEDED(proxyObject->QueryInterface(IID_GetInterfaceX, &p)))
+			{
+				HRESULT hr = proxyObject->QueryInterface(riid, ppvObject);
+				proxyObject->Release();
+				return hr;
 			}
 
 			m_IDirectDrawFactory* wrapper = new (std::nothrow) m_IDirectDrawFactory(proxyObject);

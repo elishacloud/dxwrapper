@@ -4,8 +4,9 @@ class m_IDirect3DLight final : public IDirect3DLight, public AddressLookupTableD
 {
 private:
 	IDirect3DLight *ProxyInterface = nullptr;
+	ULONG RefCount = 1;
 	const IID WrapperID = IID_IDirect3DLight;
-	LONG RefCount = 1;
+	bool IsInterfaceDeleted = false;
 
 	// Convert Light
 	m_IDirect3DX* D3DInterface = nullptr;
@@ -51,6 +52,7 @@ public:
 	{
 		if (NewProxyInterface || NewD3DInterface)
 		{
+			IsInterfaceDeleted = false;	// Mark as not deleted first
 			RefCount = 1;
 			ProxyInterface = NewProxyInterface;
 			D3DInterface = NewD3DInterface;
@@ -63,6 +65,7 @@ public:
 			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			D3DInterface = nullptr;
+			IsInterfaceDeleted = true;	// Mark as deleted last
 		}
 	}
 
@@ -77,6 +80,6 @@ public:
 	IFACEMETHOD(GetLight)(THIS_ LPD3DLIGHT) override;
 
 	// Helper function
-	void ClearD3D() { D3DInterface = nullptr; }
+	inline void ClearD3D() { D3DInterface = nullptr; }
 	static m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface);
 };

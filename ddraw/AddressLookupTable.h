@@ -4,113 +4,13 @@
 #include <algorithm>
 #include "ddraw.h"
 
-template <typename T>
-struct AddressInterfaceList {
-	static std::vector<T*> InterfaceList;
-};
-
-template <typename T>
-T* InterfaceAddressCache(T* Interface)
-{
-	std::vector<T*>& InterfaceList = AddressInterfaceList<T>::InterfaceList;
-	if (Interface)
-	{
-		if (!Config.DdrawKeepAllInterfaceCache)
-		{
-			for (auto it = InterfaceList.begin(); it != InterfaceList.end();)
-			{
-				if (!(*it)->KeepMe())
-				{
-					(*it)->DeleteMe();
-					it = InterfaceList.erase(it);
-				}
-				else
-				{
-					++it;
-				}
-			}
-		}
-		InterfaceList.push_back(Interface);
-		return nullptr;
-	}
-	else
-	{
-		T* InterfaceCache = nullptr;
-		if (!InterfaceList.empty())
-		{
-			InterfaceCache = InterfaceList.back();
-			InterfaceList.pop_back();
-		}
-		return InterfaceCache;
-	}
-}
-
-template <typename T>
-inline void SaveInterfaceAddress(T*& Interface, bool KeepInterface = false)
-{
-	if (Interface)
-	{
-		if constexpr (std::is_same_v<T, m_IDirectDrawPalette>)
-		{
-			Interface->SetProxy(nullptr, nullptr, 0, nullptr);
-		}
-		else if constexpr (std::is_same_v<T, m_IDirect3DExecuteBuffer>)
-		{
-			Interface->SetProxy(nullptr, nullptr, nullptr);
-		}
-		else if constexpr (std::is_same_v<T, m_IDirectDrawClipper>)
-		{
-			Interface->SetProxy(nullptr, nullptr, 0);
-		}
-		else if constexpr (std::is_same_v<T, m_IDirect3DLight> || std::is_same_v<T, m_IDirectDrawColorControl> || std::is_same_v<T, m_IDirectDrawGammaControl>)
-		{
-			Interface->SetProxy(nullptr, nullptr);
-		}
-		else
-		{
-			Interface->SetProxy(nullptr);
-		}
-		if (KeepInterface)
-		{
-			Interface->PreserveMe();
-		}
-		InterfaceAddressCache(Interface);
-		Interface = nullptr;
-	}
-}
-
-template <typename T>
-inline void SaveInterfaceAddress(const T* Interface)
-{
-	T* NewInterface = const_cast<T*>(Interface);
-	SaveInterfaceAddress(NewInterface);
-}
-
-template <typename T, typename S, typename X>
-inline T* GetInterfaceAddress(T*& Interface, S* ProxyInterface, X* InterfaceX)
-{
-	if (!Interface)
-	{
-		T* NewInterface = InterfaceAddressCache<T>(nullptr);
-		if (NewInterface)
-		{
-			Interface = NewInterface;
-			Interface->SetProxy(InterfaceX);
-		}
-		else
-		{
-			Interface = new T(ProxyInterface, InterfaceX);
-		}
-	}
-	return Interface;
-}
-
 template <typename D>
 class AddressLookupTableDdraw
 {
 private:
 	static constexpr size_t MaxCacheIndex = 43;
 
+	bool DeletingAll = false;
 	bool ConstructorFlag = false;
 	std::unordered_map<void*, class AddressLookupTableDdrawObject*> g_map[MaxCacheIndex];
 	std::unordered_map<class AddressLookupTableDdrawObject*, void*> reverse_map[MaxCacheIndex];  // Reverse mapping
@@ -118,13 +18,13 @@ private:
 	template <typename T>
 	struct AddressCacheIndex {};
 	template <>
-	struct AddressCacheIndex<m_IDirect3D> { static constexpr size_t CacheIndex = 1; };
+	struct AddressCacheIndex<m_IDirect3D> { static constexpr size_t CacheIndex = 1; static inline std::list<m_IDirect3D*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3D2> { static constexpr size_t CacheIndex = 2; };
+	struct AddressCacheIndex<m_IDirect3D2> { static constexpr size_t CacheIndex = 2; static inline std::list<m_IDirect3D2*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3D3> { static constexpr size_t CacheIndex = 3; };
+	struct AddressCacheIndex<m_IDirect3D3> { static constexpr size_t CacheIndex = 3; static inline std::list<m_IDirect3D3*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3D7> { static constexpr size_t CacheIndex = 4;
+	struct AddressCacheIndex<m_IDirect3D7> { static constexpr size_t CacheIndex = 4; static inline std::list<m_IDirect3D7*> InterfaceList;
 		using Type1 = m_IDirect3D;
 		using Type2 = m_IDirect3D2;
 		using Type3 = m_IDirect3D3;
@@ -132,13 +32,13 @@ private:
 		using Type7 = m_IDirect3D7;
 	};
 	template <>
-	struct AddressCacheIndex<m_IDirect3DDevice> { static constexpr size_t CacheIndex = 5; };
+	struct AddressCacheIndex<m_IDirect3DDevice> { static constexpr size_t CacheIndex = 5; static inline std::list<m_IDirect3DDevice*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DDevice2> { static constexpr size_t CacheIndex = 6; };
+	struct AddressCacheIndex<m_IDirect3DDevice2> { static constexpr size_t CacheIndex = 6; static inline std::list<m_IDirect3DDevice2*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DDevice3> { static constexpr size_t CacheIndex = 7; };
+	struct AddressCacheIndex<m_IDirect3DDevice3> { static constexpr size_t CacheIndex = 7; static inline std::list<m_IDirect3DDevice3*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DDevice7> { static constexpr size_t CacheIndex = 8;
+	struct AddressCacheIndex<m_IDirect3DDevice7> { static constexpr size_t CacheIndex = 8; static inline std::list<m_IDirect3DDevice7*> InterfaceList;
 		using Type1 = m_IDirect3DDevice;
 		using Type2 = m_IDirect3DDevice2;
 		using Type3 = m_IDirect3DDevice3;
@@ -146,11 +46,11 @@ private:
 		using Type7 = m_IDirect3DDevice7;
 	};
 	template <>
-	struct AddressCacheIndex<m_IDirect3DMaterial> { static constexpr size_t CacheIndex = 9; };
+	struct AddressCacheIndex<m_IDirect3DMaterial> { static constexpr size_t CacheIndex = 9; static inline std::list<m_IDirect3DMaterial*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DMaterial2> { static constexpr size_t CacheIndex = 10; };
+	struct AddressCacheIndex<m_IDirect3DMaterial2> { static constexpr size_t CacheIndex = 10; static inline std::list<m_IDirect3DMaterial2*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DMaterial3> { static constexpr size_t CacheIndex = 11;
+	struct AddressCacheIndex<m_IDirect3DMaterial3> { static constexpr size_t CacheIndex = 11; static inline std::list<m_IDirect3DMaterial3*> InterfaceList;
 		using Type1 = m_IDirect3DMaterial;
 		using Type2 = m_IDirect3DMaterial2;
 		using Type3 = m_IDirect3DMaterial3;
@@ -158,9 +58,9 @@ private:
 		using Type7 = m_IDirect3DMaterial3;
 	};
 	template <>
-	struct AddressCacheIndex<m_IDirect3DTexture> { static constexpr size_t CacheIndex = 12; };
+	struct AddressCacheIndex<m_IDirect3DTexture> { static constexpr size_t CacheIndex = 12; static inline std::list<m_IDirect3DTexture*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DTexture2> { static constexpr size_t CacheIndex = 13;
+	struct AddressCacheIndex<m_IDirect3DTexture2> { static constexpr size_t CacheIndex = 13; static inline std::list<m_IDirect3DTexture2*> InterfaceList;
 		using Type1 = m_IDirect3DTexture;
 		using Type2 = m_IDirect3DTexture2;
 		using Type3 = m_IDirect3DTexture2;
@@ -168,9 +68,9 @@ private:
 		using Type7 = m_IDirect3DTexture2;
 	};
 	template <>
-	struct AddressCacheIndex<m_IDirect3DVertexBuffer> { static constexpr size_t CacheIndex = 14; };
+	struct AddressCacheIndex<m_IDirect3DVertexBuffer> { static constexpr size_t CacheIndex = 14; static inline std::list<m_IDirect3DVertexBuffer*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DVertexBuffer7> { static constexpr size_t CacheIndex = 15;
+	struct AddressCacheIndex<m_IDirect3DVertexBuffer7> { static constexpr size_t CacheIndex = 15; static inline std::list<m_IDirect3DVertexBuffer7*> InterfaceList;
 		using Type1 = m_IDirect3DVertexBuffer;
 		using Type2 = m_IDirect3DVertexBuffer;
 		using Type3 = m_IDirect3DVertexBuffer;
@@ -178,11 +78,11 @@ private:
 		using Type7 = m_IDirect3DVertexBuffer7;
 	};
 	template <>
-	struct AddressCacheIndex<m_IDirect3DViewport> { static constexpr size_t CacheIndex = 16; };
+	struct AddressCacheIndex<m_IDirect3DViewport> { static constexpr size_t CacheIndex = 16; static inline std::list<m_IDirect3DViewport*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DViewport2> { static constexpr size_t CacheIndex = 17; };
+	struct AddressCacheIndex<m_IDirect3DViewport2> { static constexpr size_t CacheIndex = 17; static inline std::list<m_IDirect3DViewport2*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DViewport3> { static constexpr size_t CacheIndex = 18;
+	struct AddressCacheIndex<m_IDirect3DViewport3> { static constexpr size_t CacheIndex = 18; static inline std::list<m_IDirect3DViewport3*> InterfaceList;
 		using Type1 = m_IDirect3DViewport;
 		using Type2 = m_IDirect3DViewport2;
 		using Type3 = m_IDirect3DViewport3;
@@ -190,15 +90,15 @@ private:
 		using Type7 = m_IDirect3DViewport3;
 	};
 	template <>
-	struct AddressCacheIndex<m_IDirectDraw> { static constexpr size_t CacheIndex = 19; };
+	struct AddressCacheIndex<m_IDirectDraw> { static constexpr size_t CacheIndex = 19; static inline std::list<m_IDirectDraw*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDraw2> { static constexpr size_t CacheIndex = 20; };
+	struct AddressCacheIndex<m_IDirectDraw2> { static constexpr size_t CacheIndex = 20; static inline std::list<m_IDirectDraw2*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDraw3> { static constexpr size_t CacheIndex = 21; };
+	struct AddressCacheIndex<m_IDirectDraw3> { static constexpr size_t CacheIndex = 21; static inline std::list<m_IDirectDraw3*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDraw4> { static constexpr size_t CacheIndex = 22; };
+	struct AddressCacheIndex<m_IDirectDraw4> { static constexpr size_t CacheIndex = 22; static inline std::list<m_IDirectDraw4*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDraw7> { static constexpr size_t CacheIndex = 23;
+	struct AddressCacheIndex<m_IDirectDraw7> { static constexpr size_t CacheIndex = 23; static inline std::list<m_IDirectDraw7*> InterfaceList;
 		using Type1 = m_IDirectDraw;
 		using Type2 = m_IDirectDraw2;
 		using Type3 = m_IDirectDraw3;
@@ -206,15 +106,15 @@ private:
 		using Type7 = m_IDirectDraw7;
 	};
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawSurface> { static constexpr size_t CacheIndex = 24; };
+	struct AddressCacheIndex<m_IDirectDrawSurface> { static constexpr size_t CacheIndex = 24; static inline std::list<m_IDirectDrawSurface*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawSurface2> { static constexpr size_t CacheIndex = 25; };
+	struct AddressCacheIndex<m_IDirectDrawSurface2> { static constexpr size_t CacheIndex = 25; static inline std::list<m_IDirectDrawSurface2*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawSurface3> { static constexpr size_t CacheIndex = 26;  };
+	struct AddressCacheIndex<m_IDirectDrawSurface3> { static constexpr size_t CacheIndex = 26; static inline std::list<m_IDirectDrawSurface3*> InterfaceList;  };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawSurface4> { static constexpr size_t CacheIndex = 27; };
+	struct AddressCacheIndex<m_IDirectDrawSurface4> { static constexpr size_t CacheIndex = 27; static inline std::list<m_IDirectDrawSurface4*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawSurface7> { static constexpr size_t CacheIndex = 28;
+	struct AddressCacheIndex<m_IDirectDrawSurface7> { static constexpr size_t CacheIndex = 28; static inline std::list<m_IDirectDrawSurface7*> InterfaceList;
 		using Type1 = m_IDirectDrawSurface;
 		using Type2 = m_IDirectDrawSurface2;
 		using Type3 = m_IDirectDrawSurface3;
@@ -222,46 +122,62 @@ private:
 		using Type7 = m_IDirectDrawSurface7;
 	};
 	template <>
-	struct AddressCacheIndex<m_IDirect3DExecuteBuffer> { static constexpr size_t CacheIndex = 29; };
+	struct AddressCacheIndex<m_IDirect3DX> { static constexpr size_t CacheIndex = 29; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DLight> { static constexpr size_t CacheIndex = 30; };
+	struct AddressCacheIndex<m_IDirectDrawX> { static constexpr size_t CacheIndex = 30; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawClipper> { static constexpr size_t CacheIndex = 31; };
+	struct AddressCacheIndex<m_IDirect3DDeviceX> { static constexpr size_t CacheIndex = 31; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawColorControl> { static constexpr size_t CacheIndex = 32; };
+	struct AddressCacheIndex<m_IDirect3DTextureX> { static constexpr size_t CacheIndex = 32; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawGammaControl> { static constexpr size_t CacheIndex = 33; };
+	struct AddressCacheIndex<m_IDirectDrawSurfaceX> { static constexpr size_t CacheIndex = 33; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawPalette> { static constexpr size_t CacheIndex = 34; };
+	struct AddressCacheIndex<m_IDirect3DExecuteBuffer> { static constexpr size_t CacheIndex = 34; static inline std::list<m_IDirect3DExecuteBuffer*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DX> { static constexpr size_t CacheIndex = 35; };
+	struct AddressCacheIndex<m_IDirect3DLight> { static constexpr size_t CacheIndex = 35; static inline std::list<m_IDirect3DLight*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DDeviceX> { static constexpr size_t CacheIndex = 36; };
+	struct AddressCacheIndex<m_IDirectDrawClipper> { static constexpr size_t CacheIndex = 36; static inline std::list<m_IDirectDrawClipper*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DMaterialX> { static constexpr size_t CacheIndex = 37; };
+	struct AddressCacheIndex<m_IDirectDrawColorControl> { static constexpr size_t CacheIndex = 37; static inline std::list<m_IDirectDrawColorControl*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DTextureX> { static constexpr size_t CacheIndex = 38; };
+	struct AddressCacheIndex<m_IDirectDrawGammaControl> { static constexpr size_t CacheIndex = 38; static inline std::list<m_IDirectDrawGammaControl*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DVertexBufferX> { static constexpr size_t CacheIndex = 39; };
+	struct AddressCacheIndex<m_IDirectDrawPalette> { static constexpr size_t CacheIndex = 39; static inline std::list<m_IDirectDrawPalette*> InterfaceList; };
 	template <>
-	struct AddressCacheIndex<m_IDirect3DViewportX> { static constexpr size_t CacheIndex = 40; };
+	struct AddressCacheIndex<m_IDirect3DMaterialX> { static constexpr size_t CacheIndex = 40; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawX> { static constexpr size_t CacheIndex = 41; };
+	struct AddressCacheIndex<m_IDirect3DVertexBufferX> { static constexpr size_t CacheIndex = 41; };
 	template <>
-	struct AddressCacheIndex<m_IDirectDrawSurfaceX> { static constexpr size_t CacheIndex = 42; };
+	struct AddressCacheIndex<m_IDirect3DViewportX> { static constexpr size_t CacheIndex = 42; };
 
 	void DeleteAll()
 	{
-		for (size_t i = 0; i < MaxCacheIndex; ++i)
+		if (DeletingAll)
 		{
-			const auto& map = g_map[i];
+			return;
+		}
+		ScopedFlagSet FlagSet(DeletingAll);
 
-			// Don't delete m_IDirectDrawClipper it may be globally created
-			if (!ConstructorFlag && i != AddressCacheIndex<m_IDirectDrawClipper>::CacheIndex)
+		// Iterate in reverse to remove the X interfaces before the version interfaces
+		for (size_t i = MaxCacheIndex; i-- > 0; )
+		{
+			// Don't delete m_IDirectDrawClipper during normal cache cleanup;
+			// it may be globally created. Delete it during final destruction.
+			if (ConstructorFlag || i != AddressCacheIndex<m_IDirectDrawClipper>::CacheIndex)
 			{
-				for (const auto& entry : map)
+				while (!g_map[i].empty())
 				{
-					delete entry.second;
+					auto it = g_map[i].begin();
+					auto InterfaceCache = it->second;
+
+					// Remove it before calling DeleteMe()
+					g_map[i].erase(it);
+					reverse_map[i].erase(InterfaceCache);
+
+					if (InterfaceCache)
+					{
+						InterfaceCache->DeleteMe();
+					}
 				}
 			}
 		}
@@ -362,7 +278,7 @@ private:
 		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
 		auto it = g_map[CacheIndex].find(Proxy);
-		if (it != std::end(g_map[CacheIndex]))
+		if (it != g_map[CacheIndex].end())
 		{
 			return static_cast<T *>(it->second);
 		}
@@ -512,7 +428,7 @@ public:
 		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
 		auto it = g_map[CacheIndex].find(Proxy);
-		if (it != std::end(g_map[CacheIndex]))
+		if (it != g_map[CacheIndex].end())
 		{
 			return true;
 		}
@@ -521,20 +437,20 @@ public:
 	}
 
 	template <typename T>
-	void SaveAddress(T *Wrapper, void *Proxy)
+	void SaveAddress(T* Wrapper, void* Proxy)
 	{
 		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 		if (Wrapper && Proxy)
 		{
 			g_map[CacheIndex][Proxy] = Wrapper;
-			reverse_map[CacheIndex][Wrapper] = Proxy;  // Update reverse map
+			reverse_map[CacheIndex][Wrapper] = Proxy;
 		}
 	}
 
 	template <typename T>
 	void DeleteAddress(T *Wrapper)
 	{
-		if (!Wrapper || ConstructorFlag)
+		if (!Wrapper || DeletingAll)
 		{
 			return;
 		}
@@ -542,24 +458,170 @@ public:
 		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
 		// Remove from g_map
-		auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
-			[=](auto& Map) -> bool { return Map.second == Wrapper; });
-		if (it != std::end(g_map[CacheIndex]))
+		while (true)
 		{
+			auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
+				[=](auto& Map) -> bool { return Map.second == Wrapper; });
+
+			if (it == g_map[CacheIndex].end())
+			{
+				break;
+			}
+
 			g_map[CacheIndex].erase(it);
 		}
 
 		// Remove from reverse_map
 		reverse_map[CacheIndex].erase(Wrapper);
 
+		// Remove from InterfaceList
+		if constexpr (
+			!std::is_same_v<T, m_IDirectDrawX> &&
+			!std::is_same_v<T, m_IDirectDrawSurfaceX> &&
+			!std::is_same_v<T, m_IDirect3DX> &&
+			!std::is_same_v<T, m_IDirect3DDeviceX> &&
+			!std::is_same_v<T, m_IDirect3DTextureX> &&
+			!std::is_same_v<T, m_IDirect3DMaterialX> &&
+			!std::is_same_v<T, m_IDirect3DVertexBufferX> &&
+			!std::is_same_v<T, m_IDirect3DViewportX>)
+		{
+			while (true)
+			{
+				auto& InterfaceList = AddressCacheIndex<T>::InterfaceList;
+
+				auto it = std::find(InterfaceList.begin(), InterfaceList.end(), Wrapper);
+
+				if (it == InterfaceList.end())
+				{
+					break;
+				}
+
+				InterfaceList.erase(it);
+			}
+		}
+
 		// If this is the last DirectDraw than delete all interfaces and clear cache
 		if constexpr (CacheIndex == AddressCacheIndex<m_IDirectDrawX>::CacheIndex)
 		{
-			if (g_map[AddressCacheIndex<m_IDirectDrawX>::CacheIndex].size() == 0)
+			if (Config.DdrawKeepAllInterfaceCache != 1 && g_map[CacheIndex].empty())
 			{
 				DeleteAll();
 			}
 		}
+	}
+
+	template <typename T>
+	T* InterfaceAddressCache(T* Interface)
+	{
+		if (Config.DdrawKeepAllInterfaceCache == 2)
+		{
+			if (Interface)
+			{
+				Interface->DeleteMe();
+			}
+			return nullptr;
+		}
+		if (Interface)
+		{
+			if (!Config.DdrawKeepAllInterfaceCache)
+			{
+				bool KeepLooping;
+				do
+				{
+					KeepLooping = false;
+
+					auto& InterfaceList = AddressCacheIndex<T>::InterfaceList;
+					for (auto it = InterfaceList.begin(); it != InterfaceList.end();)
+					{
+						T* InterfaceCache = *it;
+						if (!InterfaceCache->KeepMe())
+						{
+							it = InterfaceList.erase(it);	// Remove item before calling DeleteMe()
+							InterfaceCache->DeleteMe();
+							KeepLooping = true;
+							break;	// Safe for InterfaceList changes during loop
+						}
+
+						++it;
+					}
+				} while (KeepLooping);
+			}
+			// Safe for InterfaceList changes during loop
+			auto& InterfaceList = AddressCacheIndex<T>::InterfaceList;
+			InterfaceList.push_back(Interface);
+			return nullptr;
+		}
+		else
+		{
+			auto& InterfaceList = AddressCacheIndex<T>::InterfaceList;
+			T* InterfaceCache = nullptr;
+			if (!InterfaceList.empty())
+			{
+				InterfaceCache = InterfaceList.back();
+				InterfaceList.pop_back();
+			}
+			return InterfaceCache;
+		}
+	}
+
+	template <typename T>
+	void SaveInterfaceAddress(T*& Interface, bool KeepInterface = false)
+	{
+		if (Interface)
+		{
+			if constexpr (std::is_same_v<T, m_IDirectDrawPalette>)
+			{
+				Interface->SetProxy(nullptr, nullptr, 0, nullptr);
+			}
+			else if constexpr (std::is_same_v<T, m_IDirect3DExecuteBuffer>)
+			{
+				Interface->SetProxy(nullptr, nullptr, nullptr);
+			}
+			else if constexpr (std::is_same_v<T, m_IDirectDrawClipper>)
+			{
+				Interface->SetProxy(nullptr, nullptr, 0, false);
+			}
+			else if constexpr (std::is_same_v<T, m_IDirect3DLight> || std::is_same_v<T, m_IDirectDrawColorControl> || std::is_same_v<T, m_IDirectDrawGammaControl>)
+			{
+				Interface->SetProxy(nullptr, nullptr);
+			}
+			else
+			{
+				Interface->SetProxy(nullptr);
+			}
+			if (KeepInterface)
+			{
+				Interface->PreserveMe();
+			}
+			InterfaceAddressCache(Interface);
+			Interface = nullptr;
+		}
+	}
+
+	template <typename T>
+	void SaveInterfaceAddress(const T* Interface)
+	{
+		T* NewInterface = const_cast<T*>(Interface);
+		SaveInterfaceAddress(NewInterface);
+	}
+
+	template <typename T, typename S, typename X>
+	T* GetInterfaceAddress(T*& Interface, S* ProxyInterface, X* InterfaceX)
+	{
+		if (!Interface)
+		{
+			T* NewInterface = InterfaceAddressCache<T>(nullptr);
+			if (NewInterface)
+			{
+				Interface = NewInterface;
+				Interface->SetProxy(InterfaceX);
+			}
+			else
+			{
+				Interface = new T(ProxyInterface, InterfaceX);
+			}
+		}
+		return Interface;
 	}
 };
 

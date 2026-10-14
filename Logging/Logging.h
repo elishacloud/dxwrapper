@@ -85,6 +85,20 @@ std::ostream& operator<<(std::ostream& os, const D3DDEVICEDESC7& dd);
 std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT& vp);
 std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT2& vp);
 std::ostream& operator<<(std::ostream& os, const D3DVIEWPORT7& vp);
+std::ostream& operator<<(std::ostream& os, const D3DVECTOR& data);
+std::ostream& operator<<(std::ostream& os, const D3DVERTEX& data);
+std::ostream& operator<<(std::ostream& os, const D3DLVERTEX& data);
+std::ostream& operator<<(std::ostream& os, const D3DTLVERTEX& data);
+std::ostream& operator<<(std::ostream& os, const D3DHVERTEX& data);
+#endif
+#ifdef DX3DTYPE_H
+std::ostream& operator<<(std::ostream& os, const D3DLVERTEX9& data);
+#endif
+#ifdef D3DX9_LIBRARY
+std::ostream& operator<<(std::ostream& os, const D3DXCOLOR& data);
+std::ostream& operator<<(std::ostream& os, const D3DXVECTOR2& data);
+std::ostream& operator<<(std::ostream& os, const D3DXVECTOR3& data);
+std::ostream& operator<<(std::ostream& os, const D3DXVECTOR4& data);
 #endif
 #ifdef _d3d9TYPES_H_
 std::ostream& operator<<(std::ostream& os, const D3DFORMAT& format);

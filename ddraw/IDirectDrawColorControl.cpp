@@ -26,7 +26,7 @@ HRESULT m_IDirectDrawColorControl::QueryInterface(REFIID riid, LPVOID FAR * ppvO
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		if (ppvObj)
 		{
@@ -68,14 +68,14 @@ ULONG m_IDirectDrawColorControl::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		return 0;
 	}
 
 	if (Config.Dd7to9)
 	{
-		return _InterlockedIncrement(&RefCount);
+		return InterlockedIncrement(&RefCount);
 	}
 
 	return ProxyInterface->AddRef();
@@ -85,18 +85,18 @@ ULONG m_IDirectDrawColorControl::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		return 0;
 	}
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref = InterlockedDecrementIfPositive(&RefCount);
+		ULONG ref = InterlockedDecrementIfNotNull(&RefCount);
 
 		if (ref == 0)
 		{
-			SaveInterfaceAddress(this);
+			ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 		}
 
 		return ref;
@@ -106,7 +106,7 @@ ULONG m_IDirectDrawColorControl::Release()
 
 	if (ref == 0)
 	{
-		SaveInterfaceAddress(this);
+		ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 	}
 
 	return ref;
@@ -120,7 +120,7 @@ HRESULT m_IDirectDrawColorControl::GetColorControls(LPDDCOLORCONTROL lpColorCont
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -144,7 +144,7 @@ HRESULT m_IDirectDrawColorControl::SetColorControls(LPDDCOLORCONTROL lpColorCont
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !ddrawParent)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -202,7 +202,7 @@ void m_IDirectDrawColorControl::ReleaseInterface()
 
 m_IDirectDrawColorControl* m_IDirectDrawColorControl::CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent)
 {
-	m_IDirectDrawColorControl* Interface = InterfaceAddressCache<m_IDirectDrawColorControl>(nullptr);
+	m_IDirectDrawColorControl* Interface = ProxyAddressLookupTableDdraw.InterfaceAddressCache<m_IDirectDrawColorControl>(nullptr);
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewParent);

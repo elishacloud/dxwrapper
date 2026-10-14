@@ -107,32 +107,14 @@ m_IDirect3DDXVADevice9* AddressLookupTableD3d9::CreateInterface<m_IDirect3DDXVAD
 	return new m_IDirect3DDXVADevice9(static_cast<m_IDirect3DDXVADevice9*>(Proxy), Device);
 }
 
-StateBlockCache::~StateBlockCache()
-{
-	while (stateBlocks.size())
-	{
-		m_IDirect3DStateBlock9* StateBlockX = stateBlocks.back();
-		RemoveStateBlock(StateBlockX);
-		delete StateBlockX;
-	}
-}
-
 void StateBlockCache::AddStateBlock(m_IDirect3DStateBlock9* stateBlock)
 {
 	if (stateBlock == nullptr) return;
 
-	// Check if the state block already exists
 	auto it = std::find(stateBlocks.begin(), stateBlocks.end(), stateBlock);
 	if (it == stateBlocks.end())
 	{
 		stateBlocks.push_back(stateBlock);
-
-		// If we exceed the max allowed state blocks, remove the oldest ones
-		if (Config.LimitStateBlocks && stateBlocks.size() > MAX_STATE_BLOCKS)
-		{
-			m_IDirect3DStateBlock9* StateBlockX = stateBlocks.front();
-			StateBlockX->Release();
-		}
 	}
 }
 

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -24,6 +24,18 @@ HRESULT m_IDirectInput8::QueryInterface(REFIID riid, LPVOID * ppvObj)
 	{
 		return E_POINTER;
 	}
+	*ppvObj = nullptr;
+
+	if (riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return DI_OK;
+	}
+	if (riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return DI_OK;
+	}
 
 	if (riid == IID_IUnknown || riid == IID_IDirectInput8W)
 	{
@@ -46,14 +58,14 @@ ULONG m_IDirectInput8::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	return _InterlockedIncrement(&RefCount);
+	return InterlockedIncrement(&RefCount);
 }
 
 ULONG m_IDirectInput8::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	LONG ref = _InterlockedDecrement(&RefCount);
+	ULONG ref = InterlockedDecrement(&RefCount);
 
 	if (ref == 0)
 	{

@@ -49,14 +49,7 @@ public:
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID riid, void*) {
 		m_pDeviceEx = Device;
 		WrapperID == riid;
-		if (riid == IID_IDirect3DSwapChain9Ex || ProxyInterface == ProxyInterfaceEx)
-		{
-			ProxyInterfaceEx = reinterpret_cast<LPDIRECT3DSWAPCHAIN9EX>(ProxyInterface);
-		}
-		else
-		{
-			ProxyInterfaceEx = nullptr;
-		}
+		ProxyInterfaceEx = reinterpret_cast<LPDIRECT3DSWAPCHAIN9EX>(ProxyInterface);
 		if (Config.D3d9to9Ex && !IsForcingD3d9to9Ex())
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: Creating non-Ex interface when using D3d9to9Ex!");

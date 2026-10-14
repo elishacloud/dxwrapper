@@ -508,24 +508,6 @@ void Fullscreen::SetScreen(screen_res ScreenRes)
 	}
 }
 
-// Resets the screen to the registry-stored values
-void Fullscreen::ResetScreen()
-{
-	// Reset screen settings
-	Logging::Log() << "Reseting screen resolution...";
-	std::string lpRamp((3 * 256 * 2), '\0');
-	HDC hDC = GetDC(nullptr);
-	if (hDC)
-	{
-		GetDeviceGammaRamp(hDC, &lpRamp[0]);
-		Sleep(1);
-		SetDeviceGammaRamp(hDC, &lpRamp[0]);
-		ReleaseDC(nullptr, hDC);
-		Sleep(1);
-	}
-	ChangeDisplaySettings(nullptr, 0);
-}
-
 
 //*********************************************************************************
 // Window functions below
@@ -864,10 +846,7 @@ void Fullscreen::CheckForTermination(DWORD m_ProcessId)
 			Logging::Log() << "Process not exiting, attempting to terminate process...";
 
 			// Reset screen back to original Windows settings to fix some display errors on exit
-			if (Config.ResetScreenRes)
-			{
-				Fullscreen::ResetScreen();
-			}
+			Utils::ResetScreenSettings();
 
 			// Terminate the current process
 			Logging::Log() << __FUNCTION__ << " Terminating process!";

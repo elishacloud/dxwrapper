@@ -5,10 +5,11 @@ class m_IDirect3DX final : public IUnknown, public AddressLookupTableDdrawObject
 private:
 	IDirect3D7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	LONG RefCount1 = 0;
-	LONG RefCount2 = 0;
-	LONG RefCount3 = 0;
-	LONG RefCount7 = 0;
+	ULONG RefCount1 = 0;
+	ULONG RefCount2 = 0;
+	ULONG RefCount3 = 0;
+	ULONG RefCount7 = 0;
+	std::atomic<bool> RefCountLock = false;
 
 	// Store version wrappers
 	m_IDirect3D *WrapperInterface = nullptr;
@@ -19,6 +20,7 @@ private:
 	// Convert to Direct3D9
 	m_IDirectDrawX* ddrawParent = nullptr;
 	DWORD DDrawVersion = 0;
+	bool CreatedByDDFactory = false;
 
 	// D3D Device array
 	struct D3DDEVICELIST {
@@ -42,10 +44,10 @@ private:
 	D9CAPS_CACHE D9Cache;
 
 	// Light array
-	std::vector<m_IDirect3DLight*> LightList;
+	std::unordered_set<m_IDirect3DLight*> LightList;
 
 	// Material array
-	std::vector<m_IDirect3DMaterialX*> MaterialList;
+	std::unordered_set<m_IDirect3DMaterialX*> MaterialList;
 
 	// VertexBuffer array
 	struct VERTEXBUFFERLIST {
@@ -53,10 +55,10 @@ private:
 		DWORD DxVersion = 0;
 		DWORD RefCount = 0;
 	};
-	std::vector<VERTEXBUFFERLIST> VertexBufferList;
+	std::list<VERTEXBUFFERLIST> VertexBufferList;
 
 	// Viewport array
-	std::vector<m_IDirect3DViewportX*> ViewportList;
+	std::unordered_set<m_IDirect3DViewportX*> ViewportList;
 
 	// Helper functions
 	void GetCap9Cache();
@@ -143,7 +145,7 @@ public:
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void* GetWrapperInterfaceX(DWORD DirectXVersion);
-	m_IDirect3DDeviceX* GetNextD3DDevice(DWORD Index) { return D3DDeviceList.size() > Index ? D3DDeviceList[Index].Interface : nullptr; }
+	inline m_IDirect3DDeviceX* GetNextD3DDevice(DWORD Index) { return D3DDeviceList.size() > Index ? D3DDeviceList[Index].Interface : nullptr; }
 	void AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void AddLight(m_IDirect3DLight* lpLight);
@@ -158,8 +160,9 @@ public:
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
+	inline bool IsCreatedByDDFactory() const { return CreatedByDDFactory; }
 
 	// Functions handling the ddraw parent interface
-	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; GetCap9Cache(); }
+	inline void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; GetCap9Cache(); }
 	void ClearDdraw();
 };

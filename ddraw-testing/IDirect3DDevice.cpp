@@ -259,6 +259,9 @@ void TestLightState(D3DDType* pDevice, BOOL NewValue, DWORD MaxLightState)
 template <typename DDType, typename DSType, typename DSDesc, typename D3DType, typename D3DDType>
 void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
 {
+    const ULONG DDrawInitRef = GetRefCount(pDDraw);
+    const ULONG Direct3DInitRef = GetRefCount(pDirect3D);
+
     // Create primary surface with backbuffer
     DSDesc ddsd = {};
     ddsd.dwSize = sizeof(ddsd);
@@ -634,11 +637,23 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
         TestID = 837;
         LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
 
-        pZBuffer->Release();
+        ULONG D3DDevice1Ref = pD3DDevice1->Release();
+
+        ULONG ZBufferRef = pZBuffer->Release();
 
         pSurface1->Release();
 
-        pD3DDevice1->Release();
+        // ****  850  ****
+        TestID = 850;
+        LOG_TEST_RESULT(TestID, "After 3D Device1 release. Device1 Ref count ", D3DDevice1Ref, GetResults<DDType>(TestID));
+
+        // ****  851  ****
+        TestID = 851;
+        LOG_TEST_RESULT(TestID, "After 3D Device1 release. ZBuffer Ref count ", ZBufferRef, GetResults<DDType>(TestID));
+
+        // ****  852  ****
+        TestID = 852;
+        LOG_TEST_RESULT(TestID, "After 3D Device1 release. Surface1 Ref count ", GetRefCount(pSurface1), GetResults<DDType>(TestID));
 
         // ****  826  ****
         TestID = 826;
@@ -646,14 +661,58 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
 
         // ****  827  ****
         TestID = 827;
-        LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+        LOG_TEST_RESULT(TestID, "After 3D Device1 release. DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+        if (D3DDevice1Ref)
+        {
+            pSurface1->AddRef();
+
+            D3DDevice1Ref = pD3DDevice1->Release();
+
+            // ****  853  ****
+            TestID = 853;
+            LOG_TEST_RESULT(TestID, "After second 3D Device1 release. ZBuffer Ref count ", ZBufferRef, GetResults<DDType>(TestID));
+
+            // ****  854  ****
+            TestID = 854;
+            LOG_TEST_RESULT(TestID, "After second 3D Device1 release. Surface1 Ref count ", GetRefCount(pSurface1), GetResults<DDType>(TestID));
+
+            // ****  855  ****
+            TestID = 855;
+            LOG_TEST_RESULT(TestID, "After second 3D Device1 release. Direct3D Ref count ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+
+            // ****  856  ****
+            TestID = 856;
+            LOG_TEST_RESULT(TestID, "After second 3D Device1 release. DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+        }
+
+        if (ZBufferRef)
+        {
+            while (pZBuffer->Release()) {};
+
+            // ****  857  ****
+            TestID = 857;
+            LOG_TEST_RESULT(TestID, "After ZBuffer release. Surface1 Ref count ", GetRefCount(pSurface1), GetResults<DDType>(TestID));
+
+            // ****  858  ****
+            TestID = 858;
+            LOG_TEST_RESULT(TestID, "After ZBuffer release. Direct3D Ref count ", GetRefCount(pDirect3D), GetResults<DDType>(TestID));
+
+            // ****  859  ****
+            TestID = 859;
+            LOG_TEST_RESULT(TestID, "After ZBuffer release. DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+        }
     }
     else
     {
         LOG_TEST_RESULT(TestID, "Failed to create 3D Device1. Error: ", (DDERR)hr, TEST_FAILED);
     }
 
-    pSurface1->Release();
+    ULONG Surface1Ref = pSurface1->Release();
+
+    // ****  860  ****
+    TestID = 860;
+    LOG_TEST_RESULT(TestID, "After 3D Surface1 release. Surface1 Ref count ", Surface1Ref, GetResults<DDType>(TestID));
 
     // ****  828  ****
     TestID = 828;
@@ -662,11 +721,20 @@ void TestCreate3DDeviceT(DDType* pDDraw, D3DType* pDirect3D)
     // ****  829  ****
     TestID = 829;
     LOG_TEST_RESULT(TestID, "DirectDraw Ref count ", GetRefCount(pDDraw), GetResults<DDType>(TestID));
+
+    // ****  861  ****
+    TestID = 861;
+    LOG_TEST_RESULT(TestID, "Before exit. DDraw Ref count matches ", (DDrawInitRef - GetRefCount(pDDraw)), GetResults<DDType>(TestID));
+
+    // ****  862  ****
+    TestID = 862;
+    LOG_TEST_RESULT(TestID, "Before exit. Direct3D Ref count matches ", (Direct3DInitRef - GetRefCount(pDirect3D)), GetResults<DDType>(TestID));
 }
 
 template void TestCreate3DDevice<IDirectDraw, IDirect3D>(IDirectDraw*, IDirect3D*);
+template void TestCreate3DDevice<IDirectDrawDDF, IDirect3D>(IDirectDrawDDF*, IDirect3D*);
 template void TestCreate3DDevice<IDirectDraw2, IDirect3D2>(IDirectDraw2*, IDirect3D2*);
-template void TestCreate3DDevice<IDirectDraw3, IDirect3D3>(IDirectDraw3*, IDirect3D3*);
+template void TestCreate3DDevice<IDirectDraw3, IDirect3D2>(IDirectDraw3*, IDirect3D2*);
 template void TestCreate3DDevice<IDirectDraw4, IDirect3D3>(IDirectDraw4*, IDirect3D3*);
 template void TestCreate3DDevice<IDirectDraw7, IDirect3D7>(IDirectDraw7*, IDirect3D7*);
 template void TestCreate3DDevice<IDirectDraw7Ex, IDirect3D7>(IDirectDraw7Ex*, IDirect3D7*);
@@ -685,11 +753,11 @@ void TestCreate3DDevice(DDType* pDDraw, D3DType* pDirect3D)
     {
         TestCreate3DDeviceT<DDType, IDirectDrawSurface, DDSURFACEDESC, D3DType, IDirect3DDevice2>(pDDraw, pDirect3D);
     }
-    else if constexpr (std::is_same_v<D3DType, IDirect3D3> && std::is_same_v<DDType, IDirectDraw4>)
+    else if constexpr (std::is_same_v<D3DType, IDirect3D3>)
     {
         TestCreate3DDeviceT<DDType, IDirectDrawSurface4, DDSURFACEDESC2, D3DType, IDirect3DDevice3>(pDDraw, pDirect3D);
     }
-    else if constexpr (std::is_same_v<D3DType, IDirect3D7>)
+    else
     {
         TestCreate3DDeviceT<DDType, IDirectDrawSurface7, DDSURFACEDESC2, D3DType, IDirect3DDevice7>(pDDraw, pDirect3D);
     }

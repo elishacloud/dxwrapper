@@ -26,6 +26,23 @@ HRESULT m_IDirectDrawFactory::QueryInterface(REFIID riid, LPVOID FAR * ppvObj)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
+	if (!ppvObj)
+	{
+		return E_POINTER;
+	}
+	*ppvObj = nullptr;
+
+	if (riid == IID_GetRealInterface)
+	{
+		*ppvObj = ProxyInterface;
+		return DD_OK;
+	}
+	if (riid == IID_GetInterfaceX)
+	{
+		*ppvObj = this;
+		return DD_OK;
+	}
+
 	if ((riid == IID_IDirectDrawFactory || riid == IID_IUnknown) && ppvObj)
 	{
 		AddRef();
@@ -42,9 +59,9 @@ ULONG m_IDirectDrawFactory::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface)
+	if (Config.Dd7to9)
 	{
-		return _InterlockedIncrement(&RefCount);
+		return InterlockedIncrement(&RefCount);
 	}
 
 	return ProxyInterface->AddRef();
@@ -56,7 +73,7 @@ ULONG m_IDirectDrawFactory::Release()
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref = InterlockedDecrementIfPositive(&RefCount);
+		ULONG ref = InterlockedDecrementIfNotNull(&RefCount);
 
 		if (ref == 0)
 		{
@@ -86,6 +103,8 @@ HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dw
 
 	if (Config.Dd7to9)
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: using DirectDrawFactory for creating DirectDraw! There could be reference count issues.");
+
 		HRESULT hr = dd_DirectDrawCreate(pGUID, ppDirectDraw, pUnkOuter);
 
 		if (SUCCEEDED(hr) && ppDirectDraw)
@@ -118,6 +137,12 @@ HRESULT m_IDirectDrawFactory::CreateDirectDraw(GUID * pGUID, HWND hWnd, DWORD dw
 
 	if (SUCCEEDED(hr) && ppDirectDraw)
 	{
+		// Check if interface is already wrapped
+		if (void* p = nullptr; SUCCEEDED((*ppDirectDraw)->QueryInterface(IID_GetInterfaceX, &p)))
+		{
+			return hr;
+		}
+
 		m_IDirectDrawX *Interface = new m_IDirectDrawX((IDirectDraw7*)*ppDirectDraw, 1);
 
 		*ppDirectDraw = (LPDIRECTDRAW)Interface->GetWrapperInterfaceX(1);

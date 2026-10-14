@@ -78,7 +78,7 @@ void D3d9Wrapper::TestAllDeviceRefs(IDirect3DDevice9* device, DEVICE_REFCOUNT_CH
         }, 1);
     }
 
-    if (Config.WindowModeGammaShader)
+    if (Config.WindowModeGammaShader || Config.DisplayBrightness || Config.DisplayContrast)
     {
         dref.PixelShader = TestDeviceRefChange(device, "Pixel Shader", [&](IUnknown** out) {
             IDirect3DPixelShader9* ps = nullptr;

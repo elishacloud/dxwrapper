@@ -14,7 +14,6 @@ private:
 	DWORD DeviceMultiSampleQuality = 0;
 
 	// For fake emulated locking
-	bool IsSurfaceTexture = false;
 	m_IDirect3DTexture9* pTextureContainer = nullptr;
 	struct {
 		bool UsingEmulatedSurface = false;
@@ -23,8 +22,8 @@ private:
 		LPDIRECT3DSURFACE9 pSurface = nullptr;
 	} Emu;
 
-	inline bool ShouldEmulateMultiSampledSurface() const;
-	inline bool ShouldEmulateNonMultiSampledSurface() const;
+	inline bool ShouldEmulateMultiSampledSurface();
+	inline bool ShouldEmulateNonMultiSampledSurface();
 	inline bool IsEmulatedSurfaceOutofDate() const;
 
 public:

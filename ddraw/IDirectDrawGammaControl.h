@@ -4,8 +4,9 @@ class m_IDirectDrawGammaControl final : public IDirectDrawGammaControl, public A
 {
 private:
 	IDirectDrawGammaControl *ProxyInterface = nullptr;
-	LONG RefCount = 1;
+	ULONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawGammaControl;
+	bool IsInterfaceDeleted = false;
 
 	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;
@@ -49,6 +50,7 @@ public:
 	{
 		if (NewProxyInterface || NewParent)
 		{
+			IsInterfaceDeleted = false;	// Mark as not deleted first
 			RefCount = 1;
 			ProxyInterface = NewProxyInterface;
 			ddrawParent = NewParent;
@@ -61,6 +63,7 @@ public:
 			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			ddrawParent = nullptr;
+			IsInterfaceDeleted = true;	// Mark as deleted last
 		}
 	}
 
@@ -74,7 +77,7 @@ public:
 	IFACEMETHOD(SetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP) override;
 
 	// Functions handling the ddraw parent interface
-	void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
-	void ClearDdraw() { ddrawParent = nullptr; }
+	inline void SetDdrawParent(m_IDirectDrawX *ddraw) { ddrawParent = ddraw; }
+	inline void ClearDdraw() { ddrawParent = nullptr; }
 	static m_IDirectDrawGammaControl* CreateDirectDrawGammaControl(IDirectDrawGammaControl* aOriginal, m_IDirectDrawX* NewParent);
 };

@@ -5,8 +5,9 @@ class m_IDirect3DVertexBufferX final : public IUnknown, public AddressLookupTabl
 private:
 	IDirect3DVertexBuffer7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	LONG RefCount1 = 0;
-	LONG RefCount7 = 0;
+	ULONG RefCount1 = 0;
+	ULONG RefCount7 = 0;
+	std::atomic<bool> RefCountLock = false;
 
 	// Store version wrappers
 	m_IDirect3DVertexBuffer* WrapperInterface = nullptr;
@@ -20,10 +21,13 @@ private:
 
 	// Vertex buffer desc
 	struct {
+		D3DFORMAT Format = D3DFMT_UNKNOWN;
+		DWORD Usage = 0;
+		D3DPOOL Pool = D3DPOOL_DEFAULT;
 		D3DVERTEXBUFFERDESC Desc = {};
+		DWORD Stride = 0;
 		DWORD Size = 0;
 	} VB;
-	D3DVERTEXBUFFER_DESC d3d9VBDesc = {};
 
 	// Vector buffer data
 	std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexData;
@@ -34,25 +38,9 @@ private:
 		DWORD Flags = 0;
 	} LastLock;
 
-	// Lighting data
-	struct LightingState
-	{
-		bool UseSpecular;
-		bool LocalViewer;
-		bool NormalizeNormals;
-		bool ColorVertex;
-
-		DWORD DiffuseMaterialSource;
-		DWORD AmbientMaterialSource;
-		DWORD SpecularMaterialSource;
-		DWORD EmissiveMaterialSource;
-
-		D3DCOLOR AmbientRenderState;
-
-		D3DMATRIX ViewMatrix;
-
-		D3DMATERIAL7 Material;
-	};
+	// Emulation functions
+	void CopyBufferFromEmulatedMem(BYTE* pVertexData);
+	HRESULT CopyBufferToEmulatedMem(DWORD dwDestIndex, DWORD dwCount);
 
 	// Direct3D9 interface functions
 	HRESULT CreateD3D9VertexBuffer();
@@ -102,7 +90,6 @@ public:
 			VB.Desc.dwFVF = lpVBDesc->dwFVF;
 			VB.Desc.dwNumVertices = lpVBDesc->dwNumVertices;
 		}
-		d3d9VBDesc.Type = D3DRTYPE_VERTEXBUFFER;
 
 		InitInterface(DirectXVersion);
 	}
@@ -146,20 +133,13 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Functions handling the ddraw parent interface
-	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
-	void ClearDdraw() { ddrawParent = nullptr; d3d9Device = nullptr; }
+	inline void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
+	inline void ClearDdraw() { ddrawParent = nullptr; d3d9Device = nullptr; }
 
 	// Direct3D9 interfaces
-	const LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() const { return d3d9VertexBuffer; };
-	void ClearD3D() { D3DInterface = nullptr; }
-	void ReleaseD9Buffer(bool BackupData, bool ResetBuffer);
+	inline const LPDIRECT3DVERTEXBUFFER9 GetCurrentD9VertexBuffer() const { return d3d9VertexBuffer; };
+	inline void ClearD3D() { D3DInterface = nullptr; }
+	inline void ReleaseD9Buffer(bool BackupData, bool ResetBuffer);
 
-	DWORD GetFVF9() const { return d3d9VBDesc.FVF; };
-
-	// Static functions
-	static HRESULT InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA* sd, const DWORD dwVertexStart, const DWORD dwNumVertices, const DWORD dwVertexTypeDesc);
-	static HRESULT ProcessVerticesUP(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVertexTypeDesc, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, D3DRECT& drExtent, LPDIRECT3DDEVICE7 lpD3DDevice, DWORD dwFlags);
-	template <typename T>
-	static HRESULT TransformVertexUP(m_IDirect3DDeviceX* pDirect3DDeviceX, T* srcVertex, D3DTLVERTEX* destVertex, D3DHVERTEX* pHOut, const DWORD dwCount, DWORD dwFlags, const VIEWPORTINFO& Viewport, D3DRECT& drExtent);
-	static void ComputeLighting(const D3DVECTOR& Position, const D3DVECTOR& Normal, const std::vector<DXLIGHT7>& lights, const LightingState* s, D3DCOLOR& inoutColor, D3DCOLOR& inoutSpecular);
+	inline DWORD GetFVF() const { return VB.Desc.dwFVF; };
 };

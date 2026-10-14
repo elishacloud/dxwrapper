@@ -19,7 +19,7 @@ private:
 	proxy_type* ProxyInterface;
 	IDirectInputDevice8A* ProxyInterfaceA; // Non-owning alias
 
-	LONG RefCount = 1;
+	ULONG RefCount = 1;
 
 	CRITICAL_SECTION dics = {};
 

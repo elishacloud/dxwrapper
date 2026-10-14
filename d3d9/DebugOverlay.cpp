@@ -102,11 +102,8 @@ void DebugOverlay::Setup(HWND hWnd, LPDIRECT3DDEVICE9 Device)
 	ImGui_ImplWin32_Init(hWnd);
 	ImGui_ImplDX9_Init(d3d9Device);
 
-	// If not already hooked then hook it
-	if (!WndProc::GetWndProctStruct(hWnd))
-	{
-		OverrideWndProc(hWnd);
-	}
+	// Don't hook it, should always already be hooked
+	//OverrideWndProc(hWnd);
 
 	// Context is setup
 	IsContextSetup = true;

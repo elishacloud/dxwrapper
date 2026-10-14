@@ -43,7 +43,6 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DdrawAllowMultiSampling) \
 	visit(DdrawAlternatePixelCenter) \
 	visit(DdrawAutoFrameSkip) \
-	visit(DdrawClampVertexZDepth) \
 	visit(DdrawClippedWidth) \
 	visit(DdrawClippedHeight) \
 	visit(DdrawCustomWidth) \
@@ -53,6 +52,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DdrawEmulateLock) \
 	visit(DdrawFillSurfaceColor) \
 	visit(DdrawFilterActivateApp) \
+	visit(DdrawFixedFunctionVertex) \
 	visit(DdrawForceMipMapAutoGen) \
 	visit(DdrawFlipFillColor) \
 	visit(DdrawKeepAllInterfaceCache) \
@@ -101,11 +101,14 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DeviceLookupCacheTime) \
 	visit(DisableGameUX) \
 	visit(DisableGDIGammaRamp) \
+	visit(DisplayBrightness) \
+	visit(DisplayContrast) \
 	visit(ConfigureDpiAwareness) \
 	visit(DisableLogging) \
 	visit(DirectShowEmulation) \
 	visit(CacheClipPlane) \
 	visit(EnvironmentCubeMapFix) \
+	visit(EnableCursorClip) \
 	visit(EnableDdrawWrapper) \
 	visit(EnableD3d9Wrapper) \
 	visit(EnableDinput8Wrapper) \
@@ -280,7 +283,6 @@ struct CONFIG
 	bool DDrawCompatNoProcAffinity = false;		// Disables DDrawCompat single processor affinity
 	bool DdrawAllowMultiSampling = false;		// Allows the game to use anti-aliasing if it enables it via the render state
 	bool DdrawAlternatePixelCenter = false;		// Enables alternate pixel center -0.5f vs 0.0
-	DWORD DdrawClampVertexZDepth = 0;			// 1) Clamps z depth to a max of 1.0f, 2) Clamps the z depth between 0.0f and 1.0f and recomputes w/rhw
 	bool DdrawAutoFrameSkip = false;			// Automatically skips frames to reduce input lag
 	DWORD DdrawFixByteAlignment = false;		// Fixes lock with surfaces that have unaligned byte sizes, 1) just byte align, 2) byte align + D3DTEXF_NONE, 3) byte align + D3DTEXF_LINEAR
 	bool DdrawEnableByteAlignment = false;		// Disables 32bit / 64bit byte alignment
@@ -289,7 +291,7 @@ struct CONFIG
 	bool DdrawRemoveScanlines = false;			// Experimental feature to removing interlaced black lines in a single frame
 	bool DdrawRemoveInterlacing = false;		// Experimental feature to removing interlacing between frames
 	bool DdrawFillSurfaceColor = false;			// After creating surface fill with random color for testing black screen or objects
-	bool DdrawKeepAllInterfaceCache = false;	// Preserve the interface cache all ddraw interfaces, which may casue higher memory usage
+	DWORD DdrawKeepAllInterfaceCache = 0;		// Preserve the interface cache for ddraw interfaces: 0 = auto, 1 = keep all interface cache, 2 = disable cache. Note: option 1 may casue higher memory usage
 	bool DdrawEmulateSurface = false;			// Emulates the ddraw surface using device context for Dd7to9
 	bool DdrawEmulateLock = false;				// Emulates the lock to prevent crashes when an application tries to read data outside Lock/Unlock pair
 	bool DdrawReadFromGDI = false;				// Read from GDI bfore passing surface to program
@@ -310,6 +312,7 @@ struct CONFIG
 	bool DdrawLinearTextureFilter = false;		// Uses D3DTEXF_LINEAR filtering when stretching non-paletted images
 	bool DdrawUseNativeResolution = false;		// Uses the current screen resolution for Dd7to9
 	bool DdrawVertexLockDiscard = false;		// Sets the discard flag for vertex Lock
+	bool DdrawFixedFunctionVertex = false;		// Disables vertex shaders
 	DWORD DdrawClippedWidth = 0;				// Used to scaled Direct3d9 to use this width when using Dd7to9
 	DWORD DdrawClippedHeight = 0;				// Used to scaled Direct3d9 to use this height when using Dd7to9
 	DWORD DdrawCustomWidth = 0;					// Custom resolution width for Dd7to9 when using DdrawLimitDisplayModeCount, resolution must be supported by video card and monitor
@@ -328,7 +331,6 @@ struct CONFIG
 	bool DdrawDisableLighting = false;			// Allow to disable lighting
 	bool DdrawFilterActivateApp = false;		// Filters the WM_ACTIVATEAPP from the game, some games have issues with this message
 	bool DdrawForceMipMapAutoGen = false;		// Force Direct3d9 to use this AutoGenMipMap when using Dd7to9
-	bool EnableCursorClip = false;				// Use ClipCursor system to limit mouse movement
 	DWORD DdrawHookSystem32 = 0;				// Hooks the ddraw.dll file in the Windows System32 folder
 	DWORD D3d8HookSystem32 = 0;					// Hooks the d3d8.dll file in the Windows System32 folder
 	bool D3d9HookSystem32 = false;				// Hooks the d3d9.dll file in the Windows System32 folder
@@ -341,13 +343,16 @@ struct CONFIG
 	bool DirectShowEmulation = false;			// Emulates DirectShow APIs
 	bool DisableGameUX = false;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
 	bool DisableGDIGammaRamp = false;			// Disables gamma ramp for GDI, some games look washed out with gamme ramp enabled
-	DWORD ConfigureDpiAwareness = 0;			// Configures DPI awareness: 1) SystemAware, 2) Unaware, 3) UnawareGdiScaled, 4) PerMonitorAware, 5) PerMonitorAwareV2
 	bool DisableLogging = false;				// Disables the logging file
+	LONG DisplayBrightness = 0;					// Brightness overwrite for the appication display
+	LONG DisplayContrast = 0;					// Contrast overwrite for the appication display
+	DWORD ConfigureDpiAwareness = 0;			// Configures DPI awareness: 1) SystemAware, 2) Unaware, 3) UnawareGdiScaled, 4) PerMonitorAware, 5) PerMonitorAwareV2
 	DWORD SetSwapEffectShim = 0;				// Disables the call to d3d9.dll 'Direct3D9SetSwapEffectUpgradeShim' to switch present mode
 	DWORD CacheClipPlane = 0;					// Caches the ClipPlane for Direct3D9 to fix an issue in d3d9 on Windows 8 and newer
 	bool EnvironmentCubeMapFix = false;			// Fixes environment cube maps when no texture is applied, issue exists in d3d8
 	DWORD CustomDisplayWidth = 0;				// Custom resolution width when using LimitDisplayModeCount, resolution must be supported by video card and monitor
 	DWORD CustomDisplayHeight = 0;				// Custom resolution height when using LimitDisplayModeCount, resolution must be supported by video card and monitor
+	DWORD EnableCursorClip = 0;					// Use ClipCursor system to limit mouse movement
 	bool EnableDdrawWrapper = false;			// Enables the ddraw wrapper
 	DWORD EnableD3d9Wrapper = 0;				// Enables the d3d9 wrapper
 	bool EnableDinput8Wrapper = false;			// Enables the dinput8 wrapper

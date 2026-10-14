@@ -6,6 +6,8 @@
 
 #include "IDirect3DTypesDefault.h"
 
+#define CLAMP(val,zmin,zmax) (max((zmin),min((zmax),(val))))
+
 #define D3DSTATE D3DSTATE7
 
 #define D3DRENDERSTATE_NONE (D3DRENDERSTATETYPE)0
@@ -14,6 +16,7 @@
 #define D3DDP_DXW_SCALEMATRIX           0x00000020l
 #define D3DDP_DXW_COLORKEYENABLE        0x00000040l
 #define D3DDP_DXW_ALPHACOLORKEY         0x00000080l
+#define D3DDP_DXW_VERTEXFIXUPSHADER     0x00000100l
 
 #define D3DDEVICEDESC1_SIZE 172
 #define D3DDEVICEDESC5_SIZE 204
@@ -321,6 +324,26 @@ typedef struct _D3DDEVINFO_TEXTURING {
     DWORD   dwNumGetDCs;            // Number of times a device context for a texture surface has been retrieved by calling the IDirectDrawSurface7::GetDC method.
 } D3DDEVINFO_TEXTURING, * LPD3DDEVINFO_TEXTURING;
 
+// Lighting data
+struct LightingState
+{
+    bool UseSpecular;
+    bool LocalViewer;
+    bool NormalizeNormals;
+    bool ColorVertex;
+
+    DWORD DiffuseMaterialSource;
+    DWORD AmbientMaterialSource;
+    DWORD SpecularMaterialSource;
+    DWORD EmissiveMaterialSource;
+
+    D3DCOLOR AmbientRenderState;
+
+    D3DMATRIX ViewMatrix;
+
+    D3DMATERIAL9 Material;
+};
+
 #define LVERTEX_SIZE 32
 
 #undef D3DFVF_RESERVED2
@@ -352,22 +375,15 @@ struct XYZ
     float x, y, z;
 };
 
+struct D3DVERTEX4 {
+    float sx, sy, sz, rhw;
+};
+
 struct CTUV
 {
     D3DCOLOR diffuse, specular;
     float    tu, tv;
 };
-
-typedef struct {
-    XYZ xyz;
-    DWORD dwReserved;
-    CTUV ctuv;
-} DXLVERTEX7, * LPDXLVERTEX7;
-
-typedef struct {
-    XYZ xyz;
-    CTUV ctuv;
-} DXLVERTEX9, * LPDXLVERTEX9;
 
 typedef struct {
 	FLOAT    x, y, z;
@@ -381,6 +397,18 @@ struct TLVERTEX
 {
     float x, y, z, rhw;
     float u, v;
+};
+
+enum class ColorMode
+{
+    Copy,
+    NoCopy
+};
+
+enum class ClipMode
+{
+    Clipped,
+    Unclipped
 };
 
 struct VERTEXSTREAMINFO {
@@ -402,10 +430,9 @@ struct INDEXSTREAMINFO {
 
 struct VIEWPORTINFO {
     D3DVIEWPORT9 Data9 = {};
-    float MinZ = 0;
-    float MaxZ = 0;
     D3DVECTOR Scale = {};
     D3DVECTOR Clip = {};
+    bool UseViewportScale = false;
 };
 
 typedef enum _D3DSURFACETYPE {
@@ -433,11 +460,80 @@ struct SURFACE_PARENT {
     DWORD DxVersion = 0;
 };
 
-#define CLAMP(val,zmin,zmax) (max((zmin),min((zmax),(val))))
+inline bool IsIdentityMatrix(const D3DMATRIX& Matrix)
+{
+    return
+        Matrix._11 == 1.0f &&
+        Matrix._22 == 1.0f &&
+        Matrix._33 == 1.0f &&
+        Matrix._44 == 1.0f &&
+        Matrix._12 == 0.0f &&
+        Matrix._13 == 0.0f &&
+        Matrix._14 == 0.0f &&
+        Matrix._21 == 0.0f &&
+        Matrix._23 == 0.0f &&
+        Matrix._24 == 0.0f &&
+        Matrix._31 == 0.0f &&
+        Matrix._32 == 0.0f &&
+        Matrix._34 == 0.0f &&
+        Matrix._41 == 0.0f &&
+        Matrix._42 == 0.0f &&
+        Matrix._43 == 0.0f;
+}
 
-// Clamp rhw values
-const float max_rhw = static_cast<float>(1u << 31);
-const float min_rhw = 1.0f / max_rhw;
+constexpr UINT InvalidTransformIndex = UINT_MAX;
+constexpr D3DTRANSFORMSTATETYPE GetTransformType[MaxTransformStates] = {
+    D3DTS_VIEW,
+    D3DTS_PROJECTION,
+    D3DTS_WORLD,
+    D3DTS_WORLD1,
+    D3DTS_WORLD2,
+    D3DTS_WORLD3,
+    D3DTS_TEXTURE0,
+    D3DTS_TEXTURE1,
+    D3DTS_TEXTURE2,
+    D3DTS_TEXTURE3,
+    D3DTS_TEXTURE4,
+    D3DTS_TEXTURE5,
+    D3DTS_TEXTURE6,
+    D3DTS_TEXTURE7,
+};
+inline UINT GetTransformStateIndex(D3DTRANSFORMSTATETYPE State)
+{
+    switch ((DWORD)State)
+    {
+    case D3DTS_VIEW:
+        return 0;
+    case D3DTS_PROJECTION:
+        return 1;
+    case D3DTS_WORLD:
+        return 2;
+    case D3DTS_WORLD1:
+        return 3;
+    case D3DTS_WORLD2:
+        return 4;
+    case D3DTS_WORLD3:
+        return 5;
+    case D3DTS_TEXTURE0:
+        return 6;
+    case D3DTS_TEXTURE1:
+        return 7;
+    case D3DTS_TEXTURE2:
+        return 8;
+    case D3DTS_TEXTURE3:
+        return 9;
+    case D3DTS_TEXTURE4:
+        return 10;
+    case D3DTS_TEXTURE5:
+        return 11;
+    case D3DTS_TEXTURE6:
+        return 12;
+    case D3DTS_TEXTURE7:
+        return 13;
+    default:
+        return InvalidTransformIndex;
+    }
+}
 
 inline bool IsRectZero(const D3DRECT& r)
 {
@@ -459,16 +555,12 @@ bool IsValidRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersi
 bool IsOutOfRangeRenderState(D3DRENDERSTATETYPE dwRenderStateType, DWORD DirectXVersion);
 DWORD GetDepthBias(DWORD ZBias, DWORD DepthBitCount);
 DWORD FixSamplerState(D3DSAMPLERSTATETYPE Type, DWORD Value);
-bool IsValidTransformState(D3DTRANSFORMSTATETYPE State);
 D3DMATRIX UpdateProjectionMatrix(const D3DMATRIX& Matrix, D3DVECTOR Scale, D3DVECTOR Clip, bool SetClipping);
 void ConvertDeviceDesc(D3DDEVICEDESC& Desc, const D3DDEVICEDESC7& Desc7);
 void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, DWORD dwDeviceZBufferBitDepth, const CLSID* guid, DWORD DirectXVersion);
 bool IsValid3DDeviceGUID(REFCLSID rclsid);
-void ConvertLVertex(DXLVERTEX7* lFVF7, const DXLVERTEX9* lFVF9, DWORD NumVertices);
-void ConvertLVertex(DXLVERTEX9* lFVF9, const DXLVERTEX7* lFVF7, DWORD NumVertices);
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState);
-void ClampVertices(BYTE* pVertexData, DWORD Stride, DWORD dwNumVertices);
-void ConvertVertex(BYTE* pDestVertex, DWORD DestFVF, const BYTE* pSrcVertex, DWORD SrcFVF);
+std::vector<D3DVERTEXELEMENT9> CreateVertexDeclarationFromFVF(DWORD fvf);
 DWORD ConvertVertexTypeToFVF(D3DVERTEXTYPE d3dVertexType);
 bool IsValidFVF(DWORD dwVertexTypeDesc);
 UINT GetBlendCount(DWORD dwVertexTypeDesc);
@@ -477,3 +569,10 @@ UINT GetTexStride(DWORD dwVertexTypeDesc, DWORD t);
 UINT GetVertexTextureStride(DWORD dwVertexTypeDesc);
 UINT GetVertexStride(DWORD dwVertexTypeDesc);
 UINT GetNumberOfPrimitives(D3DPRIMITIVETYPE dptPrimitiveType, DWORD dwVertexCount);
+DWORD GetStridedVertexTypeDesc(const D3DDRAWPRIMITIVESTRIDEDDATA& sd);
+HRESULT InterleaveStridedVertexData(std::vector<BYTE, aligned_allocator<BYTE, 4>>& outputBuffer, const D3DDRAWPRIMITIVESTRIDEDDATA& sd, const DWORD dwVertexStart, const DWORD dwNumVertices, DWORD& dwVertexTypeDesc);
+template <typename T, ColorMode Color>
+HRESULT TransformVertexExecuteSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, T* lpIn, D3DTLVERTEX* lpOut, const VIEWPORTINFO& Viewport);
+template <typename T, ClipMode Clip>
+HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, const VIEWPORTINFO& Viewport, DWORD& dwOffscreen);
+HRESULT ProcessVerticesSW(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVertexTypeDesc, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, m_IDirect3DDeviceX* pDirect3DDeviceX, DWORD dwFlags);

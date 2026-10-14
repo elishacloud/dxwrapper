@@ -68,14 +68,16 @@ ULONG m_IDirect3DViewportX::AddRef(DWORD DirectXVersion)
 
 	if (Config.Dd7to9)
 	{
+		ScopedAtomicFlagSet ScopeGuard(RefCountLock);
+
 		switch (DirectXVersion)
 		{
 		case 1:
-			return _InterlockedIncrement(&RefCount1);
+			return ++RefCount1;
 		case 2:
-			return _InterlockedIncrement(&RefCount2);
+			return ++RefCount2;
 		case 3:
-			return _InterlockedIncrement(&RefCount3);
+			return ++RefCount3;
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 			return 0;
@@ -91,26 +93,38 @@ ULONG m_IDirect3DViewportX::Release(DWORD DirectXVersion)
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref;
-
-		switch (DirectXVersion)
+		if (RefCount1 + RefCount2 + RefCount3 == 0)
 		{
-		case 1:
-			ref = InterlockedDecrementIfPositive(&RefCount1);
-			break;
-		case 2:
-			ref = InterlockedDecrementIfPositive(&RefCount2);
-			break;
-		case 3:
-			ref = InterlockedDecrementIfPositive(&RefCount3);
-			break;
-		default:
-			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-			ref = 0;
+			return 0;
 		}
 
-		if (AtomicRead(RefCount1) + AtomicRead(RefCount2) +
-			AtomicRead(RefCount3) == 0)
+		ULONG ref, TotalRefCount;
+		{
+			ScopedAtomicFlagSet ScopeGuard(RefCountLock);
+
+			switch (DirectXVersion)
+			{
+			case 1:
+				ref = RefCount1 ? --RefCount1 : 0;
+				break;
+			case 2:
+				ref = RefCount2 ? --RefCount2 : 0;
+				break;
+			case 3:
+				ref = RefCount3 ? --RefCount3 : 0;
+				break;
+			default:
+				LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+				ref = 0;
+			}
+
+			TotalRefCount =
+				AtomicRead(RefCount1) +
+				AtomicRead(RefCount2) +
+				AtomicRead(RefCount3);
+		}
+
+		if (TotalRefCount == 0)
 		{
 			if (AttachedLights.size())
 			{
@@ -176,29 +190,15 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 			return D3DERR_VIEWPORTDATANOTSET;
 		}
 
-		HRESULT hr = D3DERR_VIEWPORTHASNODEVICE;
-
 		// Get viewport from device
 		D3DVIEWPORT9 Viewport9 = {};
-		for (auto& entry : AttachedD3DDevices)
+		if (AttachedD3DDevices.empty())
 		{
-			hr = GetCurrentViewport(entry, Viewport9);
-
-			if (SUCCEEDED(hr))
-			{
-				break;
-			}
+			GetCurrentViewport(nullptr, Viewport9);
 		}
-
-		// Could not get a viewport from device
-		if (FAILED(hr))
+		else
 		{
-			hr = GetCurrentViewport(nullptr, Viewport9);
-
-			if (FAILED(hr))
-			{
-				return hr;
-			}
+			GetCurrentViewport(AttachedD3DDevices.back(), Viewport9);
 		}
 
 		// Set standard viewport fields
@@ -206,14 +206,14 @@ HRESULT m_IDirect3DViewportX::GetViewport(LPD3DVIEWPORT lpData)
 		lpData->dwY = Viewport9.Y;
 		lpData->dwWidth = Viewport9.Width;
 		lpData->dwHeight = Viewport9.Height;
-		lpData->dvMinZ = Viewport.MinZ;
-		lpData->dvMaxZ = Viewport.MaxZ;
+		lpData->dvMinZ = Viewport9.MinZ;
+		lpData->dvMaxZ = Viewport9.MaxZ;
 
 		// Set viewport scale
 		lpData->dvScaleX = Viewport.Scale.x * (float)lpData->dwWidth / 2.0f;
 		lpData->dvScaleY = Viewport.Scale.y * (float)lpData->dwHeight / 2.0f;
-		lpData->dvMaxX = 1.0f;
-		lpData->dvMaxY = 1.0f;
+		lpData->dvMaxX = 2.0f / Viewport.Scale.x * (1.0f + (Viewport.Clip.x + 1.0f) / -2.0f);
+		lpData->dvMaxY = 2.0f / Viewport.Scale.y * (Viewport.Clip.y - 1.0f) / -2.0f;
 
 		return D3D_OK;
 	}
@@ -244,6 +244,33 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		if (AttachedD3DDevices.empty())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no device attached!");
+			return D3DERR_VIEWPORTHASNODEVICE;
+		}
+		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
+
+		// Get render target
+		m_IDirectDrawSurfaceX* pRenderTarget = pDirect3DDeviceX->GetRenderTargetX();
+
+		// Check viewport size
+		DWORD rtWidth = 0, rtHeight = 0;
+		if (pRenderTarget && pRenderTarget->GetSurfaceDimensions(rtWidth, rtHeight) &&
+			(lpData->dwX + lpData->dwWidth > rtWidth || lpData->dwY + lpData->dwHeight > rtHeight))
+		{
+			if (lpData->dwX + lpData->dwWidth > rtWidth + 1 || lpData->dwY + lpData->dwHeight > rtHeight + 1)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: viewport is larger than render target: " <<
+					" Offset: " << lpData->dwX << "x" << lpData->dwY <<
+					" Viewport: " << lpData->dwWidth << "x" << lpData->dwHeight <<
+					" Render Target: " << rtWidth << "x" << rtHeight
+				);
+				return DDERR_INVALIDPARAMS;
+			}
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: viewport is larger than render target by one pixel!");
+		}
+
 		IsViewportDataSet = true;
 
 		// The method ignores the values in the dvMaxX, dvMaxY, dvMinZ, and dvMaxZ members.
@@ -256,10 +283,6 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 		Viewport.Data9.MinZ = 0.0f;
 		Viewport.Data9.MaxZ = 1.0f;
 
-		// MinZ and MaxZ
-		Viewport.MinZ = lpData->dvMinZ;
-		Viewport.MaxZ = lpData->dvMaxZ;
-
 		// Set viewport scale
 		Viewport.Scale.x = 2.0f * lpData->dvScaleX / (float)lpData->dwWidth;
 		Viewport.Scale.y = 2.0f * lpData->dvScaleY / (float)lpData->dwHeight;
@@ -269,6 +292,9 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 		Viewport.Clip.x = 0.0f;
 		Viewport.Clip.y = 0.0f;
 		Viewport.Clip.z = 0.0f;
+
+		// Check if clip/scale would result in Identity
+		Viewport.UseViewportScale = (Viewport.Scale.x != 1.0f || Viewport.Scale.y != 1.0f || Viewport.Scale.z != 1.0f);
 
 		// If current viewport is set then use new viewport
 		SetCurrentViewportActive(true, false, false);
@@ -285,74 +311,76 @@ HRESULT m_IDirect3DViewportX::TransformVertices(DWORD dwVertexCount, LPD3DTRANSF
 
 	if (Config.Dd7to9)
 	{
+		if (!lpData || !lpOffscreen)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (lpData->dwSize != sizeof(D3DTRANSFORMDATA))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if ((dwFlags & (D3DTRANSFORM_CLIPPED | D3DTRANSFORM_UNCLIPPED)) == 0)
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		const bool IsClipped = (dwFlags & D3DTRANSFORM_UNCLIPPED) ? false : true;
+
 		if (dwVertexCount == 0)
 		{
+			*lpOffscreen = IsClipped ? ((D3DSTATUS_ZNOTVISIBLE - 1) | D3DSTATUS_ZNOTVISIBLE) : 0;
 			return D3D_OK;
 		}
 
-		if (!lpData || !lpData->lpIn || !lpData->lpOut)
+		if (!IsViewportDataSet)
 		{
-			return DDERR_INVALIDPARAMS;
+			LOG_LIMIT(100, __FUNCTION__ << " Error: viewport data not set!");
+			return D3DERR_VIEWPORTDATANOTSET;
 		}
-
-		// Check dwSize parameters
-		if (lpData->dwSize != sizeof(D3DTRANSFORMDATA) ||
-			lpData->dwOutSize != sizeof(D3DTLVERTEX))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: dwSize doesn't match: " <<
-				sizeof(D3DTRANSFORMDATA) << " -> " << lpData->dwSize <<
-				" dwOutSize: " << sizeof(D3DTLVERTEX) << " -> " << lpData->dwOutSize);
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// D3DTRANSFORM_UNCLIPPED: flag can be safily ignored
 
 		if (AttachedD3DDevices.empty())
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no D3Ddevice attached!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no device attached!");
 			return D3DERR_VIEWPORTHASNODEVICE;
 		}
-
-		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.front();
-		if (!pDirect3DDeviceX)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3DDeviceX interface!");
-			return DDERR_GENERIC;
-		}
-
-		if (AttachedD3DDevices.size() > 1)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: More than one attached Direct3DDeviceX interface!");
-		}
+		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
 
 #ifdef ENABLE_PROFILING
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		D3DTLVERTEX* pOut = reinterpret_cast<D3DTLVERTEX*>(lpData->lpOut);
-		D3DHVERTEX* pHOut = reinterpret_cast<D3DHVERTEX*>(lpData->lpHOut);
+		VIEWPORTINFO FixedViewport = Viewport;
+		FixedViewport.Data9 = FixViewport(FixedViewport.Data9);
 
 		HRESULT hr;
 		if (lpData->dwInSize == sizeof(XYZ))
 		{
-			XYZ* pIn = reinterpret_cast<XYZ*>(lpData->lpIn);
-			hr = m_IDirect3DVertexBufferX::TransformVertexUP(pDirect3DDeviceX, pIn, pOut, pHOut, dwVertexCount, dwFlags, Viewport, lpData->drExtent);
+			if (IsClipped)
+			{
+				hr = TransformVertexSW<XYZ, ClipMode::Clipped>(pDirect3DDeviceX, dwVertexCount, lpData, FixedViewport, *lpOffscreen);
+			}
+			else
+			{
+				hr = TransformVertexSW<XYZ, ClipMode::Unclipped>(pDirect3DDeviceX, dwVertexCount, lpData, FixedViewport, *lpOffscreen);
+			}
 		}
-		else if (lpData->dwInSize == sizeof(D3DLVERTEX))
+		else if (lpData->dwInSize >= sizeof(D3DLVERTEX))
 		{
-			D3DLVERTEX* pIn = reinterpret_cast<D3DLVERTEX*>(lpData->lpIn);
-			hr = m_IDirect3DVertexBufferX::TransformVertexUP(pDirect3DDeviceX, pIn, pOut, pHOut, dwVertexCount, dwFlags, Viewport, lpData->drExtent);
+			if (IsClipped)
+			{
+				hr = TransformVertexSW<D3DLVERTEX, ClipMode::Clipped>(pDirect3DDeviceX, dwVertexCount, lpData, FixedViewport, *lpOffscreen);
+			}
+			else
+			{
+				hr = TransformVertexSW<D3DLVERTEX, ClipMode::Unclipped>(pDirect3DDeviceX, dwVertexCount, lpData, FixedViewport, *lpOffscreen);
+			}
 		}
 		else
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: dwSize doesn't match: " << " dwInSize: " << sizeof(D3DLVERTEX) << " -> " << lpData->dwInSize);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: invalid dwInSize: " << " D3DLVERTEX: " << sizeof(D3DLVERTEX) << " -> " << lpData->dwInSize);
 			hr = DDERR_INVALIDPARAMS;
-		}
-
-		//Address of a variable that is set to a nonzero value if the resulting vertices are all off-screen.
-		if (lpOffscreen)
-		{
-			*lpOffscreen = 0;
 		}
 
 #ifdef ENABLE_PROFILING
@@ -462,34 +490,55 @@ HRESULT m_IDirect3DViewportX::Clear(DWORD dwCount, LPD3DRECT lpRects, DWORD dwFl
 	{
 		if (AttachedD3DDevices.empty())
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no device attached!");
 			return D3DERR_VIEWPORTHASNODEVICE;
 		}
+		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
 
-		for (auto& entry : AttachedD3DDevices)
+		// Get clear color
+		DWORD Color = 0x00000000;
+		if (dwFlags & D3DCLEAR_TARGET)
 		{
-			// Get device viewport
-			D3DVIEWPORT9 Viewport9 = {};
-			GetCurrentViewport(entry, Viewport9);
-			Viewport9 = FixViewport(Viewport9);
-
-			// Check for zbuffer and stencil surface
-			bool HasAttachedZBuffer = false, HasAttachedStencil = false;
-			GetAttachedBufferDetails(entry, HasAttachedZBuffer, HasAttachedStencil);
-
-			// Unlike Clear2(), Clear() isn't supposed to error out on zbuffer or stencil clears when no zbuffer or stencil is attached
-			DWORD Flags = (dwFlags & ~(D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL))
-				| (HasAttachedZBuffer ? (dwFlags & D3DCLEAR_ZBUFFER) : 0)
-				| (HasAttachedStencil ? (dwFlags & D3DCLEAR_STENCIL) : 0);
-
-			// Nothing to clear on this device.
-			if (Flags == 0)
+			if (!MaterialBackground.IsSet || !MaterialBackground.hMat)
 			{
-				continue;
+				Logging::Log() << __FUNCTION__ << " Warning: No background material set!";
 			}
-
-			// Clear device
-			entry->Clear(Viewport9, dwCount, lpRects, Flags, 0x00000000, 1.0f, 0);
+			else
+			{
+				m_IDirect3DMaterialX* pMaterialX = pDirect3DDeviceX->GetMaterialFromHandle(MaterialBackground.hMat);
+				if (D3DMATERIAL Material = { sizeof(D3DMATERIAL), 0 }; pMaterialX && SUCCEEDED(pMaterialX->GetMaterial(&Material)))
+				{
+					Color = D3DRGBA(Material.diffuse.r, Material.diffuse.g, Material.diffuse.b, Material.diffuse.a);
+				}
+				else
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to get material!");
+				}
+			}
 		}
+
+		// Get device viewport
+		D3DVIEWPORT9 Viewport9 = {};
+		GetCurrentViewport(pDirect3DDeviceX, Viewport9);
+		Viewport9 = FixViewport(Viewport9);
+
+		// Check for zbuffer and stencil surface
+		bool HasAttachedZBuffer = false, HasAttachedStencil = false;
+		GetAttachedBufferDetails(pDirect3DDeviceX, HasAttachedZBuffer, HasAttachedStencil);
+
+		// Unlike Clear2(), Clear() isn't supposed to error out on zbuffer or stencil clears when no zbuffer or stencil is attached
+		const DWORD Flags = (dwFlags & ~(D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL))
+			| (HasAttachedZBuffer ? (dwFlags & D3DCLEAR_ZBUFFER) : 0)
+			| (HasAttachedStencil ? (dwFlags & D3DCLEAR_STENCIL) : 0);
+
+		// Nothing to clear on this device.
+		if (Flags == 0)
+		{
+			return D3D_OK;
+		}
+
+		// Clear device
+		pDirect3DDeviceX->Clear(Viewport9, dwCount, lpRects, Flags, Color, 1.0f, 0);
 
 		return D3D_OK;
 	}
@@ -510,15 +559,16 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 		}
 
 		// If current viewport is set then use new light
-		for (auto& entry : AttachedD3DDevices)
+		if (!AttachedD3DDevices.empty())
 		{
-			if (entry->CheckIfViewportSet(this))
+			m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
+			if (pDirect3DDeviceX->CheckIfViewportSet(this))
 			{
 				D3DLIGHT2 Light2 = {};
 				Light2.dwSize = sizeof(D3DLIGHT2);
 				if (SUCCEEDED(lpDirect3DLight->GetLight((LPD3DLIGHT)&Light2)))
 				{
-					if (FAILED(entry->SetLight((m_IDirect3DLight*)lpDirect3DLight, (LPD3DLIGHT)&Light2)))
+					if (FAILED(pDirect3DDeviceX->SetLight((m_IDirect3DLight*)lpDirect3DLight, (LPD3DLIGHT)&Light2)))
 					{
 						LOG_LIMIT(100, __FUNCTION__ << " Warning: could not set light!");
 					}
@@ -562,7 +612,7 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 		lpDirect3DLight->Release();
 
 		// If current viewport is then deactivate the light
-		for (auto& entry : AttachedD3DDevices)
+		for (const auto& entry : AttachedD3DDevices)
 		{
 			if (!entry->IsLightInUse(reinterpret_cast<m_IDirect3DLight*>(lpDirect3DLight)))
 			{
@@ -670,29 +720,15 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 			return D3DERR_VIEWPORTDATANOTSET;
 		}
 
-		HRESULT hr = D3DERR_VIEWPORTHASNODEVICE;
-
 		// Get viewport from device
 		D3DVIEWPORT9 Viewport9 = {};
-		for (auto& entry : AttachedD3DDevices)
+		if (AttachedD3DDevices.empty())
 		{
-			hr = GetCurrentViewport(entry, Viewport9);
-
-			if (SUCCEEDED(hr))
-			{
-				break;
-			}
+			GetCurrentViewport(nullptr, Viewport9);
 		}
-
-		// Could not get a viewport from device
-		if (FAILED(hr))
+		else
 		{
-			hr = GetCurrentViewport(nullptr, Viewport9);
-
-			if (FAILED(hr))
-			{
-				return hr;
-			}
+			GetCurrentViewport(AttachedD3DDevices.back(), Viewport9);
 		}
 
 		// Set standard viewport fields
@@ -700,8 +736,8 @@ HRESULT m_IDirect3DViewportX::GetViewport2(LPD3DVIEWPORT2 lpData)
 		lpData->dwY = Viewport9.Y;
 		lpData->dwWidth = Viewport9.Width;
 		lpData->dwHeight = Viewport9.Height;
-		lpData->dvMinZ = Viewport.MinZ;
-		lpData->dvMaxZ = Viewport.MaxZ;
+		lpData->dvMinZ = Viewport9.MinZ;
+		lpData->dvMaxZ = Viewport9.MaxZ;
 
 		// Set viewport clip
 		lpData->dvClipWidth = 2.0f / Viewport.Scale.x;
@@ -740,6 +776,32 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		if (AttachedD3DDevices.empty())
+		{
+			return D3DERR_VIEWPORTHASNODEVICE;
+		}
+		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
+
+		// Get render target
+		m_IDirectDrawSurfaceX* pRenderTarget = pDirect3DDeviceX->GetRenderTargetX();
+
+		// Check viewport size
+		DWORD rtWidth = 0, rtHeight = 0;
+		if (pRenderTarget && pRenderTarget->GetSurfaceDimensions(rtWidth, rtHeight) &&
+			(lpData->dwX + lpData->dwWidth > rtWidth || lpData->dwY + lpData->dwHeight > rtHeight))
+		{
+			if (lpData->dwX + lpData->dwWidth > rtWidth + 1 || lpData->dwY + lpData->dwHeight > rtHeight + 1)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: viewport is larger than render target: " <<
+					" Offset: " << lpData->dwX << "x" << lpData->dwY <<
+					" Viewport: " << lpData->dwWidth << "x" << lpData->dwHeight <<
+					" Render Target: " << rtWidth << "x" << rtHeight
+				);
+				return DDERR_INVALIDPARAMS;
+			}
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: viewport is larger than render target by one pixel!");
+		}
+
 		IsViewportDataSet = true;
 
 		// Set standard viewport fields
@@ -750,19 +812,20 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 		Viewport.Data9.MinZ = 0.0f;
 		Viewport.Data9.MaxZ = 1.0f;
 
-		// MinZ and MaxZ
-		Viewport.MinZ = lpData->dvMinZ;
-		Viewport.MaxZ = lpData->dvMaxZ;
-
 		// Set viewport scale
 		Viewport.Scale.x = 2.0f / lpData->dvClipWidth;
 		Viewport.Scale.y = 2.0f / lpData->dvClipHeight;
 		Viewport.Scale.z = 1.0f / (lpData->dvMaxZ - lpData->dvMinZ);
 
 		// Set viewport clip
-		Viewport.Clip.x = (-2.0f * lpData->dvClipX / lpData->dvClipWidth) - 1.0f;
-		Viewport.Clip.y = (-2.0f * lpData->dvClipY / lpData->dvClipHeight) + 1.0f;
+		Viewport.Clip.x = -2.0f * lpData->dvClipX / lpData->dvClipWidth - 1.0f;
+		Viewport.Clip.y = -2.0f * lpData->dvClipY / lpData->dvClipHeight + 1.0f;
 		Viewport.Clip.z = -lpData->dvMinZ / (lpData->dvMaxZ - lpData->dvMinZ);
+
+		// Check if clip/scale would result in Identity
+		Viewport.UseViewportScale =
+			(Viewport.Scale.x != 1.0f || Viewport.Scale.y != 1.0f || Viewport.Scale.z != 1.0f ||
+				Viewport.Clip.x != 0.0f || Viewport.Clip.y != 0.0f || Viewport.Clip.z != 0.0f);
 
 		// If current viewport is set then use new viewport
 		SetCurrentViewportActive(true, false, false);
@@ -871,8 +934,10 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 	{
 		if (AttachedD3DDevices.empty())
 		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: no device attached!");
 			return D3DERR_VIEWPORTHASNODEVICE;
 		}
+		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
 
 		// For now just hard code this to 1.0f rather than copying the depth stencil buffer
 		if ((dwFlags & D3DCLEAR_ZBUFFER) && pBackgroundDepthSurfaceX)
@@ -880,40 +945,29 @@ HRESULT m_IDirect3DViewportX::Clear2(DWORD dwCount, LPD3DRECT lpRects, DWORD dwF
 			dvZ = 1.0f;
 		}
 
-		HRESULT hr = D3DERR_VIEWPORTHASNODEVICE;
+		// Get device viewport
+		D3DVIEWPORT9 Viewport9 = {};
+		GetCurrentViewport(pDirect3DDeviceX, Viewport9);
+		Viewport9 = FixViewport(Viewport9);
 
-		for (auto& entry : AttachedD3DDevices)
+		// Check for zbuffer and stencil surface
+		bool HasAttachedZBuffer = false, HasAttachedStencil = false;
+		GetAttachedBufferDetails(pDirect3DDeviceX, HasAttachedZBuffer, HasAttachedStencil);
+
+		// This method fails if you specify the D3DCLEAR_ZBUFFER or D3DCLEAR_STENCIL flags when the render target does not have an attached depth-buffer.
+		// This behavior differs from the IDirect3DViewport3::Clear method, which will succeed if under these circumstances.
+		HRESULT hr = pDirect3DDeviceX->Clear(Viewport9, dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
+
+		// Set return value
+		if (FAILED(hr) && hr != DDERR_SURFACELOST)
 		{
-			// Get device viewport
-			D3DVIEWPORT9 Viewport9 = {};
-			GetCurrentViewport(entry, Viewport9);
-			Viewport9 = FixViewport(Viewport9);
-
-			// Check for zbuffer and stencil surface
-			bool HasAttachedZBuffer = false, HasAttachedStencil = false;
-			GetAttachedBufferDetails(entry, HasAttachedZBuffer, HasAttachedStencil);
-
-			// This method fails if you specify the D3DCLEAR_ZBUFFER or D3DCLEAR_STENCIL flags when the render target does not have an attached depth-buffer.
-			// This behavior differs from the IDirect3DViewport3::Clear method, which will succeed if under these circumstances.
-			HRESULT ret = entry->Clear(Viewport9, dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
-
-			// Set return value
-			if (FAILED(ret) && ret != DDERR_SURFACELOST)
+			if ((dwFlags & D3DCLEAR_ZBUFFER) && !HasAttachedZBuffer)
 			{
-				if ((dwFlags & D3DCLEAR_ZBUFFER) && !HasAttachedZBuffer)
-				{
-					ret = D3DERR_ZBUFFER_NOTPRESENT;
-				}
-				else if ((dwFlags & D3DCLEAR_STENCIL) && !HasAttachedStencil)
-				{
-					ret = D3DERR_STENCILBUFFER_NOTPRESENT;
-				}
+				hr = D3DERR_ZBUFFER_NOTPRESENT;
 			}
-
-			// Prioritized succeed over failure
-			if (SUCCEEDED(ret) || (FAILED(hr) && FAILED(ret)))
+			else if ((dwFlags & D3DCLEAR_STENCIL) && !HasAttachedStencil)
 			{
-				hr = ret;
+				hr = D3DERR_STENCILBUFFER_NOTPRESENT;
 			}
 		}
 
@@ -959,9 +1013,9 @@ void m_IDirect3DViewportX::ReleaseInterface()
 	}
 
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface);
-	SaveInterfaceAddress(WrapperInterface2);
-	SaveInterfaceAddress(WrapperInterface3);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface2);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface3);
 
 	if (D3DInterface)
 	{
@@ -969,7 +1023,7 @@ void m_IDirect3DViewportX::ReleaseInterface()
 	}
 
 	// Clears all interface from attached devices
-	for (auto& entry : AttachedD3DDevices)
+	for (const auto& entry : AttachedD3DDevices)
 	{
 		if (entry->CheckIfViewportSet(this))
 		{
@@ -983,7 +1037,7 @@ void m_IDirect3DViewportX::ReleaseInterface()
 		entry->ClearViewport(this);
 	}
 
-	for (auto& entry : AttachedLights)
+	for (const auto& entry : AttachedLights)
 	{
 		entry->Release();
 	}
@@ -999,11 +1053,11 @@ void* m_IDirect3DViewportX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, (LPDIRECT3DVIEWPORT)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface, (LPDIRECT3DVIEWPORT)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, (LPDIRECT3DVIEWPORT2)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface2, (LPDIRECT3DVIEWPORT2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, (LPDIRECT3DVIEWPORT3)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface3, (LPDIRECT3DVIEWPORT3)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;
@@ -1046,11 +1100,12 @@ HRESULT m_IDirect3DViewportX::GetCurrentViewport(m_IDirect3DDeviceX* pDirect3DDe
 
 void m_IDirect3DViewportX::SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData)
 {
-	for (auto& D3DDevice : AttachedD3DDevices)
+	if (!AttachedD3DDevices.empty())
 	{
-		if (D3DDevice->CheckIfViewportSet(this))
+		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
+		if (pDirect3DDeviceX->CheckIfViewportSet(this))
 		{
-			SetCurrentViewport(D3DDevice, SetViewPortData, SetBackgroundData, SetLightData);
+			SetCurrentViewport(pDirect3DDeviceX, SetViewPortData, SetBackgroundData, SetLightData);
 		}
 	}
 }
@@ -1121,7 +1176,7 @@ void m_IDirect3DViewportX::ClearCurrentViewport(m_IDirect3DDeviceX* pDirect3DDev
 	}
 
 	// Clear lights
-	for (auto& entry : AttachedLights)
+	for (const auto& entry : AttachedLights)
 	{
 		if (!pDirect3DDeviceX->IsLightInUse(reinterpret_cast<m_IDirect3DLight*>(entry)))
 		{
@@ -1155,7 +1210,7 @@ void m_IDirect3DViewportX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLi
 		return;
 	}
 
-	for (auto& entry : AttachedLights)
+	for (const auto& entry : AttachedLights)
 	{
 		D3DLIGHT2 Light2 = {};
 		Light2.dwSize = sizeof(Light2);
@@ -1211,6 +1266,11 @@ void m_IDirect3DViewportX::AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 	}
 
 	AttachedD3DDevices.push_back(lpD3DDevice);
+
+	if (AttachedD3DDevices.size() > 1)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: more than one D3Ddevice attached: " << AttachedD3DDevices.size());
+	}
 }
 
 void m_IDirect3DViewportX::ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)

@@ -17,12 +17,6 @@ float4 main(float2 texCoord : TEXCOORD0) : COLOR0 {
 
     return color;
 }
-
-technique GammaCorrection {
-    pass P0 {
-        PixelShader = compile ps_2_0 main();
-    }
-}
 =======================
 */
 

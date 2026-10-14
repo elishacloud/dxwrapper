@@ -4,8 +4,9 @@ class m_IDirectDrawClipper final : public IDirectDrawClipper, public AddressLook
 {
 private:
 	IDirectDrawClipper *ProxyInterface = nullptr;
-	LONG RefCount = 1;
+	ULONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawClipper;
+	bool IsInterfaceDeleted = false;
 
 	// Convert to Direct3D9
 	m_IDirectDrawX* ddrawParent = nullptr;
@@ -53,10 +54,11 @@ public:
 		ProxyAddressLookupTableDdraw.DeleteAddress(this);
 	}
 
-	void SetProxy(IDirectDrawClipper* NewProxyInterface, m_IDirectDrawX* NewParent, DWORD dwFlags)
+	void SetProxy(IDirectDrawClipper* NewProxyInterface, m_IDirectDrawX* NewParent, DWORD dwFlags, bool EnableInterface)
 	{
-		if (NewProxyInterface || NewParent)
+		if (NewProxyInterface || NewParent || EnableInterface)
 		{
+			IsInterfaceDeleted = false;	// Mark as not deleted first
 			RefCount = 1;
 			ProxyInterface = NewProxyInterface;
 			ddrawParent = NewParent;
@@ -69,6 +71,7 @@ public:
 			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			ddrawParent = nullptr;
+			IsInterfaceDeleted = true;	// Mark as deleted last
 		}
 	}
 
@@ -86,9 +89,9 @@ public:
 	IFACEMETHOD(SetHWnd)(THIS_ DWORD, HWND) override;
 
 	// Functions handling the ddraw parent interface
-	void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
-	void ClearDdraw() { ddrawParent = nullptr; }
-	bool HasClipList() const { return IsClipListSet; }
+	inline void SetDdrawParent(m_IDirectDrawX* ddraw) { ddrawParent = ddraw; }
+	inline void ClearDdraw() { ddrawParent = nullptr; }
+	inline bool HasClipList() const { return IsClipListSet; }
 	bool GetClipBoundsFromData(RECT& bounds);
 	HRESULT GetClipRegion(HRGN hOutRgn);
 	static m_IDirectDrawClipper* CreateDirectDrawClipper(IDirectDrawClipper* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags);

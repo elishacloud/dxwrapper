@@ -4,8 +4,9 @@ class m_IDirectDrawColorControl final : public IDirectDrawColorControl, public A
 {
 private:
 	IDirectDrawColorControl *ProxyInterface = nullptr;
-	LONG RefCount = 1;
+	ULONG RefCount = 1;
 	const IID WrapperID = IID_IDirectDrawColorControl;
+	bool IsInterfaceDeleted = false;
 
 	// Convert to Direct3D9
 	m_IDirectDrawX *ddrawParent = nullptr;
@@ -50,6 +51,7 @@ public:
 	{
 		if (NewProxyInterface || NewParent)
 		{
+			IsInterfaceDeleted = false;	// Mark as not deleted first
 			RefCount = 1;
 			ProxyInterface = NewProxyInterface;
 			ddrawParent = NewParent;
@@ -62,6 +64,7 @@ public:
 			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			ddrawParent = nullptr;
+			IsInterfaceDeleted = true;	// Mark as deleted last
 		}
 	}
 
@@ -75,7 +78,7 @@ public:
 	IFACEMETHOD(SetColorControls)(THIS_ LPDDCOLORCONTROL) override;
 
 	// Functions handling the ddraw parent interface
-	void ClearDdraw() { ddrawParent = nullptr; }
+	inline void ClearDdraw() { ddrawParent = nullptr; }
 	static m_IDirectDrawColorControl* CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent);
 
 };

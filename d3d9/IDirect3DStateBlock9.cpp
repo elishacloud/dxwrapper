@@ -38,6 +38,12 @@ HRESULT m_IDirect3DStateBlock9::QueryInterface(THIS_ REFIID riid, void** ppvObj)
 		return D3D_OK;
 	}
 
+	if (!ProxyInterface)
+	{
+		*ppvObj = nullptr;
+		return D3DERR_INVALIDCALL;
+	}
+
 	HRESULT hr = ProxyInterface->QueryInterface(riid, ppvObj);
 
 	if (SUCCEEDED(hr))
@@ -52,6 +58,11 @@ ULONG m_IDirect3DStateBlock9::AddRef(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterface)
+	{
+		return 0;
+	}
+
 	return ProxyInterface->AddRef();
 }
 
@@ -59,17 +70,21 @@ ULONG m_IDirect3DStateBlock9::Release(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterface)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: releasing recycled state block (" << this << ")");
+		return 0;
+	}
+
 	ULONG ref = ProxyInterface->Release();
 
 	if (ref == 0)
 	{
-		m_pDeviceEx->GetStateBlockTable()->RemoveStateBlock(this);
+		ProxyInterface = nullptr;
 
-		if (Config.LimitStateBlocks)
-		{
-			m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
-			m_pDeviceEx->GetDeletedStateBlock()->AddStateBlock(this);
-		}
+		m_pDeviceEx->GetLookupTable()->DeleteAddress(this);
+		m_pDeviceEx->GetStateBlockTable()->RemoveStateBlock(this);
+		m_pDeviceEx->GetDeletedStateBlock()->AddStateBlock(this);
 	}
 
 	return ref;
@@ -83,6 +98,11 @@ HRESULT m_IDirect3DStateBlock9::GetDevice(THIS_ IDirect3DDevice9** ppDevice)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterface)
+	{
+		return D3DERR_INVALIDCALL;
+	}
+
 	if (FAILED(m_pDeviceEx->QueryInterface(m_pDeviceEx->GetIID(), (LPVOID*)ppDevice)))
 	{
 		return D3DERR_INVALIDCALL;
@@ -95,12 +115,22 @@ HRESULT m_IDirect3DStateBlock9::Capture(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
+	if (!ProxyInterface)
+	{
+		return D3DERR_INVALIDCALL;
+	}
+
 	return ProxyInterface->Capture();
 }
 
 HRESULT m_IDirect3DStateBlock9::Apply(THIS)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+
+	if (!ProxyInterface)
+	{
+		return D3DERR_INVALIDCALL;
+	}
 
 	return ProxyInterface->Apply();
 }

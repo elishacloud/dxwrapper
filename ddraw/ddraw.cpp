@@ -29,6 +29,10 @@ AddressLookupTableDdraw<void> ProxyAddressLookupTableDdraw = AddressLookupTableD
 
 static UINT GetAdapterIndex(GUID FAR* lpGUID);
 
+#define INIT_DEVICE_ITEMS \
+	Utils::GetGammaSettings(); \
+	CheckSystemModule();
+
 namespace DdrawWrapper
 {
 	VISIT_PROCS_DDRAW(INITIALIZE_OUT_WRAPPED_PROC);
@@ -272,7 +276,7 @@ HRESULT WINAPI dd_DirectDrawCreate(GUID FAR *lpGUID, LPDIRECTDRAW FAR *lplpDD, I
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	CheckSystemModule();
+	INIT_DEVICE_ITEMS;
 
 	if (Config.Dd7to9)
 	{
@@ -336,7 +340,7 @@ HRESULT WINAPI dd_DirectDrawCreateClipper(DWORD dwFlags, LPDIRECTDRAWCLIPPER *lp
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	CheckSystemModule();
+	INIT_DEVICE_ITEMS;
 
 	if (Config.Dd7to9)
 	{
@@ -380,7 +384,7 @@ HRESULT WINAPI dd_DirectDrawCreateEx(GUID FAR *lpGUID, LPVOID *lplpDD, REFIID ri
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	CheckSystemModule();
+	INIT_DEVICE_ITEMS;
 
 	if (Config.Dd7to9)
 	{
@@ -455,7 +459,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateA(LPDDENUMCALLBACKA lpCallback, LPVOID lpCo
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	CheckSystemModule();
+	INIT_DEVICE_ITEMS;
 
 	if (Config.Dd7to9)
 	{
@@ -476,7 +480,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateExA(LPDDENUMCALLBACKEXA lpCallback, LPVOID 
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	CheckSystemModule();
+	INIT_DEVICE_ITEMS;
 
 	if (Config.Dd7to9)
 	{
@@ -497,7 +501,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateExW(LPDDENUMCALLBACKEXW lpCallback, LPVOID 
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	CheckSystemModule();
+	INIT_DEVICE_ITEMS;
 
 	if (Config.Dd7to9)
 	{
@@ -521,7 +525,7 @@ HRESULT WINAPI dd_DirectDrawEnumerateW(LPDDENUMCALLBACKW lpCallback, LPVOID lpCo
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	CheckSystemModule();
+	INIT_DEVICE_ITEMS;
 
 	if (Config.Dd7to9)
 	{
@@ -734,7 +738,7 @@ HRESULT WINAPI dd_SetAppCompatData(DWORD Type, DWORD Value)
 {
 	LOG_LIMIT(1, __FUNCTION__);
 
-	CheckSystemModule();
+	INIT_DEVICE_ITEMS;
 
 	if (Config.Dd7to9)
 	{

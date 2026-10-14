@@ -6,11 +6,12 @@ private:
 	IDirectDraw7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
 	DWORD ClientDirectXVersion;
-	LONG RefCount1 = 0;
-	LONG RefCount2 = 0;
-	LONG RefCount3 = 0;
-	LONG RefCount4 = 0;
-	LONG RefCount7 = 0;
+	ULONG RefCount1 = 0;
+	ULONG RefCount2 = 0;
+	ULONG RefCount3 = 0;
+	ULONG RefCount4 = 0;
+	ULONG RefCount7 = 0;
+	std::atomic<bool> RefCountLock = false;
 
 	// Store version wrappers
 	m_IDirectDraw* WrapperInterface = nullptr;
@@ -84,6 +85,7 @@ private:
 	void RestoreD3DDeviceState();
 	void Clear3DSurfaceFlag();
 	void ResetAllSurfaceDisplay();
+	void ReleaseD3D9VertexBuffer(LPDIRECT3DVERTEXBUFFER9& d3d9VertexBuffer, DWORD& VertexBufferSize);
 	void ReleaseD3D9IndexBuffer(LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer, DWORD& IndexBufferSize);
 	void ReleaseAllD9Resources(bool BackupData, bool ResetInterface);
 	void ReleaseD9Device();
@@ -91,7 +93,8 @@ private:
 
 	// Gamma functions
 	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader();
-	HRESULT SetBrightnessLevel(D3DGAMMARAMP& RampData);
+	void SetDefaultGamma();
+	HRESULT SetGammaLevel(D3DGAMMARAMP& RampData);
 
 	// Wrapper interface functions
 	inline IDirectDraw *GetProxyInterfaceV1() { return (IDirectDraw *)ProxyInterface; }
@@ -160,7 +163,7 @@ public:
 	HRESULT EnumSurfaces(DWORD, LPDDSURFACEDESC, LPVOID, LPDDENUMSURFACESCALLBACK, DWORD);
 	HRESULT EnumSurfaces2(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7, LPDDENUMSURFACESCALLBACK, DWORD);
 	STDMETHOD(FlipToGDISurface)(THIS);
-	STDMETHOD(GetCaps)(THIS_ LPDDCAPS, LPDDCAPS);
+	STDMETHOD(GetCaps)(THIS_ LPDDCAPS, LPDDCAPS, DWORD);
 	HRESULT GetDisplayMode(LPDDSURFACEDESC);
 	HRESULT GetDisplayMode2(LPDDSURFACEDESC2);
 	STDMETHOD(GetFourCCCodes)(THIS_ LPDWORD, LPDWORD);
@@ -211,15 +214,17 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
-	void SetAsCreatedByDDFactory() { CreatedByDDFactory = true; }
+	inline ULONG GetRef() const { return RefCount1; }
+	inline void SetAsCreatedByDDFactory() { CreatedByDDFactory = true; }
+	inline bool IsCreatedByDDFactory() const { return CreatedByDDFactory; }
 
 	// Direct3D interfaces
-	m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
+	inline m_IDirect3DX** GetCurrentD3D() { return &D3DInterface; }
 	void ClearD3DDevice();
-	bool IsCreatedEx() const { return IsUsingEx; }
-	void Enable3D() { Using3D = true; }
-	bool IsUsing3D() const { return Using3D; }
-	bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
+	inline bool IsCreatedEx() const { return IsUsingEx; }
+	inline void Enable3D() { Using3D = true; }
+	inline bool IsUsing3D() const { return Using3D; }
+	inline bool IsPrimaryRenderTarget() { return PrimarySurface ? PrimarySurface->IsRenderTarget() : false; }
 	bool IsInScene();
 
 	// Direct3D9 interfaces
@@ -227,14 +232,18 @@ public:
 	bool CheckD9Device(char* FunctionName);
 	LPDIRECT3D9 GetDirectD9Object();
 	LPDIRECT3DDEVICE9 *GetDirectD9Device();
+	LPDIRECT3DVERTEXDECLARATION9 GetVertexDeclaration(DWORD FVF);
 	bool CreatePalettePixelShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyPixelShader();
-	LPDIRECT3DVERTEXSHADER9* GetFixupVertexShader();
+	LPDIRECT3DVERTEXSHADER9 GetFixupVertexShader();
+	LPDIRECT3DVERTEXSHADER9 GetMultiStageFixupVertexShader();
+	LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer(DWORD FVF, UINT Length, void* lpData);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBufferX(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& IndexBufferSize, LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer);
 	void GetMultiSampleTypeQuality(D3DMULTISAMPLE_TYPE& MaxSampleType, DWORD& QualityLevels) const;
 	void AfterDeviceCreation();
 	void Clear3DDeviceState(bool SetDefaultStateBlock);
+	HRESULT CheckFixResolution(DWORD& dwWidth, DWORD& dwHeight, DWORD& FoundWidth, DWORD& FoundHeight);
 	HRESULT CreateD9Device(char* FunctionName);
 	HRESULT ResetD9Device();
 	void UpdateVertices(DWORD Width, DWORD Height);
@@ -272,12 +281,12 @@ public:
 	void AddSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	bool DoesSurfaceExist(m_IDirectDrawSurfaceX* lpSurfaceX);
-	m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
-	m_IDirectDrawSurfaceX *GetRenderTargetSurface() { return RenderTargetSurface; }
+	inline m_IDirectDrawSurfaceX *GetPrimarySurface() { return PrimarySurface; }
+	inline m_IDirectDrawSurfaceX *GetRenderTargetSurface() { return RenderTargetSurface; }
 	void ClearRenderTarget();
 	void SetCurrentRenderTarget();
 	HRESULT SetRenderTargetSurface(m_IDirectDrawSurfaceX* lpSurface);
-	m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
+	inline m_IDirectDrawSurfaceX *GetDepthStencilSurface() { return DepthStencilSurface; }
 	HRESULT SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface);
 
 	// Texture functions
@@ -303,11 +312,11 @@ public:
 	void ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer);
 
 	// Color and gamma control
-	m_IDirectDrawColorControl* GetColorControlInterface() { return ColorControlInterface; }
+	inline m_IDirectDrawColorControl* GetColorControlInterface() { return ColorControlInterface; }
 	HRESULT CreateColorControl(m_IDirectDrawColorControl** lplpColorControl);
 	void SetColorControl(m_IDirectDrawColorControl* lpColorControl);
 	void ClearColorControl(m_IDirectDrawColorControl* lpColorControl);
-	m_IDirectDrawGammaControl* GetGammaControlInterface() { return GammaControlInterface; }
+	inline m_IDirectDrawGammaControl* GetGammaControlInterface() { return GammaControlInterface; }
 	HRESULT CreateGammaControl(m_IDirectDrawGammaControl** lplpGammaControl);
 	void SetGammaControl(m_IDirectDrawGammaControl* lpGammaControl);
 	void ClearGammaControl(m_IDirectDrawGammaControl* lpGammaControl);

@@ -21,7 +21,6 @@ struct DEVICEDETAILS
 
 	// For AntiAliasing
 	bool DeviceMultiSampleFlag = false;
-	bool SetMultiSampleState = false;
 	bool UseAppMultiSampleState = false;
 	bool SetSSAA = false;
 	bool SetATOC = false;
@@ -43,13 +42,11 @@ private:
 	std::unique_ptr<ShadowSurfaceStorage> ShadowBackbuffer = std::make_unique<ShadowSurfaceStorage>();
 	std::vector<IDirect3DSurface9*> BackBufferList;
 
-	LONG RefCount = 1;
+	ULONG RefCount = 1;
 
 	AddressLookupTableD3d9 ProxyAddressLookupTable9;
 
 	DEVICEDETAILS DeviceDetails;
-
-	CRITICAL_SECTION d9cs = {};
 
 	DEVICE_REFCOUNT_CHECKER dref;
 
@@ -60,6 +57,8 @@ private:
 	// Begin/End Scene
 	bool IsInScene = false;
 	bool BeginSceneCalled = false;
+
+	bool FailedReset = false;
 
 	std::unordered_set<m_IDirect3DSurface9*> EmulatedSurfaceList;
 
@@ -116,6 +115,9 @@ private:
 	// Anisotropic Filtering
 	DWORD MaxAnisotropy = 0;
 
+	// Mip Filtering
+	bool LinearMip = false;
+
 	// Antialiasing
 	struct {
 		bool MultiSampleMismatch = false;
@@ -135,7 +137,7 @@ private:
 	void AfterBeginScene();
 	void BeforeEndScene();
 
-	inline bool RequirePresentHandling() const;
+	inline bool ShouldEnableGammaShader() const;
 	inline bool UsingShadowBackBuffer(DWORD iSwapChain = 0) const;
 
 	// Limit frame rate
@@ -145,9 +147,9 @@ private:
 	void DrawFPS(float fps, const RECT& presentRect, DWORD position);
 
 	// Gamma
-	HRESULT SetBrightnessLevel(D3DGAMMARAMP& Ramp);
+	HRESULT SetGammaLevel(D3DGAMMARAMP& Ramp);
 	LPDIRECT3DPIXELSHADER9 GetGammaPixelShader();
-	void ApplyBrightnessLevel();
+	void DrawSurfaceToBackbuffer();
 	DWORD GetResourceRefCount();
 	void ReleaseResources(bool isReset);
 
@@ -196,19 +198,11 @@ public:
 			}
 		}
 
-		if (!InitializeCriticalSectionAndSpinCount(&d9cs, 4000))
-		{
-			Logging::Log() << __FUNCTION__ << " Warning: failed to initialize CriticalSectionAndSpinCount for d9cs.  Failing over to CriticalSection!";
-			InitializeCriticalSection(&d9cs);
-		}
-
 		ReInitInterface();
 	}
 	~m_IDirect3DDevice9Ex()
 	{
 		LOG_LIMIT(3, __FUNCTION__ << " (" << this << ")" << " deleting interface!");
-
-		DeleteCriticalSection(&d9cs);
 	}
 
 	/*** IUnknown methods ***/
@@ -357,7 +351,6 @@ public:
 	AddressLookupTableD3d9* GetLookupTable() { return &ProxyAddressLookupTable9; }
 	StateBlockCache* GetStateBlockTable() { return &StateBlockTable; }
 	StateBlockCache* GetDeletedStateBlock() { return &DeletedStateBlocks; }
-	void ClearDeletedStateBlock(m_IDirect3DStateBlock9* StateBlockX);
 	bool GetDeviceMultiSampleFlag() const { return DeviceDetails.DeviceMultiSampleFlag; }
 	D3DMULTISAMPLE_TYPE GetDeviceMultiSampleType() const { return DeviceDetails.DeviceMultiSampleType; }
 	DWORD GetDeviceMultiSampleQuality() const { return DeviceDetails.DeviceMultiSampleQuality; }

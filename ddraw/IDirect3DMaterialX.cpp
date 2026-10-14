@@ -68,14 +68,16 @@ ULONG m_IDirect3DMaterialX::AddRef(DWORD DirectXVersion)
 
 	if (Config.Dd7to9)
 	{
+		ScopedAtomicFlagSet ScopeGuard(RefCountLock);
+
 		switch (DirectXVersion)
 		{
 		case 1:
-			return _InterlockedIncrement(&RefCount1);
+			return ++RefCount1;
 		case 2:
-			return _InterlockedIncrement(&RefCount2);
+			return ++RefCount2;
 		case 3:
-			return _InterlockedIncrement(&RefCount3);
+			return ++RefCount3;
 		default:
 			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 			return 0;
@@ -91,26 +93,38 @@ ULONG m_IDirect3DMaterialX::Release(DWORD DirectXVersion)
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref;
-
-		switch (DirectXVersion)
+		if (RefCount1 + RefCount2 + RefCount3 == 0)
 		{
-		case 1:
-			ref = InterlockedDecrementIfPositive(&RefCount1);
-			break;
-		case 2:
-			ref = InterlockedDecrementIfPositive(&RefCount2);
-			break;
-		case 3:
-			ref = InterlockedDecrementIfPositive(&RefCount3);
-			break;
-		default:
-			LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
-			ref = 0;
+			return 0;
 		}
 
-		if (AtomicRead(RefCount1) + AtomicRead(RefCount2) +
-			AtomicRead(RefCount3) == 0)
+		ULONG ref, TotalRefCount;
+		{
+			ScopedAtomicFlagSet ScopeGuard(RefCountLock);
+
+			switch (DirectXVersion)
+			{
+			case 1:
+				ref = RefCount1 ? --RefCount1 : 0;
+				break;
+			case 2:
+				ref = RefCount2 ? --RefCount2 : 0;
+				break;
+			case 3:
+				ref = RefCount3 ? --RefCount3 : 0;
+				break;
+			default:
+				LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
+				ref = 0;
+			}
+
+			TotalRefCount =
+				AtomicRead(RefCount1) +
+				AtomicRead(RefCount2) +
+				AtomicRead(RefCount3);
+		}
+
+		if (TotalRefCount == 0)
 		{
 			delete this;
 		}
@@ -330,9 +344,9 @@ void m_IDirect3DMaterialX::ReleaseInterface()
 	}
 
 	// Don't delete wrapper interface
-	SaveInterfaceAddress(WrapperInterface);
-	SaveInterfaceAddress(WrapperInterface2);
-	SaveInterfaceAddress(WrapperInterface3);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface2);
+	ProxyAddressLookupTableDdraw.SaveInterfaceAddress(WrapperInterface3);
 
 	if (D3DInterface)
 	{
@@ -350,11 +364,11 @@ void* m_IDirect3DMaterialX::GetWrapperInterfaceX(DWORD DirectXVersion)
 		if (WrapperInterface) return WrapperInterface;
 		break;
 	case 1:
-		return GetInterfaceAddress(WrapperInterface, (LPDIRECT3DMATERIAL)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface, (LPDIRECT3DMATERIAL)ProxyInterface, this);
 	case 2:
-		return GetInterfaceAddress(WrapperInterface2, (LPDIRECT3DMATERIAL2)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface2, (LPDIRECT3DMATERIAL2)ProxyInterface, this);
 	case 3:
-		return GetInterfaceAddress(WrapperInterface3, (LPDIRECT3DMATERIAL3)ProxyInterface, this);
+		return ProxyAddressLookupTableDdraw.GetInterfaceAddress(WrapperInterface3, (LPDIRECT3DMATERIAL3)ProxyInterface, this);
 	}
 	LOG_LIMIT(100, __FUNCTION__ << " Error: wrapper interface version not found: " << DirectXVersion);
 	return nullptr;

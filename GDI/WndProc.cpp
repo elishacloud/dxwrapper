@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -29,121 +29,54 @@
 
 namespace WndProc
 {
-	struct WNDPROCSTRUCT;
+	volatile LONG State = 0;
 
-	LRESULT CALLBACK Handler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance);
+	std::unordered_map<HWND, std::shared_ptr<DATASTRUCT>> WndProcList;
+
+	std::atomic<bool> SwitchingResolution = false;
+
 	WNDPROC GetWndProc(HWND hWnd);
 	LONG SetWndProc(HWND hWnd, WNDPROC ProcAddress);
 	LRESULT CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 	LRESULT DefWndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 	bool IsExecutableAddress(void* address);
 
-	bool SwitchingResolution = false;
+	std::shared_ptr<DATASTRUCT> GetWndProctStruct(HWND hWnd);
 
-	void HandleWindowFocus(HWND hWnd, DATASTRUCT* pDataStruct, bool IsActivating);
-	void HandleClipMouseCursor(HWND hWnd, DATASTRUCT* pDataStruct, bool IsActivating);
+	bool IsForeground(HWND hWnd);
 
-	std::atomic<bool> IsKeyboardActive = false;
-	void SetKeyboardLayoutFocus(HWND hWnd, bool IsActivating);
+	void HandleWindowFocus(HWND hWnd, std::shared_ptr<DATASTRUCT> pDataStruct, bool IsActivating);
+	void HandleClipMouseCursor(HWND hWnd, std::shared_ptr<DATASTRUCT> pDataStruct, bool IsActivating);
 
-	struct WNDPROCSTRUCT
+	void SetKeyboardLayoutFocus(std::shared_ptr<DATASTRUCT> pDataStruct, bool IsActivating);
+
+	LRESULT CALLBACK Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+
+	struct ScopedWindowFocusChange
 	{
 	private:
-		BYTE FunctCode[38] = {
-			/* LRESULT CALLBACK MyWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-			*  {
-			*      WndProc(hwnd, msg, wParam, lParam, this);
-			*  } */
-			0x55,								// PUSH EBP
-			0x8B, 0xEC,							// MOV EBP,ESP
-			0x51,								// PUSH ECX
-			0x68, 0x00,0x00,0x00,0x00,			// PUSH DWORD 0x00000000[this]
-			0xFF,0x75, 0x14,					// PUSH DWORD PTR SS:[EBP+14]
-			0xFF,0x75, 0x10,					// PUSH DWORD PTR SS:[EBP+10]
-			0xFF,0x75, 0x0C,					// PUSH DWORD PTR SS:[EBP+0C]
-			0xFF,0x75, 0x08,					// PUSH DWORD PTR SS:[EBP+08]
-			0xE8, 0x00,0x00,0x00,0x00,			// CALL dxwrapper.WndProc
-			0x89,0x45, 0xFC,					// MOV DWORD PTR SS:[EBP-4],EAX
-			0x8B,0x45, 0xFC,					// MOV EAX,DWORD PTR SS:[EBP-4]
-			0x8B,0xE5,							// MOV ESP,EBP
-			0x5D,								// POP EBP
-			0xC2, 0x10,0x00						// RETN
-		};
-		LONG* pFunctVar = (LONG*)&FunctCode[5];
-		int* pFunctCall = (int*)&FunctCode[22];
-		HWND hWnd = nullptr;
-		WNDPROC MyWndProc = nullptr;
-		WNDPROC AppWndProc = nullptr;
-		DATASTRUCT DataStruct;	// Use initialization from struct
-		std::atomic<bool> Active = true;
-		std::atomic<bool> ReadyToDelete = false;
-		std::atomic<bool> Exiting = false;
+		const HWND hWnd;
+		const std::shared_ptr<DATASTRUCT> pDataStruct;
+		const bool IsActivating;
+		const bool& FocusChanged;
+
 	public:
-		WNDPROCSTRUCT(HWND p_hWnd, WNDPROC p_AppWndProc) : hWnd(p_hWnd), AppWndProc(p_AppWndProc)
+		ScopedWindowFocusChange(HWND hWnd, const std::shared_ptr<DATASTRUCT> pDataStruct, const bool IsActivating, const bool& FocusChanged)
+			: hWnd(hWnd), pDataStruct(pDataStruct), IsActivating(IsActivating), FocusChanged(FocusChanged)
 		{
-			DWORD oldProtect = 0;
-			if (VirtualProtect(FunctCode, sizeof(FunctCode), PAGE_EXECUTE_READWRITE, &oldProtect))
-			{
-				// CFG registration
-				Utils::MarkAsValidCallTarget(FunctCode, sizeof(FunctCode), 0);
+		}
 
-				// Patch code
-				*pFunctVar = (LONG)this;
-				*pFunctCall = (int)&Handler - ((int)pFunctCall + 4);
-
-				// Set function pointer
-				MyWndProc = reinterpret_cast<WNDPROC>((LONG)FunctCode);
-			}
-		}
-		~WNDPROCSTRUCT()
+		~ScopedWindowFocusChange()
 		{
-			Exiting = true;
-			Active = false;
-			if (IsWindow(hWnd))
+			if (FocusChanged)
 			{
-				if (Config.Exiting)
-				{
-					SetToDefault();
-				}
-				// Restore WndProc
-				else if (AppWndProc)
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Deleting WndProc instance! " << hWnd);
-					SetWndProc(hWnd, AppWndProc);
-				}
+				HandleWindowFocus(hWnd, pDataStruct, IsActivating);
 			}
 		}
-		HWND GetHWnd() const { return hWnd; }
-		WNDPROC GetMyWndProc() const { return MyWndProc; }
-		WNDPROC GetAppWndProc() const { return AppWndProc; }
-		DATASTRUCT* GetDataStruct() { return &DataStruct; }
-		void SetToDefault()
-		{
-			if (IsWindowUnicode(hWnd))
-			{
-				AppWndProc = DefWindowProcW;
-				SetWindowLongW(hWnd, GWL_WNDPROC, (LONG)DefWindowProcW);
-			}
-			else
-			{
-				AppWndProc = DefWindowProcA;
-				SetWindowLongA(hWnd, GWL_WNDPROC, (LONG)DefWindowProcA);
-			}
-		}
-		inline bool IsActive() const { return Active; }
-		inline void SetInactive() { Active = false; }
-		inline bool IsReadyToDelete() const { return ReadyToDelete; }
-		inline void MarkReadyToDelete() { ReadyToDelete = true; }
-		inline bool IsExiting() const { return Exiting; }
 	};
-
-	std::vector<std::shared_ptr<WNDPROCSTRUCT>> WndProcList;
-
-	inline static bool CheckWndProc(std::shared_ptr<WNDPROCSTRUCT> pDataStruct, HWND hWnd)
-	{
-		return (pDataStruct->GetHWnd() == hWnd && pDataStruct->IsActive() && !pDataStruct->IsExiting());
-	}
 }
+
+using namespace WndProc;
 
 bool WndProc::IsExecutableAddress(void* address)
 {
@@ -225,7 +158,7 @@ bool WndProc::ShouldHook(HWND hWnd)
 	return true;
 }
 
-WndProc::DATASTRUCT* WndProc::AddWndProc(HWND hWnd)
+std::shared_ptr<DATASTRUCT> WndProc::AddWndProc(HWND hWnd)
 {
 	// Validate window handle
 	if (!IsWindow(hWnd))
@@ -233,106 +166,54 @@ WndProc::DATASTRUCT* WndProc::AddWndProc(HWND hWnd)
 		return nullptr;
 	}
 
-	// Remove inactive elements
-	RemoveInactiveWndProcs();
+	// Helps concurrency
+	ScopedAtomicLock LockState(State);
 
 	// Check if window is already hooked
-	for (const auto& entry : WndProcList)
+	if (WndProcList.find(hWnd) != WndProcList.end())
 	{
-		if (CheckWndProc(entry, hWnd))
+		auto& pDataStruct = WndProcList[hWnd];
+		if (pDataStruct)
 		{
-			return entry->GetDataStruct();
+			return pDataStruct;
 		}
+		WndProcList.erase(hWnd);
 	}
 
 	// Get WndProc from hWnd
-	WNDPROC NewAppWndProc = GetWndProc(hWnd);
-
-	// Create new struct
-	WNDPROCSTRUCT* raw = static_cast<WNDPROCSTRUCT*>(
-		VirtualAlloc(nullptr, sizeof(WNDPROCSTRUCT), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
-		);
-
-	if (!raw)
+	WNDPROC CurrentAppWndProc = GetWndProc(hWnd);
+	if (!CurrentAppWndProc)
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get WndProc: " << hWnd);
 		return nullptr;
 	}
 
-	// Construct the object in-place
-	new (raw) WNDPROCSTRUCT(hWnd, NewAppWndProc);
-
-	auto deleter = [](WNDPROCSTRUCT* p)
-		{
-			if (!p) return;
-
-			// Explicit destructor call
-			p->~WNDPROCSTRUCT();
-
-			// Free executable memory
-			VirtualFree(p, 0, MEM_RELEASE);
-		};
-
-	std::shared_ptr<WNDPROCSTRUCT> NewEntry(raw, deleter);
-
-	// Get new WndProc
-	WNDPROC NewWndProc = NewEntry->GetMyWndProc();
-	if (!NewWndProc)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: could not get function target!");
-		return nullptr;
-	}
+	// Create structure
+	auto& pDataStruct = WndProcList[hWnd];
+	pDataStruct = std::make_shared<DATASTRUCT>();
+	pDataStruct->AppWndProc = CurrentAppWndProc;
 
 	// Set new window pointer and store struct address
 	LOG_LIMIT(100, __FUNCTION__ << " Creating WndProc instance! " << hWnd);
-	SetWndProc(hWnd, NewWndProc);
-	WndProcList.push_back(NewEntry);
-
-	// Handle keyboard layout
-	if (Config.ForceKeyboardLayout && hWnd == GetForegroundWindow())
-	{
-		PostMessage(hWnd, WM_APP_SET_KEYBOARD_LAYOUT, (WPARAM)NewWndProc, WM_MAKE_KEY(hWnd, NewWndProc));
-	}
+	SetWndProc(hWnd, Handler);
 
 	// Return
-	return NewEntry->GetDataStruct();
+	return pDataStruct;
 }
 
-void WndProc::RemoveInactiveWndProcs()
+inline std::shared_ptr<DATASTRUCT> WndProc::GetWndProctStruct(HWND hWnd)
 {
-	// Remove inactive elements
-	for (auto it = WndProcList.begin(); it != WndProcList.end();)
-	{
-		if (CheckWndProc(*it, (*it)->GetHWnd()))
-		{
-			// Valid record
-			it++;
-		}
-		else
-		{
-			// Invalid record
-			if ((*it)->IsReadyToDelete() == false)
-			{
-				// Don't delete on first pass instead mark as ready to delete
-				(*it)->MarkReadyToDelete();
-				it++;
-			}
-			else
-			{
-				// Delete record
-				it = WndProcList.erase(it);
-			}
-		}
-	}
-}
+	// Helps concurrency
+	ScopedAtomicLock LockState(State);
 
-WndProc::DATASTRUCT* WndProc::GetWndProctStruct(HWND hWnd)
-{
-	for (const auto& entry : WndProcList)
+	if (WndProcList.find(hWnd) != WndProcList.end())
 	{
-		if (CheckWndProc(entry, hWnd))
+		auto& pDataStruct = WndProcList[hWnd];
+		if (pDataStruct)
 		{
-			return entry->GetDataStruct();
+			return pDataStruct;
 		}
+		WndProcList.erase(hWnd);
 	}
 	return nullptr;
 }
@@ -357,19 +238,31 @@ DWORD WndProc::MakeKey(DWORD Val1, DWORD Val2)
 	return Mix(Result);
 }
 
-inline void WndProc::HandleWindowFocus(HWND hWnd, DATASTRUCT* pDataStruct, bool IsActivating)
+inline bool WndProc::IsForeground(HWND hWnd)
+{
+	HWND hwndForeground = GetForegroundWindow();
+
+	if (hwndForeground == hWnd || IsChild(hwndForeground, hWnd))
+	{
+		return true;
+	}
+
+	return false;
+}
+
+inline void WndProc::HandleWindowFocus(HWND hWnd, std::shared_ptr<DATASTRUCT> pDataStruct, bool IsActivating)
 {
 	// Handle keyboard layout
 	if (Config.ForceKeyboardLayout)
 	{
-		SetKeyboardLayoutFocus(hWnd, IsActivating);
+		SetKeyboardLayoutFocus(pDataStruct, IsActivating);
 	}
 
 	// Handle window clipping
 	HandleClipMouseCursor(hWnd, pDataStruct, IsActivating);
 }
 
-inline void WndProc::HandleClipMouseCursor(HWND hWnd, DATASTRUCT* pDataStruct, bool IsActivating)
+inline void WndProc::HandleClipMouseCursor(HWND hWnd, std::shared_ptr<DATASTRUCT> pDataStruct, bool IsActivating)
 {
 	if (Config.EnableCursorClip && pDataStruct->IsDirect3D9)
 	{
@@ -384,60 +277,64 @@ inline void WndProc::HandleClipMouseCursor(HWND hWnd, DATASTRUCT* pDataStruct, b
 	}
 }
 
-inline void WndProc::SetKeyboardLayoutFocus(HWND hWnd, bool IsActivating)
+inline void WndProc::SetKeyboardLayoutFocus(std::shared_ptr<DATASTRUCT> pDataStruct, bool IsActivating)
 {
-	// On Activation
+	if (pDataStruct->InSizeMove)
+	{
+		return;
+	}
+
 	if (IsActivating)
 	{
-		PostMessage(hWnd, WM_APP_SET_KEYBOARD_LAYOUT, (WPARAM)hWnd, WM_MAKE_KEY(hWnd, hWnd));
+		KeyboardLayout::SetForcedKeyboardLayout();
 	}
-	// On Deactivation
-	else if (IsKeyboardActive && hWnd == GetForegroundWindow())
+	else
 	{
-		IsKeyboardActive = false;
 		KeyboardLayout::UnSetForcedKeyboardLayout();
 	}
 }
 
-void WndProc::DisableForcedKeyboardLayout()
-{
-	HWND hWnd = GetForegroundWindow();
-	if (GetWndProctStruct(hWnd))
-	{
-		PostMessage(hWnd, WM_APP_DISABLE_KEYBOARD_LAYOUT, (WPARAM)hWnd, WM_MAKE_KEY(hWnd, hWnd));
-	}
-
-	KeyboardLayout::DisableForcedKeyboardLayout();
-}
-
-LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam, WNDPROCSTRUCT* AppWndProcInstance)
+LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
 	if (Msg != WM_PAINT)
 	{
-		//Logging::Log() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd);
+		//Logging::Log() << __FUNCTION__ << " " << hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd) << " IsForeground: " << IsForeground(hWnd);
 	}
 
-	if (!AppWndProcInstance || !hWnd)
+	// Validate window handle
+	if (!hWnd)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid pointer!");
-		return 0;
-	}
-
-	const WNDPROC pWndProc = AppWndProcInstance->GetAppWndProc();
-	const HWND hWndInstance = AppWndProcInstance->GetHWnd();
-	DATASTRUCT* pDataStruct = AppWndProcInstance->GetDataStruct();
-
-	if (AppWndProcInstance->IsExiting() || !AppWndProcInstance->IsActive())
-	{
-		// WndProc is inactive or exiting use default WndProc instead
 		return DefWndProc(hWnd, Msg, wParam, lParam);
 	}
-	else if (hWnd != hWndInstance)
+
+	// Get struct
+	auto pDataStruct = GetWndProctStruct(hWnd);
+	if (!pDataStruct)
 	{
-		// Messages don't apply to this window
-		return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
+		return DefWndProc(hWnd, Msg, wParam, lParam);
 	}
 
+	// Get original WndProc
+	const WNDPROC pWndProc = pDataStruct->AppWndProc;
+	if (!pWndProc)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: couldn't find pWndProc: " << hWnd);
+		return DefWndProc(hWnd, Msg, wParam, lParam);
+	}
+
+	// Window data
+	const bool IsWindowForeground = IsForeground(hWnd);
+	const BOOL IsWindowIconic = IsIconic(hWnd);
+
+	// Store updated data
+	bool WindowFocusChange = IsWindowForeground && (pDataStruct->IsForeground != IsWindowForeground);
+	pDataStruct->IsForeground = IsWindowForeground;
+	pDataStruct->IsIconic = IsWindowIconic;
+
+	// Handle focus change on function exit
+	ScopedWindowFocusChange HandleFocusChange(hWnd, pDataStruct, IsWindowForeground, WindowFocusChange);
+
+	// Handle other window messages
 	switch (Msg)
 	{
 	case WM_APP_CREATE_D3D9_DEVICE:
@@ -454,10 +351,10 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	case WM_APP_RESET_D3D9_DEVICE:
 		if (WM_MAKE_KEY(hWnd, wParam) == lParam)
 		{
-			LOG_LIMIT(3, __FUNCTION__ << " Handling device window activation. Iconic: " << IsIconic(hWnd));
+			LOG_LIMIT(3, __FUNCTION__ << " Handling device window activation. Iconic: " << IsWindowIconic);
 
 			// Restore window
-			if (IsIconic(hWnd))
+			if (IsWindowIconic)
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Restoring iconic window: " << hWnd);
 				ShowWindow(hWnd, SW_RESTORE);
@@ -468,45 +365,34 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Attempting to reset device.");
 
-				if (m_IDirectDrawX::TriggerDeviceReset(hWnd) == DDERR_SURFACELOST)
+				HRESULT hr = m_IDirectDrawX::TriggerDeviceReset(hWnd);
+				if (hr == DDERR_SURFACELOST || (FAILED(hr) && !IsForeground(hWnd)))
 				{
 					LOG_LIMIT(3, __FUNCTION__ << " Reset failed because device is still lost!");
 
 					ShowWindow(hWnd, SW_MINIMIZE);
 					ShowWindow(hWnd, SW_RESTORE);
+					m_IDirectDrawX::TriggerDeviceReset(hWnd);
 				}
 			}
 
-			return 0;
-		}
-		break;
-
-	case WM_APP_SET_KEYBOARD_LAYOUT:
-		if (WM_MAKE_KEY(hWnd, wParam) == lParam)
-		{
-			if (Config.ForceKeyboardLayout && hWnd == GetForegroundWindow() && AppWndProcInstance->IsActive())
+			// Handle focus change
+			if (!IsWindowForeground && IsForeground(hWnd))
 			{
-				IsKeyboardActive = true;
-				KeyboardLayout::SetForcedKeyboardLayout();
+				PostMessage(hWnd, WM_ACTIVATE, WA_ACTIVE, 0);
 			}
-			return 0;
-		}
-		break;
 
-	case WM_APP_DISABLE_KEYBOARD_LAYOUT:
-		if (WM_MAKE_KEY(hWnd, wParam) == lParam)
-		{
-			if (Config.ForceKeyboardLayout && hWnd == GetForegroundWindow())
-			{
-				KeyboardLayout::DisableForcedKeyboardLayout();
-			}
 			return 0;
 		}
 		break;
 
 	case WM_ACTIVATEAPP:
-		// Handle window focus change
-		HandleWindowFocus(hWnd, pDataStruct, wParam != FALSE);
+		// Handle window focus loss
+		if (wParam == FALSE)
+		{
+			WindowFocusChange = false;
+			HandleWindowFocus(hWnd, pDataStruct, false);
+		}
 
 		// Some games don't properly handle app activate in exclusive mode
 		if (pDataStruct->IsDirectDraw)
@@ -522,6 +408,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			}
 			IsActiveApp = wParam;
 		}
+
 		// Filter messages for loss of focus or minimize
 		if (Config.HideWindowFocusChanges && wParam == FALSE)
 		{
@@ -530,26 +417,23 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		break;
 
 	case WM_ACTIVATE:
-		// Handle window focus change
-		HandleWindowFocus(hWnd, pDataStruct, LOWORD(wParam) != WA_INACTIVE);
-
 		// Filter duplicate messages when using DirectDraw
 		if (pDataStruct->IsDirectDraw)
 		{
-			const BOOL IsWindowIconic = IsIconic(hWnd);
-			const bool IsDuplicateMessage = (pDataStruct->IsWindowActive == wParam);
-			const bool IsIconicMatches = (pDataStruct->IsWindowIconic == IsWindowIconic);
+			const bool IsDuplicateMessage = (pDataStruct->WindowActive.data == wParam);
+			const bool IsIconicMatches = (pDataStruct->WindowActive.iconic == IsWindowIconic);
 
 			if (IsDuplicateMessage && IsIconicMatches)
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering duplicate WM_ACTIVATE: " << LOWORD(wParam) << " IsIconic: " << IsWindowIconic);
 				return DefWndProc(hWnd, Msg, wParam, lParam);
 			}
-			pDataStruct->IsWindowActive = wParam;
-			pDataStruct->IsWindowIconic = IsWindowIconic;
+			pDataStruct->WindowActive.data = wParam;
+			pDataStruct->WindowActive.iconic = IsWindowIconic;
 		}
+
 		// Special handling for iconic state to prevent issues with some games
-		if (pDataStruct->IsDirectDraw && IsIconic(hWnd))
+		if (pDataStruct->IsDirectDraw && IsWindowIconic)
 		{
 			const UINT activateState = LOWORD(wParam);
 			const bool isActivating = (activateState == WA_ACTIVE || activateState == WA_CLICKACTIVE);
@@ -561,16 +445,25 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 				PostMessage(hWnd, WM_APP_RESET_D3D9_DEVICE, (WPARAM)hWnd, WM_MAKE_KEY(hWnd, hWnd));
 			}
 
+			HRESULT hr;
 			if (filterMessage)
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_ACTIVATE when iconic. Active: " << activateState);
-				return DefWndProc(hWnd, Msg, wParam, lParam);
+				hr = DefWndProc(hWnd, Msg, wParam, lParam);
 			}
 			else
 			{
-				return CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);;
+				hr = CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);;
 			}
+
+			if (isActivating)
+			{
+				PostMessage(hWnd, WM_APP_RESET_D3D9_DEVICE, (WPARAM)hWnd, WM_MAKE_KEY(hWnd, hWnd));
+			}
+
+			return hr;
 		}
+
 		// Filter messages for loss of focus or minimize
 		if (Config.HideWindowFocusChanges && LOWORD(wParam) == WA_INACTIVE)
 		{
@@ -579,32 +472,22 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		break;
 
 	case WM_NCACTIVATE:
-		// Handle window focus change
-		HandleWindowFocus(hWnd, pDataStruct, LOWORD(wParam) != FALSE);
-
 		// Filter messages for loss of focus or minimize
 		if (Config.HideWindowFocusChanges && wParam == FALSE)
 		{
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
+
 		// Filter some messages while forcing windowed mode
 		if (pDataStruct->IsDirectDraw && (Config.EnableWindowMode && pDataStruct->IsExclusiveMode))
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering WM_NCACTIVATE when forcing windowed mode. " <<
-				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
+				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsWindowIconic);
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
 		break;
 
-	case WM_SETFOCUS:
-		// Handle window focus change
-		HandleWindowFocus(hWnd, pDataStruct, true);
-		break;
-
 	case WM_KILLFOCUS:
-		// Handle window focus change
-		HandleWindowFocus(hWnd, pDataStruct, false);
-
 		// Filter messages for loss of focus or minimize
 		if (Config.HideWindowFocusChanges && wParam == FALSE)
 		{
@@ -613,9 +496,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		break;
 
 	case WM_SHOWWINDOW:
-		// Handle window focus change
-		HandleWindowFocus(hWnd, pDataStruct, wParam != FALSE);
-
 		// Filter messages for loss of focus or minimize
 		if (Config.HideWindowFocusChanges && wParam == FALSE)
 		{
@@ -638,8 +518,12 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		break;
 
 	case WM_SIZE:
-		// Handle window focus change
-		HandleWindowFocus(hWnd, pDataStruct, wParam != SIZE_MINIMIZED);
+		// Handle window focus loss
+		if (wParam == SIZE_MINIMIZED)
+		{
+			WindowFocusChange = false;
+			HandleWindowFocus(hWnd, pDataStruct, false);
+		}
 
 		// Filter messages for loss of focus or minimize
 		if (Config.HideWindowFocusChanges && wParam == SIZE_MINIMIZED)
@@ -651,7 +535,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		if (pDataStruct->IsCreatingDevice)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when creating device. " <<
-				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
+				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsWindowIconic);
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
 		break;
@@ -660,9 +544,12 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 	case WM_EXITSIZEMOVE:
 		// Handle window focus change
 		pDataStruct->InSizeMove = (Msg == WM_ENTERSIZEMOVE);
-		HandleClipMouseCursor(hWnd, pDataStruct, true);
-
+		if (IsWindowForeground)
+		{
+			WindowFocusChange = true;
+		}
 		[[fallthrough]];
+
 	case WM_STYLECHANGING:
 	case WM_STYLECHANGED:
 	case WM_SIZING:
@@ -671,7 +558,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		if (pDataStruct->IsCreatingDevice)
 		{
 			LOG_LIMIT(3, __FUNCTION__ << " Warning: filtering some messages when creating device. " <<
-				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsIconic(hWnd));
+				hWnd << " " << Logging::hex(Msg) << " " << wParam << " " << lParam << " IsIconic: " << IsWindowIconic);
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
 		break;
@@ -681,22 +568,21 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		{
 			WINDOWPOS* WinPos = reinterpret_cast<WINDOWPOS*>(lParam);
 
-			// Handle window focus change
-			if (WinPos->flags & SWP_HIDEWINDOW)
+			// Handle window focus loss
+			if ((wParam & 0xFFF0) == SC_MINIMIZE || (WinPos->flags & SWP_HIDEWINDOW))
 			{
+				WindowFocusChange = false;
 				HandleWindowFocus(hWnd, pDataStruct, false);
 			}
-			else if (WinPos->flags & SWP_SHOWWINDOW)
+
+			// Handle window focus change if window is not minimizing or hiding
+			else if (IsWindowForeground)
 			{
-				HandleWindowFocus(hWnd, pDataStruct, true);
-			}
-			else if (Config.EnableCursorClip && pDataStruct->IsDirect3D9 &&
-				(hWnd == GetFocus() || hWnd == GetActiveWindow() || hWnd == GetForegroundWindow()))
-			{
-				HandleClipMouseCursor(hWnd, pDataStruct, true);
+				WindowFocusChange = true;
 			}
 		}
 		[[fallthrough]];
+
 	case WM_WINDOWPOSCHANGING:
 		if (lParam)
 		{
@@ -707,6 +593,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			{
 				WinPos->y = 0;
 			}
+
 			// Check if need to modify the size
 			if (!(WinPos->flags & SWP_NOSIZE))
 			{
@@ -728,11 +615,13 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 					WinPos->flags |= SWP_NOSIZE;
 				}
 			}
+
 			// Filter messages for loss of focus or minimize
 			if (Config.HideWindowFocusChanges && (WinPos->flags & SWP_HIDEWINDOW))
 			{
 				return DefWndProc(hWnd, Msg, wParam, lParam);
 			}
+
 			// Hide minimized window location from game
 			if (pDataStruct->IsDirectDraw && WinPos->x == -32000 && WinPos->y == -32000)
 			{
@@ -743,7 +632,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 
 	case WM_PAINT:
 		// Some games hang when attempting to paint while iconic
-		if (pDataStruct->IsDirectDraw && IsIconic(hWnd))
+		if (pDataStruct->IsDirectDraw && IsWindowIconic)
 		{
 			return DefWndProc(hWnd, Msg, wParam, lParam);
 		}
@@ -770,11 +659,13 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		break;
 
 	case WM_SYSCOMMAND:
-		// Handle window focus change
-		if ((wParam & 0xFFF0) == SC_MINIMIZE || (wParam & 0xFFF0) == SC_MAXIMIZE)
+		// Handle window focus loss
+		if ((wParam & 0xFFF0) == SC_MINIMIZE)
 		{
-			HandleWindowFocus(hWnd, pDataStruct, (wParam & 0xFFF0) == SC_MAXIMIZE);
+			WindowFocusChange = false;
+			HandleWindowFocus(hWnd, pDataStruct, false);
 		}
+
 		// Filter messages for loss of focus or minimize
 		if (Config.HideWindowFocusChanges && (wParam & 0xFFF0) == SC_MINIMIZE)
 		{
@@ -783,23 +674,20 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		break;
 
 	case WM_NCDESTROY:
-		// Handle window focus change
-		HandleWindowFocus(hWnd, pDataStruct, false);
-
 		// Release d3d9 interface
 		if (pDataStruct->IsDirectDraw)
 		{
 			m_IDirectDrawX::TriggerDeviceRelease(hWnd);
 		}
 
-		// Set instance to default before window closes
-		AppWndProcInstance->SetToDefault();
-
 		// Final WndProc call
-		LRESULT lr =  CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
+		LRESULT lr = CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 
-		// Set instance as inactive when window closes
-		AppWndProcInstance->SetInactive();
+		// Helps concurrency
+		ScopedAtomicLock LockState(State);
+
+		// Remove instance
+		WndProcList.erase(hWnd);
 
 		return lr;
 	}

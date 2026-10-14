@@ -30,7 +30,7 @@ HRESULT m_IDirect3DExecuteBuffer::QueryInterface(REFIID riid, LPVOID FAR * ppvOb
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") " << riid;
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		if (ppvObj)
 		{
@@ -72,14 +72,14 @@ ULONG m_IDirect3DExecuteBuffer::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return 0;
 	}
 
 	if (Config.Dd7to9)
 	{
-		return _InterlockedIncrement(&RefCount);
+		return InterlockedIncrement(&RefCount);
 	}
 
 	return ProxyInterface->AddRef();
@@ -89,18 +89,18 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return 0;
 	}
 
 	if (Config.Dd7to9)
 	{
-		ULONG ref = InterlockedDecrementIfPositive(&RefCount);
+		ULONG ref = InterlockedDecrementIfNotNull(&RefCount);
 
 		if (ref == 0)
 		{
-			SaveInterfaceAddress(this);
+			ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 		}
 
 		return ref;
@@ -110,7 +110,7 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 
 	if (ref == 0)
 	{
-		SaveInterfaceAddress(this);
+		ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 	}
 
 	return ref;
@@ -124,7 +124,7 @@ HRESULT m_IDirect3DExecuteBuffer::Initialize(LPDIRECT3DDEVICE lpDirect3DDevice, 
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -147,7 +147,7 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -159,57 +159,27 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC) && lpDesc->dwSize != 76)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpDesc->dwSize);
-			return DDERR_INVALIDPARAMS;
-		}
+		// Not checked by native ddraw
+		//if (lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC) && lpDesc->dwSize != 76)
+		//{
+		//	LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpDesc->dwSize);
+		//	return DDERR_INVALIDPARAMS;
+		//}
 		lpDesc->dwCaps = NULL;
 		lpDesc->dwFlags = NULL;
 		lpDesc->lpData = nullptr;
 
-		// Set Locking flag
-		ScopedFlagSet SetLockFlag(IsLocking);
-
 		// Check if the buffer is already locked
-		DWORD ThreadID = GetCurrentThreadId();
-		if (LockedCount != 0 && ThreadID != LockedThread)
+		if (IsLocked)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is already locked! Thread: " << ThreadID << "->" << LockedThread);
 			return D3DERR_EXECUTE_LOCKED;
-		}
-
-		// Check if the buffer is being executed
-		if (IsExecuting)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is still in use!");
-			return D3DERR_WASSTILLDRAWING;
-		}
-
-		// Create buffer on first Lock
-		if (Desc.lpData == nullptr || MemoryData.empty())
-		{
-			Desc.dwFlags |= D3DDEB_LPDATA;
-			MemoryData.resize(Desc.dwBufferSize + ExtraDataBufferSize);
-			Desc.lpData = MemoryData.data();
-		}
-
-		// Check buffer size
-		if (!UsingAppMemory && (MemoryData.empty() || MemoryData.size() < Desc.dwBufferSize))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: incorrect buffer size: " << Desc.dwBufferSize << " -> " << MemoryData.size());
-			return DDERR_GENERIC;
 		}
 
 		// Provide access to the execute buffer memory
 		*lpDesc = Desc;
 
 		// Mark the buffer as locked
-		LockedCount++;
-		LockedThread = ThreadID;
-
-		// Mark data as unvalidated
-		IsDataValidated = false;
+		IsLocked = true;
 
 		return D3D_OK;
 	}
@@ -221,7 +191,7 @@ HRESULT m_IDirect3DExecuteBuffer::Unlock()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -229,14 +199,13 @@ HRESULT m_IDirect3DExecuteBuffer::Unlock()
 	if (Config.Dd7to9)
 	{
 		// Check if the buffer is not locked
-		if (LockedCount == 0)
+		if (!IsLocked)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is not locked!");
 			return D3DERR_EXECUTE_NOT_LOCKED;
 		}
 
 		// Mark the buffer as unlocked
-		LockedCount--;
+		IsLocked = false;
 
 		// No specific action required, just return success
 		return D3D_OK;
@@ -249,7 +218,7 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpExecuteData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -267,40 +236,20 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpExecuteData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check if the buffer is locked
-		if (LockedCount != 0)
+		const size_t instructionSize = lpExecuteData->dwInstructionOffset + lpExecuteData->dwInstructionLength;
+		const size_t vertexSize = lpExecuteData->dwVertexOffset + lpExecuteData->dwVertexCount * sizeof(D3DVERTEX);
+		const size_t hVertexSize = lpExecuteData->dwHVertexOffset + lpExecuteData->dwVertexCount * sizeof(D3DTLVERTEX);
+		const size_t bufferSize = Desc.dwBufferSize;
+
+		// Not validated by native, thus the call will succeed even if the buffer size is insufficient.
+		// Incoming sends a lot of such junk calls, but apparently doesn't blow up because of it.
+		if (instructionSize > bufferSize || vertexSize > bufferSize || hVertexSize > bufferSize)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is locked!");
-			return D3DERR_EXECUTE_LOCKED;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: Buffer size is insufficient for specified data");
 		}
 
-		// Ensure that the instruction range is within the bounds of the execute buffer
-		if (lpExecuteData->dwInstructionOffset + lpExecuteData->dwInstructionLength > Desc.dwBufferSize)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid instruction range!");
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// Ensure the vertex data lies within the buffer and does not overlap with instructions
-		if (lpExecuteData->dwVertexOffset + lpExecuteData->dwVertexCount * sizeof(D3DVERTEX) > Desc.dwBufferSize)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid vertex range!");
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// Ensure the data segments (vertices and instructions) do not overlap unintentionally
-		if (lpExecuteData->dwVertexOffset < lpExecuteData->dwInstructionOffset + lpExecuteData->dwInstructionLength &&
-			lpExecuteData->dwVertexOffset + lpExecuteData->dwVertexCount * sizeof(D3DVERTEX) > lpExecuteData->dwInstructionOffset)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Overlapping data regions!");
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// Store execute data
+		// Store execute data (not validated by native ddraw)
 		ExecuteData = *lpExecuteData;
-
-		// Mark data as unvalidated
-		IsDataValidated = false;
 
 		return D3D_OK;
 	}
@@ -312,7 +261,7 @@ HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpExecuteData)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -324,18 +273,12 @@ HRESULT m_IDirect3DExecuteBuffer::GetExecuteData(LPD3DEXECUTEDATA lpExecuteData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (lpExecuteData->dwSize != sizeof(D3DEXECUTEDATA))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpExecuteData->dwSize);
-			return DDERR_INVALIDPARAMS;
-		}
-
-		// Check if the buffer is locked
-		if (LockedCount != 0)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Buffer is locked!");
-			return D3DERR_EXECUTE_LOCKED;
-		}
+		// Not checked by native ddraw
+		//if (lpExecuteData->dwSize != sizeof(D3DEXECUTEDATA))
+		//{
+		//	LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect dwSize: " << lpExecuteData->dwSize);
+		//	return DDERR_INVALIDPARAMS;
+		//}
 
 		// Return stored execute data
 		*lpExecuteData = ExecuteData;
@@ -350,21 +293,14 @@ HRESULT m_IDirect3DExecuteBuffer::Validate(LPDWORD lpdwOffset, LPD3DVALIDATECALL
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
 
 	if (Config.Dd7to9)
 	{
-		if (!lpdwOffset && !lpFunc)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
-
-		ValidateInstructionData(&ExecuteData, lpdwOffset, lpFunc, lpUserArg);
-
-		return D3D_OK;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->Validate(lpdwOffset, lpFunc, lpUserArg, dwReserved);
@@ -374,7 +310,7 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	if (!ProxyInterface && !D3DDeviceInterface)
+	if (IsInterfaceDeleted)
 	{
 		return DDERR_INVALIDOBJECT;
 	}
@@ -382,7 +318,7 @@ HRESULT m_IDirect3DExecuteBuffer::Optimize(DWORD dwDummy)
 	if (Config.Dd7to9)
 	{
 		// The method is not currently supported.
-		return D3D_OK;
+		return DDERR_UNSUPPORTED;
 	}
 
 	return ProxyInterface->Optimize(dwDummy);
@@ -399,8 +335,8 @@ void m_IDirect3DExecuteBuffer::InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc)
 		D3DDeviceInterface->AddExecuteBuffer(this);
 	}
 
-	LockedCount = 0;
-	IsDataValidated = false;
+	IsLocked = false;
+	UsingAppMemory = false;
 	ExecuteData = {};
 	ExecuteData.dwSize = sizeof(D3DEXECUTEDATA);
 	Desc = {};
@@ -411,22 +347,19 @@ void m_IDirect3DExecuteBuffer::InitInterface(LPD3DEXECUTEBUFFERDESC lpDesc)
 	{
 		Desc = *lpDesc;
 		Desc.dwFlags &= (D3DDEB_BUFSIZE | D3DDEB_CAPS | D3DDEB_LPDATA);
-		if (!(Desc.dwFlags & D3DDEB_CAPS))
-		{
-			Desc.dwFlags |= D3DDEB_CAPS;
-			Desc.dwCaps = D3DDEBCAPS_SYSTEMMEMORY;
-		}
-		Desc.dwCaps &= D3DDEBCAPS_MEM;
+		Desc.dwFlags |= D3DDEB_CAPS;
+		Desc.dwCaps = D3DDEBCAPS_SYSTEMMEMORY;
 		if ((Desc.dwFlags & D3DDEB_LPDATA) && Desc.lpData)
 		{
 			UsingAppMemory = true;
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: lpData is non-null, using application data.");
 		}
+		// Create buffer
 		else
 		{
-			UsingAppMemory = false;
-			Desc.dwFlags &= ~D3DDEB_LPDATA;
-			Desc.lpData = nullptr;
+			MemoryData.resize(Desc.dwBufferSize + ExtraDataBufferSize);
+			Desc.dwFlags |= D3DDEB_LPDATA;
+			Desc.lpData = MemoryData.data();
 		}
 	}
 }
@@ -438,31 +371,29 @@ void m_IDirect3DExecuteBuffer::ReleaseInterface()
 		return;
 	}
 
+	Desc = {};
+	MemoryData.clear();
+
 	if (D3DDeviceInterface)
 	{
 		D3DDeviceInterface->ClearExecuteBuffer(this);
 	}
 }
 
-HRESULT m_IDirect3DExecuteBuffer::GetBuffer(LPVOID* lplpData, D3DEXECUTEDATA& CurrentExecuteData, LPD3DSTATUS* lplpStatus)
+HRESULT m_IDirect3DExecuteBuffer::GetBufferInternal(std::vector<BYTE>& BufferData, D3DEXECUTEDATA& CurrentExecuteData) const
 {
-	if (!lplpData || !lplpStatus)
+	// It's important to make a copy of the buffer when executing it
+	if (UsingAppMemory)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: invalid params: " << lplpData << " " << lplpStatus);
-		return DDERR_INVALIDPARAMS;
+		BufferData.assign(
+			static_cast<const BYTE*>(Desc.lpData),
+			static_cast<const BYTE*>(Desc.lpData) + Desc.dwBufferSize);
 	}
-
-	if (!IsDataValidated)
+	else
 	{
-		if (FAILED(ValidateInstructionData(&ExecuteData, nullptr, nullptr, nullptr)) || !IsDataValidated)
-		{
-			return DDERR_INVALIDPARAMS;
-		}
+		BufferData = MemoryData;
 	}
-
-	*lplpData = Desc.lpData;
 	CurrentExecuteData = ExecuteData;
-	*lplpStatus = &ExecuteData.dsStatus;
 
 	return D3D_OK;
 }
@@ -481,9 +412,15 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExe
 		return DDERR_INVALIDPARAMS;
 	}
 
+	if (lpExecuteData->dwSize != sizeof(D3DEXECUTEDATA))
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Error: incorrect dwSize: " << lpExecuteData->dwSize);
+		return DDERR_INVALIDPARAMS;
+	}
+
 	if (lpdwOffset)
 	{
-		*lpdwOffset = NULL;
+		*lpdwOffset = 0;
 	}
 
 	DWORD dwInstructionOffset = lpExecuteData->dwInstructionOffset;
@@ -535,6 +472,7 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExe
 				LOG_LIMIT(100, __FUNCTION__ << " Error: Instruction header exceeds bounds!");
 				return DDERR_INVALIDPARAMS;
 			}
+			return D3D_OK;
 		}
 
 		const D3DINSTRUCTION* instruction = (const D3DINSTRUCTION*)(data + offset);
@@ -558,6 +496,7 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExe
 				LOG_LIMIT(100, __FUNCTION__ << " Error: Instruction data exceeds bounds!");
 				return DDERR_INVALIDPARAMS;
 			}
+			return D3D_OK;
 		}
 
 		// Check opcode
@@ -583,10 +522,6 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExe
 		// Check for termination
 		if (instruction->bOpcode == D3DOP_EXIT)
 		{
-			if (!FoundError)
-			{
-				IsDataValidated = true;
-			}
 			return D3D_OK;
 		}
 
@@ -630,16 +565,34 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExe
 		{
 			D3DBRANCH* branch = reinterpret_cast<D3DBRANCH*>((BYTE*)instruction + sizeof(D3DINSTRUCTION));
 
+			DWORD target = offset + branch->dwOffset;
+
+			if (target >= dwInstructionLength)
+			{
+				FoundError = true;
+				if (lpFunc)
+				{
+					lpFunc(lpUserArg, offset);
+				}
+				else if (lpdwOffset)
+				{
+					*lpdwOffset = offset;
+					return D3D_OK;
+				}
+				else
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid opcode: " << (DWORD)instruction->bOpcode);
+					return DDERR_INVALIDPARAMS;
+				}
+				return D3D_OK;
+			}
+
 			DWORD EmulatedDriverStatus = 0;	// Just use 0 for now
 			if (bool((EmulatedDriverStatus & branch->dwMask) == branch->dwValue) != bool(branch->bNegate))
 			{
 				// Exit the execute buffer if offset is null
 				if (branch->dwOffset == 0)
 				{
-					if (!FoundError)
-					{
-						IsDataValidated = true;
-					}
 					return D3D_OK;
 				}
 				// Move the instruction pointer forward by the offset
@@ -663,7 +616,7 @@ HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExe
 
 m_IDirect3DExecuteBuffer* m_IDirect3DExecuteBuffer::CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc)
 {
-	m_IDirect3DExecuteBuffer* Interface = InterfaceAddressCache<m_IDirect3DExecuteBuffer>(nullptr);
+	m_IDirect3DExecuteBuffer* Interface = ProxyAddressLookupTableDdraw.InterfaceAddressCache<m_IDirect3DExecuteBuffer>(nullptr);
 	if (Interface)
 	{
 		Interface->SetProxy(aOriginal, NewD3DDInterface, lpDesc);

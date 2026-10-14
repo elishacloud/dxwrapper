@@ -5,7 +5,7 @@ class m_IDirectInputEffect8 final : public IDirectInputEffect, AddressLookupTabl
 private:
 	IDirectInputEffect *ProxyInterface;
 
-	LONG RefCount = 1;
+	ULONG RefCount = 1;
 
 	GUID guid = {};
 

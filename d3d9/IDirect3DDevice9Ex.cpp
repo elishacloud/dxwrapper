@@ -16,6 +16,7 @@
 
 #include "d3d9.h"
 #include <d3dhal.h>
+#include "ddraw\Shaders\BrightnessPixelShader.h"
 #include "ddraw\Shaders\GammaPixelShader.h"
 #include "GDI\WndProc.h"
 #include "Utils\Utils.h"
@@ -95,7 +96,7 @@ ULONG m_IDirect3DDevice9Ex::AddRef()
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	_InterlockedIncrement(&RefCount);
+	InterlockedIncrement(&RefCount);
 
 	return ProxyInterface->AddRef();
 }
@@ -110,23 +111,37 @@ ULONG m_IDirect3DDevice9Ex::Release()
 
 	// Handle device release
 	{
-		ScopedCriticalSection ThreadLock(&d9cs, Config.AntiAliasing || RequirePresentHandling());
-
-		ref = ProxyInterface->Release();
-
 		ULONG UsedRef = GetResourceRefCount();
 
-		LONG EmuRef = InterlockedDecrementIfPositive(&RefCount);
+		LONG EmuRef = InterlockedDecrementIfNotNull(&RefCount);
 
 #ifdef ENABLE_DEBUGOVERLAY
 		bool UsingDOverlay = (Config.EnableImgui && DOverlay.IsSetup() && DOverlay.Getd3d9Device() == ProxyInterface);
 		UsedRef += (UsingDOverlay ? 1 : 0);
 #endif
 
+		// Check for last ref count when not using any refs
+		if (!FailedReset && UsedRef == 0)
+		{
+			ProxyInterface->AddRef();
+			if (ProxyInterface->Release() == 1)
+			{
+				// Reset D3D9 vertex processing state.
+				// Certian functions can leave the hardware vertex-processing state
+				// in a condition that causes rendering problems in some games.
+				// Toggling software vertex processing forces D3D9/driver to reset it.
+				ProxyInterface->SetSoftwareVertexProcessing(FALSE);
+				ProxyInterface->SetSoftwareVertexProcessing(TRUE);
+			}
+		}
+
+		ref = ProxyInterface->Release();
+
 		// Check for refcount mismatch
-		if (UsedRef &&
-			((EmuRef == 0 && ref != UsedRef) ||
-			(EmuRef != 0 && ref == UsedRef)))
+		if (UsedRef && (
+			(EmuRef == 0 && ref != UsedRef) ||
+			(EmuRef != 0 && ref == UsedRef)
+			))
 		{
 			Logging::Log() << __FUNCTION__ << " Warning: Refcounts don't match! Emulated ref: " << EmuRef << " Device ref: " << ref << " Used ref: " << UsedRef;
 		}
@@ -148,6 +163,16 @@ ULONG m_IDirect3DDevice9Ex::Release()
 #endif
 
 				UsedRef = 0;
+
+				if (!FailedReset)
+				{
+					// Reset D3D9 vertex processing state.
+					// Certian functions can leave the hardware vertex-processing state
+					// in a condition that causes rendering problems in some games.
+					// Toggling software vertex processing forces D3D9/driver to reset it.
+					ProxyInterface->SetSoftwareVertexProcessing(FALSE);
+					ProxyInterface->SetSoftwareVertexProcessing(TRUE);
+				}
 
 				ref = ProxyInterface->Release();
 
@@ -177,6 +202,14 @@ ULONG m_IDirect3DDevice9Ex::Release()
 			// Clear all cache before deleting device
 			ProxyAddressLookupTable9.DeleteAll();
 
+			// Delete all state blocks
+			while (!DeletedStateBlocks.empty())
+			{
+				m_IDirect3DStateBlock9* pStateBlockX = DeletedStateBlocks.back();
+				DeletedStateBlocks.RemoveStateBlock(pStateBlockX);
+				delete pStateBlockX;
+			}
+
 			// Check for entries left in lists
 			if (EmulatedSurfaceList.size())
 			{
@@ -186,11 +219,6 @@ ULONG m_IDirect3DDevice9Ex::Release()
 			if (StateBlockTable.size())
 			{
 				Logging::Log() << __FUNCTION__ << " Warning: StateBlockTable still contains entries: " << StateBlockTable.size();
-			}
-
-			if (DeletedStateBlocks.size())
-			{
-				Logging::Log() << __FUNCTION__ << " Warning: DeletedStateBlocks still contains entries: " << DeletedStateBlocks.size();
 			}
 
 			ShouldDeleteMe = true;
@@ -462,8 +490,11 @@ HRESULT m_IDirect3DDevice9Ex::Present(CONST RECT* pSourceRect, CONST RECT* pDest
 			return D3D_OK;
 		}
 	}
-
-	ApplyPrePresentFixes();
+	// ApplyPrePresentFixes() is already called in PresentEx()
+	else
+	{
+		ApplyPrePresentFixes();
+	}
 
 	HRESULT hr = ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
 
@@ -550,7 +581,7 @@ void m_IDirect3DDevice9Ex::SetGammaRamp(THIS_ UINT iSwapChain, DWORD Flags, CONS
 		if (memcmp(&DefaultRampData, &RampData, sizeof(D3DGAMMARAMP)) != S_OK)
 		{
 			IsGammaSet = true;
-			SetBrightnessLevel(RampData);
+			SetGammaLevel(RampData);
 		}
 
 		return;
@@ -895,8 +926,6 @@ HRESULT m_IDirect3DDevice9Ex::GetRenderTargetData(THIS_ IDirect3DSurface9* pRend
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ScopedCriticalSection ThreadLock(&d9cs, RequirePresentHandling());
-
 	if (pRenderTarget)
 	{
 		pRenderTarget = static_cast<m_IDirect3DSurface9*>(pRenderTarget)->GetNonMultiSampledSurface(D3DLOCK_READONLY);
@@ -1010,8 +1039,6 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
 
-	ScopedCriticalSection ThreadLock(&d9cs, RequirePresentHandling());
-
 	m_IDirect3DSurface9* pSurface = static_cast<m_IDirect3DSurface9*>(pRenderTarget);
 
 	if (pRenderTarget)
@@ -1048,8 +1075,6 @@ HRESULT m_IDirect3DDevice9Ex::SetRenderTarget(THIS_ DWORD RenderTargetIndex, IDi
 HRESULT m_IDirect3DDevice9Ex::GetRenderTarget(THIS_ DWORD RenderTargetIndex, IDirect3DSurface9** ppRenderTarget)
 {
 	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
-
-	ScopedCriticalSection ThreadLock(&d9cs, RequirePresentHandling());
 
 	HRESULT hr = ProxyInterface->GetRenderTarget(RenderTargetIndex, ppRenderTarget);
 
@@ -1153,36 +1178,6 @@ HRESULT m_IDirect3DDevice9Ex::BeginScene()
 	if (SUCCEEDED(hr))
 	{
 		AfterBeginScene();
-
-		// Set Max Anisotropy
-		if (MaxAnisotropy && (AnisotropyMin || AnisotropyMag))
-		{
-			for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
-			{
-				ProxyInterface->SetSamplerState(x, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
-			}
-		}
-
-		// Set for Multisample
-		if (DeviceDetails.DeviceMultiSampleFlag)
-		{
-			if (DeviceDetails.SetMultiSampleState && !DeviceDetails.UseAppMultiSampleState)
-			{
-				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
-			}
-			if (DeviceDetails.SetSSAA)
-			{
-				ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('S', 'S', 'A', 'A'));
-			}
-			if (DeviceDetails.SetATOC)
-			{
-				ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('A', 'T', 'O', 'C'));
-				if (Config.EnableMultisamplingATOC == 2)
-				{
-					ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
-				}
-			}
-		}
 	}
 
 	return hr;
@@ -1422,11 +1417,6 @@ HRESULT m_IDirect3DDevice9Ex::CreateStateBlock(THIS_ D3DSTATEBLOCKTYPE Type, IDi
 	{
 		m_IDirect3DStateBlock9* StateBlockX = GetCreateStateBlock(*ppSB);
 
-		if (Config.LimitStateBlocks)
-		{
-			StateBlockTable.AddStateBlock(StateBlockX);
-		}
-
 		*ppSB = StateBlockX;
 
 		return D3D_OK;
@@ -1453,11 +1443,6 @@ HRESULT m_IDirect3DDevice9Ex::EndStateBlock(THIS_ IDirect3DStateBlock9** ppSB)
 	if (SUCCEEDED(hr) && ppSB)
 	{
 		m_IDirect3DStateBlock9* StateBlockX = GetCreateStateBlock(*ppSB);
-
-		if (Config.LimitStateBlocks)
-		{
-			StateBlockTable.AddStateBlock(StateBlockX);
-		}
 
 		*ppSB = StateBlockX;
 	}
@@ -1609,14 +1594,25 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 		{
 			if (Value == D3DTEXF_NONE || Value == D3DTEXF_POINT)
 			{
-				DeviceDetails.SetMultiSampleState = false;
 				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, FALSE);
 			}
 			else
 			{
-				DeviceDetails.SetMultiSampleState = true;
 				ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
 			}
+		}
+	}
+
+	// Force MipMap usage
+	if (Config.ForceMipMapUsage && Type == D3DSAMP_MIPFILTER)
+	{
+		if (LinearMip || (Value != D3DTEXF_NONE && Value != D3DTEXF_POINT))
+		{
+			return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_LINEAR);
+		}
+		else
+		{
+			return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_POINT);
 		}
 	}
 
@@ -1625,18 +1621,22 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	{
 		if (Type == D3DSAMP_MAXANISOTROPY)
 		{
-			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MAXANISOTROPY, MaxAnisotropy)))
-			{
-				return D3D_OK;
-			}
+			return D3D_OK;
 		}
-		else if (((Type == D3DSAMP_MINFILTER && AnisotropyMin) || (Type == D3DSAMP_MAGFILTER && AnisotropyMag)) && Value != D3DTEXF_NONE && Value != D3DTEXF_POINT)
+		else if (AnisotropyMin && Type == D3DSAMP_MINFILTER && Value != D3DTEXF_NONE)
 		{
-			if (SUCCEEDED(ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC)))
-			{
-				LOG_ONCE("Setting Anisotropic Filtering at " << MaxAnisotropy << "x");
-				return D3D_OK;
-			}
+			LOG_ONCE("Setting Anisotropic Min Filtering at " << MaxAnisotropy << "x");
+			return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC);
+		}
+		// Anisotropic filtering is principally useful for minification, keeping MAGFILTER set to POINT
+		else if (AnisotropyMag && Type == D3DSAMP_MAGFILTER && Value != D3DTEXF_NONE && Value != D3DTEXF_POINT)
+		{
+			LOG_ONCE("Setting Anisotropic Mag Filtering at " << MaxAnisotropy << "x");
+			return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC);
+		}
+		else if (LinearMip && Type == D3DSAMP_MIPFILTER && Value != D3DTEXF_NONE)
+		{
+			return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_LINEAR);
 		}
 	}
 
@@ -1939,6 +1939,16 @@ HRESULT m_IDirect3DDevice9Ex::SetStreamSource(THIS_ UINT StreamNumber, IDirect3D
 
 	if (pStreamData)
 	{
+		// Fix some games that write to the vertex buffer outside of the Lock/Unlock pair (eg. Rayman 3)
+		if (Config.ForceSystemMemVertexCache)
+		{
+			void* pData = nullptr;
+			if (SUCCEEDED(pStreamData->Lock(0, 0, &pData, 0)))
+			{
+				pStreamData->Unlock();
+			}
+		}
+
 		pStreamData = static_cast<m_IDirect3DVertexBuffer9*>(pStreamData)->GetProxyInterface();
 	}
 
@@ -2570,10 +2580,11 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 {
 	bool CalledBeginScene = false;
 
-	if (RequirePresentHandling())
-	{
-		ScopedCriticalSection ThreadLock(&d9cs);
+	const bool DrawSurface = (UsingShadowBackBuffer() || ShouldEnableGammaShader());
+	const bool RequiresDraw = (Config.ShowFPSCounter || DrawSurface);
 
+	if (RequiresDraw)
+	{
 		// Create state block
 		if (pStateBlock || SUCCEEDED(ProxyInterface->CreateStateBlock(D3DSBT_ALL, &pStateBlock)))
 		{
@@ -2604,10 +2615,10 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 					ProxyInterface->SetRenderTarget(0, pBackBuffer.Get());
 				}
 
-				// Apply brightness level
-				if (UsingShadowBackBuffer() || IsGammaSet)
+				// Draw surface to back buffer
+				if (DrawSurface)
 				{
-					ApplyBrightnessLevel();
+					DrawSurfaceToBackbuffer();
 				}
 
 				// Draw FPS counter to screen
@@ -2646,9 +2657,6 @@ void m_IDirect3DDevice9Ex::ApplyPrePresentFixes()
 		ProxyInterface->EndScene();
 	}
 	BeginSceneCalled = false;
-
-	// Check FPU state before presenting
-	Utils::ResetInvalidFPUState();
 }
 
 void m_IDirect3DDevice9Ex::ApplyPostPresentFixes()
@@ -2731,9 +2739,9 @@ void m_IDirect3DDevice9Ex::BeforeEndScene()
 #endif
 }
 
-bool m_IDirect3DDevice9Ex::RequirePresentHandling() const
+bool m_IDirect3DDevice9Ex::ShouldEnableGammaShader() const
 {
-	return ((Config.WindowModeGammaShader && IsGammaSet) || Config.ShowFPSCounter || UsingShadowBackBuffer());
+	return (IsGammaSet || Config.DisplayBrightness || Config.DisplayContrast) && !DeviceDetails.IsDirectDrawDevice;
 }
 
 bool m_IDirect3DDevice9Ex::UsingShadowBackBuffer(DWORD iSwapChain) const
@@ -2935,7 +2943,7 @@ void m_IDirect3DDevice9Ex::DrawFPS(float fps, const RECT& presentRect, DWORD pos
 	}
 }
 
-HRESULT m_IDirect3DDevice9Ex::SetBrightnessLevel(D3DGAMMARAMP& Ramp)
+HRESULT m_IDirect3DDevice9Ex::SetGammaLevel(D3DGAMMARAMP& Ramp)
 {
 	Logging::LogDebug() << __FUNCTION__;
 
@@ -2998,18 +3006,25 @@ LPDIRECT3DPIXELSHADER9 m_IDirect3DDevice9Ex::GetGammaPixelShader()
 	// Create pixel shaders
 	if (!gammaPixelShader)
 	{
-		ProxyInterface->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &gammaPixelShader);
+		if (Config.DisplayBrightness || Config.DisplayContrast)
+		{
+			ProxyInterface->CreatePixelShader((DWORD*)BrightnessPixelShaderSrc, &gammaPixelShader);
+		}
+		else
+		{
+			ProxyInterface->CreatePixelShader((DWORD*)GammaPixelShaderSrc, &gammaPixelShader);
+		}
 	}
 	return gammaPixelShader;
 }
 
-void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
+void m_IDirect3DDevice9Ex::DrawSurfaceToBackbuffer()
 {
-	if (IsGammaSet && !GammaLUTTexture)
+	if (ShouldEnableGammaShader() && !GammaLUTTexture)
 	{
-		SetBrightnessLevel(RampData);
+		SetGammaLevel(RampData);
 	}
-	bool UsingGamma = IsGammaSet && GammaLUTTexture;
+	const bool UsingGamma = ShouldEnableGammaShader() && GammaLUTTexture;
 
 	// Set shader
 	IDirect3DPixelShader9* pShader = UsingGamma ? GetGammaPixelShader() : nullptr;
@@ -3019,50 +3034,50 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		return;
 	}
 
-	// Get current backbuffer (make sure to get it from wrapper not proxy)
-	ComPtr<IDirect3DSurface9> pBackBuffer;
-	{
-		ComPtr<m_IDirect3DSurface9> tmpBackBuffer;
-		if (FAILED(GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, reinterpret_cast<IDirect3DSurface9**>(tmpBackBuffer.GetAddressOf()))))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get back buffer!");
-			return;
-		}
-		*pBackBuffer.GetAddressOf() = tmpBackBuffer->GetProxyInterface();
-		pBackBuffer->AddRef();
-	}
-
-	// Create intermediate texture for shader input
 	D3DSURFACE_DESC desc;
-	pBackBuffer->GetDesc(&desc);
-	if (!ScreenCopyTexture)
 	{
-		if (FAILED(ProxyInterface->CreateTexture(desc.Width, desc.Height, 1, D3DUSAGE_RENDERTARGET, desc.Format, D3DPOOL_DEFAULT, &ScreenCopyTexture, nullptr)))
+		// Get current backbuffer (make sure to get it from wrapper not proxy)
+		ComPtr<IDirect3DSurface9> pBackBuffer;
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create screen copy texture!");
+			ComPtr<m_IDirect3DSurface9> tmpBackBuffer;
+			if (FAILED(GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, reinterpret_cast<IDirect3DSurface9**>(tmpBackBuffer.GetAddressOf()))))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get back buffer!");
+				return;
+			}
+			*pBackBuffer.GetAddressOf() = tmpBackBuffer->GetProxyInterface();
+			pBackBuffer->AddRef();
+		}
+
+		// Create intermediate texture for shader input
+		pBackBuffer->GetDesc(&desc);
+		if (!ScreenCopyTexture)
+		{
+			if (FAILED(ProxyInterface->CreateTexture(desc.Width, desc.Height, 1, D3DUSAGE_RENDERTARGET, desc.Format, D3DPOOL_DEFAULT, &ScreenCopyTexture, nullptr)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to create screen copy texture!");
+				return;
+			}
+		}
+
+		ComPtr<IDirect3DSurface9> pCopySurface;
+		if (FAILED(ScreenCopyTexture->GetSurfaceLevel(0, pCopySurface.GetAddressOf())))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get surface level from screen copy texture!");
 			return;
 		}
-	}
-
-	ComPtr<IDirect3DSurface9> pCopySurface;
-	if (FAILED(ScreenCopyTexture->GetSurfaceLevel(0, pCopySurface.GetAddressOf())))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to get surface level from screen copy texture!");
-		return;
-	}
-	if (FAILED(ProxyInterface->StretchRect(pBackBuffer.Get(), nullptr, pCopySurface.Get(), nullptr, D3DTEXF_NONE)))
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to copy render target!");
-		return;
+		if (FAILED(ProxyInterface->StretchRect(pBackBuffer.Get(), nullptr, pCopySurface.Get(), nullptr, D3DTEXF_NONE)))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to copy render target!");
+			return;
+		}
 	}
 
 	// Set render states
-	ProxyInterface->SetRenderState(D3DRS_LIGHTING, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_FOGENABLE, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_ZENABLE, FALSE);
-	ProxyInterface->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_STENCILENABLE, FALSE);
 	ProxyInterface->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
 	ProxyInterface->SetRenderState(D3DRS_CLIPPING, FALSE);
@@ -3071,8 +3086,8 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 	// Set texture states
 	ProxyInterface->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
 	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-	ProxyInterface->SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_CURRENT);
 	ProxyInterface->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+	ProxyInterface->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
 
 	// Set sampler states
 	for (UINT x = 0; x < 2; x++)
@@ -3101,7 +3116,14 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 
 	// Set texture
 	ProxyInterface->SetTexture(0, ScreenCopyTexture);
-	ProxyInterface->SetTexture(1, GammaLUTTexture);
+	if (UsingGamma)
+	{
+		ProxyInterface->SetTexture(1, GammaLUTTexture);
+	}
+	else
+	{
+		ProxyInterface->SetTexture(1, nullptr);
+	}
 
 	// Clear textures
 	for (int x = 2; x < MAX_TEXTURE_STAGES; x++)
@@ -3109,8 +3131,35 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		ProxyInterface->SetTexture(x, nullptr);
 	}
 
-	// Set shader
-	ProxyInterface->SetPixelShader(pShader);
+	// Gamma shader
+	float OldAdjustment[4] = {};
+	if (UsingGamma)
+	{
+		if (Config.DisplayBrightness || Config.DisplayContrast)
+		{
+			// Get shader constant 
+			ProxyInterface->GetPixelShaderConstantF(0, OldAdjustment, 1);
+
+			// Set contrast / brightness values
+			const float contrast = max(0.01f,
+				1.0f + Config.DisplayContrast / 100.0f);
+
+			const float brightness =
+				Config.DisplayBrightness / 300.0f;
+
+			const float Adjustments[4] =
+			{
+				contrast,
+				brightness,
+				0.0f,
+				0.0f
+			};
+			ProxyInterface->SetPixelShaderConstantF(0, Adjustments, 1);
+		}
+
+		// Set shader
+		ProxyInterface->SetPixelShader(pShader);
+	}
 
 	const DWORD TLVERTEXFVF = (D3DFVF_XYZRHW | D3DFVF_TEX1);
 	struct TLVERTEX
@@ -3134,8 +3183,18 @@ void m_IDirect3DDevice9Ex::ApplyBrightnessLevel()
 		LOG_LIMIT(100, __FUNCTION__ << " Error: Failed to draw primitive!");
 	}
 
-	// Clear shader
-	ProxyInterface->SetPixelShader(nullptr);
+	// Gamma shader
+	if (UsingGamma)
+	{
+		// Clear shader
+		ProxyInterface->SetPixelShader(nullptr);
+
+		// Restore game constant
+		if (Config.DisplayBrightness || Config.DisplayContrast)
+		{
+			ProxyInterface->SetPixelShaderConstantF(0, OldAdjustment, 1);
+		}
+	}
 
 	// Clear texture
 	ProxyInterface->SetTexture(0, nullptr);
@@ -3199,7 +3258,7 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 
 	if (BlankTexture)
 	{
-		if (isBlankTextureUsed)
+		if (isBlankTextureUsed && !FailedReset)
 		{
 			isBlankTextureUsed = false;
 			ProxyInterface->SetTexture(0, nullptr);
@@ -3429,12 +3488,58 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 		Logging::Log() << __FUNCTION__ << " Error: Falied to get DeviceCaps (" << this << ")";
 	}
 
+	// Set Max Anisotropy and Anisotropic Filtering
 	if (Config.AnisotropicFiltering)
 	{
 		MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
 		AnisotropyMin = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC);
 		AnisotropyMag = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC);
-		LOG_ONCE("Anisotropic Filtering DeviceCaps. Min: " << AnisotropyMin << " Mag: " << AnisotropyMag);
+		LinearMip = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MIPFLINEAR);
+		LOG_ONCE("Anisotropic Filtering DeviceCaps. Min: " << AnisotropyMin << " Mag: " << AnisotropyMag << " LinearMap: " << LinearMip);
+
+		if (MaxAnisotropy && (AnisotropyMin || AnisotropyMag))
+		{
+			for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
+			{
+				ProxyInterface->SetSamplerState(x, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
+
+				// Anisotropic filtering is principally useful for minification, keeping MAGFILTER set to POINT
+				if (AnisotropyMin)
+				{
+					ProxyInterface->SetSamplerState(x, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
+				}
+			}
+		}
+	}
+
+	// Force MipMap usage
+	if (Config.ForceMipMapUsage)
+	{
+		for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
+		{
+			ProxyInterface->SetSamplerState(x, D3DSAMP_MIPFILTER, LinearMip ? D3DTEXF_LINEAR : D3DTEXF_POINT);
+		}
+	}
+
+	// Set for Multisample
+	if (DeviceDetails.DeviceMultiSampleFlag)
+	{
+		if (!DeviceDetails.UseAppMultiSampleState)
+		{
+			ProxyInterface->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+		}
+		if (DeviceDetails.SetSSAA)
+		{
+			ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('S', 'S', 'A', 'A'));
+		}
+		if (DeviceDetails.SetATOC)
+		{
+			ProxyInterface->SetRenderState(D3DRS_ADAPTIVETESS_Y, MAKEFOURCC('A', 'T', 'O', 'C'));
+			if (Config.EnableMultisamplingATOC == 2)
+			{
+				ProxyInterface->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
+			}
+		}
 	}
 
 	ShadowBackbuffer->ReleaseAll();
@@ -3537,7 +3642,7 @@ void m_IDirect3DDevice9Ex::ReleaseShadowBackbuffer()
 	if (UsingShadowBackBuffer())
 	{
 		ComPtr<IDirect3DSurface9> pBackbuffer;
-		if (SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackbuffer.GetAddressOf())))
+		if (!FailedReset && SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackbuffer.GetAddressOf())))
 		{
 			ProxyInterface->SetRenderTarget(0, pBackbuffer.Get());
 		}
@@ -3560,8 +3665,6 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 
 	constexpr bool IsEx = std::is_same_v<T, fResetEx>;
 
-	ScopedCriticalSection ThreadLock(&d9cs, Config.AntiAliasing || RequirePresentHandling());
-
 	// Release extra resources used
 	ReleaseResources(true);
 
@@ -3573,8 +3676,27 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 	}
 #endif
 
-	// Ignore failures. Some WineD3D games require an EndScene before Reset.
-	ProxyInterface->EndScene();
+	// Handle some compatibility cases
+	if (!FailedReset)
+	{
+		// Ignore failures. Some WineD3D games require an EndScene before Reset.
+		ProxyInterface->EndScene();
+
+		// Reset D3D9 vertex processing state.
+		// Certian functions can leave the hardware vertex-processing state
+		// in a condition that causes rendering problems in some games.
+		// Toggling software vertex processing forces D3D9/driver to reset it.
+		if (GetSoftwareVertexProcessing())
+		{
+			ProxyInterface->SetSoftwareVertexProcessing(FALSE);
+			ProxyInterface->SetSoftwareVertexProcessing(TRUE);
+		}
+		else
+		{
+			ProxyInterface->SetSoftwareVertexProcessing(TRUE);
+			ProxyInterface->SetSoftwareVertexProcessing(FALSE);
+		}
+	}
 
 	HRESULT hr = D3DERR_INVALIDCALL;
 
@@ -3586,7 +3708,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 
 	// Hook WndProc before creating device
 	const HWND hWnd = (pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : DeviceDetails.DeviceWindow);
-	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
+	auto WndDataStruct = WndProc::AddWndProc(hWnd);
 
 	WndProc::ScopedSetDeviceCreationFlag SetCreatingDevice(WndDataStruct);
 
@@ -3658,6 +3780,8 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 			DeviceDetails.SetATOC = false;
 		}
 	}
+
+	FailedReset = FAILED(hr);
 
 	ClearVars();
 
@@ -3795,26 +3919,34 @@ m_IDirect3DStateBlock9* m_IDirect3DDevice9Ex::GetCreateStateBlock(IDirect3DState
 {
 	m_IDirect3DStateBlock9* StateBlockX = nullptr;
 
-	if (DeletedStateBlocks.size())
+	if (!DeletedStateBlocks.empty())
 	{
 		StateBlockX = DeletedStateBlocks.back();
-		DeletedStateBlocks.RemoveStateBlock(StateBlockX);
-
-		StateBlockX->SetProxyAddress(pSB);
-		StateBlockX->InitInterface(this, IID_IDirect3DStateBlock9, nullptr);
+		if (StateBlockX)
+		{
+			DeletedStateBlocks.RemoveStateBlock(StateBlockX);
+			StateBlockX->SetProxyInterface(pSB);
+		}
 	}
-	else
+
+	if (!StateBlockX)
 	{
 		StateBlockX = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DStateBlock9, m_IDirect3DDevice9Ex, LPVOID>(pSB, this, IID_IDirect3DStateBlock9, nullptr);
 	}
 
-	return StateBlockX;
-}
+	// If we exceed the max allowed state blocks, remove the oldest ones
+	if (Config.LimitStateBlocks && StateBlockTable.size() > MAX_STATE_BLOCKS)
+	{
+		m_IDirect3DStateBlock9* oldStateBlock = StateBlockTable.front();
+		if (oldStateBlock)
+		{
+			oldStateBlock->Release();
+		}
+	}
 
-void m_IDirect3DDevice9Ex::ClearDeletedStateBlock(m_IDirect3DStateBlock9* StateBlockX)
-{
-	StateBlockTable.RemoveStateBlock(StateBlockX);
-	DeletedStateBlocks.RemoveStateBlock(StateBlockX);
+	StateBlockTable.AddStateBlock(StateBlockX);
+
+	return StateBlockX;
 }
 
 void m_IDirect3DDevice9Ex::ModeExToMode(D3DDISPLAYMODEEX& ModeEx, D3DDISPLAYMODE& Mode)

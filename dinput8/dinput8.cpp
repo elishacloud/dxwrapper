@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -105,7 +105,7 @@ HRESULT WINAPI di8_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPV
 			return proxyHr;
 		}
 
-		wrapperFactory = new (std::nothrow) ClassFactory<m_IDirectInput8>(proxyFactory);
+		wrapperFactory = new (std::nothrow) DXClassFactory<m_IDirectInput8>(proxyFactory);
 		if (!wrapperFactory)
 		{
 			proxyFactory->Release();
@@ -120,7 +120,7 @@ HRESULT WINAPI di8_DllGetClassObject(IN REFCLSID rclsid, IN REFIID riid, OUT LPV
 			return proxyHr;
 		}
 
-		wrapperFactory = new (std::nothrow) ClassFactory<m_IDirectInputDevice8>(proxyFactory);
+		wrapperFactory = new (std::nothrow) DXClassFactory<m_IDirectInputDevice8>(proxyFactory);
 		if (!wrapperFactory)
 		{
 			proxyFactory->Release();

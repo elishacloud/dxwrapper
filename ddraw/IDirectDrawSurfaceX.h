@@ -5,11 +5,12 @@ class m_IDirectDrawSurfaceX final : public IUnknown, public AddressLookupTableDd
 private:
 	IDirectDrawSurface7 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	LONG RefCount1 = 0;
-	LONG RefCount2 = 0;
-	LONG RefCount3 = 0;
-	LONG RefCount4 = 0;
-	LONG RefCount7 = 0;
+	ULONG RefCount1 = 0;
+	ULONG RefCount2 = 0;
+	ULONG RefCount3 = 0;
+	ULONG RefCount4 = 0;
+	ULONG RefCount7 = 0;
+	std::atomic<bool> RefCountLock = false;
 
 	// Store version wrappers
 	m_IDirectDrawSurface* WrapperInterface = nullptr;
@@ -23,7 +24,7 @@ private:
 	{
 		bool IsLocked = false;
 		DWORD LockedWithID = 0;								// Thread ID of the current lock
-		std::vector<RECT> LockRectList;						// Rects used to lock the surface
+		std::list<RECT> LockRectList;						// Rects used to lock the surface
 		bool ReadOnly = false;
 		bool IsSkipScene = false;
 		RECT Rect = {};
@@ -188,6 +189,7 @@ private:
 		bool IsLockable = false;
 		bool IsDirtyFlag = false;
 		bool IsDrawTextureDirty = false;
+		DWORD LastDrawTextureColorKey = 0;
 		bool IsPaletteDirty = false;						// Used to detect if the palette surface needs to be updated
 		DWORD BitCount = 0;									// Bit count for this surface
 		D3DFORMAT Format = D3DFMT_UNKNOWN;					// Format for this surface
@@ -204,6 +206,7 @@ private:
 		DWORD LastShadowUSN = 0;
 		DWORD LastPaletteUSN = 0;							// The USN that was used last time the palette was updated
 		const PALETTEENTRY* PaletteEntryArray = nullptr;	// Used to store palette data address
+		const RGBQUAD* RGBPaletteArray = nullptr;			// Used to store palette data address
 		EMUSURFACE* emu = nullptr;							// Emulated surface using device context
 		LPDIRECT3DSURFACE9 Surface = nullptr;				// Surface used for Direct3D
 		LPDIRECT3DSURFACE9 Shadow = nullptr;				// Shadow surface for render target
@@ -252,6 +255,7 @@ private:
 	LONG overlayX = 0;
 	LONG overlayY = 0;
 
+	bool CreatedByDDFactory = false;
 	bool Using3D = false;								// Direct3D is being used on top of DirectDraw
 	bool DCRequiresEmulation = false;
 	bool SurfaceRequiresEmulation = false;
@@ -281,8 +285,7 @@ private:
 
 	// Store a list of attached surfaces
 	std::unique_ptr<m_IDirectDrawSurfaceX> BackBufferInterface;
-	std::map<DWORD, ATTACHEDMAP> AttachedSurfaceMap;
-	DWORD MapKey = 0;
+	std::list<ATTACHEDMAP> AttachedSurfaceMap;
 
 	// Helper functions
 	LPDIRECT3DSURFACE9 Get3DSurface();
@@ -344,21 +347,22 @@ private:
 	// Surface information functions
 	HRESULT LockReturnValue(HRESULT hr, DWORD MipMapLevel, m_IDirectDrawSurfaceX* pSrcSurface, DWORD SrcMipMapLevel, bool LockWait);
 	bool IsSurfaceLocked(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS);
-	bool IsSurfaceBlitting() const { return (IsInBlt || IsInBltBatch); }
+	inline bool IsSurfaceBlitting() const { return (IsInBlt || IsInBltBatch); }
 	bool IsSurfaceInDC(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS);
-	bool IsD9UsingVideoMemory() const { return ((surface.Surface || surface.Texture) ? surface.Pool == D3DPOOL_DEFAULT : false); }
-	DWORD GetLevelCount() const { return !(surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) || surfaceDesc2.dwMipMapCount == 0 ? 1 : surfaceDesc2.dwMipMapCount; }
+	inline bool IsD9UsingVideoMemory() const { return ((surface.Surface || surface.Texture) ? surface.Pool == D3DPOOL_DEFAULT : false); }
+	inline DWORD GetLevelCount() const { return !(surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) || surfaceDesc2.dwMipMapCount == 0 ? 1 : surfaceDesc2.dwMipMapCount; }
 	void ComputeSurfaceWrites();
-	bool ShouldUseShadowSurface(DWORD MipMapLevel, bool AlwaysUseShadow) const
+	inline bool ShouldUseShadowSurface(DWORD MipMapLevel, bool AlwaysUseShadow) const
 	{ return (MipMapLevel == 0 && (surface.Usage & D3DUSAGE_RENDERTARGET) && (AlwaysUseShadow || !surface.IsLockable || Config.DdrawUseShadowSurface) && !IsUsingShadowSurface()); }
-	bool IsUsingShadowSurface() const { return (surface.UsingShadowSurface && surface.Shadow); }
-	bool CanUseRenderTargetSurface() const { return (!surface.UsingShadowSurface || surface.LastShadowUSN == surface.SurfaceUSN); }
+	inline bool IsUsingShadowSurface() const { return (surface.UsingShadowSurface && surface.Shadow); }
+	inline bool CanUseShadowSurface() const { return (surface.Shadow && (surface.UsingShadowSurface || surface.LastShadowUSN == surface.SurfaceUSN)); }
+	inline bool CanUseRenderTargetSurface() const { return (!surface.UsingShadowSurface || surface.LastShadowUSN == surface.SurfaceUSN); }
 	bool IsLockedFromOtherThread(DWORD MipMapLevel);
-	bool IsDummyMipMap(DWORD MipMapLevel) { return (MipMapLevel > MaxMipMapLevel || ((MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1 < MipMaps.size() && MipMaps[(MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1].IsDummy)); }
-	DWORD GetD9MipMapLevel(DWORD MipMapLevel) const { return min(MipMapLevel, MaxMipMapLevel); }
-	DWORD GetWidth() const { return surfaceDesc2.dwWidth; }
-	DWORD GetHeight() const { return surfaceDesc2.dwHeight; }
-	DDSCAPS2 GetSurfaceCaps() const { return surfaceDesc2.ddsCaps; }
+	inline bool IsDummyMipMap(DWORD MipMapLevel) { return (MipMapLevel > MaxMipMapLevel || ((MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1 < MipMaps.size() && MipMaps[(MipMapLevel & ~DXW_IS_MIPMAP_DUMMY) - 1].IsDummy)); }
+	inline DWORD GetD9MipMapLevel(DWORD MipMapLevel) const { return min(MipMapLevel, MaxMipMapLevel); }
+	inline DWORD GetWidth() const { return surfaceDesc2.dwWidth; }
+	inline DWORD GetHeight() const { return surfaceDesc2.dwHeight; }
+	inline DDSCAPS2 GetSurfaceCaps() const { return surfaceDesc2.ddsCaps; }
 
 	// Attached surfaces
 	void InitSurfaceDesc(DWORD DirectXVersion);
@@ -370,9 +374,10 @@ private:
 
 	// Copying surface textures
 	void SetRenderTargetShadow();
-	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, D3DCOLOR ColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel);
+	HRESULT CopySurface(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, D3DTEXTUREFILTERTYPE Filter, DWORD ColorKey, DWORD dwFlags, DWORD SrcMipMapLevel, DWORD MipMapLevel);
+	HRESULT DrawSurfaceToRenderTarget(m_IDirectDrawSurfaceX* pSourceSurface, const RECT& SrcRect, const RECT& DestRect, D3DTEXTUREFILTERTYPE Filter, DWORD SrcMipMapLevel, D3DCOLOR RGBColorKey, bool IsColorKey, bool IsMirrorLeftRight, bool IsMirrorUpDown);
 	HRESULT CopyZBuffer(m_IDirectDrawSurfaceX* pSourceSurface, RECT* pSourceRect, RECT* pDestRect, bool DepthFill, DWORD DepthColor);
-	HRESULT CopyToDrawTexture(LPRECT lpDestRect);
+	HRESULT CopyToDrawTexture(LPRECT lpDestRect, D3DCOLOR RGBColorKey, bool OverRideColorKey);
 	HRESULT LoadSurfaceFromMemory(LPDIRECT3DSURFACE9 pDestSurface, const RECT& Rect, LPCVOID pSrcMemory, D3DFORMAT SrcFormat, UINT SrcPitch);
 	HRESULT CopyFromEmulatedSurface(LPRECT lpDestRect);
 	HRESULT CopyToEmulatedSurface(LPRECT lpDestRect);
@@ -530,6 +535,7 @@ public:
 	ULONG AddRefRoot(LPDIRECTDRAWSURFACE7 WrapperAddress);
 	ULONG ReleaseRoot(LPDIRECTDRAWSURFACE7 WrapperAddress);
 	LPDIRECTDRAWSURFACE7 GetWrapperInterfaceRootX(LPDIRECTDRAWSURFACE7 WrapperAddress);
+	inline bool IsCreatedByDDFactory() const { return CreatedByDDFactory; }
 
 	// Fix byte alignment issue
 	void LockEmuLock(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSurfaceDesc);
@@ -544,7 +550,7 @@ public:
 
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX* ddraw);
-	m_IDirectDrawX* GetDDrawParent() { return ddrawParent; };
+	inline m_IDirectDrawX* GetDDrawParent() { return ddrawParent; };
 	void ClearDdraw();
 
 	// Direct3D9 interface functions
@@ -557,46 +563,49 @@ public:
 	void EndWritePresent(LPRECT lpDestRect, DWORD MipMapLevel, bool SetVsync, bool IsSkipScene, bool SkipCriticalSection = false);
 
 	// Surface information functions
-	bool IsPrimarySurface() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
-	bool IsBackBuffer() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER) != 0; }
-	bool IsPrimaryOrBackBuffer() const { return (IsPrimarySurface() || IsBackBuffer()); }
-	bool IsFlipSurface() const { return ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) == (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)); }
+	inline bool IsPrimarySurface() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0; }
+	inline bool IsBackBuffer() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_BACKBUFFER) != 0; }
+	inline bool IsPrimaryOrBackBuffer() const { return (IsPrimarySurface() || IsBackBuffer()); }
+	inline bool IsFlipSurface() const { return ((surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)) == (DDSCAPS_FLIP | DDSCAPS_FRONTBUFFER)); }
 	bool IsSurface3D() const;
-	bool IsRenderTarget() const { return surface.CanBeRenderTarget; }
-	bool IsDepthStencil() const { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
-	bool IsSurfaceTexture() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
-	bool IsSurfaceManaged() const { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
-	bool IsSurfaceCreated() const { return (surface.Texture || surface.Surface); }
+	inline bool IsRenderTarget() const { return surface.CanBeRenderTarget; }
+	inline bool IsDepthStencil() const { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
+	inline bool IsSurfaceTexture() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
+	inline bool IsSurfaceManaged() const { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
+	inline bool IsSurfaceCreated() const { return (surface.Texture || surface.Surface); }
 	bool HasAlphaChannel(bool UsingColorKey) const;
-	bool IsColorKeyTexture() const { return (IsSurfaceTexture() && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)); }
-	bool IsPalette() const { return (surface.Format == D3DFMT_P8); }
-	D3DFORMAT GetSurfaceFormat() const { return surface.Format; }
+	inline bool IsColorKeyTexture() const { return (IsSurfaceTexture() && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT)); }
+	inline bool IsPalette() const { return (surface.Format == D3DFMT_P8); }
+	inline D3DFORMAT GetSurfaceFormat() const { return surface.Format; }
 	DWORD GetAttachedDepthStencilZBits();
-	D3DMULTISAMPLE_TYPE GetMultiSampleType() const { return surface.MultiSampleType; }
-	bool IsSurfaceBusy(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS) { return (IsSurfaceBlitting() || IsSurfaceLocked(MipMapLevel) || IsSurfaceInDC(MipMapLevel)); }
-	bool CanSurfaceBeDeleted() const { return !ComplexChild; }
-	bool CanSurfaceUseEmulation() const
+	inline D3DMULTISAMPLE_TYPE GetMultiSampleType() const { return surface.MultiSampleType; }
+	inline bool IsSurfaceBusy(DWORD MipMapLevel = DXW_ALL_SURFACE_LEVELS) { return (IsSurfaceBlitting() || IsSurfaceLocked(MipMapLevel) || IsSurfaceInDC(MipMapLevel)); }
+	inline bool CanSurfaceBeDeleted() const { return !ComplexChild; }
+	inline bool CanSurfaceUseEmulation() const
 	{ return ((IsPixelFormatRGB(surfaceDesc2.ddpfPixelFormat) || IsPixelFormatPalette(surfaceDesc2.ddpfPixelFormat)) && (!IsSurface3D() || !Using3D) && !surface.UsingSurfaceMemory); }
-	bool IsUsingEmulation() const { return (surface.emu && surface.emu->DC && surface.emu->GameDC && surface.emu->pBits); }
-	bool IsEmulationDCReady() const { return (IsUsingEmulation() && !surface.emu->UsingGameDC); }
-	bool IsSurfaceDirty() const { return surface.IsDirtyFlag; }
-	bool IsMipMapAutogen() const { return (surface.Usage & D3DUSAGE_AUTOGENMIPMAP); }
-	bool IsMipMapGenerated() const { return IsMipMapReadyToUse || IsMipMapAutogen() || MipMaps.empty(); }
+	inline bool IsUsingEmulation() const { return (surface.emu && surface.emu->DC && surface.emu->GameDC && surface.emu->pBits); }
+	inline bool IsEmulationDCReady() const { return (IsUsingEmulation() && !surface.emu->UsingGameDC); }
+	inline bool IsSurfaceDirty() const { return surface.IsDirtyFlag; }
+	inline bool IsMipMapAutogen() const { return (surface.Usage & D3DUSAGE_AUTOGENMIPMAP); }
+	inline bool IsMipMapGenerated() const { return IsMipMapReadyToUse || IsMipMapAutogen() || MipMaps.empty(); }
 	void FixTextureFlags(LPDDSURFACEDESC2 lpDDSurfaceDesc2);
 	void PrepareRenderTarget();
 	void ClearDirtyFlags();
 	bool CanSurfaceBeLost() const;
-	bool IsSurfaceMarkedAsLost() const { return IsSurfaceLost; }
+	inline bool IsSurfaceMarkedAsLost() const { return IsSurfaceLost; }
 	void MarkSurfaceLost();
 	void ClearSurfaceLostFlag();
 	HRESULT RestoreD9Surface();
 	bool GetColorKeyForShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
 	bool GetColorKeyForPrimaryShader(float(&lowColorKey)[4], float(&highColorKey)[4]);
-	bool GetWasBitAlignLocked() const { return WasBitAlignLocked; }
-	bool GetSurfaceSetSize(DWORD& Width, DWORD& Height) const
+	inline bool GetWasBitAlignLocked() const { return WasBitAlignLocked; }
+	bool GetSurfaceDimensions(DWORD& Width, DWORD& Height)
 	{
+		if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) != (DDSD_WIDTH | DDSD_HEIGHT) && ddrawParent)
+		{
+			UpdateSurfaceDesc();
+		}
 		if ((surfaceDesc2.dwFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == (DDSD_WIDTH | DDSD_HEIGHT) &&
-			(ResetDisplayFlags & (DDSD_WIDTH | DDSD_HEIGHT)) == 0 &&
 			surfaceDesc2.dwWidth && surfaceDesc2.dwHeight)
 		{
 			Width = surfaceDesc2.dwWidth;
@@ -607,28 +616,31 @@ public:
 	}
 	m_IDirectDrawSurfaceX* GetAttachedDepthStencil();
 	LPDIRECT3DSURFACE9 GetD9Surface();
-	LPDIRECT3DTEXTURE9 GetD9DrawTexture();
+	LPDIRECT3DTEXTURE9 GetD9DrawTexture(D3DCOLOR RGBColorKey = 0, bool OverRideColorKey = false);
 	LPDIRECT3DTEXTURE9 GetD9Texture(bool InterfaceCheck = true);
 	HRESULT GenerateMipMapLevels();
-	DWORD GetD9Width() const { return surface.Width; }
-	DWORD GetD9Height() const { return surface.Height; }
-	D3DFORMAT GetD9Format() const { return surface.Format; }
-	LPDIRECT3DTEXTURE9 GetD9PaletteTexture() const { return primary.PaletteTexture; }
-	m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
+	inline DWORD GetD9Width() const { return surface.Width; }
+	inline DWORD GetD9Height() const { return surface.Height; }
+	inline D3DFORMAT GetD9Format() const { return surface.Format; }
+	inline LPDIRECT3DTEXTURE9 GetD9PaletteTexture() const { return primary.PaletteTexture; }
+	inline m_IDirect3DTextureX* GetAttachedTexture() { return attached3DTexture; }
 	void ClearUsing3DFlag();
 	HRESULT GetPresentWindowRect(LPRECT pRect, RECT& DestRect);
-	CRITICAL_SECTION* GetCriticalSection() { return IsPrimaryOrBackBuffer() || IsRenderTarget() ? DdrawWrapper::GetDDCriticalSection() : &ddscs; }
+	inline CRITICAL_SECTION* GetCriticalSection() { return IsPrimaryOrBackBuffer() || IsRenderTarget() || IsDepthStencil() ? DdrawWrapper::GetDDCriticalSection() : &ddscs; }
 
 	// For texture loading
 	HRESULT Load(LPDIRECTDRAWSURFACE7 lpDestTex, LPPOINT lpDestPoint, LPDIRECTDRAWSURFACE7 lpSrcTex, LPRECT lprcSrcRect, DWORD dwFlags);
+
+	// For DuplicateSurface
+	HRESULT DuplicateSurfaceContent(LPDIRECTDRAWSURFACE7 lpDDSrcSurface);
 
 	// For Presenting
 	void CopyGDIToPrimaryAndBackbuffer();
 
 	// For Present checking
-	bool ShouldReadFromGDI() const { return (Config.DdrawReadFromGDI && IsPrimarySurface() && IsUsingEmulation() && !Using3D); }
-	bool ShouldWriteToGDI() const { return (Config.DdrawWriteToGDI && IsPrimarySurface() && IsUsingEmulation() && !Using3D); }
-	bool ShouldPresentToWindow(bool IsPresenting) const
+	inline bool ShouldReadFromGDI() const { return (Config.DdrawReadFromGDI && IsPrimarySurface() && IsUsingEmulation() && !Using3D); }
+	inline bool ShouldWriteToGDI() const { return (Config.DdrawWriteToGDI && IsPrimarySurface() && IsUsingEmulation() && !Using3D); }
+	inline bool ShouldPresentToWindow(bool IsPresenting) const
 	{
 		return (surface.IsUsingWindowedMode && (IsPresenting ? (IsPrimarySurface() && !IsRenderTarget()) : IsPrimaryOrBackBuffer()) && !Config.DdrawWriteToGDI);
 	}
@@ -643,7 +655,7 @@ public:
 	void RemoveClipper(m_IDirectDrawClipper* ClipperToRemove);
 
 	// For palettes
-	m_IDirectDrawPalette *GetAttachedPalette() { return attachedPalette; }
+	inline m_IDirectDrawPalette *GetAttachedPalette() { return attachedPalette; }
 	void RemovePalette(m_IDirectDrawPalette* PaletteToRemove);
 	void UpdatePaletteData();
 

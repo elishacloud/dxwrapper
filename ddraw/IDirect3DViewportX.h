@@ -5,9 +5,10 @@ class m_IDirect3DViewportX final : public IUnknown, public AddressLookupTableDdr
 private:
 	IDirect3DViewport3 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	LONG RefCount1 = 0;
-	LONG RefCount2 = 0;
-	LONG RefCount3 = 0;
+	ULONG RefCount1 = 0;
+	ULONG RefCount2 = 0;
+	ULONG RefCount3 = 0;
+	std::atomic<bool> RefCountLock = false;
 
 	// Store version wrappers
 	m_IDirect3DViewport* WrapperInterface = nullptr;
@@ -29,14 +30,14 @@ private:
 	std::vector<LPDIRECT3DLIGHT> AttachedLights;
 
 	// D3D Device array
-	std::vector<m_IDirect3DDeviceX*> AttachedD3DDevices;
+	std::list<m_IDirect3DDeviceX*> AttachedD3DDevices;
 
 	bool IsLightAttached(LPDIRECT3DLIGHT LightX)
 	{
 		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
 			[=](auto pLight) -> bool { return pLight == LightX; });
 
-		if (it != std::end(AttachedLights))
+		if (it != AttachedLights.end())
 		{
 			return true;
 		}
@@ -48,7 +49,7 @@ private:
 		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
 			[=](auto pLight) -> bool { return pLight == LightX; });
 
-		if (it != std::end(AttachedLights))
+		if (it != AttachedLights.end())
 		{
 			AttachedLights.erase(it);
 			return true;
@@ -66,7 +67,7 @@ private:
 	void ReleaseInterface();
 
 	// Helper functions
-	bool IsViewportSet() const { return (Viewport.Data9.Width && Viewport.Data9.Height); }
+	inline bool IsViewportSet() const { return (Viewport.Data9.Width && Viewport.Data9.Height); }
 	HRESULT m_IDirect3DViewportX::GetCurrentViewport(m_IDirect3DDeviceX* pDirect3DDeviceX, D3DVIEWPORT9& Viewport9);
 
 public:
@@ -163,7 +164,7 @@ public:
 	void AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
-	void ClearD3D() { D3DInterface = nullptr; }
+	inline void ClearD3D() { D3DInterface = nullptr; }
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
 

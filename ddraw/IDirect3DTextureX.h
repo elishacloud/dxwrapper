@@ -5,8 +5,9 @@ class m_IDirect3DTextureX final : public IUnknown, public AddressLookupTableDdra
 private:
 	IDirect3DTexture2 *ProxyInterface = nullptr;
 	DWORD ProxyDirectXVersion;
-	LONG RefCount1 = 0;
-	LONG RefCount2 = 0;
+	ULONG RefCount1 = 0;
+	ULONG RefCount2 = 0;
+	std::atomic<bool> RefCountLock = false;
 
 	// Store version wrappers
 	m_IDirect3DTexture* WrapperInterface = nullptr;
@@ -98,5 +99,5 @@ public:
 	HRESULT m_IDirect3DTextureX::SetHandle(DWORD dwHandle);
 
 	// Surface functions
-	m_IDirectDrawSurfaceX* GetSurface() const { return parent3DSurface.Interface; }
+	inline m_IDirectDrawSurfaceX* GetSurface() const { return parent3DSurface.Interface; }
 };

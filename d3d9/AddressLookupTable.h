@@ -72,7 +72,7 @@ private:
 		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
 		auto it = g_map[CacheIndex].find(GetIndentityInterface<T>(Proxy));
-		if (it != std::end(g_map[CacheIndex]))
+		if (it != g_map[CacheIndex].end())
 		{
 			T* addr = static_cast<T*>(it->second);
 			addr->AddRef();
@@ -162,18 +162,6 @@ public:
 
 		IUnknown* identity = GetIndentityInterface<T>(Proxy);
 
-		// Check if the entry already exists in the map
-		auto it = g_map[CacheIndex].find(identity);
-		if (it != g_map[CacheIndex].end())
-		{
-			// If the entry exists, delete the existing object
-			if (it->second)
-			{
-				delete it->second;
-				DeleteAddress((T*)it->second);
-			}
-		}
-
 		// Now save the new entry in the map
 		g_map[CacheIndex][identity] = Wrapper;
 	}
@@ -190,7 +178,7 @@ public:
 
 		auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
 			[=](auto& Map) -> bool { return Map.second == Wrapper; });
-		if (it != std::end(g_map[CacheIndex]))
+		if (it != g_map[CacheIndex].end())
 		{
 			g_map[CacheIndex].erase(it);
 		}
@@ -198,13 +186,20 @@ public:
 
 	void DeleteAll()
 	{
-		for (auto& map : g_map)
+		for (size_t i = 0; i < MaxCacheIndex; ++i)
 		{
-			while (!map.empty())
+			while (!g_map[i].empty())
 			{
-				auto it = map.begin();
-				delete it->second;
-				map.erase(it);
+				auto it = g_map[i].begin();
+				auto InterfaceCache = it->second;
+
+				// Remove it before deleting interface
+				g_map[i].erase(it);
+
+				if (InterfaceCache)
+				{
+					delete InterfaceCache;
+				}
 			}
 		}
 	}
@@ -213,13 +208,16 @@ public:
 class StateBlockCache
 {
 private:
-	std::vector<m_IDirect3DStateBlock9*> stateBlocks;
+	std::list<m_IDirect3DStateBlock9*> stateBlocks;
 
 public:
-	~StateBlockCache();
+	StateBlockCache() {}
+	~StateBlockCache() {}
 
-	size_t size() { return stateBlocks.size(); }
-	m_IDirect3DStateBlock9* back() { return stateBlocks.back(); }
+	inline size_t size() { return stateBlocks.size(); }
+	inline bool empty() { return stateBlocks.empty(); }
+	inline m_IDirect3DStateBlock9* back() { return stateBlocks.empty() ? nullptr : stateBlocks.back(); }
+	inline m_IDirect3DStateBlock9* front() { return stateBlocks.empty() ? nullptr : stateBlocks.front(); }
 	void AddStateBlock(m_IDirect3DStateBlock9* stateBlock);
 	void RemoveStateBlock(m_IDirect3DStateBlock9* stateBlock);
 };

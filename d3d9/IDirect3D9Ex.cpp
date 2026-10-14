@@ -507,7 +507,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	// Hook WndProc before creating device
 	const HWND hWnd = (hFocusWindow && IsWindow(hFocusWindow) ? hFocusWindow :
 		(pPresentationParameters && IsWindow(pPresentationParameters->hDeviceWindow) ? pPresentationParameters->hDeviceWindow : nullptr));
-	WndProc::DATASTRUCT* WndDataStruct = WndProc::AddWndProc(hWnd);
+	auto WndDataStruct = WndProc::AddWndProc(hWnd);
 
 	WndProc::ScopedSetDeviceCreationFlag SetCreatingDevice(WndDataStruct);
 
@@ -524,6 +524,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 		}
 		DeviceDetails.IsDirectDrawDevice = WndDataStruct->IsDirectDraw;
 	}
+	DeviceDetails.IsDirectDrawDevice = DeviceDetails.IsDirectDrawDevice || ClientDirectXVersion <= 7;
 
 	BehaviorFlags = UpdateBehaviorFlags(BehaviorFlags);
 
@@ -637,7 +638,6 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 			if (MultiSampleFlag || (pPresentationParameters->MultiSampleType && DeviceDetails.IsDirectDrawDevice))
 			{
 				DeviceDetails.DeviceMultiSampleFlag = true;
-				DeviceDetails.SetMultiSampleState = true;
 				DeviceDetails.DeviceMultiSampleType = d3dpp.MultiSampleType;
 				DeviceDetails.DeviceMultiSampleQuality = d3dpp.MultiSampleQuality;
 			}
@@ -744,6 +744,7 @@ DWORD m_IDirect3D9Ex::UpdateBehaviorFlags(DWORD BehaviorFlags)
 		BehaviorFlags &= ~(D3DCREATE_PUREDEVICE | D3DCREATE_MIXED_VERTEXPROCESSING | D3DCREATE_SOFTWARE_VERTEXPROCESSING);
 		BehaviorFlags |= D3DCREATE_HARDWARE_VERTEXPROCESSING;
 	}
+	BehaviorFlags |= !Config.DdrawNoMultiThreaded && ClientDirectXVersion < 9 ? D3DCREATE_MULTITHREADED : 0;
 	return BehaviorFlags;
 }
 
@@ -945,15 +946,12 @@ void m_IDirect3D9Ex::AdjustWindowStyle(HWND hWnd, bool IsDirectDrawDevice, bool 
 	bool frameStyleChanged = false;
 
 	// Add border if Vulkan is being used
-	if (IsDirectDrawDevice && (newStyle & WS_POPUP) && !(newStyle & WS_BORDER))
+	if (IsDirectDrawDevice && (newStyle & WS_POPUP) && (newStyle & WS_BORDER) && !(newStyle & (WS_CAPTION | WS_SYSMENU)))
 	{
-		if (Utils::IsVulkanModuleLoaded())
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: Vulkan detected adding WS_BORDER");
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: removing WS_BORDER");
 
-			newStyle |= WS_BORDER;
-			frameStyleChanged = true;
-		}
+		newStyle &= ~WS_BORDER;
+		frameStyleChanged = true;
 	}
 
 	// Remove clip children if SetSwapEffectShim is disabled

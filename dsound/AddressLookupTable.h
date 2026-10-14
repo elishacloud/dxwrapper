@@ -23,11 +23,20 @@ private:
 
 	void DeleteAll()
 	{
-		for (const auto& map : g_map)
+		for (size_t i = 0; i < MaxCacheIndex; ++i)
 		{
-			for (const auto& entry : map)
+			while (!g_map[i].empty())
 			{
-				delete entry.second;
+				auto it = g_map[i].begin();
+				auto InterfaceCache = it->second;
+
+				// Remove it before deleting interface
+				g_map[i].erase(it);
+
+				if (InterfaceCache)
+				{
+					delete InterfaceCache;
+				}
 			}
 		}
 	}
@@ -94,7 +103,7 @@ public:
 		constexpr size_t CacheIndex = AddressCacheIndex<T>::CacheIndex;
 
 		auto it = g_map[CacheIndex].find(Proxy);
-		if (it != std::end(g_map[CacheIndex]))
+		if (it != g_map[CacheIndex].end())
 		{
 			return static_cast<T *>(it->second);
 		}
@@ -124,7 +133,7 @@ public:
 
 		auto it = std::find_if(g_map[CacheIndex].begin(), g_map[CacheIndex].end(),
 			[=](auto& Map) -> bool { return Map.second == Wrapper; });
-		if (it != std::end(g_map[CacheIndex]))
+		if (it != g_map[CacheIndex].end())
 		{
 			g_map[CacheIndex].erase(it);
 		}

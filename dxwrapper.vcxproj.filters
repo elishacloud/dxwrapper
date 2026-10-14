@@ -856,9 +856,6 @@
     <ClCompile Include="d3d9\IDirect3DDXVADevice9.cpp">
       <Filter>d3d9</Filter>
     </ClCompile>
-    <ClCompile Include="ddraw\AddressLookupTable.cpp">
-      <Filter>ddraw</Filter>
-    </ClCompile>
     <ClCompile Include="Utils\ForceKeyboardLayout.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
@@ -1823,6 +1820,15 @@
     <ClInclude Include="ddraw\DDClassFactory.h">
       <Filter>ddraw</Filter>
     </ClInclude>
+    <ClInclude Include="ddraw\Shaders\BrightnessPixelShader.h">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="IClassFactory\DXClassFactory.h">
+      <Filter>IClassFactory</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Shaders\FixUpMultiStageVertexShader.h">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
@@ -1843,6 +1849,12 @@
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
     <CustomBuild Include="ddraw\Shaders\FixUpVertexShader.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ddraw\Shaders\BrightnessPixelShader.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ddraw\Shaders\FixUpMultiStageVertexShader.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
   </ItemGroup>

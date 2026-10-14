@@ -5,18 +5,16 @@ class m_IDirect3DExecuteBuffer final : public IDirect3DExecuteBuffer, public Add
 private:
 	IDirect3DExecuteBuffer *ProxyInterface = nullptr;
 	const IID WrapperID = IID_IDirect3DExecuteBuffer;
-	LONG RefCount = 1;
+	ULONG RefCount = 1;
+	bool IsInterfaceDeleted = false;
 
 	// Convert Buffer
 	m_IDirect3DDeviceX *D3DDeviceInterface = nullptr;
 	D3DEXECUTEBUFFERDESC Desc = {};
 	std::vector<BYTE> MemoryData;
 	D3DEXECUTEDATA ExecuteData = {};
-	DWORD LockedCount = 0;
-	DWORD LockedThread = 0;
-	std::atomic<bool> IsLocking = false;
+	std::atomic<bool> IsLocked = false;
 	std::atomic<bool> IsExecuting = false;
-	bool IsDataValidated = false;
 	bool UsingAppMemory = false;
 
 	// Instruction data 
@@ -61,6 +59,7 @@ public:
 	{
 		if (NewProxyInterface || NewD3DDInterface)
 		{
+			IsInterfaceDeleted = false;	// Mark as not deleted first
 			RefCount = 1;
 			ProxyInterface = NewProxyInterface;
 			D3DDeviceInterface = NewD3DDInterface;
@@ -73,6 +72,7 @@ public:
 			ProxyAddressLookupTableDdraw.DeleteAddress(this);
 			ProxyInterface = nullptr;
 			D3DDeviceInterface = nullptr;
+			IsInterfaceDeleted = true;	// Mark as deleted last
 		}
 	}
 
@@ -91,9 +91,9 @@ public:
 	IFACEMETHOD(Optimize)(THIS_ DWORD) override;
 
 	// Helper functions
-	void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
-	HRESULT GetBuffer(LPVOID* lplpData, D3DEXECUTEDATA& CurrentExecuteData, LPD3DSTATUS* lplpStatus);
-	bool IsBufferLocked() const { return (IsLocking || LockedCount != 0); }
-	std::atomic<bool>& GetExecuteFlag() { return IsExecuting; }
+	inline void ClearD3DDevice() { D3DDeviceInterface = nullptr; }
+	HRESULT GetBufferInternal(std::vector<BYTE>& BufferData, D3DEXECUTEDATA& CurrentExecuteData) const;
+	inline bool IsBufferLocked() const { return (IsLocked); }
+	inline std::atomic<bool>& GetExecuteFlag() { return IsExecuting; }
 	static m_IDirect3DExecuteBuffer* CreateDirect3DExecuteBuffer(IDirect3DExecuteBuffer* aOriginal, m_IDirect3DDeviceX* NewD3DDInterface, LPD3DEXECUTEBUFFERDESC lpDesc);
 };
