@@ -95,6 +95,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DisplayContrast) \
 	visit(ConfigureDpiAwareness) \
 	visit(DisableLogging) \
+	visit(DisableScreenSaver) \
 	visit(DirectShowEmulation) \
 	visit(CacheClipPlane) \
 	visit(EnvironmentCubeMapFix) \
@@ -325,6 +326,7 @@ struct CONFIG
 	bool DisableGameUX = false;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
 	bool DisableGDIGammaRamp = false;			// Disables gamma ramp for GDI, some games look washed out with gamme ramp enabled
 	bool DisableLogging = false;				// Disables the logging file
+	bool DisableScreenSaver = false;			// Disables Screen Saver and System Sleep Mode while playing games
 	LONG DisplayBrightness = 0;					// Brightness overwrite for the appication display
 	LONG DisplayContrast = 0;					// Contrast overwrite for the appication display
 	DWORD ConfigureDpiAwareness = 0;			// Configures DPI awareness: 1) SystemAware, 2) Unaware, 3) UnawareGdiScaled, 4) PerMonitorAware, 5) PerMonitorAwareV2
