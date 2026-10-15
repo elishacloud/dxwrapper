@@ -1336,6 +1336,19 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps, D
 
 				// Get Caps
 				ComObjectD9->GetDeviceCaps(d3d9AdapterIndex, D3DDEVTYPE_HAL, &D9Cache.Caps9);
+
+				// Get supported zbuffer bit depth
+				for (const auto& entry : zFormats)
+				{
+					for (const auto& Format : entry.formats)
+					{
+						if (SUCCEEDED(ComObjectD9->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, D3DUSAGE_DEPTHSTENCIL, D3DRTYPE_SURFACE, Format)))
+						{
+							D9Cache.dwDeviceZBufferBitDepth |= entry.bitDepthFlag;
+							break;
+						}
+					}
+				}
 			}
 		}
 
@@ -1359,14 +1372,14 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps, D
 		if (lpDDDriverCaps)
 		{
 			Caps9.DeviceType = D3DDEVTYPE_HAL;
-			ConvertCaps(DriverCaps, Caps9);
+			ConvertCaps(DriverCaps, Caps9, D9Cache.dwDeviceZBufferBitDepth);
 			DriverCaps.dwVidMemTotal = dwVidTotal;
 			DriverCaps.dwVidMemFree = dwVidFree;
 		}
 		if (lpDDHELCaps)
 		{
 			Caps9.DeviceType = D3DDEVTYPE_REF;
-			ConvertCaps(HELCaps, Caps9);
+			ConvertCaps(HELCaps, Caps9, D9Cache.dwDeviceZBufferBitDepth);
 			HELCaps.dwVidMemTotal = dwVidTotal;
 			HELCaps.dwVidMemFree = dwVidFree;
 		}

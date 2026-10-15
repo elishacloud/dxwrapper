@@ -600,7 +600,7 @@ void ConvertCaps(DDSCAPS2& Caps2, const DDSCAPS& Caps)
 	Caps2.dwVolumeDepth = 0;
 }
 
-void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9)
+void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9, DWORD dwZBufferBitDepths)
 {
 	// Note: dwVidMemTotal, dwVidMemFree and dwNumFourCCCodes are not part of D3DCAPS9 and need to be set separately
 	if (Caps7.dwSize != sizeof(DDCAPS))
@@ -698,7 +698,7 @@ void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9)
 	// Z-buffer bit depths
 	if (Caps7.dwCaps & DDCAPS_3D)
 	{
-		Caps7.dwZBufferBitDepths = DDBD_16 | DDBD_24 | DDBD_32;
+		Caps7.dwZBufferBitDepths = dwZBufferBitDepths;
 	}
 
 	// Overlay settings

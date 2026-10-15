@@ -683,7 +683,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, DWORD dwDev
 		Desc7.dwDevCaps &=
 			~D3DDEVCAPS_HWRASTERIZATION &
 			~D3DDEVCAPS_HWTRANSFORMANDLIGHT;
-		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_24 | DDBD_32;
+		Desc7.dwDeviceRenderBitDepth = DDBD_16 | DDBD_24 | DDBD_32;
 		break;
 
 	case D3DDEVTYPE_RGB:
@@ -698,7 +698,7 @@ void ConvertDeviceDesc(D3DDEVICEDESC7& Desc7, const D3DCAPS9& Caps9, DWORD dwDev
 		Desc7.dwDevCaps &=
 			~D3DDEVCAPS_HWRASTERIZATION &
 			~D3DDEVCAPS_HWTRANSFORMANDLIGHT;
-		Desc7.dwDeviceRenderBitDepth = DDBD_8 | DDBD_16 | DDBD_24 | DDBD_32;
+		Desc7.dwDeviceRenderBitDepth = DDBD_16 | DDBD_24 | DDBD_32;
 		break;
 
 	default:

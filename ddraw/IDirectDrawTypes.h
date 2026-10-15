@@ -238,7 +238,7 @@ void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2& DeviceID2, const DDDEVICEIDENT
 void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2& DeviceID, const D3DADAPTER_IDENTIFIER9& Identifier9);
 void ConvertCaps(DDSCAPS& Caps, const DDSCAPS2& Caps2);
 void ConvertCaps(DDSCAPS2& Caps2, const DDSCAPS& Caps);
-void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9);
+void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9, DWORD dwZBufferBitDepths);
 void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
 DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount);
 DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height);
