@@ -3136,9 +3136,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 
 		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
 
-		// Update vertices for Direct3D9 (needs to be first)
-		UpdateVertices(dwVertexTypeDesc, lpVertices, 0, dwVertexCount);
-
 		// Handle PositionT
 		if (Config.DdrawConvertHomogeneousW && (dwVertexTypeDesc & 0x0E) == D3DFVF_XYZRHW)
 		{
