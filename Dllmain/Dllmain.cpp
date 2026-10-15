@@ -752,6 +752,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			Utils::LoadPlugins();
 		}
 
+		// Disabling Screen Saver and System Sleep Mode while playing games
+		if (Config.DisableScreenSaver)
+		{
+			Logging::Log() << "Disabling Screen Saver and System Sleep Mode...";
+			SetThreadExecutionState(ES_CONTINUOUS | ES_DISPLAY_REQUIRED | ES_SYSTEM_REQUIRED);
+		}
+
 		// Loaded
 		Logging::Log() << "DxWrapper loaded!";
 	}
