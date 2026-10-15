@@ -86,9 +86,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DdrawUseShadowSurface) \
 	visit(DdrawUseNativeResolution) \
 	visit(DdrawVertexLockDiscard) \
-	visit(DdrawEnableMouseHook) \
 	visit(DdrawDisableLighting) \
-	visit(EnableCursorClip) \
 	visit(DdrawHookSystem32) \
 	visit(D3d8HookSystem32) \
 	visit(D3d9HookSystem32) \
@@ -327,7 +325,6 @@ struct CONFIG
 	DWORD OverrideStencilFormat = 0;			// Force Direct3d9 to use this AutoStencilFormat
 	DWORD DdrawOverrideStencilFormat = 0;		// Force Direct3d9 to use this AutoStencilFormat when using Dd7to9
 	DWORD DdrawFlipFillColor = 0;				// Color used to fill the primary surface before flipping
-	bool DdrawEnableMouseHook = false;			// Allow to hook into mouse to limit it to the chosen resolution
 	bool DdrawDisableLighting = false;			// Allow to disable lighting
 	bool DdrawFilterActivateApp = false;		// Filters the WM_ACTIVATEAPP from the game, some games have issues with this message
 	bool DdrawForceMipMapAutoGen = false;		// Force Direct3d9 to use this AutoGenMipMap when using Dd7to9
