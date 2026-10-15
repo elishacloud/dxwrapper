@@ -67,6 +67,7 @@ DxWrapper includes a wide range of features:
 #### 🧩 Miscellaneous Fixes and Tweaks
 - **Set game window to fullscreen** (if native fullscreen fails)
 - **Show FPS counter** in-game
+- **Disable screen saver and system sleep mode** while playing games
 - **Filter input** when the game window loses focus (prevents input when other windows are active)
 - **Various compatibility flags and tweaks**, including:
   - `DdrawEmulateSurface`, `DdrawEmulateLock`, `DdrawKeepAllInterfaceCache`, `DdrawLimitTextureFormats`, `DdrawLimitDisplayModeCount`, `LimitStateBlocks`, `SetPOW2Caps`
