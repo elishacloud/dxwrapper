@@ -1,0 +1,49 @@
+name: DxWrapper_x86_and_x64
+
+on:
+  push:
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  UseMultiToolTask: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [Release]
+        platform: [Win32, x64]
+
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        submodules: true
+
+    - name: Setup MSBuild
+      shell: pwsh
+      run: |
+        \(msbuild = & "\){env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+          -latest `
+          -requires Microsoft.Component.MSBuild `
+          -find MSBuild\**\Bin\MSBuild.exe
+
+        if (-not \$msbuild) { throw "MSBuild not found." }
+
+        msbuildDir = Split-Path msbuild
+        Add-Content \(env:GITHUB_PATH\)msbuildDir
+
+    - name: Build
+      run: msbuild dxwrapper.sln /m /p:Configuration= matrix.config /p:Platform={{ matrix.platform }}
+
+    - name: Upload Finished Artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: dxwrapper-\${{ matrix.platform }}-release
+        path: bin/\${{ matrix.config }}/*
