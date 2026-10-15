@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         config: [Release]
-        platform: [Win32, x64]
+        platform: [Win32, Win64]
 
     steps:
     - uses: actions/checkout@v7
@@ -40,7 +40,7 @@ jobs:
         Add-Content \(env:GITHUB_PATH\)msbuildDir
 
     - name: Build
-      run: msbuild dxwrapper.sln /m /p:Configuration= matrix.config /p:Platform={{ matrix.platform }}
+      run: msbuild dxwrapper.sln /m /p:Configuration=${{ matrix.config }} /p:Platform=${{ matrix.platform }} /p:DeleteDeploymentFiles=true /p:ConfigurationGroup=Release /p:BuildInParallel=true /p:GenerateDebugInformation=false
 
     - name: Upload Finished Artifacts
       uses: actions/upload-artifact@v7
