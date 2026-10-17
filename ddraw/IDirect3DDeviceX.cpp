@@ -3639,7 +3639,7 @@ HRESULT m_IDirect3DDeviceX::GetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2* lplpTe
 		m_IDirect3DTextureX* pTextureX = pSurfaceX->GetAttachedTexture();
 		if (!pTextureX)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get attached texture!");
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -3688,7 +3688,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECT3DTEXTURE2 lpTextu
 		m_IDirectDrawSurfaceX* pSurfaceX = pTextureX->GetSurface();
 		if (!pSurfaceX)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get surface!");
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get attached surface!");
 			return DDERR_INVALIDPARAMS;
 		}
 
@@ -4382,7 +4382,7 @@ HRESULT m_IDirect3DDeviceX::SetTexture(DWORD dwStage, LPDIRECTDRAWSURFACE7 lpSur
 			IDirect3DTexture9* pTexture9 = lpDDSrcSurfaceX->GetD9Texture();
 			if (!pTexture9)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture!");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get texture from surface: " << lpDDSrcSurfaceX);
 				return DDERR_INVALIDPARAMS;
 			}
 

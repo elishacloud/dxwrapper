@@ -223,6 +223,13 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 				return E_NOINTERFACE;
 			}
 
+			if (!(surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_TEXTURE | DDSCAPS_OFFSCREENPLAIN)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Querying for " << riid << " from a non-supported surface: " << surfaceDesc2);
+
+				return E_NOINTERFACE;
+			}
+
 			DxVersion = GetGUIDVersion(riid);
 
 			m_IDirect3DTextureX* InterfaceX = nullptr;
@@ -234,6 +241,15 @@ HRESULT m_IDirectDrawSurfaceX::QueryInterface(REFIID riid, LPVOID FAR* ppvObj, D
 			else
 			{
 				attached3DTexture->AddRef(DxVersion);	// No need to add a ref when creating a texture because it is already added when creating the texture
+			}
+
+			if (surface.Surface)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: marking a surface as a texture when it has already created the Direct3D9 surface!");
+
+				ReleaseD9Surface(true, false, false);
+
+				CreateD9Surface();
 			}
 
 			InterfaceX = attached3DTexture;
@@ -903,14 +919,7 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			// Keep the surface contents synchronized when requested.
 			if (SUCCEEDED(hr))
 			{
-				if (SyncSurfaces)
-				{
-					EndWriteSyncSurfaces(lpDestRect, MipMapLevel, true);
-				}
-				else
-				{
-					SetDirtyFlag(MipMapLevel);
-				}
+				EndWriteSyncSurfaces(lpDestRect, MipMapLevel, SyncSurfaces);
 			}
 
 		} while (false);
@@ -4722,7 +4731,7 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD9DrawTexture(D3DCOLOR RGBColorKey,
 	{
 		const DWORD Level = IsMipMapAutogen() || MaxMipMapLevel ? 0 : 1;
 		const DWORD Usage = (MaxMipMapLevel != 1 ? D3DUSAGE_AUTOGENMIPMAP : 0);
-		if (FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, Level, Usage, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &surface.DrawTexture, nullptr)))
+		if (FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, Level, Usage, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &surface.DrawTexture, nullptr)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create alpha color key texture. Size: " << surface.Width << "x" << surface.Height <<
 				" Level: " << Level << " Usage: " << Logging::hex(Usage) <<

@@ -570,7 +570,7 @@ public:
 	bool IsSurface3D() const;
 	inline bool IsRenderTarget() const { return surface.CanBeRenderTarget; }
 	inline bool IsDepthStencil() const { return (surfaceDesc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) != 0; }
-	inline bool IsSurfaceTexture() const { return (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
+	inline bool IsSurfaceTexture() const { return attached3DTexture || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE) != 0; }
 	inline bool IsSurfaceManaged() const { return (surfaceDesc2.ddsCaps.dwCaps2 & (DDSCAPS2_TEXTUREMANAGE | DDSCAPS2_D3DTEXTUREMANAGE)) != 0; }
 	inline bool IsSurfaceCreated() const { return (surface.Texture || surface.Surface); }
 	bool HasAlphaChannel(bool UsingColorKey) const;
