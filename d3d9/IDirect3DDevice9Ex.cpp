@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -2118,18 +2118,32 @@ HRESULT m_IDirect3DDevice9Ex::DeletePatch(UINT Handle)
 
 HRESULT m_IDirect3DDevice9Ex::CreateQuery(THIS_ D3DQUERYTYPE Type, IDirect3DQuery9** ppQuery)
 {
-	Logging::LogDebug() << __FUNCTION__ << " (" << this << ")";
+	Logging::LogDebug() << __FUNCTION__ << " (" << this << ") Type: " << Type;
 
 	HRESULT hr = ProxyInterface->CreateQuery(Type, ppQuery);
 
-	if (SUCCEEDED(hr) && ppQuery)
+	if (SUCCEEDED(hr))
 	{
-		*ppQuery = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DQuery9, m_IDirect3DDevice9Ex, LPVOID>(*ppQuery, this, IID_IDirect3DQuery9, nullptr);
+		// A null output pointer is a capability check.
+		if (ppQuery && *ppQuery)
+		{
+			*ppQuery = ProxyAddressLookupTable9.FindCreateAddress<m_IDirect3DQuery9, m_IDirect3DDevice9Ex, LPVOID>(*ppQuery, this, IID_IDirect3DQuery9, nullptr);
+		}
 
 		return D3D_OK;
 	}
 
-	Logging::LogDebug() << __FUNCTION__ << " Error: Failed " << (D3DERR)hr << " " << Type;
+	// Only emulate query types for which we have a fallback.
+	if (Type == D3DQUERYTYPE_EVENT || Type == D3DQUERYTYPE_OCCLUSION)
+	{
+		// A null output pointer is a capability check.
+		if (ppQuery)
+		{
+			*ppQuery = new m_IDirect3DQuery9(this, Type);
+		}
+
+		return D3D_OK;
+	}
 
 	return hr;
 }

@@ -32,7 +32,6 @@ public:
 	IFACEMETHOD(Apply)(THIS) override;
 
 	// Helper functions
-	LPDIRECT3DSTATEBLOCK9 GetProxyInterface() const { return ProxyInterface; }
 	void SetProxyInterface(LPDIRECT3DSTATEBLOCK9 Interface) {
 		ProxyInterface = Interface;
 		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);

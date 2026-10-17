@@ -1561,6 +1561,7 @@ std::ostream& operator<<(std::ostream& os, const DDERR& ErrCode)
 	visit(S_RESIDENT_IN_SHARED_MEMORY) \
 	visit(S_PRESENT_MODE_CHANGED) \
 	visit(S_PRESENT_OCCLUDED) \
+	visit(S_FALSE) \
 	visit(D3D_OK)
 
 #define VISIT_DDERR_RETURN(x) \

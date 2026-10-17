@@ -7,6 +7,14 @@ private:
 	m_IDirect3DDevice9Ex* m_pDeviceEx;
 	const IID WrapperID = IID_IDirect3DQuery9;
 
+	ULONG RefCount = 1;
+
+	bool m_IsFakeQuery = false;
+	D3DQUERYTYPE m_FakeQueryType = (D3DQUERYTYPE)0;
+
+	bool m_QueryBegun = false;
+	bool m_QueryEnded = false;
+
 public:
 	m_IDirect3DQuery9(LPDIRECT3DQUERY9 pQuery9, m_IDirect3DDevice9Ex* pDevice) : ProxyInterface(pQuery9), m_pDeviceEx(pDevice)
 	{
@@ -15,6 +23,18 @@ public:
 		InitInterface(pDevice, WrapperID, nullptr);
 
 		m_pDeviceEx->GetLookupTable()->SaveAddress(this, ProxyInterface);
+
+		m_IsFakeQuery = false;
+	}
+	m_IDirect3DQuery9(m_IDirect3DDevice9Ex* pDevice, D3DQUERYTYPE Type) : ProxyInterface(nullptr), m_pDeviceEx(pDevice), m_FakeQueryType(Type)
+	{
+		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")");
+
+		InitInterface(pDevice, WrapperID, nullptr);
+
+		m_pDeviceEx->GetLookupTable()->SaveAddress(this, this);
+
+		m_IsFakeQuery = true;
 	}
 	~m_IDirect3DQuery9()
 	{
@@ -34,6 +54,5 @@ public:
 	IFACEMETHOD(GetData)(THIS_ void* pData, DWORD dwSize, DWORD dwGetDataFlags) override;
 
 	// Helper functions
-	LPDIRECT3DQUERY9 GetProxyInterface() const { return ProxyInterface; }
 	void InitInterface(m_IDirect3DDevice9Ex* Device, REFIID, void*) { m_pDeviceEx = Device; }
 };
