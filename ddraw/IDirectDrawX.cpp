@@ -118,6 +118,7 @@ namespace {
 	bool IsDeviceLost = false;
 	bool ReDrawNextPresent = false;
 	bool CopyGDISurface = false;
+	bool CanStrectRectTexturesCaps = false;
 	UINT d3d9AdapterIndex = D3DADAPTER_DEFAULT;
 	m_IDirectDrawX* CreationInterface = nullptr;
 	LPDIRECT3D9 d3d9Object = nullptr;
@@ -3007,6 +3008,11 @@ bool m_IDirectDrawX::IsExclusiveMode()
 	return ExclusiveMode || !Device.IsWindowed;
 }
 
+bool m_IDirectDrawX::CanStrectRectTextures() const
+{
+	return CanStrectRectTexturesCaps;
+}
+
 void m_IDirectDrawX::GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, DWORD& RefreshRate)
 {
 	// Init settings
@@ -3715,6 +3721,9 @@ HRESULT m_IDirectDrawX::CreateD9Device(char* FunctionName)
 
 	// Get Caps
 	GetD9Cache();
+
+	// Check D3DDEVCAPS2_CAN_STRETCHRECT_FROM_TEXTURES 
+	CanStrectRectTexturesCaps = D9Cache.Caps9.Caps2 & D3DDEVCAPS2_CAN_STRETCHRECT_FROM_TEXTURES;
 
 	// Check cache
 	if (D9Cache.empty())

@@ -7793,21 +7793,16 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 		if (!IsColorKey &&
 			!IsMirrorLeftRight &&
 			!IsMirrorUpDown &&
-			!IsPalette() &&
-			!pSourceSurface->IsPalette() &&
 			!IsUsingEmulation() &&
 			CanUseRenderTargetSurface() &&
 			pSourceSurface->CanUseRenderTargetSurface() &&
+			IsPalette() == pSourceSurface->IsPalette() &&
 			surface.Pool == D3DPOOL_DEFAULT &&
 			pSourceSurface->surface.Pool == D3DPOOL_DEFAULT &&
-			surface.Type != D3DTYPE_TEXTURE &&
-			(pSourceSurface->surface.Type == surface.Type ||
-				(pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE && (surface.Usage & D3DUSAGE_RENDERTARGET))) &&
+			((surface.Type != D3DTYPE_TEXTURE && pSourceSurface->surface.Type != D3DTYPE_TEXTURE) || ddrawParent->CanStrectRectTextures()) &&
 			(!IsStretchRect ||
-				(this != pSourceSurface &&
-					surface.Type == pSourceSurface->surface.Type &&
-					!ISDXTEX(SrcFormat) &&
-					!ISDXTEX(DestFormat))))
+				((IsPixelFormatRGB(surfaceDesc2.ddpfPixelFormat) || IsPixelFormatPalette(surfaceDesc2.ddpfPixelFormat)) &&
+					(IsPixelFormatRGB(pSourceSurface->surfaceDesc2.ddpfPixelFormat) || IsPixelFormatPalette(pSourceSurface->surfaceDesc2.ddpfPixelFormat)))))
 		{
 			PrepareRenderTarget();
 			pSourceSurface->PrepareRenderTarget();
@@ -7817,13 +7812,17 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 
 			if (Src.GetSurface() && Dest.GetSurface())
 			{
-				// StretchRect does not allow source and destination to be the same surface.
-				if (Src.GetSurface() != Dest.GetSurface())
+				// Stretching is not allowed on the same source and destination surface.
+				// Stretching to an off-screen plain surface requires an off-screen plain source.
+				if (!IsStretchRect ||
+					(Src.GetSurface() != Dest.GetSurface() &&
+						(surface.Type != D3DTYPE_OFFPLAINSURFACE || pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE)))
 				{
 					hr = (*d3d9Device)->StretchRect(Src.GetSurface(), &SrcRect, Dest.GetSurface(), &DestRect, Filter);
 				}
 				else
 				{
+					// Use intermediate tmpVideo surface
 					if (!tmpVideo.Surface)
 					{
 						LOG_LIMIT(100, __FUNCTION__ << " Creating tmpVideo surface.");
@@ -7897,34 +7896,6 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 		}
 
 		// -------------------------------------------------------------------------
-		//  Use DrawPrimitiveUP for copying to a Render Target.
-		// -------------------------------------------------------------------------
-
-		// DrawSurfaceToRenderTarget.
-		if (!IsPalette() &&
-			!pSourceSurface->IsPalette() &&
-			!IsUsingEmulation() &&
-			CanUseRenderTargetSurface() &&
-			((surface.Usage & D3DUSAGE_RENDERTARGET) || surface.Type == D3DTYPE_RENDERTARGET) &&
-			(pSourceSurface->surface.Type == D3DTYPE_TEXTURE || pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE) &&
-			!(pSourceSurface->surface.Usage & (D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL)) &&
-			// Some games modify system memory surfaces outside of lock/unlock pair
-			// so the emulated surface will have the most recent changes and the real surface may be out of sync
-			(!pSourceSurface->IsUsingEmulation() || pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM))
-		{
-			PrepareRenderTarget();
-
-			D3DCOLOR RGBColorKey = GetARGBColorKey(ColorKey, pSourceSurface->surfaceDesc2.ddpfPixelFormat);
-
-			hr = DrawSurfaceToRenderTarget(pSourceSurface, SrcRect, DestRect, Filter, SrcMipMapLevel, RGBColorKey, IsColorKey, IsMirrorLeftRight, IsMirrorUpDown);
-
-			if (SUCCEEDED(hr))
-			{
-				break;
-			}
-		}
-
-		// -------------------------------------------------------------------------
 		//  Use UpdateSurface for copying system memory to video memory.
 		// -------------------------------------------------------------------------
 
@@ -7933,16 +7904,14 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			!IsStretchRect &&
 			!IsMirrorLeftRight &&
 			!IsMirrorUpDown &&
-			!IsPalette() &&
-			!pSourceSurface->IsPalette() &&
 			!IsUsingEmulation() &&
 			CanUseRenderTargetSurface() &&
-			surface.Pool == D3DPOOL_DEFAULT &&
 			surface.Format == pSourceSurface->surface.Format &&
+			surface.Pool == D3DPOOL_DEFAULT &&
 			(pSourceSurface->surface.Pool == D3DPOOL_SYSTEMMEM || pSourceSurface->CanUseShadowSurface()) &&
 			// Some games modify system memory surfaces outside of lock/unlock pair
 			// so the emulated surface will have the most recent changes and the real surface may be out of sync
-			(!pSourceSurface->IsUsingEmulation() || pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM))
+			(!pSourceSurface->IsUsingEmulation() || pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM || (pSourceSurface->surface.Usage & D3DUSAGE_RENDERTARGET)))
 		{
 			PrepareRenderTarget();
 			pSourceSurface->SetRenderTargetShadow();
@@ -7967,19 +7936,49 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			}
 		}
 
+		// -------------------------------------------------------------------------
+		//  Use DrawPrimitiveUP for copying to a Render Target.
+		// -------------------------------------------------------------------------
+
+		// DrawSurfaceToRenderTarget.
+		if (!IsPalette() &&
+			!pSourceSurface->IsPalette() &&
+			!IsUsingEmulation() &&
+			CanUseRenderTargetSurface() &&
+			(surface.Usage & D3DUSAGE_RENDERTARGET) &&
+			(pSourceSurface->surface.Type == D3DTYPE_TEXTURE || pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE) &&
+			!(pSourceSurface->surface.Usage & (D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL)) &&
+			// Some games modify system memory surfaces outside of lock/unlock pair
+			// so the emulated surface will have the most recent changes and the real surface may be out of sync
+			(!pSourceSurface->IsUsingEmulation() || pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM))
+		{
+			PrepareRenderTarget();
+
+			D3DCOLOR RGBColorKey = GetARGBColorKey(ColorKey, pSourceSurface->surfaceDesc2.ddpfPixelFormat);
+
+			hr = DrawSurfaceToRenderTarget(pSourceSurface, SrcRect, DestRect, Filter, SrcMipMapLevel, RGBColorKey, IsColorKey, IsMirrorLeftRight, IsMirrorUpDown);
+
+			if (SUCCEEDED(hr))
+			{
+				break;
+			}
+		}
+
+		// -------------------------------------------------------------------------
+		//  Use UpdateSurface for copying to video memory using the shadow surface.
+		// -------------------------------------------------------------------------
+
 		// UpdateSurface using destination shadow as source
 		if (!IsColorKey &&
 			!IsStretchRect &&
 			!IsMirrorLeftRight &&
 			!IsMirrorUpDown &&
-			!IsPalette() &&
-			!pSourceSurface->IsPalette() &&
 			!IsUsingEmulation() &&
 			CanUseRenderTargetSurface() &&
-			surface.Pool == D3DPOOL_DEFAULT &&
-			surface.Format == pSourceSurface->surface.Format &&
 			surface.Shadow &&
-			(surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32) &&
+			surface.Format == pSourceSurface->surface.Format &&
+			(surface.BitCount == 8 || surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32) &&
+			surface.Pool == D3DPOOL_DEFAULT &&
 			(pSourceSurface->surface.Pool != D3DPOOL_DEFAULT || pSourceSurface->CanUseShadowSurface() || pSourceSurface->IsUsingEmulation()))
 		{
 			PrepareRenderTarget();
@@ -8178,7 +8177,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			!IsColorKey &&
 			!IsMirrorLeftRight &&
 			!IsMirrorUpDown &&
-			pSourceSurface->surface.Type == surface.Type &&
+			surface.Type == pSourceSurface->surface.Type &&
 			!surface.UsingSurfaceMemory &&
 			!pSourceSurface->surface.UsingSurfaceMemory &&
 			pSourceSurface->IsPalette() == IsPalette())

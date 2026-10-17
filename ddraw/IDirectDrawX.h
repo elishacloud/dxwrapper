@@ -258,6 +258,7 @@ public:
 	HDC GetDC();
 	DWORD GetPresentUSN();
 	static bool IsExclusiveMode();
+	bool CanStrectRectTextures() const;
 	DWORD GetLastDrawDevice();
 	void SetLastDrawDevice(DWORD DrawDevice);
 	void GetSurfaceDisplay(DWORD& Width, DWORD& Height, DWORD& BPP, DWORD& RefreshRate);
