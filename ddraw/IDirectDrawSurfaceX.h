@@ -267,6 +267,7 @@ private:
 	bool IsInBlt = false;
 	bool IsInBltBatch = false;
 	bool WasBitAlignLocked = false;
+	bool LastUpdateIsLock = false;
 	DDRAWEMULATELOCK EmuLock;							// For aligning bits after a lock for games that hard code the pitch
 	REMOVESCANLINE EmuScanLine;							// For removal an restoration of scanlines
 	std::vector<BYTE, aligned_allocator<BYTE, 4>> ByteArray;						// Memory used for coping from one surface to the same surface

@@ -919,6 +919,8 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			// Keep the surface contents synchronized when requested.
 			if (SUCCEEDED(hr))
 			{
+				LastUpdateIsLock = false;
+
 				EndWriteSyncSurfaces(lpDestRect, MipMapLevel, SyncSurfaces);
 			}
 
@@ -2690,7 +2692,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			!IsSurfaceTexture() &&
 			surfaceDesc2.dwBackBufferCount == 0 &&
 			(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FLIP) == 0 &&
-			((!IsPrimaryOrBackBuffer() && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) && ddrawParent->IsExclusiveMode() && IsDisplayResolution(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight)) ||
+			((!IsPrimaryOrBackBuffer() && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) && IsDisplayResolution(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight)) ||
 				(IsPrimarySurface() && surfaceDesc2.dwFlags == DDSD_CAPS && ShouldEmulate == SC_NOT_CREATED && ddrawParent->GetDisplayBPP(ddrawParent->GetHMonitor()) == 8)))
 		{
 			ShouldEmulate = SC_FORCE_EMULATED;
@@ -2992,6 +2994,9 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				RestoreScanlines(LastLock);
 			}
 
+			// Set last update flag
+			LastUpdateIsLock = true;
+
 		} while (false);
 
 		hr = LockReturnValue(hr, MipMapLevel, nullptr, 0, LockWait);
@@ -3083,6 +3088,9 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC, DWORD MipMapLevel)
 
 			// Clear DC level
 			GetDCLevel[MipMapLevel] = nullptr;
+
+			// Clear last update flag
+			LastUpdateIsLock = false;
 
 			// Keep surface insync
 			EndWriteSyncSurfaces(nullptr, MipMapLevel, true);
@@ -4928,14 +4936,15 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	}
 
 	// Get texture format
+	const bool CanUseEmulation = CanSurfaceUseEmulation();
 	const bool IsMipMapEnabled = (surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && surfaceDesc2.dwMipMapCount != 1 && IsSurfaceTexture();
 	surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
 	surface.BitCount = GetBitCount(surface.Format);
-	SurfaceRequiresEmulation = (CanSurfaceUseEmulation() && ((!IsMipMapEnabled && (Config.DdrawEmulateSurface || ShouldEmulate == SC_FORCE_EMULATED)) ||
+	SurfaceRequiresEmulation = (CanUseEmulation && ((!IsMipMapEnabled && (Config.DdrawEmulateSurface || ShouldEmulate == SC_FORCE_EMULATED)) ||
 		surface.Format == D3DFMT_A8B8G8R8 || surface.Format == D3DFMT_X8B8G8R8 || surface.Format == D3DFMT_B8G8R8 || surface.Format == D3DFMT_R8G8B8));
-	const bool CreateSurfaceEmulated = (CanSurfaceUseEmulation() && (SurfaceRequiresEmulation ||
+	const bool CreateSurfaceEmulated = (CanUseEmulation && (SurfaceRequiresEmulation ||
 		(IsPrimaryOrBackBuffer() && (Config.DdrawWriteToGDI || Config.DdrawReadFromGDI || Config.DdrawRemoveScanlines))));
-	DCRequiresEmulation = (CanSurfaceUseEmulation() &&
+	DCRequiresEmulation = (CanUseEmulation &&
 		surface.Format != D3DFMT_R5G6B5 && surface.Format != D3DFMT_X1R5G5B5 && surface.Format != D3DFMT_A1R5G5B5 && surface.Format != D3DFMT_R8G8B8 &&
 		surface.Format != D3DFMT_X8R8G8B8 && surface.Format != D3DFMT_A8R8G8B8);
 	const D3DFORMAT Format = ((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE) && surface.Format == D3DFMT_D16_LOCKABLE) ? D3DFMT_D16 : ConvertSurfaceFormat(surface.Format);
@@ -7784,6 +7793,16 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 	if (ShouldReadFromGDI())
 	{
 		CopyEmulatedSurfaceFromGDI(&DestRect);
+	}
+
+	// Some games modify the surface outside of Lock/Unlock pair
+	if (pSourceSurface->LastUpdateIsLock &&
+		pSourceSurface->ShouldEmulate == SC_FORCE_EMULATED &&
+		pSourceSurface->surface.Pool == D3DPOOL_SYSTEMMEM &&
+		(pSourceSurface->surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY))
+	{
+		pSourceSurface->LastUpdateIsLock = false;
+		pSourceSurface->CopyFromEmulatedSurface(&SrcRect);
 	}
 
 	HRESULT hr = DDERR_GENERIC;
