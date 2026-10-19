@@ -2537,6 +2537,12 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			lpDDSurfaceDesc2->ddsCaps.dwCaps = (lpDDSurfaceDesc2->ddsCaps.dwCaps & ~(DDSCAPS_VIDEOMEMORY | DDSCAPS_LOCALVIDMEM)) | DDSCAPS_SYSTEMMEMORY;
 		}
 
+		// Handle 3D zbuffers
+		if (IsDepthStencil())
+		{
+			lpDDSurfaceDesc2->ddsCaps.dwCaps &= ~DDSCAPS_3DDEVICE;
+		}
+
 		// Return
 		return DD_OK;
 	}
@@ -2690,6 +2696,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			!surface.Texture &&
 			!IsUsingEmulation() &&
 			!IsSurfaceTexture() &&
+			!IsRenderTarget() &&
+			!IsDepthStencil() &&
 			surfaceDesc2.dwBackBufferCount == 0 &&
 			(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_FLIP) == 0 &&
 			((!IsPrimaryOrBackBuffer() && (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) && IsDisplayResolution(surfaceDesc2.dwWidth, surfaceDesc2.dwHeight)) ||
@@ -2758,7 +2766,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		}
 
 		// Check for video memory zbuffers
-		if ((IsDepthStencil() || (surface.Usage & D3DUSAGE_DEPTHSTENCIL)) && IsD9UsingVideoMemory())
+		if ((IsDepthStencil() || (surface.Usage & D3DUSAGE_DEPTHSTENCIL)) && IsD9UsingVideoMemory() && surface.Format != D3DFMT_D16_LOCKABLE)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: locking depth stencil surface is not implemented!");
 			return DDERR_UNSUPPORTED;
@@ -4939,6 +4947,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	const bool CanUseEmulation = CanSurfaceUseEmulation();
 	const bool IsMipMapEnabled = (surfaceDesc2.dwFlags & DDSD_MIPMAPCOUNT) && surfaceDesc2.dwMipMapCount != 1 && IsSurfaceTexture();
 	surface.Format = GetDisplayFormat(surfaceDesc2.ddpfPixelFormat);
+	surface.Format = ((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE) && surface.Format == D3DFMT_D16_LOCKABLE) ? D3DFMT_D16 : surface.Format;
 	surface.BitCount = GetBitCount(surface.Format);
 	SurfaceRequiresEmulation = (CanUseEmulation && ((!IsMipMapEnabled && (Config.DdrawEmulateSurface || ShouldEmulate == SC_FORCE_EMULATED)) ||
 		surface.Format == D3DFMT_A8B8G8R8 || surface.Format == D3DFMT_X8B8G8R8 || surface.Format == D3DFMT_B8G8R8 || surface.Format == D3DFMT_R8G8B8));
@@ -4947,7 +4956,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	DCRequiresEmulation = (CanUseEmulation &&
 		surface.Format != D3DFMT_R5G6B5 && surface.Format != D3DFMT_X1R5G5B5 && surface.Format != D3DFMT_A1R5G5B5 && surface.Format != D3DFMT_R8G8B8 &&
 		surface.Format != D3DFMT_X8R8G8B8 && surface.Format != D3DFMT_A8R8G8B8);
-	const D3DFORMAT Format = ((surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_NOTUSERLOCKABLE) && surface.Format == D3DFMT_D16_LOCKABLE) ? D3DFMT_D16 : ConvertSurfaceFormat(surface.Format);
+	const D3DFORMAT Format = ConvertSurfaceFormat(surface.Format);
 
 	// Check if surface should be a texture
 	const bool IsTexture = ((IsPrimaryOrBackBuffer() && !ShouldPresentToWindow(false)) || IsPalette() || IsSurfaceTexture());
@@ -5020,7 +5029,8 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 
 	do {
 		// Create depth stencil surface
-		if (IsDepthStencil() && surface.Pool != D3DPOOL_SYSTEMMEM)
+		if (IsDepthStencil() &&	(surface.Pool != D3DPOOL_SYSTEMMEM
+				/* ToDo: allow 3DDEVICE flag to indicate it is a DepthStencil, once they can be lock. || (surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE)*/))
 		{
 			surface.IsLockable = false;
 			surface.Type = D3DTYPE_DEPTHSTENCIL;
@@ -5724,6 +5734,11 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	const DWORD LastWidth = surfaceDesc2.dwWidth;
 	const DWORD LastHeight = surfaceDesc2.dwHeight;
 
+	if (FAILED(CheckInterface(__FUNCTION__, false, false, false)))
+	{
+		return;
+	}
+
 	// Get surface flags
 	bool IsResolutionChanged = false;
 	{
@@ -5734,9 +5749,8 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 		}
 
 		// Add missing flags
-		if (SUCCEEDED(CheckInterface(__FUNCTION__, false, false, false)) &&
-			((Flags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) ||
-				((Flags & DDSD_REFRESHRATE) && !surfaceDesc2.dwRefreshRate)))
+		if ((Flags & (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT)) != (DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT) ||
+			((Flags & DDSD_REFRESHRATE) && !surfaceDesc2.dwRefreshRate))
 		{
 			// Get resolution
 			DWORD Width, Height, RefreshRate, BPP;
@@ -5821,19 +5835,13 @@ void m_IDirectDrawSurfaceX::UpdateSurfaceDesc()
 	// Set attached stencil surface size
 	if (IsResolutionChanged)
 	{
+		// Also fixes up the depth Stencil
 		m_IDirectDrawSurfaceX* lpAttachedSurfaceX = GetAttachedDepthStencil();
-		if (lpAttachedSurfaceX && (surfaceDesc2.dwWidth != lpAttachedSurfaceX->surfaceDesc2.dwWidth ||
-			surfaceDesc2.dwHeight != lpAttachedSurfaceX->surfaceDesc2.dwHeight ||
-			(lpAttachedSurfaceX->surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)))
+
+		// Reset depth stencil if needed
+		if (ddrawParent->GetDepthStencilSurface() == lpAttachedSurfaceX)
 		{
-			lpAttachedSurfaceX->ReleaseD9Surface(false, false, false);
-			lpAttachedSurfaceX->surfaceDesc2.dwWidth = surfaceDesc2.dwWidth;
-			lpAttachedSurfaceX->surfaceDesc2.dwHeight = surfaceDesc2.dwHeight;
-			lpAttachedSurfaceX->surfaceDesc2.ddsCaps.dwCaps = (lpAttachedSurfaceX->surfaceDesc2.ddsCaps.dwCaps & ~DDSCAPS_SYSTEMMEMORY) | DDSCAPS_VIDEOMEMORY | DDSCAPS_LOCALVIDMEM;
-			if (ddrawParent->GetRenderTargetSurface() == this)
-			{
-				ddrawParent->SetDepthStencilSurface(lpAttachedSurfaceX);
-			}
+			ddrawParent->SetDepthStencilSurface(lpAttachedSurfaceX);
 		}
 	}
 }
@@ -7796,7 +7804,8 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 	}
 
 	// Some games modify the surface outside of Lock/Unlock pair
-	if (pSourceSurface->LastUpdateIsLock &&
+	if (pSourceSurface->IsUsingEmulation() &&
+		pSourceSurface->LastUpdateIsLock &&
 		pSourceSurface->ShouldEmulate == SC_FORCE_EMULATED &&
 		pSourceSurface->surface.Pool == D3DPOOL_SYSTEMMEM &&
 		(pSourceSurface->surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY))
@@ -9913,6 +9922,22 @@ m_IDirectDrawSurfaceX* m_IDirectDrawSurfaceX::GetAttachedDepthStencil()
 	{
 		if (it.pSurface->IsDepthStencil())
 		{
+			if (surfaceDesc2.dwWidth != it.pSurface->surfaceDesc2.dwWidth ||
+				surfaceDesc2.dwHeight != it.pSurface->surfaceDesc2.dwHeight ||
+				((it.pSurface->surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) && !(it.pSurface->surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_3DDEVICE)))
+			{
+				if (surface.Surface)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: updating a depth stencil that has already created the Direct3D9 surface!");
+
+					it.pSurface->ReleaseD9Surface(false, false, false);
+				}
+				it.pSurface->surfaceDesc2.dwWidth = surfaceDesc2.dwWidth;
+				it.pSurface->surfaceDesc2.dwHeight = surfaceDesc2.dwHeight;
+				it.pSurface->surfaceDesc2.ddsCaps.dwCaps |=
+					(it.pSurface->surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY) ? DDSCAPS_3DDEVICE : (DDSCAPS_VIDEOMEMORY | DDSCAPS_LOCALVIDMEM);
+			}
+
 			return it.pSurface;
 		}
 	}

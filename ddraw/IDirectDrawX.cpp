@@ -4526,21 +4526,35 @@ HRESULT m_IDirectDrawX::SetDepthStencilSurface(m_IDirectDrawSurfaceX* lpSurface)
 		{
 			hr = d3d9Device->SetDepthStencilSurface(nullptr);
 		}
-	}
-	else if (lpSurface->IsDepthStencil())
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Setting Depth Stencil Surface: " << DepthStencilSurface;
 
-		DepthStencilSurface = lpSurface;
+		return hr;
+	}
+
+	if (lpSurface->IsDepthStencil())
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Setting Depth Stencil Surface: " << lpSurface;
 
 		if (d3d9Device)
 		{
-			LPDIRECT3DSURFACE9 pSurfaceD9 = DepthStencilSurface->GetD9Surface();
+			LPDIRECT3DSURFACE9 pSurfaceD9 = lpSurface->GetD9Surface();
 			if (pSurfaceD9)
 			{
 				hr = d3d9Device->SetDepthStencilSurface(pSurfaceD9);
 			}
 		}
+	}
+	else
+	{
+		hr = DDERR_INVALIDPARAMS;
+	}
+
+	if (SUCCEEDED(hr))
+	{
+		DepthStencilSurface = lpSurface;
+	}
+	else
+	{
+		DepthStencilSurface = nullptr;
 	}
 
 	return hr;
