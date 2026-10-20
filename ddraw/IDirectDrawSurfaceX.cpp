@@ -919,8 +919,6 @@ HRESULT m_IDirectDrawSurfaceX::Blt(LPRECT lpDestRect, LPDIRECTDRAWSURFACE7 lpDDS
 			// Keep the surface contents synchronized when requested.
 			if (SUCCEEDED(hr))
 			{
-				LastUpdateIsLock = false;
-
 				EndWriteSyncSurfaces(lpDestRect, MipMapLevel, SyncSurfaces);
 			}
 
@@ -1672,7 +1670,7 @@ HRESULT m_IDirectDrawSurfaceX::Flip(LPDIRECTDRAWSURFACE7 lpDDSurfaceTargetOverri
 				SwapAddresses(&FlipList[x]->surface, &FlipList[x + 1]->surface);
 			}
 
-			// If texture is not dirty then mark it as dirty in case the game wrote to the memory directly (Nox does this)
+			// If texture is not dirty then mark it as dirty in case the game wrote to the memory directly (eg. Nox)
 			if (!surface.IsDirtyFlag)
 			{
 				// Keep surface insync
@@ -3002,9 +3000,6 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 				RestoreScanlines(LastLock);
 			}
 
-			// Set last update flag
-			LastUpdateIsLock = true;
-
 		} while (false);
 
 		hr = LockReturnValue(hr, MipMapLevel, nullptr, 0, LockWait);
@@ -3096,9 +3091,6 @@ HRESULT m_IDirectDrawSurfaceX::ReleaseDC(HDC hDC, DWORD MipMapLevel)
 
 			// Clear DC level
 			GetDCLevel[MipMapLevel] = nullptr;
-
-			// Clear last update flag
-			LastUpdateIsLock = false;
 
 			// Keep surface insync
 			EndWriteSyncSurfaces(nullptr, MipMapLevel, true);
@@ -7803,17 +7795,6 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 		CopyEmulatedSurfaceFromGDI(&DestRect);
 	}
 
-	// Some games modify the surface outside of Lock/Unlock pair
-	if (pSourceSurface->IsUsingEmulation() &&
-		pSourceSurface->LastUpdateIsLock &&
-		pSourceSurface->ShouldEmulate == SC_FORCE_EMULATED &&
-		pSourceSurface->surface.Pool == D3DPOOL_SYSTEMMEM &&
-		(pSourceSurface->surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY))
-	{
-		pSourceSurface->LastUpdateIsLock = false;
-		pSourceSurface->CopyFromEmulatedSurface(&SrcRect);
-	}
-
 	HRESULT hr = DDERR_GENERIC;
 	bool UnlockSrc = false;
 	bool UnlockDest = false;
@@ -7945,9 +7926,9 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			surface.Format == pSourceSurface->surface.Format &&
 			surface.Pool == D3DPOOL_DEFAULT &&
 			(pSourceSurface->surface.Pool == D3DPOOL_SYSTEMMEM || pSourceSurface->CanUseShadowSurface()) &&
-			// Some games modify system memory surfaces outside of lock/unlock pair
+			// Some games (eg. Tropico, Wizards and Warriors) modify system memory surfaces outside of lock/unlock pair
 			// so the emulated surface will have the most recent changes and the real surface may be out of sync
-			(!pSourceSurface->IsUsingEmulation() || pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM || (pSourceSurface->surface.Usage & D3DUSAGE_RENDERTARGET)))
+			(!pSourceSurface->IsUsingEmulation() || pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM))
 		{
 			PrepareRenderTarget();
 			pSourceSurface->SetRenderTargetShadow();
@@ -7984,7 +7965,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			(surface.Usage & D3DUSAGE_RENDERTARGET) &&
 			(pSourceSurface->surface.Type == D3DTYPE_TEXTURE || pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE) &&
 			!(pSourceSurface->surface.Usage & (D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL)) &&
-			// Some games modify system memory surfaces outside of lock/unlock pair
+			// Some games (eg. Tropico, Wizards and Warriors) modify system memory surfaces outside of lock/unlock pair
 			// so the emulated surface will have the most recent changes and the real surface may be out of sync
 			(!pSourceSurface->IsUsingEmulation() || pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM))
 		{
@@ -8216,7 +8197,10 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			surface.Type == pSourceSurface->surface.Type &&
 			!surface.UsingSurfaceMemory &&
 			!pSourceSurface->surface.UsingSurfaceMemory &&
-			pSourceSurface->IsPalette() == IsPalette())
+			pSourceSurface->IsPalette() == IsPalette() &&
+			// Some games (eg. Tropico, Wizards and Warriors) modify system memory surfaces outside of lock/unlock pair
+			// so the emulated surface will have the most recent changes and the real surface may be out of sync
+			(!pSourceSurface->IsUsingEmulation() || pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM))
 		{
 			ScopedGetMipMapContext Src(pSourceSurface, SrcMipMapLevel);
 			ScopedGetMipMapContext Dest(this, MipMapLevel);
