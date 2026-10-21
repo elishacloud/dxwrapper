@@ -641,6 +641,16 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Check pixel format
 		if (Desc2.dwFlags & DDSD_PIXELFORMAT)
 		{
+			// Limit what surface format is allowed for surface memory
+			if ((Desc2.dwFlags & DDSD_LPSURFACE) &&
+				Desc2.lpSurface &&
+				!IsPixelFormatRGB(Desc2.ddpfPixelFormat) &&
+				!IsPixelFormatPalette(Desc2.ddpfPixelFormat))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: lpSurface not Implemented for DXT or FourCC formats.");
+				return DDERR_INVALIDPARAMS;
+			}
+
 			Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 			const DWORD Usage = (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL :
 				(Desc2.ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_3DDEVICE)) ? D3DUSAGE_RENDERTARGET : 0;

@@ -3875,6 +3875,13 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		// Handle lpSurface flag
 		if ((SurfaceFlags & DDSD_LPSURFACE) && lpDDSurfaceDesc2->lpSurface)
 		{
+			// Limit what surface format is allowed for surface memory
+			if (!IsPixelFormatRGB(surfaceDesc2.ddpfPixelFormat) && !IsPixelFormatPalette(surfaceDesc2.ddpfPixelFormat))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: lpSurface not Implemented for DXT or FourCC formats.");
+				return DDERR_INVALIDPARAMS;
+			}
+
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: lpSurface not fully Implemented.");
 
 			SurfaceFlags &= ~DDSD_LPSURFACE;
@@ -6087,9 +6094,19 @@ void m_IDirectDrawSurfaceX::ReleaseD9AuxiliarySurfaces(bool ResetSurface)
 	}
 
 	// Release d3d9 tmp shadow surface when surface is released
+	if (tmpVideo.Surface)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 tmpVideo surface";
+		ULONG ref = tmpVideo.Surface->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpVideo.Surface' " << ref;
+		}
+		tmpVideo.Surface = nullptr;
+	}
 	if (tmpVideo.Texture)
 	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 tmpVideo texture";
 		ULONG ref = tmpVideo.Texture->Release();
 		if (ref)
 		{
@@ -6097,15 +6114,16 @@ void m_IDirectDrawSurfaceX::ReleaseD9AuxiliarySurfaces(bool ResetSurface)
 		}
 		tmpVideo.Texture = nullptr;
 	}
-	if (tmpVideo.Surface)
+	if (tmpVideo.Offscreen)
 	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 surface";
-		ULONG ref = tmpVideo.Surface->Release();
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 tmpVideo offscreen";
+		ULONG ref = tmpVideo.Offscreen->Release();
 		if (ref)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpVideo.Surface' " << ref;
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpVideo.Offscreen' " << ref;
 		}
-		tmpVideo.Surface = nullptr;
+		tmpVideo.Offscreen = nullptr;
+		tmpVideo.OffscreenFormat = D3DFMT_UNKNOWN;
 	}
 
 	// Release primary display texture
@@ -7798,6 +7816,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 	HRESULT hr = DDERR_GENERIC;
 	bool UnlockSrc = false;
 	bool UnlockDest = false;
+	bool UnlockOffscreen = false;
 	D3DLOCKED_RECT DestLockRect = {};
 
 	do
@@ -7926,6 +7945,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			surface.Format == pSourceSurface->surface.Format &&
 			surface.Pool == D3DPOOL_DEFAULT &&
 			(pSourceSurface->surface.Pool == D3DPOOL_SYSTEMMEM || pSourceSurface->CanUseShadowSurface()) &&
+			!pSourceSurface->surface.UsingSurfaceMemory &&
 			// Some games (eg. Tropico, Wizards and Warriors) modify system memory surfaces outside of lock/unlock pair
 			// so the emulated surface will have the most recent changes and the real surface may be out of sync
 			(!pSourceSurface->IsUsingEmulation() || pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM))
@@ -7965,6 +7985,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			(surface.Usage & D3DUSAGE_RENDERTARGET) &&
 			(pSourceSurface->surface.Type == D3DTYPE_TEXTURE || pSourceSurface->surface.Type == D3DTYPE_OFFPLAINSURFACE) &&
 			!(pSourceSurface->surface.Usage & (D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL)) &&
+			!pSourceSurface->surface.UsingSurfaceMemory &&
 			// Some games (eg. Tropico, Wizards and Warriors) modify system memory surfaces outside of lock/unlock pair
 			// so the emulated surface will have the most recent changes and the real surface may be out of sync
 			(!pSourceSurface->IsUsingEmulation() || pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM))
@@ -7996,6 +8017,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			surface.Format == pSourceSurface->surface.Format &&
 			(surface.BitCount == 8 || surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32) &&
 			surface.Pool == D3DPOOL_DEFAULT &&
+			!pSourceSurface->surface.UsingSurfaceMemory &&
 			(pSourceSurface->surface.Pool != D3DPOOL_DEFAULT || pSourceSurface->CanUseShadowSurface() || pSourceSurface->IsUsingEmulation()))
 		{
 			PrepareRenderTarget();
@@ -8066,72 +8088,13 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 		}
 
 		// -------------------------------------------------------------------------
-		//  Prepare Render Target shadow surface for copy.
-		// -------------------------------------------------------------------------
-
-		// Check if source/destination render targets should use shadow surfaces
-		if (pSourceSurface->ShouldUseShadowSurface(SrcMipMapLevel, true))
-		{
-			pSourceSurface->SetRenderTargetShadow();
-		}
-
-		if (ShouldUseShadowSurface(MipMapLevel, true))
-		{
-			SetRenderTargetShadow();
-		}
-
-		// -------------------------------------------------------------------------
-		//  Use D3DXLoadSurfaceFromSurface to decode DirectX textures and FourCCs.
-		// -------------------------------------------------------------------------
-
-		// D3DXLoadSurfaceFromSurface
-		if ((FormatMismatch && !IsUsingEmulation()) ||
-			(!IsPixelFormatRGB(pSourceSurface->surfaceDesc2.ddpfPixelFormat) &&
-				!IsPixelFormatPalette(pSourceSurface->surfaceDesc2.ddpfPixelFormat)))
-		{
-			if (IsColorKey)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: color key not supported with DirectX textures!");
-			}
-
-			if (IsMirrorLeftRight || IsMirrorUpDown)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: mirroring not supported with DirectX textures!");
-			}
-
-			if (IsUsingEmulation())
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: copying DirectX textures to emulated surfaces is not supported!");
-				hr = DDERR_GENERIC;
-				break;
-			}
-
-			ScopedGetMipMapContext Src(pSourceSurface, SrcMipMapLevel);
-			ScopedGetMipMapContext Dest(this, MipMapLevel);
-
-			if (Src.GetSurface() && Dest.GetSurface())
-			{
-				hr = D3DXLoadSurfaceFromSurface(Dest.GetSurface(), nullptr, &DestRect, Src.GetSurface(), nullptr, &SrcRect, D3DXFilter, 0);
-
-				if (FAILED(hr))
-				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: could not decode source texture. " << (D3DERR)hr << " " << SrcFormat << "->" << DestFormat);
-				}
-			}
-			else
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: could not get source or destination surface level: " << Src.GetSurface() << "->" << Dest.GetSurface());
-			}
-
-			break;
-		}
-
-		// -------------------------------------------------------------------------
 		//  Use BitBlt/StretchBlt to copy the surface using the surface DC.
 		// -------------------------------------------------------------------------
 
 		// BitBlt / StretchBlt
-		if (IsEmulationDCReady() && pSourceSurface->IsEmulationDCReady() && !IsColorKey)
+		if (!IsColorKey &&
+			IsEmulationDCReady() &&
+			pSourceSurface->IsEmulationDCReady())
 		{
 			LONG DestLeft = DestRect.left;
 			LONG DestTop = DestRect.top;
@@ -8186,14 +8149,29 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 		}
 
 		// -------------------------------------------------------------------------
+		//  Prepare Render Target shadow surface for copy.
+		// -------------------------------------------------------------------------
+
+		// Check if source/destination render targets should use shadow surfaces
+		if (pSourceSurface->ShouldUseShadowSurface(SrcMipMapLevel, true))
+		{
+			pSourceSurface->SetRenderTargetShadow();
+		}
+
+		if (ShouldUseShadowSurface(MipMapLevel, true))
+		{
+			SetRenderTargetShadow();
+		}
+
+		// -------------------------------------------------------------------------
 		//  Use D3DXLoadSurfaceFromSurface to copy the surface.
 		// -------------------------------------------------------------------------
 
 		// D3DXLoadSurfaceFromSurface
-		if (!IsUsingEmulation() &&
-			!IsColorKey &&
+		if (!IsColorKey &&
 			!IsMirrorLeftRight &&
 			!IsMirrorUpDown &&
+			!IsUsingEmulation() &&
 			surface.Type == pSourceSurface->surface.Type &&
 			!surface.UsingSurfaceMemory &&
 			!pSourceSurface->surface.UsingSurfaceMemory &&
@@ -8221,21 +8199,52 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			}
 		}
 
-		// Check for format mismatch
-		const bool FormatR5G6B5toX8R8G8B8 =
-			SrcFormat == D3DFMT_R5G6B5 &&
-			(DestFormat == D3DFMT_A8R8G8B8 || DestFormat == D3DFMT_X8R8G8B8);
+		// -------------------------------------------------------------------------
+		//  Use D3DXLoadSurfaceFromSurface to decode DirectX textures and FourCCs.
+		// -------------------------------------------------------------------------
 
-		if (FormatMismatch)
+		// D3DXLoadSurfaceFromSurface
+		if (!IsMirrorLeftRight &&
+			!IsMirrorUpDown &&
+			!IsUsingEmulation() &&
+			!surface.UsingSurfaceMemory &&
+			!IsPixelFormatRGB(pSourceSurface->surfaceDesc2.ddpfPixelFormat) &&
+			!IsPixelFormatPalette(pSourceSurface->surfaceDesc2.ddpfPixelFormat))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: source and destination formats don't match! " << SrcFormat << "-->" << DestFormat);
+			ScopedGetMipMapContext Src(pSourceSurface, SrcMipMapLevel);
+			ScopedGetMipMapContext Dest(this, MipMapLevel);
 
-			if (!FormatR5G6B5toX8R8G8B8)
+			if (Src.GetSurface() && Dest.GetSurface())
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: not supported for specified source and destination formats! " << SrcFormat << "-->" << DestFormat);
-				hr = DDERR_GENERIC;
+				hr = D3DXLoadSurfaceFromSurface(Dest.GetSurface(), nullptr, &DestRect, Src.GetSurface(), nullptr, &SrcRect, D3DXFilter, 0);
+
+				if (FAILED(hr))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to load surface from surface. " << (D3DERR)hr);
+				}
+			}
+
+			if (SUCCEEDED(hr))
+			{
 				break;
 			}
+		}
+
+		// Check for format mismatch
+		if ((!IsPixelFormatRGB(surfaceDesc2.ddpfPixelFormat) && !IsPixelFormatPalette(surfaceDesc2.ddpfPixelFormat)) ||
+			(FormatMismatch && (IsPalette() || pSourceSurface->IsPalette())))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: copy not implemented for these surfaces! " << SrcFormat << "-->" << DestFormat <<
+				" Type: " << pSourceSurface->surface.Type << "-->" << surface.Type <<
+				" Usage: " << pSourceSurface->surface.Usage << "-->" << surface.Usage <<
+				" Pool: " << pSourceSurface->surface.Pool << "-->" << surface.Pool <<
+				" IsPalette: " << pSourceSurface->IsPalette() << "-->" << IsPalette() <<
+				" IsUsingEmulation: " << pSourceSurface->IsUsingEmulation() << "-->" << IsUsingEmulation() <<
+				" UsingSurfaceMemory: " << pSourceSurface->surface.UsingSurfaceMemory << "-->" << surface.UsingSurfaceMemory <<
+				" IsColorKey: " << IsColorKey << " IsMirrorLeftRight: " << IsMirrorLeftRight << " IsMirrorLeftRight: " << IsMirrorUpDown);
+
+			hr = DDERR_GENERIC;
+			break;
 		}
 
 		// -------------------------------------------------------------------------
@@ -8247,77 +8256,155 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 
 		if (!ByteCount || ByteCount > 4 || DestBitCount % 8 != 0)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: wrong bit count " << DestBitCount);
+			LOG_LIMIT(100, __FUNCTION__ << " Error: wrong bit count " << DestBitCount <<
+				" Format: " << SrcFormat << "-->" << DestFormat <<
+				" Type: " << pSourceSurface->surface.Type << "-->" << surface.Type <<
+				" Usage: " << pSourceSurface->surface.Usage << "-->" << surface.Usage <<
+				" Pool: " << pSourceSurface->surface.Pool << "-->" << surface.Pool <<
+				" IsPalette: " << pSourceSurface->IsPalette() << "-->" << IsPalette() <<
+				" IsUsingEmulation: " << pSourceSurface->IsUsingEmulation() << "-->" << IsUsingEmulation() <<
+				" UsingSurfaceMemory: " << pSourceSurface->surface.UsingSurfaceMemory << "-->" << surface.UsingSurfaceMemory <<
+				" IsColorKey: " << IsColorKey << " IsMirrorLeftRight: " << IsMirrorLeftRight << " IsMirrorUpDown: " << IsMirrorUpDown);
+
 			hr = DDERR_GENERIC;
 			break;
 		}
 
 		// Lock source
 		D3DLOCKED_RECT SrcLockRect = {};
-		if (FAILED(pSourceSurface->IsUsingEmulation() ?
-			pSourceSurface->LockEmulatedSurface(&SrcLockRect, &SrcRect) :
-			pSourceSurface->LockD3d9Surface(
-				&SrcLockRect, &SrcRect, D3DLOCK_READONLY, SrcMipMapLevel)) ||
-			!SrcLockRect.pBits)
+		if (FormatMismatch ||
+			(!IsPixelFormatRGB(pSourceSurface->surfaceDesc2.ddpfPixelFormat) &&
+				!IsPixelFormatPalette(pSourceSurface->surfaceDesc2.ddpfPixelFormat)))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
-			hr = pSourceSurface->IsSurfaceBusy(MipMapLevel) ?
-				DDERR_SURFACEBUSY :
-				DDERR_GENERIC;
-			break;
-		}
+			// Handle DXT, FourCCs or format mismatch
 
-		UnlockSrc = true;
-
-		// Use a separate buffer if source and destination are the same surface
-		// or if the formats don't match.
-		if ((pSourceSurface == this && MipMapLevel == SrcMipMapLevel) || FormatMismatch)
-		{
-			const size_t Size = SrcRectWidth * ByteCount * SrcRectHeight;
-
-			if (Size > ByteArray.size())
+			if (IsColorKey)
 			{
-				ByteArray.resize(Size);
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: color key not supported for format conversions: " <<
+					" Format: " << SrcFormat << "-->" << DestFormat);
 			}
 
-			BYTE* SrcBuffer = (BYTE*)SrcLockRect.pBits;
-			BYTE* DestBuffer = (BYTE*)ByteArray.data();
-			const INT DestPitch = SrcRectWidth * ByteCount;
-
-			if (FormatR5G6B5toX8R8G8B8)
+			// Create offscreen surface
+			if (!pSourceSurface->tmpVideo.Offscreen ||
+				pSourceSurface->tmpVideo.OffscreenFormat != surface.Format)
 			{
-				for (LONG y = 0; y < SrcRectHeight; ++y)
+				// Release offscreen surface
+				if (pSourceSurface->tmpVideo.Offscreen)
 				{
-					for (LONG x = 0; x < SrcRectWidth; ++x)
+					ULONG ref = pSourceSurface->tmpVideo.Offscreen->Release();
+					if (ref)
 					{
-						((DWORD*)DestBuffer)[x] =
-							D3DFMT_R5G6B5_TO_X8R8G8B8(((WORD*)SrcBuffer)[x]);
+						Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpVideo.Offscreen' " << ref;
 					}
-
-					SrcBuffer += SrcLockRect.Pitch;
-					DestBuffer += DestPitch;
+					pSourceSurface->tmpVideo.Offscreen = nullptr;
+					pSourceSurface->tmpVideo.OffscreenFormat = D3DFMT_UNKNOWN;
 				}
 
-				ColorKey = D3DFMT_R5G6B5_TO_X8R8G8B8(ColorKey);
+				// Create offscreen surface with dest format
+				if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(pSourceSurface->surface.Width, pSourceSurface->surface.Height, surface.Format, D3DPOOL_SYSTEMMEM, &pSourceSurface->tmpVideo.Offscreen, nullptr)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create offplain tmpVideo.Surface. Size: " << pSourceSurface->surface.Width << "x" << pSourceSurface->surface.Height << " Format: " << surface.Format);
+
+					hr = DDERR_GENERIC;
+					break;
+				}
+				pSourceSurface->tmpVideo.OffscreenFormat = surface.Format;
+			}
+
+			// Use D3DX to convert the format to dest format
+			if (pSourceSurface->surface.UsingSurfaceMemory)
+			{
+				INT Pitch = pSourceSurface->surfaceDesc2.dwWidth * pSourceSurface->surface.BitCount / 8;
+				hr = D3DXLoadSurfaceFromMemory(pSourceSurface->tmpVideo.Offscreen, nullptr, &SrcRect, pSourceSurface->surfaceDesc2.lpSurface, pSourceSurface->surface.Format, Pitch, nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
+			}
+			else if (pSourceSurface->IsUsingEmulation())
+			{
+				hr = D3DXLoadSurfaceFromMemory(pSourceSurface->tmpVideo.Offscreen, nullptr, &SrcRect, pSourceSurface->surface.emu->pBits, pSourceSurface->surface.emu->Format, pSourceSurface->surface.emu->Pitch, nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
 			}
 			else
 			{
+				ScopedGetMipMapContext Src(pSourceSurface, SrcMipMapLevel);
+
+				if (!Src.GetSurface())
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: could not get source surface level: " << Src.GetSurface());
+
+					hr = DDERR_GENERIC;
+					break;
+				}
+
+				hr = D3DXLoadSurfaceFromSurface(pSourceSurface->tmpVideo.Offscreen, nullptr, &SrcRect, Src.GetSurface(), nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
+			}
+
+			// Check if failed to convert format
+			if (FAILED(hr))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to convert format to offplain tmpVideo.Surface. Format: " << pSourceSurface->surface.Format);
+
+				hr = DDERR_GENERIC;
+				break;
+			}
+
+			// Lock offscreen surface
+			if (FAILED(pSourceSurface->tmpVideo.Offscreen->LockRect(&SrcLockRect, &SrcRect, D3DLOCK_READONLY)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock offscreen source surface " << SrcRect);
+
+				hr = DDERR_GENERIC;
+				break;
+			}
+
+			UnlockOffscreen = true;
+		}
+		else
+		{
+			// Lock source
+			if (FAILED(pSourceSurface->IsUsingEmulation() ?
+				pSourceSurface->LockEmulatedSurface(&SrcLockRect, &SrcRect) :
+				pSourceSurface->LockD3d9Surface(
+					&SrcLockRect, &SrcRect, D3DLOCK_READONLY, SrcMipMapLevel)) ||
+				!SrcLockRect.pBits)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
+				hr = pSourceSurface->IsSurfaceBusy(MipMapLevel) ?
+					DDERR_SURFACEBUSY :
+					DDERR_GENERIC;
+				break;
+			}
+
+			UnlockSrc = true;
+
+			// Use a separate buffer if source and destination are the same surface
+			// or if the formats don't match.
+			if (pSourceSurface == this && MipMapLevel == SrcMipMapLevel)
+			{
+				const size_t Size = SrcRectWidth * ByteCount * SrcRectHeight;
+
+				if (Size > ByteArray.size())
+				{
+					ByteArray.resize(Size);
+				}
+
+				BYTE* SrcBuffer = (BYTE*)SrcLockRect.pBits;
+				BYTE* DestBuffer = (BYTE*)ByteArray.data();
+				const INT DestPitch = SrcRectWidth * ByteCount;
+
 				for (LONG y = 0; y < SrcRectHeight; ++y)
 				{
 					memcpy(DestBuffer, SrcBuffer, SrcRectWidth * ByteCount);
 					SrcBuffer += SrcLockRect.Pitch;
 					DestBuffer += DestPitch;
 				}
-			}
 
-			SrcLockRect.pBits = ByteArray.data();
-			SrcLockRect.Pitch = DestPitch;
+				SrcLockRect.pBits = ByteArray.data();
+				SrcLockRect.Pitch = DestPitch;
 
-			if (UnlockSrc)
-			{
-				pSourceSurface->IsUsingEmulation() ?
-					DD_OK : pSourceSurface->UnLockD3d9Surface(SrcMipMapLevel);
-				UnlockSrc = false;
+				if (UnlockSrc)
+				{
+					pSourceSurface->IsUsingEmulation() ?
+						DD_OK : pSourceSurface->UnLockD3d9Surface(SrcMipMapLevel);
+					UnlockSrc = false;
+				}
 			}
 		}
 
@@ -8418,21 +8505,24 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 	} while (false);
 
 	// Remove scanlines before unlocking surface
-	if (SUCCEEDED(hr) && Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
+	if (SUCCEEDED(hr))
 	{
-		LASTLOCK LLock;
-		EmuScanLine.ScanlineWidth = DestRectWidth;
-		LLock.Rect = DestRect;
+		if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
+		{
+			LASTLOCK LLock;
+			EmuScanLine.ScanlineWidth = DestRectWidth;
+			LLock.Rect = DestRect;
 
-		if (IsUsingEmulation())
-		{
-			LockEmulatedSurface(&LLock.LockedRect, &DestRect);
-			RemoveScanlines(LLock);
-		}
-		else if (UnlockDest)
-		{
-			LLock.LockedRect = DestLockRect;
-			RemoveScanlines(LLock);
+			if (IsUsingEmulation())
+			{
+				LockEmulatedSurface(&LLock.LockedRect, &DestRect);
+				RemoveScanlines(LLock);
+			}
+			else if (UnlockDest)
+			{
+				LLock.LockedRect = DestLockRect;
+				RemoveScanlines(LLock);
+			}
 		}
 	}
 
@@ -8447,6 +8537,11 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 	{
 		IsUsingEmulation() ?
 			DD_OK : UnLockD3d9Surface(MipMapLevel);
+	}
+
+	if (UnlockOffscreen)
+	{
+		pSourceSurface->tmpVideo.Offscreen->UnlockRect();
 	}
 
 	return hr;
