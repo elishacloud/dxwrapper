@@ -239,11 +239,13 @@ private:
 	DWORD CurrentSurfaceUSN = 0;						// Used for detecting when MipMap is out-of-date
 	bool IsMipMapReadyToUse = false;					// Used for MipMap filtering
 	struct {
-		LPDIRECT3DSURFACE9 Surface = nullptr;			// Shadow surface for StretchRect
-		LPDIRECT3DTEXTURE9 Texture = nullptr;			// Shadow texture for StretchRect
-		LPDIRECT3DSURFACE9 Offscreen = nullptr;			// Offscreen surface for StretchRect
-		D3DFORMAT OffscreenFormat = D3DFMT_UNKNOWN;		// Offscreen surface format
-	} tmpVideo;
+		LPDIRECT3DSURFACE9 Surface = nullptr;			// Shadow video memory surface for StretchRect
+		LPDIRECT3DTEXTURE9 Texture = nullptr;			// Shadow video memory texture for StretchRect
+	} tmpVideoMem;
+	struct {
+		LPDIRECT3DSURFACE9 Offscreen = nullptr;			// Offscreen system memory surface for D3DX conversion
+		D3DFORMAT OffscreenFormat = D3DFMT_UNKNOWN;		// Offscreen system memory surface format
+	} tmpSystemMem;
 	LPDIRECT3DTEXTURE9 PrimaryDisplayTexture = nullptr;	// Used for the texture surface for the primary surface
 	m_IDirectDrawPalette *attachedPalette = nullptr;	// Associated palette
 	m_IDirectDrawClipper *attachedClipper = nullptr;	// Associated clipper

@@ -641,16 +641,6 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		// Check pixel format
 		if (Desc2.dwFlags & DDSD_PIXELFORMAT)
 		{
-			// Limit what surface format is allowed for surface memory
-			if ((Desc2.dwFlags & DDSD_LPSURFACE) &&
-				Desc2.lpSurface &&
-				!IsPixelFormatRGB(Desc2.ddpfPixelFormat) &&
-				!IsPixelFormatPalette(Desc2.ddpfPixelFormat))
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: lpSurface not Implemented for DXT or FourCC formats.");
-				return DDERR_INVALIDPARAMS;
-			}
-
 			Desc2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 			const DWORD Usage = (Desc2.ddpfPixelFormat.dwFlags & (DDPF_ZBUFFER | DDPF_STENCILBUFFER)) ? D3DUSAGE_DEPTHSTENCIL :
 				(Desc2.ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_3DDEVICE)) ? D3DUSAGE_RENDERTARGET : 0;
@@ -670,6 +660,61 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			{
 				DisplayPixelFormat = Desc2.ddpfPixelFormat;
 			}
+		}
+
+		// Check for surface memory
+		if (Desc2.dwFlags & DDSD_LPSURFACE)
+		{
+			// Check lpSurface contents
+			if (Desc2.lpSurface == nullptr)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: lpSurface flag without any data.");
+				return DDERR_INVALIDPARAMS;
+			}
+
+			// Check pixel format and size
+			if (!(Desc2.dwFlags & DDSD_PIXELFORMAT) ||
+				!(Desc2.dwFlags & DDSD_WIDTH) ||
+				!(Desc2.dwFlags & DDSD_HEIGHT) ||
+				Desc2.dwWidth == 0 ||
+				Desc2.dwHeight == 0)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: lpSurface requires pixel format and static size.");
+				return DDERR_INVALIDPARAMS;
+			}
+
+			// Limit surface memory to system memory only
+			if (!(Desc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: lpSurface requires system memory.");
+				return DDERR_INVALIDPARAMS;
+			}
+
+			// Disallow surface memory on primary, flip and complex surfaces
+			if (Desc2.ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_FLIP | DDSCAPS_COMPLEX))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: lpSurface not supported on primary, flip or complex surfaces.");
+				return DDERR_INVALIDPARAMS;
+			}
+
+			// Limit what surface format is allowed for surface memory
+			if (Desc2.ddpfPixelFormat.dwRGBBitCount == 0 ||
+				(!IsPixelFormatRGB(Desc2.ddpfPixelFormat) && !IsPixelFormatPalette(Desc2.ddpfPixelFormat)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: lpSurface not implemented for DXT or FourCC formats.");
+				return DDERR_INVALIDPARAMS;
+			}
+
+			// Check byte alignement
+			if ((!(Desc2.dwFlags & DDSD_PITCH) || Desc2.lPitch == 0) &&
+				(Desc2.ddpfPixelFormat.dwRGBBitCount * Desc2.dwWidth) % 32 != 0)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: lpSurface using a non-byte aligned surface:" <<
+					" BitCount: " << Desc2.ddpfPixelFormat.dwRGBBitCount << " Width: " << Desc2.dwWidth);
+			}
+
+			// Lock at system memory
+			Desc2.ddsCaps.dwCaps &= ~(DDSCAPS_LOCALVIDMEM | DDSCAPS_VIDEOMEMORY);
 		}
 
 		// Check for antialiasing
@@ -754,7 +799,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		else
 		{
 			Desc2.dwFlags &= ~DDSD_MIPMAPCOUNT;
-			Desc2.ddsCaps.dwCaps &= ~(DDSCAPS_MIPMAP | ((Desc2.dwFlags & DDSCAPS_MIPMAP) ? DDSCAPS_COMPLEX : 0));
+			Desc2.ddsCaps.dwCaps &= ~DDSCAPS_MIPMAP;
 		}
 
 		// Check for depth stencil surface

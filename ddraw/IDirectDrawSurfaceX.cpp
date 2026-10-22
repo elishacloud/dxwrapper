@@ -2735,8 +2735,8 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			}
 			else if (lpDDSurfaceDesc2->dwFlags & DDSD_LINEARSIZE)
 			{
-				surfaceDesc2.dwFlags &= ~(DDSD_PITCH | DDSD_LINEARSIZE);
-				surfaceDesc2.dwLinearSize = 0;
+				lpDDSurfaceDesc2->dwFlags &= ~(DDSD_PITCH | DDSD_LINEARSIZE);
+				lpDDSurfaceDesc2->dwLinearSize = 0;
 			}
 
 			// Clear lpSurface
@@ -2942,10 +2942,13 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 			lpDDSurfaceDesc2->dwFlags |= DDSD_LPSURFACE;
 
 			// Pitch for DXT surfaces in DirectDraw is the full surface byte size
-			LockedRect.Pitch =
-				(ISDXTEX(surface.Format) || surface.Format == D3DFMT_YV12 || surface.Format == D3DFMT_NV12) ?
-				ComputePitch(surface.Format, lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight) :
-				LockedRect.Pitch;
+			if (!surface.UsingSurfaceMemory || !(surfaceDesc2.dwFlags & DDSD_PITCH))
+			{
+				LockedRect.Pitch =
+					(ISDXTEX(surface.Format) || surface.Format == D3DFMT_YV12 || surface.Format == D3DFMT_NV12) ?
+					ComputePitch(surface.Format, lpDDSurfaceDesc2->dwWidth, lpDDSurfaceDesc2->dwHeight) :
+					LockedRect.Pitch;
+			}
 			lpDDSurfaceDesc2->lPitch = LockedRect.Pitch;
 			lpDDSurfaceDesc2->dwFlags |= DDSD_PITCH;
 
@@ -3873,13 +3876,52 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 		bool RecreateDevice = false;
 
 		// Handle lpSurface flag
-		if ((SurfaceFlags & DDSD_LPSURFACE) && lpDDSurfaceDesc2->lpSurface)
+		if (SurfaceFlags & DDSD_LPSURFACE)
 		{
-			// Limit what surface format is allowed for surface memory
-			if (!IsPixelFormatRGB(surfaceDesc2.ddpfPixelFormat) && !IsPixelFormatPalette(surfaceDesc2.ddpfPixelFormat))
+			// Check lpSurface contents
+			if (lpDDSurfaceDesc2->lpSurface == nullptr)
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: lpSurface not Implemented for DXT or FourCC formats.");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: lpSurface flag without any data.");
 				return DDERR_INVALIDPARAMS;
+			}
+
+			// Check pixel format and size
+			if ((ResetDisplayFlags & DDSD_PIXELFORMAT) ||
+				(ResetDisplayFlags & DDSD_WIDTH) ||
+				(ResetDisplayFlags & DDSD_HEIGHT))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: lpSurface requires pixel format and static size.");
+				return DDERR_INVALIDPARAMS;
+			}
+
+			// Limit surface memory to system memory only
+			if (!(surfaceDesc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: lpSurface requires system memory.");
+				return DDERR_INVALIDPARAMS;
+			}
+
+			// Disallow surface memory on primary, flip and complex surfaces
+			if (surfaceDesc2.ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_FLIP | DDSCAPS_COMPLEX))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: lpSurface not supported on primary, flip or complex surfaces.");
+				return DDERR_INVALIDPARAMS;
+			}
+
+			// Limit what surface format is allowed for surface memory
+			if (surfaceDesc2.ddpfPixelFormat.dwRGBBitCount == 0 ||
+				(!IsPixelFormatRGB(surfaceDesc2.ddpfPixelFormat) && !IsPixelFormatPalette(surfaceDesc2.ddpfPixelFormat)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Error: lpSurface not implemented for DXT or FourCC formats.");
+				return DDERR_INVALIDPARAMS;
+			}
+
+			// Check byte alignement
+			if ((!(surfaceDesc2.dwFlags & DDSD_PITCH) || surfaceDesc2.lPitch == 0) &&
+				(surfaceDesc2.ddpfPixelFormat.dwRGBBitCount * surfaceDesc2.dwWidth) % 32 != 0)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: lpSurface using a non-byte aligned surface:" <<
+					" BitCount: " << surfaceDesc2.ddpfPixelFormat.dwRGBBitCount << " Width: " << surfaceDesc2.dwWidth);
 			}
 
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: lpSurface not fully Implemented.");
@@ -3887,11 +3929,8 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 			SurfaceFlags &= ~DDSD_LPSURFACE;
 			surfaceDesc2.dwFlags |= DDSD_LPSURFACE;
 			surfaceDesc2.lpSurface = lpDDSurfaceDesc2->lpSurface;
+			surfaceDesc2.ddsCaps.dwCaps &= ~(DDSCAPS_LOCALVIDMEM | DDSCAPS_VIDEOMEMORY);	// Lock at system memory
 			surface.UsingSurfaceMemory = true;
-			if (surfaceDesc2.dwMipMapCount > 1)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Warning: lpSurface not supported with MipMaps!");
-			}
 			if (surface.Surface || surface.Texture)
 			{
 				RecreateDevice = true;
@@ -6094,36 +6133,36 @@ void m_IDirectDrawSurfaceX::ReleaseD9AuxiliarySurfaces(bool ResetSurface)
 	}
 
 	// Release d3d9 tmp shadow surface when surface is released
-	if (tmpVideo.Surface)
+	if (tmpVideoMem.Surface)
 	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 tmpVideo surface";
-		ULONG ref = tmpVideo.Surface->Release();
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 tmpVideoMem surface";
+		ULONG ref = tmpVideoMem.Surface->Release();
 		if (ref)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpVideo.Surface' " << ref;
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpVideoMem.Surface' " << ref;
 		}
-		tmpVideo.Surface = nullptr;
+		tmpVideoMem.Surface = nullptr;
 	}
-	if (tmpVideo.Texture)
+	if (tmpVideoMem.Texture)
 	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 tmpVideo texture";
-		ULONG ref = tmpVideo.Texture->Release();
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 tmpVideoMem texture";
+		ULONG ref = tmpVideoMem.Texture->Release();
 		if (ref)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpVideo.Texture' " << ref;
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpVideoMem.Texture' " << ref;
 		}
-		tmpVideo.Texture = nullptr;
+		tmpVideoMem.Texture = nullptr;
 	}
-	if (tmpVideo.Offscreen)
+	if (tmpSystemMem.Offscreen)
 	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 tmpVideo offscreen";
-		ULONG ref = tmpVideo.Offscreen->Release();
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 tmpSystemMem offscreen";
+		ULONG ref = tmpSystemMem.Offscreen->Release();
 		if (ref)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpVideo.Offscreen' " << ref;
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpSystemMem.Offscreen' " << ref;
 		}
-		tmpVideo.Offscreen = nullptr;
-		tmpVideo.OffscreenFormat = D3DFMT_UNKNOWN;
+		tmpSystemMem.Offscreen = nullptr;
+		tmpSystemMem.OffscreenFormat = D3DFMT_UNKNOWN;
 	}
 
 	// Release primary display texture
@@ -7079,12 +7118,7 @@ void m_IDirectDrawSurfaceX::InitSurfaceDesc(DWORD DirectXVersion)
 		surfaceDesc2.ddsCaps.dwCaps &= ~DDSCAPS_MIPMAP;
 	}
 
-	// Clear pitch
-	if (!(surfaceDesc2.dwFlags & DDSD_LPSURFACE))
-	{
-		surfaceDesc2.dwFlags &= ~DDSD_PITCH;
-		surfaceDesc2.lPitch = 0;
-	}
+	// Set using surface memory
 	surface.UsingSurfaceMemory = ((surfaceDesc2.dwFlags & DDSD_LPSURFACE) && surfaceDesc2.lpSurface);
 	if (surface.UsingSurfaceMemory)
 	{
@@ -7858,60 +7892,60 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 				}
 				else
 				{
-					// Use intermediate tmpVideo surface
-					if (!tmpVideo.Surface)
+					// Use intermediate tmpVideoMem surface
+					if (!tmpVideoMem.Surface)
 					{
-						LOG_LIMIT(100, __FUNCTION__ << " Creating tmpVideo surface.");
+						LOG_LIMIT(100, __FUNCTION__ << " Creating tmpVideoMem surface.");
 
 						D3DSURFACE_DESC Desc = {};
 						Dest.GetSurface()->GetDesc(&Desc);
 
 						if (surface.Type == D3DTYPE_OFFPLAINSURFACE)
 						{
-							if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, surface.Pool, &tmpVideo.Surface, nullptr)))
+							if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(Desc.Width, Desc.Height, Desc.Format, surface.Pool, &tmpVideoMem.Surface, nullptr)))
 							{
-								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create offplain tmpVideo.Surface. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create offplain tmpVideoMem.Surface. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
 							}
 						}
 						else if (surface.Type == D3DTYPE_RENDERTARGET)
 						{
-							if (FAILED((*d3d9Device)->CreateRenderTarget(Desc.Width, Desc.Height, Desc.Format, D3DMULTISAMPLE_NONE, 0, FALSE, &tmpVideo.Surface, nullptr)))
+							if (FAILED((*d3d9Device)->CreateRenderTarget(Desc.Width, Desc.Height, Desc.Format, D3DMULTISAMPLE_NONE, 0, FALSE, &tmpVideoMem.Surface, nullptr)))
 							{
-								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create render target tmpVideo.Surface. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create render target tmpVideoMem.Surface. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
 							}
 						}
 						else if (surface.Type == D3DTYPE_TEXTURE)
 						{
-							if (!tmpVideo.Texture &&
-								FAILED((*d3d9Device)->CreateTexture(Desc.Width, Desc.Height, 1, surface.Usage, Desc.Format, surface.Pool, &tmpVideo.Texture, nullptr)))
+							if (!tmpVideoMem.Texture &&
+								FAILED((*d3d9Device)->CreateTexture(Desc.Width, Desc.Height, 1, surface.Usage, Desc.Format, surface.Pool, &tmpVideoMem.Texture, nullptr)))
 							{
-								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create texture tmpVideo.Texture. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create texture tmpVideoMem.Texture. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
 							}
 
-							if (tmpVideo.Texture &&
-								FAILED(tmpVideo.Texture->GetSurfaceLevel(0, &tmpVideo.Surface)))
+							if (tmpVideoMem.Texture &&
+								FAILED(tmpVideoMem.Texture->GetSurfaceLevel(0, &tmpVideoMem.Surface)))
 							{
-								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface level for tmpVideo.Texture. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to get surface level for tmpVideoMem.Texture. Size: " << Desc.Width << "x" << Desc.Height << " Format: " << Desc.Format);
 							}
 						}
 					}
 
-					if (tmpVideo.Surface)
+					if (tmpVideoMem.Surface)
 					{
-						hr = (*d3d9Device)->StretchRect(Src.GetSurface(), &SrcRect, tmpVideo.Surface, &DestRect, Filter);
+						hr = (*d3d9Device)->StretchRect(Src.GetSurface(), &SrcRect, tmpVideoMem.Surface, &DestRect, Filter);
 
 						if (FAILED(hr))
 						{
-							LOG_LIMIT(100, __FUNCTION__ << " Error: failed to StretchRect to tmpVideo.Surface!");
+							LOG_LIMIT(100, __FUNCTION__ << " Error: failed to StretchRect to tmpVideoMem.Surface!");
 						}
 
 						if (SUCCEEDED(hr))
 						{
-							hr = (*d3d9Device)->StretchRect(tmpVideo.Surface, &DestRect, Dest.GetSurface(), &DestRect, D3DTEXF_NONE);
+							hr = (*d3d9Device)->StretchRect(tmpVideoMem.Surface, &DestRect, Dest.GetSurface(), &DestRect, D3DTEXF_NONE);
 
 							if (FAILED(hr))
 							{
-								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to StretchRect from tmpVideo.Surface!");
+								LOG_LIMIT(100, __FUNCTION__ << " Error: failed to StretchRect from tmpVideoMem.Surface!");
 							}
 						}
 					}
@@ -7979,7 +8013,6 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 
 		// DrawSurfaceToRenderTarget.
 		if (!IsPalette() &&
-			!pSourceSurface->IsPalette() &&
 			!IsUsingEmulation() &&
 			CanUseRenderTargetSurface() &&
 			(surface.Usage & D3DUSAGE_RENDERTARGET) &&
@@ -8216,6 +8249,12 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 
 			if (Src.GetSurface() && Dest.GetSurface())
 			{
+				if (IsColorKey)
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: color key not supported for DXT or FourCC formats: " <<
+						" Format: " << SrcFormat << "-->" << DestFormat);
+				}
+
 				hr = D3DXLoadSurfaceFromSurface(Dest.GetSurface(), nullptr, &DestRect, Src.GetSurface(), nullptr, &SrcRect, D3DXFilter, 0);
 
 				if (FAILED(hr))
@@ -8276,7 +8315,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			(!IsPixelFormatRGB(pSourceSurface->surfaceDesc2.ddpfPixelFormat) &&
 				!IsPixelFormatPalette(pSourceSurface->surfaceDesc2.ddpfPixelFormat)))
 		{
-			// Handle DXT, FourCCs or format mismatch
+			// Use offscreen surface to handle DXT, FourCCs or format mismatch
 
 			if (IsColorKey)
 			{
@@ -8285,41 +8324,41 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			}
 
 			// Create offscreen surface
-			if (!pSourceSurface->tmpVideo.Offscreen ||
-				pSourceSurface->tmpVideo.OffscreenFormat != surface.Format)
+			if (!pSourceSurface->tmpSystemMem.Offscreen ||
+				pSourceSurface->tmpSystemMem.OffscreenFormat != surface.Format)
 			{
 				// Release offscreen surface
-				if (pSourceSurface->tmpVideo.Offscreen)
+				if (pSourceSurface->tmpSystemMem.Offscreen)
 				{
-					ULONG ref = pSourceSurface->tmpVideo.Offscreen->Release();
+					ULONG ref = pSourceSurface->tmpSystemMem.Offscreen->Release();
 					if (ref)
 					{
-						Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpVideo.Offscreen' " << ref;
+						Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'tmpSystemMem.Offscreen' " << ref;
 					}
-					pSourceSurface->tmpVideo.Offscreen = nullptr;
-					pSourceSurface->tmpVideo.OffscreenFormat = D3DFMT_UNKNOWN;
+					pSourceSurface->tmpSystemMem.Offscreen = nullptr;
+					pSourceSurface->tmpSystemMem.OffscreenFormat = D3DFMT_UNKNOWN;
 				}
 
 				// Create offscreen surface with dest format
-				if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(pSourceSurface->surface.Width, pSourceSurface->surface.Height, surface.Format, D3DPOOL_SYSTEMMEM, &pSourceSurface->tmpVideo.Offscreen, nullptr)))
+				if (FAILED((*d3d9Device)->CreateOffscreenPlainSurface(pSourceSurface->surface.Width, pSourceSurface->surface.Height, surface.Format, D3DPOOL_SYSTEMMEM, &pSourceSurface->tmpSystemMem.Offscreen, nullptr)))
 				{
-					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create offplain tmpVideo.Surface. Size: " << pSourceSurface->surface.Width << "x" << pSourceSurface->surface.Height << " Format: " << surface.Format);
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create offplain tmpSystemMem.Surface. Size: " << pSourceSurface->surface.Width << "x" << pSourceSurface->surface.Height << " Format: " << surface.Format);
 
 					hr = DDERR_GENERIC;
 					break;
 				}
-				pSourceSurface->tmpVideo.OffscreenFormat = surface.Format;
+				pSourceSurface->tmpSystemMem.OffscreenFormat = surface.Format;
 			}
 
 			// Use D3DX to convert the format to dest format
 			if (pSourceSurface->surface.UsingSurfaceMemory)
 			{
-				INT Pitch = pSourceSurface->surfaceDesc2.dwWidth * pSourceSurface->surface.BitCount / 8;
-				hr = D3DXLoadSurfaceFromMemory(pSourceSurface->tmpVideo.Offscreen, nullptr, &SrcRect, pSourceSurface->surfaceDesc2.lpSurface, pSourceSurface->surface.Format, Pitch, nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
+				INT Pitch = (surfaceDesc2.dwFlags & DDSD_PITCH) && surfaceDesc2.lPitch ? surfaceDesc2.lPitch : surfaceDesc2.dwWidth * surface.BitCount / 8;
+				hr = D3DXLoadSurfaceFromMemory(pSourceSurface->tmpSystemMem.Offscreen, nullptr, &SrcRect, pSourceSurface->surfaceDesc2.lpSurface, pSourceSurface->surface.Format, Pitch, nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
 			}
 			else if (pSourceSurface->IsUsingEmulation())
 			{
-				hr = D3DXLoadSurfaceFromMemory(pSourceSurface->tmpVideo.Offscreen, nullptr, &SrcRect, pSourceSurface->surface.emu->pBits, pSourceSurface->surface.emu->Format, pSourceSurface->surface.emu->Pitch, nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
+				hr = D3DXLoadSurfaceFromMemory(pSourceSurface->tmpSystemMem.Offscreen, nullptr, &SrcRect, pSourceSurface->surface.emu->pBits, pSourceSurface->surface.emu->Format, pSourceSurface->surface.emu->Pitch, nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
 			}
 			else
 			{
@@ -8333,20 +8372,20 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 					break;
 				}
 
-				hr = D3DXLoadSurfaceFromSurface(pSourceSurface->tmpVideo.Offscreen, nullptr, &SrcRect, Src.GetSurface(), nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
+				hr = D3DXLoadSurfaceFromSurface(pSourceSurface->tmpSystemMem.Offscreen, nullptr, &SrcRect, Src.GetSurface(), nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
 			}
 
 			// Check if failed to convert format
 			if (FAILED(hr))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to convert format to offplain tmpVideo.Surface. Format: " << pSourceSurface->surface.Format);
+				LOG_LIMIT(100, __FUNCTION__ << " Error: failed to convert format to offplain tmpSystemMem.Surface. Format: " << pSourceSurface->surface.Format);
 
 				hr = DDERR_GENERIC;
 				break;
 			}
 
 			// Lock offscreen surface
-			if (FAILED(pSourceSurface->tmpVideo.Offscreen->LockRect(&SrcLockRect, &SrcRect, D3DLOCK_READONLY)))
+			if (FAILED(pSourceSurface->tmpSystemMem.Offscreen->LockRect(&SrcLockRect, &SrcRect, D3DLOCK_READONLY)))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock offscreen source surface " << SrcRect);
 
@@ -8375,7 +8414,6 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			UnlockSrc = true;
 
 			// Use a separate buffer if source and destination are the same surface
-			// or if the formats don't match.
 			if (pSourceSurface == this && MipMapLevel == SrcMipMapLevel)
 			{
 				const size_t Size = SrcRectWidth * ByteCount * SrcRectHeight;
@@ -8541,7 +8579,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 
 	if (UnlockOffscreen)
 	{
-		pSourceSurface->tmpVideo.Offscreen->UnlockRect();
+		pSourceSurface->tmpSystemMem.Offscreen->UnlockRect();
 	}
 
 	return hr;
@@ -9159,12 +9197,18 @@ HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect, D3DCOLOR RGB
 		return DDERR_GENERIC;
 	}
 
+	// Update palette data
+	const bool UsingPalette = IsPalette();
+	if (UsingPalette)
+	{
+		UpdatePaletteData();
+	}
+
 	// Get color key
 	if (!OverRideColorKey && (surfaceDesc2.dwFlags & DDSD_CKSRCBLT))
 	{
-		if (IsPalette())
+		if (UsingPalette)
 		{
-			UpdatePaletteData();
 			if (surface.PaletteEntryArray)
 			{
 				RGBQUAD PaletteEntry = surface.RGBPaletteArray[surfaceDesc2.ddckCKSrcBlt.dwColorSpaceLowValue & 0xFF];
@@ -10178,7 +10222,7 @@ void m_IDirectDrawSurfaceX::FixTextureFlags(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 	{
 		if (lpDDSurfaceDesc2->dwFlags & DDSD_PITCH)
 		{
-			lpDDSurfaceDesc2->dwFlags |= DDSD_LINEARSIZE;
+			lpDDSurfaceDesc2->dwFlags &= ~DDSD_LINEARSIZE;
 		}
 		lpDDSurfaceDesc2->dwFlags &= ~(DDSD_PITCH | DDSD_LPSURFACE);
 	}
@@ -10189,7 +10233,7 @@ HRESULT m_IDirectDrawSurfaceX::LockD3d9Surface(D3DLOCKED_RECT* pLockedRect, RECT
 	Flags |= Config.DdrawNoDrawBufferSysLock ? D3DLOCK_NOSYSLOCK : 0;
 	if (surface.UsingSurfaceMemory)
 	{
-		pLockedRect->Pitch = surfaceDesc2.dwWidth * surface.BitCount / 8;
+		pLockedRect->Pitch = (surfaceDesc2.dwFlags & DDSD_PITCH) && surfaceDesc2.lPitch ? surfaceDesc2.lPitch : surfaceDesc2.dwWidth * surface.BitCount / 8;
 		pLockedRect->pBits = (pRect) ? (void*)((DWORD)surfaceDesc2.lpSurface + ((pRect->top * pLockedRect->Pitch) + (pRect->left * (surface.BitCount / 8)))) : surfaceDesc2.lpSurface;
 		return DD_OK;
 	}
