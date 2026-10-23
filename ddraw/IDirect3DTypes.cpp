@@ -14,6 +14,7 @@
 *   3. This notice may not be removed or altered from any source distribution.
 */
 
+#include <objbase.h>
 #include "ddraw.h"
 #include "d3d9\d3d9External.h"
 
@@ -739,7 +740,8 @@ bool IsValid3DDeviceGUID(REFCLSID rclsid)
 		rclsid == IID_IDirect3DRGBDevice ||
 		rclsid == IID_IDirect3DRampDevice ||
 		rclsid == IID_IDirect3DMMXDevice ||
-		rclsid == IID_IDirect3DRefDevice;
+		rclsid == IID_IDirect3DRefDevice ||
+		rclsid == GUID_NULL;
 }
 
 bool CheckTextureStageStateType(D3DTEXTURESTAGESTATETYPE dwState)
