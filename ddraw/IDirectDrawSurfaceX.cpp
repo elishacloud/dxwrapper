@@ -4902,7 +4902,10 @@ HRESULT m_IDirectDrawSurfaceX::GenerateMipMapLevels()
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " (" << this << ") Warning: attempting to add missing data to MipMap surface level: " << (x + 1) <<
 					" USN: " << MipMaps[x].MipMapUSN << " -> " << CurrentSurfaceUSN);
-				if (SUCCEEDED(D3DXLoadSurfaceFromSurface(Dest.GetSurface(), nullptr, nullptr, pSourceSurfaceD9, nullptr, nullptr, D3DX_FILTER_LINEAR, 0x00000000)))
+
+				const DWORD D3DXFilter = IsPalette() ? D3DX_FILTER_POINT : D3DX_FILTER_LINEAR;
+
+				if (SUCCEEDED(D3DXLoadSurfaceFromSurface(Dest.GetSurface(), nullptr, nullptr, pSourceSurfaceD9, nullptr, nullptr, D3DXFilter, 0)))
 				{
 					MipMaps[x].MipMapUSN = CurrentSurfaceUSN;
 				}
@@ -8207,7 +8210,6 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			!IsUsingEmulation() &&
 			!surface.UsingSurfaceMemory &&
 			!pSourceSurface->surface.UsingSurfaceMemory &&
-			IsPalette() == pSourceSurface->IsPalette() &&
 			surface.Type == pSourceSurface->surface.Type &&
 			// Some games (eg. Tropico, Wizards and Warriors) modify system memory surfaces outside of lock/unlock pair
 			// so the emulated surface will have the most recent changes and the real surface may be out of sync
@@ -8218,7 +8220,14 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 
 			if (Src.GetSurface() && Dest.GetSurface())
 			{
-				hr = D3DXLoadSurfaceFromSurface(Dest.GetSurface(), nullptr, &DestRect, Src.GetSurface(), nullptr, &SrcRect, D3DXFilter, 0);
+				if (surface.PaletteEntryArray == pSourceSurface->surface.PaletteEntryArray)
+				{
+					hr = D3DXLoadSurfaceFromSurface(Dest.GetSurface(), nullptr, &DestRect, Src.GetSurface(), nullptr, &SrcRect, D3DXFilter, 0);
+				}
+				else
+				{
+					hr = D3DXLoadSurfaceFromSurface(Dest.GetSurface(), surface.PaletteEntryArray, &DestRect, Src.GetSurface(), pSourceSurface->surface.PaletteEntryArray, &SrcRect, D3DXFilter, 0);
+				}
 
 				if (FAILED(hr))
 				{
@@ -8255,7 +8264,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 						" Format: " << SrcFormat << "-->" << DestFormat);
 				}
 
-				hr = D3DXLoadSurfaceFromSurface(Dest.GetSurface(), nullptr, &DestRect, Src.GetSurface(), nullptr, &SrcRect, D3DXFilter, 0);
+				hr = D3DXLoadSurfaceFromSurface(Dest.GetSurface(), surface.PaletteEntryArray, &DestRect, Src.GetSurface(), nullptr, &SrcRect, D3DXFilter, 0);
 
 				if (FAILED(hr))
 				{
@@ -8279,8 +8288,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			!IsMirrorUpDown &&
 			!IsUsingEmulation() &&
 			!surface.UsingSurfaceMemory &&
-			pSourceSurface->surface.UsingSurfaceMemory &&
-			IsPalette() == pSourceSurface->IsPalette())
+			pSourceSurface->surface.UsingSurfaceMemory)
 		{
 			ScopedGetMipMapContext Dest(this, MipMapLevel);
 
@@ -8290,7 +8298,14 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 					? pSourceSurface->surfaceDesc2.lPitch
 					: pSourceSurface->surfaceDesc2.dwWidth * pSourceSurface->surface.BitCount / 8;
 
-				hr = D3DXLoadSurfaceFromMemory(Dest.GetSurface(), nullptr, &DestRect, pSourceSurface->surfaceDesc2.lpSurface, pSourceSurface->surface.Format, SrcPitch, nullptr, &SrcRect, D3DXFilter, 0);
+				if (surface.PaletteEntryArray == pSourceSurface->surface.PaletteEntryArray)
+				{
+					hr = D3DXLoadSurfaceFromMemory(Dest.GetSurface(), nullptr, &DestRect, pSourceSurface->surfaceDesc2.lpSurface, pSourceSurface->surface.Format, SrcPitch, nullptr, &SrcRect, D3DXFilter, 0);
+				}
+				else
+				{
+					hr = D3DXLoadSurfaceFromMemory(Dest.GetSurface(), surface.PaletteEntryArray, &DestRect, pSourceSurface->surfaceDesc2.lpSurface, pSourceSurface->surface.Format, SrcPitch, pSourceSurface->surface.PaletteEntryArray, &SrcRect, D3DXFilter, 0);
+				}
 
 				if (FAILED(hr))
 				{
@@ -8305,8 +8320,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 		}
 
 		// Check for format mismatch
-		if ((!IsPixelFormatRGB(surfaceDesc2.ddpfPixelFormat) && !IsPixelFormatPalette(surfaceDesc2.ddpfPixelFormat)) ||
-			(FormatMismatch && (IsPalette() || pSourceSurface->IsPalette())))
+		if ((!IsPixelFormatRGB(surfaceDesc2.ddpfPixelFormat) && !IsPixelFormatPalette(surfaceDesc2.ddpfPixelFormat)) || FormatMismatch)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: copy not implemented for these surfaces! " << SrcFormat << "-->" << DestFormat <<
 				" Type: " << pSourceSurface->surface.Type << "-->" << surface.Type <<
@@ -8385,18 +8399,18 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 				pSourceSurface->tmpSystemMem.OffscreenFormat = surface.Format;
 			}
 
-			// Use D3DX to convert the format to dest format
+			// Use D3DX to convert the format to dest format (and dest palette)
 			if (pSourceSurface->surface.UsingSurfaceMemory)
 			{
 				INT SrcPitch = (pSourceSurface->surfaceDesc2.dwFlags & DDSD_PITCH) && pSourceSurface->surfaceDesc2.lPitch
 					? pSourceSurface->surfaceDesc2.lPitch
 					: pSourceSurface->surfaceDesc2.dwWidth * pSourceSurface->surface.BitCount / 8;
 
-				hr = D3DXLoadSurfaceFromMemory(pSourceSurface->tmpSystemMem.Offscreen, nullptr, &SrcRect, pSourceSurface->surfaceDesc2.lpSurface, pSourceSurface->surface.Format, SrcPitch, nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
+				hr = D3DXLoadSurfaceFromMemory(pSourceSurface->tmpSystemMem.Offscreen, surface.PaletteEntryArray, &SrcRect, pSourceSurface->surfaceDesc2.lpSurface, pSourceSurface->surface.Format, SrcPitch, pSourceSurface->surface.PaletteEntryArray, &SrcRect, D3DX_FILTER_NONE, 0);
 			}
 			else if (pSourceSurface->IsUsingEmulation())
 			{
-				hr = D3DXLoadSurfaceFromMemory(pSourceSurface->tmpSystemMem.Offscreen, nullptr, &SrcRect, pSourceSurface->surface.emu->pBits, pSourceSurface->surface.emu->Format, pSourceSurface->surface.emu->Pitch, nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
+				hr = D3DXLoadSurfaceFromMemory(pSourceSurface->tmpSystemMem.Offscreen, surface.PaletteEntryArray, &SrcRect, pSourceSurface->surface.emu->pBits, pSourceSurface->surface.emu->Format, pSourceSurface->surface.emu->Pitch, pSourceSurface->surface.PaletteEntryArray, &SrcRect, D3DX_FILTER_NONE, 0);
 			}
 			else
 			{
@@ -8410,7 +8424,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 					break;
 				}
 
-				hr = D3DXLoadSurfaceFromSurface(pSourceSurface->tmpSystemMem.Offscreen, nullptr, &SrcRect, Src.GetSurface(), nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
+				hr = D3DXLoadSurfaceFromSurface(pSourceSurface->tmpSystemMem.Offscreen, surface.PaletteEntryArray, &SrcRect, Src.GetSurface(), pSourceSurface->surface.PaletteEntryArray, &SrcRect, D3DX_FILTER_NONE, 0);
 			}
 
 			// Check if failed to convert format
@@ -8435,11 +8449,10 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 		}
 		else
 		{
-			// Lock source
-			if (FAILED(pSourceSurface->IsUsingEmulation() ?
-				pSourceSurface->LockEmulatedSurface(&SrcLockRect, &SrcRect) :
-				pSourceSurface->LockD3d9Surface(
-					&SrcLockRect, &SrcRect, D3DLOCK_READONLY, SrcMipMapLevel)) ||
+			// Lock source when surface format matches
+			if (FAILED(pSourceSurface->IsUsingEmulation()
+				? pSourceSurface->LockEmulatedSurface(&SrcLockRect, &SrcRect)
+				: pSourceSurface->LockD3d9Surface(&SrcLockRect, &SrcRect, D3DLOCK_READONLY, SrcMipMapLevel)) ||
 				!SrcLockRect.pBits)
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: could not lock source surface " << SrcRect);
