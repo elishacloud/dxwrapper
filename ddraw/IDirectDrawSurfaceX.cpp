@@ -8205,10 +8205,10 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			!IsMirrorLeftRight &&
 			!IsMirrorUpDown &&
 			!IsUsingEmulation() &&
-			surface.Type == pSourceSurface->surface.Type &&
 			!surface.UsingSurfaceMemory &&
 			!pSourceSurface->surface.UsingSurfaceMemory &&
-			pSourceSurface->IsPalette() == IsPalette() &&
+			IsPalette() == pSourceSurface->IsPalette() &&
+			surface.Type == pSourceSurface->surface.Type &&
 			// Some games (eg. Tropico, Wizards and Warriors) modify system memory surfaces outside of lock/unlock pair
 			// so the emulated surface will have the most recent changes and the real surface may be out of sync
 			(!pSourceSurface->IsUsingEmulation() || pSourceSurface->surface.Pool != D3DPOOL_SYSTEMMEM))
@@ -8236,7 +8236,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 		//  Use D3DXLoadSurfaceFromSurface to decode DirectX textures and FourCCs.
 		// -------------------------------------------------------------------------
 
-		// D3DXLoadSurfaceFromSurface
+		// D3DXLoadSurfaceFromSurface, allow color key since these are non-RGB surfaces
 		if (!IsMirrorLeftRight &&
 			!IsMirrorUpDown &&
 			!IsUsingEmulation() &&
@@ -8260,6 +8260,41 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 				if (FAILED(hr))
 				{
 					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to load surface from surface. " << (D3DERR)hr);
+				}
+			}
+
+			if (SUCCEEDED(hr))
+			{
+				break;
+			}
+		}
+
+		// -------------------------------------------------------------------------
+		//  Use D3DXLoadSurfaceFromMemory when the source is UsingSurfaceMemory.
+		// -------------------------------------------------------------------------
+
+		// D3DXLoadSurfaceFromMemory
+		if (!IsColorKey &&
+			!IsMirrorLeftRight &&
+			!IsMirrorUpDown &&
+			!IsUsingEmulation() &&
+			!surface.UsingSurfaceMemory &&
+			pSourceSurface->surface.UsingSurfaceMemory &&
+			IsPalette() == pSourceSurface->IsPalette())
+		{
+			ScopedGetMipMapContext Dest(this, MipMapLevel);
+
+			if (Dest.GetSurface())
+			{
+				INT SrcPitch = (pSourceSurface->surfaceDesc2.dwFlags & DDSD_PITCH) && pSourceSurface->surfaceDesc2.lPitch
+					? pSourceSurface->surfaceDesc2.lPitch
+					: pSourceSurface->surfaceDesc2.dwWidth * pSourceSurface->surface.BitCount / 8;
+
+				hr = D3DXLoadSurfaceFromMemory(Dest.GetSurface(), nullptr, &DestRect, pSourceSurface->surfaceDesc2.lpSurface, pSourceSurface->surface.Format, SrcPitch, nullptr, &SrcRect, D3DXFilter, 0);
+
+				if (FAILED(hr))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Error: failed to load surface from memory. " << (D3DERR)hr);
 				}
 			}
 
@@ -8353,8 +8388,11 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 			// Use D3DX to convert the format to dest format
 			if (pSourceSurface->surface.UsingSurfaceMemory)
 			{
-				INT Pitch = (surfaceDesc2.dwFlags & DDSD_PITCH) && surfaceDesc2.lPitch ? surfaceDesc2.lPitch : surfaceDesc2.dwWidth * surface.BitCount / 8;
-				hr = D3DXLoadSurfaceFromMemory(pSourceSurface->tmpSystemMem.Offscreen, nullptr, &SrcRect, pSourceSurface->surfaceDesc2.lpSurface, pSourceSurface->surface.Format, Pitch, nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
+				INT SrcPitch = (pSourceSurface->surfaceDesc2.dwFlags & DDSD_PITCH) && pSourceSurface->surfaceDesc2.lPitch
+					? pSourceSurface->surfaceDesc2.lPitch
+					: pSourceSurface->surfaceDesc2.dwWidth * pSourceSurface->surface.BitCount / 8;
+
+				hr = D3DXLoadSurfaceFromMemory(pSourceSurface->tmpSystemMem.Offscreen, nullptr, &SrcRect, pSourceSurface->surfaceDesc2.lpSurface, pSourceSurface->surface.Format, SrcPitch, nullptr, &SrcRect, D3DX_FILTER_NONE, 0);
 			}
 			else if (pSourceSurface->IsUsingEmulation())
 			{
