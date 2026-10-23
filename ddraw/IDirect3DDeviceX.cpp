@@ -450,12 +450,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 
 		DWORD opcode = NULL;
 
-		// Documentation says the following can be used: D3DFVF_VERTEX, D3DFVF_LVERTEX or D3DFVF_TLVERTEX
-		// Assume process vertex source uses D3DFVF_VERTEX or D3DFVF_LVERTEX dependant on lighting and
-		// process vertex destination, copy and draw operations always use D3DFVF_TLVERTEX
-		DWORD VertexTypeDesc = D3DFVF_TLVERTEX;
-
-		// Primitive structures and related defines. Vertex offsets are to types D3DVERTEX, D3DLVERTEX, or D3DTLVERTEX.
+		// Primitive structures and related defines
 		BYTE* vertexBuffer = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwHVertexOffset;
 		const DWORD vertexCount = ExecuteData.dwVertexCount;
 
@@ -487,7 +482,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_POINT instruction size does not match!");
 				}
 
-				DrawExecutePoint(point, instruction->wCount, vertexCount, vertexBuffer, VertexTypeDesc);
+				DrawExecutePoint(point, instruction->wCount, vertexCount, vertexBuffer);
 
 				break;
 			}
@@ -501,7 +496,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_SPAN instruction size does not match!");
 				}
 
-				DrawExecuteSpan(span, instruction->wCount, vertexCount, vertexBuffer, VertexTypeDesc);
+				DrawExecuteSpan(span, instruction->wCount, vertexCount, vertexBuffer);
 
 				break;
 			}
@@ -515,7 +510,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_LINE instruction size does not match!");
 				}
 
-				DrawExecuteLine(line, instruction->wCount, vertexCount, vertexBuffer, VertexTypeDesc);
+				DrawExecuteLine(line, instruction->wCount, vertexCount, vertexBuffer);
 
 				break;
 			}
@@ -529,7 +524,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					LOG_LIMIT(100, __FUNCTION__ << " Warning: D3DOP_TRIANGLE instruction size does not match!");
 				}
 
-				DrawExecuteTriangle(triangle, instruction->wCount, vertexCount, vertexBuffer, VertexTypeDesc);
+				DrawExecuteTriangle(triangle, instruction->wCount, vertexCount, vertexBuffer);
 
 				break;
 			}
@@ -695,7 +690,7 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 				auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-				HRESULT hr = D3D_OK;
+				HRESULT hr = DDERR_GENERIC;
 
 				BYTE* inputVerts = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwVertexOffset;
 				BYTE* outputVerts = reinterpret_cast<BYTE*>(lpData) + ExecuteData.dwHVertexOffset;
@@ -737,7 +732,6 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						memcpy(Dest, Src, sizeof(D3DTLVERTEX) * Count);
 
 						hr = D3D_OK;
-
 						break;
 					}
 					case D3DPROCESSVERTICES_TRANSFORM:
@@ -782,6 +776,8 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 					}
 					default:
 						LOG_LIMIT(100, __FUNCTION__ << " Error: D3DOP_PROCESSVERTICES includes both TRANSFORM and COPY are set!");
+
+						hr = DDERR_GENERIC;
 						break;
 					}
 
@@ -794,21 +790,20 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						{
 							// Update flags
 							dsStatus.dwFlags &= ~D3DSETSTATUS_STATUS;
-							dsStatus.dwStatus = 0; // Just set no clip flags and no ZNOTVISIBLE
+							dsStatus.dwStatus = 0;
 						}
 
 						// Update extents
 						if (Flags & D3DPROCESSVERTICES_UPDATEEXTENTS)
 						{
-							if (D3DVIEWPORT9 vp = {}; SUCCEEDED(GetD9Viewport(&vp)))
-							{
-								dsStatus.dwFlags |= D3DSETSTATUS_EXTENTS;
+							D3DVIEWPORT9& vp = Viewport.Data9;
 
-								dsStatus.drExtent.x1 = vp.X;
-								dsStatus.drExtent.y1 = vp.Y;
-								dsStatus.drExtent.x2 = vp.X + vp.Width;
-								dsStatus.drExtent.y2 = vp.Y + vp.Height;
-							}
+							dsStatus.dwFlags |= D3DSETSTATUS_EXTENTS;
+
+							dsStatus.drExtent.x1 = vp.X;
+							dsStatus.drExtent.y1 = vp.Y;
+							dsStatus.drExtent.x2 = vp.X + vp.Width;
+							dsStatus.drExtent.y2 = vp.Y + vp.Height;
 						}
 					}
 				}
@@ -3078,37 +3073,6 @@ HRESULT m_IDirect3DDeviceX::SetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: clip status is not fully supported.");
-
-		DWORD ValidFlags =
-			D3DCLIPSTATUS_STATUS |
-			D3DCLIPSTATUS_EXTENTS2 |
-			D3DCLIPSTATUS_EXTENTS3;
-
-		D3DClipStatus.dwFlags = lpD3DClipStatus->dwFlags & ValidFlags;
-
-		// Status
-		if (lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_STATUS)
-		{
-			D3DClipStatus.dwStatus = lpD3DClipStatus->dwStatus;
-		}
-
-		// Extents 2-D
-		if (lpD3DClipStatus->dwFlags & (D3DCLIPSTATUS_EXTENTS2 | D3DCLIPSTATUS_EXTENTS3))
-		{
-			D3DClipStatus.minx = lpD3DClipStatus->minx;
-			D3DClipStatus.maxx = lpD3DClipStatus->maxx;
-			D3DClipStatus.miny = lpD3DClipStatus->miny;
-			D3DClipStatus.maxy = lpD3DClipStatus->maxy;
-		}
-
-		// Extents 3-D
-		if (lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_EXTENTS3)
-		{
-			D3DClipStatus.minz = lpD3DClipStatus->minz;
-			D3DClipStatus.maxz = lpD3DClipStatus->maxz;
-		}
-
 		return D3D_OK;
 	}
 
@@ -3137,26 +3101,18 @@ HRESULT m_IDirect3DDeviceX::GetClipStatus(LPD3DCLIPSTATUS lpD3DClipStatus)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: clip status is not fully supported.");
+		D3DVIEWPORT9& vp = DeviceStates.Viewport.FixedView;
 
-		*lpD3DClipStatus = D3DClipStatus;
+		lpD3DClipStatus->dwFlags = D3DCLIPSTATUS_EXTENTS2;
 
-		if (D3DVIEWPORT9 vp = {}; SUCCEEDED(GetD9Viewport(&vp)))
-		{
-			lpD3DClipStatus->dwFlags |= D3DCLIPSTATUS_EXTENTS2;
+		lpD3DClipStatus->minx = static_cast<D3DVALUE>(vp.X);
+		lpD3DClipStatus->maxx = static_cast<D3DVALUE>(vp.X + vp.Width);
 
-			lpD3DClipStatus->minx = static_cast<D3DVALUE>(vp.X);
-			lpD3DClipStatus->maxx = static_cast<D3DVALUE>(vp.X + vp.Width);
+		lpD3DClipStatus->miny = static_cast<D3DVALUE>(vp.Y);
+		lpD3DClipStatus->maxy = static_cast<D3DVALUE>(vp.Y + vp.Height);
 
-			lpD3DClipStatus->miny = static_cast<D3DVALUE>(vp.Y);
-			lpD3DClipStatus->maxy = static_cast<D3DVALUE>(vp.Y + vp.Height);
-
-			if (lpD3DClipStatus->dwFlags & D3DCLIPSTATUS_EXTENTS3)
-			{
-				lpD3DClipStatus->minz = vp.MinZ;
-				lpD3DClipStatus->maxz = vp.MaxZ;
-			}
-		}
+		lpD3DClipStatus->minz = 0.0f;
+		lpD3DClipStatus->maxz = 0.0f;
 
 		return D3D_OK;
 	}
@@ -5373,211 +5329,196 @@ void m_IDirect3DDeviceX::ClearExecuteBuffer(m_IDirect3DExecuteBuffer* lpExecuteB
 	}
 }
 
-void m_IDirect3DDeviceX::CopyConvertExecuteVertex(BYTE*& DestVertex, DWORD& DestVertexCount, BYTE* SrcVertex, DWORD SrcIndex, DWORD VertexTypeDesc)
+inline void m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD pointCount, DWORD vertexIndexCount, BYTE* vertexBuffer)
 {
-	// Primitive structures and related defines. Vertex offsets are to types D3DVERTEX, D3DLVERTEX, or D3DTLVERTEX.
-	if (VertexTypeDesc == D3DFVF_VERTEX)
-	{
-		DestVertexCount++;
-		*((D3DVERTEX*)DestVertex) = ((D3DVERTEX*)SrcVertex)[SrcIndex];
-		DestVertex += sizeof(D3DVERTEX);
-		return;
-	}
-	else if (VertexTypeDesc == D3DFVF_LVERTEX)
-	{
-		DestVertexCount++;
-		*((D3DLVERTEX*)DestVertex) = ((D3DLVERTEX*)SrcVertex)[SrcIndex];
-		DestVertex += sizeof(D3DLVERTEX);
-		return;
-	}
-	else if (VertexTypeDesc == D3DFVF_TLVERTEX)
-	{
-		DestVertexCount++;
-		*((D3DTLVERTEX*)DestVertex) = ((D3DTLVERTEX*)SrcVertex)[SrcIndex];
-		DestVertex += sizeof(D3DTLVERTEX);
-		return;
-	}
-}
+	std::vector<D3DTLVERTEX> vertices;
+	vertices.reserve(vertexIndexCount);
 
-HRESULT m_IDirect3DDeviceX::DrawExecutePoint(D3DPOINT* point, WORD pointCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
-{
-	// Define vertices and setup vector
-	std::vector<BYTE, aligned_allocator<BYTE, 4>> vertices;
-	vertices.resize(sizeof(D3DTLVERTEX) * pointCount);
-	BYTE* verticesData = vertices.data();
-	DWORD verticesCount = 0;
+	D3DTLVERTEX* SrcVertices = reinterpret_cast<D3DTLVERTEX*>(vertexBuffer);
 
 	// Add vertices to vector
 	for (DWORD i = 0; i < pointCount; i++)
 	{
-		if ((DWORD)point[i].wFirst < vertexIndexCount)
+		if (point[i].wFirst < vertexIndexCount)
 		{
 			DWORD count = min(point[i].wCount, vertexIndexCount - point[i].wFirst);
 
 			for (DWORD x = 0; x < count; x++)
 			{
-				CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, point[i].wFirst + x, VertexTypeDesc);
+				vertices.push_back(SrcVertices[point[i].wFirst + x]);
 			}
 		}
 	}
 
-	if (verticesCount)
+	if (!vertices.empty())
 	{
 		// Pass the vertex data to the rendering pipeline
-		DrawPrimitive(D3DPT_POINTLIST, VertexTypeDesc, vertices.data(), verticesCount, 0, 1);
+		DrawPrimitive(D3DPT_POINTLIST, D3DFVF_TLVERTEX, reinterpret_cast<BYTE*>(vertices.data()), static_cast<DWORD>(vertices.size()), 0, 1);
 	}
-
-	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::DrawExecuteSpan(D3DSPAN* span, WORD spanCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
+inline void m_IDirect3DDeviceX::DrawExecuteSpan(D3DSPAN* span, WORD spanCount, DWORD vertexIndexCount, BYTE* vertexBuffer)
 {
-	// Define vertices and setup vector
-	std::vector<BYTE, aligned_allocator<BYTE, 4>> vertices;
-	vertices.resize(sizeof(D3DTLVERTEX) * vertexIndexCount);
-	BYTE* verticesData = vertices.data();
-	DWORD verticesCount = 0;
+	std::vector<D3DTLVERTEX> vertices;
+	vertices.reserve(vertexIndexCount);
+
+	D3DTLVERTEX* SrcVertices = reinterpret_cast<D3DTLVERTEX*>(vertexBuffer);
 
 	// Add vertices to vector
 	for (DWORD i = 0; i < spanCount; i++)
 	{
-		if ((DWORD)span[i].wFirst < vertexIndexCount)
+		if (span[i].wFirst < vertexIndexCount)
 		{
 			DWORD count = min(span[i].wCount, vertexIndexCount - span[i].wFirst);
 
 			for (DWORD x = 0; x < count; x++)
 			{
-				CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, span[i].wFirst + x, VertexTypeDesc);
+				vertices.push_back(SrcVertices[span[i].wFirst + x]);
 			}
 		}
 	}
 
-	if (verticesCount)
+	if (!vertices.empty())
 	{
 		// Pass the vertex data to the rendering pipeline
-		DrawPrimitive(D3DPT_LINESTRIP, VertexTypeDesc, vertices.data(), verticesCount, 0, 1);
+		DrawPrimitive(D3DPT_LINESTRIP, D3DFVF_TLVERTEX, reinterpret_cast<BYTE*>(vertices.data()), static_cast<DWORD>(vertices.size()), 0, 1);
 	}
-
-	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
+inline void m_IDirect3DDeviceX::DrawExecuteLine(D3DLINE* line, WORD lineCount, DWORD vertexIndexCount, BYTE* vertexBuffer)
 {
-	// Define vertices and setup vector
-	std::vector<BYTE, aligned_allocator<BYTE, 4>> vertices;
-	vertices.resize(sizeof(D3DTLVERTEX) * lineCount * 2);
-	BYTE* verticesData = vertices.data();
-	DWORD verticesCount = 0;
+	std::vector<D3DTLVERTEX> vertices;
+	vertices.reserve(static_cast<size_t>(lineCount) * 2);
+
+	D3DTLVERTEX* SrcVertices = reinterpret_cast<D3DTLVERTEX*>(vertexBuffer);
 
 	// Add vertices to vector
 	for (DWORD i = 0; i < lineCount; i++)
 	{
 		if (line[i].v1 < vertexIndexCount && line[i].v2 < vertexIndexCount)
 		{
-			CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, line[i].v1, VertexTypeDesc);
-			CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, line[i].v2, VertexTypeDesc);
+			vertices.push_back(SrcVertices[line[i].v1]);
+			vertices.push_back(SrcVertices[line[i].v2]);
 		}
 	}
 
-	if (verticesCount)
+	if (!vertices.empty())
 	{
 		// Pass the vertex data to the rendering pipeline
-		DrawPrimitive(D3DPT_LINELIST, VertexTypeDesc, vertices.data(), verticesCount, 0, 1);
+		DrawPrimitive(D3DPT_LINELIST, D3DFVF_TLVERTEX, reinterpret_cast<BYTE*>(vertices.data()), static_cast<DWORD>(vertices.size()), 0, 1);
 	}
-
-	return D3D_OK;
 }
 
-HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD triangleCount, DWORD vertexIndexCount, BYTE* vertexBuffer, DWORD VertexTypeDesc)
+inline void m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD triangleCount, DWORD vertexIndexCount, BYTE* vertexBuffer)
 {
-	// Compute buffer size
-	DWORD BufferSize;
-	{
-		bool LastRecord = false;
-		DWORD Count = 0, MaxCount = 0;
-		for (DWORD i = 0; i < triangleCount; i++)
-		{
-			bool IsStartRecord = (triangle[i].wFlags & 0x1F) < D3DTRIFLAG_STARTFLAT(30);
-			if (IsStartRecord != LastRecord)
-			{
-				MaxCount = max(Count, MaxCount);
-				Count = (IsStartRecord) ? 3 : 4;
-			}
-			else
-			{
-				Count += (IsStartRecord) ? 3 : 1;
-			}
-			LastRecord = IsStartRecord;
-		}
-		BufferSize = sizeof(D3DTLVERTEX) * max(Count, MaxCount);
-	}
+	const D3DTLVERTEX* SrcVertices = reinterpret_cast<D3DTLVERTEX*>(vertexBuffer);
 
-	std::vector<BYTE, aligned_allocator<BYTE, 4>> vertices;
-	vertices.resize(BufferSize);
-	BYTE* verticesData = vertices.data();
-	DWORD verticesCount = 0;
+	std::vector<D3DTLVERTEX> vertices;
+	vertices.reserve(static_cast<size_t>(triangleCount) * 3);
 
-	D3DPRIMITIVETYPE PrimitiveType = D3DPT_TRIANGLELIST;
+	// Tracks vertices used to construct the current fan or strip
+	std::vector<DWORD> Sequence;
+	Sequence.reserve(static_cast<size_t>(triangleCount) + 2);
 
 	LONG LastCullMode = D3DTRIFLAG_START;
 	LONG CullRecordCount = 0;
 
+	bool IsFan = false;
+	bool HasPendingVertices = false;
+
+	bool EdgeEnable = false;
+
 	for (DWORD i = 0; i < triangleCount; i++)
 	{
-		// Flags for this triangle
-		WORD TriFlags = (triangle[i].wFlags & 0x1F);
+		// ToDo: Ignoring D3DTRIFLAG_EDGEENABLE wFlags for now as they are relevant only for wireframe mode
+		EdgeEnable |= (triangle[i].wFlags & D3DTRIFLAG_EDGEENABLETRIANGLE) != 0;
+
+		WORD TriFlags = triangle[i].wFlags & 0x1F;
 
 		// START loads all three vertices
 		if (TriFlags < D3DTRIFLAG_STARTFLAT(30))
 		{
-			if (triangle[i].v1 < vertexIndexCount && triangle[i].v2 < vertexIndexCount && triangle[i].v3 < vertexIndexCount)
+			if (triangle[i].v1 < vertexIndexCount &&
+				triangle[i].v2 < vertexIndexCount &&
+				triangle[i].v3 < vertexIndexCount)
 			{
-				PrimitiveType = D3DPT_TRIANGLELIST;
+				// Add triangle directly to the triangle list
+				vertices.push_back(SrcVertices[triangle[i].v1]);
+				vertices.push_back(SrcVertices[triangle[i].v2]);
+				vertices.push_back(SrcVertices[triangle[i].v3]);
 
-				CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, triangle[i].v1, VertexTypeDesc);
-				CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, triangle[i].v2, VertexTypeDesc);
-				CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, triangle[i].v3, VertexTypeDesc);
+				// Start a new fan/strip sequence
+				Sequence.clear();
+				Sequence.push_back(triangle[i].v1);
+				Sequence.push_back(triangle[i].v2);
+				Sequence.push_back(triangle[i].v3);
 
 				LastCullMode = D3DTRIFLAG_START;
 				CullRecordCount = TriFlags;
+				HasPendingVertices = true;
 			}
 		}
 		// EVEN and ODD load just v3 with even or odd culling
 		else if (TriFlags == D3DTRIFLAG_EVEN || TriFlags == D3DTRIFLAG_ODD)
 		{
-			// Set primative type
+			// Determine primitive type when starting a new sequence
 			if (LastCullMode == D3DTRIFLAG_START)
 			{
-				// Even cull modes indicates a triangle fan
-				if (TriFlags == D3DTRIFLAG_EVEN)
-				{
-					PrimitiveType = D3DPT_TRIANGLEFAN;
-				}
-				// Odd or mismatching cull modes indicates a triangle strip
-				else
-				{
-					PrimitiveType = D3DPT_TRIANGLESTRIP;
-				}
+				IsFan = (TriFlags == D3DTRIFLAG_EVEN);
 			}
 
 			if (triangle[i].v3 < vertexIndexCount)
 			{
-				CopyConvertExecuteVertex(verticesData, verticesCount, vertexBuffer, triangle[i].v3, VertexTypeDesc);
+				DWORD v3 = triangle[i].v3;
+
+				// Generate a triangle from the fan or strip
+				if (Sequence.size() >= 2)
+				{
+					if (IsFan)
+					{
+						// Triangle fan: first, previous, new
+						vertices.push_back(SrcVertices[Sequence.front()]);
+						vertices.push_back(SrcVertices[Sequence.back()]);
+					}
+					else
+					{
+						// Triangle strip: alternate winding order
+						if (Sequence.size() & 1)
+						{
+							vertices.push_back(SrcVertices[Sequence.back()]);
+							vertices.push_back(SrcVertices[Sequence[Sequence.size() - 2]]);
+						}
+						else
+						{
+							vertices.push_back(SrcVertices[Sequence[Sequence.size() - 2]]);
+							vertices.push_back(SrcVertices[Sequence.back()]);
+						}
+					}
+
+					vertices.push_back(SrcVertices[v3]);
+				}
+
+				Sequence.push_back(v3);
+				HasPendingVertices = true;
 			}
 
 			LastCullMode = TriFlags;
 			CullRecordCount--;
 		}
 
-		// Check next records
-		bool AtEndOfList = !(i + 1U < triangleCount);
-		LONG NextRecord = (i + 1U < triangleCount) ? ((triangle[i + 1].wFlags & 0x1F) < 30 ? D3DTRIFLAG_START : D3DTRIFLAG_EVEN) : 0;
-		LONG NextNextRecord = (i + 2U < triangleCount) ? ((triangle[i + 2].wFlags & 0x1F) < 30 ? D3DTRIFLAG_START : D3DTRIFLAG_EVEN) : 0;
+		// Check next records (preserve original culling warnings)
+		bool AtEndOfList = (i + 1 >= triangleCount);
 
-		// Draw primitaves once at the end of the list
-		if (verticesCount &&								// There primatives to draw
-			(AtEndOfList ||									// There are no more records, or
-				(NextRecord == D3DTRIFLAG_START &&			// Next record is a new START
+		LONG NextRecord = (i + 1 < triangleCount) ?
+			(((triangle[i + 1].wFlags & 0x1F) < D3DTRIFLAG_STARTFLAT(30)) ? D3DTRIFLAG_START : D3DTRIFLAG_EVEN) : 0;
+
+		LONG NextNextRecord = (i + 2 < triangleCount) ?
+			(((triangle[i + 2].wFlags & 0x1F) < D3DTRIFLAG_STARTFLAT(30)) ? D3DTRIFLAG_START : D3DTRIFLAG_EVEN) : 0;
+
+		// Check for the end of the original primitive sequence
+		if (HasPendingVertices &&
+			(AtEndOfList ||
+				(NextRecord == D3DTRIFLAG_START &&
 					(LastCullMode != D3DTRIFLAG_START || NextNextRecord != D3DTRIFLAG_START))))
 		{
 			if (CullRecordCount > 0)
@@ -5585,16 +5526,20 @@ HRESULT m_IDirect3DDeviceX::DrawExecuteTriangle(D3DTRIANGLE* triangle, WORD tria
 				LOG_LIMIT(100, __FUNCTION__ << " Warning: drawing before all records have been culled: " << CullRecordCount);
 			}
 
-			// Pass the vertex data to the rendering pipeline
-			DrawPrimitive(PrimitiveType, VertexTypeDesc, vertices.data(), verticesCount, 0, 1);
-
-			// Reset variables for next list
-			verticesCount = 0;
-			verticesData = vertices.data();
+			HasPendingVertices = false;
 		}
 	}
 
-	return D3D_OK;
+	if (EdgeEnable)
+	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: ignoring D3DTRIFLAG_EDGEENABLE flags!");
+	}
+
+	if (!vertices.empty())
+	{
+		// Pass the vertex data to the rendering pipeline
+		DrawPrimitive(D3DPT_TRIANGLELIST, D3DFVF_TLVERTEX, reinterpret_cast<BYTE*>(vertices.data()), static_cast<DWORD>(vertices.size()), 0, 1);
+	}
 }
 
 HRESULT m_IDirect3DDeviceX::Clear(const D3DVIEWPORT9& Viewport, DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags, D3DCOLOR dwColor, D3DVALUE dvZ, DWORD dwStencil)
