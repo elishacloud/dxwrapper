@@ -244,31 +244,10 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (AttachedD3DDevices.empty())
+		HRESULT hr = CheckViewportDimentions(lpData->dwX, lpData->dwY, lpData->dwWidth, lpData->dwHeight);
+		if (FAILED(hr))
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: no device attached!");
-			return D3DERR_VIEWPORTHASNODEVICE;
-		}
-		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
-
-		// Get render target
-		m_IDirectDrawSurfaceX* pRenderTarget = pDirect3DDeviceX->GetRenderTargetX();
-
-		// Check viewport size
-		DWORD rtWidth = 0, rtHeight = 0;
-		if (pRenderTarget && pRenderTarget->GetSurfaceDimensions(rtWidth, rtHeight) &&
-			(lpData->dwX + lpData->dwWidth > rtWidth || lpData->dwY + lpData->dwHeight > rtHeight))
-		{
-			if (lpData->dwX + lpData->dwWidth > rtWidth + 1 || lpData->dwY + lpData->dwHeight > rtHeight + 1)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: viewport is larger than render target: " <<
-					" Offset: " << lpData->dwX << "x" << lpData->dwY <<
-					" Viewport: " << lpData->dwWidth << "x" << lpData->dwHeight <<
-					" Render Target: " << rtWidth << "x" << rtHeight
-				);
-				return DDERR_INVALIDPARAMS;
-			}
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: viewport is larger than render target by one pixel!");
+			return hr;
 		}
 
 		IsViewportDataSet = true;
@@ -776,30 +755,10 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (AttachedD3DDevices.empty())
+		HRESULT hr = CheckViewportDimentions(lpData->dwX, lpData->dwY, lpData->dwWidth, lpData->dwHeight);
+		if (FAILED(hr))
 		{
-			return D3DERR_VIEWPORTHASNODEVICE;
-		}
-		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
-
-		// Get render target
-		m_IDirectDrawSurfaceX* pRenderTarget = pDirect3DDeviceX->GetRenderTargetX();
-
-		// Check viewport size
-		DWORD rtWidth = 0, rtHeight = 0;
-		if (pRenderTarget && pRenderTarget->GetSurfaceDimensions(rtWidth, rtHeight) &&
-			(lpData->dwX + lpData->dwWidth > rtWidth || lpData->dwY + lpData->dwHeight > rtHeight))
-		{
-			if (lpData->dwX + lpData->dwWidth > rtWidth + 1 || lpData->dwY + lpData->dwHeight > rtHeight + 1)
-			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: viewport is larger than render target: " <<
-					" Offset: " << lpData->dwX << "x" << lpData->dwY <<
-					" Viewport: " << lpData->dwWidth << "x" << lpData->dwHeight <<
-					" Render Target: " << rtWidth << "x" << rtHeight
-				);
-				return DDERR_INVALIDPARAMS;
-			}
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: viewport is larger than render target by one pixel!");
+			return hr;
 		}
 
 		IsViewportDataSet = true;
@@ -1185,6 +1144,38 @@ void m_IDirect3DViewportX::ClearCurrentViewport(m_IDirect3DDeviceX* pDirect3DDev
 	}
 }
 
+HRESULT m_IDirect3DViewportX::CheckViewportDimentions(DWORD dwX, DWORD dwY, DWORD dwWidth, DWORD dwHeight)
+{
+	if (AttachedD3DDevices.empty())
+	{
+		return D3DERR_VIEWPORTHASNODEVICE;
+	}
+
+	m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
+
+	// Get render target
+	m_IDirectDrawSurfaceX* pRenderTarget = pDirect3DDeviceX->GetRenderTargetX();
+
+	// Check viewport size
+	DWORD rtWidth = 0, rtHeight = 0;
+	if (pRenderTarget && pRenderTarget->GetSurfaceDimensions(rtWidth, rtHeight) &&
+		(dwX + dwWidth > rtWidth || dwY + dwHeight > rtHeight))
+	{
+		if (dwX + dwWidth > rtWidth + 1 || dwY + dwHeight > rtHeight + 1)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: viewport is larger than render target: " <<
+				" Offset: " << dwX << "x" << dwY <<
+				" Viewport: " << dwWidth << "x" << dwHeight <<
+				" Render Target: " << rtWidth << "x" << rtHeight
+			);
+			return DDERR_INVALIDPARAMS;
+		}
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: viewport is larger than render target by one pixel!");
+	}
+
+	return D3D_OK;
+}
+
 void m_IDirect3DViewportX::GetAttachedBufferDetails(m_IDirect3DDeviceX* pD3DDevice, bool& HasAttachedZBuffer, bool& HasAttachedStencil)
 {
 	HasAttachedZBuffer = false;
@@ -1270,6 +1261,11 @@ void m_IDirect3DViewportX::AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice)
 	if (AttachedD3DDevices.size() > 1)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Warning: more than one D3Ddevice attached: " << AttachedD3DDevices.size());
+	}
+
+	if (IsViewportDataSet)
+	{
+		CheckViewportDimentions(Viewport.Data9.X, Viewport.Data9.Y, Viewport.Data9.Width, Viewport.Data9.Height);
 	}
 }
 

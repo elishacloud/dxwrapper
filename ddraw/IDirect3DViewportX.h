@@ -68,7 +68,8 @@ private:
 
 	// Helper functions
 	inline bool IsViewportSet() const { return (Viewport.Data9.Width && Viewport.Data9.Height); }
-	HRESULT m_IDirect3DViewportX::GetCurrentViewport(m_IDirect3DDeviceX* pDirect3DDeviceX, D3DVIEWPORT9& Viewport9);
+	inline HRESULT m_IDirect3DViewportX::GetCurrentViewport(m_IDirect3DDeviceX* pDirect3DDeviceX, D3DVIEWPORT9& Viewport9);
+	inline HRESULT CheckViewportDimentions(DWORD dwX, DWORD dwY, DWORD dwWidth, DWORD dwHeight);
 
 public:
 	m_IDirect3DViewportX(IDirect3DViewport3 *aOriginal, DWORD DirectXVersion) : ProxyInterface(aOriginal)
