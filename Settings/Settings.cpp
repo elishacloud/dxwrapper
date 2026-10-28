@@ -762,6 +762,14 @@ void CONFIG::SetConfig()
 		}
 	}
 
+	// Check for disabling anti-aliasing
+	if (DisableAntiAliasing || AntiAliasing == (DWORD)-1)
+	{
+		AntiAliasing = 0;
+		DdrawAllowMultiSampling = false;
+		DisableAntiAliasing = true;
+	}
+
 	// Default to 8 samples as some games have issues with more samples
 	AntiAliasing = (AntiAliasing == 1 || AntiAliasing > 16) ? 8 : AntiAliasing;
 

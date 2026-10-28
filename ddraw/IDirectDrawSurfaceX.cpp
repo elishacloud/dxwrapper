@@ -5025,7 +5025,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 	/*if (IsRenderTarget())
 	{
 		bool AntiAliasing = (surfaceDesc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) || (surfaceDesc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK);
-		if (AntiAliasing && !surface.MultiSampleType)
+		if (AntiAliasing && !surface.MultiSampleType && !Config.DisableAntiAliasing)
 		{
 			DWORD MaxSamples = 0;
 			DWORD Mask =

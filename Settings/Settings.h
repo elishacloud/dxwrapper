@@ -89,6 +89,7 @@ inline std::ostream& operator<<(std::ostream& os, const DHEX& dhex) {
 	visit(DepthBiasFactor) \
 	visit(DepthBiasDropOffValue) \
 	visit(DeviceLookupCacheTime) \
+	visit(DisableAntiAliasing) \
 	visit(DisableGameUX) \
 	visit(DisableGDIGammaRamp) \
 	visit(DisplayBrightness) \
@@ -323,6 +324,7 @@ struct CONFIG
 	float DepthBiasDropOffValue = 0.0f;			// Numbers between 0.0f and DepthBiasDropOffValue turn into zero
 	DWORD DeviceLookupCacheTime = 0;			// Number of seconds to cache the DeviceEnum callback data
 	bool DirectShowEmulation = false;			// Emulates DirectShow APIs
+	bool DisableAntiAliasing = false;			// Prevents game from using anti-aliasing
 	bool DisableGameUX = false;					// Disables the Microsoft Game Explorer which can sometimes cause high CPU in rundll32.exe and hang the game process
 	bool DisableGDIGammaRamp = false;			// Disables gamma ramp for GDI, some games look washed out with gamme ramp enabled
 	bool DisableLogging = false;				// Disables the logging file

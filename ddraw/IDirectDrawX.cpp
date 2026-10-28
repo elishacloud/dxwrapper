@@ -718,7 +718,9 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		}
 
 		// Check for antialiasing
-		/*if ((Desc2.ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_3DDEVICE)) && ((Desc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) || (Desc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK)))
+		/*if (!Config.DisableAntiAliasing &&
+			(Desc2.ddsCaps.dwCaps & (DDSCAPS_PRIMARYSURFACE | DDSCAPS_3DDEVICE)) &&
+			((Desc2.ddsCaps.dwCaps2 & DDSCAPS2_HINTANTIALIASING) || (Desc2.ddsCaps.dwCaps3 & DDSCAPS3_MULTISAMPLE_MASK)))
 		{
 			Device.AntiAliasing = true;
 		}*/
@@ -3439,7 +3441,7 @@ DWORD m_IDirectDrawX::GetHwndThreadID()
 
 void m_IDirectDrawX::GetMultiSampleTypeQuality(D3DMULTISAMPLE_TYPE& MaxSampleType, DWORD& QualityLevels) const
 {
-	if (d3d9Device && Device.AntiAliasing)
+	if (d3d9Device && Device.AntiAliasing && !Config.DisableAntiAliasing)
 	{
 		MaxSampleType = presParams.MultiSampleType;
 		QualityLevels = presParams.MultiSampleQuality;

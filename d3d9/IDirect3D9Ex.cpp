@@ -560,7 +560,7 @@ HRESULT m_IDirect3D9Ex::CreateDeviceT(DEVICEDETAILS& DeviceDetails, UINT Adapter
 	if (pPresentationParameters)
 	{
 		DeviceDetails.AppRequestedWindowMode = pPresentationParameters->Windowed;
-		DeviceDetails.UseAppMultiSampleState = (pPresentationParameters->MultiSampleType != D3DMULTISAMPLE_NONE);
+		DeviceDetails.UseAppMultiSampleState = (pPresentationParameters->MultiSampleType != D3DMULTISAMPLE_NONE && !Config.DisableAntiAliasing);
 
 		ForceFullscreen = TestResolution(Adapter, pPresentationParameters->BackBufferWidth, pPresentationParameters->BackBufferHeight);
 
@@ -831,6 +831,13 @@ void m_IDirect3D9Ex::UpdatePresentParameter(D3DPRESENT_PARAMETERS* pPresentation
 	{
 		pPresentationParameters->AutoDepthStencilFormat = (D3DFORMAT)Config.OverrideStencilFormat;
 		LOG_LIMIT(100, __FUNCTION__ << " Setting Stencil format: " << pPresentationParameters->AutoDepthStencilFormat);
+	}
+
+	// Disable anti-aliasing
+	if (Config.DisableAntiAliasing)
+	{
+		pPresentationParameters->MultiSampleType = D3DMULTISAMPLE_NONE;
+		pPresentationParameters->MultiSampleQuality = 0;
 	}
 
 	// Store last window data

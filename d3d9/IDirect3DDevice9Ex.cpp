@@ -772,6 +772,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTarget(THIS_ UINT Width, UINT Height, 
 		}
 	}
 
+	// Disable anti-aliasing
+	if (Config.DisableAntiAliasing)
+	{
+		MultiSample = D3DMULTISAMPLE_NONE;
+		MultisampleQuality = 0;
+	}
+
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Try Multisampling
@@ -820,6 +827,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurface(THIS_ UINT Width, UINT H
 		Format = (D3DFORMAT)Config.OverrideStencilFormat;
 
 		LOG_LIMIT(100, __FUNCTION__ << " Setting Stencil format: " << Format);
+	}
+
+	// Disable anti-aliasing
+	if (Config.DisableAntiAliasing)
+	{
+		MultiSample = D3DMULTISAMPLE_NONE;
+		MultisampleQuality = 0;
 	}
 
 	HRESULT hr = D3DERR_INVALIDCALL;
@@ -2359,6 +2373,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateRenderTargetEx(THIS_ UINT Width, UINT Height
 		return D3DERR_INVALIDCALL;
 	}
 
+	// Disable anti-aliasing
+	if (Config.DisableAntiAliasing)
+	{
+		MultiSample = D3DMULTISAMPLE_NONE;
+		MultisampleQuality = 0;
+	}
+
 	HRESULT hr = D3DERR_INVALIDCALL;
 
 	// Try Multisampling
@@ -2434,6 +2455,13 @@ HRESULT m_IDirect3DDevice9Ex::CreateDepthStencilSurfaceEx(THIS_ UINT Width, UINT
 	{
 		Format = (D3DFORMAT)Config.OverrideStencilFormat;
 		LOG_LIMIT(100, __FUNCTION__ << " Setting Stencil format: " << Format);
+	}
+
+	// Disable anti-aliasing
+	if (Config.DisableAntiAliasing)
+	{
+		MultiSample = D3DMULTISAMPLE_NONE;
+		MultisampleQuality = 0;
 	}
 
 	HRESULT hr = D3DERR_INVALIDCALL;
