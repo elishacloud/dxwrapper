@@ -5371,7 +5371,7 @@ void m_IDirectDrawX::BackupAndResetState(DRAWSTATEBACKUP& DrawStates, DWORD Widt
 	d3d9Device->GetSamplerState(0, D3DSAMP_MAGFILTER, &DrawStates.ssMagFilter);
 	d3d9Device->GetSamplerState(1, D3DSAMP_ADDRESSU, &DrawStates.ss1addressU);
 	d3d9Device->GetSamplerState(1, D3DSAMP_ADDRESSV, &DrawStates.ss1addressV);
-	d3d9Device->SetSamplerState(0, D3DSAMP_MAGFILTER, IsUsingPalette || !Config.DdrawLinearTextureFilter ? D3DTEXF_POINT : D3DTEXF_LINEAR);
+	d3d9Device->SetSamplerState(0, D3DSAMP_MAGFILTER, Config.DdrawLinearTextureFilter && !IsUsingPalette ? D3DTEXF_LINEAR : D3DTEXF_POINT);
 	d3d9Device->SetSamplerState(1, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
 	d3d9Device->SetSamplerState(1, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 

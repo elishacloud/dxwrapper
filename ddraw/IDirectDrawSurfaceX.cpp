@@ -7750,14 +7750,13 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 
 	Filter = !IsStretchRect ? D3DTEXF_NONE :
 		IsPalette() ? D3DTEXF_POINT :
-		Filter == D3DTEXF_LINEAR ? Filter :
+		Config.DdrawLinearTextureFilter || Filter == D3DTEXF_LINEAR ? D3DTEXF_LINEAR :
 		D3DTEXF_POINT;
 
 	const DWORD D3DXFilter =
-		!IsStretchRect ? D3DX_FILTER_NONE :
-		Filter == D3DTEXF_POINT || IsPalette() ? D3DX_FILTER_POINT :
-		Filter == D3DTEXF_LINEAR ? D3DX_FILTER_LINEAR :
-		D3DX_FILTER_POINT;
+		Filter == D3DTEXF_NONE ? D3DX_FILTER_NONE :
+		Filter == D3DTEXF_POINT ? D3DX_FILTER_POINT :
+		D3DX_FILTER_LINEAR;
 
 	const DWORD ColorKeyMask = GetUsedPixelBitsMask(SrcFormat, pSourceSurface->surface.BitCount);
 	ColorKey &= ColorKeyMask;
@@ -8832,9 +8831,11 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 	(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_SELECTARG1);
 	(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
 	(*d3d9Device)->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
-	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, Filter == D3DTEXF_NONE ? D3DTEXF_POINT : Filter);
-	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, Filter == D3DTEXF_NONE ? D3DTEXF_POINT : Filter);
-	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, SrcMipMapLevel == 0 ? D3DTEXF_NONE : D3DTEXF_POINT);
+
+	Filter = Filter == D3DTEXF_NONE ? D3DTEXF_POINT : Filter;
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MINFILTER, Filter);
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MAGFILTER, Filter);
+	(*d3d9Device)->SetSamplerState(0, D3DSAMP_MIPFILTER, SrcMipMapLevel == 0 ? D3DTEXF_NONE : Filter);
 	(*d3d9Device)->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
 	(*d3d9Device)->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
