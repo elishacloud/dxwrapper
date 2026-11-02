@@ -1618,12 +1618,10 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	}
 
 	// Force MipMap usage
-	if (Config.ForceMipMapUsage && Type == D3DSAMP_MIPFILTER && Sampler == 0)
+	if (Config.ForceMipMapUsage && Type == D3DSAMP_MIPFILTER)
 	{
-		if (Anisotropy.LinearMip || (Value != D3DTEXF_NONE && Value != D3DTEXF_POINT))
+		if (LinearMip || (Value != D3DTEXF_NONE && Value != D3DTEXF_POINT))
 		{
-			Anisotropy.ssMipFilter = Value;
-
 			return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_LINEAR);
 		}
 		else
@@ -1633,39 +1631,26 @@ HRESULT m_IDirect3DDevice9Ex::SetSamplerState(THIS_ DWORD Sampler, D3DSAMPLERSTA
 	}
 
 	// Enable Anisotropic Filtering
-	if (Anisotropy.MaxCaps && Sampler == 0)
+	if (MaxAnisotropy)
 	{
 		if (Type == D3DSAMP_MAXANISOTROPY)
 		{
 			return D3D_OK;
 		}
-		else if (Anisotropy.Min && Type == D3DSAMP_MINFILTER)
+		else if (AnisotropyMin && Type == D3DSAMP_MINFILTER && Value != D3DTEXF_NONE)
 		{
-			Anisotropy.ssMinFilter = Value;
-
-			if (Value != D3DTEXF_NONE)
-			{
-				LOG_ONCE("Setting Anisotropic Min Filtering at " << Anisotropy.MaxCaps << "x");
-				return ProxyInterface->SetSamplerState(Sampler, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
-			}
+			LOG_ONCE("Setting Anisotropic Min Filtering at " << MaxAnisotropy << "x");
+			return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC);
 		}
-		else if (Anisotropy.Mag && Type == D3DSAMP_MAGFILTER)
+		// Anisotropic filtering is principally useful for minification, keeping MAGFILTER set to POINT
+		else if (AnisotropyMag && Type == D3DSAMP_MAGFILTER && Value != D3DTEXF_NONE && Value != D3DTEXF_POINT)
 		{
-			// Anisotropic filtering is principally useful for minification, keeping MAGFILTER set to POINT
-			if (Value != D3DTEXF_NONE && Value != D3DTEXF_POINT)
-			{
-				LOG_ONCE("Setting Anisotropic Mag Filtering at " << Anisotropy.MaxCaps << "x");
-				return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC);
-			}
+			LOG_ONCE("Setting Anisotropic Mag Filtering at " << MaxAnisotropy << "x");
+			return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_ANISOTROPIC);
 		}
-		else if (Anisotropy.LinearMip && Type == D3DSAMP_MIPFILTER)
+		else if (LinearMip && Type == D3DSAMP_MIPFILTER && Value != D3DTEXF_NONE)
 		{
-			Anisotropy.ssMipFilter = Value;
-
-			if (Value != D3DTEXF_NONE)
-			{
-				return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_LINEAR);
-			}
+			return ProxyInterface->SetSamplerState(Sampler, Type, D3DTEXF_LINEAR);
 		}
 	}
 
@@ -2535,30 +2520,6 @@ HRESULT m_IDirect3DDevice9Ex::GetDisplayModeEx(THIS_ UINT iSwapChain, D3DDISPLAY
 
 void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 {
-	// Handle Anisotropy filtering for compressed alpha channel textures
-	if (pCurrentTexture && (Anisotropy.ssMinFilter == D3DTEXF_POINT || Anisotropy.ssMipFilter == D3DTEXF_POINT))
-	{
-		switch (GetTextureFormat(pCurrentTexture))
-		{
-		case D3DFMT_DXT1:
-		case D3DFMT_DXT2:
-		case D3DFMT_DXT3:
-		case D3DFMT_DXT4:
-		case D3DFMT_DXT5:
-			Anisotropy.ResetSampler = true;
-
-			if (Anisotropy.ssMinFilter == D3DTEXF_POINT)
-			{
-				ProxyInterface->SetSamplerState(0, D3DSAMP_MINFILTER, Anisotropy.ssMinFilter);
-			}
-			if (Anisotropy.ssMipFilter == D3DTEXF_POINT)
-			{
-				ProxyInterface->SetSamplerState(0, D3DSAMP_MIPFILTER, Anisotropy.ssMipFilter);
-			}
-			break;
-		}
-	}
-
 	// CacheClipPlane
 	if (Config.CacheClipPlane && isClipPlaneSet)
 	{
@@ -2636,20 +2597,6 @@ void m_IDirect3DDevice9Ex::ApplyPreDrawFixes()
 
 void m_IDirect3DDevice9Ex::ApplyPostDrawFixes()
 {
-	// Reset Anisotropy filtering
-	if (Anisotropy.ResetSampler)
-	{
-		Anisotropy.ResetSampler = false;
-		if (Anisotropy.ssMinFilter == D3DTEXF_POINT)
-		{
-			ProxyInterface->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
-		}
-		if (Anisotropy.ssMipFilter == D3DTEXF_POINT)
-		{
-			ProxyInterface->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
-		}
-	}
-
 	// Handle forced MipMap usage
 	if (IsUsingForcedMipMapTexture && ssMipFilter == D3DTEXF_NONE)
 	{
@@ -3586,22 +3533,23 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 	// Set Max Anisotropy and Anisotropic Filtering
 	if (Config.AnisotropicFiltering)
 	{
-		Anisotropy.MaxCaps = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
-		Anisotropy.Min = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC) != 0;
-		Anisotropy.Mag = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC) != 0;
-		Anisotropy.LinearMip = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MIPFLINEAR) != 0;
+		MaxAnisotropy = (Config.AnisotropicFiltering == 1) ? Caps.MaxAnisotropy : min((DWORD)Config.AnisotropicFiltering, Caps.MaxAnisotropy);
+		AnisotropyMin = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC);
+		AnisotropyMag = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MAGFANISOTROPIC);
+		LinearMip = (Caps.TextureFilterCaps & D3DPTFILTERCAPS_MIPFLINEAR);
+		LOG_ONCE("Anisotropic Filtering DeviceCaps. Min: " << AnisotropyMin << " Mag: " << AnisotropyMag << " LinearMap: " << LinearMip);
 
-		LOG_ONCE("Anisotropic Filtering DeviceCaps. Min: " << Anisotropy.Min << " Mag: " << Anisotropy.Mag << " LinearMap: " << Anisotropy.LinearMip);
-
-		if (Anisotropy.MaxCaps)
+		if (MaxAnisotropy && (AnisotropyMin || AnisotropyMag))
 		{
-			ProxyInterface->SetSamplerState(0, D3DSAMP_MAXANISOTROPY, Anisotropy.MaxCaps);
-
-			// Anisotropic filtering is principally useful for minification, keeping MAGFILTER set to POINT
-			if (Anisotropy.Min)
+			for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 			{
-				Anisotropy.ssMinFilter = D3DTEXF_POINT;
-				ProxyInterface->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
+				ProxyInterface->SetSamplerState(x, D3DSAMP_MAXANISOTROPY, MaxAnisotropy);
+
+				// Anisotropic filtering is principally useful for minification, keeping MAGFILTER set to POINT
+				if (AnisotropyMin)
+				{
+					ProxyInterface->SetSamplerState(x, D3DSAMP_MINFILTER, D3DTEXF_ANISOTROPIC);
+				}
 			}
 		}
 	}
@@ -3609,14 +3557,9 @@ void m_IDirect3DDevice9Ex::ReInitInterface()
 	// Force MipMap usage
 	if (Config.ForceMipMapUsage)
 	{
-		if (Anisotropy.LinearMip)
+		for (UINT x = 0; x < D3DHAL_TSS_MAXSTAGES; x++)
 		{
-			Anisotropy.ssMipFilter = D3DTEXF_POINT;
-			ProxyInterface->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_LINEAR);
-		}
-		else
-		{
-			ProxyInterface->SetSamplerState(0, D3DSAMP_MIPFILTER, D3DTEXF_POINT);
+			ProxyInterface->SetSamplerState(x, D3DSAMP_MIPFILTER, LinearMip ? D3DTEXF_LINEAR : D3DTEXF_POINT);
 		}
 	}
 
@@ -4046,47 +3989,6 @@ m_IDirect3DStateBlock9* m_IDirect3DDevice9Ex::GetCreateStateBlock(IDirect3DState
 	StateBlockTable.AddStateBlock(StateBlockX);
 
 	return StateBlockX;
-}
-
-D3DFORMAT m_IDirect3DDevice9Ex::GetTextureFormat(IDirect3DBaseTexture9* pTexture)
-{
-	if (!pTexture)
-	{
-		return D3DFMT_UNKNOWN;
-	}
-
-	switch (pTexture->GetType())
-	{
-	case D3DRTYPE_TEXTURE:
-	{
-		D3DSURFACE_DESC Desc;
-		if (SUCCEEDED(static_cast<IDirect3DTexture9*>(pTexture)->GetLevelDesc(0, &Desc)))
-		{
-			return Desc.Format;
-		}
-		break;
-	}
-	case D3DRTYPE_CUBETEXTURE:
-	{
-		D3DSURFACE_DESC Desc;
-		if (SUCCEEDED(static_cast<IDirect3DCubeTexture9*>(pTexture)->GetLevelDesc(0, &Desc)))
-		{
-			return Desc.Format;
-		}
-		break;
-	}
-	case D3DRTYPE_VOLUMETEXTURE:
-	{
-		D3DVOLUME_DESC Desc;
-		if (SUCCEEDED(static_cast<IDirect3DVolumeTexture9*>(pTexture)->GetLevelDesc(0, &Desc)))
-		{
-			return Desc.Format;
-		}
-		break;
-	}
-	}
-
-	return D3DFMT_UNKNOWN;
 }
 
 void m_IDirect3DDevice9Ex::ModeExToMode(D3DDISPLAYMODEEX& ModeEx, D3DDISPLAYMODE& Mode)

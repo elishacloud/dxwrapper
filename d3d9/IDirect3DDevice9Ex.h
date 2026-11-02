@@ -51,6 +51,8 @@ private:
 	DEVICE_REFCOUNT_CHECKER dref;
 
 	D3DCAPS9 Caps = {};
+	bool AnisotropyMin = false;
+	bool AnisotropyMag = false;
 
 	// Begin/End Scene
 	bool IsInScene = false;
@@ -111,15 +113,10 @@ private:
 	LPDIRECT3DPIXELSHADER9 gammaPixelShader = nullptr;
 
 	// Anisotropic Filtering
-	struct {
-		DWORD MaxCaps = 0;
-		bool Min = false;
-		bool Mag = false;
-		bool LinearMip = false;
-		bool ResetSampler = false;
-		DWORD ssMinFilter = D3DTEXF_NONE;
-		DWORD ssMipFilter = D3DTEXF_NONE;
-	} Anisotropy;
+	DWORD MaxAnisotropy = 0;
+
+	// Mip Filtering
+	bool LinearMip = false;
 
 	// Antialiasing
 	struct {
@@ -142,8 +139,6 @@ private:
 
 	inline bool ShouldEnableGammaShader() const;
 	inline bool UsingShadowBackBuffer(DWORD iSwapChain = 0) const;
-
-	inline D3DFORMAT GetTextureFormat(IDirect3DBaseTexture9* pTexture);
 
 	// Limit frame rate
 	void LimitFrameRate();
