@@ -3836,120 +3836,14 @@ HRESULT m_IDirect3DDeviceX::ValidateDevice(LPDWORD lpdwPasses)
 		// Check for device interface
 		CheckDeviceInterface(__FUNCTION__, true);
 
-#ifdef ENABLE_PROFILING
-		auto startTime = std::chrono::high_resolution_clock::now();
-#endif
-
 		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
-		// Simple transformed/lit vertex
-		struct VALIDATEVERTEX
+		if (lpdwPasses)
 		{
-			float x, y, z, rhw;
-			DWORD color;
-		};
-
-		const DWORD ValidateFVF = D3DFVF_XYZRHW | D3DFVF_DIFFUSE;
-
-		// Use a degenerate triangle
-		VALIDATEVERTEX verts[3] =
-		{
-			{ 0.0f, 0.0f, 0.5f, 1.0f, 0x00000000 },
-			{ 0.0f, 0.0f, 0.5f, 1.0f, 0x00000000 },
-			{ 0.0f, 0.0f, 0.5f, 1.0f, 0x00000000 }
-		};
-
-		// Set standard draw states
-		DWORD dwFlags = 0;
-		SetDrawStates(ValidateFVF, dwFlags, 7);
-
-		DWORD OldColorWrite = 0;
-		DWORD OldZWrite = 0;
-		DWORD OldStencilEnable = 0;
-
-		// Save minimal state
-		(*d3d9Device)->GetRenderState(D3DRS_COLORWRITEENABLE, &OldColorWrite);
-		(*d3d9Device)->GetRenderState(D3DRS_ZWRITEENABLE, &OldZWrite);
-		(*d3d9Device)->GetRenderState(D3DRS_STENCILENABLE, &OldStencilEnable);
-
-		// Disable color writes
-		(*d3d9Device)->SetRenderState(D3DRS_COLORWRITEENABLE, 0);
-		(*d3d9Device)->SetRenderState(D3DRS_ZWRITEENABLE, FALSE);
-		(*d3d9Device)->SetRenderState(D3DRS_STENCILENABLE, FALSE);
-
-		// Clear shaders since FVF + shaders conflict
-		//(*d3d9Device)->SetVertexShader(nullptr);
-		(*d3d9Device)->SetPixelShader(nullptr);
-
-		// Set fixed function format
-		(*d3d9Device)->SetFVF(ValidateFVF);
-
-		// Force D3D9 to internally validate stream setup
-		(*d3d9Device)->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 1, verts, sizeof(VALIDATEVERTEX));
-
-		// Now validate device
-		DWORD DummyPasses = 1;
-		HRESULT hr = (*d3d9Device)->ValidateDevice(&DummyPasses);
-
-		if (!lpdwPasses)
-		{
-			lpdwPasses = &DummyPasses;
-			*lpdwPasses = max(*lpdwPasses, 1ul);
+			*lpdwPasses = 1;
 		}
 
-		// Restore state
-		(*d3d9Device)->SetRenderState(D3DRS_COLORWRITEENABLE, OldColorWrite);
-		(*d3d9Device)->SetRenderState(D3DRS_ZWRITEENABLE, OldZWrite);
-		(*d3d9Device)->SetRenderState(D3DRS_STENCILENABLE, OldStencilEnable);
-
-		// Handle dwFlags
-		RestoreDrawStates(DDERR_GENERIC, dwFlags, 7);
-
-		// Update return values
-		switch (hr)
-		{
-			// Direct mappings
-		case D3D_OK:
-		case D3DERR_CONFLICTINGTEXTUREFILTER:
-		case D3DERR_TOOMANYOPERATIONS:
-		case D3DERR_UNSUPPORTEDALPHAARG:
-		case D3DERR_UNSUPPORTEDALPHAOPERATION:
-		case D3DERR_UNSUPPORTEDCOLORARG:
-		case D3DERR_UNSUPPORTEDCOLOROPERATION:
-		case D3DERR_UNSUPPORTEDFACTORVALUE:
-		case D3DERR_UNSUPPORTEDTEXTUREFILTER:
-		case D3DERR_WRONGTEXTUREFORMAT:
-			break;
-
-			// D3D9-only errors
-		case D3DERR_CONFLICTINGRENDERSTATE:
-			hr = D3D_OK;
-			break;
-
-		case D3DERR_DEVICENOTRESET:
-		case D3DERR_DEVICELOST:
-			hr = DDERR_SURFACELOST;
-			break;
-
-		case D3DERR_DRIVERINTERNALERROR:
-			hr = DDERR_INVALIDOBJECT;
-			break;
-
-		default:
-			hr = DDERR_GENERIC;
-			break;
-		}
-
-		if (FAILED(hr))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: ValidateDevice() function failed: " << (DDERR)hr);
-		}
-
-#ifdef ENABLE_PROFILING
-		Logging::Log() << __FUNCTION__ << " (" << this << ") hr = " << (D3DERR)hr << " Timing = " << Logging::GetTimeLapseInUS(startTime);
-#endif
-
-		return hr;
+		return D3D_OK;
 	}
 
 	switch (ProxyDirectXVersion)
