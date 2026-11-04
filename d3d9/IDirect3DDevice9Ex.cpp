@@ -16,6 +16,7 @@
 
 #include "d3d9.h"
 #include <d3dhal.h>
+#include "dwmapi.h"
 #include "ddraw\Shaders\BrightnessPixelShader.h"
 #include "ddraw\Shaders\GammaPixelShader.h"
 #include "GDI\WndProc.h"
@@ -2796,44 +2797,74 @@ void m_IDirect3DDevice9Ex::LimitFrameRate()
 	// Count the number of frames
 	Counter.FrameCounter++;
 
-	// Get performance frequency once
-	static const LARGE_INTEGER Frequency = [] {
-		LARGE_INTEGER freq = {};
-		QueryPerformanceFrequency(&freq);
-		return freq;
-		}();
-	static const LONGLONG TicksPerMS = Frequency.QuadPart / 1000;
+	// Get the current frame limit
+	const double FPS = Config.LimitPerFrameFPS;
 
-	// Calculate time per frame in ticks
-	static long double PerFrameFPS = Config.LimitPerFrameFPS;
-	static LONGLONG PerFrameTicks = static_cast<LONGLONG>(static_cast<long double>(Frequency.QuadPart) / PerFrameFPS);
-
-	// Get current time
-	LARGE_INTEGER ClickTime = {};
-	QueryPerformanceCounter(&ClickTime);
-
-	LONGLONG TargetEndTicks = Counter.LastPresentTime.QuadPart + PerFrameTicks;
-
-	// First frame or if we fell behind, reset base time
-	if (Counter.LastPresentTime.QuadPart == 0 || ClickTime.QuadPart >= TargetEndTicks)
+	if (FPS <= 0.0)
 	{
-		Counter.LastPresentTime.QuadPart = ClickTime.QuadPart;
+		Counter.LastPresentTime.QuadPart = 0;
 		return;
 	}
 
-	// Wait until target time
-	while (true)
+	const UINT DwmInterval = max(1U, static_cast<UINT>(round(FPS) / 4.0f));
+
+	// Wait for DWM to finish displaying outstanding frames
+	if (Counter.FrameCounter % DwmInterval == 0)
 	{
-		QueryPerformanceCounter(&ClickTime);
-		LONGLONG RemainingTicks = TargetEndTicks - ClickTime.QuadPart;
-
-		if (RemainingTicks <= 0) break;
-
-		// Busy wait until we reach the target time
-		Utils::BusyWaitYield(static_cast<DWORD>(RemainingTicks / TicksPerMS));
+		DwmFlush();
 	}
 
-	// Store target time for next frame
+	// Get performance frequency
+	static const LONGLONG Frequency = []()
+	{
+		LARGE_INTEGER freq = {};
+		QueryPerformanceFrequency(&freq);
+		return freq.QuadPart;
+	}();
+
+	// Calculate frame duration without integer truncation
+	const LONGLONG PerFrameTicks = static_cast<LONGLONG>(static_cast<double>(Frequency) / FPS + 0.5);
+
+	// Get current time
+	LARGE_INTEGER CurrentTime = {};
+	QueryPerformanceCounter(&CurrentTime);
+
+	// First frame: initialize the timing baseline
+	if (Counter.LastPresentTime.QuadPart == 0)
+	{
+		Counter.LastPresentTime = CurrentTime;
+		return;
+	}
+
+	// Calculate the next target time
+	const LONGLONG TargetEndTicks = Counter.LastPresentTime.QuadPart + PerFrameTicks;
+
+	// If we are already late, reset the timing baseline
+	if (CurrentTime.QuadPart >= TargetEndTicks)
+	{
+		Counter.LastPresentTime = CurrentTime;
+		return;
+	}
+
+	// Wait until the target time
+	while (true)
+	{
+		QueryPerformanceCounter(&CurrentTime);
+
+		const LONGLONG RemainingTicks = TargetEndTicks - CurrentTime.QuadPart;
+
+		if (RemainingTicks <= 0)
+		{
+			break;
+		}
+
+		// Convert remaining time to milliseconds
+		const DWORD RemainingMS = static_cast<DWORD>(RemainingTicks * 1000 / Frequency);
+
+		Utils::BusyWaitYield(RemainingMS);
+	}
+
+	// Preserve the timing schedule
 	Counter.LastPresentTime.QuadPart = TargetEndTicks;
 }
 

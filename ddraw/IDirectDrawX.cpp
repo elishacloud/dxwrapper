@@ -15,6 +15,7 @@
 */
 
 #include "ddraw.h"
+#include "dwmapi.h"
 #include "Utils\Utils.h"
 #include "GDI\GDI.h"
 #include "GDI\WndProc.h"
@@ -2169,70 +2170,162 @@ HRESULT m_IDirectDrawX::WaitForVerticalBlank(DWORD dwFlags, HANDLE hEvent)
 		auto startTime = std::chrono::high_resolution_clock::now();
 #endif
 
-		D3DRASTER_STATUS RasterStatus = {};
-
-		HRESULT hr = DD_OK;
-
 		// hEvent is currently unused by DirectDraw for these flags
 		(void)hEvent;
+
+		D3DRASTER_STATUS RasterStatus = {};
+
+		// Wait for the next vertical blank using DWM composition timing
+		auto WaitForDwmVBlank = [&]() -> bool
+		{
+			DWM_TIMING_INFO TimingInfo = {};
+			TimingInfo.cbSize = sizeof(TimingInfo);
+
+			if (FAILED(DwmGetCompositionTimingInfo(NULL, &TimingInfo)) ||
+				!TimingInfo.qpcVBlank ||
+				!TimingInfo.qpcRefreshPeriod ||
+				TimingInfo.qpcVBlank > 0x7FFFFFFFFFFFFFFFULL ||
+				TimingInfo.qpcRefreshPeriod > 0x7FFFFFFFFFFFFFFFULL)
+			{
+				return false;
+			}
+
+			LARGE_INTEGER CurrentTime = {};
+
+			if (!QueryPerformanceCounter(&CurrentTime) || CurrentTime.QuadPart < 0)
+			{
+				return false;
+			}
+
+			const ULONGLONG MaxQpc = 0x7FFFFFFFFFFFFFFFULL;
+			const ULONGLONG RefreshPeriod = TimingInfo.qpcRefreshPeriod;
+
+			// Calculate the next vertical blank
+			ULONGLONG TargetTime = TimingInfo.qpcVBlank;
+
+			if (TargetTime <= (ULONGLONG)CurrentTime.QuadPart)
+			{
+				const ULONGLONG Elapsed = (ULONGLONG)CurrentTime.QuadPart - TargetTime;
+				const ULONGLONG Refreshes = (Elapsed / RefreshPeriod) + 1;
+
+				// Prevent overflow
+				if (Refreshes > (MaxQpc - TargetTime) / RefreshPeriod)
+				{
+					return false;
+				}
+
+				TargetTime += Refreshes * RefreshPeriod;
+			}
+
+			// Wait until the next vertical blank
+			while ((ULONGLONG)CurrentTime.QuadPart < TargetTime)
+			{
+				Utils::BusyWaitYield(0);
+
+				if (!QueryPerformanceCounter(&CurrentTime) || CurrentTime.QuadPart < 0)
+				{
+					return false;
+				}
+			}
+
+			return true;
+		};
+
+		// Wait for the beginning of vertical blank
+		// Priority: DDI -> DWM -> Raster Status
+		auto WaitForVBlankBegin = [&]() -> bool
+		{
+			// First choice: D3DKMTWaitForVerticalBlankEvent
+			if (OpenD3DDDI(GetDC()) && D3DDDIWaitForVsync())
+			{
+				return true;
+			}
+
+			// Second choice: DWM composition timing
+			if (WaitForDwmVBlank())
+			{
+				return true;
+			}
+
+			// Final fallback: poll D3D9 raster status
+			HRESULT hr = d3d9Device->GetRasterStatus(0, &RasterStatus);
+
+			if (FAILED(hr))
+			{
+				return false;
+			}
+
+			while (!RasterStatus.InVBlank)
+			{
+				Utils::BusyWaitYield(0);
+
+				hr = d3d9Device->GetRasterStatus(0, &RasterStatus);
+
+				if (FAILED(hr))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		};
+
+		// Wait for the end of vertical blank
+		auto WaitForVBlankEnd = [&]() -> bool
+		{
+			HRESULT hr = d3d9Device->GetRasterStatus(0, &RasterStatus);
+
+			if (FAILED(hr))
+			{
+				return false;
+			}
+
+			// If vertical blank has already ended, return immediately
+			while (RasterStatus.InVBlank)
+			{
+				Utils::BusyWaitYield(0);
+
+				hr = d3d9Device->GetRasterStatus(0, &RasterStatus);
+
+				if (FAILED(hr))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		};
+
+		HRESULT hr = DD_OK;
 
 		switch (dwFlags)
 		{
 		case DDWAITVB_BLOCKBEGIN:
 		{
-			// Use D3DKMTWaitForVerticalBlankEvent for vertical blank begin
-			if (OpenD3DDDI(GetDC()) && D3DDDIWaitForVsync())
+			if (!WaitForVBlankBegin())
 			{
-				// Successfully waited for the beginning of vertical blank
-				break;
+				hr = DDERR_UNSUPPORTED;
 			}
-
-			// Fallback: wait for vertical blank begin using raster status
-			while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) &&
-				!RasterStatus.InVBlank)
-			{
-				Utils::BusyWaitYield(0);
-			}
-
 			break;
 		}
 
 		case DDWAITVB_BLOCKEND:
 		{
-			bool WaitedForVBlankBegin = false;
-
-			// Prefer D3DKMT because it provides a much better synchronization
-			// point than polling GetRasterStatus()
-			if (OpenD3DDDI(GetDC()) && D3DDDIWaitForVsync())
+			// Check whether we are already in vertical blank
+			if (FAILED(d3d9Device->GetRasterStatus(0, &RasterStatus)) || !RasterStatus.InVBlank)
 			{
-				WaitedForVBlankBegin = true;
-			}
-			else
-			{
-				// Fallback: wait for the beginning of the next vertical blank
-				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) &&
-					!RasterStatus.InVBlank)
+				// Wait for the beginning of vertical blank
+				if (!WaitForVBlankBegin())
 				{
-					Utils::BusyWaitYield(0);
+					hr = DDERR_UNSUPPORTED;
+					break;
 				}
-
-				WaitedForVBlankBegin = true;
 			}
 
-			// We have now crossed the beginning of a vertical blank
-			//
-			// If we're still inside the blank interval, wait for it to end.
-			// If the thread was delayed enough that the blank has already
-			// ended, return immediately rather than waiting for another frame.
-			if (WaitedForVBlankBegin &&
-				SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) &&
-				RasterStatus.InVBlank)
+			// Wait for the end of vertical blank
+			if (!WaitForVBlankEnd())
 			{
-				while (SUCCEEDED(d3d9Device->GetRasterStatus(0, &RasterStatus)) &&
-					RasterStatus.InVBlank)
-				{
-					Utils::BusyWaitYield(0);
-				}
+				hr = DDERR_UNSUPPORTED;
 			}
 
 			break;

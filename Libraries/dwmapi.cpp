@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -15,13 +15,18 @@
 */
 
 #include "Utils\Utils.h"
+#include "dwmapi.h"
 #include "Logging\Logging.h"
 
-typedef HRESULT(WINAPI *PFN_DwmSetWindowAttribute)(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute);
+typedef HRESULT(WINAPI* PFN_DwmFlush)(void);
+typedef HRESULT(WINAPI* PFN_DwmSetWindowAttribute)(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute);
+typedef HRESULT(WINAPI* PFN_DwmGetCompositionTimingInfo)(HWND hwnd, DWM_TIMING_INFO* pTimingInfo);
+PFN_DwmFlush DwmFlushPtr = nullptr;
 PFN_DwmSetWindowAttribute DwmSetWindowAttributePtr = nullptr;
+PFN_DwmGetCompositionTimingInfo DwmGetCompositionTimingInfoPtr = nullptr;
 HMODULE dwmapiModule = nullptr;
 
-void Loaddwmapi()
+static void Loaddwmapi()
 {
 	static bool IsLoaded = false;
 	if (IsLoaded)
@@ -32,16 +37,39 @@ void Loaddwmapi()
 	dwmapiModule = LoadLibrary("dwmapi.dll");
 	if (dwmapiModule)
 	{
+		DwmFlushPtr = reinterpret_cast<PFN_DwmFlush>(GetProcAddress(dwmapiModule, "DwmFlush"));
+		if (!DwmFlushPtr)
+		{
+			Logging::Log() << "Failed to get 'DwmFlush' ProcAddress of dwmapi.dll!";
+		}
 		DwmSetWindowAttributePtr = reinterpret_cast<PFN_DwmSetWindowAttribute>(GetProcAddress(dwmapiModule, "DwmSetWindowAttribute"));
 		if (!DwmSetWindowAttributePtr)
 		{
 			Logging::Log() << "Failed to get 'DwmSetWindowAttribute' ProcAddress of dwmapi.dll!";
+		}
+		DwmGetCompositionTimingInfoPtr = reinterpret_cast<PFN_DwmGetCompositionTimingInfo>(GetProcAddress(dwmapiModule, "DwmGetCompositionTimingInfo"));
+		if (!DwmGetCompositionTimingInfoPtr)
+		{
+			Logging::Log() << "Failed to get 'DwmGetCompositionTimingInfo' ProcAddress of dwmapi.dll!";
 		}
 	}
 	else
 	{
 		Logging::Log() << "Failed to load dwmapi.dll!";
 	}
+}
+
+HRESULT DwmFlush()
+{
+	// Load module
+	Loaddwmapi();
+
+	// Call function
+	if (DwmFlushPtr)
+	{
+		return DwmFlushPtr();
+	}
+	return E_FAIL;
 }
 
 HRESULT DwmSetWindowAttribute(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute, DWORD cbAttribute)
@@ -53,6 +81,19 @@ HRESULT DwmSetWindowAttribute(HWND hwnd, DWORD dwAttribute, LPCVOID pvAttribute,
 	if (DwmSetWindowAttributePtr)
 	{
 		return DwmSetWindowAttributePtr(hwnd, dwAttribute, pvAttribute, cbAttribute);
+	}
+	return E_FAIL;
+}
+
+HRESULT DwmGetCompositionTimingInfo(HWND hwnd, DWM_TIMING_INFO* pTimingInfo)
+{
+	// Load module
+	Loaddwmapi();
+
+	// Call function
+	if (DwmGetCompositionTimingInfoPtr)
+	{
+		return DwmGetCompositionTimingInfoPtr(hwnd, pTimingInfo);
 	}
 	return E_FAIL;
 }
