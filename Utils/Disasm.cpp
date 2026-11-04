@@ -27,11 +27,14 @@
 #endif
 
 #include "Utils.h"
+#include "Libraries\ScopeGuard.h"
 #include "Dllmain\Dllmain.h"
 #include "External\Hooking\Disasm.h"
 #include "External\Hooking\Hook.h"
 #include "Settings\Settings.h"
 #include "Logging\Logging.h"
+
+#include "9xheap_data.h"
 
 #ifndef CREATE_MINIDUMP
 //#define CREATE_MINIDUMP
@@ -100,7 +103,7 @@ static void WriteMiniDump(EXCEPTION_POINTERS* ExceptionInfo)
 	}
 
 	// Log event
-	Logging::LogFormat("Attempting to create dump file: %s", dumpPath);
+	LOG_FORMAT_LIMIT(100, "Attempting to create dump file: %s", dumpPath);
 
 	HANDLE hFile = CreateFileA(dumpPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
@@ -156,7 +159,28 @@ static void WriteMiniDump(EXCEPTION_POINTERS* ExceptionInfo)
 	CloseHandle(hFile);
 }
 
-// Your existing exception handler function
+void Utils::Load9xheap()
+{
+	static bool RunOnce = true;
+	if (!RunOnce)
+	{
+		return;
+	}
+	RunOnce = false;
+
+	HMEMORYMODULE h9x = Utils::LoadMemoryToDLL((LPVOID)o9xheap, sizeof(o9xheap));
+	if (h9x)
+	{
+		void (*fix_9xheap)(void) = (void (*)())MemoryGetProcAddress(h9x, "fix_9xheap");
+		if (fix_9xheap)
+		{
+			Logging::Log() << "Loading 9xheap...";
+			fix_9xheap();  // loads the DLL and installs hooks
+		}
+	}
+}
+
+// Exception handler function
 LONG WINAPI Utils::VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo)
 {
 	__try
@@ -196,10 +220,10 @@ LONG WINAPI Utils::VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo)
 						strcpy_s(moduleName, "unknown");
 					}
 
-					Logging::LogFormat(
+					LOG_FORMAT_LIMIT(100,
 						__FUNCTION__ " "
 						"Warning: Exception caught at address: %p "
-						"code: 0x%08X"
+						"code: 0x%08X "
 						"module: %s",
 						faultAddr,
 						code,
@@ -214,15 +238,15 @@ LONG WINAPI Utils::VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo)
 					unsigned instrLen = Disasm::getInstructionLength(faultAddr);
 					if (instrLen == 0 || instrLen > 15) // Sanity check
 					{
-						Logging::LogFormat(__FUNCTION__ " Error: Invalid instruction length, skipping patch.");
+						LOG_FORMAT_LIMIT(100, __FUNCTION__ " Error: Invalid instruction length, skipping patch.");
 						break;
 					}
 
 					DWORD oldProtect = 0;
-					if (Config.HandleExceptions == 2)
+					if (Config.HandleExceptions == 2 || Config.HandleExceptions == 3)
 					{
 						ExceptionInfo->ContextRecord->Eip += instrLen;
-						Logging::LogFormat(__FUNCTION__ " Skipping instruction and continuing execution.");
+						LOG_FORMAT_LIMIT(100, __FUNCTION__ " Skipping instruction and continuing execution.");
 						return EXCEPTION_CONTINUE_EXECUTION;
 					}
 					else if (VirtualProtect(faultAddr, instrLen, PAGE_EXECUTE_READWRITE, &oldProtect))
@@ -232,12 +256,12 @@ LONG WINAPI Utils::VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo)
 						FlushInstructionCache(GetCurrentProcess(), faultAddr, instrLen);
 
 						ExceptionInfo->ContextRecord->Eip += instrLen;
-						Logging::LogFormat(__FUNCTION__ " Patched instruction with NOPs, continuing execution.");
+						LOG_FORMAT_LIMIT(100, __FUNCTION__ " Patched instruction with NOPs, continuing execution.");
 						return EXCEPTION_CONTINUE_EXECUTION;
 					}
 					else
 					{
-						Logging::LogFormat(__FUNCTION__ " Error: VirtualProtect failed, error=%d", GetLastError());
+						LOG_FORMAT_LIMIT(100, __FUNCTION__ " Error: VirtualProtect failed, error=%d", GetLastError());
 					}
 				}
 				__except (EXCEPTION_EXECUTE_HANDLER) {}
@@ -281,7 +305,7 @@ LONG WINAPI Utils::VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo)
 							strcpy_s(moduleName, "unknown");
 						}
 
-						Logging::LogFormat(
+						LOG_FORMAT_LIMIT(100,
 							"Skipping PRIVILEGED INSTRUCTION: addr=%p module=%s "
 							"Registers: EIP=0x%08X ECX=0x%08X EAX=0x%08X",
 							rec->ExceptionAddress,
@@ -338,7 +362,7 @@ LONG WINAPI Utils::VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo)
 
 				if (ctx)
 				{
-					Logging::LogFormat(
+					LOG_FORMAT_LIMIT(100,
 						"Error occurred in the application: "
 						"code=0x%08X flags=0x%08X addr=%p rw=%d bad=%p module=%s "
 						"Registers: EIP=0x%08X ECX=0x%08X EAX=0x%08X",
@@ -355,7 +379,7 @@ LONG WINAPI Utils::VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo)
 				}
 				else
 				{
-					Logging::LogFormat(
+					LOG_FORMAT_LIMIT(100,
 						"Error occurred in the application: "
 						"code=0x%08X flags=0x%08X addr=%p rw=%d bad=%p module=%s",
 						rec->ExceptionCode,
@@ -404,7 +428,7 @@ LONG WINAPI Utils::VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo)
 				strcpy_s(moduleName, "unknown");
 			}
 
-			Logging::LogFormat("Exception: code=0x%08X at %p in %s", code, faultAddr, moduleName);
+			LOG_FORMAT_LIMIT(100, "Exception: code=0x%08X at %p in %s", code, faultAddr, moduleName);
 		}
 		break;
 		}

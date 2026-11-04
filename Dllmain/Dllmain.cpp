@@ -90,6 +90,11 @@ __declspec(dllexport) void WINAPI DxWrapperLogging(const char* LogMessage)
 	Logging::Log() << __FUNCTION__ << " " << LogMessage;
 }
 
+__declspec(dllexport) void fix_9xheap()
+{
+	Utils::Load9xheap();
+}
+
 typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
 
 static HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSystem32)
@@ -335,6 +340,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			{
 				g_exception_handle = add_handler(0, Utils::VectoredExceptionHandler);  // Set to 0 for end of chain
 			}
+		}
+
+		// Load 9xheap
+		if (Config.HandleExceptions == 3)
+		{
+			Utils::Load9xheap();
 		}
 
 		// Pin current module

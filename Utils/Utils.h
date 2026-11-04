@@ -65,7 +65,6 @@ namespace Utils
 	DWORD WINAPI winmm_timeGetTime();
 	MMRESULT WINAPI winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt);
 	void MarkAsValidCallTarget(void* allocationBase, size_t regionSize, size_t entryOffset);
-	LONG WINAPI VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo);
 	void AddHandleToVector(HMODULE dll, const char *name);
 	bool CheckIfSystemModuleLoaded(const char* moduleName);
 	HMODULE LoadLibrary(const char *dllname, bool EnableLogging = false);
@@ -112,6 +111,10 @@ namespace Utils
 	void GetScreenClientRect(HMONITOR hMonitor, RECT& workAreaOut);
 	void ClipMouseCursor(HWND hWnd, const LONG clipWidth, const LONG clipHeight);
 	void UnClipMouseCursor();
+
+	// Handle exceptions (Disasm, 9xheap)
+	void Load9xheap();
+	LONG WINAPI VectoredExceptionHandler(EXCEPTION_POINTERS* ExceptionInfo);
 
 	// CPU Affinity
 	void SetProcessAffinity();
