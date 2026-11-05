@@ -62,11 +62,16 @@ private:
 		m_IDirectDrawSurfaceX* Interface = nullptr;
 		DWORD DxVersion = 0;
 		DWORD TextureMemory = 0;
+		DWORD VideoMemory = 0;
+		DWORD SystemMemory = 0;
 		DWORD RefCount = 0;
 	};
 	std::vector<SURFACELIST> SurfaceList;
 	std::vector<m_IDirectDrawSurfaceX*> ReleasedSurfaceList;
 	DWORD UsedTextureMemory = 0;
+	DWORD UsedTextureMemoryV1 = 0;
+	DWORD UsedVideoMemory = 0;
+	DWORD UsedSystemMemory = 0;
 
 	// Store a list of vertex buffers
 	std::vector<m_IDirect3DVertexBufferX*> VertexBufferList;

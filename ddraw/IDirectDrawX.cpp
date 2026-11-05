@@ -634,6 +634,8 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		DDSURFACEDESC2 Desc2 = *lpDDSurfaceDesc2;
 
 		DWORD TextureMemory = 0;
+		DWORD VideoMemory = 0;
+		DWORD SystemMemory = 0;
 
 		// Check pixel format flag
 		if ((Desc2.dwFlags & DDSD_PIXELFORMAT) && !Desc2.ddpfPixelFormat.dwFlags)
@@ -660,8 +662,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			}
 
 			// Check for enough memory
-			if (DirectXVersion == 1 &&
-				!(Desc2.ddsCaps.dwCaps & DDSCAPS_ALLOCONLOAD) &&
+			if (!(Desc2.ddsCaps.dwCaps & DDSCAPS_ALLOCONLOAD) &&
 				(Desc2.dwFlags & DDSD_WIDTH) &&
 				(Desc2.dwFlags & DDSD_HEIGHT) &&
 				Desc2.dwWidth &&
@@ -675,17 +676,30 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 						? Pitch * Desc2.dwHeight
 						: BPP * Desc2.dwWidth * Desc2.dwHeight;
 
-					// Some games check for texture video memory by creating surfaces (eg. A2 Racer 4)
+					// Get texture memory
 					if ((Desc2.ddsCaps.dwCaps & (DDSCAPS_VIDEOMEMORY | DDSCAPS_LOCALVIDMEM)) &&
 						(Desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE))
 					{
 						TextureMemory = memSize;
 
-						if (UsedTextureMemory + memSize > MaxTextureMemoryAllowed)
+						// Some games check for texture video memory by creating surfaces (eg. A2 Racer 4)
+						if (DirectXVersion == 1 && UsedTextureMemoryV1 + memSize > MaxTextureMemoryAllowed)
 						{
 							LOG_LIMIT(100, __FUNCTION__ << " Error: max texture video memory surface count reached!");
 							return DDERR_OUTOFVIDEOMEMORY;
 						}
+					}
+
+					// Get video memory
+					if (Desc2.ddsCaps.dwCaps & (DDSCAPS_VIDEOMEMORY | DDSCAPS_LOCALVIDMEM))
+					{
+						VideoMemory = memSize;
+					}
+
+					// Get system memory
+					if (Desc2.ddsCaps.dwCaps & DDSCAPS_SYSTEMMEMORY)
+					{
+						SystemMemory = memSize;
 					}
 				}
 			}
@@ -881,7 +895,13 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			if (entry.Interface == Interface)
 			{
 				entry.TextureMemory = TextureMemory;
+				entry.VideoMemory = VideoMemory;
+				entry.SystemMemory = SystemMemory;
+
 				UsedTextureMemory += TextureMemory;
+				UsedTextureMemoryV1 += DirectXVersion == 1 ? TextureMemory : 0;
+				UsedVideoMemory += VideoMemory;
+				UsedSystemMemory += SystemMemory;
 
 				if (DirectXVersion > 3 || IsCreatedByDDFactory())
 				{
@@ -2986,6 +3006,9 @@ void m_IDirectDrawX::ReleaseInterface()
 	}
 	SurfaceList.clear();
 	UsedTextureMemory = 0;
+	UsedTextureMemoryV1 = 0;
+	UsedVideoMemory = 0;
+	UsedSystemMemory = 0;
 
 	// Release vertex buffers
 	for (const auto& pVertexBuffer : VertexBufferList)
@@ -5094,7 +5117,7 @@ void m_IDirectDrawX::AddSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 		return;
 	}
 
-	SurfaceList.push_back({ lpSurfaceX, 0, 0, 0 });
+	SurfaceList.push_back({ lpSurfaceX, 0, 0, 0, 0, 0 });
 }
 
 void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
@@ -5135,6 +5158,9 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 			DWORD RefCount = it->RefCount;
 			DWORD DxVersion = it->DxVersion;
 			UsedTextureMemory -= min(it->TextureMemory, UsedTextureMemory);
+			UsedTextureMemoryV1 -= DxVersion == 1 ? min(it->TextureMemory, UsedTextureMemoryV1) : 0;
+			UsedVideoMemory -= min(it->VideoMemory, UsedVideoMemory);
+			UsedSystemMemory -= min(it->SystemMemory, UsedSystemMemory);
 			pDDraw->SurfaceList.erase(it);	// Erase from list before releasing
 			for (UINT x = 0; x < RefCount; x++)
 			{
