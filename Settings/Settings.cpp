@@ -900,12 +900,6 @@ void CONFIG::SetConfig()
 		}
 	}
 
-	// Handle frame limiter to better match actual display refresh timing
-	if (LimitPerFrameFPS && fabsf(LimitPerFrameFPS - roundf(LimitPerFrameFPS)) < 0.0001f)
-	{
-		LimitPerFrameFPS = roundf(LimitPerFrameFPS) / 1.00125f;
-	}
-
 	// Brightness / Contrast
 	DisplayBrightness = CLAMP(DisplayBrightness, -100L, 100L);
 	DisplayContrast = CLAMP(DisplayContrast, -100L, 100L);
