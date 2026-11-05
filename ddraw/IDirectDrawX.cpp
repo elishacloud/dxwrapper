@@ -633,6 +633,8 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 		DDSURFACEDESC2 Desc2 = *lpDDSurfaceDesc2;
 
+		DWORD TextureMemory = 0;
+
 		// Check pixel format flag
 		if ((Desc2.dwFlags & DDSD_PIXELFORMAT) && !Desc2.ddpfPixelFormat.dwFlags)
 		{
@@ -655,6 +657,37 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported pixel format! " << Usage << " " << Resource << " " << Format << "->" << TestFormat << " " << Desc2.ddpfPixelFormat);
 				return DDERR_INVALIDPIXELFORMAT;
+			}
+
+			// Check for enough memory
+			if (DirectXVersion == 1 &&
+				!(Desc2.ddsCaps.dwCaps & DDSCAPS_ALLOCONLOAD) &&
+				(Desc2.dwFlags & DDSD_WIDTH) &&
+				(Desc2.dwFlags & DDSD_HEIGHT) &&
+				Desc2.dwWidth &&
+				Desc2.dwHeight)
+			{
+				const DWORD Pitch = ComputePitch(Format, Desc2.dwWidth, Desc2.dwHeight);
+				const DWORD BPP = GetBitCount(Format);
+				if (Pitch || (BPP > 0 && BPP <= 32))
+				{
+					const DWORD memSize = Pitch
+						? Pitch * Desc2.dwHeight
+						: BPP * Desc2.dwWidth * Desc2.dwHeight;
+
+					// Some games check for texture video memory by creating surfaces (eg. A2 Racer 4)
+					if ((Desc2.ddsCaps.dwCaps & (DDSCAPS_VIDEOMEMORY | DDSCAPS_LOCALVIDMEM)) &&
+						(Desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE))
+					{
+						TextureMemory = memSize;
+
+						if (UsedTextureMemory + memSize > MaxTextureMemoryAllowed)
+						{
+							LOG_LIMIT(100, __FUNCTION__ << " Error: max texture video memory surface count reached!");
+							return DDERR_OUTOFVIDEOMEMORY;
+						}
+					}
+				}
 			}
 
 			if (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)
@@ -843,11 +876,14 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 			PrimarySurface = Interface;
 		}
 
-		if (DirectXVersion > 3 || IsCreatedByDDFactory())
+		for (auto& entry : SurfaceList)
 		{
-			for (auto& entry : SurfaceList)
+			if (entry.Interface == Interface)
 			{
-				if (entry.Interface == Interface)
+				entry.TextureMemory = TextureMemory;
+				UsedTextureMemory += TextureMemory;
+
+				if (DirectXVersion > 3 || IsCreatedByDDFactory())
 				{
 					entry.DxVersion = DirectXVersion;
 					entry.RefCount = (IsCreatedEx() && (Desc2.ddsCaps.dwCaps & DDSCAPS_TEXTURE)) || (IsCreatedByDDFactory() && (Desc2.ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE)) ? 2 :
@@ -857,8 +893,8 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 					{
 						AddRef(DirectXVersion);
 					}
-					break;
 				}
+				break;
 			}
 		}
 
@@ -2949,6 +2985,7 @@ void m_IDirectDrawX::ReleaseInterface()
 		pSurface.Interface->ClearDdraw();
 	}
 	SurfaceList.clear();
+	UsedTextureMemory = 0;
 
 	// Release vertex buffers
 	for (const auto& pVertexBuffer : VertexBufferList)
@@ -5057,7 +5094,7 @@ void m_IDirectDrawX::AddSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 		return;
 	}
 
-	SurfaceList.push_back({ lpSurfaceX, 0, 0 });
+	SurfaceList.push_back({ lpSurfaceX, 0, 0, 0 });
 }
 
 void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
@@ -5097,6 +5134,7 @@ void m_IDirectDrawX::ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX)
 		{
 			DWORD RefCount = it->RefCount;
 			DWORD DxVersion = it->DxVersion;
+			UsedTextureMemory -= min(it->TextureMemory, UsedTextureMemory);
 			pDDraw->SurfaceList.erase(it);	// Erase from list before releasing
 			for (UINT x = 0; x < RefCount; x++)
 			{

@@ -7,6 +7,8 @@ class m_IDirectDrawX;
 static constexpr DWORD MaxVidMemory     = INT32_MAX - (16 * 1024 * 1024);	// Max 2 GBs - 16 MBs
 static constexpr DWORD MinUsedVidMemory = 8 * 1024 * 1024;					// 8 MBs
 
+static constexpr DWORD MaxTextureMemoryAllowed = 64 * 1024 * 1024;			// 64 MBs
+
 static constexpr D3DFORMAT D9DisplayFormat = D3DFMT_X8R8G8B8;
 
 static constexpr D3DMULTISAMPLE_TYPE D9SampleType = D3DMULTISAMPLE_4_SAMPLES;
