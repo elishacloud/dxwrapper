@@ -101,9 +101,13 @@ static std::string GenerateHeaderContent(const char* byteArrayName, LPD3DXBUFFER
     {
         headerContent << "0x" << std::hex << static_cast<int>(bytes[i]);
         if (i != byteCount - 1)
+        {
             headerContent << ", ";
-        if ((i + 1) % 16 == 0)
-            headerContent << "\n";
+            if ((i + 1) % 16 == 0)
+            {
+                headerContent << "\n";
+            }
+        }
     }
 
     headerContent << "\n};\n";

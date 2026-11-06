@@ -15,15 +15,21 @@ VS main(const VS i)
     const float max_rhw = 1U << 31;
     const float min_rhw = 1.0f / max_rhw;
 
-    const float rhw = clamp(i.pos.w, min_rhw, max_rhw);
+    // Avoid division by zero while preserving negative RHW
+    const float rhw = i.pos.w < 0.0f
+        ? -clamp(-i.pos.w, min_rhw, max_rhw) : i.pos.w > 0.0f
+        ? clamp(i.pos.w, min_rhw, max_rhw) : 1.0f;
+
     const float w = 1.0f / rhw;
 
     VS o = i;
 
+    // Convert screen coordinates back to normalized coordinates
     o.pos = (i.pos + offset) * multiplier;
 
     o.pos.z = saturate(o.pos.z);
 
+    // Reconstruct homogeneous clip coordinates
     o.pos.xyz *= w;
     o.pos.w = w;
 
