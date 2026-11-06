@@ -666,7 +666,10 @@ void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9, DWORD dwZBufferBitDepths)
 		DDSCAPS_LOCALVIDMEM | DDSCAPS_VIDEOMEMORY | ((Caps7.dwCaps2 & DDCAPS2_NONLOCALVIDMEM) ? DDSCAPS_NONLOCALVIDMEM : 0) |
 		DDSCAPS_OFFSCREENPLAIN | ((Caps7.dwCaps & DDCAPS_OVERLAY) ? DDSCAPS_OVERLAY : 0) | /*DDSCAPS_OWNDC |*/
 		(Config.DdrawDisableDirect3DCaps ? 0 : DDSCAPS_3DDEVICE | DDSCAPS_TEXTURE | DDSCAPS_ZBUFFER | DDSCAPS_MIPMAP);
-	Caps7.ddsCaps.dwCaps2 = (Config.DdrawDisableDirect3DCaps ? 0 : 0 /*| DDSCAPS2_CUBEMAP | DDSCAPS2_VOLUME*/);
+
+	Caps7.ddsCaps.dwCaps2 = (Config.DdrawDisableDirect3DCaps ? 0 : 0
+		/*| ((Caps9.TextureCaps & D3DPTEXTURECAPS_CUBEMAP) ? DDSCAPS2_CUBEMAP | DDSCAPS2_CUBEMAP_ALLFACES : 0) | DDSCAPS2_VOLUME*/);
+
 	Caps7.ddsCaps.dwCaps3 = 0;								// Not used
 	Caps7.ddsCaps.dwCaps4 = 0;								// Not used
 	Caps7.ddsCaps.dwVolumeDepth = 0;
