@@ -133,6 +133,8 @@ typedef struct D3DXVECTOR2
 	D3DXVECTOR2(float x_, float y_) : x(x_), y(y_) {}
 } D3DXVECTOR2, * LPD3DXVECTOR2;
 
+using D3DVECTOR2 = D3DXVECTOR2;
+
 // Define the D3DXVECTOR3 structure with operator overloading
 typedef struct D3DXVECTOR3
 {
@@ -219,6 +221,8 @@ typedef struct D3DXVECTOR3
 	}
 } D3DXVECTOR3, * LPD3DXVECTOR3;
 
+using D3DVECTOR3 = D3DXVECTOR3;
+
 // Define the D3DXVECTOR4 structure
 typedef struct D3DXVECTOR4
 {
@@ -227,6 +231,8 @@ typedef struct D3DXVECTOR4
 	D3DXVECTOR4() : x(0), y(0), z(0), w(0) {}
 	D3DXVECTOR4(float x_, float y_, float z_, float w_) : x(x_), y(y_), z(z_), w(w_) {}
 } D3DXVECTOR4, * LPD3DXVECTOR4;
+
+using D3DVECTOR4 = D3DXVECTOR4;
 
 //////////////////////////////////////////////////////////////////////////////
 // D3DXSPRITE flags:

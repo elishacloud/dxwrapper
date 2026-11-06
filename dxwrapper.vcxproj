@@ -1190,6 +1190,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="ddraw\IDirectDrawGammaControl.h" />
     <ClInclude Include="ddraw\IDirectDrawPalette.h" />
     <ClInclude Include="ddraw\IDirectDrawX.h" />
+    <ClInclude Include="ddraw\ProcessVertices.h" />
     <ClInclude Include="ddraw\Shaders\BrightnessPixelShader.h" />
     <ClInclude Include="ddraw\Shaders\ColorKeyPixelShader.h" />
     <ClInclude Include="ddraw\Shaders\FixUpMultiStageVertexShader.h" />

@@ -361,11 +361,11 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 		const BOOL doClipping = (dwVertexOp & D3DVOP_CLIP) ? TRUE : FALSE;
 		const BOOL doLighting = (dwVertexOp & D3DVOP_LIGHT) && (SrcFVF & D3DFVF_NORMAL) && pDirect3DDeviceX->IsMaterialEnabled() ? TRUE : FALSE;
 
-		IDirect3DVertexBuffer9* pSrcBuffer = pSrcVertexBufferX->GetCurrentD9VertexBuffer();
-		IDirect3DVertexBuffer9* pDestBuffer = GetCurrentD9VertexBuffer();
+		IDirect3DVertexBuffer9* SrcBuffer = pSrcVertexBufferX->GetCurrentD9VertexBuffer();
+		IDirect3DVertexBuffer9* DestBuffer = GetCurrentD9VertexBuffer();
 
 		// Try using d3d9 device for vertex processing
-		HRESULT hr = pDirect3DDeviceX->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, pSrcBuffer, pDestBuffer, SrcFVF, doLighting, doClipping, (dwFlags & D3DPV_DONOTCOPYDATA), nullptr);
+		HRESULT hr = pDirect3DDeviceX->ProcessVertices(dwSrcIndex, dwDestIndex, dwCount, SrcBuffer, DestBuffer, SrcFVF, doLighting, doClipping, (dwFlags & D3DPV_DONOTCOPYDATA), nullptr);
 
 		if (SUCCEEDED(hr))
 		{
@@ -378,23 +378,33 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 #endif
 
 		// Lock the source vertex buffer
-		void* pSrcVertices = nullptr;
-		if (FAILED(pSrcVertexBufferX->Lock(D3DLOCK_READONLY, &pSrcVertices, 0)))
+		void* SrcVertices = nullptr;
+		if (FAILED(pSrcVertexBufferX->Lock(D3DLOCK_READONLY, &SrcVertices, 0)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock source vertex");
 			return DDERR_GENERIC;
 		}
 
 		// Lock destination buffer
-		void* pDestVertices = nullptr;
-		if (FAILED(Lock(0, &pDestVertices, 0)))
+		void* DestVertices = nullptr;
+		if (FAILED(Lock(0, &DestVertices, 0)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock destination vertex");
 			pSrcVertexBufferX->Unlock();
 			return DDERR_GENERIC;
 		}
 
-		hr = ProcessVerticesSW(dwVertexOp, pDestVertices, VB.Desc.dwFVF, dwDestIndex, dwCount, pSrcVertices, pSrcVertexBufferX->VB.Desc.dwFVF, dwSrcIndex, pDirect3DDeviceX, dwFlags);
+		HRESULT hr = ProcessVerticesSW(
+			pDirect3DDeviceX,
+			SrcVertices,
+			pSrcVertexBufferX->VB.Desc.dwFVF,
+			pSrcVertexBufferX->VB.Stride,
+			DestVertices,
+			VB.Desc.dwFVF,
+			VB.Stride,
+			dwCount,
+			doLighting,
+			dwFlags);
 
 		// Unlock destination vertex buffer
 		Unlock();
@@ -562,10 +572,10 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 		void* SrcVertices = SrcVertexCache.data();
 		UINT SrcVertexSize = GetVertexStride(SrcFVF) * dwCount;
 
-		IDirect3DVertexBuffer9* pDestBuffer = GetCurrentD9VertexBuffer();
+		IDirect3DVertexBuffer9* DestBuffer = GetCurrentD9VertexBuffer();
 
 		// Try using d3d9 device for vertex processing
-		HRESULT hr = pDirect3DDeviceX->ProcessVerticesStrided(dwDestIndex, dwCount, SrcVertices, SrcVertexSize, pDestBuffer, SrcFVF, doLighting, doClipping, (dwFlags & D3DPV_DONOTCOPYDATA));
+		HRESULT hr = pDirect3DDeviceX->ProcessVerticesStrided(dwDestIndex, dwCount, SrcVertices, SrcVertexSize, DestBuffer, SrcFVF, doLighting, doClipping, (dwFlags & D3DPV_DONOTCOPYDATA));
 
 		if (SUCCEEDED(hr))
 		{
@@ -578,13 +588,24 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 #endif
 
 		// Lock destination buffer
-		void* pDestVertices = nullptr;
-		if (FAILED(Lock(0, &pDestVertices, 0)))
+		void* DestVertices = nullptr;
+		if (FAILED(Lock(0, &DestVertices, 0)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to lock destination vertex");
 			return DDERR_GENERIC;
 		}
-		hr = ProcessVerticesSW(dwVertexOp, pDestVertices, VB.Desc.dwFVF, dwDestIndex, dwCount, SrcVertexCache.data(), SrcFVF, dwSrcIndex, pDirect3DDeviceX, dwFlags);
+
+		HRESULT hr = ProcessVerticesSW(
+			pDirect3DDeviceX,
+			SrcVertexCache.data(),
+			SrcFVF,
+			GetVertexStride(SrcFVF),
+			DestVertices,
+			VB.Desc.dwFVF,
+			VB.Stride,
+			dwCount,
+			doLighting,
+			dwFlags);
 
 		// Unlock destination vertex buffer
 		Unlock();

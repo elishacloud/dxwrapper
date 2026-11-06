@@ -563,4 +563,4 @@ template <typename T, ColorMode Color>
 HRESULT TransformVertexExecuteSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, T* lpIn, D3DTLVERTEX* lpOut, const VIEWPORTINFO& Viewport);
 template <typename T, ClipMode Clip>
 HRESULT TransformVertexSW(m_IDirect3DDeviceX* pDirect3DDeviceX, const DWORD dwCount, LPD3DTRANSFORMDATA lpData, const VIEWPORTINFO& Viewport, DWORD& dwOffscreen);
-HRESULT ProcessVerticesSW(DWORD dwVertexOp, LPVOID lpDestBuffer, DWORD dwDestVertexTypeDesc, DWORD dwDestIndex, DWORD dwCount, LPVOID lpSrcBuffer, DWORD dwSrcVertexTypeDesc, DWORD dwSrcIndex, m_IDirect3DDeviceX* pDirect3DDeviceX, DWORD dwFlags);
+HRESULT ProcessVerticesSW(m_IDirect3DDeviceX* pDirect3DDeviceX, LPVOID lpSrcBuffer, DWORD SrcFVF, size_t SrcStride, LPVOID lpDestBuffer, DWORD DestFVF, size_t DestStride, DWORD dwCount, bool doLighting, DWORD dwFlags);

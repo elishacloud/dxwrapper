@@ -1194,13 +1194,8 @@ void m_IDirect3DViewportX::GetAttachedBufferDetails(m_IDirect3DDeviceX* pD3DDevi
 	}
 }
 
-void m_IDirect3DViewportX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLightList, m_IDirect3DDeviceX* pDirect3DDeviceX)
+void m_IDirect3DViewportX::GetEnabledLightList(std::vector<D3DLIGHT9>& AttachedLightList)
 {
-	if (!pDirect3DDeviceX)
-	{
-		return;
-	}
-
 	for (const auto& entry : AttachedLights)
 	{
 		D3DLIGHT2 Light2 = {};
@@ -1215,7 +1210,8 @@ void m_IDirect3DViewportX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLi
 				DXLIGHT7 DxLight7 = {};
 				GetDXLight(DxLight7, Light2);
 
-				AttachedLightList.push_back(DxLight7);
+				D3DLIGHT9& Light9 = reinterpret_cast<D3DLIGHT9&>(DxLight7);
+				AttachedLightList.push_back(Light9);
 			}
 		}
 	}

@@ -568,6 +568,9 @@ public:
 	inline m_IDirect3DViewportX* GetCurrentViewport() { return lpCurrentViewportX; }
 	inline bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
 	void ClearViewport(m_IDirect3DViewportX* lpViewportX);
+	inline bool IsLegacyViewportSet() const { return DeviceStates.Viewport.Set && DeviceStates.Viewport.UseViewportScale; }
+	inline D3DVECTOR* GetViewportScale() { return &DeviceStates.Viewport.Scale; }
+	inline D3DVECTOR* GetViewportClip() { return &DeviceStates.Viewport.Clip; }
 
 	bool IsViewportAttached(LPDIRECT3DVIEWPORT3 ViewportX)
 	{
@@ -611,7 +614,7 @@ public:
 
 	// Light index functions
 	bool IsLightInUse(m_IDirect3DLight* pLightX);
-	void GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLightList);
+	void GetEnabledLightList(std::vector<D3DLIGHT9>& AttachedLightList);
 	void ClearLight(m_IDirect3DLight* lpLight);
 
 	// Vertices functions

@@ -761,8 +761,8 @@ HRESULT m_IDirect3DDeviceX::Execute(LPDIRECT3DEXECUTEBUFFER lpDirect3DExecuteBuf
 						if (IsLight)
 						{
 							// Use software vertex processing
-							//const DWORD VertexOp = D3DVOP_TRANSFORM | (IsLight ? D3DVOP_LIGHT : 0);
-							//hr = ProcessVerticesSW(VertexOp, DestVertices, D3DFVF_TLVERTEX, 0, Count, SrcVertices, SrcFVF, 0, this, VertexFlags);
+							//const DWORD VertexOp = (Flags & D3DPROCESSVERTICES_NOCOLOR) ? D3DPV_DONOTCOPYDATA : 0;
+							//hr = ProcessVerticesSW(this, SrcVertices, D3DFVF_VERTEX, GetVertexStride(D3DFVF_VERTEX), DestVertices, D3DFVF_TLVERTEX, GetVertexStride(D3DFVF_TLVERTEX), Count, IsLight, VertexOp);
 
 							// Use hardware vertex processing
 							hr = ProcessVerticesExecute(Count, SrcVertices, DestVertices, D3DFVF_VERTEX, IsLight, false, 0);
@@ -6633,7 +6633,7 @@ bool m_IDirect3DDeviceX::IsLightInUse(m_IDirect3DLight* pLightX)
 	return false;
 }
 
-void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLightList)
+void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<D3DLIGHT9>& AttachedLightList)
 {
 	if (ClientDirectXVersion == 7)
 	{
@@ -6641,16 +6641,13 @@ void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<DXLIGHT7>& AttachedLigh
 		{
 			if (entry.second.Enabled)
 			{
-				DXLIGHT7 DxLight7 = {};
-				GetDXLight(DxLight7, entry.second.Light);
-
-				AttachedLightList.push_back(DxLight7);
+				AttachedLightList.push_back(entry.second.Light);
 			}
 		}
 	}
 	else if (lpCurrentViewportX)
 	{
-		lpCurrentViewportX->GetEnabledLightList(AttachedLightList, this);
+		lpCurrentViewportX->GetEnabledLightList(AttachedLightList);
 	}
 }
 
