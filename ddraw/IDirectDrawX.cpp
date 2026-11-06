@@ -655,7 +655,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 			if (IsUnsupportedFormat(TestFormat) ||
 				(FAILED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, TestFormat)) &&
-				FAILED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, GetFailoverFormat(TestFormat)))))
+					FAILED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, Usage, Resource, GetFailoverFormat(TestFormat)))))
 			{
 				LOG_LIMIT(100, __FUNCTION__ << " Error: non-supported pixel format! " << Usage << " " << Resource << " " << Format << "->" << TestFormat << " " << Desc2.ddpfPixelFormat);
 				return DDERR_INVALIDPIXELFORMAT;
@@ -841,7 +841,7 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 		{
 			if (Desc2.dwMipMapCount == 0 || Desc2.dwMipMapCount > GetMaxMipMapLevel(Desc2.dwWidth, Desc2.dwHeight))
 			{
-				LOG_LIMIT(100, __FUNCTION__ << " Error: incorrect MipMap count!");
+				LOG_LIMIT(100, __FUNCTION__ << " Error: incorrect MipMap count! " << Desc2.dwWidth << "x" << Desc2.dwHeight << " " << Desc2.dwMipMapCount);
 				return DDERR_INVALIDPARAMS;
 			}
 			Desc2.dwFlags &= ~(DDSD_REFRESHRATE | DDSD_SRCVBHANDLE);
@@ -4273,7 +4273,9 @@ void m_IDirectDrawX::GetD9Cache()
 		// Get supported FourCC types
 		for (const auto& format : FourCCTypes)
 		{
-			if (!IsUnsupportedFormat(format) && SUCCEEDED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, 0, D3DRTYPE_SURFACE, format)))
+			if (!IsUnsupportedFormat(format) &&
+				(SUCCEEDED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, 0, D3DRTYPE_SURFACE, format)) ||
+					SUCCEEDED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, 0, D3DRTYPE_SURFACE, GetFailoverFormat(format)))))
 			{
 				D9Cache.FourCCsList.push_back(format);
 			}
@@ -4354,7 +4356,8 @@ void m_IDirectDrawX::GetD9Cache()
 			for (const auto& format : TextureList)
 			{
 				if (!IsUnsupportedFormat(format) &&
-					(format == D3DFMT_P8 || SUCCEEDED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, 0, D3DRTYPE_TEXTURE, format))))
+					(SUCCEEDED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, 0, D3DRTYPE_TEXTURE, format)) ||
+						SUCCEEDED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, 0, D3DRTYPE_TEXTURE, GetFailoverFormat(format)))))
 				{
 					D9Cache.TextureFormat.push_back(format);
 				}

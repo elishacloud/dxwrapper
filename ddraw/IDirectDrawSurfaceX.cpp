@@ -4792,7 +4792,7 @@ LPDIRECT3DTEXTURE9 m_IDirectDrawSurfaceX::GetD9DrawTexture(D3DCOLOR RGBColorKey,
 	if (surface.Texture || surface.Surface)
 	{
 		const DWORD Level = IsMipMapAutogen() || MaxMipMapLevel ? 0 : 1;
-		const DWORD Usage = (MaxMipMapLevel != 1 ? D3DUSAGE_AUTOGENMIPMAP : 0);
+		const DWORD Usage = (Level != 1 ? D3DUSAGE_AUTOGENMIPMAP : 0);
 		if (FAILED((*d3d9Device)->CreateTexture(surface.Width, surface.Height, Level, Usage, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &surface.DrawTexture, nullptr)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create alpha color key texture. Size: " << surface.Width << "x" << surface.Height <<
@@ -5191,7 +5191,7 @@ HRESULT m_IDirectDrawSurfaceX::CreateD9Surface()
 			}
 
 			// Set max mip level
-			MaxMipMapLevel = (!IsMipMapEnabled || IsMipMapAutogen() || CreateSurfaceEmulated ? 1 : MipMapLevel > 0 ? MipMapLevel : surface.Texture->GetLevelCount()) - 1;
+			MaxMipMapLevel = Levels ? Levels - 1 : 0;
 
 			// Ensure MipMaps vector has correct size
 			while (MipMaps.size() < MaxMipMapLevel)

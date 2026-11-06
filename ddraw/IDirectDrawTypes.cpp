@@ -820,7 +820,7 @@ DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount)
 
 DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height)
 {
-	return 1 + static_cast<int>(std::floor(std::log2(min(Width, Height))));
+	return 1 + static_cast<DWORD>(std::floor(std::log2(max(Width, Height))));
 }
 
 DWORD GetBitCount(const DDPIXELFORMAT& ddpfPixelFormat)
