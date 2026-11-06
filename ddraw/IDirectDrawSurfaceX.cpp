@@ -10274,7 +10274,7 @@ void m_IDirectDrawSurfaceX::FixTextureFlags(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 	{
 		if (lpDDSurfaceDesc2->dwFlags & DDSD_PITCH)
 		{
-			lpDDSurfaceDesc2->dwFlags &= ~DDSD_LINEARSIZE;
+			lpDDSurfaceDesc2->dwFlags |= DDSD_LINEARSIZE;
 		}
 		lpDDSurfaceDesc2->dwFlags &= ~(DDSD_PITCH | DDSD_LPSURFACE);
 	}
