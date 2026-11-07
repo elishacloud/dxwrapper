@@ -167,44 +167,28 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Only save D3DLIGHT struct without dwFlags, not D3DLIGHT2
-		D3DLIGHT2 tmpLight2;
-		memcpy(&tmpLight2, lpLight, sizeof(D3DLIGHT));
-		tmpLight2.dwSize = sizeof(tmpLight2);
-		tmpLight2.dwFlags = Light.dwFlags;
-
-		// Handle dwFlags
-		if (lpLight->dwSize == sizeof(D3DLIGHT2))
+		if (!lpLight->dltType || lpLight->dltType > D3DLIGHT_GLSPOT)
 		{
-			LPD3DLIGHT2 lpLight2 = reinterpret_cast<LPD3DLIGHT2>(lpLight);
-
-			// Add active flag
-			if (lpLight2->dwFlags & D3DLIGHT_ACTIVE)
-			{
-				tmpLight2.dwFlags |= D3DLIGHT_ACTIVE;
-			}
-			// Remove active flag
-			else
-			{
-				tmpLight2.dwFlags &= ~D3DLIGHT_ACTIVE;
-			}
-
-			// Add no specular flag
-			if (lpLight2->dwFlags & D3DLIGHT_NO_SPECULAR)
-			{
-				tmpLight2.dwFlags |= D3DLIGHT_NO_SPECULAR;
-			}
-			// Remove no specular flag
-			else
-			{
-				tmpLight2.dwFlags &= ~D3DLIGHT_NO_SPECULAR;
-			}
+			LOG_LIMIT(100, __FUNCTION__ << " Error: Incorrect light data: " << lpLight);
+			return DDERR_INVALIDPARAMS;
 		}
-		// Default to active after light has been set
-		else if (!LightSet)
+
+		if (lpLight->dltType == D3DLIGHT_PARALLELPOINT)
 		{
-			tmpLight2.dwFlags |= D3DLIGHT_ACTIVE;
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: parallel point light not supported!");
 		}
+
+		if (lpLight->dltType == D3DLIGHT_GLSPOT)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: geometry light spot not supported!");
+		}
+
+		if (Light.dwSize == sizeof(D3DLIGHT2) && lpLight->dwSize != sizeof(D3DLIGHT))
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Warning: setting a D3DLIGHT2 with a D3DLIGHT struct.  Old flags: " << Logging::hex(Light.dwFlags));
+		}
+
+		memcpy(&Light, lpLight, lpLight->dwSize);
 
 		// Is light in use then update device
 		if (D3DInterface)
@@ -213,21 +197,13 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 			{
 				if (D3DDeviceX->IsLightInUse(this))
 				{
-					if (FAILED(D3DDeviceX->SetLight(this, reinterpret_cast<LPD3DLIGHT>(&tmpLight2))))
+					if (FAILED(D3DDeviceX->SetLight(this, reinterpret_cast<LPD3DLIGHT>(&Light))))
 					{
-						LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set light!");
-						return D3DERR_LIGHT_SET_FAILED;
+						LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set light!");
 					}
 				}
 			}
 		}
-
-		LightSet = true;
-
-		// Only copy D3DLIGHT struct without dwFlags, not D3DLIGHT2
-		memcpy(&Light, &tmpLight2, sizeof(D3DLIGHT));
-		Light.dwSize = sizeof(Light);
-		Light.dwFlags = tmpLight2.dwFlags;		// Add flags manually
 
 		return D3D_OK;
 	}
@@ -263,7 +239,7 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		if (!LightSet)
+		if (!Light.dwSize)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: light has not yet been set.");
 			return DDERR_INVALIDPARAMS;
@@ -273,6 +249,13 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 		DWORD Size = lpLight->dwSize;
 		memcpy(lpLight, &Light, Size);
 		lpLight->dwSize = Size;
+
+		// If attempts to get D3DLIGHT2 from D3DLIGHT then set active flag
+		if (Light.dwSize == sizeof(D3DLIGHT) && lpLight->dwSize == sizeof(D3DLIGHT2))
+		{
+			LPD3DLIGHT2 lpLight2 = reinterpret_cast<LPD3DLIGHT2>(lpLight);
+			lpLight2->dwFlags = D3DLIGHT_ACTIVE;
+		}
 
 		return D3D_OK;
 	}
@@ -291,9 +274,7 @@ void m_IDirect3DLight::InitInterface()
 		D3DInterface->AddLight(this);
 	}
 
-	LightSet = false;
 	Light = {};
-	Light.dwSize = sizeof(Light);
 }
 
 void m_IDirect3DLight::ReleaseInterface()

@@ -1000,20 +1000,16 @@ HRESULT m_IDirect3DDeviceX::DeleteViewport(LPDIRECT3DVIEWPORT3 lpDirect3DViewpor
 
 		if (lpDirect3DViewport == lpCurrentViewport)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: deleting active viewport!");
-
-			// Backup old viewport
-			m_IDirect3DViewportX* lpOldViewportX = lpCurrentViewportX;
-
-			// Set to null first
-			lpCurrentViewport = nullptr;
-			lpCurrentViewportX = nullptr;
+			if (!lpCurrentViewportX)
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: current ViewportX interface not set correctly!");
+				lpCurrentViewportX = lpViewportX;
+			}
 
 			// Clear old viewport data
-			if (lpOldViewportX)
-			{
-				lpOldViewportX->ClearCurrentViewport(this, true);
-			}
+			lpCurrentViewportX->ClearMaterialAndLights(this);
+
+			ClearViewport(lpCurrentViewportX);
 		}
 
 		lpDirect3DViewport->Release();
@@ -1542,7 +1538,7 @@ HRESULT m_IDirect3DDeviceX::SetCurrentViewport(LPDIRECT3DVIEWPORT3 lpd3dViewport
 		{
 			if (lpOldViewportX)
 			{
-				lpOldViewportX->ClearCurrentViewport(this, false);
+				lpOldViewportX->ClearMaterialAndLights(this);
 			}
 
 			lpCurrentViewportX->SetCurrentViewport(this, true, true, true);
@@ -5005,8 +5001,6 @@ void m_IDirect3DDeviceX::ClearLight(m_IDirect3DLight* lpLight)
 
 			// Remove from device state
 			DeviceStates.Light.erase(Index);
-
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: clearing current Light index: " << Index);
 		}
 		else
 		{
@@ -5068,14 +5062,16 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 
 	if (SUCCEEDED(hr))
 	{
+		// If it's not Light2 then it is always enabled
+		BOOL Enable = TRUE;
+
 		if (lpLight->dwSize == sizeof(D3DLIGHT2))
 		{
 			LPD3DLIGHT2 lpLight2 = reinterpret_cast<LPD3DLIGHT2>(lpLight);
-
-			BOOL Enable = (lpLight2->dwFlags & D3DLIGHT_ACTIVE) ? TRUE : FALSE;
-
-			LightEnable(dwLightIndex, Enable);
+			Enable = (lpLight2->dwFlags & D3DLIGHT_ACTIVE) ? TRUE : FALSE;
 		}
+
+		LightEnable(dwLightIndex, Enable);
 	}
 
 	return hr;
@@ -5465,11 +5461,17 @@ void m_IDirect3DDeviceX::ClearViewport(m_IDirect3DViewportX* lpViewportX)
 {
 	if (lpViewportX == lpCurrentViewportX)
 	{
+		LOG_LIMIT(100, __FUNCTION__ << " Warning: clearing current viewport!");
+
+		// Set to null
 		lpCurrentViewport = nullptr;
 		lpCurrentViewportX = nullptr;
+
+		// Set default viewport
 		SetD9Viewport(&DefaultViewport);
+
+		// Mark as viewport not set
 		DeviceStates.Viewport.Set = false;
-		LOG_LIMIT(100, __FUNCTION__ << " Warning: clearing current viewport!");
 	}
 }
 

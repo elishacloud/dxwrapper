@@ -11,7 +11,6 @@ private:
 	// Convert Light
 	m_IDirect3DX* D3DInterface = nullptr;
 	D3DLIGHT2 Light;
-	bool LightSet = false;
 
 	// Interface initialization functions
 	void InitInterface();

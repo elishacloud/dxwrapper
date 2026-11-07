@@ -160,7 +160,7 @@ public:
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
 	void SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
 	void SetCurrentViewport(m_IDirect3DDeviceX* D3DDevice, bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
-	void ClearCurrentViewport(m_IDirect3DDeviceX* pDirect3DDeviceX, bool ClearViewport);
+	void ClearMaterialAndLights(m_IDirect3DDeviceX* pDirect3DDeviceX);
 	void GetAttachedBufferDetails(m_IDirect3DDeviceX* pD3DDevice, bool& HasAttachedZBuffer, bool& HasAttachedStencil);
 	void AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);

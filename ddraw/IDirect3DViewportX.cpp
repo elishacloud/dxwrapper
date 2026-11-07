@@ -986,7 +986,7 @@ void m_IDirect3DViewportX::ReleaseInterface()
 	{
 		if (entry->CheckIfViewportSet(this))
 		{
-			ClearCurrentViewport(entry, true);
+			ClearMaterialAndLights(entry);
 		}
 
 		if (WrapperInterface) entry->DeleteAttachedViewport(reinterpret_cast<LPDIRECT3DVIEWPORT3>(WrapperInterface));
@@ -1105,24 +1105,11 @@ void m_IDirect3DViewportX::SetCurrentViewport(m_IDirect3DDeviceX* D3DDevice, boo
 	}
 }
 
-void m_IDirect3DViewportX::ClearCurrentViewport(m_IDirect3DDeviceX* pDirect3DDeviceX, bool ClearViewport)
+void m_IDirect3DViewportX::ClearMaterialAndLights(m_IDirect3DDeviceX* pDirect3DDeviceX)
 {
 	if (!pDirect3DDeviceX)
 	{
 		return;
-	}
-
-	// Set default viewport
-	if (ClearViewport && Viewport.Data9.Width && Viewport.Data9.Height)
-	{
-		D3DVIEWPORT9 Viewport9 = {};
-		pDirect3DDeviceX->GetDefaultViewport(Viewport9);
-
-		// Set default viewport
-		if (FAILED(pDirect3DDeviceX->SetViewport(reinterpret_cast<D3DVIEWPORT7*>(&Viewport9))))
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set default viewport data!");
-		}
 	}
 
 	// Clear material
