@@ -213,6 +213,10 @@ private:
 		DWORD rsAlphaTestEnable = 0;
 		DWORD rsAlphaFunc = 0;
 		DWORD rsAlphaRef = 0;
+		bool ColorKeyAlphaOpSet = false;
+		DWORD tsAlphaOp = 0;
+		DWORD tsAlphaArg1 = 0;
+		DWORD tsAlphaArg2 = 0;
 		DWORD ssMinFilter[D3DHAL_TSS_MAXSTAGES] = {};
 		DWORD ssMagFilter[D3DHAL_TSS_MAXSTAGES] = {};
 		float lowColorKey[4] = {};
