@@ -413,13 +413,13 @@ HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 		// Check handle
 		if (hMat && pDirect3DDeviceX)
 		{
-			if (!pDirect3DDeviceX->GetMaterialFromHandle(hMat))
+			if (pDirect3DDeviceX->GetMaterialFromHandle(hMat) == nullptr)
 			{
 				return DDERR_INVALIDPARAMS;
 			}
 		}
 
-		MaterialBackground.IsSet = hMat ? TRUE : FALSE;
+		MaterialBackground.IsSet = hMat != 0 ? TRUE : FALSE;
 		MaterialBackground.hMat = hMat;
 
 		// If current viewport is set then use new viewport
