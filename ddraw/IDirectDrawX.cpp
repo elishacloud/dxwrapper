@@ -1573,6 +1573,12 @@ HRESULT m_IDirectDrawX::GetDisplayMode2(LPDDSURFACEDESC2 lpDDSurfaceDesc2)
 
 	if (Config.Dd7to9)
 	{
+		// Some games (e.g. DxLib based) pass a DDSURFACEDESC sized struct to the v4/v7 interfaces and don't check the result
+		if (lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize == sizeof(DDSURFACEDESC))
+		{
+			return GetDisplayMode(reinterpret_cast<LPDDSURFACEDESC>(lpDDSurfaceDesc2));
+		}
+
 		if (!lpDDSurfaceDesc2 || lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
