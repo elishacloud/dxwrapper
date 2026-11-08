@@ -6516,6 +6516,29 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 			{
 				dwFlags |= D3DDP_DXW_ALPHACOLORKEY;
 				(*d3d9Device)->SetTexture(x, CurrentTextureSurfaceX[x]->GetD9DrawTexture());
+
+				// Color key is applied at texture sampling in DirectDraw, so the key alpha must reach the alpha test even if the alpha stage ignores the texture
+				if (x == 0)
+				{
+					if (!CurrentTextureSurfaceX[0]->HasAlphaChannel(false))
+					{
+						GetD9TextureStageState(0, D3DTSS_ALPHAOP, &DrawStates.tsAlphaOp);
+						GetD9TextureStageState(0, D3DTSS_ALPHAARG1, &DrawStates.tsAlphaArg1);
+						GetD9TextureStageState(0, D3DTSS_ALPHAARG2, &DrawStates.tsAlphaArg2);
+
+						const bool UseArg1 = DrawStates.tsAlphaOp == D3DTOP_SELECTARG1;
+						const bool UseArg2 = DrawStates.tsAlphaOp == D3DTOP_SELECTARG2;
+						const DWORD AlphaSource = UseArg1 ? DrawStates.tsAlphaArg1 : UseArg2 ? DrawStates.tsAlphaArg2 : D3DTA_DIFFUSE;
+
+						if ((UseArg1 || UseArg2 || DrawStates.tsAlphaOp == D3DTOP_DISABLE) && (AlphaSource & D3DTA_SELECTMASK) != D3DTA_TEXTURE)
+						{
+							dwFlags |= D3DDP_DXW_COLORKEYALPHAOP;
+							(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
+							(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+							(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG2, AlphaSource);
+						}
+					}
+				}
 			}
 			// Set texture
 			else if (IDirect3DTexture9* pTexture9 = CurrentTextureSurfaceX[x]->GetD9Texture(); pTexture9 != nullptr)
@@ -6535,27 +6558,6 @@ void m_IDirect3DDeviceX::SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, D
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHATESTENABLE, TRUE);
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_GREATER);
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, (DWORD)0x01);
-
-		// Color key is applied at texture sampling in DirectDraw, so the key alpha must reach the alpha test even if the alpha stage ignores the texture
-		DrawStates.ColorKeyAlphaOpSet = false;
-		if (CurrentTextureSurfaceX[0] && CurrentTextureSurfaceX[0]->IsColorKeyTexture() && !CurrentTextureSurfaceX[0]->HasAlphaChannel(false))
-		{
-			GetD9TextureStageState(0, D3DTSS_ALPHAOP, &DrawStates.tsAlphaOp);
-			GetD9TextureStageState(0, D3DTSS_ALPHAARG1, &DrawStates.tsAlphaArg1);
-			GetD9TextureStageState(0, D3DTSS_ALPHAARG2, &DrawStates.tsAlphaArg2);
-
-			const bool UseArg1 = DrawStates.tsAlphaOp == D3DTOP_SELECTARG1;
-			const bool UseArg2 = DrawStates.tsAlphaOp == D3DTOP_SELECTARG2;
-			const DWORD AlphaSource = UseArg1 ? DrawStates.tsAlphaArg1 : UseArg2 ? DrawStates.tsAlphaArg2 : D3DTA_DIFFUSE;
-
-			if ((UseArg1 || UseArg2 || DrawStates.tsAlphaOp == D3DTOP_DISABLE) && (AlphaSource & D3DTA_SELECTMASK) != D3DTA_TEXTURE)
-			{
-				DrawStates.ColorKeyAlphaOpSet = true;
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, D3DTOP_MODULATE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
-				(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG2, AlphaSource);
-			}
-		}
 	}
 
 	// Color key shader
@@ -6620,12 +6622,11 @@ void m_IDirect3DDeviceX::RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD Dire
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHAFUNC, DrawStates.rsAlphaFunc);
 		(*d3d9Device)->SetRenderState(D3DRS_ALPHAREF, DrawStates.rsAlphaRef);
 
-		if (DrawStates.ColorKeyAlphaOpSet)
+		if (dwFlags & D3DDP_DXW_COLORKEYALPHAOP)
 		{
 			(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAOP, DrawStates.tsAlphaOp);
 			(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG1, DrawStates.tsAlphaArg1);
 			(*d3d9Device)->SetTextureStageState(0, D3DTSS_ALPHAARG2, DrawStates.tsAlphaArg2);
-			DrawStates.ColorKeyAlphaOpSet = false;
 		}
 	}
 	if (dwFlags & D3DDP_DXW_VERTEXFIXUPSHADER)
