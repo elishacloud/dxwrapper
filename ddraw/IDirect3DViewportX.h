@@ -27,12 +27,12 @@ private:
 	} MaterialBackground;
 
 	// Light array
-	std::vector<LPDIRECT3DLIGHT> AttachedLights;
+	std::vector<m_IDirect3DLight*> AttachedLights;
 
 	// D3D Device array
 	std::list<m_IDirect3DDeviceX*> AttachedD3DDevices;
 
-	bool IsLightAttached(LPDIRECT3DLIGHT LightX)
+	bool IsLightAttached(m_IDirect3DLight* LightX)
 	{
 		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
 			[=](auto pLight) -> bool { return pLight == LightX; });
@@ -44,7 +44,7 @@ private:
 		return false;
 	}
 
-	bool DeleteAttachedLight(LPDIRECT3DLIGHT LightX)
+	bool DeleteAttachedLight(m_IDirect3DLight* LightX)
 	{
 		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
 			[=](auto pLight) -> bool { return pLight == LightX; });
@@ -158,7 +158,6 @@ public:
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void *GetWrapperInterfaceX(DWORD DirectXVersion);
-	void SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
 	void SetCurrentViewport(m_IDirect3DDeviceX* D3DDevice, bool SetViewPortData, bool SetBackgroundData, bool SetLightData);
 	void ClearMaterialAndLights(m_IDirect3DDeviceX* pDirect3DDeviceX);
 	void GetAttachedBufferDetails(m_IDirect3DDeviceX* pD3DDevice, bool& HasAttachedZBuffer, bool& HasAttachedStencil);
@@ -170,7 +169,6 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Light functions
-	void GetEnabledLightList(std::vector<D3DLIGHT9>& AttachedLightList);
-	bool IsLightAttached(m_IDirect3DLight* lpLight);
+	inline bool IsLightInUse(m_IDirect3DLight* pLightX) { return IsLightAttached(pLightX); }
 	void ClearLight(m_IDirect3DLight* lpLight);
 };

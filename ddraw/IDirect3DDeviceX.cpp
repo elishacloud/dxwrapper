@@ -5020,8 +5020,6 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 
 	D3DLIGHT7 Light7;
 
-	// ToDo: the dvAttenuation members are interpreted differently in D3DLIGHT2 than they were for D3DLIGHT.
-
 	ConvertLight(Light7, *lpLight);
 
 	DWORD dwLightIndex = MaxActiveLights;
@@ -6624,12 +6622,9 @@ void m_IDirect3DDeviceX::RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD Dire
 
 bool m_IDirect3DDeviceX::IsLightInUse(m_IDirect3DLight* pLightX)
 {
-	if (ClientDirectXVersion != 7)
+	if (lpCurrentViewportX)
 	{
-		if (lpCurrentViewportX && lpCurrentViewportX->IsLightAttached(pLightX))
-		{
-			return true;
-		}
+		return lpCurrentViewportX->IsLightInUse(pLightX);
 	}
 
 	return false;
@@ -6637,19 +6632,13 @@ bool m_IDirect3DDeviceX::IsLightInUse(m_IDirect3DLight* pLightX)
 
 void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<D3DLIGHT9>& AttachedLightList)
 {
-	if (ClientDirectXVersion == 7)
+	for (const auto& entry : DeviceStates.Light)
 	{
-		for (const auto& entry : DeviceStates.Light)
+		if (entry.second.Enabled)
 		{
-			if (entry.second.Enabled)
-			{
-				AttachedLightList.push_back(entry.second.Light);
-			}
+			D3DLIGHT9 Light9 = FixLight(entry.second.Light);
+			AttachedLightList.push_back(Light9);
 		}
-	}
-	else if (lpCurrentViewportX)
-	{
-		lpCurrentViewportX->GetEnabledLightList(AttachedLightList);
 	}
 }
 

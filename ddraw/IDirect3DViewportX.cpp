@@ -276,7 +276,17 @@ HRESULT m_IDirect3DViewportX::SetViewport(LPD3DVIEWPORT lpData)
 		Viewport.UseViewportScale = (Viewport.Scale.x != 1.0f || Viewport.Scale.y != 1.0f || Viewport.Scale.z != 1.0f);
 
 		// If current viewport is set then use new viewport
-		SetCurrentViewportActive(true, false, false);
+		if (!AttachedD3DDevices.empty())
+		{
+			m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
+			if (pDirect3DDeviceX->CheckIfViewportSet(this))
+			{
+				if (FAILED(pDirect3DDeviceX->SetViewportData(Viewport)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set viewport data!");
+				}
+			}
+		}
 
 		return D3D_OK;
 	}
@@ -393,11 +403,36 @@ HRESULT m_IDirect3DViewportX::SetBackground(D3DMATERIALHANDLE hMat)
 
 	if (Config.Dd7to9)
 	{
-		MaterialBackground.IsSet = TRUE;
+		// Get 3DDevice
+		m_IDirect3DDeviceX* pDirect3DDeviceX = nullptr;
+		if (!AttachedD3DDevices.empty())
+		{
+			pDirect3DDeviceX = AttachedD3DDevices.back();
+		}
+
+		// Check handle
+		if (hMat && pDirect3DDeviceX)
+		{
+			if (!pDirect3DDeviceX->GetMaterialFromHandle(hMat))
+			{
+				return DDERR_INVALIDPARAMS;
+			}
+		}
+
+		MaterialBackground.IsSet = hMat ? TRUE : FALSE;
 		MaterialBackground.hMat = hMat;
 
 		// If current viewport is set then use new viewport
-		SetCurrentViewportActive(false, true, false);
+		if (pDirect3DDeviceX)
+		{
+			if (pDirect3DDeviceX->CheckIfViewportSet(this))
+			{
+				if (FAILED(pDirect3DDeviceX->SetLightState(D3DLIGHTSTATE_MATERIAL, MaterialBackground.hMat)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set material background!");
+				}
+			}
+		}
 
 		return D3D_OK;
 	}
@@ -531,11 +566,30 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 
 	if (Config.Dd7to9)
 	{
-		// This method will fail, returning DDERR_INVALIDPARAMS, if you attempt to add a light that has already been assigned to the viewport.
-		if (!lpDirect3DLight || IsLightAttached(lpDirect3DLight))
+		if (!lpDirect3DLight)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
+
+		m_IDirect3DLight* lpDirect3DLightX = reinterpret_cast<m_IDirect3DLight*>(lpDirect3DLight);
+
+		// This method will fail, returning DDERR_INVALIDPARAMS, if you attempt to add a light that has already been assigned to the viewport.
+		if (IsLightAttached(lpDirect3DLightX))
+		{
+			return DDERR_INVALIDPARAMS;
+		}
+
+		if (lpDirect3DLightX->HasViewport())
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: light already attached to a viewport!");
+			return D3DERR_LIGHTHASVIEWPORT;
+		}
+
+		lpDirect3DLightX->AddRef();
+
+		lpDirect3DLightX->SetViewport(this);
+
+		AttachedLights.push_back(lpDirect3DLightX);
 
 		// If current viewport is set then use new light
 		if (!AttachedD3DDevices.empty())
@@ -545,19 +599,15 @@ HRESULT m_IDirect3DViewportX::AddLight(LPDIRECT3DLIGHT lpDirect3DLight)
 			{
 				D3DLIGHT2 Light2 = {};
 				Light2.dwSize = sizeof(D3DLIGHT2);
-				if (SUCCEEDED(lpDirect3DLight->GetLight((LPD3DLIGHT)&Light2)))
+				if (SUCCEEDED(lpDirect3DLightX->GetLight((LPD3DLIGHT)&Light2)))
 				{
-					if (FAILED(pDirect3DDeviceX->SetLight((m_IDirect3DLight*)lpDirect3DLight, (LPD3DLIGHT)&Light2)))
+					if (FAILED(pDirect3DDeviceX->SetLight(lpDirect3DLightX, (LPD3DLIGHT)&Light2)))
 					{
 						LOG_LIMIT(100, __FUNCTION__ << " Warning: could not set light!");
 					}
 				}
 			}
 		}
-
-		AttachedLights.push_back(lpDirect3DLight);
-
-		lpDirect3DLight->AddRef();
 
 		return D3D_OK;
 	}
@@ -581,23 +631,28 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		bool ret = DeleteAttachedLight(lpDirect3DLight);
+		m_IDirect3DLight* lpDirect3DLightX = reinterpret_cast<m_IDirect3DLight*>(lpDirect3DLight);
+
+		bool ret = DeleteAttachedLight(lpDirect3DLightX);
 
 		if (!ret)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
 
-		lpDirect3DLight->Release();
-
 		// If current viewport is then deactivate the light
-		for (const auto& entry : AttachedD3DDevices)
+		if (!AttachedD3DDevices.empty())
 		{
-			if (!entry->IsLightInUse(reinterpret_cast<m_IDirect3DLight*>(lpDirect3DLight)))
+			m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
+			if (pDirect3DDeviceX->CheckIfViewportSet(this))
 			{
-				entry->ClearLight(reinterpret_cast<m_IDirect3DLight*>(lpDirect3DLight));
+				pDirect3DDeviceX->ClearLight(lpDirect3DLightX);
 			}
 		}
+
+		lpDirect3DLightX->ClearViewport();
+
+		lpDirect3DLightX->Release();
 
 		return D3D_OK;
 	}
@@ -787,7 +842,17 @@ HRESULT m_IDirect3DViewportX::SetViewport2(LPD3DVIEWPORT2 lpData)
 				Viewport.Clip.x != 0.0f || Viewport.Clip.y != 0.0f || Viewport.Clip.z != 0.0f);
 
 		// If current viewport is set then use new viewport
-		SetCurrentViewportActive(true, false, false);
+		if (!AttachedD3DDevices.empty())
+		{
+			m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
+			if (pDirect3DDeviceX->CheckIfViewportSet(this))
+			{
+				if (FAILED(pDirect3DDeviceX->SetViewportData(Viewport)))
+				{
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set viewport data!");
+				}
+			}
+		}
 
 		return D3D_OK;
 	}
@@ -998,6 +1063,7 @@ void m_IDirect3DViewportX::ReleaseInterface()
 
 	for (const auto& entry : AttachedLights)
 	{
+		entry->ClearViewport();
 		entry->Release();
 	}
 }
@@ -1057,30 +1123,17 @@ HRESULT m_IDirect3DViewportX::GetCurrentViewport(m_IDirect3DDeviceX* pDirect3DDe
 	return D3DERR_VIEWPORTHASNODEVICE;
 }
 
-void m_IDirect3DViewportX::SetCurrentViewportActive(bool SetViewPortData, bool SetBackgroundData, bool SetLightData)
-{
-	if (!AttachedD3DDevices.empty())
-	{
-		m_IDirect3DDeviceX* pDirect3DDeviceX = AttachedD3DDevices.back();
-		if (pDirect3DDeviceX->CheckIfViewportSet(this))
-		{
-			SetCurrentViewport(pDirect3DDeviceX, SetViewPortData, SetBackgroundData, SetLightData);
-		}
-	}
-}
-
 void m_IDirect3DViewportX::SetCurrentViewport(m_IDirect3DDeviceX* D3DDevice, bool SetViewPortData, bool SetBackgroundData, bool SetLightData)
 {
 	if (SetViewPortData && Viewport.Data9.Width && Viewport.Data9.Height)
 	{
-		HRESULT hr = D3DDevice->SetViewportData(Viewport);
-		if (FAILED(hr))
+		if (FAILED(D3DDevice->SetViewportData(Viewport)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set viewport data!");
 		}
 	}
 
-	if (SetBackgroundData && MaterialBackground.IsSet)
+	if (SetBackgroundData && MaterialBackground.hMat)
 	{
 		if (FAILED(D3DDevice->SetLightState(D3DLIGHTSTATE_MATERIAL, MaterialBackground.hMat)))
 		{
@@ -1113,21 +1166,22 @@ void m_IDirect3DViewportX::ClearMaterialAndLights(m_IDirect3DDeviceX* pDirect3DD
 	}
 
 	// Clear material
-	if (MaterialBackground.IsSet)
+	if (MaterialBackground.hMat)
 	{
-		if (FAILED(pDirect3DDeviceX->SetLightState(D3DLIGHTSTATE_MATERIAL, 0)))
+		D3DMATERIALHANDLE hMat = NULL;
+		if (SUCCEEDED(pDirect3DDeviceX->GetLightState(D3DLIGHTSTATE_MATERIAL, &hMat)) && MaterialBackground.hMat == hMat)
 		{
-			LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set material background!");
+			if (FAILED(pDirect3DDeviceX->SetLightState(D3DLIGHTSTATE_MATERIAL, 0)))
+			{
+				LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set material background!");
+			}
 		}
 	}
 
 	// Clear lights
 	for (const auto& entry : AttachedLights)
 	{
-		if (!pDirect3DDeviceX->IsLightInUse(reinterpret_cast<m_IDirect3DLight*>(entry)))
-		{
-			pDirect3DDeviceX->ClearLight(reinterpret_cast<m_IDirect3DLight*>(entry));
-		}
+		pDirect3DDeviceX->ClearLight(reinterpret_cast<m_IDirect3DLight*>(entry));
 	}
 }
 
@@ -1179,34 +1233,6 @@ void m_IDirect3DViewportX::GetAttachedBufferDetails(m_IDirect3DDeviceX* pD3DDevi
 			HasAttachedStencil = HasStencil(pZBuffer->GetSurfaceFormat());
 		}
 	}
-}
-
-void m_IDirect3DViewportX::GetEnabledLightList(std::vector<D3DLIGHT9>& AttachedLightList)
-{
-	for (const auto& entry : AttachedLights)
-	{
-		D3DLIGHT2 Light2 = {};
-		Light2.dwSize = sizeof(Light2);
-
-		// Get light data
-		if (SUCCEEDED(entry->GetLight(reinterpret_cast<LPD3DLIGHT>(&Light2))))
-		{
-			// Check if light is enabled
-			if (Light2.dwFlags & D3DLIGHT_ACTIVE)
-			{
-				DXLIGHT7 DxLight7 = {};
-				GetDXLight(DxLight7, Light2);
-
-				D3DLIGHT9& Light9 = reinterpret_cast<D3DLIGHT9&>(DxLight7);
-				AttachedLightList.push_back(Light9);
-			}
-		}
-	}
-}
-
-bool m_IDirect3DViewportX::IsLightAttached(m_IDirect3DLight* lpLight)
-{
-	return std::find(AttachedLights.begin(), AttachedLights.end(), lpLight) != AttachedLights.end();
 }
 
 void m_IDirect3DViewportX::ClearLight(m_IDirect3DLight* lpLight)

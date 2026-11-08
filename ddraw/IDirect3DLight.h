@@ -10,6 +10,7 @@ private:
 
 	// Convert Light
 	m_IDirect3DX* D3DInterface = nullptr;
+	m_IDirect3DViewportX* Viewport = nullptr;
 	D3DLIGHT2 Light;
 
 	// Interface initialization functions
@@ -80,5 +81,8 @@ public:
 
 	// Helper function
 	inline void ClearD3D() { D3DInterface = nullptr; }
+	inline void SetViewport(m_IDirect3DViewportX* lpViewport) { Viewport = lpViewport; };
+	inline void ClearViewport() { Viewport = nullptr; };
+	inline bool HasViewport() { return Viewport != nullptr; }
 	static m_IDirect3DLight* CreateDirect3DLight(IDirect3DLight* aOriginal, m_IDirect3DX* NewD3DInterface);
 };

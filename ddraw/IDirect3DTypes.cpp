@@ -19,25 +19,6 @@
 #include "d3d9\d3d9External.h"
 #include "ProcessVertices.h"
 
-void GetDXLight(DXLIGHT7& DxLight7, const D3DLIGHT2& Light2)
-{
-	D3DLIGHT9& OutLight9 = reinterpret_cast<D3DLIGHT9&>(DxLight7);
-	ConvertLight(*reinterpret_cast<D3DLIGHT7*>(&OutLight9), *reinterpret_cast<const D3DLIGHT*>(&Light2));
-	OutLight9 = FixLight(OutLight9);
-
-	DxLight7.dwLightVersion = 2;
-	DxLight7.dwFlags = Light2.dwFlags;
-}
-
-void GetDXLight(DXLIGHT7& DxLight7, const D3DLIGHT9& Light9)
-{
-	D3DLIGHT9& OutLight9 = reinterpret_cast<D3DLIGHT9&>(DxLight7);
-	OutLight9 = FixLight(Light9);
-
-	DxLight7.dwLightVersion = 7;
-	DxLight7.dwFlags = 0;
-}
-
 void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 {
 	if (Light.dwSize != sizeof(D3DLIGHT) && Light.dwSize != sizeof(D3DLIGHT2))
@@ -46,8 +27,14 @@ void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 		return;
 	}
 
+	// ToDo: Ambient light comes from the material
+
+	//const bool IsUsingLight2 = Light.dwSize == sizeof(D3DLIGHT2);
+	//const bool hasSpecular = !IsUsingLight2 || !(reinterpret_cast<const D3DLIGHT2*>(&Light)->dwFlags & D3DLIGHT_NO_SPECULAR);
+
 	Light7.dltType = Light.dltType;
 	Light7.dcvDiffuse = Light.dcvColor;
+	//Light7.dcvSpecular = hasSpecular ? Light.dcvColor : D3DCOLORVALUE({ 0.0f, 0.0f, 0.0f, 0.0f });
 	Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 0.0f };
 	const float scale = 0.5f;
 	Light7.dcvAmbient.r = Light.dcvColor.r * scale;
@@ -82,11 +69,14 @@ D3DLIGHT9 FixLight(const D3DLIGHT9& Light)
 	// Prenormalize directional and spot lights
 	if (result.Type == D3DLIGHT_DIRECTIONAL || result.Type == D3DLIGHT_SPOT)
 	{
-		D3DXVECTOR3& dir = reinterpret_cast<D3DXVECTOR3&>(result.Direction);
+		D3DXVECTOR3 dir(result.Direction.x, result.Direction.y, result.Direction.z);
 
 		if (D3DXVec3LengthSq(&dir) > 1e-12f)
 		{
 			D3DXVec3Normalize(&dir, &dir);
+			result.Direction.x = dir.x;
+			result.Direction.y = dir.y;
+			result.Direction.z = dir.z;
 		}
 	}
 

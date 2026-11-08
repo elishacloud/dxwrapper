@@ -275,6 +275,7 @@ void m_IDirect3DLight::InitInterface()
 	}
 
 	Light = {};
+	Viewport = nullptr;
 }
 
 void m_IDirect3DLight::ReleaseInterface()
