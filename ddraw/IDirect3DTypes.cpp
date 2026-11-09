@@ -36,7 +36,7 @@ void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 	Light7.dcvDiffuse = Light.dcvColor;
 	//Light7.dcvSpecular = hasSpecular ? Light.dcvColor : D3DCOLORVALUE({ 0.0f, 0.0f, 0.0f, 0.0f });
 	Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 0.0f };
-	const float scale = 0.5f;
+	const float scale = 0.0f;
 	Light7.dcvAmbient.r = Light.dcvColor.r * scale;
 	Light7.dcvAmbient.g = Light.dcvColor.g * scale;
 	Light7.dcvAmbient.b = Light.dcvColor.b * scale;
