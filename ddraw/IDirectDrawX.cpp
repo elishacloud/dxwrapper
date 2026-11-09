@@ -523,6 +523,11 @@ HRESULT m_IDirectDrawX::CreateSurface2(LPDDSURFACEDESC2 lpDDSurfaceDesc2, LPDIRE
 
 	if (Config.Dd7to9)
 	{
+		if (lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize == sizeof(DDSURFACEDESC))
+		{
+			return CreateSurface(reinterpret_cast<LPDDSURFACEDESC>(lpDDSurfaceDesc2), lplpDDSurface, pUnkOuter, DirectXVersion);
+		}
+
 		if (!lplpDDSurface || !lpDDSurfaceDesc2)
 		{
 			return DDERR_INVALIDPARAMS;
@@ -1041,6 +1046,11 @@ HRESULT m_IDirectDrawX::EnumDisplayModes2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSu
 
 	if (Config.Dd7to9)
 	{
+		if (lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize == sizeof(DDSURFACEDESC))
+		{
+			return EnumDisplayModes(dwFlags, reinterpret_cast<LPDDSURFACEDESC>(lpDDSurfaceDesc2), lpContext, reinterpret_cast<LPDDENUMMODESCALLBACK>(lpEnumModesCallback2));
+		}
+
 		if (!lpEnumModesCallback2 || (lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1));
@@ -1291,6 +1301,11 @@ HRESULT m_IDirectDrawX::EnumSurfaces2(DWORD dwFlags, LPDDSURFACEDESC2 lpDDSurfac
 
 	if (Config.Dd7to9)
 	{
+		if (lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize == sizeof(DDSURFACEDESC))
+		{
+			return EnumSurfaces(dwFlags, reinterpret_cast<LPDDSURFACEDESC>(lpDDSurfaceDesc2), lpContext, reinterpret_cast<LPDDENUMSURFACESCALLBACK>(lpEnumSurfacesCallback7 ? lpEnumSurfacesCallback7 : (void*)lpEnumSurfacesCallback), DirectXVersion);
+		}
+
 		if ((lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2)) || (!lpDDSurfaceDesc2 && !(dwFlags & DDENUMSURFACES_ALL)))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << ((lpDDSurfaceDesc2) ? lpDDSurfaceDesc2->dwSize : -1) << " dwFlags: " << Logging::hex(dwFlags));

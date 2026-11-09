@@ -2437,6 +2437,11 @@ HRESULT m_IDirectDrawSurfaceX::GetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 
 	if (Config.Dd7to9)
 	{
+		if (lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize == sizeof(DDSURFACEDESC))
+		{
+			return GetSurfaceDesc(reinterpret_cast<LPDDSURFACEDESC>(lpDDSurfaceDesc2), MipMapLevel, DirectXVersion);
+		}
+
 		if (!lpDDSurfaceDesc2 || lpDDSurfaceDesc2->dwSize != sizeof(DDSURFACEDESC2))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Invalid parameters. dwSize: " << (lpDDSurfaceDesc2 ? lpDDSurfaceDesc2->dwSize : -1));
@@ -2677,7 +2682,7 @@ HRESULT m_IDirectDrawSurfaceX::Lock2(LPRECT lpDestRect, LPDDSURFACEDESC2 lpDDSur
 		// Check surfaceDesc size
 		if (lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize == sizeof(DDSURFACEDESC))
 		{
-			return Lock(lpDestRect, (LPDDSURFACEDESC)lpDDSurfaceDesc2, dwFlags, hEvent, MipMapLevel, DirectXVersion);
+			return Lock(lpDestRect, reinterpret_cast<LPDDSURFACEDESC>(lpDDSurfaceDesc2), dwFlags, hEvent, MipMapLevel, DirectXVersion);
 		}
 
 		// Check surfaceDesc
@@ -3865,6 +3870,11 @@ HRESULT m_IDirectDrawSurfaceX::SetSurfaceDesc2(LPDDSURFACEDESC2 lpDDSurfaceDesc2
 
 	if (Config.Dd7to9)
 	{
+		if (lpDDSurfaceDesc2 && lpDDSurfaceDesc2->dwSize == sizeof(DDSURFACEDESC))
+		{
+			return SetSurfaceDesc(reinterpret_cast<LPDDSURFACEDESC>(lpDDSurfaceDesc2), dwFlags);
+		}
+
 		if (!lpDDSurfaceDesc2)
 		{
 			return DDERR_INVALIDPARAMS;
