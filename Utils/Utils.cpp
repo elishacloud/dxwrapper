@@ -1557,7 +1557,7 @@ void Utils::ResetScreenSettings()
 	if (mouseSystemSettings.isSet)
 	{
 		MouseSystemSettings Mouse;
-		SystemParametersInfo(SPI_GETFONTSMOOTHING, 0, &Mouse.enabled, 0);
+		SystemParametersInfo(SPI_GETMOUSEVANISH, 0, &Mouse.enabled, 0);
 
 		// Update if mouse settings has changed
 		BOOL success = TRUE;
