@@ -27,8 +27,6 @@ void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 		return;
 	}
 
-	// ToDo: Ambient light comes from the material
-
 	//const bool IsUsingLight2 = Light.dwSize == sizeof(D3DLIGHT2);
 	//const bool hasSpecular = !IsUsingLight2 || !(reinterpret_cast<const D3DLIGHT2*>(&Light)->dwFlags & D3DLIGHT_NO_SPECULAR);
 
@@ -36,11 +34,8 @@ void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 	Light7.dcvDiffuse = Light.dcvColor;
 	//Light7.dcvSpecular = hasSpecular ? Light.dcvColor : D3DCOLORVALUE({ 0.0f, 0.0f, 0.0f, 0.0f });
 	Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 0.0f };
-	const float scale = 0.5f;
-	Light7.dcvAmbient.r = Light.dcvColor.r * scale;
-	Light7.dcvAmbient.g = Light.dcvColor.g * scale;
-	Light7.dcvAmbient.b = Light.dcvColor.b * scale;
-	Light7.dcvAmbient.a = Light.dcvColor.a;
+	// Ambient light always comes from the material
+	Light7.dcvAmbient = { 0.0f, 0.0f, 0.0f, 0.0f };
 	Light7.dvPosition = Light.dvPosition;
 	Light7.dvDirection = Light.dvDirection;
 	Light7.dvRange = Light.dvRange;
