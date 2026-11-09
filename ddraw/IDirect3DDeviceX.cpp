@@ -3417,7 +3417,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 
 	if (Config.Dd7to9)
 	{
-		if (dwNumVertices == 0 || dwIndexCount == 0)
+		if (dwIndexCount == 0 || (DirectXVersion != 3 && dwNumVertices == 0))
 		{
 			return D3D_OK; // Nothing to draw
 		}
@@ -3444,6 +3444,23 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get vertex buffer wrapper!");
 			return DDERR_INVALIDPARAMS;
+		}
+
+		// Direct3D3 indices address the full vertex buffer.
+		if (DirectXVersion == 3)
+		{
+			D3DVERTEXBUFFERDESC Desc = {};
+			Desc.dwSize = sizeof(Desc);
+			HRESULT hr = pVertexBufferX->GetVertexBufferDesc(&Desc);
+			if (FAILED(hr))
+			{
+				return hr;
+			}
+			dwNumVertices = Desc.dwNumVertices;
+			if (dwNumVertices == 0)
+			{
+				return D3D_OK;
+			}
 		}
 
 		LPDIRECT3DVERTEXBUFFER9 d3d9VertexBuffer = pVertexBufferX->GetCurrentD9VertexBuffer();
