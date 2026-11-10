@@ -6617,19 +6617,6 @@ void m_IDirect3DDeviceX::RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD Dire
 	}
 }
 
-bool m_IDirect3DDeviceX::IsLightInUse(m_IDirect3DLight* pLightX)
-{
-	for (const auto& entry : LightIndexMap)
-	{
-		if (entry.second == pLightX)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
 void m_IDirect3DDeviceX::GetEnabledLightList(std::vector<D3DLIGHT9>& AttachedLightList)
 {
 	for (const auto& entry : DeviceStates.Light)

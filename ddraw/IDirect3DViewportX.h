@@ -177,6 +177,5 @@ public:
 	ULONG Release(DWORD DirectXVersion);
 
 	// Light functions
-	inline bool IsLightInUse(m_IDirect3DLight* pLightX) { return IsLightAttached(pLightX); }
 	void ClearLight(m_IDirect3DLight* lpLight);
 };

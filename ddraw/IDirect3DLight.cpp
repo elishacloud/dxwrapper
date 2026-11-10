@@ -194,7 +194,7 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 		if (Viewport)
 		{
 			m_IDirect3DDeviceX* D3DDeviceX = Viewport->GetD3DDevice();
-			if (D3DDeviceX && D3DDeviceX->IsLightInUse(this))
+			if (D3DDeviceX && D3DDeviceX->CheckIfViewportSet(Viewport))
 			{
 				if (FAILED(D3DDeviceX->SetLight(this, reinterpret_cast<LPD3DLIGHT>(&Light))))
 				{

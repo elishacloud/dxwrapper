@@ -594,7 +594,6 @@ public:
 	D3DMATRIX GetUpdatedProjectionMatrix(const D3DMATRIX& DeviceMatrix, bool SetClipping) const;
 
 	// Light index functions
-	bool IsLightInUse(m_IDirect3DLight* pLightX);
 	void GetEnabledLightList(std::vector<D3DLIGHT9>& AttachedLightList);
 	void ClearLight(m_IDirect3DLight* lpLight);
 
