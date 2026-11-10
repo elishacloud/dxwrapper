@@ -162,6 +162,14 @@ public:
 	void ClearMaterialAndLights(m_IDirect3DDeviceX* pDirect3DDeviceX);
 	void GetAttachedBufferDetails(m_IDirect3DDeviceX* pD3DDevice, bool& HasAttachedZBuffer, bool& HasAttachedStencil);
 	void AddD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
+	m_IDirect3DDeviceX* GetD3DDevice()
+	{
+		if (!AttachedD3DDevices.empty())
+		{
+			return AttachedD3DDevices.back();
+		}
+		return nullptr;
+	}
 	void ClearSurface(m_IDirectDrawSurfaceX* lpSurfaceX);
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	inline void ClearD3D() { D3DInterface = nullptr; }

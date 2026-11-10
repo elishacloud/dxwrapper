@@ -190,17 +190,15 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 
 		memcpy(&Light, lpLight, lpLight->dwSize);
 
-		// Is light in use then update device
-		if (D3DInterface)
+		// If light is in use then update device
+		if (Viewport)
 		{
-			for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
+			m_IDirect3DDeviceX* D3DDeviceX = Viewport->GetD3DDevice();
+			if (D3DDeviceX && D3DDeviceX->IsLightInUse(this))
 			{
-				if (D3DDeviceX->IsLightInUse(this))
+				if (FAILED(D3DDeviceX->SetLight(this, reinterpret_cast<LPD3DLIGHT>(&Light))))
 				{
-					if (FAILED(D3DDeviceX->SetLight(this, reinterpret_cast<LPD3DLIGHT>(&Light))))
-					{
-						LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set light!");
-					}
+					LOG_LIMIT(100, __FUNCTION__ << " Warning: failed to set light!");
 				}
 			}
 		}

@@ -27,13 +27,12 @@ void ConvertLight(D3DLIGHT7& Light7, const D3DLIGHT& Light)
 		return;
 	}
 
-	//const bool IsUsingLight2 = Light.dwSize == sizeof(D3DLIGHT2);
-	//const bool hasSpecular = !IsUsingLight2 || !(reinterpret_cast<const D3DLIGHT2*>(&Light)->dwFlags & D3DLIGHT_NO_SPECULAR);
+	const bool IsUsingLight2 = Light.dwSize == sizeof(D3DLIGHT2);
+	const bool hasSpecular = !IsUsingLight2 || !(reinterpret_cast<const D3DLIGHT2*>(&Light)->dwFlags & D3DLIGHT_NO_SPECULAR);
 
 	Light7.dltType = Light.dltType;
 	Light7.dcvDiffuse = Light.dcvColor;
-	//Light7.dcvSpecular = hasSpecular ? Light.dcvColor : D3DCOLORVALUE({ 0.0f, 0.0f, 0.0f, 0.0f });
-	Light7.dcvSpecular = { 0.0f, 0.0f, 0.0f, 0.0f };
+	Light7.dcvSpecular = hasSpecular ? Light.dcvColor : D3DCOLORVALUE({ 0.0f, 0.0f, 0.0f, 0.0f });
 	// Ambient light always comes from the material
 	Light7.dcvAmbient = { 0.0f, 0.0f, 0.0f, 0.0f };
 	Light7.dvPosition = Light.dvPosition;

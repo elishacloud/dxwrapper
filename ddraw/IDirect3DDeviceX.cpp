@@ -5035,7 +5035,6 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 		for (DWORD x = 0; x < MaxActiveLights; x++)
 		{
 			if (LightIndexMap.find(x) != LightIndexMap.end()) continue;
-			if (DeviceStates.Light.find(x) != DeviceStates.Light.end()) continue;
 
 			dwLightIndex = x;
 			break;
@@ -5056,13 +5055,7 @@ HRESULT m_IDirect3DDeviceX::SetLight(m_IDirect3DLight* lpLightInterface, LPD3DLI
 	if (SUCCEEDED(hr))
 	{
 		// If it's not Light2 then it is always enabled
-		BOOL Enable = TRUE;
-
-		if (lpLight->dwSize == sizeof(D3DLIGHT2))
-		{
-			LPD3DLIGHT2 lpLight2 = reinterpret_cast<LPD3DLIGHT2>(lpLight);
-			Enable = (lpLight2->dwFlags & D3DLIGHT_ACTIVE) ? TRUE : FALSE;
-		}
+		BOOL Enable = lpLight->dwSize == sizeof(D3DLIGHT2) && !(reinterpret_cast<LPD3DLIGHT2>(lpLight)->dwFlags & D3DLIGHT_ACTIVE) ? FALSE : TRUE;
 
 		LightEnable(dwLightIndex, Enable);
 	}
@@ -6626,9 +6619,12 @@ void m_IDirect3DDeviceX::RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD Dire
 
 bool m_IDirect3DDeviceX::IsLightInUse(m_IDirect3DLight* pLightX)
 {
-	if (lpCurrentViewportX)
+	for (const auto& entry : LightIndexMap)
 	{
-		return lpCurrentViewportX->IsLightInUse(pLightX);
+		if (entry.second == pLightX)
+		{
+			return true;
+		}
 	}
 
 	return false;
