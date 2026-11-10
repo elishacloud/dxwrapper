@@ -280,13 +280,12 @@ HRESULT m_IDirect3DDeviceX::SwapTextureHandles(LPDIRECT3DTEXTURE2 lpD3DTex1, LPD
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Swap texture handle1
-		pTextureX1->SetHandle(TexHandle2);
-		TextureHandleMap[TexHandle2] = pTextureX1;
-
-		// Swap texture handle2
-		pTextureX2->SetHandle(TexHandle1);
-		TextureHandleMap[TexHandle1] = pTextureX2;
+		if (!D3DInterface)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3D wrapper!");
+			return DDERR_INVALIDOBJECT;
+		}
+		D3DInterface->SwapTextureHandles(TexHandle1, pTextureX1, TexHandle2, pTextureX2);
 
 		// If texture handle is set then use new texture
 		if (TexHandle1 == DeviceStates.RenderState[D3DRENDERSTATE_TEXTUREHANDLE].State ||
@@ -4971,33 +4970,12 @@ void m_IDirect3DDeviceX::ClearTextureHandle(D3DTEXTUREHANDLE tHandle)
 {
 	if (tHandle)
 	{
-		TextureHandleMap.erase(tHandle);
-
 		// If texture handle is set then clear it
 		if (tHandle == DeviceStates.RenderState[D3DRENDERSTATE_TEXTUREHANDLE].State)
 		{
 			SetTexture(0, (LPDIRECT3DTEXTURE2)nullptr);
 		}
 	}
-}
-
-HRESULT m_IDirect3DDeviceX::SetTextureHandle(D3DTEXTUREHANDLE& tHandle, m_IDirect3DTextureX* pTextureX)
-{
-	if (!tHandle || !pTextureX)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: NULL pointer found! " << pTextureX << " -> " << tHandle);
-		return DDERR_INVALIDPARAMS;
-	}
-
-	// Ensure that the handle is unique
-	while (GetTexture(tHandle))
-	{
-		tHandle += 4;
-	}
-
-	TextureHandleMap[tHandle] = pTextureX;
-
-	return D3D_OK;
 }
 
 void m_IDirect3DDeviceX::ClearLight(m_IDirect3DLight* lpLight)
@@ -5123,8 +5101,6 @@ void m_IDirect3DDeviceX::ClearMaterialHandle(D3DMATERIALHANDLE mHandle)
 {
 	if (mHandle)
 	{
-		MaterialHandleMap.erase(mHandle);
-
 		// If material handle is set then clear it
 		if (mHandle == DeviceStates.LightState[D3DLIGHTSTATE_MATERIAL])
 		{
@@ -5134,25 +5110,6 @@ void m_IDirect3DDeviceX::ClearMaterialHandle(D3DMATERIALHANDLE mHandle)
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: clearing current material!");
 		}
 	}
-}
-
-HRESULT m_IDirect3DDeviceX::SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial)
-{
-	if (!mHandle || !lpMaterial)
-	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: NULL pointer found! " << lpMaterial << " -> " << mHandle);
-		return DDERR_GENERIC;
-	}
-
-	// Ensure that the handle is unique
-	while (GetMaterial(mHandle))
-	{
-		mHandle += 4;
-	}
-
-	MaterialHandleMap[mHandle] = lpMaterial;
-
-	return D3D_OK;
 }
 
 HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL lpMaterial)

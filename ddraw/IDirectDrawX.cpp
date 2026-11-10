@@ -5233,10 +5233,7 @@ void m_IDirectDrawX::ClearTextureHandle(D3DTEXTUREHANDLE tHandle)
 {
 	if (tHandle && D3DInterface)
 	{
-		for (DWORD x = 0; m_IDirect3DDeviceX* D3DDeviceX = D3DInterface->GetNextD3DDevice(x); ++x)
-		{
-			D3DDeviceX->ClearMaterialHandle(tHandle);
-		}
+		D3DInterface->ClearTextureHandle(tHandle);
 	}
 }
 

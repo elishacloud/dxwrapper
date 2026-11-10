@@ -60,6 +60,12 @@ private:
 	// Viewport array
 	std::unordered_set<m_IDirect3DViewportX*> ViewportList;
 
+	// Texture handle map
+	std::unordered_map<D3DTEXTUREHANDLE, m_IDirect3DTextureX*> TextureHandleMap;
+
+	// Material handle map
+	std::unordered_map<D3DMATERIALHANDLE, m_IDirect3DMaterialX*> MaterialHandleMap;
+
 	// Helper functions
 	void GetCap9Cache();
 	void ResolutionHack();
@@ -142,6 +148,30 @@ public:
 			IID == IID_IDirect3D7) ? true : false;
 	}
 
+	m_IDirect3DTextureX* GetTexture(D3DTEXTUREHANDLE TextureHandle)
+	{
+		auto it = TextureHandleMap.find(TextureHandle);
+
+		if (it != TextureHandleMap.end())
+		{
+			return it->second;
+		}
+
+		return nullptr;
+	}
+
+	m_IDirect3DMaterialX* GetMaterial(D3DMATERIALHANDLE MaterialHandle)
+	{
+		auto it = MaterialHandleMap.find(MaterialHandle);
+
+		if (it != MaterialHandleMap.end())
+		{
+			return it->second;
+		}
+
+		return nullptr;
+	}
+
 	// Helper functions
 	HRESULT QueryInterface(REFIID riid, LPVOID FAR * ppvObj, DWORD DirectXVersion);
 	void* GetWrapperInterfaceX(DWORD DirectXVersion);
@@ -150,7 +180,11 @@ public:
 	void ClearD3DDevice(m_IDirect3DDeviceX* lpD3DDevice);
 	void AddLight(m_IDirect3DLight* lpLight);
 	void ClearLight(m_IDirect3DLight* lpLight);
+	void SetTextureHandle(D3DTEXTUREHANDLE& tHandle, m_IDirect3DTextureX* pTextureX);
+	void SwapTextureHandles(D3DTEXTUREHANDLE tHandle1, m_IDirect3DTextureX* pTextureX1, D3DTEXTUREHANDLE tHandle2, m_IDirect3DTextureX* pTextureX2);
+	void ClearTextureHandle(D3DTEXTUREHANDLE tHandle);
 	void AddMaterial(m_IDirect3DMaterialX* lpMaterialX);
+	void SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial);
 	void ClearMaterial(m_IDirect3DMaterialX* lpMaterialX, D3DMATERIALHANDLE mHandle);
 	void AddVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX);
 	void ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBufferX);

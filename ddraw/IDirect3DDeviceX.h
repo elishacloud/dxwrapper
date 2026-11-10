@@ -303,12 +303,6 @@ private:
 	m_IDirectDrawSurfaceX* CurrentTextureSurfaceX[D3DHAL_TSS_MAXSTAGES] = {};
 	LPDIRECTDRAWSURFACE7 AttachedTexture[D3DHAL_TSS_MAXSTAGES] = {};
 
-	// Texture handle map
-	std::unordered_map<D3DTEXTUREHANDLE, m_IDirect3DTextureX*> TextureHandleMap;
-
-	// Material handle map
-	std::unordered_map<D3DMATERIALHANDLE, m_IDirect3DMaterialX*> MaterialHandleMap;
-
 	// Matrix map
 	std::unordered_map<D3DMATRIXHANDLE, D3DMATRIX> MatrixMap;
 
@@ -376,28 +370,14 @@ private:
 		return nullptr;
 	}
 
-	m_IDirect3DTextureX* GetTexture(D3DTEXTUREHANDLE TextureHandle)
+	inline m_IDirect3DTextureX* GetTexture(D3DTEXTUREHANDLE TextureHandle)
 	{
-		auto it = TextureHandleMap.find(TextureHandle);
-
-		if (it != TextureHandleMap.end())
-		{
-			return it->second;
-		}
-
-		return nullptr;
+		return D3DInterface ? D3DInterface->GetTexture(TextureHandle) : nullptr;
 	}
 
-	m_IDirect3DMaterialX* GetMaterial(D3DMATERIALHANDLE MaterialHandle)
+	inline m_IDirect3DMaterialX* GetMaterial(D3DMATERIALHANDLE MaterialHandle)
 	{
-		auto it = MaterialHandleMap.find(MaterialHandle);
-
-		if (it != MaterialHandleMap.end())
-		{
-			return it->second;
-		}
-
-		return nullptr;
+		return D3DInterface ? D3DInterface->GetMaterial(MaterialHandle) : nullptr;
 	}
 
 	// Wrapper interface functions
@@ -603,11 +583,9 @@ public:
 
 	// Texture handle functions
 	void ClearTextureHandle(D3DTEXTUREHANDLE tHandle);
-	HRESULT SetTextureHandle(D3DTEXTUREHANDLE& tHandle, m_IDirect3DTextureX* pTextureX);
 
 	// Material handle functions
 	void ClearMaterialHandle(D3DMATERIALHANDLE mHandle);
-	HRESULT SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial);
 	inline bool CheckIfMaterialSet(D3DMATERIALHANDLE mHandle) const { return (mHandle == DeviceStates.LightState[D3DLIGHTSTATE_MATERIAL]); }
 	inline bool IsMaterialEnabled() const { return DeviceStates.Material.Enabled; };
 	inline m_IDirect3DMaterialX* GetMaterialFromHandle(D3DMATERIALHANDLE MaterialHandle) { return GetMaterial(MaterialHandle); }
@@ -627,6 +605,7 @@ public:
 
 	// Functions handling the Direct3D parent interface
 	void SetD3D(m_IDirect3DX* lpD3D);
+	inline m_IDirect3DX* GetD3D() { return D3DInterface; }
 	void ClearD3D(m_IDirect3DX* lpD3D);
 
 	// Functions handling the ddraw parent interface

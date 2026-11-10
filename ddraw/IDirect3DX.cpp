@@ -1199,6 +1199,47 @@ void m_IDirect3DX::ClearLight(m_IDirect3DLight* lpLight)
 	}
 }
 
+void m_IDirect3DX::SetTextureHandle(D3DTEXTUREHANDLE& tHandle, m_IDirect3DTextureX* pTextureX)
+{
+	if (tHandle && pTextureX)
+	{
+		// Ensure that the handle is unique
+		while (GetTexture(tHandle))
+		{
+			tHandle += 4;
+		}
+
+		TextureHandleMap[tHandle] = pTextureX;
+	}
+}
+
+void m_IDirect3DX::SwapTextureHandles(D3DTEXTUREHANDLE tHandle1, m_IDirect3DTextureX* pTextureX1, D3DTEXTUREHANDLE tHandle2, m_IDirect3DTextureX* pTextureX2)
+{
+	if (tHandle1 && pTextureX1 && tHandle2 && pTextureX2)
+	{
+		// Swap texture handle1
+		pTextureX1->SetHandle(tHandle2);
+		TextureHandleMap[tHandle2] = pTextureX1;
+
+		// Swap texture handle2
+		pTextureX2->SetHandle(tHandle1);
+		TextureHandleMap[tHandle1] = pTextureX2;
+	}
+}
+
+void m_IDirect3DX::ClearTextureHandle(D3DTEXTUREHANDLE tHandle)
+{
+	if (tHandle)
+	{
+		TextureHandleMap.erase(tHandle);
+
+		for (auto& entry : D3DDeviceList)
+		{
+			entry.Interface->ClearTextureHandle(tHandle);
+		}
+	}
+}
+
 void m_IDirect3DX::AddMaterial(m_IDirect3DMaterialX* lpMaterialX)
 {
 	if (!lpMaterialX)
@@ -1207,6 +1248,20 @@ void m_IDirect3DX::AddMaterial(m_IDirect3DMaterialX* lpMaterialX)
 	}
 
 	MaterialList.insert(lpMaterialX);
+}
+
+void m_IDirect3DX::SetMaterialHandle(D3DMATERIALHANDLE& mHandle, m_IDirect3DMaterialX* lpMaterial)
+{
+	if (mHandle && lpMaterial)
+	{
+		// Ensure that the handle is unique
+		while (GetMaterial(mHandle))
+		{
+			mHandle += 4;
+		}
+
+		MaterialHandleMap[mHandle] = lpMaterial;
+	}
 }
 
 void m_IDirect3DX::ClearMaterial(m_IDirect3DMaterialX* lpMaterialX, D3DMATERIALHANDLE mHandle)
@@ -1220,6 +1275,8 @@ void m_IDirect3DX::ClearMaterial(m_IDirect3DMaterialX* lpMaterialX, D3DMATERIALH
 	// Remove material handle for all D3D devices
 	if (mHandle)
 	{
+		MaterialHandleMap.erase(mHandle);
+
 		for (auto& entry : D3DDeviceList)
 		{
 			entry.Interface->ClearMaterialHandle(mHandle);

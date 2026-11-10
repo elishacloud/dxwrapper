@@ -207,13 +207,20 @@ HRESULT m_IDirect3DTextureX::GetHandle(LPDIRECT3DDEVICE2 lpDirect3DDevice2, LPD3
 			return DDERR_INVALIDPARAMS;
 		}
 
+		m_IDirect3DX* D3DInterfaceX = pDirect3DDeviceX->GetD3D();
+		if (!D3DInterfaceX)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get Direct3D wrapper!");
+			return DDERR_INVALIDOBJECT;
+		}
+
 		if (!tHandle)
 		{
 			tHandle = (DWORD)this;
 		}
 
 		// Makes tHandle unique and then stores it
-		pDirect3DDeviceX->SetTextureHandle(tHandle, this);
+		D3DInterfaceX->SetTextureHandle(tHandle, this);
 
 		// Set lpHandle after setting texture handle in D3D device
 		*lpHandle = tHandle;
