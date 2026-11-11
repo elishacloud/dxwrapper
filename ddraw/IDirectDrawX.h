@@ -243,6 +243,7 @@ public:
 	bool CreatePalettePixelShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyPixelShader();
 	LPDIRECT3DVERTEXSHADER9 GetFixupVertexShader(DWORD texCount);
+	LPDIRECT3DVERTEXSHADER9 GetMultiStageFixupVertexShader();
 	LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer(DWORD FVF, UINT Length, void* lpData);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBufferX(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& IndexBufferSize, LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer);

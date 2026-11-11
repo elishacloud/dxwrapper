@@ -35,6 +35,7 @@
 #include "Shaders\FixUpVertexShader6.h"
 #include "Shaders\FixUpVertexShader7.h"
 #include "Shaders\FixUpVertexShader8.h"
+#include "Shaders\FixUpMultiStageVertexShader.h"
 
 namespace {
 	// Store a list of ddraw devices
@@ -153,6 +154,7 @@ namespace {
 	};
 	constexpr UINT MaxVertexShader = sizeof(FixUpVertexShaderSrc) / sizeof(DWORD*);
 	LPDIRECT3DVERTEXSHADER9 fixupVertexShader[MaxVertexShader] = {};
+	LPDIRECT3DVERTEXSHADER9 fixupMultiStageVertexShader = nullptr;
 	std::unordered_map<DWORD, DX_VERTEX_BUFFER> VertexBuffer;
 	constexpr UINT IndexBufferRotationSize = 2;
 	constexpr DWORD IndexBufferMinChunkSize = 512;
@@ -3488,6 +3490,16 @@ LPDIRECT3DVERTEXSHADER9 m_IDirectDrawX::GetFixupVertexShader(DWORD texCount)
 	return fixupVertexShader[t];
 }
 
+LPDIRECT3DVERTEXSHADER9 m_IDirectDrawX::GetMultiStageFixupVertexShader()
+{
+	// Create vertex shader
+	if (d3d9Device && !fixupMultiStageVertexShader)
+	{
+		d3d9Device->CreateVertexShader((DWORD*)FixUpMultiStageVertexShaderSrc, &fixupMultiStageVertexShader);
+	}
+	return fixupMultiStageVertexShader;
+}
+
 LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetVertexBuffer(DWORD FVF, UINT Length, void* lpData)
 {
 	LPDIRECT3DVERTEXBUFFER9& Buffer = VertexBuffer[FVF].Buffer;
@@ -5025,6 +5037,18 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 			}
 			fixupVertexShader[t] = nullptr;
 		}
+	}
+
+	// Release fixup multi-stage vertex shader
+	if (fixupMultiStageVertexShader)
+	{
+		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 fixup multi-stage vertex shader";
+		ULONG ref = fixupMultiStageVertexShader->Release();
+		if (ref)
+		{
+			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'fixupMultiStageVertexShader' " << ref;
+		}
+		fixupMultiStageVertexShader = nullptr;
 	}
 }
 

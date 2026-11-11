@@ -1193,6 +1193,7 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="ddraw\ProcessVertices.h" />
     <ClInclude Include="ddraw\Shaders\BrightnessPixelShader.h" />
     <ClInclude Include="ddraw\Shaders\ColorKeyPixelShader.h" />
+    <ClInclude Include="ddraw\Shaders\FixUpMultiStageVertexShader.h" />
     <ClInclude Include="ddraw\Shaders\GammaPixelShader.h" />
     <ClInclude Include="ddraw\Shaders\PalettePixelShader.h" />
     <ClInclude Include="ddraw\Shaders\FixUpVertexShader0.h" />
@@ -1414,6 +1415,14 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
       <FileType>Document</FileType>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpVertexShader8.hlsl main vs_2_0 FixUpVertexShader8Src"</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpVertexShader8.h</Outputs>
+      <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="ddraw\Shaders\FixUpMultiStageVertexShader.hlsl">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpMultiStageVertexShader.hlsl main vs_2_0 FixUpMultiStageVertexShaderSrc"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpMultiStageVertexShader.h</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
     </CustomBuild>
   </ItemGroup>

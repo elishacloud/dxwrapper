@@ -6818,7 +6818,16 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 	{
 		const int texCount = (dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
 
-		IDirect3DVertexShader9* pShader = ddrawParent->GetFixupVertexShader(texCount);
+		const bool UseMultiStageShader = texCount == 1 && (
+			CurrentTextureSurfaceX[1] != nullptr ||
+			CurrentTextureSurfaceX[2] != nullptr ||
+			CurrentTextureSurfaceX[3] != nullptr ||
+			CurrentTextureSurfaceX[4] != nullptr ||
+			CurrentTextureSurfaceX[5] != nullptr ||
+			CurrentTextureSurfaceX[6] != nullptr ||
+			CurrentTextureSurfaceX[7] != nullptr);
+
+		IDirect3DVertexShader9* pShader = UseMultiStageShader ? ddrawParent->GetMultiStageFixupVertexShader() : ddrawParent->GetFixupVertexShader(texCount);
 		IDirect3DVertexDeclaration9* decl = ddrawParent->GetVertexDeclaration(dwVertexTypeDesc);
 
 		if (pShader && decl)
@@ -6859,6 +6868,7 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 
 				(*d3d9Device)->SetVertexShaderConstantF(0, offset, 1);
 				(*d3d9Device)->SetVertexShaderConstantF(1, multiplier, 1);
+				(*d3d9Device)->SetVertexShaderConstantI(2, &texCount, 1);
 
 				(*d3d9Device)->SetVertexShader(pShader);
 

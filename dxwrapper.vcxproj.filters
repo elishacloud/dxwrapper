@@ -1853,6 +1853,9 @@
     <ClInclude Include="ddraw\Shaders\FixUpVertexShader0.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
+    <ClInclude Include="ddraw\Shaders\FixUpMultiStageVertexShader.h">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Dllmain\BuildNo.rc">
@@ -1900,6 +1903,9 @@
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
     <CustomBuild Include="ddraw\Shaders\FixUpVertexShader0.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ddraw\Shaders\FixUpMultiStageVertexShader.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
   </ItemGroup>
