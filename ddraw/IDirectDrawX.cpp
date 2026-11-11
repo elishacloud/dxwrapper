@@ -4314,13 +4314,12 @@ void m_IDirectDrawX::GetD9Cache()
 		d3d9Object->GetDeviceCaps(d3d9AdapterIndex, D3DDEVTYPE_HAL, &D9Cache.Caps9);
 
 		// Get supported FourCC types
-		for (const auto& format : FourCCTypes)
+		for (const auto& Format : FourCCTypes)
 		{
-			if (!IsUnsupportedFormat(format) &&
-				(SUCCEEDED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, 0, D3DRTYPE_SURFACE, format)) ||
-					SUCCEEDED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, 0, D3DRTYPE_SURFACE, GetFailoverFormat(format)))))
+			if (!IsUnsupportedFormat(Format) &&
+				SUCCEEDED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, 0, D3DRTYPE_SURFACE, Format)))
 			{
-				D9Cache.FourCCsList.push_back(format);
+				D9Cache.FourCCsList.push_back(Format);
 			}
 		}
 
@@ -4396,13 +4395,14 @@ void m_IDirectDrawX::GetD9Cache()
 			}
 
 			// Get supported texture formats
-			for (const auto& format : TextureList)
+			for (const auto& Format : TextureList)
 			{
-				if (!IsUnsupportedFormat(format) &&
-					(SUCCEEDED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, 0, D3DRTYPE_TEXTURE, format)) ||
-						SUCCEEDED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, 0, D3DRTYPE_TEXTURE, GetFailoverFormat(format)))))
+				const D3DFORMAT TestFormat = Format == D3DFMT_P8 ? GetFailoverFormat(Format) : Format;
+				if (!IsUnsupportedFormat(Format) &&
+					(SUCCEEDED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, 0, D3DRTYPE_TEXTURE, Format)) ||
+						SUCCEEDED(d3d9Object->CheckDeviceFormat(d3d9AdapterIndex, D3DDEVTYPE_HAL, D9DisplayFormat, 0, D3DRTYPE_TEXTURE, TestFormat))))
 				{
-					D9Cache.TextureFormat.push_back(format);
+					D9Cache.TextureFormat.push_back(Format);
 				}
 			}
 		}

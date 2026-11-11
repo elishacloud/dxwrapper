@@ -8062,7 +8062,7 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 		{
 			PrepareRenderTarget();
 
-			D3DCOLOR RGBColorKey = GetARGBColorKey(ColorKey, pSourceSurface->surfaceDesc2.ddpfPixelFormat);
+			D3DCOLOR RGBColorKey = IsColorKey ? GetARGBColorKey(ColorKey, pSourceSurface->surfaceDesc2.ddpfPixelFormat) : 0;
 
 			hr = DrawSurfaceToRenderTarget(pSourceSurface, SrcRect, DestRect, Filter, SrcMipMapLevel, RGBColorKey, IsColorKey, IsMirrorLeftRight, IsMirrorUpDown);
 
@@ -9308,7 +9308,13 @@ HRESULT m_IDirectDrawSurfaceX::CopyToDrawTexture(LPRECT lpDestRect, D3DCOLOR RGB
 		}
 	}
 
-	if (FAILED(D3DXLoadSurfaceFromSurface(DestSurface.Get(), nullptr, lpDestRect, SrcSurface, surface.PaletteEntryArray, lpDestRect, D3DX_FILTER_NONE, RGBColorKey)))
+	if (IsUsingEmulation() &&
+		FAILED(D3DXLoadSurfaceFromMemory(DestSurface.Get(), nullptr, lpDestRect, surface.emu->pBits, surface.emu->Format, surface.emu->Pitch, surface.PaletteEntryArray, lpDestRect, D3DX_FILTER_NONE, RGBColorKey)))
+	{
+		Logging::Log() << __FUNCTION__ " Error: failed to copy data from emulated surface: " << surface.Format << " " << (void*)RGBColorKey << " " << lpDestRect;
+		return DDERR_GENERIC;
+	}
+	else if (FAILED(D3DXLoadSurfaceFromSurface(DestSurface.Get(), nullptr, lpDestRect, SrcSurface, surface.PaletteEntryArray, lpDestRect, D3DX_FILTER_NONE, RGBColorKey)))
 	{
 		Logging::Log() << __FUNCTION__ " Error: failed to copy data from surface: " << surface.Format << " " << (void*)RGBColorKey << " " << lpDestRect;
 		return DDERR_GENERIC;
@@ -9437,7 +9443,8 @@ HRESULT m_IDirectDrawSurfaceX::CopyFromEmulatedSurface(LPRECT lpDestRect)
 	}
 
 	// LoadSurfaceFromMemory to copy to the surface
-	if (FAILED(LoadSurfaceFromMemory(pDestSurfaceD9, DestRect, surface.emu->pBits, (surface.Format == D3DFMT_P8) ? D3DFMT_L8 : surface.Format, surface.emu->Pitch)))
+	const D3DFORMAT Format = surface.Format == D3DFMT_P8 ? GetFailoverFormat(surface.Format) : surface.Format;
+	if (FAILED(LoadSurfaceFromMemory(pDestSurfaceD9, DestRect, surface.emu->pBits, Format, surface.emu->Pitch)))
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: could not copy emulated surface: " << surface.Format);
 		return DDERR_GENERIC;
