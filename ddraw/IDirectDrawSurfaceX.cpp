@@ -5573,15 +5573,6 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 {
 	ScopedCriticalSection ThreadLockPE(DdrawWrapper::GetPECriticalSection());
 
-	// Check if color masks are needed
-	bool ColorMaskReq = ((surface.BitCount == 16 || surface.BitCount == 24 || surface.BitCount == 32) &&									// Only valid when used with 16 bit, 24 bit and 32 bit surfaces
-		(surfaceDesc2.ddpfPixelFormat.dwRBitMask || surfaceDesc2.ddpfPixelFormat.dwGBitMask || surfaceDesc2.ddpfPixelFormat.dwBBitMask));	// Check to make sure the masks actually exist
-
-	// Adjust Width to be byte-aligned
-	DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surface.BitCount);
-	DWORD Height = surfaceDesc2.dwHeight;
-	DWORD Pitch = ComputePitch(surface.Format, Width, surface.BitCount);
-
 	// Check if emulated surface already exists
 	if (surface.emu)
 	{
@@ -5639,69 +5630,103 @@ HRESULT m_IDirectDrawSurfaceX::CreateDCSurface()
 		}
 	}
 
+	// Check if color masks are needed
+	const bool ColorMaskReq = (surface.BitCount == 16 || surface.BitCount == 32) &&
+		(surfaceDesc2.ddpfPixelFormat.dwRBitMask || surfaceDesc2.ddpfPixelFormat.dwGBitMask || surfaceDesc2.ddpfPixelFormat.dwBBitMask);
+
+	// Adjust Width to be byte-aligned
+	DWORD Width = GetByteAlignedWidth(surfaceDesc2.dwWidth, surface.BitCount);
+	DWORD Height = surfaceDesc2.dwHeight;
+	DWORD Pitch = ((Width * surface.BitCount + 31) & ~31) / 8;
+
 	Logging::LogDebug() << __FUNCTION__ " (" << this << ") creating emulated surface. Size: " << Width << "x" << Height << " Format: " << surface.Format << " dwCaps: " << surfaceDesc2.ddsCaps;
 
 	// Create new emulated surface structure
 	surface.emu = new EMUSURFACE;
 
-	// Create device context memory
-	ZeroMemory(surface.emu->bmiMemory, sizeof(surface.emu->bmiMemory));
-	surface.emu->bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-	surface.emu->bmi->bmiHeader.biWidth = Width;
-	surface.emu->bmi->bmiHeader.biHeight = -((LONG)Height + (LONG)ExtraHeightPadding);
-	surface.emu->bmi->bmiHeader.biPlanes = 1;
-	surface.emu->bmi->bmiHeader.biBitCount = (WORD)surface.BitCount;
-	surface.emu->bmi->bmiHeader.biCompression =
-		(surface.BitCount == 8 || surface.BitCount == 24) ? BI_RGB :
-		(ColorMaskReq) ? BI_BITFIELDS : 0;	// BI_BITFIELDS is only valid for 16-bpp and 32-bpp bitmaps.
-	surface.emu->bmi->bmiHeader.biSizeImage = ((Width * surface.BitCount + 31) & ~31) / 8 * Height;
+	BITMAPINFO* bmi = surface.emu->bmi;
+
+	bmi->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bmi->bmiHeader.biWidth = Width;
+	bmi->bmiHeader.biHeight = -((LONG)Height + (LONG)ExtraHeightPadding);
+	bmi->bmiHeader.biPlanes = 1;
+	bmi->bmiHeader.biBitCount = (WORD)surface.BitCount;
+	bmi->bmiHeader.biSizeImage = Pitch * Height;
 
 	if (surface.BitCount == 8)
 	{
+		bmi->bmiHeader.biCompression = BI_RGB;
+
 		for (int i = 0; i < 256; i++)
 		{
-			surface.emu->bmi->bmiColors[i].rgbRed = (byte)i;
-			surface.emu->bmi->bmiColors[i].rgbGreen = (byte)i;
-			surface.emu->bmi->bmiColors[i].rgbBlue = (byte)i;
-			surface.emu->bmi->bmiColors[i].rgbReserved = 0;
+			bmi->bmiColors[i].rgbRed = (BYTE)i;
+			bmi->bmiColors[i].rgbGreen = (BYTE)i;
+			bmi->bmiColors[i].rgbBlue = (BYTE)i;
+			bmi->bmiColors[i].rgbReserved = 0;
 		}
+	}
+	else if (surface.BitCount == 24)
+	{
+		bmi->bmiHeader.biCompression = BI_RGB;
 	}
 	else if (ColorMaskReq)
 	{
-		((DWORD*)surface.emu->bmi->bmiColors)[0] = surfaceDesc2.ddpfPixelFormat.dwRBitMask;
-		((DWORD*)surface.emu->bmi->bmiColors)[1] = surfaceDesc2.ddpfPixelFormat.dwGBitMask;
-		((DWORD*)surface.emu->bmi->bmiColors)[2] = surfaceDesc2.ddpfPixelFormat.dwBBitMask;
-		((DWORD*)surface.emu->bmi->bmiColors)[3] = surfaceDesc2.ddpfPixelFormat.dwRGBAlphaBitMask;
+		// BI_BITFIELDS is only valid for 16-bpp and 32-bpp bitmaps.
+		bmi->bmiHeader.biCompression = BI_BITFIELDS;
+
+		BITMAPV4HEADER& bmiv4 = *reinterpret_cast<BITMAPV4HEADER*>(surface.emu->bmi);
+
+		bmiv4.bV4Size = sizeof(BITMAPV4HEADER);
+		bmiv4.bV4CSType = LCS_sRGB;		// Optional: recommended for standard RGB
+		bmiv4.bV4RedMask = surfaceDesc2.ddpfPixelFormat.dwRBitMask;
+		bmiv4.bV4GreenMask = surfaceDesc2.ddpfPixelFormat.dwGBitMask;
+		bmiv4.bV4BlueMask = surfaceDesc2.ddpfPixelFormat.dwBBitMask;
+		bmiv4.bV4AlphaMask = surfaceDesc2.ddpfPixelFormat.dwRGBAlphaBitMask;
 	}
 	else
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to set bmi colors! " << surface.Format << " " << surface.BitCount);
+
 		DeleteEmulatedMemory(&surface.emu);
 		return DDERR_GENERIC;
 	}
-	HDC hDC = ddrawParent->GetDC();
-	surface.emu->DC = CreateCompatibleDC(hDC);
-	surface.emu->GameDC = CreateCompatibleDC(hDC);
+
+	// Create a memory DC
+	surface.emu->DC = CreateCompatibleDC(nullptr);
+	surface.emu->GameDC = CreateCompatibleDC(nullptr);
+
 	if (!surface.emu->DC || !surface.emu->GameDC)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create compatible DC: " << hDC << " " << surface.Format);
+		DWORD Error = GetLastError();
+		LOG_LIMIT(100, __FUNCTION__ << " CreateCompatibleDC failed: " << Error);
+
 		DeleteEmulatedMemory(&surface.emu);
 		return DDERR_GENERIC;
 	}
-	surface.emu->bitmap = CreateDIBSection(surface.emu->DC, surface.emu->bmi, (surface.BitCount == 8) ? DIB_PAL_COLORS : DIB_RGB_COLORS, (void**)&surface.emu->pBits, nullptr, 0);
-	if (!surface.emu->bitmap)
+
+	// Create DIB section
+	surface.emu->bitmap = CreateDIBSection(nullptr, surface.emu->bmi, DIB_RGB_COLORS, &surface.emu->pBits, nullptr, 0);
+
+	if (!surface.emu->bitmap || !surface.emu->pBits)
 	{
-		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to create bitmap!");
+		DWORD Error = GetLastError();
+		LOG_LIMIT(100, __FUNCTION__ << " CreateDIBSection failed: " << Error);
+
 		DeleteEmulatedMemory(&surface.emu);
 		return DDERR_GENERIC;
 	}
+
+	// Select bitmap into DC
 	surface.emu->OldDCObject = SelectObject(surface.emu->DC, surface.emu->bitmap);
+
 	if (!surface.emu->OldDCObject || surface.emu->OldDCObject == HGDI_ERROR)
 	{
 		LOG_LIMIT(100, __FUNCTION__ << " Error: failed to replace object in DC!");
+
 		DeleteEmulatedMemory(&surface.emu);
 		return DDERR_GENERIC;
 	}
+
 	surface.emu->bmi->bmiHeader.biHeight = -(LONG)Height;
 	surface.emu->Format = surface.Format;
 	surface.emu->Pitch = Pitch;
@@ -8602,9 +8627,9 @@ inline HRESULT m_IDirectDrawSurfaceX::CopySurface(m_IDirectDrawSurfaceX* pSource
 		hr = DD_OK;
 	} while (false);
 
-	// Remove scanlines before unlocking surface
 	if (SUCCEEDED(hr))
 	{
+		// Remove scanlines before unlocking surface
 		if (Config.DdrawRemoveScanlines && IsPrimaryOrBackBuffer())
 		{
 			LASTLOCK LLock;
