@@ -26,8 +26,15 @@
 #include "Shaders\ColorKeyPixelShader.h"
 #include "Shaders\BrightnessPixelShader.h"
 #include "Shaders\GammaPixelShader.h"
-#include "Shaders\FixUpVertexShader.h"
-#include "Shaders\FixUpMultiStageVertexShader.h"
+#include "Shaders\FixUpVertexShader0.h"
+#include "Shaders\FixUpVertexShader1.h"
+#include "Shaders\FixUpVertexShader2.h"
+#include "Shaders\FixUpVertexShader3.h"
+#include "Shaders\FixUpVertexShader4.h"
+#include "Shaders\FixUpVertexShader5.h"
+#include "Shaders\FixUpVertexShader6.h"
+#include "Shaders\FixUpVertexShader7.h"
+#include "Shaders\FixUpVertexShader8.h"
 
 namespace {
 	// Store a list of ddraw devices
@@ -133,8 +140,19 @@ namespace {
 	LPDIRECT3DPIXELSHADER9 palettePixelShader = nullptr;
 	LPDIRECT3DPIXELSHADER9 colorkeyPixelShader = nullptr;
 	LPDIRECT3DPIXELSHADER9 gammaPixelShader = nullptr;
-	LPDIRECT3DVERTEXSHADER9 fixupVertexShader = nullptr;
-	LPDIRECT3DVERTEXSHADER9 fixupMultiStageVertexShader = nullptr;
+	DWORD* FixUpVertexShaderSrc[] = {
+		(DWORD*)FixUpVertexShader0Src,
+		(DWORD*)FixUpVertexShader1Src,
+		(DWORD*)FixUpVertexShader2Src,
+		(DWORD*)FixUpVertexShader3Src,
+		(DWORD*)FixUpVertexShader4Src,
+		(DWORD*)FixUpVertexShader5Src,
+		(DWORD*)FixUpVertexShader6Src,
+		(DWORD*)FixUpVertexShader7Src,
+		(DWORD*)FixUpVertexShader8Src
+	};
+	constexpr UINT MaxVertexShader = sizeof(FixUpVertexShaderSrc) / sizeof(DWORD*);
+	LPDIRECT3DVERTEXSHADER9 fixupVertexShader[MaxVertexShader] = {};
 	std::unordered_map<DWORD, DX_VERTEX_BUFFER> VertexBuffer;
 	constexpr UINT IndexBufferRotationSize = 2;
 	constexpr DWORD IndexBufferMinChunkSize = 512;
@@ -3458,24 +3476,16 @@ LPDIRECT3DPIXELSHADER9 m_IDirectDrawX::GetGammaPixelShader()
 	return gammaPixelShader;
 }
 
-LPDIRECT3DVERTEXSHADER9 m_IDirectDrawX::GetFixupVertexShader()
+LPDIRECT3DVERTEXSHADER9 m_IDirectDrawX::GetFixupVertexShader(DWORD texCount)
 {
-	// Create vertex shader
-	if (d3d9Device && !fixupVertexShader)
-	{
-		d3d9Device->CreateVertexShader((DWORD*)FixUpVertexShaderSrc, &fixupVertexShader);
-	}
-	return fixupVertexShader;
-}
+	const DWORD t = min(texCount, MaxVertexShader - 1);
 
-LPDIRECT3DVERTEXSHADER9 m_IDirectDrawX::GetMultiStageFixupVertexShader()
-{
 	// Create vertex shader
-	if (d3d9Device && !fixupMultiStageVertexShader)
+	if (d3d9Device && !fixupVertexShader[t])
 	{
-		d3d9Device->CreateVertexShader((DWORD*)FixUpMultiStageVertexShaderSrc, &fixupMultiStageVertexShader);
+		d3d9Device->CreateVertexShader(FixUpVertexShaderSrc[t], &fixupVertexShader[t]);
 	}
-	return fixupMultiStageVertexShader;
+	return fixupVertexShader[t];
 }
 
 LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetVertexBuffer(DWORD FVF, UINT Length, void* lpData)
@@ -5003,27 +5013,18 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 	}
 
 	// Release fixup vertex shader
-	if (fixupVertexShader)
+	for (UINT t = 0; t < MaxVertexShader; t++)
 	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 fixup vertex shader";
-		ULONG ref = fixupVertexShader->Release();
-		if (ref)
+		if (fixupVertexShader[t])
 		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'fixupVertexShader' " << ref;
+			Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 fixup vertex shader";
+			ULONG ref = fixupVertexShader[t]->Release();
+			if (ref)
+			{
+				Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'fixupVertexShader' " << ref;
+			}
+			fixupVertexShader[t] = nullptr;
 		}
-		fixupVertexShader = nullptr;
-	}
-
-	// Release fixup multi-stage vertex shader
-	if (fixupMultiStageVertexShader)
-	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 fixup multi-stage vertex shader";
-		ULONG ref = fixupMultiStageVertexShader->Release();
-		if (ref)
-		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'fixupMultiStageVertexShader' " << ref;
-		}
-		fixupMultiStageVertexShader = nullptr;
 	}
 }
 
