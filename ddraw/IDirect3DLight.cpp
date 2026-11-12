@@ -283,6 +283,11 @@ void m_IDirect3DLight::ReleaseInterface()
 		return;
 	}
 
+	if (Viewport)
+	{
+		Viewport->ClearLight(this);
+	}
+
 	if (D3DInterface)
 	{
 		D3DInterface->ClearLight(this);
