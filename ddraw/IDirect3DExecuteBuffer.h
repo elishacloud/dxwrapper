@@ -81,6 +81,9 @@ public:
 	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
 	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
+	/*** AddressLookupTable methods ***/
+	void DeleteMe() override;
+
 	/*** IDirect3DExecuteBuffer methods ***/
 	IFACEMETHOD(Initialize)(THIS_ LPDIRECT3DDEVICE, LPD3DEXECUTEBUFFERDESC) override;
 	IFACEMETHOD(Lock)(THIS_ LPD3DEXECUTEBUFFERDESC) override;

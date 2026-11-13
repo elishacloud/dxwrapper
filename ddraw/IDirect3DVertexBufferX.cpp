@@ -137,6 +137,16 @@ ULONG m_IDirect3DVertexBufferX::Release(DWORD DirectXVersion)
 }
 
 // ******************************
+// AddressLookupTable functions
+// ******************************
+void m_IDirect3DVertexBufferX::DeleteMe()
+{
+	RefCount1 = 0;
+	RefCount7 = 0;
+	Release(1);
+}
+
+// ******************************
 // IDirect3DVertexBuffer v1 functions
 // ******************************
 

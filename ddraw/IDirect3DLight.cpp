@@ -113,6 +113,15 @@ ULONG m_IDirect3DLight::Release()
 }
 
 // ******************************
+// AddressLookupTable functions
+// ******************************
+void m_IDirect3DLight::DeleteMe()
+{
+	RefCount = 0;
+	Release();
+}
+
+// ******************************
 // IDirect3DLight functions
 // ******************************
 

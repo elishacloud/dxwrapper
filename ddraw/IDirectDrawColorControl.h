@@ -73,6 +73,9 @@ public:
 	IFACEMETHOD_(ULONG, AddRef) (THIS) override;
 	IFACEMETHOD_(ULONG, Release) (THIS) override;
 
+	/*** AddressLookupTable methods ***/
+	void DeleteMe() override;
+
 	/*** IDirectDrawColorControl methods ***/
 	IFACEMETHOD(GetColorControls)(THIS_ LPDDCOLORCONTROL) override;
 	IFACEMETHOD(SetColorControls)(THIS_ LPDDCOLORCONTROL) override;

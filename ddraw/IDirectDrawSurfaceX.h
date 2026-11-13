@@ -448,6 +448,9 @@ public:
 	STDMETHOD_(ULONG, AddRef) (THIS) { return AddRef(0); }
 	STDMETHOD_(ULONG, Release) (THIS) { return Release(0); }
 
+	/*** AddressLookupTable methods ***/
+	void DeleteMe() override;
+
 	/*** IDirectDrawSurface methods ***/
 	STDMETHOD(AddAttachedSurface)(THIS_ LPDIRECTDRAWSURFACE7, DWORD);
 	STDMETHOD(AddOverlayDirtyRect)(THIS_ LPRECT);

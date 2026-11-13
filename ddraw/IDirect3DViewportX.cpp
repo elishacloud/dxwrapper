@@ -147,6 +147,17 @@ ULONG m_IDirect3DViewportX::Release(DWORD DirectXVersion)
 }
 
 // ******************************
+// AddressLookupTable functions
+// ******************************
+void m_IDirect3DViewportX::DeleteMe()
+{
+	RefCount1 = 0;
+	RefCount2 = 0;
+	RefCount3 = 0;
+	Release(1);
+}
+
+// ******************************
 // IDirect3DViewport v1 functions
 // ******************************
 

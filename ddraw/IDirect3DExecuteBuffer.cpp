@@ -117,6 +117,15 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 }
 
 // ******************************
+// AddressLookupTable functions
+// ******************************
+void m_IDirect3DExecuteBuffer::DeleteMe()
+{
+	RefCount = 0;
+	Release();
+}
+
+// ******************************
 // IDirect3DExecuteBuffer functions
 // ******************************
 

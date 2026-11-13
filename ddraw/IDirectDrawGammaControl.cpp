@@ -113,6 +113,15 @@ ULONG m_IDirectDrawGammaControl::Release()
 }
 
 // ******************************
+// AddressLookupTable functions
+// ******************************
+void m_IDirectDrawGammaControl::DeleteMe()
+{
+	RefCount = 0;
+	Release();
+}
+
+// ******************************
 // IDirectDrawGammaControl functions
 // ******************************
 

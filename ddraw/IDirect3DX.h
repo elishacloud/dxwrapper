@@ -120,6 +120,9 @@ public:
 	STDMETHOD_(ULONG, AddRef) (THIS) { return AddRef(0); }
 	STDMETHOD_(ULONG, Release) (THIS) { return Release(0); }
 
+	/*** AddressLookupTable methods ***/
+	void DeleteMe() override;
+
 	/*** IDirect3D methods ***/
 	STDMETHOD(Initialize)(THIS_ REFCLSID);
 	HRESULT EnumDevices(LPD3DENUMDEVICESCALLBACK, LPVOID, DWORD);

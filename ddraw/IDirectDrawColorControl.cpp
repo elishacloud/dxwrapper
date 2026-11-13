@@ -113,6 +113,15 @@ ULONG m_IDirectDrawColorControl::Release()
 }
 
 // ******************************
+// AddressLookupTable functions
+// ******************************
+void m_IDirectDrawColorControl::DeleteMe()
+{
+	RefCount = 0;
+	Release();
+}
+
+// ******************************
 // IDirectDrawColorControl functions
 // ******************************
 

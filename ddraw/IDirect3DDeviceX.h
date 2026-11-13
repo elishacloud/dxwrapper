@@ -441,6 +441,9 @@ public:
 	STDMETHOD_(ULONG, AddRef) (THIS) { return AddRef(0); }
 	STDMETHOD_(ULONG, Release) (THIS) { return Release(0); }
 
+	/*** AddressLookupTable methods ***/
+	void DeleteMe() override;
+
 	/*** IDirect3DDevice methods ***/
 	STDMETHOD(Initialize)(THIS_ LPDIRECT3D, LPGUID, LPD3DDEVICEDESC);
 	STDMETHOD(CreateExecuteBuffer)(THIS_ LPD3DEXECUTEBUFFERDESC, LPDIRECT3DEXECUTEBUFFER*, IUnknown*);

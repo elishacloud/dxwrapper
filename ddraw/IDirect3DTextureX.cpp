@@ -162,6 +162,16 @@ ULONG m_IDirect3DTextureX::Release(DWORD DirectXVersion)
 }
 
 // ******************************
+// AddressLookupTable functions
+// ******************************
+void m_IDirect3DTextureX::DeleteMe()
+{
+	RefCount1 = 0;
+	RefCount2 = 0;
+	Release(1);
+}
+
+// ******************************
 // IDirect3DTexture functions
 // ******************************
 

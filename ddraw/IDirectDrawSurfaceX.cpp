@@ -399,6 +399,19 @@ ULONG m_IDirectDrawSurfaceX::Release(DWORD DirectXVersion)
 }
 
 // ******************************
+// AddressLookupTable functions
+// ******************************
+void m_IDirectDrawSurfaceX::DeleteMe()
+{
+	RefCount1 = 0;
+	RefCount2 = 0;
+	RefCount3 = 0;
+	RefCount4 = 0;
+	RefCount7 = 0;
+	Release(1);
+}
+
+// ******************************
 // IDirectDrawSurface v1 functions
 // ******************************
 

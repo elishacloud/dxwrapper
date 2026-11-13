@@ -105,6 +105,9 @@ public:
 	STDMETHOD_(ULONG, AddRef) (THIS) { return AddRef(0); }
 	STDMETHOD_(ULONG, Release) (THIS) { return Release(0); }
 
+	/*** AddressLookupTable methods ***/
+	void DeleteMe() override;
+
 	/*** IDirect3DVertexBuffer methods ***/
 	STDMETHOD(Lock)(THIS_ DWORD, LPVOID*, LPDWORD);
 	STDMETHOD(Unlock)(THIS);

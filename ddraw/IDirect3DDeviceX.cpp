@@ -174,6 +174,18 @@ ULONG m_IDirect3DDeviceX::Release(DWORD DirectXVersion)
 }
 
 // ******************************
+// AddressLookupTable functions
+// ******************************
+void m_IDirect3DDeviceX::DeleteMe()
+{
+	RefCount1 = 0;
+	RefCount2 = 0;
+	RefCount3 = 0;
+	RefCount7 = 0;
+	Release(1);
+}
+
+// ******************************
 // IDirect3DDevice v1 functions
 // ******************************
 

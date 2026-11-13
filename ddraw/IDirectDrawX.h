@@ -158,6 +158,9 @@ public:
 	STDMETHOD_(ULONG, AddRef) (THIS) { return AddRef(0); }
 	STDMETHOD_(ULONG, Release) (THIS) { return Release(0); }
 
+	/*** AddressLookupTable methods ***/
+	void DeleteMe() override;
+
 	/*** IDirectDraw methods ***/
 	STDMETHOD(Compact)(THIS);
 	STDMETHOD(CreateClipper)(THIS_ DWORD, LPDIRECTDRAWCLIPPER FAR *, IUnknown FAR *, DWORD);

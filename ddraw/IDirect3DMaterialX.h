@@ -76,6 +76,9 @@ public:
 	STDMETHOD_(ULONG, AddRef) (THIS) { return AddRef(0); }
 	STDMETHOD_(ULONG, Release) (THIS) { return Release(0); }
 
+	/*** AddressLookupTable methods ***/
+	void DeleteMe() override;
+
 	/*** IDirect3DMaterial methods ***/
 	STDMETHOD(Initialize)(THIS_ LPDIRECT3D);
 	STDMETHOD(SetMaterial)(THIS_ LPD3DMATERIAL);

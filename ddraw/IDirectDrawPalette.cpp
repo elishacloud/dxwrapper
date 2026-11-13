@@ -114,6 +114,15 @@ ULONG m_IDirectDrawPalette::Release()
 }
 
 // ******************************
+// AddressLookupTable functions
+// ******************************
+void m_IDirectDrawPalette::DeleteMe()
+{
+	RefCount = 0;
+	Release();
+}
+
+// ******************************
 // IDirectDrawPalette functions
 // ******************************
 

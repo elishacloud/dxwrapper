@@ -1,7 +1,5 @@
 #pragma once
 
-#include <unordered_map>
-#include <algorithm>
 #include "ddraw.h"
 
 template <typename D>
@@ -632,6 +630,8 @@ private:
 public:
 	virtual ~AddressLookupTableDdrawObject() {}
 
+	virtual void DeleteMe() {}
+
 	void PreserveMe()
 	{
 		KeepInterface = true;
@@ -639,9 +639,5 @@ public:
 	bool KeepMe() const
 	{
 		return KeepInterface;
-	}
-	void DeleteMe()
-	{
-		delete this;
 	}
 };

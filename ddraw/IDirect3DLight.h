@@ -74,6 +74,9 @@ public:
 	IFACEMETHOD_(ULONG, AddRef)(THIS) override;
 	IFACEMETHOD_(ULONG, Release)(THIS) override;
 
+	/*** AddressLookupTable methods ***/
+	void DeleteMe() override;
+
 	/*** IDirect3DLight methods ***/
 	IFACEMETHOD(Initialize)(THIS_ LPDIRECT3D) override;
 	IFACEMETHOD(SetLight)(THIS_ LPD3DLIGHT) override;

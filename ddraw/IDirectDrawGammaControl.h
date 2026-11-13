@@ -72,6 +72,9 @@ public:
 	IFACEMETHOD_(ULONG, AddRef) (THIS) override;
 	IFACEMETHOD_(ULONG, Release) (THIS) override;
 
+	/*** AddressLookupTable methods ***/
+	void DeleteMe() override;
+
 	/*** IDirectDrawGammaControl methods ***/
 	IFACEMETHOD(GetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP) override;
 	IFACEMETHOD(SetGammaRamp)(THIS_ DWORD, LPDDGAMMARAMP) override;

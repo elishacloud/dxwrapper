@@ -113,6 +113,9 @@ public:
 	IFACEMETHOD_(ULONG, AddRef) (THIS) override;
 	IFACEMETHOD_(ULONG, Release) (THIS) override;
 
+	/*** AddressLookupTable methods ***/
+	void DeleteMe() override;
+
 	/*** IDirectDrawPalette methods ***/
 	IFACEMETHOD(GetCaps)(THIS_ LPDWORD) override;
 	IFACEMETHOD(GetEntries)(THIS_ DWORD, DWORD, DWORD, LPPALETTEENTRY) override;

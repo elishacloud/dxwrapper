@@ -113,6 +113,15 @@ ULONG m_IDirectDrawClipper::Release()
 }
 
 // ******************************
+// AddressLookupTable functions
+// ******************************
+void m_IDirectDrawClipper::DeleteMe()
+{
+	RefCount = 0;
+	Release();
+}
+
+// ******************************
 // IDirectDrawClipper functions
 // ******************************
 

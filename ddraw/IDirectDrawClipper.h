@@ -80,6 +80,9 @@ public:
 	IFACEMETHOD_(ULONG, AddRef) (THIS) override;
 	IFACEMETHOD_(ULONG, Release) (THIS) override;
 
+	/*** AddressLookupTable methods ***/
+	void DeleteMe() override;
+
 	/*** IDirectDrawClipper methods ***/
 	IFACEMETHOD(GetClipList)(THIS_ LPRECT, LPRGNDATA, LPDWORD) override;
 	IFACEMETHOD(GetHWnd)(THIS_ HWND FAR *) override;

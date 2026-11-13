@@ -10,11 +10,13 @@
 #include "ddraw\ddrawExternal.h"
 #include <d3d.h>
 #include <d3dhal.h>
+#include "External\DirectXMath\Inc\DirectXMath.h"
 #include <memory>
 #include <array>
 #include <unordered_map>
 #include <unordered_set>
 #include <optional>
+#include <algorithm>
 
 // Enable for testing
 //#define ENABLE_PROFILING
@@ -62,7 +64,6 @@ class m_IDirectDrawPalette;
 class m_IDirectDrawColorControl;
 class m_IDirectDrawGammaControl;
 
-#include "External\DirectXMath\Inc\DirectXMath.h"
 #include "AddressLookupTable.h"
 #include "External\dinputto8\ModuleObjectCount.h"
 #include "IClassFactory\IClassFactory.h"
