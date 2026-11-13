@@ -1538,7 +1538,7 @@ HRESULT ProcessVerticesSW(m_IDirect3DDeviceX* pDirect3DDeviceX, LPVOID lpSrcBuff
 	{
 		D3DVECTOR* Scale = pDirect3DDeviceX->GetViewportScale();
 		D3DVECTOR* Clip = pDirect3DDeviceX->GetViewportClip();
-		GetLegacyProjectionMatrix(*Scale, *Clip, 0);
+		correction = GetLegacyProjectionMatrix(*Scale, *Clip, 0);
 	}
 
 	ProcessVerticesData pvData = {};
