@@ -15,11 +15,7 @@ VS main(const VS i)
     const float max_rhw = 1U << 31;
     const float min_rhw = 1.0f / max_rhw;
 
-    // Avoid division by zero while preserving negative RHW
-    const float rhw = i.pos.w < 0.0f
-        ? -clamp(-i.pos.w, min_rhw, max_rhw) : i.pos.w > 0.0f
-        ? clamp(i.pos.w, min_rhw, max_rhw) : 1.0f;
-
+    const float rhw = clamp(i.pos.w, min_rhw, max_rhw);
     const float w = 1.0f / rhw;
 
     VS o = i;
