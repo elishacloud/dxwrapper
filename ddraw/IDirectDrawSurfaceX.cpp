@@ -8707,7 +8707,7 @@ inline HRESULT m_IDirectDrawSurfaceX::DrawSurfaceToRenderTarget(m_IDirectDrawSur
 
 	// The source must be usable as a texture.
 	IDirect3DTexture9* pTexture =
-		!IsColorKey && pSourceSurface->surface.Texture
+		pSourceSurface->surface.Texture && !IsColorKey && !pSourceSurface->IsPalette()
 		? pSourceSurface->surface.Texture
 		: pSourceSurface->GetD9DrawTexture(RGBColorKey, IsColorKey);
 
