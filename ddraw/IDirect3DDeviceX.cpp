@@ -3469,6 +3469,13 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 			return DDERR_GENERIC;
 		}
 
+		LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = ddrawParent->GetIndexBuffer(lpwIndices, dwIndexCount);
+		if (!d3d9IndexBuffer)
+		{
+			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 index buffer!");
+			return DDERR_GENERIC;
+		}
+
 		DWORD dwVertexTypeDesc = pVertexBufferX->GetFVF();
 
 		// Set vertex type
@@ -3476,13 +3483,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Error: Could not set vertex FVF: " << dwVertexTypeDesc);
 			return DDERR_INVALIDPARAMS;
-		}
-
-		LPDIRECT3DINDEXBUFFER9 d3d9IndexBuffer = ddrawParent->GetIndexBuffer(lpwIndices, dwIndexCount);
-		if (!d3d9IndexBuffer)
-		{
-			LOG_LIMIT(100, __FUNCTION__ << " Error: could not get d3d9 index buffer!");
-			return DDERR_GENERIC;
 		}
 
 		// Set stream source
@@ -6864,15 +6864,20 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 					1.0f
 				};
 
-				dwFlags |= D3DDP_DXW_VERTEXFIXUPSHADER;
+				HRESULT hr = (*d3d9Device)->SetVertexDeclaration(decl);
 
-				(*d3d9Device)->SetVertexShaderConstantF(0, offset, 1);
-				(*d3d9Device)->SetVertexShaderConstantF(1, multiplier, 1);
-				(*d3d9Device)->SetVertexShaderConstantI(2, &texCount, 1);
+				if (SUCCEEDED(hr))
+				{
+					dwFlags |= D3DDP_DXW_VERTEXFIXUPSHADER;
 
-				(*d3d9Device)->SetVertexShader(pShader);
+					(*d3d9Device)->SetVertexShaderConstantF(0, offset, 1);
+					(*d3d9Device)->SetVertexShaderConstantF(1, multiplier, 1);
+					(*d3d9Device)->SetVertexShaderConstantI(2, &texCount, 1);
 
-				return (*d3d9Device)->SetVertexDeclaration(decl);
+					(*d3d9Device)->SetVertexShader(pShader);
+				}
+
+				return hr;
 			}
 		}
 
