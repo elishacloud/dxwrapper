@@ -6319,7 +6319,7 @@ bool m_IDirectDrawX::CheckDirectDrawXInterface(void* pInterface)
 HRESULT m_IDirectDrawX::TriggerDeviceReset(HWND hWnd)
 {
 	// If incorrect param or incorrect device
-	if (!IsExclusiveMode() || !CreationInterface || hWnd != presParams.hDeviceWindow || !IsWindow(DisplayMode.hWnd))
+	if (hWnd != presParams.hDeviceWindow || !d3d9Device || !IsWindow(DisplayMode.hWnd) || !IsExclusiveMode())
 	{
 		return DD_OK;
 	}
@@ -6329,7 +6329,7 @@ HRESULT m_IDirectDrawX::TriggerDeviceReset(HWND hWnd)
 	// Remove ddraw device
 	for (const auto& pDDraw : DDrawVector)
 	{
-		if (pDDraw == CreationInterface)
+		if (!CreationInterface || pDDraw == CreationInterface)
 		{
 			return pDDraw->ResetD9Device();
 		}
@@ -6341,7 +6341,7 @@ HRESULT m_IDirectDrawX::TriggerDeviceReset(HWND hWnd)
 void m_IDirectDrawX::TriggerDeviceRelease(HWND hWnd)
 {
 	// If incorrect param or incorrect device
-	if (!CreationInterface || hWnd != presParams.hDeviceWindow || !IsWindow(DisplayMode.hWnd))
+	if (hWnd != presParams.hDeviceWindow || !d3d9Device)
 	{
 		return;
 	}
@@ -6351,7 +6351,7 @@ void m_IDirectDrawX::TriggerDeviceRelease(HWND hWnd)
 	// Remove ddraw device
 	for (const auto& pDDraw : DDrawVector)
 	{
-		if (pDDraw == CreationInterface)
+		if (!CreationInterface || pDDraw == CreationInterface)
 		{
 			pDDraw->ReleaseAllD9Resources(false, false);
 			pDDraw->ReleaseD9Device();
@@ -6359,10 +6359,32 @@ void m_IDirectDrawX::TriggerDeviceRelease(HWND hWnd)
 	}
 }
 
+void m_IDirectDrawX::ClearDestroyedWindow(HWND hWnd)
+{
+	if (hWnd != presParams.hDeviceWindow && hWnd != DisplayMode.hWnd)
+	{
+		return;
+	}
+
+	ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
+
+	// Close DDI
+	CloseD3DDDI();
+
+	// Release DC
+	if (IsWindow(DisplayMode.hWnd) && DisplayMode.DC)
+	{
+		ReleaseDC(DisplayMode.hWnd, DisplayMode.DC);
+	}
+	DisplayMode.DC = nullptr;
+	DisplayMode.hWnd = nullptr;
+	hMonitor = nullptr;
+}
+
 void m_IDirectDrawX::CheckFixWindowPos(HWND hWnd, WINDOWPOS* wPos)
 {
 	// If incorrect param or incorrect device
-	if (!wPos || !IsExclusiveMode() || !CreationInterface || hWnd != presParams.hDeviceWindow || !IsWindow(DisplayMode.hWnd))
+	if (!wPos || !IsExclusiveMode() || hWnd != presParams.hDeviceWindow || !IsWindow(DisplayMode.hWnd))
 	{
 		return;
 	}

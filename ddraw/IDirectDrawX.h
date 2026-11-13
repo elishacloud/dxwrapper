@@ -344,6 +344,7 @@ public:
 	static bool CheckDirectDrawXInterface(void* pInterface);
 	static HRESULT TriggerDeviceReset(HWND hWnd);
 	static void TriggerDeviceRelease(HWND hWnd);
+	static void ClearDestroyedWindow(HWND hWnd);
 	static void CheckFixWindowPos(HWND hWnd, WINDOWPOS* wPos);
 	static DWORD GetDisplayBPP(HMONITOR hMon);
 	static DWORD GetDDrawBitsPixel(HWND hWnd);

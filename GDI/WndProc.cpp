@@ -678,6 +678,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		if (pDataStruct->IsDirectDraw)
 		{
 			m_IDirectDrawX::TriggerDeviceRelease(hWnd);
+			m_IDirectDrawX::ClearDestroyedWindow(hWnd);
 		}
 
 		// Final WndProc call
