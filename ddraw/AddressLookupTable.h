@@ -521,6 +521,14 @@ public:
 		}
 		if (Interface)
 		{
+			// Check if interface already exists
+			{
+				auto& InterfaceList = AddressCacheIndex<T>::InterfaceList;
+				if (std::find(InterfaceList.begin(), InterfaceList.end(), Interface) != InterfaceList.end())
+				{
+					return nullptr;
+				}
+			}
 			if (!Config.DdrawKeepAllInterfaceCache)
 			{
 				bool KeepLooping;

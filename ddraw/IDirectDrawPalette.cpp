@@ -97,6 +97,7 @@ ULONG m_IDirectDrawPalette::Release()
 
 		if (ref == 0)
 		{
+			ReleaseInterface();
 			ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 		}
 
@@ -107,6 +108,7 @@ ULONG m_IDirectDrawPalette::Release()
 
 	if (ref == 0)
 	{
+		ReleaseInterface();
 		ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 	}
 
@@ -379,6 +381,8 @@ void m_IDirectDrawPalette::ReleaseInterface()
 	{
 		ddrawParent->ClearPalette(this);
 	}
+
+	ClearDdraw();
 }
 
 m_IDirectDrawPalette* m_IDirectDrawPalette::CreateDirectDrawPalette(IDirectDrawPalette* aOriginal, m_IDirectDrawX* NewParent, DWORD dwFlags, LPPALETTEENTRY lpDDColorArray)

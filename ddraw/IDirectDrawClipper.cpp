@@ -96,6 +96,7 @@ ULONG m_IDirectDrawClipper::Release()
 
 		if (ref == 0)
 		{
+			ReleaseInterface();
 			ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 		}
 
@@ -106,6 +107,7 @@ ULONG m_IDirectDrawClipper::Release()
 
 	if (ref == 0)
 	{
+		ReleaseInterface();
 		ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 	}
 
@@ -484,6 +486,10 @@ void m_IDirectDrawClipper::ReleaseInterface()
 	{
 		ddrawParent->ClearClipper(this);
 	}
+
+	m_IDirectDrawX::ClearClipperAllSurfaces(this);
+
+	ClearDdraw();
 }
 
 bool m_IDirectDrawClipper::CheckHwnd()

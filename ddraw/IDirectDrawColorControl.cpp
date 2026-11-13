@@ -96,6 +96,7 @@ ULONG m_IDirectDrawColorControl::Release()
 
 		if (ref == 0)
 		{
+			ReleaseInterface();
 			ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 		}
 
@@ -106,6 +107,7 @@ ULONG m_IDirectDrawColorControl::Release()
 
 	if (ref == 0)
 	{
+		ReleaseInterface();
 		ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 	}
 
@@ -207,6 +209,8 @@ void m_IDirectDrawColorControl::ReleaseInterface()
 	{
 		ddrawParent->ClearColorControl(this);
 	}
+
+	ClearDdraw();
 }
 
 m_IDirectDrawColorControl* m_IDirectDrawColorControl::CreateDirectDrawColorControl(IDirectDrawColorControl* aOriginal, m_IDirectDrawX* NewParent)

@@ -166,7 +166,7 @@ ULONG m_IDirect3DTextureX::Release(DWORD DirectXVersion)
 // ******************************
 void m_IDirect3DTextureX::DeleteMe()
 {
-	RefCount1 = 0;
+	RefCount1 = 1;
 	RefCount2 = 0;
 	Release(1);
 }

@@ -342,6 +342,7 @@ public:
 	// External static functions
 	static LPDIRECT3D9 GetD9Object();
 	static bool CheckDirectDrawXInterface(void* pInterface);
+	static void ClearClipperAllSurfaces(m_IDirectDrawClipper* lpClipper);
 	static HRESULT TriggerDeviceReset(HWND hWnd);
 	static void TriggerDeviceRelease(HWND hWnd);
 	static void ClearDestroyedWindow(HWND hWnd);

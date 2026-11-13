@@ -50,7 +50,7 @@ public:
 	}
 	m_IDirect3DTextureX(DWORD DirectXVersion, m_IDirectDrawSurfaceX *lpSurface, DWORD DXSurfaceVersion)
 	{
-		ProxyDirectXVersion = (Config.Dd7to9) ? 9 : 7;
+		ProxyDirectXVersion = (Config.Dd7to9) ? 9 : DdrawWrapper::GetGUIDVersion(GetWrapperType(DirectXVersion));
 
 		LOG_LIMIT(3, "Creating interface " << __FUNCTION__ << " (" << this << ")" << " converting interface from v" << DirectXVersion << " to v" << ProxyDirectXVersion);
 

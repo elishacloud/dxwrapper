@@ -151,7 +151,7 @@ ULONG m_IDirect3DViewportX::Release(DWORD DirectXVersion)
 // ******************************
 void m_IDirect3DViewportX::DeleteMe()
 {
-	RefCount1 = 0;
+	RefCount1 = 1;
 	RefCount2 = 0;
 	RefCount3 = 0;
 	Release(1);

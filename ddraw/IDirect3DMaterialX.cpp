@@ -147,7 +147,7 @@ ULONG m_IDirect3DMaterialX::Release(DWORD DirectXVersion)
 // ******************************
 void m_IDirect3DMaterialX::DeleteMe()
 {
-	RefCount1 = 0;
+	RefCount1 = 1;
 	RefCount2 = 0;
 	RefCount3 = 0;
 	Release(1);

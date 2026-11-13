@@ -371,12 +371,12 @@ ULONG m_IDirectDrawSurfaceX::Release(DWORD DirectXVersion)
 				if (IsSurfaceBusy())
 				{
 					Logging::Log() << __FUNCTION__ << " Warning: surface still in use! Locked: " << IsSurfaceLocked() << " DC: " << IsSurfaceInDC() << " Blt: " << IsSurfaceBlitting();
+					ReleaseD9AuxiliarySurfaces(false);
+					ReleaseDirectDrawResources();
 					if (ddrawParent)
 					{
 						ddrawParent->AddReleasedSurface(this);
 					}
-					ReleaseD9AuxiliarySurfaces(false);
-					ReleaseDirectDrawResources();
 				}
 				else
 				{
@@ -403,7 +403,7 @@ ULONG m_IDirectDrawSurfaceX::Release(DWORD DirectXVersion)
 // ******************************
 void m_IDirectDrawSurfaceX::DeleteMe()
 {
-	RefCount1 = 0;
+	RefCount1 = 1;
 	RefCount2 = 0;
 	RefCount3 = 0;
 	RefCount4 = 0;
@@ -4372,6 +4372,7 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 	if (Config.Dd7to9)
 	{
 		ReleaseD9Surface(false, false, false);
+		ReleaseDCSurface();
 	}
 
 	// Clean up mipmaps
@@ -4379,11 +4380,11 @@ void m_IDirectDrawSurfaceX::ReleaseInterface()
 	{
 		for (const auto& entry : MipMaps)
 		{
-			if (entry.Addr) entry.Addr->DeleteMe();
-			if (entry.Addr2) entry.Addr2->DeleteMe();
-			if (entry.Addr3) entry.Addr3->DeleteMe();
-			if (entry.Addr4) entry.Addr4->DeleteMe();
-			if (entry.Addr7) entry.Addr7->DeleteMe();
+			if (entry.Addr) delete entry.Addr;
+			if (entry.Addr2) delete entry.Addr2;
+			if (entry.Addr3) delete entry.Addr3;
+			if (entry.Addr4) delete entry.Addr4;
+			if (entry.Addr7) delete entry.Addr7;
 		}
 		MipMaps.clear();
 	}
@@ -4687,14 +4688,42 @@ void m_IDirectDrawSurfaceX::ClearDdraw()
 {
 	ddrawParent = nullptr;
 	d3d9Device = nullptr;
-}
 
-void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
-{
+	if (attachedPalette)
+	{
+		attachedPalette->Release();
+		attachedPalette = nullptr;
+	}
+
 	if (attachedClipper)
 	{
 		attachedClipper->Release();
 		attachedClipper = nullptr;
+	}
+}
+
+void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
+{
+	if (Config.Exiting)
+	{
+		return;
+	}
+
+	if (ddrawParent)
+	{
+		ddrawParent->ClearSurface(this);
+	}
+
+	if (attached3DDevice)
+	{
+		delete attached3DDevice;
+		attached3DDevice = nullptr;
+	}
+
+	if (attached3DTexture)
+	{
+		delete attached3DTexture;
+		attached3DTexture = nullptr;
 	}
 
 	if (attachedPalette)
@@ -4703,21 +4732,10 @@ void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 		attachedPalette = nullptr;
 	}
 
-	if (attached3DTexture)
+	if (attachedClipper)
 	{
-		attached3DTexture->DeleteMe();
-		attached3DTexture = nullptr;
-	}
-
-	if (attached3DDevice)
-	{
-		attached3DDevice->DeleteMe();
-		attached3DDevice = nullptr;
-	}
-
-	if (ddrawParent)
-	{
-		ddrawParent->ClearSurface(this);
+		attachedClipper->Release();
+		attachedClipper = nullptr;
 	}
 
 	for (auto& item : PrivateDataMap)
@@ -4727,6 +4745,7 @@ void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 			ReleaseIUnknownPrivateData(entry);
 		}
 	}
+	PrivateDataMap.clear();
 
 	while (!AttachedSurfaceMap.empty())
 	{
@@ -4741,6 +4760,22 @@ void m_IDirectDrawSurfaceX::ReleaseDirectDrawResources()
 		{
 			lpSurfaceX->Release(DxVersion);
 		}
+	}
+}
+
+void m_IDirectDrawSurfaceX::ClearPalette(m_IDirectDrawPalette* lpPalette)
+{
+	if (attachedPalette == lpPalette)
+	{
+		attachedPalette = nullptr;
+	}
+}
+
+void m_IDirectDrawSurfaceX::ClearClipper(m_IDirectDrawClipper* lpClipper)
+{
+	if (attachedClipper == lpClipper)
+	{
+		attachedClipper = nullptr;
 	}
 }
 
@@ -6116,13 +6151,8 @@ void m_IDirectDrawSurfaceX::ReleaseD9Surface(bool BackupData, bool ResetSurface,
 			}
 		}
 	}
-	// Release emulated surface if not backing up surface
-	else if (IsUsingEmulation())
-	{
-		ReleaseDCSurface();
-	}
 
-	// Check if surface is render target or  depth stencil
+	// Check if surface is render target or depth stencil
 	if (ddrawParent &&
 		(ddrawParent->GetRenderTargetSurface() == this || ddrawParent->GetDepthStencilSurface() == this))
 	{

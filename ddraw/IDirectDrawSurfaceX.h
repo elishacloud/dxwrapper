@@ -555,6 +555,10 @@ public:
 	// For fixing alpha channel on fail-over surface
 	void SetFailoverAlphaBits(LASTLOCK& LLock) const;
 
+	// Attached palette and clipper
+	void ClearPalette(m_IDirectDrawPalette* lpPalette);
+	void ClearClipper(m_IDirectDrawClipper* lpClipper);
+
 	// Functions handling the ddraw parent interface
 	void SetDdrawParent(m_IDirectDrawX* ddraw);
 	inline m_IDirectDrawX* GetDDrawParent() { return ddrawParent; };

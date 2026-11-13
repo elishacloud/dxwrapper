@@ -100,6 +100,7 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 
 		if (ref == 0)
 		{
+			ReleaseInterface();
 			ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 		}
 
@@ -110,6 +111,7 @@ ULONG m_IDirect3DExecuteBuffer::Release()
 
 	if (ref == 0)
 	{
+		ReleaseInterface();
 		ProxyAddressLookupTableDdraw.SaveInterfaceAddress(this);
 	}
 
@@ -387,6 +389,8 @@ void m_IDirect3DExecuteBuffer::ReleaseInterface()
 	{
 		D3DDeviceInterface->ClearExecuteBuffer(this);
 	}
+
+	ClearD3DDevice();
 }
 
 HRESULT m_IDirect3DExecuteBuffer::GetBufferInternal(std::vector<BYTE>& BufferData, D3DEXECUTEDATA& CurrentExecuteData) const

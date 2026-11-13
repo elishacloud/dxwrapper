@@ -178,7 +178,7 @@ ULONG m_IDirect3DDeviceX::Release(DWORD DirectXVersion)
 // ******************************
 void m_IDirect3DDeviceX::DeleteMe()
 {
-	RefCount1 = 0;
+	RefCount1 = 1;
 	RefCount2 = 0;
 	RefCount3 = 0;
 	RefCount7 = 0;

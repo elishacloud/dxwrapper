@@ -141,7 +141,7 @@ ULONG m_IDirect3DVertexBufferX::Release(DWORD DirectXVersion)
 // ******************************
 void m_IDirect3DVertexBufferX::DeleteMe()
 {
-	RefCount1 = 0;
+	RefCount1 = 1;
 	RefCount7 = 0;
 	Release(1);
 }

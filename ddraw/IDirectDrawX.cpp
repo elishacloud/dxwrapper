@@ -387,7 +387,7 @@ ULONG m_IDirectDrawX::Release(DWORD DirectXVersion)
 // ******************************
 void m_IDirectDrawX::DeleteMe()
 {
-	RefCount1 = 0;
+	RefCount1 = 1;
 	RefCount2 = 0;
 	RefCount3 = 0;
 	RefCount4 = 0;
@@ -3020,7 +3020,7 @@ void m_IDirectDrawX::ReleaseInterface()
 	for (const auto& pSurface : ReleasedSurfaceList)
 	{
 		pSurface->ClearDdraw();
-		pSurface->DeleteMe();
+		delete pSurface;
 	}
 	ReleasedSurfaceList.clear();
 
@@ -3076,7 +3076,7 @@ void m_IDirectDrawX::ReleaseInterface()
 	if (D3DInterface)
 	{
 		D3DInterface->ClearDdraw();
-		D3DInterface->DeleteMe();
+		delete D3DInterface;
 		D3DInterface = nullptr;
 	}
 
@@ -4909,7 +4909,7 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 		for (const auto& pSurface : pDDraw->ReleasedSurfaceList)
 		{
 			pSurface->ClearDdraw();
-			pSurface->DeleteMe();
+			delete pSurface;
 		}
 		pDDraw->ReleasedSurfaceList.clear();
 	}
@@ -5406,6 +5406,14 @@ void m_IDirectDrawX::ClearPalette(m_IDirectDrawPalette* lpPalette)
 			Release(DxVersion);
 		}
 	}
+	// Clear palette from all surfaces
+	for (const auto& pDDraw : DDrawVector)
+	{
+		for (const auto& pSurface : pDDraw->SurfaceList)
+		{
+			pSurface.Interface->ClearPalette(lpPalette);
+		}
+	}
 }
 
 bool m_IDirectDrawX::DoesPaletteExist(m_IDirectDrawPalette* lpPalette)
@@ -5435,7 +5443,6 @@ void m_IDirectDrawX::AddVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer)
 
 void m_IDirectDrawX::ClearVertexBuffer(m_IDirect3DVertexBufferX* lpVertexBuffer)
 {
-	// Remove palette from attached surface
 	for (const auto& pDDraw : DDrawVector)
 	{
 		auto it = std::find(pDDraw->VertexBufferList.begin(), pDDraw->VertexBufferList.end(), lpVertexBuffer);
@@ -6316,6 +6323,18 @@ bool m_IDirectDrawX::CheckDirectDrawXInterface(void* pInterface)
 	return false;
 }
 
+void m_IDirectDrawX::ClearClipperAllSurfaces(m_IDirectDrawClipper* lpClipper)
+{
+	// Clear clipper from all surfaces
+	for (const auto& pDDraw : DDrawVector)
+	{
+		for (const auto& pSurface : pDDraw->SurfaceList)
+		{
+			pSurface.Interface->ClearClipper(lpClipper);
+		}
+	}
+}
+
 HRESULT m_IDirectDrawX::TriggerDeviceReset(HWND hWnd)
 {
 	// If incorrect param or incorrect device
@@ -6378,7 +6397,6 @@ void m_IDirectDrawX::ClearDestroyedWindow(HWND hWnd)
 	}
 	DisplayMode.DC = nullptr;
 	DisplayMode.hWnd = nullptr;
-	hMonitor = nullptr;
 }
 
 void m_IDirectDrawX::CheckFixWindowPos(HWND hWnd, WINDOWPOS* wPos)
