@@ -2034,9 +2034,6 @@ HRESULT m_IDirect3DDeviceX::GetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 		}
 		*lpdwRenderState = 0;
 
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
-
 		if (!IsValidRenderState(dwRenderStateType, ClientDirectXVersion))
 		{
 			if (dwRenderStateType > 0 && dwRenderStateType < D3D_MAXRENDERSTATES && ClientDirectXVersion < 7)
@@ -2213,9 +2210,6 @@ HRESULT m_IDirect3DDeviceX::SetRenderState(D3DRENDERSTATETYPE dwRenderStateType,
 
 	if (Config.Dd7to9)
 	{
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
-
 		if (!IsValidRenderState(dwRenderStateType, ClientDirectXVersion))
 		{
 			return DDERR_INVALIDPARAMS;
@@ -2611,9 +2605,6 @@ HRESULT m_IDirect3DDeviceX::GetLightState(D3DLIGHTSTATETYPE dwLightStateType, LP
 		}
 		*lpdwLightState = 0;
 
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
-
 		if (dwLightStateType == 0
 			|| (ClientDirectXVersion == 2 && dwLightStateType > 7)
 			|| (ClientDirectXVersion == 3 && dwLightStateType > 8))
@@ -2688,9 +2679,6 @@ HRESULT m_IDirect3DDeviceX::SetLightState(D3DLIGHTSTATETYPE dwLightStateType, DW
 
 	if (Config.Dd7to9)
 	{
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
-
 		if (dwLightStateType == 0
 			|| (ClientDirectXVersion == 2 && dwLightStateType > 7)
 			|| (ClientDirectXVersion == 3 && dwLightStateType > 8))
@@ -2759,9 +2747,6 @@ HRESULT m_IDirect3DDeviceX::SetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
-
 		switch ((DWORD)dtstTransformStateType)
 		{
 		case D3DTRANSFORMSTATE_WORLD:
@@ -2819,9 +2804,6 @@ HRESULT m_IDirect3DDeviceX::GetTransform(D3DTRANSFORMSTATETYPE dtstTransformStat
 		}
 		*lpD3DMatrix = {};
 
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
-
 		switch ((DWORD)dtstTransformStateType)
 		{
 		case D3DTRANSFORMSTATE_WORLD:
@@ -2861,9 +2843,6 @@ HRESULT m_IDirect3DDeviceX::MultiplyTransform(D3DTRANSFORMSTATETYPE dtstTransfor
 
 	if (Config.Dd7to9)
 	{
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
-
 		switch ((DWORD)dtstTransformStateType)
 		{
 		case D3DTRANSFORMSTATE_WORLD:
@@ -3695,9 +3674,6 @@ HRESULT m_IDirect3DDeviceX::GetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		}
 		*lpdwValue = 0;
 
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
-
 		if (dwStage >= D3DHAL_TSS_MAXSTAGES || dwState == 0
 			|| (ClientDirectXVersion == 3 && dwState > 23)
 			|| (ClientDirectXVersion == 7 && dwState > 24))
@@ -3782,9 +3758,6 @@ HRESULT m_IDirect3DDeviceX::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGES
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
 
 		if (dwStage >= D3DHAL_TSS_MAXSTAGES || dwState == 0
 			|| (ClientDirectXVersion == 3 && dwState > 23)
@@ -3985,9 +3958,6 @@ HRESULT m_IDirect3DDeviceX::SetViewport(LPD3DVIEWPORT7 lpViewport)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
-
 		HRESULT hr = SetD9Viewport(reinterpret_cast<const D3DVIEWPORT9*>(lpViewport));
 
 		if (SUCCEEDED(hr))
@@ -4014,8 +3984,11 @@ HRESULT m_IDirect3DDeviceX::GetViewport(LPD3DVIEWPORT7 lpViewport)
 		}
 		*lpViewport = {};
 
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
+		// Get default viewport in not set
+		if (!DeviceStates.Viewport.Set && bGetDefaults)
+		{
+			CheckDeviceInterface(__FUNCTION__, true);
+		}
 
 		return GetD9Viewport((D3DVIEWPORT9*)lpViewport);
 	}
@@ -4034,9 +4007,6 @@ HRESULT m_IDirect3DDeviceX::SetMaterial(LPD3DMATERIAL7 lpMaterial)
 			return DDERR_INVALIDPARAMS;
 		}
 
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
-
 		return SetD9Material((D3DMATERIAL9*)lpMaterial);
 	}
 
@@ -4053,9 +4023,6 @@ HRESULT m_IDirect3DDeviceX::GetMaterial(LPD3DMATERIAL7 lpMaterial)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
 
 		return GetD9Material((D3DMATERIAL9*)lpMaterial);
 	}
@@ -4080,9 +4047,6 @@ HRESULT m_IDirect3DDeviceX::SetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Light Type: " << lpLight->dltType << " Not Implemented");
 			return D3D_OK;
 		}
-
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
 
 		HRESULT hr = SetD9Light(dwLightIndex, reinterpret_cast<D3DLIGHT9*>(lpLight));
 
@@ -4112,10 +4076,6 @@ HRESULT m_IDirect3DDeviceX::GetLight(DWORD dwLightIndex, LPD3DLIGHT7 lpLight)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
-
 		return GetD9Light(dwLightIndex, reinterpret_cast<D3DLIGHT9*>(lpLight));
 	}
 
@@ -4625,9 +4585,6 @@ HRESULT m_IDirect3DDeviceX::LightEnable(DWORD dwLightIndex, BOOL bEnable)
 
 	if (Config.Dd7to9)
 	{
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
-
 		HRESULT hr = D9LightEnable(dwLightIndex, bEnable);
 
 		if (SUCCEEDED(hr))
@@ -4656,10 +4613,6 @@ HRESULT m_IDirect3DDeviceX::GetLightEnable(DWORD dwLightIndex, BOOL* pbEnable)
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
-
 		return GetD9LightEnable(dwLightIndex, pbEnable);
 	}
 
@@ -4672,9 +4625,6 @@ HRESULT m_IDirect3DDeviceX::SetClipPlane(DWORD dwIndex, D3DVALUE* pPlaneEquation
 
 	if (Config.Dd7to9)
 	{
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
-
 		return SetD9ClipPlane(dwIndex, pPlaneEquation);
 	}
 
@@ -4691,9 +4641,6 @@ HRESULT m_IDirect3DDeviceX::GetClipPlane(DWORD dwIndex, D3DVALUE* pPlaneEquation
 		{
 			return DDERR_INVALIDPARAMS;
 		}
-
-		// Check for device interface
-		CheckDeviceInterface(__FUNCTION__, true);
 
 		return GetD9ClipPlane(dwIndex, pPlaneEquation);
 	}
@@ -4833,6 +4780,8 @@ void m_IDirect3DDeviceX::InitInterface(DWORD DirectXVersion)
 		BatchStates.ClipPlane.States.reserve(8);
 		BatchStates.Matrix.States.reserve(8);
 
+		SetDefaults();
+
 		AddRef(DirectXVersion);
 	}
 }
@@ -4907,9 +4856,9 @@ HRESULT m_IDirect3DDeviceX::CheckInterface(char *FunctionName, bool CheckD3DDevi
 			LOG_LIMIT(100, FunctionName << " Error: d3d9 device not setup!");
 			return DDERR_INVALIDOBJECT;
 		}
-		if (bSetDefaults)
+		if (bGetDefaults)
 		{
-			SetDefaults();
+			GetDefaults();
 		}
 	}
 
@@ -5432,6 +5381,15 @@ HRESULT m_IDirect3DDeviceX::Clear(const D3DVIEWPORT9& Viewport, DWORD dwCount, L
 	HRESULT hr = (*d3d9Device)->Clear(dwCount, lpRects, dwFlags, dwColor, dvZ, dwStencil);
 
 	return GetReturnResult(hr);
+}
+
+HRESULT m_IDirect3DDeviceX::GetDefaultViewport(D3DVIEWPORT9& Viewport)
+{
+	// Check for device interface
+	CheckDeviceInterface(__FUNCTION__, true);
+
+	Viewport = DefaultViewport;
+	return D3D_OK;
 }
 
 void m_IDirect3DDeviceX::ClearViewport(m_IDirect3DViewportX* lpViewportX)
@@ -6259,10 +6217,6 @@ void m_IDirect3DDeviceX::ClearDdraw()
 
 void m_IDirect3DDeviceX::SetDefaults()
 {
-	// Reset defaults flag
-	bSetDefaults = false;
-	RequiresStateRestore = true;
-
 	// Render states
 	if (ClientDirectXVersion > 1)
 	{
@@ -6336,20 +6290,30 @@ void m_IDirect3DDeviceX::SetDefaults()
 
 	float Value = -0.0f;
 	SetD9RenderState(D3DRS_DEPTHBIAS, *(DWORD*)&Value);
+}
+
+void m_IDirect3DDeviceX::GetDefaults()
+{
+	// Reset defaults flag
+	bGetDefaults = false;
+	RequiresStateRestore = true;
 
 	// Get default structures
 	ddrawParent->GetD9Caps(Caps9);
 	ddrawParent->GetDefaultViewport(DefaultViewport);
 
 	// Set defaults
-	DeviceStates.Viewport.View = DefaultViewport;
-	DeviceStates.Viewport.FixedView = DefaultViewport;
+	if (!DeviceStates.Viewport.Set)
+	{
+		DeviceStates.Viewport.View = DefaultViewport;
+		DeviceStates.Viewport.FixedView = DefaultViewport;
+	}
 }
 
 void m_IDirect3DDeviceX::ClearDeviceState()
 {
 	// Mark as reset
-	bSetDefaults = true;
+	bGetDefaults = true;
 	RequiresStateRestore = true;
 	IsInScene = false;
 
@@ -6374,6 +6338,9 @@ void m_IDirect3DDeviceX::ClearDeviceState()
 	// Index Stream
 	static const INDEXSTREAMINFO DefaultIndexStreamInfo;
 	IndexStreamInfo = DefaultIndexStreamInfo;
+
+	// Set defaults
+	SetDefaults();
 }
 
 D3DMATRIX m_IDirect3DDeviceX::GetUpdatedProjectionMatrix(const D3DMATRIX& DeviceMatrix, bool SetClipping) const

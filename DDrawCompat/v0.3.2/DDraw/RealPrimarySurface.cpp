@@ -75,7 +75,7 @@ namespace
 	CompatPtr<IDirectDrawSurface7> getLastSurface()
 	{
 		DDSCAPS2 caps = {};
-		caps.dwCaps = DDSCAPS_FLIP;;
+		caps.dwCaps = DDSCAPS_FLIP;
 		CompatPtr<IDirectDrawSurface7> backBuffer(getBackBuffer());
 		CompatPtr<IDirectDrawSurface7> lastSurface;
 		if (backBuffer)

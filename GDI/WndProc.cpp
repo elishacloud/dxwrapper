@@ -453,7 +453,7 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 			}
 			else
 			{
-				hr = CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);;
+				hr = CallWndProc(pWndProc, hWnd, Msg, wParam, lParam);
 			}
 
 			if (isActivating)

@@ -229,7 +229,7 @@ private:
 	INDEXSTREAMINFO IndexStreamInfo;
 
 	// Flags
-	bool bSetDefaults = true;
+	bool bGetDefaults = true;
 	bool RequiresStateRestore = false;
 	bool IsInScene = false;
 
@@ -354,6 +354,7 @@ private:
 	void PrepDevice();
 	HRESULT RestoreStates();
 	void SetDefaults();
+	void GetDefaults();
 	void SetDrawStates(DWORD dwVertexTypeDesc, DWORD& dwFlags, DWORD DirectXVersion);
 	void RestoreDrawStates(HRESULT hr, DWORD dwFlags, DWORD DirectXVersion);
 	inline HRESULT SetVertexType(DWORD dwVertexTypeDesc, DWORD& dwFlags);
@@ -550,7 +551,7 @@ public:
 
 	// Viewport functions
 	HRESULT Clear(const D3DVIEWPORT9& Viewport, DWORD dwCount, LPD3DRECT lpRects, DWORD dwFlags, D3DCOLOR dwColor, D3DVALUE dvZ, DWORD dwStencil);
-	inline void GetDefaultViewport(D3DVIEWPORT9& Viewport) const { Viewport = DefaultViewport; }
+	HRESULT GetDefaultViewport(D3DVIEWPORT9& Viewport);
 	inline m_IDirect3DViewportX* GetCurrentViewport() { return lpCurrentViewportX; }
 	inline bool CheckIfViewportSet(m_IDirect3DViewportX* pViewport) { return (pViewport == lpCurrentViewportX); }
 	void ClearViewport(m_IDirect3DViewportX* lpViewportX);
