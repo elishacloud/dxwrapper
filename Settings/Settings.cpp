@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -17,6 +17,8 @@
 #include <regex>
 #include <algorithm>
 #include "Settings.h"
+#include "ReadParse.h"
+#include "Utils\Utils.h"
 #include "Libraries\ScopeGuard.h"
 #include "External\Hooking.Patterns\Hooking.Patterns.h"
 #include "Dllmain\Dllmain.h"
@@ -31,7 +33,7 @@ namespace Settings
 {
 	// Config
 	bool ConfigLoaded = false;
-	char configpath[MAX_PATH] = {};
+	wchar_t configpath[MAX_PATH] = {};
 
 	// Declare variables
 	bool WrapperModeIncorrect = false;
@@ -58,6 +60,7 @@ namespace Settings
 	void ClearValue(void**);
 	void ClearValue(std::vector<std::string>*);
 	void ClearValue(std::string*);
+	void ClearValue(std::wstring*);
 	void ClearValue(LONG*);
 	void ClearValue(DWORD*);
 	void ClearValue(DHEX*);
@@ -67,6 +70,7 @@ namespace Settings
 	void SetValue(char*, char*, MEMORYINFO*);
 	void SetValue(char*, char*, void**);
 	void SetValue(char*, char*, std::string*);
+	void SetValue(char*, char*, std::wstring*);
 	void SetValue(char*, char*, LONG*);
 	void SetValue(char*, char*, DWORD*);
 	void SetValue(char*, char*, DHEX*);
@@ -229,6 +233,26 @@ void Settings::SetValue(char* name, char* value, std::string* setting)
 		setting->assign(newString);
 #ifdef _DEBUG
 		Logging::Log() << name << " set to '" << setting->c_str() << "'";
+#else
+		UNREFERENCED_PARAMETER(name);
+#endif
+	}
+}
+
+// Set value for wstrings
+void Settings::SetValue(char* name, char* value, std::wstring* setting)
+{
+	std::wstring newString;
+	newString.assign(Utils::AnsiToWide(value));
+
+	// Trim whitespaces
+	newString = std::regex_replace(newString, std::wregex(L"^\\s+|\\s+$"), L"");
+
+	if (!newString.empty() && _wcsicmp(newString.c_str(), L"auto") != 0)
+	{
+		setting->assign(newString);
+#ifdef _DEBUG
+		Logging::Log() << name << " set to '<Unicode string>'";
 #else
 		UNREFERENCED_PARAMETER(name);
 #endif
@@ -437,6 +461,12 @@ void Settings::ClearValue(std::string* setting)
 	setting->clear();
 }
 
+// Clear strings
+void Settings::ClearValue(std::wstring* setting)
+{
+	setting->clear();
+}
+
 // Clear DHEX
 void Settings::ClearValue(DHEX* setting)
 {
@@ -572,30 +602,30 @@ void CONFIG::Init()
 
 	// Get module handle
 	HMODULE hModule = NULL;
-	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)Settings::ClearConfigSettings, &hModule);
+	GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCWSTR)Settings::ClearConfigSettings, &hModule);
 
 	// Declare variables
-	CreateScopedHeapBuffer(char, p_wName, MAX_PATH);
-	CreateScopedHeapBuffer(char, p_pName, MAX_PATH);
+	CreateScopedHeapBuffer(wchar_t, p_wName, MAX_PATH);
+	CreateScopedHeapBuffer(wchar_t, p_pName, MAX_PATH);
 
 	// Get module name
-	CreateScopedHeapBuffer(char, wrappername, MAX_PATH);
-	if (GetModuleFileName(hModule, wrappername, MAX_PATH) && strrchr(wrappername, '\\'))
+	CreateScopedHeapBuffer(wchar_t, wrappername, MAX_PATH);
+	if (GetModuleFileNameW(hModule, wrappername, MAX_PATH) && wcsrchr(wrappername, L'\\'))
 	{
-		strcpy_s(p_wName, MAX_PATH, strrchr(wrappername, '\\') + 1);
+		wcscpy_s(p_wName, MAX_PATH, wcsrchr(wrappername, L'\\') + 1);
 	}
 
 	// Get process name
-	CreateScopedHeapBuffer(char, processname, MAX_PATH);
-	if (GetModuleFileName(nullptr, processname, MAX_PATH) && strrchr(processname, '\\'))
+	CreateScopedHeapBuffer(wchar_t, processname, MAX_PATH);
+	if (GetModuleFileNameW(nullptr, processname, MAX_PATH) && wcsrchr(processname, L'\\'))
 	{
-		strcpy_s(p_pName, MAX_PATH, strrchr(processname, '\\') + 1);
+		wcscpy_s(p_pName, MAX_PATH, wcsrchr(processname, L'\\') + 1);
 	}
 
 	// Set default settings
 	SetDefaultConfigSettings();
 
-	// Set settings from environment variables
+	// Set settings from environment variables (ANSI)
 	if (LPCH p_envStrings = GetEnvironmentStrings(); p_envStrings)
 	{
 		const char* szEnvPrefix = "DXWRAPPER_";
@@ -613,26 +643,42 @@ void CONFIG::Init()
 			szEnvVar += strlen(szEnvVar) + 1;
 		}
 
-		FreeEnvironmentStrings(p_envStrings);
+		FreeEnvironmentStringsA(p_envStrings);
+	}
+
+	// Convert process and wrapper names to ANSI for configuration comparisons
+	CreateScopedHeapBuffer(char, p_wNameA, MAX_PATH);
+	CreateScopedHeapBuffer(char, p_pNameA, MAX_PATH);
+
+	BOOL usedDefaultChar = FALSE;
+	if (!WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, p_wName, -1, p_wNameA, MAX_PATH, nullptr, &usedDefaultChar) || usedDefaultChar)
+	{
+		p_wNameA[0] = '\0';
+	}
+
+	usedDefaultChar = FALSE;
+	if (!WideCharToMultiByte(CP_ACP, WC_NO_BEST_FIT_CHARS, p_pName, -1, p_pNameA, MAX_PATH, nullptr, &usedDefaultChar) || usedDefaultChar)
+	{
+		p_pNameA[0] = '\0';
 	}
 
 	// Check for memory loading
-	if (_stricmp(p_wName, p_pName) == 0)
+	if (_stricmp(p_wNameA, p_pNameA) == 0)
 	{
-		strcpy_s(wrappername, MAX_PATH, processname);
-		strcpy_s(strrchr(wrappername, '\\'), MAX_PATH - strlen(wrappername), "\\dxwrapper.dll");
+		wcscpy_s(wrappername, MAX_PATH, processname);
+		wcscpy_s(wcsrchr(wrappername, L'\\'), MAX_PATH - (wcsrchr(wrappername, L'\\') - wrappername), L"\\dxwrapper.dll");
 	}
 
 	// Get config path to include process name
-	strcpy_s(configpath, MAX_PATH, wrappername);
-	strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), "-");
-	strcat_s(configpath, MAX_PATH, p_pName);
-	strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), ".ini");
+	wcscpy_s(configpath, MAX_PATH, wrappername);
+	wcscpy_s(wcsrchr(configpath, L'.'), MAX_PATH - (wcsrchr(configpath, L'.') - configpath), L"-");
+	wcscat_s(configpath, MAX_PATH, p_pName);
+	wcscpy_s(wcsrchr(configpath, L'.'), MAX_PATH - (wcsrchr(configpath, L'.') - configpath), L".ini");
 
-	// Read defualt config file
+	// Read default config file (ANSI contents, Unicode path)
 	char* szCfg = ReadFileContent(configpath);
 
-	// Parce config file
+	// Parse config file
 	if (szCfg)
 	{
 		ConfigLoaded = true;
@@ -643,13 +689,13 @@ void CONFIG::Init()
 	else
 	{
 		// Get config file path
-		strcpy_s(configpath, MAX_PATH, wrappername);
-		strcpy_s(strrchr(configpath, '.'), MAX_PATH - strlen(configpath), ".ini");
+		wcscpy_s(configpath, MAX_PATH, wrappername);
+		wcscpy_s(wcsrchr(configpath, L'.'), MAX_PATH - (wcsrchr(configpath, L'.') - configpath), L".ini");
 
 		// Open config file
 		szCfg = ReadFileContent(configpath);
 
-		// Parce config file
+		// Parse config file
 		if (szCfg)
 		{
 			ConfigLoaded = true;
@@ -659,22 +705,22 @@ void CONFIG::Init()
 	}
 
 	// Set module name
-	if (_stricmp(p_wName, p_pName) == 0)
+	if (_stricmp(p_wNameA, p_pNameA) == 0)
 	{
 		WrapperName.assign("dxwrapper.dll");
 	}
 	else
 	{
-		WrapperName.assign(p_wName);
+		WrapperName.assign(p_wNameA);
 		std::transform(WrapperName.begin(), WrapperName.end(), WrapperName.begin(),
-			[](char c) {return static_cast<char>(::tolower(c)); });
+			[](char c) {return static_cast<char>(::tolower(static_cast<unsigned char>(c))); });
 	}
 
 	// Check wrapper mode
 	if (WrapperMode.size())
 	{
 		std::transform(WrapperMode.begin(), WrapperMode.end(), WrapperMode.begin(),
-			[](char c) {return static_cast<char>(::tolower(c)); });
+			[](char c) {return static_cast<char>(::tolower(static_cast<unsigned char>(c))); });
 		if (!Wrapper::CheckWrapperName(WrapperMode.c_str()))
 		{
 			WrapperModeIncorrect = true;
@@ -695,8 +741,8 @@ void CONFIG::Init()
 	// Check if process should be excluded or not included
 	// if so, then clear all settings (disable everything)
 	ProcessExcluded = false;
-	if ((ExcludeProcess.size() != 0 && IfStringExistsInList(p_pName, ExcludeProcess, false)) ||
-		(IncludeProcess.size() != 0 && !IfStringExistsInList(p_pName, IncludeProcess, false)))
+	if ((ExcludeProcess.size() != 0 && IfStringExistsInList(p_pNameA, ExcludeProcess, false)) ||
+		(IncludeProcess.size() != 0 && !IfStringExistsInList(p_pNameA, IncludeProcess, false)))
 	{
 		ProcessExcluded = true;
 	}

@@ -21,15 +21,15 @@
 // Forward declaration
 namespace DdrawWrapper
 {
-	void Start(const char *name);
+	void Start(const wchar_t* name);
 }
 namespace D3d8Wrapper
 {
-	void Start(const char *name);
+	void Start(const wchar_t* name);
 }
 namespace DinputWrapper
 {
-	void Start(const char *name);
+	void Start(const wchar_t* name);
 }
 
 // Next default values for new objects

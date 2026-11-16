@@ -5,7 +5,6 @@
 #include <vector>
 #include <string>
 #include <ostream>
-#include "ReadParse.h"
 
 #define NOT_EXIST 0xFFFF
 #define MAX_ENV_VAR 0x7FFF
@@ -405,7 +404,7 @@ struct CONFIG
 	std::string WinVersionLie = "";				// Using DDrawCompat WinVersionLie to tell the OS a different OS
 	DWORD WinVersionLieSP = 0;					// Using DDrawCompat WinVersionLie to tell the OS a different OS
 	std::vector<MEMORYINFO> MemoryInfo;			// Addresses and memory used in hot patching
-	std::string RealDllPath;					// Manually set Dll to wrap
+	std::wstring RealDllPath;					// Manually set Dll to wrap
 	std::string RunProcess;						// Process to run on load
 	std::string WrapperMode;					// Mode of dxwrapper from config file
 	std::string WrapperName;					// dxwrapper dll filename

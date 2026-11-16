@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -28,42 +28,42 @@ using NV = std::function<void(const char*, const char*)>;
 namespace Settings
 {
 	// Reads entire contents of a file into a dynamically allocated buffer
-	char* ReadFileContent(const char* filename)
+	char* ReadFileContent(const wchar_t* filename)
 	{
-		if (!filename) return nullptr;
-
-		HANDLE file = CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-		if (file == INVALID_HANDLE_VALUE)
+		FILE* file = nullptr;
+		if (_wfopen_s(&file, filename, L"rb") != 0 || !file)
 		{
 			return nullptr;
 		}
 
-		DWORD fileSize = GetFileSize(file, nullptr);
-		if (fileSize == 0 || fileSize == INVALID_FILE_SIZE)
+		fseek(file, 0, SEEK_END);
+		long size = ftell(file);
+		rewind(file);
+
+		if (size < 0)
 		{
-			CloseHandle(file);
+			fclose(file);
 			return nullptr;
 		}
 
-		char* buffer = static_cast<char*>(malloc(fileSize + 1)); // +1 for null terminator
-		if (!buffer)
+		char* content = (char*)malloc(size + 1);
+		if (!content)
 		{
-			CloseHandle(file);
+			fclose(file);
 			return nullptr;
 		}
 
-		DWORD bytesRead = 0;
-		BOOL success = ReadFile(file, buffer, fileSize, &bytesRead, nullptr);
-		CloseHandle(file);
-
-		if (!success || bytesRead == 0)
+		size_t bytesRead = fread(content, 1, size, file);
+		if (bytesRead != static_cast<size_t>(size))
 		{
-			free(buffer);
+			free(content);
+			fclose(file);
 			return nullptr;
 		}
+		content[bytesRead] = '\0';
 
-		buffer[bytesRead] = '\0';
-		return buffer;
+		fclose(file);
+		return content;
 	}
 
 	// Returns true if a name and value pair are valid

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -22,7 +22,7 @@
 	VISIT_PROCS_DDRAW(visit) \
 	VISIT_PROCS_DDRAW_SHARED(visit)
 
-#define DLL_NAME "\\ddraw.dll"
+#define DLL_NAME L"\\ddraw.dll"
 
 #define CREATE_WRAPPED_PROC(procName, unused) \
 	volatile FARPROC m_p ## procName = nullptr;
@@ -53,14 +53,14 @@ namespace DdrawWrapper
 {
 	bool IsLoaded = false;
 
-	char dllname[MAX_PATH];
+	wchar_t dllname[MAX_PATH];
 
 	VISIT_ALL_PROCS(CREATE_WRAPPED_PROC);
 
 	void InitDll()
 	{
 		// Load dll
-		HMODULE dll = LoadLibraryA(dllname);
+		HMODULE dll = LoadLibraryW(dllname);
 
 		// Check dll
 		if (!dll)
@@ -77,16 +77,16 @@ namespace DdrawWrapper
 
 	VISIT_ALL_PROCS(CREATE_PROC_STUB);
 
-	void Start(const char *name)
+	void Start(const wchar_t* name)
 	{
 		if (name)
 		{
-			strcpy_s(dllname, MAX_PATH, name);
+			wcscpy_s(dllname, MAX_PATH, name);
 		}
 		else
 		{
-			GetSystemDirectoryA(dllname, MAX_PATH);
-			strcat_s(dllname, DLL_NAME);
+			GetSystemDirectoryW(dllname, MAX_PATH);
+			wcscat_s(dllname, MAX_PATH, DLL_NAME);
 		}
 
 		VISIT_ALL_PROCS(REDIRECT_WRAPPED_PROC);

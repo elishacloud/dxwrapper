@@ -6,7 +6,7 @@ namespace Wrapper
 	void ShimProc(volatile FARPROC &var, FARPROC in, volatile FARPROC &out);
 	const char *GetWrapperName(const char *WrapperMode);
 	bool CheckWrapperName(const char *WrapperMode);
-	HMODULE CreateWrapper(const char *ProxyDll, const char *WrapperMode, const char *MyDllName);
+	HMODULE CreateWrapper(const wchar_t *ProxyDll, const char *WrapperMode, const char *MyDllName);
 }
 
 struct DXWAPPERSETTINGS
@@ -106,35 +106,35 @@ namespace ddraw
 {
 	VISIT_PROCS_DDRAW(DECLARE_PROC_VARIABLES);
 	VISIT_SHARED_DDRAW_PROCS(DECLARE_PROC_VARIABLES_SHARED);
-	HMODULE Load(const char *ProxyDll, const char *MyDllName);
+	HMODULE Load(const wchar_t *ProxyDll, const char *MyDllName);
 }
 namespace dinput
 {
 	VISIT_PROCS_DINPUT(DECLARE_PROC_VARIABLES);
 	VISIT_SHARED_DINPUT_PROCS(DECLARE_PROC_VARIABLES_SHARED);
-	HMODULE Load(const char *ProxyDll, const char *MyDllName);
+	HMODULE Load(const wchar_t*ProxyDll, const char *MyDllName);
 }
 namespace dinput8
 {
 	VISIT_PROCS_DINPUT8(DECLARE_PROC_VARIABLES);
 	VISIT_SHARED_DINPUT8_PROCS(DECLARE_PROC_VARIABLES_SHARED);
-	HMODULE Load(const char *ProxyDll, const char *MyDllName);
+	HMODULE Load(const wchar_t*ProxyDll, const char *MyDllName);
 }
 namespace d3d8
 {
 	VISIT_PROCS_D3D8(DECLARE_PROC_VARIABLES);
-	HMODULE Load(const char *ProxyDll, const char *MyDllName);
+	HMODULE Load(const wchar_t*ProxyDll, const char *MyDllName);
 }
 namespace d3d9
 {
 	VISIT_PROCS_D3D9(DECLARE_PROC_VARIABLES);
-	HMODULE Load(const char *ProxyDll, const char *MyDllName);
+	HMODULE Load(const wchar_t*ProxyDll, const char *MyDllName);
 }
 namespace dsound
 {
 	VISIT_PROCS_DSOUND(DECLARE_PROC_VARIABLES);
 	VISIT_SHARED_DSOUND_PROCS(DECLARE_PROC_VARIABLES_SHARED);
-	HMODULE Load(const char *ProxyDll, const char *MyDllName);
+	HMODULE Load(const wchar_t*ProxyDll, const char *MyDllName);
 }
 namespace ShardProcs
 {

@@ -3,6 +3,6 @@
 namespace Settings
 {
 	typedef void(__stdcall* NV)(char* name, char* value);
-	char* ReadFileContent(const char* filename);
+	char* ReadFileContent(const wchar_t* filename);
 	void Parse(char* buffer, NV callback);
 }

@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -147,15 +147,20 @@ extern "C" void __stdcall ProcForwarder(const char* name)
 		VISIT_PROCS(CREATE_PROC_STUB); \
 		VISIT_PROCS_SHARED(CREATE_PROC_STUB_SHARED); \
 		VISIT_PROCS_ORDINALS(CREATE_PROC_STUB_ORDINALS); \
-		HMODULE Load(const char *ProxyDll, const char *MyDllName) \
+		HMODULE Load(const wchar_t *ProxyDllW, const char *MyDllName) \
 		{ \
+			const char *DllName = MyDllName ? MyDllName : Name; \
 			char path[MAX_PATH]; \
-			const char *DllName = (MyDllName) ? MyDllName : Name; \
+			char ProxyDll[MAX_PATH] = {}; \
+			if (!WideCharToMultiByte(CP_ACP, 0, ProxyDllW, -1, ProxyDll, MAX_PATH, nullptr, nullptr)) \
+			{ \
+				ProxyDll[0] = '\0'; \
+			} \
 			HMODULE dll = nullptr; \
-			if (ProxyDll && _stricmp(ProxyDll, DllName) != 0) \
+			if (ProxyDllW && ProxyDll[0] != '\0' && _stricmp(ProxyDll, DllName) != 0) \
 			{ \
 				Logging::Log() << "Loading '" << ProxyDll << "' as real dll..."; \
-				dll = LoadLibraryA(ProxyDll); \
+				dll = LoadLibraryW(ProxyDllW); \
 				if (!dll) \
 				{ \
 					Logging::Log() << "Error: Failed to load '" << ProxyDll << "'!"; \
@@ -217,7 +222,7 @@ namespace Wrapper
 	const FARPROC jmpaddr = (FARPROC)*_jmpaddr;
 	const FARPROC jmpaddrvoid = (FARPROC)*_jmpaddrvoid;
 	std::vector<wrapper_map> jmpArray;
-	HMODULE GetWrapperType(const char *ProxyDll, const char *WrapperMode, const char *MyDllName);
+	HMODULE GetWrapperType(const wchar_t *ProxyDll, const char *WrapperMode, const char *MyDllName);
 }
 
 #include "wrapper.h"
@@ -313,7 +318,7 @@ bool Wrapper::CheckWrapperName(const char *WrapperMode)
 	return (WrapperMode && GetWrapperName(WrapperMode));
 }
 
-HMODULE Wrapper::CreateWrapper(const char *ProxyDll, const char *WrapperMode, const char *MyDllName)
+HMODULE Wrapper::CreateWrapper(const wchar_t *ProxyDll, const char *WrapperMode, const char *MyDllName)
 {
 	HMODULE dll = GetWrapperType(ProxyDll, WrapperMode, MyDllName);
 
@@ -325,7 +330,7 @@ HMODULE Wrapper::CreateWrapper(const char *ProxyDll, const char *WrapperMode, co
 	return dll;
 }
 
-HMODULE Wrapper::GetWrapperType(const char *ProxyDll, const char *WrapperMode, const char *MyDllName)
+HMODULE Wrapper::GetWrapperType(const wchar_t *ProxyDll, const char *WrapperMode, const char *MyDllName)
 {
 	// Add all procs to array
 #define ADD_PROC_TO_ARRAY(dllName) \

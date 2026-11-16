@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -30,7 +30,7 @@
 
 bool StubOnly = false;				// Don't load dxwrapper
 bool LoadFromMemory = false;		// Use MemoryModule to load dxwrapper
-std::string RealDllPath;			// Manually set Dll to wrap
+std::wstring RealDllPath;			// Manually set Dll to wrap
 std::string WrapperMode;			// Name of dxwrapper
 bool IsDdraw = false;
 bool IsD3d8 = false;
@@ -42,7 +42,7 @@ HMODULE proxy_dll = nullptr;
 
 DXWAPPERSETTINGS DxSettings = {};
 
-// Set booloean value from string (file)
+// Set boolean value from string (file)
 static bool IsValueEnabled(char* name)
 {
 	return (atoi(name) > 0 ||
@@ -50,6 +50,40 @@ static bool IsValueEnabled(char* name)
 		_stricmp("yes", name) == 0 ||
 		_stricmp("true", name) == 0 ||
 		_stricmp("enabled", name) == 0);
+}
+
+static std::wstring AnsiToWide(const char* str)
+{
+	if (!str)
+		return std::wstring();
+
+	int len = MultiByteToWideChar(CP_ACP, 0, str, -1, nullptr, 0);
+	if (!len)
+		return std::wstring();
+
+	std::wstring result(len, L'\0');
+	if (!MultiByteToWideChar(CP_ACP, 0, str, -1, &result[0], len))
+		return std::wstring();
+
+	result.resize(len - 1);
+	return result;
+}
+
+static std::string WideToAnsi(const wchar_t* str)
+{
+	if (!str)
+		return std::string();
+
+	int len = WideCharToMultiByte(CP_ACP, 0, str, -1, nullptr, 0, nullptr, nullptr);
+	if (!len)
+		return std::string();
+
+	std::string result(len, '\0');
+	if (!WideCharToMultiByte(CP_ACP, 0, str, -1, &result[0], len, nullptr, nullptr))
+		return std::string();
+
+	result.resize(len - 1);
+	return result;
 }
 
 // Set config from string (file)
@@ -69,7 +103,7 @@ static void __stdcall ParseCallback(char* name, char* value)
 
 	if (!_stricmp(name, "RealDllPath"))
 	{
-		RealDllPath.assign(value);
+		RealDllPath.assign(AnsiToWide(value));
 		return;
 	}
 
@@ -86,26 +120,39 @@ static void __stdcall ParseCallback(char* name, char* value)
 static void GetConfig(HMODULE hModule)
 {
 	// Get config file path and stub name
-	char configname[MAX_PATH] = {};
-	GetModuleFileNameA(hModule, configname, MAX_PATH);
-	StubName.assign(strrchr(configname, '\\') + 1);
+	wchar_t configname[MAX_PATH] = {};
+	GetModuleFileNameW(hModule, configname, MAX_PATH);
+
+	// Get stub name
+	const wchar_t* filename = wcsrchr(configname, L'\\');
+	filename = filename ? filename + 1 : configname;
+
+	// Convert stub name to ANSI
+	StubName.assign(WideToAnsi(filename));
+
 	for (auto it = StubName.begin(); it != StubName.end(); ++it)
 	{
 		*it = static_cast<char>(std::tolower(static_cast<unsigned char>(*it)));
 	}
-	strcpy_s(strrchr(configname, '.'), MAX_PATH - strlen(configname), ".ini");
 
-	// Read config file
+	// Change extension to .ini
+	wchar_t* ext = wcsrchr(configname, L'.');
+	if (ext)
+	{
+		wcscpy_s(ext, MAX_PATH - (ext - configname), L".ini");
+	}
+
+	// Read config file (ANSI contents, Unicode path)
 	char* szCfg = Settings::ReadFileContent(configname);
 
-	// Parce config file
+	// Parse config file
 	if (szCfg)
 	{
 		Settings::Parse(szCfg, ParseCallback);
 		free(szCfg);
 	}
 
-	// Get wrapper mode after parcing config file
+	// Get wrapper mode after parsing config file
 	const char* namePtr = Wrapper::GetWrapperName(!WrapperMode.empty() ? WrapperMode.c_str() : StubName.c_str());
 	if (namePtr)
 	{
@@ -118,18 +165,24 @@ static void GetConfig(HMODULE hModule)
 static void LoadDxWrapper(HMODULE hModule)
 {
 	// Path for dxwrapper file
-	char path[MAX_PATH] = {};
+	wchar_t path[MAX_PATH] = {};
 
 	// Get config file path
-	GetModuleFileNameA(hModule, path, sizeof(path));
-	strcpy_s(strrchr(path, '\\'), MAX_PATH - strlen(path), "\\dxwrapper.dll");
+	GetModuleFileNameW(hModule, path, MAX_PATH);
+
+	// Change filename to dxwrapper.dll
+	wchar_t* slash = wcsrchr(path, L'\\');
+	if (slash)
+	{
+		wcscpy_s(slash, MAX_PATH - (slash - path), L"\\dxwrapper.dll");
+	}
 
 	// Check if the dll is already loaded
 	bool AlreadyLoaded = false;
-	wrapper_dll = GetModuleHandle("dxwrapper.dll");
+	wrapper_dll = GetModuleHandleW(L"dxwrapper.dll");
 	if (!wrapper_dll)
 	{
-		wrapper_dll = GetModuleHandle("dxwrapper.asi");
+		wrapper_dll = GetModuleHandleW(L"dxwrapper.asi");
 	}
 	if (wrapper_dll)
 	{
@@ -165,7 +218,7 @@ static void LoadDxWrapper(HMODULE hModule)
 	// Load dxwrapper normally
 	else
 	{
-		wrapper_dll = LoadLibrary(path);
+		wrapper_dll = LoadLibraryW(path);
 	}
 
 	// Check if DxWrapper is loaded
@@ -185,13 +238,13 @@ static void LoadDxWrapper(HMODULE hModule)
 			}
 			else
 			{
-				DxWrapperLogging(std::string("DxWrapper loaded by stub: " + StubName).c_str());
+				DxWrapperLogging(std::string("Loaded by stub: " + StubName).c_str());
 			}
 		}
 	}
 	else
 	{
-		MessageBoxA(nullptr, "Could not find DxWrapper.dll functions will be disabled!", "DxWrapper Stub", MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND);
+		MessageBoxW(nullptr, L"Could not find DxWrapper.dll functions will be disabled!", L"DxWrapper Stub", MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND);
 	}
 }
 

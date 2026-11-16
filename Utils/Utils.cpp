@@ -102,8 +102,8 @@ namespace Utils
 	struct type_dll
 	{
 		HMODULE dll = nullptr;
-		std::string name;
-		std::string fullname;
+		std::wstring name;
+		std::wstring fullname;
 	};
 
 	// FontSmoothing
@@ -160,7 +160,7 @@ namespace Utils
 	// Function declarations
 	ULONGLONG GetTickCount64_Emulated();
 	void InitializeASI(HMODULE hModule);
-	void FindFiles(WIN32_FIND_DATA*);
+	void FindFiles(WIN32_FIND_DATAW*);
 	void *memmem(const void *l, size_t l_len, const void *s, size_t s_len);
 	LRESULT CALLBACK WndProcFilter(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	bool IsRectTopBelowMonitor(HWND hWnd, RECT& rect);
@@ -220,7 +220,7 @@ void Utils::ConfigureDpiAwareness()
 	const char* dpiAwareness = nullptr;
 	const char* procUsed = nullptr;
 
-	HMODULE hUser32 = LoadLibraryA("user32.dll");
+	HMODULE hUser32 = LoadLibrary("user32.dll");
 	if (hUser32)
 	{
 		SetProcessDpiAwarenessContextProc SetProcessDpiAwarenessContext = (SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
@@ -276,7 +276,7 @@ void Utils::ConfigureDpiAwareness()
 	}
 	if (!dpiConfigured)
 	{
-		HMODULE hShcore = LoadLibraryA("shcore.dll");
+		HMODULE hShcore = LoadLibrary("shcore.dll");
 		if (hShcore)
 		{
 			SetProcessDpiAwarenessProc SetProcessDpiAwareness = (SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
@@ -931,6 +931,16 @@ static inline void ToLower(char* str)
 	}
 }
 
+static inline void ToLower(wchar_t* str)
+{
+	if (!str) return;
+	while (*str)
+	{
+		*str = static_cast<wchar_t>(::towlower(*str));
+		++str;
+	}
+}
+
 bool Utils::CheckIfSystemModuleLoaded(const char* moduleName)
 {
 	if (!moduleName || !*moduleName)
@@ -938,43 +948,40 @@ bool Utils::CheckIfSystemModuleLoaded(const char* moduleName)
 		return false;
 	}
 
-	HMODULE hMod = GetModuleHandleA(moduleName);
+	std::wstring moduleNameStr = AnsiToWide(moduleName);
+	const wchar_t* moduleNameW = moduleNameStr.c_str();
+
+	HMODULE hMod = GetModuleHandleW(moduleNameW);
 	if (!hMod)
 	{
 		return false; // module not loaded
 	}
 
 	// Build: <System32>\<moduleName>
-	CreateScopedHeapBuffer(char, sysDir, MAX_PATH);
-	if (GetSystemDirectoryA(sysDir, MAX_PATH) == 0)
+	CreateScopedHeapBuffer(wchar_t, sysDir, MAX_PATH);
+	if (GetSystemDirectoryW(sysDir, MAX_PATH) == 0)
 	{
 		return false; // couldn't get system directory
 	}
-	std::string sysPath = sysDir;
-	sysPath += "\\";
-	sysPath += moduleName;
-	// lowercase
-	CreateScopedHeapBuffer(char, sysPathC, MAX_PATH);
-	strncpy_s(sysPathC, MAX_PATH, sysPath.c_str(), _TRUNCATE);
-	sysPathC[MAX_PATH - 1] = 0;
-	ToLower(sysPathC);
+
+	std::wstring sysPath = sysDir;
+	sysPath += L"\\";
+	sysPath += moduleNameW;
+	ToLower(&sysPath[0]);
 
 	// Build: <Windows>\SysWOW64\<moduleName>
-	CreateScopedHeapBuffer(char, windowsDir, MAX_PATH);
-	if (GetWindowsDirectoryA(windowsDir, MAX_PATH) == 0)
+	CreateScopedHeapBuffer(wchar_t, windowsDir, MAX_PATH);
+	if (GetWindowsDirectoryW(windowsDir, MAX_PATH) == 0)
 	{
 		return false; // couldn't get windows directory
 	}
-	std::string wowPath = windowsDir;
-	wowPath += "\\SysWOW64\\";
-	wowPath += moduleName;
-	// lowercase
-	CreateScopedHeapBuffer(char, wowPathC, MAX_PATH);
-	strncpy_s(wowPathC, MAX_PATH, wowPath.c_str(), _TRUNCATE);
-	wowPathC[MAX_PATH - 1] = 0;
-	ToLower(wowPathC);
 
-	if (GetModuleHandleA(sysPathC) || GetModuleHandleA(wowPathC))
+	std::wstring wowPath = windowsDir;
+	wowPath += L"\\SysWOW64\\";
+	wowPath += moduleNameW;
+	ToLower(&wowPath[0]);
+
+	if (GetModuleHandleW(sysPath.c_str()) || GetModuleHandleW(wowPath.c_str()))
 	{
 		return true;
 	}
@@ -982,31 +989,86 @@ bool Utils::CheckIfSystemModuleLoaded(const char* moduleName)
 	return false;
 }
 
-// Add HMODULE to vector
-void Utils::AddHandleToVector(HMODULE dll, const char *name)
+std::wstring Utils::AnsiToWide(const char* str)
 {
-	if (dll)
+	if (!str)
+		return std::wstring();
+
+	int len = MultiByteToWideChar(CP_ACP, 0, str, -1, nullptr, 0);
+	if (!len)
+		return std::wstring();
+
+	std::wstring result(len, L'\0');
+	if (!MultiByteToWideChar(CP_ACP, 0, str, -1, &result[0], len))
+		return std::wstring();
+
+	result.resize(len - 1);
+	return result;
+}
+
+std::string Utils::WideToAnsi(const wchar_t* str)
+{
+	if (!str)
+		return std::string();
+
+	int len = WideCharToMultiByte(CP_ACP, 0, str, -1, nullptr, 0, nullptr, nullptr);
+	if (!len)
+		return std::string();
+
+	std::string result(len, '\0');
+	if (!WideCharToMultiByte(CP_ACP, 0, str, -1, &result[0], len, nullptr, nullptr))
+		return std::string();
+
+	result.resize(len - 1);
+	return result;
+}
+
+// Add HMODULE to vector (ANSI)
+void Utils::AddHandleToVector(HMODULE dll, const char* name)
+{
+	if (dll && name)
 	{
 		type_dll newCustom_dll;
 		newCustom_dll.dll = dll;
-		newCustom_dll.name.assign((strrchr(name, '\\')) ? strrchr(name, '\\') + 1 : name);
-		newCustom_dll.fullname.assign(name);
+
+		const char* filename = strrchr(name, '\\');
+		newCustom_dll.name = AnsiToWide(filename ? filename + 1 : name);
+		newCustom_dll.fullname = AnsiToWide(name);
+
 		custom_dll.push_back(newCustom_dll);
 	}
 }
 
-// Load real dll file that is being wrapped
-HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
+// Add HMODULE to vector (Unicode)
+void Utils::AddHandleToVector(HMODULE dll, const wchar_t* name)
+{
+	if (dll && name)
+	{
+		type_dll newCustom_dll;
+		newCustom_dll.dll = dll;
+
+		const wchar_t* filename = wcsrchr(name, L'\\');
+		newCustom_dll.name.assign(filename ? filename + 1 : name);
+		newCustom_dll.fullname.assign(name);
+
+		custom_dll.push_back(newCustom_dll);
+	}
+}
+
+// Load real dll file that is being wrapped (ANSI)
+HMODULE Utils::LoadLibrary(const char* dllname, bool EnableLogging)
 {
 	// Declare vars
 	HMODULE dll = nullptr;
-	const char *loadpath;
+	const char* loadpath = nullptr;
 	CreateScopedHeapBuffer(char, path, MAX_PATH);
 
 	// Check if dll is already loaded
+	std::wstring wideDllName = AnsiToWide(dllname);
 	for (size_t x = 0; x < custom_dll.size(); x++)
 	{
-		if (_stricmp(custom_dll[x].name.c_str(), dllname) == 0 || _stricmp(custom_dll[x].fullname.c_str(), dllname) == 0)
+		if (_wcsicmp(custom_dll[x].name.c_str(), wideDllName.c_str()) == 0 ||
+			_wcsicmp(custom_dll[x].fullname.c_str(), wideDllName.c_str()) == 0)
 		{
 			return custom_dll[x].dll;
 		}
@@ -1028,11 +1090,11 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 	// Load system dll
 	if (!dll && GetSystemDirectoryA(path, MAX_PATH))
 	{
-		//Load library
-		strcat_s(path, MAX_PATH, "\\");
-		strcat_s(path, MAX_PATH, dllname);
-		loadpath = path;
-		dll = ::LoadLibraryA(loadpath);
+		if (PathAppendA(path, dllname))
+		{
+			loadpath = path;
+			dll = ::LoadLibraryA(loadpath);
+		}
 	}
 
 	// Store handle and dll name
@@ -1042,7 +1104,57 @@ HMODULE Utils::LoadLibrary(const char *dllname, bool EnableLogging)
 		AddHandleToVector(dll, dllname);
 	}
 
-	// Return dll handle
+	return dll;
+}
+
+// Load real dll file that is being wrapped (Unicode)
+HMODULE Utils::LoadLibrary(const wchar_t* dllname, bool EnableLogging)
+{
+	// Declare vars
+	HMODULE dll = nullptr;
+	const wchar_t* loadpath = nullptr;
+	CreateScopedHeapBuffer(wchar_t, path, MAX_PATH);
+
+	// Check if dll is already loaded
+	for (size_t x = 0; x < custom_dll.size(); x++)
+	{
+		if (_wcsicmp(custom_dll[x].name.c_str(), dllname) == 0 ||
+			_wcsicmp(custom_dll[x].fullname.c_str(), dllname) == 0)
+		{
+			return custom_dll[x].dll;
+		}
+	}
+
+	// Logging
+	if (EnableLogging)
+	{
+		Logging::Log() << "Loading DLL";
+	}
+
+	// Load default dll if not loading current dll
+	if (_wcsicmp(AnsiToWide(Config.WrapperName.c_str()).c_str(), dllname) != 0)
+	{
+		loadpath = dllname;
+		dll = ::LoadLibraryW(loadpath);
+	}
+
+	// Load system dll
+	if (!dll && GetSystemDirectoryW(path, MAX_PATH))
+	{
+		if (PathAppendW(path, dllname))
+		{
+			loadpath = path;
+			dll = ::LoadLibraryW(loadpath);
+		}
+	}
+
+	// Store handle and dll name
+	if (dll)
+	{
+		Logging::Log() << "Loaded library";
+		AddHandleToVector(dll, dllname);
+	}
+
 	return dll;
 }
 
@@ -1089,16 +1201,16 @@ void Utils::InitializeASI(HMODULE hModule)
 }
 
 // Find asi plugins to load
-void Utils::FindFiles(WIN32_FIND_DATA* fd)
+void Utils::FindFiles(WIN32_FIND_DATAW* fd)
 {
-	CreateScopedHeapBuffer(char, dir, MAX_PATH);
-	if (!GetCurrentDirectoryA(MAX_PATH, dir))
+	CreateScopedHeapBuffer(wchar_t, dir, MAX_PATH);
+	if (!GetCurrentDirectoryW(MAX_PATH, dir))
 	{
 		Logging::Log() << "Failed to get current directory.";
 		return;
 	}
 
-	HANDLE asiFile = FindFirstFileA("*.asi", fd);
+	HANDLE asiFile = FindFirstFileW(L"*.asi", fd);
 	if (asiFile == INVALID_HANDLE_VALUE)
 	{
 		return;
@@ -1109,31 +1221,32 @@ void Utils::FindFiles(WIN32_FIND_DATA* fd)
 		if (fd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 			continue;
 
-		const char* filename = fd->cFileName;
-		size_t len = strlen(filename);
+		const wchar_t* filename = fd->cFileName;
+		size_t len = wcslen(filename);
 
 		// Check for ".asi" extension (case-insensitive)
-		if (len >= 4 && _stricmp(&filename[len - 4], ".asi") == 0)
+		if (len >= 4 && _wcsicmp(&filename[len - 4], L".asi") == 0)
 		{
-			CreateScopedHeapBuffer(char, fullPath, MAX_PATH);
-			snprintf(fullPath, MAX_PATH, "%s\\%s", dir, filename);
+			CreateScopedHeapBuffer(wchar_t, fullPath, MAX_PATH);
+			if (swprintf_s(fullPath, MAX_PATH, L"%s\\%s", dir, filename) < 0)
+				continue;
 
-			HMODULE h = LoadLibraryA(fullPath);
+			HMODULE h = LoadLibrary(fullPath);
 
 			// Ensure we're still in the original directory
-			SetCurrentDirectoryA(dir);
+			SetCurrentDirectoryW(dir);
 
 			if (h)
 			{
-				AddHandleToVector(h, fullPath);
+				AddHandleToVector(h, filename);
 				InitializeASI(h);
 			}
 			else
 			{
-				Logging::LogFormat("Unable to load '%s'. Error: %d", filename, GetLastError());
+				Logging::Log() << "Unable to load ASI plugin. Error: " << GetLastError();
 			}
 		}
-	} while (FindNextFileA(asiFile, fd));
+	} while (FindNextFileW(asiFile, fd));
 
 	FindClose(asiFile);
 }
@@ -1143,48 +1256,49 @@ void Utils::LoadPlugins()
 {
 	Logging::Log() << "Loading ASI Plugins";
 
-	CreateScopedHeapBuffer(char, originalDir, MAX_PATH);
-	if (!GetCurrentDirectoryA(MAX_PATH, originalDir))
+	CreateScopedHeapBuffer(wchar_t, originalDir, MAX_PATH);
+	if (!GetCurrentDirectoryW(MAX_PATH, originalDir))
 	{
 		Logging::Log() << "Failed to get current directory.";
 		return;
 	}
 
 	// Get directory of the DLL
-	CreateScopedHeapBuffer(char, selfPath, MAX_PATH);
-	if (!GetModuleFileNameA(hModule_dll, selfPath, MAX_PATH))
+	CreateScopedHeapBuffer(wchar_t, selfPath, MAX_PATH);
+	if (!GetModuleFileNameW(hModule_dll, selfPath, MAX_PATH))
 	{
 		Logging::Log() << "Failed to get module file name.";
 		return;
 	}
 
-	CreateScopedHeapBuffer(char, baseDir, MAX_PATH);
-	strcpy_s(baseDir, MAX_PATH, selfPath);
-	char* lastSlash = strrchr(baseDir, '\\');
-	if (lastSlash) *lastSlash = '\0'; // remove the filename
+	CreateScopedHeapBuffer(wchar_t, baseDir, MAX_PATH);
+	wcscpy_s(baseDir, MAX_PATH, selfPath);
 
-	WIN32_FIND_DATAA fd;
+	wchar_t* lastSlash = wcsrchr(baseDir, L'\\');
+	if (lastSlash) *lastSlash = L'\0'; // remove the filename
+
+	WIN32_FIND_DATAW fd;
 
 	// Load from base directory
 	if (!Config.LoadFromScriptsOnly)
 	{
-		SetCurrentDirectoryA(baseDir);
+		SetCurrentDirectoryW(baseDir);
 		FindFiles(&fd);
 	}
 
 	// Load from subdirectories: scripts and plugins
-	const char* subDirs[] = { "scripts", "plugins" };
+	const wchar_t* subDirs[] = { L"scripts", L"plugins" };
 	for (const auto& dir : subDirs)
 	{
-		CreateScopedHeapBuffer(char, fullPath, MAX_PATH);
-		if (PathCombineA(fullPath, baseDir, dir) && SetCurrentDirectoryA(fullPath))
+		CreateScopedHeapBuffer(wchar_t, fullPath, MAX_PATH);
+		if (PathCombineW(fullPath, baseDir, dir) && SetCurrentDirectoryW(fullPath))
 		{
 			FindFiles(&fd);
 		}
 	}
 
 	// Restore original working directory
-	SetCurrentDirectoryA(originalDir);
+	SetCurrentDirectoryW(originalDir);
 }
 
 // Unload all dll files loaded by the wrapper

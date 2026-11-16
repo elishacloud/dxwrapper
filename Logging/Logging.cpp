@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2025 Elisha Riedlinger
+* Copyright (C) 2026 Elisha Riedlinger
 *
 * This software is  provided 'as-is', without any express  or implied  warranty. In no event will the
 * authors be held liable for any damages arising from the use of this software.
@@ -48,36 +48,92 @@ void Logging::InitLog()
 		return;
 	}
 
-	static char wrappername[MAX_PATH];
-
 	// Get module name
-	HMODULE hModule = NULL;
-	GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCTSTR)InitLog, &hModule);
-	GetModuleFileName(hModule, wrappername, MAX_PATH);
-
-	// Get process name
-	char processname[MAX_PATH];
-	GetModuleFileName(nullptr, processname, MAX_PATH);
-
-	// Check if module name is the same as process name
-	if (_stricmp(strrchr(wrappername, '\\') + 1, strrchr(processname, '\\') + 1) == 0)
+	HMODULE hModule = nullptr;
+	if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCWSTR)InitLog, &hModule))
 	{
-		strcpy_s(strrchr(wrappername, '\\') + 1, MAX_PATH - strlen(wrappername), "dxwrapper.dll");
+		return;
 	}
 
-	// Remove extension and add dash (-)
-	strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), "-");
+	wchar_t wrappername[MAX_PATH] = {};
+	DWORD wrapperSize = GetModuleFileNameW(hModule, wrappername, MAX_PATH);
+	if (!wrapperSize || wrapperSize >= MAX_PATH)
+	{
+		return;
+	}
 
-	// Add process name
-	strcat_s(wrappername, MAX_PATH, strrchr(processname, '\\') + 1);
+	// Get process name
+	wchar_t processname[MAX_PATH] = {};
+	DWORD processSize = GetModuleFileNameW(nullptr, processname, MAX_PATH);
+	if (!processSize || processSize >= MAX_PATH)
+	{
+		return;
+	}
 
-	// Change extension to .log
-	strcpy_s(strrchr(wrappername, '.'), MAX_PATH - strlen(wrappername), ".log");
+	std::wstring wrapperPath(wrappername);
+	std::wstring processPath(processname);
+
+	// Get filenames
+	size_t wrapperSlash = wrapperPath.find_last_of(L"\\/");
+	size_t processSlash = processPath.find_last_of(L"\\/");
+
+	std::wstring wrapperFilename = wrapperPath.substr(wrapperSlash == std::wstring::npos ? 0 : wrapperSlash + 1);
+
+	std::wstring processFilename = processPath.substr(processSlash == std::wstring::npos ? 0 : processSlash + 1);
+
+	// Check if module name is the same as process name
+	if (_wcsicmp(wrapperFilename.c_str(), processFilename.c_str()) == 0)
+	{
+		// Use dxwrapper.dll instead
+		if (wrapperSlash != std::wstring::npos)
+		{
+			wrapperPath.resize(wrapperSlash + 1);
+		}
+		else
+		{
+			wrapperPath.clear();
+		}
+
+		wrapperPath += L"dxwrapper.dll";
+
+		wrapperSlash = wrapperPath.find_last_of(L"\\/");
+		wrapperFilename = wrapperPath.substr(wrapperSlash == std::wstring::npos ? 0 : wrapperSlash + 1);
+	}
+
+	// Remove extension from wrapper filename
+	size_t wrapperExt = wrapperFilename.find_last_of(L'.');
+	if (wrapperExt != std::wstring::npos)
+	{
+		wrapperFilename.resize(wrapperExt);
+	}
+
+	// Remove extension from process filename
+	size_t processExt = processFilename.find_last_of(L'.');
+	if (processExt != std::wstring::npos)
+	{
+		processFilename.resize(processExt);
+	}
+
+	// Build log filename
+	std::wstring logPath;
+
+	if (wrapperSlash != std::wstring::npos)
+	{
+		logPath = wrapperPath.substr(0, wrapperSlash + 1);
+	}
+
+	logPath += wrapperFilename;
+	logPath += L"-";
+	logPath += processFilename;
+	logPath += L".log";
 
 	// Set lower case
-	for (int z = 0; z < MAX_PATH && wrappername[z] != '\0'; z++) { wrappername[z] = (char)tolower(wrappername[z]); }
+	for (auto& c : logPath)
+	{
+		c = static_cast<wchar_t>(towlower(c));
+	}
 
-	Open(wrappername);
+	Open(logPath.c_str());
 }
 
 std::ostream& operator<<(std::ostream& os, const FLOAT4& data)

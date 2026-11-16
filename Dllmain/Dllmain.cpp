@@ -95,25 +95,29 @@ __declspec(dllexport) void fix_9xheap()
 	Utils::Load9xheap();
 }
 
-typedef HMODULE(*LoadProc)(const char *ProxyDll, const char *MyDllName);
+typedef HMODULE(*LoadProc)(const wchar_t *ProxyDll, const char *MyDllName);
 
-static HMODULE LoadHookedDll(const char *dllname, LoadProc Load, DWORD HookSystem32)
+static HMODULE LoadHookedDll(const char* dllname, LoadProc Load, DWORD HookSystem32)
 {
 	HMODULE dll = Load(nullptr, Config.WrapperName.c_str());
 
 	if (dllname)
 	{
-		CreateScopedHeapBuffer(char, path, MAX_PATH);
-		if (GetSystemDirectoryA(path, MAX_PATH))
-		{
-			PathAppend(path, dllname);
+		CreateScopedHeapBuffer(wchar_t, path, MAX_PATH);
 
-			if (Config.IsSet(HookSystem32) || (HookSystem32 == NOT_EXIST && GetModuleHandleA(path)))
+		if (GetSystemDirectoryW(path, MAX_PATH))
+		{
+			std::wstring dllnameW = Utils::AnsiToWide(dllname);
+
+			if (PathAppendW(path, dllnameW.c_str()))
 			{
-				HMODULE lib = LoadLibrary(path);
-				if (lib)
+				if (Config.IsSet(HookSystem32) || (HookSystem32 == NOT_EXIST && GetModuleHandleW(path)))
 				{
-					dll = lib;
+					HMODULE lib = LoadLibrary(path);
+					if (lib)
+					{
+						dll = lib;
+					}
 				}
 			}
 		}
@@ -235,10 +239,11 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		bool IsRunningFromMemory = false;
 		Logging::Log() << "Starting DxWrapper v" << APP_VERSION;
 		{
-			CreateScopedHeapBuffer(char, path, MAX_PATH);
+			CreateScopedHeapBuffer(wchar_t, path, MAX_PATH);
 			SetLastError(0);
-			DWORD size = GetModuleFileName(hModule, path, MAX_PATH);
+			DWORD size = GetModuleFileNameW(hModule, path, MAX_PATH);
 			DWORD errorCode = GetLastError();
+
 			if (errorCode == ERROR_INSUFFICIENT_BUFFER)
 			{
 				Logging::Log() << "Warning: folder path is too long!";
@@ -249,7 +254,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			}
 
 			// Check if it is loading from a file
-			if (PathFileExists(path))
+			if (PathFileExistsW(path))
 			{
 				Logging::Log() << "Running from: " << path << " (" << hModule << ")";
 			}
@@ -264,7 +269,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		Logging::LogVideoCard();
 		Logging::LogOSVersion();
 		Logging::LogProcessNameAndPID();
-		Logging::Log() << GetCommandLineA();
+		Logging::Log() << GetCommandLineW();
 		Logging::LogGameType();
 		Logging::LogCompatLayer();
 		Logging::Log() << "Windows is newer than," <<
@@ -311,12 +316,12 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		else if (!(Config.Dd7to9 && Config.RealWrapperMode == dtype.ddraw) && !(Config.D3d8to9 && Config.RealWrapperMode == dtype.d3d8) && !(Config.Dinputto8 && Config.RealWrapperMode == dtype.dinput))
 		{
 			// Load real dll and attach wrappers
-			HMODULE dll = Wrapper::CreateWrapper((Config.RealDllPath.size()) ? Config.RealDllPath.c_str() : nullptr, (Config.WrapperMode.size()) ? Config.WrapperMode.c_str() : nullptr, Config.WrapperName.c_str());
+			HMODULE dll = Wrapper::CreateWrapper(!Config.RealDllPath.empty() ? Config.RealDllPath.c_str() : nullptr, !Config.WrapperMode.empty() ? Config.WrapperMode.c_str() : nullptr, Config.WrapperName.c_str());
 			if (dll)
 			{
 				// Pin real dll module
 				HMODULE dummy = nullptr;
-				GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCSTR>(dll), &dummy);
+				GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCWSTR>(dll), &dummy);
 
 				Utils::AddHandleToVector(dll, Config.WrapperName.c_str());
 
@@ -350,7 +355,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 
 		// Pin current module
 		HMODULE dummy = nullptr;
-		GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCSTR>(DllMain), &dummy);
+		GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCWSTR>(DllMain), &dummy);
 
 		// Fix QPC uptime issues (before other compatibility options)
 		if (Config.FixPerfCounterUptime && Utils::InitUpTimeOffsets())
@@ -435,7 +440,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Hook CoCreateInstance
 		if (Config.EnableDdrawWrapper || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8 || Config.EnableDsoundWrapper)
 		{
-			HMODULE ole32_dll = LoadLibraryA("ole32.dll");
+			HMODULE ole32_dll = LoadLibrary("ole32.dll");
 			if (ole32_dll)
 			{
 				Logging::Log() << "Hooking ole32.dll APIs...";

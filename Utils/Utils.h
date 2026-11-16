@@ -2,6 +2,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <string>
 #include "Wrappers\wrapper.h"
 #include "External\MemoryModule\MemoryModule.h"
 #include "Logging\Logging.h"
@@ -65,9 +66,13 @@ namespace Utils
 	DWORD WINAPI winmm_timeGetTime();
 	MMRESULT WINAPI winmm_timeGetSystemTime(LPMMTIME pmmt, UINT cbmmt);
 	void MarkAsValidCallTarget(void* allocationBase, size_t regionSize, size_t entryOffset);
+	std::wstring AnsiToWide(const char* str);
+	std::string WideToAnsi(const wchar_t* str);
 	void AddHandleToVector(HMODULE dll, const char *name);
+	void AddHandleToVector(HMODULE dll, const wchar_t* name);
 	bool CheckIfSystemModuleLoaded(const char* moduleName);
 	HMODULE LoadLibrary(const char *dllname, bool EnableLogging = false);
+	HMODULE LoadLibrary(const wchar_t* dllname, bool EnableLogging = false);
 	void LoadCustomDll();
 	void LoadPlugins();
 	void UnloadAllDlls();
