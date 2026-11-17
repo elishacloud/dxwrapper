@@ -1575,11 +1575,11 @@ HRESULT m_IDirectDrawX::GetCaps(LPDDCAPS lpDDDriverCaps, LPDDCAPS lpDDHELCaps, D
 	{
 		if (lpDDDriverCaps)
 		{
-			AdjustVidMemory(&lpDDDriverCaps->dwVidMemTotal, &lpDDDriverCaps->dwVidMemFree);
+			AdjustVidMemory(lpDDDriverCaps->dwVidMemTotal, lpDDDriverCaps->dwVidMemFree);
 		}
 		if (lpDDHELCaps)
 		{
-			AdjustVidMemory(&lpDDHELCaps->dwVidMemTotal, &lpDDHELCaps->dwVidMemFree);
+			AdjustVidMemory(lpDDHELCaps->dwVidMemTotal, lpDDHELCaps->dwVidMemFree);
 		}
 	}
 
@@ -2485,7 +2485,17 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem(LPDDSCAPS lpDDSCaps, LPDWORD lpdwTota
 	HRESULT hr = GetProxyInterfaceV3()->GetAvailableVidMem(lpDDSCaps, lpdwTotal, lpdwFree);
 
 	// Set available memory
-	AdjustVidMemory(lpdwTotal, lpdwFree);
+	DWORD Total = 0, Free = 0;
+	AdjustVidMemory(Total, Free);
+
+	if (lpdwTotal)
+	{
+		*lpdwTotal = Total;
+	}
+	if (lpdwFree)
+	{
+		*lpdwFree = Free;
+	}
 
 	return hr;
 }
@@ -2551,7 +2561,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 		}
 
 		// Ajdust memory (fixes case where memory is null)
-		AdjustVidMemory(&TotalMemory, &AvailableMemory);
+		AdjustVidMemory(TotalMemory, AvailableMemory);
 
 		// Set memory based on type
 		if (lpDDSCaps2)
@@ -2566,7 +2576,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 				TotalMemory -= TotalMemory / 7;
 
 				// Adjust memory (fixes AvailableMemory)
-				AdjustVidMemory(&TotalMemory, &AvailableMemory);
+				AdjustVidMemory(TotalMemory, AvailableMemory);
 			}
 			else
 			{
@@ -2574,7 +2584,7 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 				TotalMemory /= 7;
 
 				// Adjust memory (fixes AvailableMemory)
-				AdjustVidMemory(&TotalMemory, &AvailableMemory);
+				AdjustVidMemory(TotalMemory, AvailableMemory);
 			}
 		}
 
@@ -2594,7 +2604,17 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 	HRESULT hr = ProxyInterface->GetAvailableVidMem(lpDDSCaps2, lpdwTotal, lpdwFree);
 
 	// Ajdust available memory
-	AdjustVidMemory(lpdwTotal, lpdwFree);
+	DWORD Total = 0, Free = 0;
+	AdjustVidMemory(Total, Free);
+
+	if (lpdwTotal)
+	{
+		*lpdwTotal = Total;
+	}
+	if (lpdwFree)
+	{
+		*lpdwFree = Free;
+	}
 
 	return hr;
 }

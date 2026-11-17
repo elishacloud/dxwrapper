@@ -790,23 +790,20 @@ void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9, DWORD dwZBufferBitDepths)
 	Caps7.dwVidMemFree = MaxVidMemory - MinUsedVidMemory;
 }
 
-void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree)
+void AdjustVidMemory(DWORD& dwTotal, DWORD& dwFree)
 {
-	const bool UseTotal = (lpdwTotal && *lpdwTotal);
-	const bool UseFree = (lpdwFree && *lpdwFree);
+	const bool UseTotal = (dwTotal != 0);
+	const bool UseFree = (dwFree != 0);
 
-	DWORD TotalVidMem = UseTotal ? *lpdwTotal : UseFree ? *lpdwFree + MinUsedVidMemory : MaxVidMemory;
+	DWORD TotalVidMem = UseTotal ? dwTotal : UseFree ? dwFree + MinUsedVidMemory : MaxVidMemory;
 	TotalVidMem = min(TotalVidMem, MaxVidMemory);
-	DWORD AvailVidMem = UseFree ? *lpdwFree : TotalVidMem - MinUsedVidMemory;
+
+	DWORD AvailVidMem = UseFree ? dwFree : TotalVidMem - MinUsedVidMemory;
 	AvailVidMem = min(AvailVidMem, TotalVidMem - MinUsedVidMemory);
-	if (lpdwTotal)
-	{
-		*lpdwTotal = TotalVidMem;
-	}
-	if (lpdwFree)
-	{
-		*lpdwFree = AvailVidMem;
-	}
+	AvailVidMem = Config.DdrawLimitFreeMemory ? max(AvailVidMem, MaxFreeVidMemory) : AvailVidMem;
+
+	dwTotal = TotalVidMem;
+	dwFree = AvailVidMem;
 }
 
 DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount)

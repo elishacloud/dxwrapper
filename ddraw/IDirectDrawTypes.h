@@ -6,6 +6,7 @@ class m_IDirectDrawX;
 
 static constexpr DWORD MaxVidMemory     = INT32_MAX - (16 * 1024 * 1024);	// Max 2 GBs - 16 MBs
 static constexpr DWORD MinUsedVidMemory = 8 * 1024 * 1024;					// 8 MBs
+static constexpr DWORD MaxFreeVidMemory = 4 * 1024 * 1024;					// 4 MBs
 
 static constexpr DWORD MaxTextureMemoryAllowed = 64 * 1024 * 1024;			// 64 MBs
 
@@ -241,7 +242,7 @@ void ConvertDeviceIdentifier(DDDEVICEIDENTIFIER2& DeviceID, const D3DADAPTER_IDE
 void ConvertCaps(DDSCAPS& Caps, const DDSCAPS2& Caps2);
 void ConvertCaps(DDSCAPS2& Caps2, const DDSCAPS& Caps);
 void ConvertCaps(DDCAPS& Caps7, D3DCAPS9& Caps9, DWORD dwZBufferBitDepths);
-void AdjustVidMemory(LPDWORD lpdwTotal, LPDWORD lpdwFree);
+void AdjustVidMemory(DWORD& dwTotal, DWORD& dwFree);
 DWORD GetByteAlignedWidth(DWORD Width, DWORD BitCount);
 DWORD GetMaxMipMapLevel(DWORD Width, DWORD Height);
 DWORD GetBitCount(const DDPIXELFORMAT& ddpfPixelFormat);
