@@ -1,5 +1,6 @@
 float4 offset     : register(c0);
 float4 multiplier : register(c1);
+bool clipmode     : register(c2);
 
 struct VS
 {
@@ -14,7 +15,11 @@ VS main(const VS i)
     const float max_rhw = 1U << 31;
     const float min_rhw = 1.0f / max_rhw;
 
-    const float rhw = clamp(i.pos.w, min_rhw, max_rhw);
+    // Preserve the sign of RHW only for runtime-transformed vertices, where w < 0 means behind
+    // the camera and the rasteriser must clip. Application-supplied XYZRHW keeps the old clamp.
+    const float rhw = (clipmode && i.pos.w < 0.0f)
+        ? -clamp(-i.pos.w, min_rhw, max_rhw)
+        :  clamp( i.pos.w, min_rhw, max_rhw);
     const float w = 1.0f / rhw;
 
     VS o = i;

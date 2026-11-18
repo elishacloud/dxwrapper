@@ -163,6 +163,12 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 
 		*lplpData = nullptr;
 
+		// Application may overwrite runtime-processed data
+		if (!(dwFlags & DDLOCK_READONLY))
+		{
+			IsRuntimeClipped = false;
+		}
+
 		if (lpdwSize)
 		{
 			*lpdwSize = 0;
@@ -379,6 +385,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 
 		if (SUCCEEDED(hr))
 		{
+			IsRuntimeClipped = (doClipping != FALSE);
 			hr = CopyBufferToEmulatedMem(dwDestIndex, dwCount);
 		}
 
@@ -589,6 +596,7 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 
 		if (SUCCEEDED(hr))
 		{
+			IsRuntimeClipped = (doClipping != FALSE);
 			hr = CopyBufferToEmulatedMem(dwDestIndex, dwCount);
 		}
 

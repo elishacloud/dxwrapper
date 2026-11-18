@@ -3341,6 +3341,12 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 
 		DWORD dwVertexTypeDesc = pVertexBufferX->GetFVF();
 
+		// Negative RHW only means "behind the camera" for vertices the runtime transformed itself
+		if (pVertexBufferX->IsClipProcessed() && !(dwFlags & D3DDP_DONOTCLIP))
+		{
+			dwFlags |= D3DDP_DXW_RUNTIMECLIPPED;
+		}
+
 		// Set vertex type
 		if (FAILED(SetVertexType(dwVertexTypeDesc, dwFlags)))
 		{
@@ -3468,6 +3474,12 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		}
 
 		DWORD dwVertexTypeDesc = pVertexBufferX->GetFVF();
+
+		// Negative RHW only means "behind the camera" for vertices the runtime transformed itself
+		if (pVertexBufferX->IsClipProcessed() && !(dwFlags & D3DDP_DONOTCLIP))
+		{
+			dwFlags |= D3DDP_DXW_RUNTIMECLIPPED;
+		}
 
 		// Set vertex type
 		if (FAILED(SetVertexType(dwVertexTypeDesc, dwFlags)))
@@ -6795,9 +6807,9 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 		(dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW &&
 		IsValidFVF(dwVertexTypeDesc))
 	{
-		const int texCount = (dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+		const int texCount[4] = { (dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT, 0, 0, 0 };
 
-		const bool UseMultiStageShader = texCount == 1 && (
+		const bool UseMultiStageShader = texCount[0] == 1 && (
 			CurrentTextureSurfaceX[1] != nullptr ||
 			CurrentTextureSurfaceX[2] != nullptr ||
 			CurrentTextureSurfaceX[3] != nullptr ||
@@ -6806,7 +6818,7 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 			CurrentTextureSurfaceX[6] != nullptr ||
 			CurrentTextureSurfaceX[7] != nullptr);
 
-		IDirect3DVertexShader9* pShader = UseMultiStageShader ? ddrawParent->GetMultiStageFixupVertexShader() : ddrawParent->GetFixupVertexShader(texCount);
+		IDirect3DVertexShader9* pShader = UseMultiStageShader ? ddrawParent->GetMultiStageFixupVertexShader() : ddrawParent->GetFixupVertexShader(texCount[0]);
 		IDirect3DVertexDeclaration9* decl = ddrawParent->GetVertexDeclaration(dwVertexTypeDesc);
 
 		if (pShader && decl)
@@ -6849,9 +6861,12 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 				{
 					dwFlags |= D3DDP_DXW_VERTEXFIXUPSHADER;
 
+					const BOOL clipmode = (dwFlags & D3DDP_DXW_RUNTIMECLIPPED) ? TRUE: FALSE;
+
 					(*d3d9Device)->SetVertexShaderConstantF(0, offset, 1);
 					(*d3d9Device)->SetVertexShaderConstantF(1, multiplier, 1);
-					(*d3d9Device)->SetVertexShaderConstantI(2, &texCount, 1);
+					(*d3d9Device)->SetVertexShaderConstantB(2, &clipmode, 1);
+					(*d3d9Device)->SetVertexShaderConstantI(3, texCount, 1);
 
 					(*d3d9Device)->SetVertexShader(pShader);
 				}
