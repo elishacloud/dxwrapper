@@ -1,13 +1,12 @@
 float4 offset     : register(c0);
 float4 multiplier : register(c1);
-bool clipmode     : register(c2);
 
 struct VS
 {
     float4 pos      : POSITION;
     float fog       : FOG;
     float4 color[2] : COLOR;
-    float4 tex[4]   : TEXCOORD;
+    float4 tex[2]   : TEXCOORD;
 };
 
 VS main(const VS i)
@@ -17,7 +16,7 @@ VS main(const VS i)
 
     // Preserve the sign of RHW only for runtime-transformed vertices, where w < 0 means behind
     // the camera and the rasteriser must clip. Application-supplied XYZRHW keeps the old clamp.
-    const float rhw = (clipmode && i.pos.w < 0.0f)
+    const float rhw = i.pos.w < 0.0f
         ? -clamp(-i.pos.w, min_rhw, max_rhw)
         :  clamp( i.pos.w, min_rhw, max_rhw);
     const float w = 1.0f / rhw;

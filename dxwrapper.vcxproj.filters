@@ -1835,19 +1835,16 @@
     <ClInclude Include="ddraw\Shaders\FixUpVertexShader1.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\Shaders\FixUpVertexShader3.h">
+    <ClInclude Include="ddraw\Shaders\FixUpVertexShaderClipped0.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\Shaders\FixUpVertexShader4.h">
+    <ClInclude Include="ddraw\Shaders\FixUpVertexShaderClipped1.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\Shaders\FixUpVertexShader5.h">
+    <ClInclude Include="ddraw\Shaders\FixUpVertexShaderClipped2.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\Shaders\FixUpVertexShader6.h">
-      <Filter>ddraw\Shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="ddraw\Shaders\FixUpVertexShader7.h">
+    <ClInclude Include="ddraw\Shaders\FixUpVertexShaderClipped8.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
     <ClInclude Include="ddraw\Shaders\FixUpVertexShader0.h">
@@ -1887,19 +1884,16 @@
     <CustomBuild Include="ddraw\Shaders\FixUpVertexShader1.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
-    <CustomBuild Include="ddraw\Shaders\FixUpVertexShader3.hlsl">
+    <CustomBuild Include="ddraw\Shaders\FixUpVertexShaderClipped0.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
-    <CustomBuild Include="ddraw\Shaders\FixUpVertexShader4.hlsl">
+    <CustomBuild Include="ddraw\Shaders\FixUpVertexShaderClipped1.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
-    <CustomBuild Include="ddraw\Shaders\FixUpVertexShader5.hlsl">
+    <CustomBuild Include="ddraw\Shaders\FixUpVertexShaderClipped2.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
-    <CustomBuild Include="ddraw\Shaders\FixUpVertexShader6.hlsl">
-      <Filter>ddraw\Shaders</Filter>
-    </CustomBuild>
-    <CustomBuild Include="ddraw\Shaders\FixUpVertexShader7.hlsl">
+    <CustomBuild Include="ddraw\Shaders\FixUpVertexShaderClipped8.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
     <CustomBuild Include="ddraw\Shaders\FixUpVertexShader0.hlsl">

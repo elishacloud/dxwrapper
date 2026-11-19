@@ -245,7 +245,7 @@ public:
 	LPDIRECT3DVERTEXDECLARATION9 GetVertexDeclaration(DWORD FVF);
 	bool CreatePalettePixelShader();
 	LPDIRECT3DPIXELSHADER9* GetColorKeyPixelShader();
-	LPDIRECT3DVERTEXSHADER9 GetFixupVertexShader(DWORD texCount);
+	LPDIRECT3DVERTEXSHADER9 GetFixupVertexShader(DWORD texCount, bool IsClipped);
 	LPDIRECT3DVERTEXSHADER9 GetMultiStageFixupVertexShader();
 	LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer(DWORD FVF, UINT Length, void* lpData);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);

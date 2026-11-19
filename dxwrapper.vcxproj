@@ -1199,11 +1199,10 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="ddraw\Shaders\FixUpVertexShader0.h" />
     <ClInclude Include="ddraw\Shaders\FixUpVertexShader1.h" />
     <ClInclude Include="ddraw\Shaders\FixUpVertexShader2.h" />
-    <ClInclude Include="ddraw\Shaders\FixUpVertexShader3.h" />
-    <ClInclude Include="ddraw\Shaders\FixUpVertexShader4.h" />
-    <ClInclude Include="ddraw\Shaders\FixUpVertexShader5.h" />
-    <ClInclude Include="ddraw\Shaders\FixUpVertexShader6.h" />
-    <ClInclude Include="ddraw\Shaders\FixUpVertexShader7.h" />
+    <ClInclude Include="ddraw\Shaders\FixUpVertexShaderClipped0.h" />
+    <ClInclude Include="ddraw\Shaders\FixUpVertexShaderClipped1.h" />
+    <ClInclude Include="ddraw\Shaders\FixUpVertexShaderClipped2.h" />
+    <ClInclude Include="ddraw\Shaders\FixUpVertexShaderClipped8.h" />
     <ClInclude Include="ddraw\Shaders\FixUpVertexShader8.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D.h" />
     <ClInclude Include="ddraw\Versions\IDirect3D2.h" />
@@ -1371,42 +1370,34 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="ddraw\Shaders\FixUpVertexShader3.hlsl">
+    <CustomBuild Include="ddraw\Shaders\FixUpVertexShaderClipped0.hlsl">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpVertexShader3.hlsl main vs_2_0 FixUpVertexShader3Src"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpVertexShader3.h</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpVertexShaderClipped0.hlsl main vs_2_0 FixUpVertexShaderClipped0Src"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpVertexShaderClipped0.h</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="ddraw\Shaders\FixUpVertexShader4.hlsl">
+    <CustomBuild Include="ddraw\Shaders\FixUpVertexShaderClipped1.hlsl">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpVertexShader4.hlsl main vs_2_0 FixUpVertexShader4Src"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpVertexShader4.h</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpVertexShaderClipped1.hlsl main vs_2_0 FixUpVertexShaderClipped1Src"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpVertexShaderClipped1.h</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="ddraw\Shaders\FixUpVertexShader5.hlsl">
+    <CustomBuild Include="ddraw\Shaders\FixUpVertexShaderClipped2.hlsl">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpVertexShader5.hlsl main vs_2_0 FixUpVertexShader5Src"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpVertexShader5.h</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpVertexShaderClipped2.hlsl main vs_2_0 FixUpVertexShaderClipped2Src"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpVertexShaderClipped2.h</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="ddraw\Shaders\FixUpVertexShader6.hlsl">
+    <CustomBuild Include="ddraw\Shaders\FixUpVertexShaderClipped8.hlsl">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpVertexShader6.hlsl main vs_2_0 FixUpVertexShader6Src"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpVertexShader6.h</Outputs>
-      <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="ddraw\Shaders\FixUpVertexShader7.hlsl">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpVertexShader7.hlsl main vs_2_0 FixUpVertexShader7Src"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpVertexShader7.h</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpVertexShaderClipped8.hlsl main vs_2_0 FixUpVertexShaderClipped8Src"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpVertexShaderClipped8.h</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
     </CustomBuild>
   </ItemGroup>

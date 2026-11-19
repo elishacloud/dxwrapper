@@ -6807,9 +6807,10 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 		(dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW &&
 		IsValidFVF(dwVertexTypeDesc))
 	{
-		const int texCount[4] = { (dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT, 0, 0, 0 };
+		const bool IsClipped = (dwFlags & D3DDP_DXW_RUNTIMECLIPPED) ? true : false;
+		const int texCount = (dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
 
-		const bool UseMultiStageShader = texCount[0] == 1 && (
+		const bool UseMultiStageShader = texCount == 1 && (
 			CurrentTextureSurfaceX[1] != nullptr ||
 			CurrentTextureSurfaceX[2] != nullptr ||
 			CurrentTextureSurfaceX[3] != nullptr ||
@@ -6818,7 +6819,7 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 			CurrentTextureSurfaceX[6] != nullptr ||
 			CurrentTextureSurfaceX[7] != nullptr);
 
-		IDirect3DVertexShader9* pShader = UseMultiStageShader ? ddrawParent->GetMultiStageFixupVertexShader() : ddrawParent->GetFixupVertexShader(texCount[0]);
+		IDirect3DVertexShader9* pShader = UseMultiStageShader ? ddrawParent->GetMultiStageFixupVertexShader() : ddrawParent->GetFixupVertexShader(texCount, IsClipped);
 		IDirect3DVertexDeclaration9* decl = ddrawParent->GetVertexDeclaration(dwVertexTypeDesc);
 
 		if (pShader && decl)
@@ -6861,12 +6862,17 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 				{
 					dwFlags |= D3DDP_DXW_VERTEXFIXUPSHADER;
 
-					const BOOL clipmode = (dwFlags & D3DDP_DXW_RUNTIMECLIPPED) ? TRUE: FALSE;
-
 					(*d3d9Device)->SetVertexShaderConstantF(0, offset, 1);
 					(*d3d9Device)->SetVertexShaderConstantF(1, multiplier, 1);
-					(*d3d9Device)->SetVertexShaderConstantB(2, &clipmode, 1);
-					(*d3d9Device)->SetVertexShaderConstantI(3, texCount, 1);
+
+					if (UseMultiStageShader)
+					{
+						const BOOL clippmode[1] = { IsClipped ? TRUE : FALSE };
+						const int texCountarr[4] = { texCount, 0, 0, 0 };
+
+						(*d3d9Device)->SetVertexShaderConstantB(2, clippmode, 1);
+						(*d3d9Device)->SetVertexShaderConstantI(3, texCountarr, 1);
+					}
 
 					(*d3d9Device)->SetVertexShader(pShader);
 				}
