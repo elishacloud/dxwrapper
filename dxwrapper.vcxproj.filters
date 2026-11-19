@@ -1850,7 +1850,16 @@
     <ClInclude Include="ddraw\Shaders\FixUpVertexShader0.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="ddraw\Shaders\FixUpMultiStageVertexShader.h">
+    <ClInclude Include="ddraw\Shaders\FixUpMultiStageVertexShader2.h">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Shaders\FixUpMultiStageVertexShader8.h">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Shaders\FixUpMultiStageVertexShaderClipped2.h">
+      <Filter>ddraw\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="ddraw\Shaders\FixUpMultiStageVertexShaderClipped8.h">
       <Filter>ddraw\Shaders</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1899,7 +1908,16 @@
     <CustomBuild Include="ddraw\Shaders\FixUpVertexShader0.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
-    <CustomBuild Include="ddraw\Shaders\FixUpMultiStageVertexShader.hlsl">
+    <CustomBuild Include="ddraw\Shaders\FixUpMultiStageVertexShader2.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ddraw\Shaders\FixUpMultiStageVertexShader8.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ddraw\Shaders\FixUpMultiStageVertexShaderClipped2.hlsl">
+      <Filter>ddraw\Shaders</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ddraw\Shaders\FixUpMultiStageVertexShaderClipped8.hlsl">
       <Filter>ddraw\Shaders</Filter>
     </CustomBuild>
   </ItemGroup>

@@ -1193,7 +1193,10 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     <ClInclude Include="ddraw\ProcessVertices.h" />
     <ClInclude Include="ddraw\Shaders\BrightnessPixelShader.h" />
     <ClInclude Include="ddraw\Shaders\ColorKeyPixelShader.h" />
-    <ClInclude Include="ddraw\Shaders\FixUpMultiStageVertexShader.h" />
+    <ClInclude Include="ddraw\Shaders\FixUpMultiStageVertexShader2.h" />
+    <ClInclude Include="ddraw\Shaders\FixUpMultiStageVertexShader8.h" />
+    <ClInclude Include="ddraw\Shaders\FixUpMultiStageVertexShaderClipped2.h" />
+    <ClInclude Include="ddraw\Shaders\FixUpMultiStageVertexShaderClipped8.h" />
     <ClInclude Include="ddraw\Shaders\GammaPixelShader.h" />
     <ClInclude Include="ddraw\Shaders\PalettePixelShader.h" />
     <ClInclude Include="ddraw\Shaders\FixUpVertexShader0.h" />
@@ -1410,10 +1413,34 @@ copy /Y "$(ProjectDir)License.txt" "$(TargetDir)Build\" &gt;nul</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="ddraw\Shaders\FixUpMultiStageVertexShader.hlsl">
+    <CustomBuild Include="ddraw\Shaders\FixUpMultiStageVertexShader2.hlsl">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpMultiStageVertexShader.hlsl main vs_2_0 FixUpMultiStageVertexShaderSrc"</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpMultiStageVertexShader.h</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpMultiStageVertexShader2.hlsl main vs_2_0 FixUpMultiStageVertexShader2Src"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpMultiStageVertexShader2.h</Outputs>
+      <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="ddraw\Shaders\FixUpMultiStageVertexShader8.hlsl">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpMultiStageVertexShader8.hlsl main vs_2_0 FixUpMultiStageVertexShader8Src"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpMultiStageVertexShader8.h</Outputs>
+      <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="ddraw\Shaders\FixUpMultiStageVertexShaderClipped2.hlsl">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpMultiStageVertexShaderClipped2.hlsl main vs_2_0 FixUpMultiStageVertexShaderClipped2Src"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpMultiStageVertexShaderClipped2.h</Outputs>
+      <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="ddraw\Shaders\FixUpMultiStageVertexShaderClipped8.hlsl">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /q /c "cd /D ""$(SolutionDir)ddraw\Shaders\"" &amp;&amp; ""..\..\bin\MakeShader\MakeShader.exe"" FixUpMultiStageVertexShaderClipped8.hlsl main vs_2_0 FixUpMultiStageVertexShaderClipped8Src"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ddraw\Shaders\FixUpMultiStageVertexShaderClipped8.h</Outputs>
       <OutputItemType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">ClInclude</OutputItemType>
     </CustomBuild>
   </ItemGroup>

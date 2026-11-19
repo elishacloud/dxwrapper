@@ -34,7 +34,10 @@
 #include "Shaders\FixUpVertexShaderClipped1.h"
 #include "Shaders\FixUpVertexShaderClipped2.h"
 #include "Shaders\FixUpVertexShaderClipped8.h"
-#include "Shaders\FixUpMultiStageVertexShader.h"
+#include "Shaders\FixUpMultiStageVertexShader2.h"
+#include "Shaders\FixUpMultiStageVertexShader8.h"
+#include "Shaders\FixUpMultiStageVertexShaderClipped2.h"
+#include "Shaders\FixUpMultiStageVertexShaderClipped8.h"
 
 namespace {
 	// Store a list of ddraw devices
@@ -136,17 +139,25 @@ namespace {
 	LPDIRECT3DSTATEBLOCK9 DefaultStateBlock = nullptr;
 	LPDIRECT3DTEXTURE9 GammaLUTTexture = nullptr;
 	LPDIRECT3DTEXTURE9 ScreenCopyTexture = nullptr;
-	std::unordered_map<DWORD, LPDIRECT3DVERTEXDECLARATION9> vertexDeclaration;
 	LPDIRECT3DPIXELSHADER9 palettePixelShader = nullptr;
 	LPDIRECT3DPIXELSHADER9 colorkeyPixelShader = nullptr;
 	LPDIRECT3DPIXELSHADER9 gammaPixelShader = nullptr;
+
+	std::unordered_map<DWORD, LPDIRECT3DVERTEXDECLARATION9> vertexDeclaration;
+	std::unordered_map<DWORD, DX_VERTEX_BUFFER> VertexBuffer;
+
 	DWORD* FixUpVertexShaderSrc[][4] = {
-		{ (DWORD*)FixUpVertexShader0Src, (DWORD*)FixUpVertexShader1Src, (DWORD*)FixUpVertexShader2Src, (DWORD*)FixUpVertexShaderClipped8Src },
-		{ (DWORD*)FixUpVertexShaderClipped0Src, (DWORD*)FixUpVertexShaderClipped1Src, (DWORD*)FixUpVertexShaderClipped2Src, (DWORD*)FixUpVertexShader8Src }
+		{ (DWORD*)FixUpVertexShader0Src, (DWORD*)FixUpVertexShader1Src, (DWORD*)FixUpVertexShader2Src, (DWORD*)FixUpVertexShader8Src },
+		{ (DWORD*)FixUpVertexShaderClipped0Src, (DWORD*)FixUpVertexShaderClipped1Src, (DWORD*)FixUpVertexShaderClipped2Src, (DWORD*)FixUpVertexShaderClipped8Src }
 	};
 	LPDIRECT3DVERTEXSHADER9 fixupVertexShader[std::size(FixUpVertexShaderSrc)][std::size(FixUpVertexShaderSrc[0])] = {};
-	LPDIRECT3DVERTEXSHADER9 fixupMultiStageVertexShader = nullptr;
-	std::unordered_map<DWORD, DX_VERTEX_BUFFER> VertexBuffer;
+
+	DWORD* FixUpMultiStageVertexShaderSrc[][2] = {
+		{ (DWORD*)FixUpMultiStageVertexShader2Src, (DWORD*)FixUpMultiStageVertexShader8Src },
+		{ (DWORD*)FixUpMultiStageVertexShaderClipped2Src, (DWORD*)FixUpMultiStageVertexShaderClipped8Src }
+	};
+	LPDIRECT3DVERTEXSHADER9 fixupMultiStageVertexShader[std::size(FixUpMultiStageVertexShaderSrc)][std::size(FixUpMultiStageVertexShaderSrc[0])] = {};
+
 	constexpr UINT IndexBufferRotationSize = 2;
 	constexpr DWORD IndexBufferMinChunkSize = 512;
 	struct {
@@ -3514,14 +3525,16 @@ LPDIRECT3DVERTEXSHADER9 m_IDirectDrawX::GetFixupVertexShader(DWORD texCount, boo
 	return fixupVertexShader[IsClipped][t];
 }
 
-LPDIRECT3DVERTEXSHADER9 m_IDirectDrawX::GetMultiStageFixupVertexShader()
+LPDIRECT3DVERTEXSHADER9 m_IDirectDrawX::GetMultiStageFixupVertexShader(DWORD texStageCount, bool IsClipped)
 {
+	const DWORD t = min(texStageCount, std::size(FixUpMultiStageVertexShaderSrc[0]) - 1);
+
 	// Create vertex shader
-	if (d3d9Device && !fixupMultiStageVertexShader)
+	if (d3d9Device && !fixupMultiStageVertexShader[IsClipped][t])
 	{
-		d3d9Device->CreateVertexShader((DWORD*)FixUpMultiStageVertexShaderSrc, &fixupMultiStageVertexShader);
+		d3d9Device->CreateVertexShader((DWORD*)FixUpMultiStageVertexShaderSrc[IsClipped][t], &fixupMultiStageVertexShader[IsClipped][t]);
 	}
-	return fixupMultiStageVertexShader;
+	return fixupMultiStageVertexShader[IsClipped][t];
 }
 
 LPDIRECT3DVERTEXBUFFER9 m_IDirectDrawX::GetVertexBuffer(DWORD FVF, UINT Length, void* lpData)
@@ -5067,15 +5080,21 @@ void m_IDirectDrawX::ReleaseAllD9Resources(bool BackupData, bool ResetInterface)
 	}
 
 	// Release fixup multi-stage vertex shader
-	if (fixupMultiStageVertexShader)
+	for (auto& shaderType : fixupMultiStageVertexShader)
 	{
-		Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 fixup multi-stage vertex shader";
-		ULONG ref = fixupMultiStageVertexShader->Release();
-		if (ref)
+		for (auto& entry : shaderType)
 		{
-			Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'fixupMultiStageVertexShader' " << ref;
+			if (entry)
+			{
+				Logging::LogDebug() << __FUNCTION__ << " Releasing Direct3D9 fixup multi-stage vertex shader";
+				ULONG ref = entry->Release();
+				if (ref)
+				{
+					Logging::Log() << __FUNCTION__ << " Error: there is still a reference to 'fixupMultiStageVertexShader' " << ref;
+				}
+				entry = nullptr;
+			}
 		}
-		fixupMultiStageVertexShader = nullptr;
 	}
 }
 

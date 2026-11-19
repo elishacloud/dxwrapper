@@ -1,7 +1,5 @@
 float4 offset     : register(c0);
 float4 multiplier : register(c1);
-bool clipmode     : register(c2);
-int texCount      : register(c3);
 
 struct VS
 {
@@ -18,7 +16,7 @@ VS main(const VS i)
 
     // Preserve the sign of RHW only for runtime-transformed vertices, where w < 0 means behind
     // the camera and the rasteriser must clip. Application-supplied XYZRHW keeps the old clamp.
-    const float rhw = (clipmode && i.pos.w < 0.0f)
+    const float rhw = (i.pos.w < 0.0f)
         ? -clamp(-i.pos.w, min_rhw, max_rhw)
         :  clamp( i.pos.w, min_rhw, max_rhw);
     const float w = 1.0f / rhw;
@@ -36,13 +34,13 @@ VS main(const VS i)
 
     o.fog = i.color[1].a;
 
-    o.tex[1] = texCount > 1 ? o.tex[1] : o.tex[0];
-    o.tex[2] = texCount > 2 ? o.tex[2] : o.tex[0];
-    o.tex[3] = texCount > 3 ? o.tex[3] : o.tex[0];
-    o.tex[4] = texCount > 4 ? o.tex[4] : o.tex[0];
-    o.tex[5] = texCount > 5 ? o.tex[5] : o.tex[0];
-    o.tex[6] = texCount > 6 ? o.tex[6] : o.tex[0];
-    o.tex[7] = texCount > 7 ? o.tex[7] : o.tex[0];
+    o.tex[1] = o.tex[0];
+    o.tex[2] = o.tex[0];
+    o.tex[3] = o.tex[0];
+    o.tex[4] = o.tex[0];
+    o.tex[5] = o.tex[0];
+    o.tex[6] = o.tex[0];
+    o.tex[7] = o.tex[0];
 
     return o;
 }
