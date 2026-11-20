@@ -911,7 +911,7 @@ void Fullscreen::StartThread()
 		char buffer[MAX_PATH] = { 0 };
 		GetModuleFileName(hModule_dll, buffer, MAX_PATH);
 		HMODULE dxwrapperhandle;
-		dxwrapperhandle = LoadLibrary(buffer);
+		dxwrapperhandle = LoadLibraryA(buffer);
 	}
 
 	// Start thread

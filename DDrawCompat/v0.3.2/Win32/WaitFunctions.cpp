@@ -58,7 +58,7 @@ namespace Win32
 			//********** Begin Edit *************
 			//MITIGATE_BUSY_WAITING(winmm, timeGetTime);
 			typedef DWORD(WINAPI* PFN_timeGetTime)();
-			HMODULE dll = LoadLibrary("winmm.dll");
+			HMODULE dll = LoadLibraryA("winmm.dll");
 			Compat32::g_origFuncPtr<timeGetTime> = (PFN_timeGetTime)GetProcAddress(dll, "timeGetTime");
 			Compat32::hookFunction(dll, "timeGetTime", reinterpret_cast<void*&>(Compat32::g_origFuncPtr<timeGetTime>), &mitigatedBusyWaitingFunc<&timeGetTime, DWORD>);
 			//********** End Edit ***************

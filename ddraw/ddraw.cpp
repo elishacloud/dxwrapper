@@ -783,8 +783,8 @@ void InitDDraw()
 	{
 		Logging::Log() << "Installing GDI & User32 hooks";
 		using namespace GdiWrapper;
-		if (!GetModuleHandleA("gdi32.dll")) LoadLibrary("gdi32.dll");
-		if (!GetModuleHandleA("user32.dll")) LoadLibrary("user32.dll");
+		if (!GetModuleHandleA("gdi32.dll")) LoadLibraryA("gdi32.dll");
+		if (!GetModuleHandleA("user32.dll")) LoadLibraryA("user32.dll");
 		HMODULE gdi32 = GetModuleHandleA("gdi32.dll");
 		HMODULE user32 = GetModuleHandleA("user32.dll");
 		HMODULE kernel32 = GetModuleHandleA("kernel32.dll");

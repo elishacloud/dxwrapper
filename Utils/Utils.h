@@ -10,8 +10,6 @@
 #include "winmm.h"
 #endif
 
-#undef LoadLibrary
-
 namespace Utils
 {
 	EXPORT_OUT_WRAPPED_PROC(GetProcAddress, unused);
@@ -68,14 +66,9 @@ namespace Utils
 	void MarkAsValidCallTarget(void* allocationBase, size_t regionSize, size_t entryOffset);
 	std::wstring AnsiToWide(const char* str);
 	std::string WideToAnsi(const wchar_t* str);
-	void AddHandleToVector(HMODULE dll, const char *name);
-	void AddHandleToVector(HMODULE dll, const wchar_t* name);
 	bool CheckIfSystemModuleLoaded(const char* moduleName);
-	HMODULE LoadLibrary(const char *dllname, bool EnableLogging = false);
-	HMODULE LoadLibrary(const wchar_t* dllname, bool EnableLogging = false);
 	void LoadCustomDll();
 	void LoadPlugins();
-	void UnloadAllDlls();
 	HMEMORYMODULE LoadMemoryToDLL(LPVOID pMemory, DWORD Size);
 	HMEMORYMODULE LoadResourceToMemory(DWORD ResID);
 	DWORD ReverseBits(DWORD v);
@@ -195,5 +188,3 @@ namespace KeyboardLayout
 
 bool stristr(LPCSTR strCheck, LPCSTR str, size_t size);
 bool wcsistr(LPCWSTR strCheck, LPCWSTR str, size_t size);
-
-#define LoadLibrary Utils::LoadLibrary

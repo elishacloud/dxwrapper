@@ -29,7 +29,7 @@ void LoadUxtheme()
 		return; // Only load the dll once
 	}
 	IsLoaded = true;
-	UxThemeModule = LoadLibrary("uxtheme.dll");
+	UxThemeModule = LoadLibraryA("uxtheme.dll");
 	if (UxThemeModule)
 	{
 		SetThemeAppPropertiesPtr = reinterpret_cast<PFN_SetThemeAppProperties>(GetProcAddress(UxThemeModule, "SetThemeAppProperties"));

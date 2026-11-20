@@ -136,7 +136,7 @@ namespace Compat21
 		{
 			const std::string systemDllPath = systemDirectory + '\\' + dllName;
 
-			module = LoadLibrary(systemDllPath.c_str());
+			module = LoadLibraryA(systemDllPath.c_str());
 			if (!module)
 			{
 				Compat::Log() << "Failed to load system " << dllName << " from " << systemDllPath;

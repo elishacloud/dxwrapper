@@ -148,7 +148,7 @@ namespace
 
 	void setDpiAwareness()
 	{
-		HMODULE shcore = LoadLibrary("shcore");
+		HMODULE shcore = LoadLibraryA("shcore");
 		if (shcore)
 		{
 			auto setProcessDpiAwareness = reinterpret_cast<SetProcessDpiAwarenessProc>(

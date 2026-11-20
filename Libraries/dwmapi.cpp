@@ -34,7 +34,7 @@ static void Loaddwmapi()
 		return; // Only load the dll once
 	}
 	IsLoaded = true;
-	dwmapiModule = LoadLibrary("dwmapi.dll");
+	dwmapiModule = LoadLibraryA("dwmapi.dll");
 	if (dwmapiModule)
 	{
 		DwmFlushPtr = reinterpret_cast<PFN_DwmFlush>(GetProcAddress(dwmapiModule, "DwmFlush"));

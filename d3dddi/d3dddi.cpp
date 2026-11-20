@@ -40,7 +40,7 @@ namespace
 		static HMODULE gdi_dll = nullptr;
 		if (!gdi_dll)
 		{
-			gdi_dll = LoadLibrary("gdi32.dll");
+			gdi_dll = LoadLibraryA("gdi32.dll");
 		}
 		return gdi_dll;
 	}

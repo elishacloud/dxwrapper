@@ -113,7 +113,7 @@ static HMODULE LoadHookedDll(const char* dllname, LoadProc Load, DWORD HookSyste
 			{
 				if (Config.IsSet(HookSystem32) || (HookSystem32 == NOT_EXIST && GetModuleHandleW(path)))
 				{
-					HMODULE lib = LoadLibrary(path);
+					HMODULE lib = LoadLibraryW(path);
 					if (lib)
 					{
 						dll = lib;
@@ -121,11 +121,6 @@ static HMODULE LoadHookedDll(const char* dllname, LoadProc Load, DWORD HookSyste
 				}
 			}
 		}
-	}
-
-	if (dll)
-	{
-		Utils::AddHandleToVector(dll, dllname);
 	}
 
 	return dll;
@@ -323,8 +318,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				HMODULE dummy = nullptr;
 				GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN | GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, reinterpret_cast<LPCWSTR>(dll), &dummy);
 
-				Utils::AddHandleToVector(dll, Config.WrapperName.c_str());
-
 				// Hook GetProcAddress to handle wrapped functions that are missing or not available in the OS
 				if (kernel32)
 				{
@@ -370,7 +363,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 				Utils::GetTickCount64_out = (FARPROC)Hook::HotPatch(GetProcAddress(kernel32, "GetTickCount64"), "GetTickCount64", Utils::kernel_GetTickCount64);
 #endif
 			}
-			HMODULE winmm = LoadLibrary("winmm.dll");
+			HMODULE winmm = LoadLibraryA("winmm.dll");
 			if (winmm)
 			{
 				Logging::Log() << "Installing winmm hooks";
@@ -440,7 +433,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		// Hook CoCreateInstance
 		if (Config.EnableDdrawWrapper || Config.Dd7to9 || Config.EnableDinput8Wrapper || Config.Dinputto8 || Config.EnableDsoundWrapper)
 		{
-			HMODULE ole32_dll = LoadLibrary("ole32.dll");
+			HMODULE ole32_dll = LoadLibraryA("ole32.dll");
 			if (ole32_dll)
 			{
 				Logging::Log() << "Hooking ole32.dll APIs...";
@@ -723,7 +716,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.EnableOpenDialogHook)
 		{
 			using namespace GdiWrapper;
-			if (!GetModuleHandleA("comdlg32.dll")) LoadLibrary("comdlg32.dll");
+			if (!GetModuleHandleA("comdlg32.dll")) LoadLibraryA("comdlg32.dll");
 			HMODULE comdlg32 = GetModuleHandleA("Comdlg32.dll");
 			if (comdlg32)
 			{
@@ -739,7 +732,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 		if (Config.DisableGDIGammaRamp)
 		{
 			using namespace GdiWrapper;
-			if (!GetModuleHandleA("gdi32.dll")) LoadLibrary("gdi32.dll");
+			if (!GetModuleHandleA("gdi32.dll")) LoadLibraryA("gdi32.dll");
 			HMODULE gdi32 = GetModuleHandleA("gdi32.dll");
 			if (gdi32)
 			{
@@ -855,9 +848,6 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD fdwReason, LPVOID lpReserved)
 			DDrawCompat::Start(hModule, fdwReason);
 		}
 #endif // DDRAWCOMPAT
-
-		// Unload loaded dlls
-		Utils::UnloadAllDlls();
 
 		// Unhook keyboard layout
 		if (Config.ForceKeyboardLayout)

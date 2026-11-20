@@ -42,8 +42,6 @@
 #endif // DDRAWCOMPAT
 #include "Logging\Logging.h"
 
-#undef LoadLibrary
-
 #include <initguid.h>
 
 // Define the GUIDs
@@ -148,7 +146,6 @@ namespace Utils
 	FARPROC p_CreateProcessA = nullptr;
 	FARPROC p_CreateProcessW = nullptr;
 	WNDPROC OriginalWndProc = nullptr;
-	std::vector<type_dll> custom_dll;		// Used for custom dll's and asi plugins
 
 	DWORD SubtractTimeInMS_gtc = 0;
 	int64_t SubtractTimeInMS_gtc64 = 0;
@@ -220,7 +217,7 @@ void Utils::ConfigureDpiAwareness()
 	const char* dpiAwareness = nullptr;
 	const char* procUsed = nullptr;
 
-	HMODULE hUser32 = LoadLibrary("user32.dll");
+	HMODULE hUser32 = LoadLibraryA("user32.dll");
 	if (hUser32)
 	{
 		SetProcessDpiAwarenessContextProc SetProcessDpiAwarenessContext = (SetProcessDpiAwarenessContextProc)GetProcAddress(hUser32, "SetProcessDpiAwarenessContext");
@@ -276,7 +273,7 @@ void Utils::ConfigureDpiAwareness()
 	}
 	if (!dpiConfigured)
 	{
-		HMODULE hShcore = LoadLibrary("shcore.dll");
+		HMODULE hShcore = LoadLibraryA("shcore.dll");
 		if (hShcore)
 		{
 			SetProcessDpiAwarenessProc SetProcessDpiAwareness = (SetProcessDpiAwarenessProc)GetProcAddress(hShcore, "SetProcessDpiAwareness");
@@ -1023,141 +1020,6 @@ std::string Utils::WideToAnsi(const wchar_t* str)
 	return result;
 }
 
-// Add HMODULE to vector (ANSI)
-void Utils::AddHandleToVector(HMODULE dll, const char* name)
-{
-	if (dll && name)
-	{
-		type_dll newCustom_dll;
-		newCustom_dll.dll = dll;
-
-		const char* filename = strrchr(name, '\\');
-		newCustom_dll.name = AnsiToWide(filename ? filename + 1 : name);
-		newCustom_dll.fullname = AnsiToWide(name);
-
-		custom_dll.push_back(newCustom_dll);
-	}
-}
-
-// Add HMODULE to vector (Unicode)
-void Utils::AddHandleToVector(HMODULE dll, const wchar_t* name)
-{
-	if (dll && name)
-	{
-		type_dll newCustom_dll;
-		newCustom_dll.dll = dll;
-
-		const wchar_t* filename = wcsrchr(name, L'\\');
-		newCustom_dll.name.assign(filename ? filename + 1 : name);
-		newCustom_dll.fullname.assign(name);
-
-		custom_dll.push_back(newCustom_dll);
-	}
-}
-
-// Load real dll file that is being wrapped (ANSI)
-HMODULE Utils::LoadLibrary(const char* dllname, bool EnableLogging)
-{
-	// Declare vars
-	HMODULE dll = nullptr;
-	const char* loadpath = nullptr;
-	CreateScopedHeapBuffer(char, path, MAX_PATH);
-
-	// Check if dll is already loaded
-	std::wstring wideDllName = AnsiToWide(dllname);
-	for (size_t x = 0; x < custom_dll.size(); x++)
-	{
-		if (_wcsicmp(custom_dll[x].name.c_str(), wideDllName.c_str()) == 0 ||
-			_wcsicmp(custom_dll[x].fullname.c_str(), wideDllName.c_str()) == 0)
-		{
-			return custom_dll[x].dll;
-		}
-	}
-
-	// Logging
-	if (EnableLogging)
-	{
-		Logging::Log() << "Loading " << dllname;
-	}
-
-	// Load default dll if not loading current dll
-	if (_stricmp(Config.WrapperName.c_str(), dllname) != 0)
-	{
-		loadpath = dllname;
-		dll = ::LoadLibraryA(loadpath);
-	}
-
-	// Load system dll
-	if (!dll && GetSystemDirectoryA(path, MAX_PATH))
-	{
-		if (PathAppendA(path, dllname))
-		{
-			loadpath = path;
-			dll = ::LoadLibraryA(loadpath);
-		}
-	}
-
-	// Store handle and dll name
-	if (dll)
-	{
-		Logging::Log() << "Loaded library: " << loadpath;
-		AddHandleToVector(dll, dllname);
-	}
-
-	return dll;
-}
-
-// Load real dll file that is being wrapped (Unicode)
-HMODULE Utils::LoadLibrary(const wchar_t* dllname, bool EnableLogging)
-{
-	// Declare vars
-	HMODULE dll = nullptr;
-	const wchar_t* loadpath = nullptr;
-	CreateScopedHeapBuffer(wchar_t, path, MAX_PATH);
-
-	// Check if dll is already loaded
-	for (size_t x = 0; x < custom_dll.size(); x++)
-	{
-		if (_wcsicmp(custom_dll[x].name.c_str(), dllname) == 0 ||
-			_wcsicmp(custom_dll[x].fullname.c_str(), dllname) == 0)
-		{
-			return custom_dll[x].dll;
-		}
-	}
-
-	// Logging
-	if (EnableLogging)
-	{
-		Logging::Log() << "Loading DLL";
-	}
-
-	// Load default dll if not loading current dll
-	if (_wcsicmp(AnsiToWide(Config.WrapperName.c_str()).c_str(), dllname) != 0)
-	{
-		loadpath = dllname;
-		dll = ::LoadLibraryW(loadpath);
-	}
-
-	// Load system dll
-	if (!dll && GetSystemDirectoryW(path, MAX_PATH))
-	{
-		if (PathAppendW(path, dllname))
-		{
-			loadpath = path;
-			dll = ::LoadLibraryW(loadpath);
-		}
-	}
-
-	// Store handle and dll name
-	if (dll)
-	{
-		Logging::Log() << "Loaded library";
-		AddHandleToVector(dll, dllname);
-	}
-
-	return dll;
-}
-
 // Load custom dll files
 void Utils::LoadCustomDll()
 {
@@ -1167,14 +1029,10 @@ void Utils::LoadCustomDll()
 		if (!Config.LoadCustomDllPath[x].empty())
 		{
 			// Load dll from ini
-			auto h = LoadLibrary(Config.LoadCustomDllPath[x].c_str());
+			auto h = LoadLibraryA(Config.LoadCustomDllPath[x].c_str());
 
 			// Cannot load dll
-			if (h)
-			{
-				AddHandleToVector(h, Config.LoadCustomDllPath[x].c_str());
-			}
-			else
+			if (!h)
 			{
 				Logging::Log() << "Cannot load custom library: " << Config.LoadCustomDllPath[x];
 			}
@@ -1231,14 +1089,13 @@ void Utils::FindFiles(WIN32_FIND_DATAW* fd)
 			if (swprintf_s(fullPath, MAX_PATH, L"%s\\%s", dir, filename) < 0)
 				continue;
 
-			HMODULE h = LoadLibrary(fullPath);
+			HMODULE h = LoadLibraryW(fullPath);
 
 			// Ensure we're still in the original directory
 			SetCurrentDirectoryW(dir);
 
 			if (h)
 			{
-				AddHandleToVector(h, filename);
 				InitializeASI(h);
 			}
 			else
@@ -1299,21 +1156,6 @@ void Utils::LoadPlugins()
 
 	// Restore original working directory
 	SetCurrentDirectoryW(originalDir);
-}
-
-// Unload all dll files loaded by the wrapper
-void Utils::UnloadAllDlls()
-{
-	// Logging
-	Logging::Log() << "Unloading libraries...";
-
-	// Unload custom libraries
-	while (custom_dll.size() != 0)
-	{
-		// Unload dll
-		FreeLibrary(custom_dll.back().dll);
-		custom_dll.pop_back();
-	}
 }
 
 HMEMORYMODULE Utils::LoadMemoryToDLL(LPVOID pMemory, DWORD Size)

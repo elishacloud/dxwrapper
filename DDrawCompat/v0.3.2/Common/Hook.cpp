@@ -325,7 +325,7 @@ namespace Compat32
 
 	void hookFunction(const char* moduleName, const char* funcName, void*& origFuncPtr, void* newFuncPtr)
 	{
-		HMODULE module = LoadLibrary(moduleName);
+		HMODULE module = LoadLibraryA(moduleName);
 		if (!module)
 		{
 			return;
