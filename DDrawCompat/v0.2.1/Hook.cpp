@@ -99,7 +99,7 @@ namespace Compat21
 
 		void hookFunction(const char* moduleName, const char* funcName, void*& origFuncPtr, void* newFuncPtr)
 		{
-			FARPROC procAddr = getProcAddress(GetModuleHandle(moduleName), funcName);
+			FARPROC procAddr = getProcAddress(GetModuleHandleA(moduleName), funcName);
 			if (!procAddr)
 			{
 				Compat::LogDebug() << "Failed to load the address of a function: " << funcName;

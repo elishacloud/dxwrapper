@@ -153,11 +153,11 @@ namespace Compat21
 				return;
 			}
 
-			HWND menuWindow = FindWindow(reinterpret_cast<LPCSTR>(0x8000), nullptr);
+			HWND menuWindow = FindWindowA(reinterpret_cast<LPCSTR>(0x8000), nullptr);
 			while (menuWindow)
 			{
 				RedrawWindow(menuWindow, nullptr, nullptr, RDW_INVALIDATE);
-				menuWindow = FindWindowEx(nullptr, menuWindow, reinterpret_cast<LPCSTR>(0x8000), nullptr);
+				menuWindow = FindWindowExA(nullptr, menuWindow, reinterpret_cast<LPCSTR>(0x8000), nullptr);
 			}
 		}
 

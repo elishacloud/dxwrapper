@@ -128,7 +128,7 @@ namespace Compat20
 			g_funcNames[origFuncPtr] = funcName;
 #endif
 
-			FARPROC procAddr = getProcAddress(GetModuleHandle(moduleName), funcName);
+			FARPROC procAddr = getProcAddress(GetModuleHandleA(moduleName), funcName);
 			if (!procAddr)
 			{
 				Compat::Log() << "Failed to load the address of a GDI function: " << funcName;

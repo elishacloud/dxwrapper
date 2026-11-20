@@ -52,7 +52,7 @@ namespace
 		{
 			// Workaround for ForceSimpleWindow shim
 			static auto origCreateWindowExA = reinterpret_cast<decltype(&CreateWindowExA)>(
-				Compat32::getProcAddress(GetModuleHandle("user32"), "CreateWindowExA"));
+				Compat32::getProcAddress(GetModuleHandleA("user32"), "CreateWindowExA"));
 
 			HWND owner = reinterpret_cast<HWND>(wParam);
 			HWND presentationWindow = origCreateWindowExA(
@@ -111,13 +111,13 @@ namespace
 
 	unsigned WINAPI presentationWindowThreadProc(LPVOID /*lpParameter*/)
 	{
-		WNDCLASS wc = {};
+		WNDCLASSA wc = {};
 		wc.lpfnWndProc = &messageWindowProc;
 		wc.hInstance = Dll::g_currentModule;
 		wc.lpszClassName = "DDrawCompatMessageWindow";
 		CALL_ORIG_FUNC(RegisterClassA)(&wc);
 
-		g_messageWindow = CreateWindow(
+		g_messageWindow = CreateWindowA(
 			"DDrawCompatMessageWindow", nullptr, 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, nullptr, nullptr);
 		if (!g_messageWindow)
 		{
@@ -167,7 +167,7 @@ namespace Gdi
 
 		void installHooks()
 		{
-			WNDCLASS wc = {};
+			WNDCLASSA wc = {};
 			wc.lpfnWndProc = &presentationWindowProc;
 			wc.hInstance = Dll::g_currentModule;
 			wc.lpszClassName = "DDrawCompatPresentationWindow";

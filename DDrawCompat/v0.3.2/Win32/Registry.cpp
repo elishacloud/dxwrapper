@@ -70,7 +70,7 @@ namespace
 			PULONG ResultLength);
 
 		static NtQueryKeyFuncPtr ntQueryKey = reinterpret_cast<NtQueryKeyFuncPtr>(
-			GetProcAddress(GetModuleHandle("ntdll"), "NtQueryKey"));
+			GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryKey"));
 		
 		if (ntQueryKey)
 		{

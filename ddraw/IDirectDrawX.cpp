@@ -2532,10 +2532,10 @@ HRESULT m_IDirectDrawX::GetAvailableVidMem2(LPDDSCAPS2 lpDDSCaps2, LPDWORD lpdwT
 			{
 				if (FindMonitorHandle(); hMonitor != nullptr)
 				{
-					MONITORINFOEX mi = {};
+					MONITORINFOEXA mi = {};
 					mi.cbSize = sizeof(mi);
 
-					if (GetMonitorInfo(hMonitor, &mi))
+					if (GetMonitorInfoA(hMonitor, &mi))
 					{
 						hdcMonitor = CreateDCA("DISPLAY", mi.szDevice, nullptr, nullptr);
 						hdc = hdcMonitor;

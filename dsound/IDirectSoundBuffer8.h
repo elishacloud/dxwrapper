@@ -35,7 +35,7 @@ public:
 		InitializeCriticalSection(&AudioClip.dics);
 		char EventName[MAX_PATH];
 		sprintf_s(EventName, MAX_PATH, "Local\\SH2EAudioClipDetection-%u", (DWORD)this);
-		AudioClip.hTriggerEvent = CreateEvent(nullptr, FALSE, FALSE, EventName);
+		AudioClip.hTriggerEvent = CreateEventA(nullptr, FALSE, FALSE, EventName);
 	}
 	~m_IDirectSoundBuffer8()
 	{

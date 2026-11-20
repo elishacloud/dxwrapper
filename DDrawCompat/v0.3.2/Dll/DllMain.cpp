@@ -136,11 +136,11 @@ namespace
 
 	void printEnvironmentVariable(const char* var)
 	{
-		const DWORD size = GetEnvironmentVariable(var, nullptr, 0);
+		const DWORD size = GetEnvironmentVariableA(var, nullptr, 0);
 		std::string value(size, 0);
 		if (!value.empty())
 		{
-			GetEnvironmentVariable(var, &value.front(), size);
+			GetEnvironmentVariableA(var, &value.front(), size);
 			value.pop_back();
 		}
 		Compat32::Log() << "Environment variable " << var << " = \"" << value << '"';

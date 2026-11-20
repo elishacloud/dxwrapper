@@ -198,7 +198,7 @@ bool Utils::ShouldSetAffinity(DWORD threadId, HANDLE hThread)
 
 	// Get module handle
 	char ModulePath[MAX_PATH] = {};
-	if (GetModuleFileName(hModule, ModulePath, MAX_PATH) == 0)
+	if (GetModuleFileNameA(hModule, ModulePath, MAX_PATH) == 0)
 	{
 		return true;
 	}

@@ -178,7 +178,7 @@ namespace
 		case WM_NCCREATE:
 		{
 			char className[64] = {};
-			GetClassName(hwnd, className, sizeof(className));
+			GetClassNameA(hwnd, className, sizeof(className));
 			if (std::string(className) == "CompatWindowDesktopReplacement")
 			{
 				// Disable VirtualizeDesktopPainting shim
@@ -265,7 +265,7 @@ namespace
 		}
 
 		HMODULE module = Compat32::getModuleHandleFromAddress(wndProc);
-		if (module != GetModuleHandle("ntdll") && module != GetModuleHandle("user32"))
+		if (module != GetModuleHandleA("ntdll") && module != GetModuleHandleA("user32"))
 		{
 			Compat32::Log() << "Failed to hook a user32 window procedure: " << className;
 			return;

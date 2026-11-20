@@ -135,7 +135,7 @@ namespace
 
 	void disableDwm8And16BitMitigation()
 	{
-		auto user32 = GetModuleHandle("user32");
+		auto user32 = GetModuleHandleA("user32");
 		Compat32::removeShim(user32, "ChangeDisplaySettingsA");
 		Compat32::removeShim(user32, "ChangeDisplaySettingsW");
 		Compat32::removeShim(user32, "ChangeDisplaySettingsExA");
@@ -296,7 +296,7 @@ namespace Win32
 		ULONG queryDisplaySettingsUniqueness()
 		{
 			static auto ddQueryDisplaySettingsUniqueness = reinterpret_cast<ULONG(APIENTRY*)()>(
-				GetProcAddress(GetModuleHandle("gdi32"), "GdiEntry13"));
+				GetProcAddress(GetModuleHandleA("gdi32"), "GdiEntry13"));
 			return ddQueryDisplaySettingsUniqueness();
 		}
 
@@ -304,7 +304,7 @@ namespace Win32
 		{
 			DEVMODEA devMode = {};
 			devMode.dmSize = sizeof(devMode);
-			EnumDisplaySettingsEx(nullptr, ENUM_CURRENT_SETTINGS, &devMode, 0);
+			EnumDisplaySettingsExA(nullptr, ENUM_CURRENT_SETTINGS, &devMode, 0);
 			g_origBpp = devMode.dmBitsPerPel;
 			g_currentBpp = g_origBpp;
 			g_lastBpp = g_origBpp;
@@ -312,7 +312,7 @@ namespace Win32
 			if (32 != devMode.dmBitsPerPel)
 			{
 				devMode.dmBitsPerPel = 32;
-				ChangeDisplaySettings(&devMode, 0);
+				ChangeDisplaySettingsA(&devMode, 0);
 			}
 
 			HOOK_FUNCTION(user32, ChangeDisplaySettingsExA, changeDisplaySettingsExA);

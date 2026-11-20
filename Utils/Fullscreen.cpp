@@ -188,11 +188,11 @@ HMONITOR Utils::GetMonitorFromDeviceName(char* DeviceName)
 				return FALSE;	// Cancel
 			}
 
-			MONITORINFOEX monitorInfo;
+			MONITORINFOEXA monitorInfo;
 			ZeroMemory(&monitorInfo, sizeof(monitorInfo));
 			monitorInfo.cbSize = sizeof(monitorInfo);
 
-			if (!GetMonitorInfo(hMonitor, &monitorInfo))
+			if (!GetMonitorInfoA(hMonitor, &monitorInfo))
 			{
 				return TRUE;	// Continue
 			}
@@ -368,7 +368,7 @@ DWORD Utils::GetRefreshRate(HMONITOR hMonitor)
 	}
 
 	// Get display bit count
-	MONITORINFOEX mi = {};
+	MONITORINFOEXA mi = {};
 	mi.cbSize = sizeof(MONITORINFOEX);
 	GetMonitorInfoA(hMonitor, &mi);
 	DEVMODEA DevMode;
@@ -391,7 +391,7 @@ DWORD Utils::GetBitCount(HMONITOR hMonitor)
 	}
 
 	// Get display bit count
-	MONITORINFOEX mi = {};
+	MONITORINFOEXA mi = {};
 	mi.cbSize = sizeof(MONITORINFOEX);
 	GetMonitorInfoA(hMonitor, &mi);
 	DEVMODEA DevMode;
@@ -554,7 +554,7 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 
 	// Skip compatibility class windows
 	char class_name[80] = { 0 };
-	GetClassName(hwnd, class_name, sizeof(class_name));
+	GetClassNameA(hwnd, class_name, sizeof(class_name));
 	if (strcmp(class_name, "CompatWindowDesktopReplacement") == 0)			// Compatibility class windows
 	{
 		return true;
@@ -633,7 +633,7 @@ BOOL CALLBACK Fullscreen::EnumWindowsCallback(HWND hwnd, LPARAM lParam)
 		if (data.Windows[data.LayerNumber].IsMain)
 		{
 			char title[256];
-			GetWindowText(hwnd, title, sizeof(title) / sizeof(TCHAR));
+			GetWindowTextA(hwnd, title, sizeof(title) / sizeof(TCHAR));
 			if (strlen(title) == 0)
 			{
 				data.Windows[data.LayerNumber].IsMain = false;
@@ -909,7 +909,7 @@ void Fullscreen::StartThread()
 	if (Config.RealWrapperMode != dtype.dxwrapper)
 	{
 		char buffer[MAX_PATH] = { 0 };
-		GetModuleFileName(hModule_dll, buffer, MAX_PATH);
+		GetModuleFileNameA(hModule_dll, buffer, MAX_PATH);
 		HMODULE dxwrapperhandle;
 		dxwrapperhandle = LoadLibraryA(buffer);
 	}
@@ -986,7 +986,7 @@ void Fullscreen::MainFunc()
 			EnumChildWindows(CurrentLoop.hwnd, EnumChildWindowsProc, (LPARAM)&CurrentLoop.ChildHwnd);
 
 			// Get window and monitor information
-			GetClassName(CurrentLoop.hwnd, class_name, sizeof(class_name));
+			GetClassNameA(CurrentLoop.hwnd, class_name, sizeof(class_name));
 			GetWindowSize(CurrentLoop.hwnd, WindowSize, CurrentLoop.rect);
 			GetScreenSize(CurrentLoop.hwnd, CurrentLoop.ScreenSize, mi);
 

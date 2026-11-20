@@ -625,21 +625,28 @@ void CONFIG::Init()
 	// Set default settings
 	SetDefaultConfigSettings();
 
+#undef GetEnvironmentStrings
 	// Set settings from environment variables (ANSI)
 	if (LPCH p_envStrings = GetEnvironmentStrings(); p_envStrings)
 	{
 		const char* szEnvPrefix = "DXWRAPPER_";
+		const size_t PrefixLength = strlen(szEnvPrefix);
+
 		char* szEnvVar = p_envStrings;
-		CreateScopedHeapBuffer(char, szSetting, MAX_PATH);
 
 		while (*szEnvVar)
 		{
-			if (!_strnicmp(szEnvVar, szEnvPrefix, strlen(szEnvPrefix)))
+			if (!_strnicmp(szEnvVar, szEnvPrefix, PrefixLength))
 			{
-				szEnvVar += strlen(szEnvPrefix);
-				strcpy_s(szSetting, MAX_ENV_VAR, szEnvVar);
+				szEnvVar += PrefixLength;
+
+				const size_t EnvVarLength = strlen(szEnvVar) + 1;
+				CreateScopedHeapBuffer(char, szSetting, EnvVarLength);
+
+				strcpy_s(szSetting, EnvVarLength, szEnvVar);
 				Parse(szSetting, ParseCallback);
 			}
+
 			szEnvVar += strlen(szEnvVar) + 1;
 		}
 

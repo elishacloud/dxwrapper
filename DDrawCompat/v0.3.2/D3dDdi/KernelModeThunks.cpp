@@ -118,9 +118,9 @@ namespace
 
 	BOOL CALLBACK findDDrawMonitorRect(HMONITOR hMonitor, HDC /*hdcMonitor*/, LPRECT /*lprcMonitor*/, LPARAM dwData)
 	{
-		MONITORINFOEX mi = {};
+		MONITORINFOEXA mi = {};
 		mi.cbSize = sizeof(mi);
-		GetMonitorInfo(hMonitor, &mi);
+		GetMonitorInfoA(hMonitor, &mi);
 		if (g_lastDDrawCreateDcDevice == mi.szDevice)
 		{
 			*reinterpret_cast<RECT*>(dwData) = mi.rcMonitor;

@@ -115,12 +115,12 @@ namespace Compat21
 					reinterpret_cast<LPARAM>(&excludeClipRectsData));
 			}
 
-			HWND menuWindow = FindWindow(reinterpret_cast<LPCSTR>(0x8000), nullptr);
+			HWND menuWindow = FindWindowA(reinterpret_cast<LPCSTR>(0x8000), nullptr);
 			while (menuWindow && menuWindow != hwnd)
 			{
 				excludeClipRectForOverlappingWindow(
 					menuWindow, reinterpret_cast<LPARAM>(&excludeClipRectsData));
-				menuWindow = FindWindowEx(nullptr, menuWindow, reinterpret_cast<LPCSTR>(0x8000), nullptr);
+				menuWindow = FindWindowExA(nullptr, menuWindow, reinterpret_cast<LPCSTR>(0x8000), nullptr);
 			}
 		}
 

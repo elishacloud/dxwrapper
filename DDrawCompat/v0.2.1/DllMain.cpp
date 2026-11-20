@@ -184,15 +184,15 @@ namespace Compat21
 		if (fdwReason == DLL_PROCESS_ATTACH)
 		{
 			char currentProcessPath[MAX_PATH] = {};
-			GetModuleFileName(nullptr, currentProcessPath, MAX_PATH);
+			GetModuleFileNameA(nullptr, currentProcessPath, MAX_PATH);
 			Compat::Log() << "Process path: " << currentProcessPath;
 
 			char currentDllPath[MAX_PATH] = {};
-			GetModuleFileName(hinstDLL, currentDllPath, MAX_PATH);
+			GetModuleFileNameA(hinstDLL, currentDllPath, MAX_PATH);
 			Compat::Log() << "Loading DDrawCompat from " << currentDllPath;
 
 			char systemDirectory[MAX_PATH] = {};
-			GetSystemDirectory(systemDirectory, MAX_PATH);
+			GetSystemDirectoryA(systemDirectory, MAX_PATH);
 
 			std::string systemDDrawDllPath = std::string(systemDirectory) + "\\ddraw.dll";
 			if (0 == _stricmp(currentDllPath, systemDDrawDllPath.c_str()))

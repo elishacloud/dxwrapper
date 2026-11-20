@@ -1418,7 +1418,7 @@ void m_IDirect3DX::ResolutionHack()
 		if (GetD3DPath)
 		{
 			GetD3DPath = false;
-			GetSystemDirectory(D3DImPath, MAX_PATH);
+			GetSystemDirectoryA(D3DImPath, MAX_PATH);
 			strcpy_s(D3DIm700Path, MAX_PATH, D3DImPath);
 			strcat_s(D3DImPath, MAX_PATH, "\\d3dim.dll");
 			strcat_s(D3DIm700Path, MAX_PATH, "\\d3dim700.dll");
@@ -1426,7 +1426,7 @@ void m_IDirect3DX::ResolutionHack()
 
 		if (!hD3DIm)
 		{
-			hD3DIm = GetModuleHandle(D3DImPath);
+			hD3DIm = GetModuleHandleA(D3DImPath);
 			if (hD3DIm)
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Found loaded dll: 'd3dim.dll'");
@@ -1436,7 +1436,7 @@ void m_IDirect3DX::ResolutionHack()
 
 		if (!hD3DIm700)
 		{
-			hD3DIm700 = GetModuleHandle(D3DIm700Path);
+			hD3DIm700 = GetModuleHandleA(D3DIm700Path);
 			if (hD3DIm700)
 			{
 				LOG_LIMIT(3, __FUNCTION__ << " Found loaded dll: 'd3dim700.dll'");

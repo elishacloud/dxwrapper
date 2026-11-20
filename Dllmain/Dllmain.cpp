@@ -140,7 +140,7 @@ static bool CheckForDuplicateLoad(HMODULE hModule, HANDLE& hMutex)
 	}
 
 	// Check if mutex exists
-	HANDLE existingMutex = OpenMutex(SYNCHRONIZE, FALSE, MutexName);
+	HANDLE existingMutex = OpenMutexA(SYNCHRONIZE, FALSE, MutexName);
 	if (existingMutex)
 	{
 		CloseHandle(existingMutex);
@@ -168,7 +168,7 @@ static bool CheckForDuplicateLoad(HMODULE hModule, HANDLE& hMutex)
 	}
 
 	// Create mutex
-	hMutex = CreateMutex(nullptr, FALSE, MutexName);
+	hMutex = CreateMutexA(nullptr, FALSE, MutexName);
 
 	// Check if mutex creation was successful
 	if (hMutex == nullptr)

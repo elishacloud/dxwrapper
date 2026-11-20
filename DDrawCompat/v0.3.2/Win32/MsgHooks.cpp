@@ -10,7 +10,7 @@ namespace
 {
 	HHOOK WINAPI setWindowsHookExA(int idHook, HOOKPROC lpfn, HINSTANCE hMod, DWORD dwThreadId)
 	{
-		if (WH_KEYBOARD_LL == idHook && hMod && GetModuleHandle("AcGenral") == hMod)
+		if (WH_KEYBOARD_LL == idHook && hMod && GetModuleHandleA("AcGenral") == hMod)
 		{
             // This effectively disables the IgnoreAltTab shim
 			return nullptr;

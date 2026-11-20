@@ -142,8 +142,8 @@ namespace
 
 	bool isUser32ScrollBar(HWND hwnd)
 	{
-		WNDCLASS wc = {};
-		static const ATOM sbAtom = static_cast<ATOM>(GetClassInfo(nullptr, "ScrollBar", &wc));
+		WNDCLASSA wc = {};
+		static const ATOM sbAtom = static_cast<ATOM>(GetClassInfoA(nullptr, "ScrollBar", &wc));
 		if (sbAtom != GetClassLong(hwnd, GCW_ATOM))
 		{
 			return false;
@@ -155,7 +155,7 @@ namespace
 			return false;
 		}
 
-		return GetModuleHandle("comctl32") != Compat32::getModuleHandleFromAddress(
+		return GetModuleHandleA("comctl32") != Compat32::getModuleHandleFromAddress(
 			IsWindowUnicode(hwnd) ? it->second.wndProcW : it->second.wndProcA);
 	}
 
@@ -241,7 +241,7 @@ namespace
 		}
 
 		char className[64] = {};
-		GetClassName(hwnd, className, sizeof(className));
+		GetClassNameA(hwnd, className, sizeof(className));
 		if (std::string(className) == "CompatWindowDesktopReplacement")
 		{
 			// Disable VirtualizeDesktopPainting shim

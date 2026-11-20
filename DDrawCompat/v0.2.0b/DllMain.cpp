@@ -178,11 +178,11 @@ namespace Compat20
 		if (fdwReason == DLL_PROCESS_ATTACH)
 		{
 			char currentDllPath[MAX_PATH] = {};
-			GetModuleFileName(hinstDLL, currentDllPath, MAX_PATH);
+			GetModuleFileNameA(hinstDLL, currentDllPath, MAX_PATH);
 			Compat::Log() << "Loading DDrawCompat from " << currentDllPath;
 
 			char systemDirectory[MAX_PATH] = {};
-			GetSystemDirectory(systemDirectory, MAX_PATH);
+			GetSystemDirectoryA(systemDirectory, MAX_PATH);
 
 			std::string systemDDrawDllPath = std::string(systemDirectory) + "\\ddraw.dll";
 			if (0 == _stricmp(currentDllPath, systemDDrawDllPath.c_str()))

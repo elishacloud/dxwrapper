@@ -171,7 +171,7 @@ namespace Compat21
 
 		void hookWndProc(LPCSTR className, WNDPROC &oldWndProc, WNDPROC newWndProc)
 		{
-			HWND hwnd = CreateWindow(className, nullptr, 0, 0, 0, 0, 0, nullptr, nullptr, nullptr, 0);
+			HWND hwnd = CreateWindowA(className, nullptr, 0, 0, 0, 0, 0, nullptr, nullptr, nullptr, 0);
 			oldWndProc = reinterpret_cast<WNDPROC>(
 				SetClassLongPtr(hwnd, GCLP_WNDPROC, reinterpret_cast<LONG>(newWndProc)));
 			DestroyWindow(hwnd);
@@ -213,7 +213,7 @@ namespace Compat21
 
 		void unhookWndProc(LPCSTR className, WNDPROC oldWndProc)
 		{
-			HWND hwnd = CreateWindow(className, nullptr, 0, 0, 0, 0, 0, nullptr, nullptr, nullptr, 0);
+			HWND hwnd = CreateWindowA(className, nullptr, 0, 0, 0, 0, 0, nullptr, nullptr, nullptr, 0);
 			SetClassLongPtr(hwnd, GCLP_WNDPROC, reinterpret_cast<LONG>(oldWndProc));
 			DestroyWindow(hwnd);
 		}

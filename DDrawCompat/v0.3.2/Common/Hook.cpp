@@ -171,7 +171,7 @@ namespace
 		CALL_ORIG_FUNC(FlushInstructionCache)(GetCurrentProcess(), nullptr, 0);
 
 		HMODULE module = nullptr;
-		GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN,
+		GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN,
 			reinterpret_cast<char*>(targetFunc), &module);
 	}
 }
@@ -227,7 +227,7 @@ namespace Compat32
 	HMODULE getModuleHandleFromAddress(const void* address)
 	{
 		HMODULE module = nullptr;
-		GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+		GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
 			static_cast<const char*>(address), &module);
 		return module;
 	}
@@ -285,7 +285,7 @@ namespace Compat32
 			{
 				return nullptr;
 			}
-			HMODULE forwModule = GetModuleHandle(forw.substr(0, separatorPos).c_str());
+			HMODULE forwModule = GetModuleHandleA(forw.substr(0, separatorPos).c_str());
 			std::string forwFuncName = forw.substr(separatorPos + 1);
 			if ('#' == forwFuncName[0])
 			{

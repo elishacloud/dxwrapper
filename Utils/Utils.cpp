@@ -169,7 +169,7 @@ void Utils::Shell(const char* fileName)
 	Logging::Log() << "Running process: " << fileName;
 
 	// Get StartupInfo and ProcessInfo memory size and set process window to hidden
-	STARTUPINFO si;
+	STARTUPINFOA si;
 	PROCESS_INFORMATION pi;
 	ZeroMemory(&si, sizeof(si));
 	si.cb = sizeof(si);
@@ -177,7 +177,7 @@ void Utils::Shell(const char* fileName)
 	ZeroMemory(&pi, sizeof(pi));
 
 	// Start the child process
-	if (!CreateProcess(nullptr, const_cast<LPSTR>(fileName), nullptr, nullptr, true, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi))
+	if (!CreateProcessA(nullptr, const_cast<LPSTR>(fileName), nullptr, nullptr, true, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi))
 	{
 		// Failed to launch process!
 		Logging::Log() << "Failed to launch process!";
@@ -1422,10 +1422,10 @@ void Utils::GetScreenSettings()
 #if (_WIN32_WINNT >= 0x0502)
 	// Read values from the registry if they exist
 	DWORD Size = sizeof(int);
-	if (RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Enabled", RRF_RT_REG_DWORD, nullptr, (PVOID)&fontSystemSettings.enabled, &Size) == ERROR_SUCCESS &&
-		RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Type", RRF_RT_REG_DWORD, nullptr, (PVOID)&fontSystemSettings.type, &Size) == ERROR_SUCCESS &&
-		RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Contrast", RRF_RT_REG_DWORD, nullptr, (PVOID)&fontSystemSettings.contrast, &Size) == ERROR_SUCCESS &&
-		RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Orientation", RRF_RT_REG_DWORD, nullptr, (PVOID)&fontSystemSettings.orientation, &Size) == ERROR_SUCCESS)
+	if (RegGetValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Enabled", RRF_RT_REG_DWORD, nullptr, (PVOID)&fontSystemSettings.enabled, &Size) == ERROR_SUCCESS &&
+		RegGetValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Type", RRF_RT_REG_DWORD, nullptr, (PVOID)&fontSystemSettings.type, &Size) == ERROR_SUCCESS &&
+		RegGetValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Contrast", RRF_RT_REG_DWORD, nullptr, (PVOID)&fontSystemSettings.contrast, &Size) == ERROR_SUCCESS &&
+		RegGetValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Orientation", RRF_RT_REG_DWORD, nullptr, (PVOID)&fontSystemSettings.orientation, &Size) == ERROR_SUCCESS)
 	{
 		fontSystemSettings.isSet = true;
 	}
@@ -1438,14 +1438,14 @@ void Utils::GetScreenSettings()
 		SystemParametersInfo(SPI_GETFONTSMOOTHINGORIENTATION, 0, &fontSystemSettings.orientation, 0))
 	{
 		fontSystemSettings.isSet = true;
-		RegSetKeyValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Enabled", REG_DWORD, (PVOID)&fontSystemSettings.enabled, Size);
-		RegSetKeyValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Type", REG_DWORD, (PVOID)&fontSystemSettings.type, Size);
-		RegSetKeyValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Contrast", REG_DWORD, (PVOID)&fontSystemSettings.contrast, Size);
-		RegSetKeyValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Orientation", REG_DWORD, (PVOID)&fontSystemSettings.orientation, Size);
+		RegSetKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Enabled", REG_DWORD, (PVOID)&fontSystemSettings.enabled, Size);
+		RegSetKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Type", REG_DWORD, (PVOID)&fontSystemSettings.type, Size);
+		RegSetKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Contrast", REG_DWORD, (PVOID)&fontSystemSettings.contrast, Size);
+		RegSetKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Font_Orientation", REG_DWORD, (PVOID)&fontSystemSettings.orientation, Size);
 	}
 
 	// Read values from the registry if they exist
-	if (RegGetValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Mouse_Vanish", RRF_RT_REG_DWORD, nullptr, (PVOID)&mouseSystemSettings.enabled, &Size) == ERROR_SUCCESS)
+	if (RegGetValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Mouse_Vanish", RRF_RT_REG_DWORD, nullptr, (PVOID)&mouseSystemSettings.enabled, &Size) == ERROR_SUCCESS)
 	{
 		mouseSystemSettings.isSet = true;
 	}
@@ -1455,7 +1455,7 @@ void Utils::GetScreenSettings()
 		SystemParametersInfo(SPI_GETMOUSEVANISH, 0, &mouseSystemSettings.enabled, 0))
 	{
 		mouseSystemSettings.isSet = true;
-		RegSetKeyValue(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Mouse_Vanish", REG_DWORD, (PVOID)&mouseSystemSettings.enabled, Size);
+		RegSetKeyValueA(HKEY_CURRENT_USER, "Volatile Environment", "DxWrapper_Mouse_Vanish", REG_DWORD, (PVOID)&mouseSystemSettings.enabled, Size);
 	}
 #endif // _WIN32_WINNT >= 0x0502
 }
@@ -1785,7 +1785,7 @@ void Utils::DisableGameUX()
 
 	// Hook CreateProcess APIs
 	Logging::Log() << "Hooking 'CreateProcess' API...";
-	HMODULE h_kernel32 = GetModuleHandle("kernel32");
+	HMODULE h_kernel32 = GetModuleHandleA("kernel32");
 	InterlockedExchangePointer((PVOID*)&p_CreateProcessA, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessA"), "CreateProcessA", *kernel_CreateProcessA));
 	InterlockedExchangePointer((PVOID*)&p_CreateProcessW, Hook::HotPatch(Hook::GetProcAddress(h_kernel32, "CreateProcessW"), "CreateProcessW", *kernel_CreateProcessW));
 }

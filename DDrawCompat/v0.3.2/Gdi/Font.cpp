@@ -104,7 +104,7 @@ namespace Gdi
 
 				char fontSmoothing[2] = {};
 				DWORD fontSmoothingSize = sizeof(fontSmoothing);
-				RegGetValue(HKEY_CURRENT_USER, "Control Panel\\Desktop", "FontSmoothing", RRF_RT_REG_SZ, nullptr,
+				RegGetValueA(HKEY_CURRENT_USER, "Control Panel\\Desktop", "FontSmoothing", RRF_RT_REG_SZ, nullptr,
 					&fontSmoothing, &fontSmoothingSize);
 
 				BOOL isFontSmoothingEnabledInRegistry = 0 == strcmp(fontSmoothing, "2");

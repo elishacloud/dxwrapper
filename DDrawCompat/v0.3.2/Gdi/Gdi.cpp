@@ -88,7 +88,7 @@ namespace Gdi
 
 	void unhookWndProc(LPCSTR className, WNDPROC oldWndProc)
 	{
-		HWND hwnd = CreateWindow(className, nullptr, 0, 0, 0, 0, 0, nullptr, nullptr, nullptr, 0);
+		HWND hwnd = CreateWindowA(className, nullptr, 0, 0, 0, 0, 0, nullptr, nullptr, nullptr, 0);
 		SetClassLongPtr(hwnd, GCLP_WNDPROC, reinterpret_cast<LONG>(oldWndProc));
 		DestroyWindow(hwnd);
 	}
