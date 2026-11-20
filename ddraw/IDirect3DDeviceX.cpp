@@ -2917,7 +2917,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitive(D3DPRIMITIVETYPE dptPrimitiveType, DWO
 
 		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
-		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
+		dwFlags &= D3DDP_FORCE_DWORD;
 
 		// Set vertex type
 		if (FAILED(SetVertexType(dwVertexTypeDesc, dwFlags)))
@@ -3004,7 +3004,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitive(D3DPRIMITIVETYPE dptPrimitiveTy
 
 		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
-		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
+		dwFlags &= D3DDP_FORCE_DWORD;
 
 		// Set vertex type
 		if (FAILED(SetVertexType(dwVertexTypeDesc, dwFlags)))
@@ -3156,7 +3156,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveStrided(D3DPRIMITIVETYPE dptPrimitiveTy
 
 		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
-		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
+		dwFlags &= D3DDP_FORCE_DWORD;
 
 		// Update vertices for Direct3D9 (needs to be first)
 		if (FAILED(InterleaveStridedVertexData(VertexCache, *lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc)))
@@ -3241,7 +3241,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveStrided(D3DPRIMITIVETYPE dptPrim
 
 		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
-		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
+		dwFlags &= D3DDP_FORCE_DWORD;
 
 		// Update vertices for Direct3D9 (needs to be first)
 		if (FAILED(InterleaveStridedVertexData(VertexCache, *lpVertexArray, 0, dwVertexCount, dwVertexTypeDesc)))
@@ -3322,7 +3322,7 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 
 		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
-		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
+		dwFlags &= D3DDP_FORCE_DWORD;
 
 		m_IDirect3DVertexBufferX* pVertexBufferX = nullptr;
 		lpd3dVertexBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pVertexBufferX);
@@ -3341,8 +3341,8 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 
 		DWORD dwVertexTypeDesc = pVertexBufferX->GetFVF();
 
-		// Negative RHW only means "behind the camera" for vertices the runtime transformed itself
-		if (pVertexBufferX->IsClipProcessed() && !(dwFlags & D3DDP_DONOTCLIP))
+		// Check if vertex buffer has processed vertices that are clipped to preserve negative RHW
+		if ((dwFlags & D3DDP_DONOTCLIP) == 0 && pVertexBufferX->IsClipProcessed())
 		{
 			dwFlags |= D3DDP_DXW_RUNTIMECLIPPED;
 		}
@@ -3432,7 +3432,7 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 
 		ScopedCriticalSection ThreadLockDD(DdrawWrapper::GetDDCriticalSection());
 
-		dwFlags = (dwFlags & D3DDP_FORCE_DWORD);
+		dwFlags &= D3DDP_FORCE_DWORD;
 
 		m_IDirect3DVertexBufferX* pVertexBufferX = nullptr;
 		lpd3dVertexBuffer->QueryInterface(IID_GetInterfaceX, (LPVOID*)&pVertexBufferX);
@@ -3475,8 +3475,8 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 
 		DWORD dwVertexTypeDesc = pVertexBufferX->GetFVF();
 
-		// Negative RHW only means "behind the camera" for vertices the runtime transformed itself
-		if (pVertexBufferX->IsClipProcessed() && !(dwFlags & D3DDP_DONOTCLIP))
+		// Check if vertex buffer has processed vertices that are clipped to preserve negative RHW
+		if ((dwFlags & D3DDP_DONOTCLIP) == 0 && pVertexBufferX->IsClipProcessed())
 		{
 			dwFlags |= D3DDP_DXW_RUNTIMECLIPPED;
 		}
@@ -6807,6 +6807,7 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 		(dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW &&
 		IsValidFVF(dwVertexTypeDesc))
 	{
+		// Negative RHW only means "behind the camera" for vertices the runtime transformed and clipped itself
 		const bool IsClipped = (dwFlags & D3DDP_DXW_RUNTIMECLIPPED) ? true : false;
 		const int texCount = (dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
 
