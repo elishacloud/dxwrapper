@@ -3341,12 +3341,6 @@ HRESULT m_IDirect3DDeviceX::DrawPrimitiveVB(D3DPRIMITIVETYPE dptPrimitiveType, L
 
 		DWORD dwVertexTypeDesc = pVertexBufferX->GetFVF();
 
-		// Check if vertex buffer has processed vertices that are clipped to preserve negative RHW
-		if ((dwFlags & D3DDP_DONOTCLIP) == 0 && pVertexBufferX->IsClipProcessed())
-		{
-			dwFlags |= D3DDP_DXW_RUNTIMECLIPPED;
-		}
-
 		// Set vertex type
 		if (FAILED(SetVertexType(dwVertexTypeDesc, dwFlags)))
 		{
@@ -3474,12 +3468,6 @@ HRESULT m_IDirect3DDeviceX::DrawIndexedPrimitiveVB(D3DPRIMITIVETYPE dptPrimitive
 		}
 
 		DWORD dwVertexTypeDesc = pVertexBufferX->GetFVF();
-
-		// Check if vertex buffer has processed vertices that are clipped to preserve negative RHW
-		if ((dwFlags & D3DDP_DONOTCLIP) == 0 && pVertexBufferX->IsClipProcessed())
-		{
-			dwFlags |= D3DDP_DXW_RUNTIMECLIPPED;
-		}
 
 		// Set vertex type
 		if (FAILED(SetVertexType(dwVertexTypeDesc, dwFlags)))
@@ -6807,8 +6795,6 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 		(dwVertexTypeDesc & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW &&
 		IsValidFVF(dwVertexTypeDesc))
 	{
-		// Negative RHW only means "behind the camera" for vertices the runtime transformed and clipped itself
-		const bool IsClipped = (dwFlags & D3DDP_DXW_RUNTIMECLIPPED) ? true : false;
 		const int texCount = (dwVertexTypeDesc & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
 
 		const int MultiStageShaderCount = texCount != 1 ? 0 :
@@ -6820,7 +6806,9 @@ inline HRESULT m_IDirect3DDeviceX::SetVertexType(DWORD dwVertexTypeDesc, DWORD& 
 			CurrentTextureSurfaceX[2] != nullptr ? 3 :
 			CurrentTextureSurfaceX[1] != nullptr ? 2 : 0;
 
-		IDirect3DVertexShader9* pShader = MultiStageShaderCount ? ddrawParent->GetMultiStageFixupVertexShader(MultiStageShaderCount, IsClipped) : ddrawParent->GetFixupVertexShader(texCount, IsClipped);
+		IDirect3DVertexShader9* pShader = MultiStageShaderCount
+			? ddrawParent->GetMultiStageFixupVertexShader(MultiStageShaderCount)
+			: ddrawParent->GetFixupVertexShader(texCount);
 		IDirect3DVertexDeclaration9* decl = ddrawParent->GetVertexDeclaration(dwVertexTypeDesc);
 
 		if (pShader && decl)

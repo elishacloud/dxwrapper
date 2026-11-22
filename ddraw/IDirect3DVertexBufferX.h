@@ -32,7 +32,6 @@ private:
 	// Vector buffer data
 	std::vector<BYTE, aligned_allocator<BYTE, 4>> VertexData;
 	bool IsVBEmulated = false;
-	bool IsRuntimeClipped = false;	// Last fill was ProcessVertices with D3DVOP_CLIP: negative RHW means behind the camera
 	struct {
 		bool IsLocked = false;
 		void* Addr = nullptr;
@@ -146,5 +145,4 @@ public:
 	inline void ReleaseD9Buffer(bool BackupData, bool ResetBuffer);
 
 	inline DWORD GetFVF() const { return VB.Desc.dwFVF; };
-	inline bool IsClipProcessed() const { return IsRuntimeClipped; };
 };

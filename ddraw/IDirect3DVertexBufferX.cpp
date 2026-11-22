@@ -163,12 +163,6 @@ HRESULT m_IDirect3DVertexBufferX::Lock(DWORD dwFlags, LPVOID* lplpData, LPDWORD 
 
 		*lplpData = nullptr;
 
-		// Only an explicit discard replaces runtime-processed data; a plain lock is usually a colour/fog patch
-		if (dwFlags & DDLOCK_DISCARDCONTENTS)
-		{
-			IsRuntimeClipped = false;
-		}
-
 		if (lpdwSize)
 		{
 			*lpdwSize = 0;
@@ -385,12 +379,6 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVertices(DWORD dwVertexOp, DWORD dwDest
 
 		if (SUCCEEDED(hr))
 		{
-			const bool IsClipping = (doClipping != FALSE);
-			const bool IsProcessingWholeVertex = (dwDestIndex == 0 && dwCount == VB.Desc.dwNumVertices);
-
-			// If processing the whole buffer, use the new clipping flag; otherwise, merge it with the current clipping state
-			IsRuntimeClipped = IsProcessingWholeVertex ? IsClipping : (IsClipping || IsRuntimeClipped);
-
 			hr = CopyBufferToEmulatedMem(dwDestIndex, dwCount);
 		}
 
@@ -601,12 +589,6 @@ HRESULT m_IDirect3DVertexBufferX::ProcessVerticesStrided(DWORD dwVertexOp, DWORD
 
 		if (SUCCEEDED(hr))
 		{
-			const bool IsClipping = (doClipping != FALSE);
-			const bool IsProcessingWholeVertex = (dwDestIndex == 0 && dwCount == VB.Desc.dwNumVertices);
-
-			// If processing the whole buffer, use the new clipping flag; otherwise, merge it with the current clipping state
-			IsRuntimeClipped = IsProcessingWholeVertex ? IsClipping : (IsClipping || IsRuntimeClipped);
-
 			hr = CopyBufferToEmulatedMem(dwDestIndex, dwCount);
 		}
 
