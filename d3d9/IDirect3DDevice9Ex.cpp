@@ -3759,7 +3759,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 		// Certian functions can leave the hardware vertex-processing state
 		// in a condition that causes rendering problems in some games.
 		// Toggling software vertex processing forces D3D9/driver to reset it.
-		if (GetSoftwareVertexProcessing())
+		if (ProxyInterface->GetSoftwareVertexProcessing())
 		{
 			ProxyInterface->SetSoftwareVertexProcessing(FALSE);
 			ProxyInterface->SetSoftwareVertexProcessing(TRUE);
@@ -3832,6 +3832,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 				m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, false, IsEx, ForceFullscreen, false);
 
 				ClearMultiSampled = true;
+				FailedReset = true;
 			}
 		}
 	}
