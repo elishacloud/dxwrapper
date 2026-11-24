@@ -58,8 +58,6 @@ private:
 	bool IsInScene = false;
 	bool BeginSceneCalled = false;
 
-	bool FailedReset = false;
-
 	std::unordered_set<m_IDirect3DSurface9*> EmulatedSurfaceList;
 
 	StateBlockCache StateBlockTable;

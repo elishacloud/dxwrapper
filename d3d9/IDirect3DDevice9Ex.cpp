@@ -122,10 +122,10 @@ ULONG m_IDirect3DDevice9Ex::Release()
 #endif
 
 		// Check for last ref count when not using any refs
-		if (!FailedReset && UsedRef == 0)
+		if (UsedRef == 0)
 		{
 			ProxyInterface->AddRef();
-			if (ProxyInterface->Release() == 1)
+			if (ProxyInterface->Release() == 1 && ProxyInterface->TestCooperativeLevel() == D3D_OK)
 			{
 				// Reset D3D9 vertex processing state.
 				// Certian functions can leave the hardware vertex-processing state
@@ -165,7 +165,7 @@ ULONG m_IDirect3DDevice9Ex::Release()
 
 				UsedRef = 0;
 
-				if (!FailedReset)
+				if (ProxyInterface->TestCooperativeLevel() == D3D_OK)
 				{
 					// Reset D3D9 vertex processing state.
 					// Certian functions can leave the hardware vertex-processing state
@@ -3331,7 +3331,7 @@ void m_IDirect3DDevice9Ex::ReleaseResources(bool isReset)
 
 	if (BlankTexture)
 	{
-		if (isBlankTextureUsed && !FailedReset)
+		if (isBlankTextureUsed && ProxyInterface->TestCooperativeLevel() == D3D_OK)
 		{
 			isBlankTextureUsed = false;
 			ProxyInterface->SetTexture(0, nullptr);
@@ -3715,7 +3715,7 @@ void m_IDirect3DDevice9Ex::ReleaseShadowBackbuffer()
 	if (UsingShadowBackBuffer())
 	{
 		ComPtr<IDirect3DSurface9> pBackbuffer;
-		if (!FailedReset && SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackbuffer.GetAddressOf())))
+		if (ProxyInterface->TestCooperativeLevel() == D3D_OK && SUCCEEDED(ProxyInterface->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, pBackbuffer.GetAddressOf())))
 		{
 			ProxyInterface->SetRenderTarget(0, pBackbuffer.Get());
 		}
@@ -3750,7 +3750,7 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 #endif
 
 	// Handle some compatibility cases
-	if (!FailedReset)
+	if (ProxyInterface->TestCooperativeLevel() == D3D_OK)
 	{
 		// Ignore failures. Some WineD3D games require an EndScene before Reset.
 		ProxyInterface->EndScene();
@@ -3832,7 +3832,6 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 				m_IDirect3D9Ex::UpdatePresentParameter(p_d3dpp, DeviceDetails.DeviceWindow, DeviceDetails, false, IsEx, ForceFullscreen, false);
 
 				ClearMultiSampled = true;
-				FailedReset = true;
 			}
 		}
 	}
@@ -3854,8 +3853,6 @@ HRESULT m_IDirect3DDevice9Ex::ResetT(T, D3DPRESENT_PARAMETERS* pPresentationPara
 			DeviceDetails.SetATOC = false;
 		}
 	}
-
-	FailedReset = FAILED(hr);
 
 	ClearVars();
 
