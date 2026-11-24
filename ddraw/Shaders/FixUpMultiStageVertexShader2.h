@@ -20,13 +20,10 @@ VS main(const VS i)
     const float max_rhw = 1U << 31;
     const float min_rhw = 1.0f / max_rhw;
 
-    // NaN -> smallest RHW
-    const float in_w = isnan(i.pos.w) ? min_rhw : i.pos.w;
-
-    // Preserve the sign of RHW
-    const float rhw = in_w < -min_rhw
-        ? -clamp(-in_w, min_rhw, max_rhw)
-        :  clamp( in_w, min_rhw, max_rhw);
+    // Preserve the sign of RHW (requires this construction to get the correct NaN handling in compiled shader)
+    const float rhw = i.pos.w < -min_rhw
+        ? -clamp(-i.pos.w, min_rhw, max_rhw)
+        :  clamp( i.pos.w, min_rhw, max_rhw);
     const float w = 1.0f / rhw;
 
     VS o = i;
