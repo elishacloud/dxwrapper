@@ -15,7 +15,7 @@ VS main(const VS i)
     const float min_rhw = 1.0f / max_rhw;
 
     // NaN -> smallest RHW
-    const float in_w = i.pos.w == i.pos.w ? i.pos.w : min_rhw;
+    const float in_w = isnan(i.pos.w) ? min_rhw : i.pos.w;
 
     // Preserve the sign of RHW
     const float rhw = in_w < -min_rhw
