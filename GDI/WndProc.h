@@ -70,8 +70,6 @@ namespace WndProc
 		ScopedSetDeviceCreationFlag& operator=(const ScopedSetDeviceCreationFlag&) = delete;
 	};
 
-	extern std::atomic<bool> SwitchingResolution;
-
 	bool ShouldHook(HWND hWnd);
 	std::shared_ptr<DATASTRUCT> AddWndProc(HWND hWnd);
 }

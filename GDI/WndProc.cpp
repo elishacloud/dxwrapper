@@ -33,8 +33,6 @@ namespace WndProc
 
 	std::unordered_map<HWND, std::shared_ptr<DATASTRUCT>> WndProcList;
 
-	std::atomic<bool> SwitchingResolution = false;
-
 	WNDPROC GetWndProc(HWND hWnd);
 	LONG SetWndProc(HWND hWnd, WNDPROC ProcAddress);
 	LRESULT CallWndProc(WNDPROC lpPrevWndFunc, HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
@@ -647,14 +645,6 @@ LRESULT CALLBACK WndProc::Handler(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lPa
 		if (pDataStruct->IsCreatingDevice || pDataStruct->IsExclusiveMode)
 		{
 			return TRUE;
-		}
-		break;
-
-	case WM_DISPLAYCHANGE:
-		// Handle cases where monitor gets disconnected during resolution change
-		if (pDataStruct->IsDirectDraw)
-		{
-			SwitchingResolution = true;
 		}
 		break;
 

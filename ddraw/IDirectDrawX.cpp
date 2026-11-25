@@ -3419,21 +3419,6 @@ bool m_IDirectDrawX::CheckD9Device(char* FunctionName)
 		}
 	}
 
-	// Check for delay while resolution switching
-	if (WndProc::SwitchingResolution && TestD3D9CooperativeLevel() == D3DERR_DEVICELOST)
-	{
-		// Causes slow alt+tab response
-		/*for (int attempts = 0; attempts < 20; ++attempts)
-		{
-			if (TestD3D9CooperativeLevel() != D3DERR_DEVICELOST)
-			{
-				break;
-			}
-			Sleep(500);
-		}*/
-	}
-	//WndProc::SwitchingResolution = false;
-
 	// Try to restore the device
 	if (IsDeviceLost && TestD3D9CooperativeLevel() == D3DERR_DEVICENOTRESET)
 	{
@@ -3688,7 +3673,6 @@ void m_IDirectDrawX::AfterDeviceCreation()
 	CreationInterface = this;
 	LastDrawDevice = 0;
 	IsDeviceLost = false;
-	WndProc::SwitchingResolution = false;
 	IsDeviceVerticesSet = false;
 	EnableWaitVsync = false;
 
@@ -4283,8 +4267,7 @@ HRESULT m_IDirectDrawX::ResetD9Device()
 	HRESULT hr = TestD3D9CooperativeLevel();
 	switch (hr)
 	{
-	case DD_OK:
-		WndProc::SwitchingResolution = false;
+	case D3D_OK:
 		return DD_OK;
 
 	default:
@@ -4712,7 +4695,6 @@ HRESULT m_IDirectDrawX::TestD3D9CooperativeLevel()
 	case DD_OK:
 	case DDERR_NOEXCLUSIVEMODE:
 		IsDeviceLost = false;
-		WndProc::SwitchingResolution = false;
 		return DD_OK;
 	case D3DERR_DEVICELOST:
 	case D3DERR_DEVICENOTRESET:
