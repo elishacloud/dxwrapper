@@ -644,9 +644,7 @@ HRESULT m_IDirect3DViewportX::DeleteLight(LPDIRECT3DLIGHT lpDirect3DLight)
 
 		m_IDirect3DLight* lpDirect3DLightX = reinterpret_cast<m_IDirect3DLight*>(lpDirect3DLight);
 
-		bool ret = DeleteAttachedLight(lpDirect3DLightX);
-
-		if (!ret)
+		if (!DeleteAttachedLight(lpDirect3DLightX))
 		{
 			return DDERR_INVALIDPARAMS;
 		}
@@ -1243,16 +1241,6 @@ void m_IDirect3DViewportX::GetAttachedBufferDetails(m_IDirect3DDeviceX* pD3DDevi
 			HasAttachedZBuffer = true;
 			HasAttachedStencil = HasStencil(pZBuffer->GetSurfaceFormat());
 		}
-	}
-}
-
-void m_IDirect3DViewportX::ClearLight(m_IDirect3DLight* lpLight)
-{
-	// Find and remove the light from the list
-	auto it = std::find(AttachedLights.begin(), AttachedLights.end(), lpLight);
-	if (it != AttachedLights.end())
-	{
-		AttachedLights.erase(it);
 	}
 }
 

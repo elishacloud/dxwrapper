@@ -1202,7 +1202,7 @@ void m_IDirect3DX::ClearLight(m_IDirect3DLight* lpLight)
 	// Remove light from all viewports
 	for (auto& entry : ViewportList)
 	{
-		entry->ClearLight(lpLight);
+		entry->DeleteLight(lpLight);
 	}
 	// Remove light from all D3D devices
 	for (auto& entry : D3DDeviceList)

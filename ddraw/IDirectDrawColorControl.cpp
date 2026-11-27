@@ -92,6 +92,11 @@ ULONG m_IDirectDrawColorControl::Release()
 
 	if (Config.Dd7to9)
 	{
+		if (RefCount == 0)
+		{
+			return 0;
+		}
+
 		ULONG ref = InterlockedDecrementIfNotNull(&RefCount);
 
 		if (ref == 0)

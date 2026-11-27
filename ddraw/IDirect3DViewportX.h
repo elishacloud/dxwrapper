@@ -34,9 +34,7 @@ private:
 
 	bool IsLightAttached(m_IDirect3DLight* LightX)
 	{
-		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
-			[=](auto pLight) -> bool { return pLight == LightX; });
-
+		auto it = std::find(AttachedLights.begin(), AttachedLights.end(), LightX);
 		if (it != AttachedLights.end())
 		{
 			return true;
@@ -46,9 +44,7 @@ private:
 
 	bool DeleteAttachedLight(m_IDirect3DLight* LightX)
 	{
-		auto it = std::find_if(AttachedLights.begin(), AttachedLights.end(),
-			[=](auto pLight) -> bool { return pLight == LightX; });
-
+		auto it = std::find(AttachedLights.begin(), AttachedLights.end(), LightX);
 		if (it != AttachedLights.end())
 		{
 			AttachedLights.erase(it);
@@ -178,7 +174,4 @@ public:
 	inline void ClearD3D() { D3DInterface = nullptr; }
 	ULONG AddRef(DWORD DirectXVersion);
 	ULONG Release(DWORD DirectXVersion);
-
-	// Light functions
-	void ClearLight(m_IDirect3DLight* lpLight);
 };

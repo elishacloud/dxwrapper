@@ -92,6 +92,11 @@ ULONG m_IDirect3DLight::Release()
 
 	if (Config.Dd7to9)
 	{
+		if (RefCount == 0)
+		{
+			return 0;
+		}
+
 		ULONG ref = InterlockedDecrementIfNotNull(&RefCount);
 
 		if (ref == 0)
@@ -201,6 +206,12 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 
 		memcpy(&Light, lpLight, lpLight->dwSize);
 
+		// If setting D3DLIGHT then set active flag
+		if (Light.dwSize == sizeof(D3DLIGHT))
+		{
+			Light.dwFlags = D3DLIGHT_ACTIVE;
+		}
+
 		// If light is in use then update device
 		if (Viewport)
 		{
@@ -259,13 +270,6 @@ HRESULT m_IDirect3DLight::GetLight(LPD3DLIGHT lpLight)
 		memcpy(lpLight, &Light, Size);
 		lpLight->dwSize = Size;
 
-		// If attempts to get D3DLIGHT2 from D3DLIGHT then set active flag
-		if (Light.dwSize == sizeof(D3DLIGHT) && lpLight->dwSize == sizeof(D3DLIGHT2))
-		{
-			LPD3DLIGHT2 lpLight2 = reinterpret_cast<LPD3DLIGHT2>(lpLight);
-			lpLight2->dwFlags = D3DLIGHT_ACTIVE;
-		}
-
 		return D3D_OK;
 	}
 
@@ -296,7 +300,7 @@ void m_IDirect3DLight::ReleaseInterface()
 
 	if (Viewport)
 	{
-		Viewport->ClearLight(this);
+		Viewport->DeleteLight(this);
 	}
 
 	if (D3DInterface)
@@ -304,6 +308,7 @@ void m_IDirect3DLight::ReleaseInterface()
 		D3DInterface->ClearLight(this);
 	}
 
+	ClearViewport();
 	ClearD3D();
 }
 

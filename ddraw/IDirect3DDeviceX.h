@@ -563,8 +563,7 @@ public:
 	{
 		if (!ViewportX) return false;
 
-		auto it = std::find_if(AttachedViewports.begin(), AttachedViewports.end(),
-			[=](auto pViewport) -> bool { return pViewport == ViewportX; });
+		auto it = std::find(AttachedViewports.begin(), AttachedViewports.end(), ViewportX);
 
 		if (it != AttachedViewports.end())
 		{
