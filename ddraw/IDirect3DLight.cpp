@@ -199,7 +199,7 @@ HRESULT m_IDirect3DLight::SetLight(LPD3DLIGHT lpLight)
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: geometry light spot not supported!");
 		}
 
-		if (Light.dwSize == sizeof(D3DLIGHT2) && lpLight->dwSize != sizeof(D3DLIGHT))
+		if (Light.dwSize == sizeof(D3DLIGHT2) && lpLight->dwSize == sizeof(D3DLIGHT))
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: setting a D3DLIGHT2 with a D3DLIGHT struct.  Old flags: " << Logging::hex(Light.dwFlags));
 		}
@@ -288,7 +288,6 @@ void m_IDirect3DLight::InitInterface()
 	}
 
 	Light = {};
-	Viewport = nullptr;
 }
 
 void m_IDirect3DLight::ReleaseInterface()
