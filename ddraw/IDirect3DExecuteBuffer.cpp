@@ -175,6 +175,9 @@ HRESULT m_IDirect3DExecuteBuffer::Lock(LPD3DEXECUTEBUFFERDESC lpDesc)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Set Executing flag
+		ScopedAtomicFlagSet SetLockFlag(IsExecuting);
+
 		// Not checked by native ddraw
 		//if (lpDesc->dwSize != sizeof(D3DEXECUTEBUFFERDESC) && lpDesc->dwSize != 76)
 		//{
@@ -214,6 +217,9 @@ HRESULT m_IDirect3DExecuteBuffer::Unlock()
 
 	if (Config.Dd7to9)
 	{
+		// Set Executing flag
+		ScopedAtomicFlagSet SetLockFlag(IsExecuting);
+
 		// Check if the buffer is not locked
 		if (!IsLocked)
 		{
@@ -252,19 +258,20 @@ HRESULT m_IDirect3DExecuteBuffer::SetExecuteData(LPD3DEXECUTEDATA lpExecuteData)
 			return DDERR_INVALIDPARAMS;
 		}
 
+		// Set Executing flag
+		ScopedAtomicFlagSet SetLockFlag(IsExecuting);
+
 		const size_t instructionSize = lpExecuteData->dwInstructionOffset + lpExecuteData->dwInstructionLength;
 		const size_t vertexSize = lpExecuteData->dwVertexOffset + lpExecuteData->dwVertexCount * sizeof(D3DVERTEX);
 		const size_t hVertexSize = lpExecuteData->dwHVertexOffset + lpExecuteData->dwVertexCount * sizeof(D3DTLVERTEX);
 		const size_t bufferSize = Desc.dwBufferSize;
 
-		// Not validated by native, thus the call will succeed even if the buffer size is insufficient.
-		// Incoming sends a lot of such junk calls, but apparently doesn't blow up because of it.
+		// Not validated by native ddraw, just make sure the buffer size is sufficient
 		if (instructionSize > bufferSize || vertexSize > bufferSize || hVertexSize > bufferSize)
 		{
 			LOG_LIMIT(100, __FUNCTION__ << " Warning: Buffer size is insufficient for specified data");
 		}
 
-		// Store execute data (not validated by native ddraw)
 		ExecuteData = *lpExecuteData;
 
 		return D3D_OK;
