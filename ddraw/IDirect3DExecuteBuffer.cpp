@@ -423,7 +423,7 @@ HRESULT m_IDirect3DExecuteBuffer::GetBufferInternal(std::vector<BYTE>& BufferDat
 	return D3D_OK;
 }
 
-HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExecuteData, LPDWORD lpdwOffset, LPD3DVALIDATECALLBACK lpFunc, LPVOID lpUserArg)
+HRESULT m_IDirect3DExecuteBuffer::ValidateInstructionData(LPD3DEXECUTEDATA lpExecuteData, LPDWORD lpdwOffset, LPD3DVALIDATECALLBACK lpFunc, LPVOID lpUserArg) const
 {
 	if (!lpExecuteData)
 	{
