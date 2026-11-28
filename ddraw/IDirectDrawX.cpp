@@ -158,14 +158,16 @@ namespace {
 	constexpr DWORD IndexBufferMinChunkSize = 512;
 	struct {
 		std::vector<DX_INDEX_BUFFER> IndexBuffer = {
-			//DX_INDEX_BUFFER(64),
 			//DX_INDEX_BUFFER(128),
 			//DX_INDEX_BUFFER(256),
 			//DX_INDEX_BUFFER(512),
 			//DX_INDEX_BUFFER(1024),
 			//DX_INDEX_BUFFER(2048),
 			//DX_INDEX_BUFFER(4096),
-			DX_INDEX_BUFFER(UINT_MAX / sizeof(WORD))
+			//DX_INDEX_BUFFER(8192),
+			//DX_INDEX_BUFFER(16384),
+			//DX_INDEX_BUFFER(32768),
+			DX_INDEX_BUFFER(D3DMAXNUMVERTICES)
 		};
 	} Layer[IndexBufferRotationSize];
 
@@ -3579,13 +3581,13 @@ LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBuffer(LPWORD lpwIndices, DWORD d
 	{
 		if (dwIndexCount <= entry.MaxCount)
 		{
-			return GetIndexBufferX(lpwIndices, dwIndexCount, entry.Size, entry.Buffer);
+			return GetIndexBufferX(lpwIndices, dwIndexCount, entry.Size, entry.MaxCount, entry.Buffer);
 		}
 	}
 	return nullptr;
 }
 
-inline LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBufferX(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& IndexBufferSize, LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer)
+inline LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBufferX(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& IndexBufferSize, const DWORD MaxBufferCount, LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer)
 {
 	if (!lpwIndices)
 	{
@@ -3593,7 +3595,7 @@ inline LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBufferX(LPWORD lpwIndices,
 		return nullptr;
 	}
 
-	if (dwIndexCount > (UINT_MAX / sizeof(WORD)))
+	if (dwIndexCount > D3DMAXNUMVERTICES)
 	{
 		return nullptr;
 	}
@@ -3611,7 +3613,9 @@ inline LPDIRECT3DINDEXBUFFER9 m_IDirectDrawX::GetIndexBufferX(LPWORD lpwIndices,
 	{
 		ReleaseD3D9IndexBuffer(d3d9IndexBuffer, IndexBufferSize);
 
-		const DWORD IndexCreationSize = ((IndexSize + IndexBufferMinChunkSize - 1) / IndexBufferMinChunkSize) * IndexBufferMinChunkSize;
+		const DWORD IndexCreationSize = MaxBufferCount == D3DMAXNUMVERTICES
+			? min(((IndexSize + IndexBufferMinChunkSize - 1) / IndexBufferMinChunkSize) * IndexBufferMinChunkSize, MaxBufferCount * sizeof(WORD))
+			: MaxBufferCount * sizeof(WORD);
 
 		// Create in video memory and then use discard when locking to improve system performance
 		hr = d3d9Device->CreateIndexBuffer(IndexCreationSize, D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &d3d9IndexBuffer, nullptr);

@@ -249,7 +249,7 @@ public:
 	LPDIRECT3DVERTEXSHADER9 GetMultiStageFixupVertexShader(DWORD texStageCount);
 	LPDIRECT3DVERTEXBUFFER9 GetVertexBuffer(DWORD FVF, UINT Length, void* lpData);
 	LPDIRECT3DINDEXBUFFER9 GetIndexBuffer(LPWORD lpwIndices, DWORD dwIndexCount);
-	LPDIRECT3DINDEXBUFFER9 GetIndexBufferX(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& IndexBufferSize, LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer);
+	LPDIRECT3DINDEXBUFFER9 GetIndexBufferX(LPWORD lpwIndices, DWORD dwIndexCount, DWORD& IndexBufferSize, const DWORD MaxBufferCount, LPDIRECT3DINDEXBUFFER9& d3d9IndexBuffer);
 	void GetMultiSampleTypeQuality(D3DMULTISAMPLE_TYPE& MaxSampleType, DWORD& QualityLevels) const;
 	void AfterDeviceCreation();
 	void Clear3DDeviceState(bool SetDefaultStateBlock);
